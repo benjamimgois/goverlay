@@ -21,6 +21,7 @@ type
     FModified: Boolean;
     function FindLineIndex(const AKeyPrefix: string; AStartIndex: Integer = 0): Integer;
     function FindLineIndexInSection(const AKeyPrefix, ASection: string): Integer;
+    function FindSectionIndex(const ASection: string): Integer;
     function IsSectionHeader(const ALine: string; out ASectionName: string): Boolean;
   public
     constructor Create;
@@ -173,6 +174,16 @@ begin
   Result := (Length(Trimmed) > 0) and ((Trimmed[1] = ';') or (Trimmed[1] = '#'));
 end;
 
+function CleanSectionName(const ASection: string): string;
+var
+  S: string;
+begin
+  S := Trim(ASection);
+  if (Length(S) >= 2) and (S[1] = '[') and (S[Length(S)] = ']') then
+    S := Copy(S, 2, Length(S) - 2);
+  Result := LowerCase(Trim(S));
+end;
+
 function CleanKeyLine(const AStr: string): string;
 var
   i: Integer;
@@ -205,6 +216,26 @@ begin
     end;
 end;
 
+function TConfigFile.FindSectionIndex(const ASection: string): Integer;
+var
+  i: Integer;
+  SectionName: string;
+  CleanTargetSec: string;
+begin
+  Result := -1;
+  CleanTargetSec := CleanSectionName(ASection);
+  if CleanTargetSec = '' then Exit;
+
+  for i := 0 to FLines.Count - 1 do
+  begin
+    if IsSectionHeader(FLines[i], SectionName) and (CleanSectionName(SectionName) = CleanTargetSec) then
+    begin
+      Result := i;
+      Exit;
+    end;
+  end;
+end;
+
 function TConfigFile.FindLineIndexInSection(const AKeyPrefix, ASection: string): Integer;
 var
   i: Integer;
@@ -213,9 +244,11 @@ var
   Trimmed: string;
   CleanPrefix: string;
   CleanLine: string;
+  CleanTargetSec: string;
 begin
   Result := -1;
-  InSection := (ASection = '');
+  CleanTargetSec := CleanSectionName(ASection);
+  InSection := (CleanTargetSec = '');
   CleanPrefix := CleanKeyLine(AKeyPrefix);
 
   for i := 0 to FLines.Count - 1 do
@@ -224,9 +257,9 @@ begin
 
     if IsSectionHeader(Trimmed, SectionName) then
     begin
-      if InSection and (SectionName <> ASection) then
+      if InSection and (CleanSectionName(SectionName) <> CleanTargetSec) then
         Exit; // left the target section without finding the key
-      InSection := (SectionName = ASection);
+      InSection := (CleanSectionName(SectionName) = CleanTargetSec);
       Continue;
     end;
 
@@ -269,8 +302,9 @@ end;
 
 procedure TConfigFile.SetValue(const AKeyPrefix, AValue: string; const ASection: string = '');
 var
-  idx: Integer;
-  KeyName: string;
+  idx, secIdx, insertIdx, i: Integer;
+  SectionName: string;
+  CleanSec: string;
 begin
   if ASection <> '' then
     idx := FindLineIndexInSection(AKeyPrefix, ASection)
@@ -283,19 +317,32 @@ begin
   end
   else
   begin
-    // Key not found — append at end (or after section if specified)
+    // Key not found
     if ASection <> '' then
     begin
-      idx := FindLineIndex(ASection);
-      if idx >= 0 then
+      secIdx := FindSectionIndex(ASection);
+      if secIdx >= 0 then
       begin
-        // Insert after section header (or at end of section)
-        FLines.Insert(idx + 1, AKeyPrefix + AValue);
+        // Find end of section (before next section header or EOF)
+        insertIdx := FLines.Count;
+        for i := secIdx + 1 to FLines.Count - 1 do
+        begin
+          if IsSectionHeader(FLines[i], SectionName) then
+          begin
+            insertIdx := i;
+            Break;
+          end;
+        end;
+        FLines.Insert(insertIdx, AKeyPrefix + AValue);
         FModified := True;
         Exit;
       end;
-      // Section not found — add section header + key
-      FLines.Add(ASection);
+      // Section not found — add section header with brackets + key
+      CleanSec := CleanSectionName(ASection);
+      FLines.Add('[' + CleanSec + ']');
+      FLines.Add(AKeyPrefix + AValue);
+      FModified := True;
+      Exit;
     end;
     FLines.Add(AKeyPrefix + AValue);
   end;
@@ -357,17 +404,8 @@ begin
 end;
 
 function TConfigFile.HasSection(const ASection: string): Boolean;
-var
-  i: Integer;
-  SectionName: string;
 begin
-  Result := False;
-  for i := 0 to FLines.Count - 1 do
-    if IsSectionHeader(Trim(FLines[i]), SectionName) and (SectionName = ASection) then
-    begin
-      Result := True;
-      Exit;
-    end;
+  Result := FindSectionIndex(ASection) >= 0;
 end;
 
 procedure TConfigFile.Clear;

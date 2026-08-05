@@ -744,13 +744,13 @@ begin
         FGOutputValue := 'auto';
       end;
 
-      OptiCfg.SetValue('FGInput=', FGInputValue, 'FrameGen');
-      OptiCfg.SetValue('FGOutput=', FGOutputValue, 'FrameGen');
+      OptiCfg.SetValue('FGInput=', FGInputValue, OPTI_INI_SECTION_FRAMEGEN);
+      OptiCfg.SetValue('FGOutput=', FGOutputValue, OPTI_INI_SECTION_FRAMEGEN);
 
       if (not SameText(FGInputValue, 'auto')) or (not SameText(FGOutputValue, 'auto')) then
-        OptiCfg.SetValue('Enabled=', 'true', 'FrameGen')
+        OptiCfg.SetValue('Enabled=', 'true', OPTI_INI_SECTION_FRAMEGEN)
       else
-        OptiCfg.SetValue('Enabled=', 'auto', 'FrameGen');
+        OptiCfg.SetValue('Enabled=', 'auto', OPTI_INI_SECTION_FRAMEGEN);
 
       OptiCfg.Save;
     end;
@@ -1310,7 +1310,7 @@ begin
         else
           Settings.ForceFsr4Int8Checked := True;
 
-        Value := OptiCfg.GetValue('FGInput=', '', 'FrameGen');
+        Value := OptiCfg.GetValue('FGInput=', '', OPTI_INI_SECTION_FRAMEGEN);
         if SameText(Value, 'nofg') then
           Settings.FGInputItemIndex := 1
         else if SameText(Value, 'dlssg') then
@@ -1326,7 +1326,7 @@ begin
         else
           Settings.FGInputItemIndex := 0;
 
-        Value := OptiCfg.GetValue('FGOutput=', '', 'FrameGen');
+        Value := OptiCfg.GetValue('FGOutput=', '', OPTI_INI_SECTION_FRAMEGEN);
         if SameText(Value, 'nofg') then
           Settings.FGOutputItemIndex := 1
         else if SameText(Value, 'fsrfg') then

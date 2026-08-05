@@ -109,6 +109,7 @@ const
   OPTI_DLL_ASI                 = 'OptiScaler.asi';
 
   OPTI_INI_SECTION_MENU        = '[Menu]';
+  OPTI_INI_SECTION_FRAMEGEN    = '[FrameGen]';
   OPTI_KEY_SHORTCUT            = 'ShortcutKey=';
   OPTI_KEY_SCALE               = 'Scale=';
   OPTI_KEY_OVERRIDE_NVAPI      = 'OverrideNvapiDll=';
