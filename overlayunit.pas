@@ -1041,11 +1041,12 @@ type
     optiscalerLogoImage: TImage;
     dlssEnablerLogoImage: TImage;
     dlssEnablerVersionLabel: TLabel;
+    streamlineVersionLabel: TLabel;
     FOptiScalerPngLogo: TPortableNetworkGraphic;
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
-    FOsStatDots:     array[0..4] of TShape;
-    FOsStatNameLbls: array[0..4] of TLabel;
-    FOsStatVerLbls:  array[0..4] of TLabel;
+    FOsStatDots:     array[0..5] of TShape;
+    FOsStatNameLbls: array[0..5] of TLabel;
+    FOsStatVerLbls:  array[0..5] of TLabel;
     FOsShortcutCaptureBtn:  TBitBtn;
     FLaunchCommand: string;
     FOptiscalerUpdate: TOptiscalerTab;

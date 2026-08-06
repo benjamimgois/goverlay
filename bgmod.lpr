@@ -1306,6 +1306,14 @@ begin
           SafeCopyFile(SourceDir + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssd.dll');
           SafeCopyFile(SourceDir + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssg.dll');
           
+          // Streamline SDK libraries
+          SafeCopyFile(SourceDir + 'sl.common.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.common.dll');
+          SafeCopyFile(SourceDir + 'sl.dlss.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.dlss.dll');
+          SafeCopyFile(SourceDir + 'sl.dlss_g.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.dlss_g.dll');
+          SafeCopyFile(SourceDir + 'sl.interposer.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.interposer.dll');
+          SafeCopyFile(SourceDir + 'sl.nis.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.nis.dll');
+          SafeCopyFile(SourceDir + 'sl.reflex.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.reflex.dll');
+          
           // 9. Copy Nukem FG
           SafeCopyFile(SourceDir + 'dlssg_to_fsr3_amd_is_better.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
           

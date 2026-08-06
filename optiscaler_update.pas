@@ -17,6 +17,9 @@ function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
 // Check and automatically install DLSS Enabler if not present
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 
+// Check and automatically install Streamline SDK if not present
+function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -1444,7 +1447,7 @@ var
   Line: string;
   Key, Value: string;
   SepPos: Integer;
-  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer, DlssVer, DlssEnablerVer: string;
+  DeckyVer, OptiVer, FakeNvapiVer, FsrVer, XessVer, OptiPatcherVer, DlssVer, DlssEnablerVer, StreamlineVer: string;
   DlssEdgeVars: string;
   DlssEdgeFile: TextFile;
 begin
@@ -1472,6 +1475,7 @@ begin
   OptiPatcherVer := '';
   DlssVer := '';
   DlssEnablerVer := '';
+  StreamlineVer := '';
 
   try
     AssignFile(VarsFile, VarsFilePath);
@@ -1506,7 +1510,9 @@ begin
           else if SameText(Key, 'dlssversion') then
             DlssVer := Value
           else if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
-            DlssEnablerVer := Value;
+            DlssEnablerVer := Value
+          else if SameText(Key, 'streamlineversion') or SameText(Key, 'streamline') then
+            StreamlineVer := Value;
         end;
       end;
     finally
@@ -1624,6 +1630,8 @@ begin
               Value := Copy(Line, SepPos + 1, MaxInt);
               if (DlssEnablerVer = '') and (SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler')) then
                 DlssEnablerVer := Value;
+              if (StreamlineVer = '') and (SameText(Key, 'streamlineversion') or SameText(Key, 'streamline')) then
+                StreamlineVer := Value;
               if (Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked) or (OptiVer = '') then
               begin
                 if SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
@@ -1645,12 +1653,17 @@ begin
     end;
 
     if not (Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked) then
+    begin
       DlssEnablerVer := '--';
+      StreamlineVer := '--';
+    end;
 
     if Assigned(FDlssEnablerLabel) then
       FDlssEnablerLabel.Caption := FormatDlssEnablerDisplayTag(DlssEnablerVer);
     if Assigned(goverlayform.dlssEnablerVersionLabel) then
       goverlayform.dlssEnablerVersionLabel.Caption := FormatDlssEnablerDisplayTag(DlssEnablerVer);
+    if Assigned(goverlayform.streamlineVersionLabel) then
+      goverlayform.streamlineVersionLabel.Caption := StreamlineVer;
 
   except
     on E: Exception do
@@ -2757,7 +2770,157 @@ begin
     VarsList.Free;
   end;
 
+  CheckAndInstallStreamlineSDK(AIsStable, AForce);
+
   Result := FileExists(VarsFilePath) and FileExists(DestDir + 'version.dll');
+end;
+
+// Check and automatically install Streamline SDK if not present
+function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
+var
+  DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TmpDir, Response: string;
+  Process: TProcess;
+  VarsList: TStringList;
+  AlreadyExtracted: Boolean;
+  StartPos, EndPos, AssetPos, TagPos: Integer;
+begin
+  Result := False;
+  DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(AIsStable));
+  VarsFilePath := DestDir + 'goverlay.vars';
+  AlreadyExtracted := FileExists(DestDir + 'sl.common.dll') or FileExists(DestDir + 'sl.interposer.dll');
+
+  if not AForce and AlreadyExtracted then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  ForceDirectories(DestDir);
+  TagName := '';
+  DownloadUrl := '';
+
+  WriteLn('[STREAMLINE-SDK] Checking latest release from NVIDIA-RTX/Streamline...');
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/NVIDIA-RTX/Streamline/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
+  finally
+    Process.Free;
+  end;
+
+  TagPos := Pos('"tag_name"', Response);
+  if TagPos > 0 then
+  begin
+    TagPos := PosEx('"', Response, TagPos + 10);
+    if TagPos > 0 then
+    begin
+      EndPos := PosEx('"', Response, TagPos + 1);
+      if (EndPos > TagPos) then
+      begin
+        TagName := Copy(Response, TagPos + 1, EndPos - TagPos - 1);
+        if (Length(TagName) > 1) and (TagName[1] = 'v') then
+          TagName := Copy(TagName, 2, MaxInt);
+      end;
+    end;
+  end;
+
+  AssetPos := Pos('"browser_download_url"', Response);
+  if AssetPos > 0 then
+  begin
+    StartPos := PosEx('http', Response, AssetPos);
+    if StartPos > 0 then
+    begin
+      EndPos := PosEx('"', Response, StartPos);
+      if (EndPos > StartPos) then
+        DownloadUrl := Copy(Response, StartPos, EndPos - StartPos);
+    end;
+  end;
+
+  if TagName = '' then TagName := '2.12.0';
+  if DownloadUrl = '' then
+    DownloadUrl := 'https://github.com/NVIDIA-RTX/Streamline/releases/download/v' + TagName + '/streamline-sdk-v' + TagName + '.zip';
+
+  ZipFile := DestDir + 'streamline.zip';
+  TmpDir := DestDir + 'streamline_tmp' + PathDelim;
+
+  WriteLn('[STREAMLINE-SDK] Downloading ', DownloadUrl);
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(ZipFile);
+    Process.Parameters.Add(DownloadUrl);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if FileExists(ZipFile) then
+  begin
+    WriteLn('[STREAMLINE-SDK] Extracting DLLs from /bin/x64/...');
+    ForceDirectories(TmpDir);
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := '7z';
+      Process.Parameters.Add('x');
+      Process.Parameters.Add('-y');
+      Process.Parameters.Add('-o' + TmpDir);
+      Process.Parameters.Add(ZipFile);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+    DeleteFile(ZipFile);
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'sh';
+      Process.Parameters.Add('-c');
+      Process.Parameters.Add('find "' + TmpDir + '" -type f -path "*/bin/x64/*.dll" -exec cp -f {} "' + DestDir + '" \;');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'rm';
+      Process.Parameters.Add('-rf');
+      Process.Parameters.Add(TmpDir);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+  end;
+
+  VarsList := TStringList.Create;
+  try
+    if FileExists(VarsFilePath) then
+      VarsList.LoadFromFile(VarsFilePath);
+    VarsList.Values['streamlineversion'] := TagName;
+    VarsList.SaveToFile(VarsFilePath);
+  finally
+    VarsList.Free;
+  end;
+
+  Result := FileExists(DestDir + 'sl.common.dll') or FileExists(DestDir + 'sl.interposer.dll');
 end;
 
 // Check and automatically install OptiScaler if not present

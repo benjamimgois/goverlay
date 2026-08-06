@@ -195,8 +195,8 @@ const
   end;
 
 const
-  STAT_NAMES: array[0..4] of string = (
-    'OptiScaler', 'DLSS Enabler', 'FakeNVAPI', 'DLSS / FSR / XeSS', 'OptiPatcher');
+  STAT_NAMES: array[0..5] of string = (
+    'OptiScaler', 'DLSS Enabler', 'Streamline SDK', 'FakeNVAPI', 'DLSS / FSR / XeSS', 'OptiPatcher');
 var
   i: Integer;
   Dot: TShape;
@@ -734,7 +734,7 @@ begin
     updatestatusLabel.Transparent := True;
 
     // Build dot + name + version rows for each library
-    for i := 0 to 4 do
+    for i := 0 to 5 do
     begin
       Dot := TShape.Create(FForm);
       Dot.Parent      := FOsStatusCard;
@@ -783,7 +783,7 @@ begin
   begin
     if not Assigned(FOsStatDots[0]) then Exit;
 
-    for i := 0 to 4 do
+    for i := 0 to 5 do
     begin
       case i of
         0: // OptiScaler
@@ -835,9 +835,12 @@ begin
             end;
           end;
 
-        2: // FakeNVAPI
+        2: // Streamline SDK
           begin
-            Ver := fakenvapi1.Caption;
+            if Assigned(streamlineVersionLabel) then
+              Ver := streamlineVersionLabel.Caption
+            else
+              Ver := '';
             VerCaption := IfThen(Ver <> '', Ver, '—');
             FOsStatVerLbls[2].Caption    := VerCaption;
             FOsStatVerLbls[2].Font.Color := PURPLE;
@@ -847,7 +850,19 @@ begin
               FOsStatDots[2].Brush.Color := CLR_NONE;
           end;
 
-        3: // DLSS / FSR / XeSS
+        3: // FakeNVAPI
+          begin
+            Ver := fakenvapi1.Caption;
+            VerCaption := IfThen(Ver <> '', Ver, '—');
+            FOsStatVerLbls[3].Caption    := VerCaption;
+            FOsStatVerLbls[3].Font.Color := PURPLE;
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+              FOsStatDots[3].Brush.Color := CLR_OK
+            else
+              FOsStatDots[3].Brush.Color := CLR_NONE;
+          end;
+
+        4: // DLSS / FSR / XeSS
           begin
             DlssV := dlssLabel1.Caption;
             FsrV  := fsrLabel1.Caption;
@@ -858,26 +873,26 @@ begin
             if (XessV = '') or (XessV = '--') then XessV := '—';
 
             VerCaption := DlssV + ' / ' + FsrV + ' / ' + XessV;
-            FOsStatVerLbls[3].Caption    := VerCaption;
-            FOsStatVerLbls[3].Font.Color := PURPLE;
+            FOsStatVerLbls[4].Caption    := VerCaption;
+            FOsStatVerLbls[4].Font.Color := PURPLE;
 
             HasAnyUpscaler := (DlssV <> '—') or (FsrV <> '—') or (XessV <> '—');
             if HasAnyUpscaler then
-              FOsStatDots[3].Brush.Color := CLR_OK
-            else
-              FOsStatDots[3].Brush.Color := CLR_NONE;
-          end;
-
-        4: // OptiPatcher
-          begin
-            Ver := optipatcherLabel1.Caption;
-            VerCaption := IfThen(Ver <> '', Ver, '—');
-            FOsStatVerLbls[4].Caption    := VerCaption;
-            FOsStatVerLbls[4].Font.Color := PURPLE;
-            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[4].Brush.Color := CLR_OK
             else
               FOsStatDots[4].Brush.Color := CLR_NONE;
+          end;
+
+        5: // OptiPatcher
+          begin
+            Ver := optipatcherLabel1.Caption;
+            VerCaption := IfThen(Ver <> '', Ver, '—');
+            FOsStatVerLbls[5].Caption    := VerCaption;
+            FOsStatVerLbls[5].Font.Color := PURPLE;
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+              FOsStatDots[5].Brush.Color := CLR_OK
+            else
+              FOsStatDots[5].Brush.Color := CLR_NONE;
           end;
       end;
     end;
@@ -1085,7 +1100,7 @@ begin
     ColX[0] := PAD;
     ColX[1] := PAD + ColW;
 
-    for i := 0 to 4 do
+    for i := 0 to 5 do
     begin
       Col    := i mod 2;
       RowIdx := i div 2;
