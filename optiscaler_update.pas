@@ -2842,7 +2842,47 @@ begin
 
   if TagName = '' then
   begin
-    if AIsStable then TagName := '4.8.12' else TagName := '4.8.13.5';
+    if AIsStable then TagName := '4.8.12' else TagName := '4.8.13.6';
+  end;
+
+  // HTML directory scraping fallback if API returned no download_url
+  if DownloadUrl = '' then
+  begin
+    WriteLn('[DLSS-ENABLER] GitHub API rate limited or failed, attempting HTML directory list scraping...');
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/tree/nightly-action/de');
+      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Execute;
+      SetLength(Response, Process.Output.NumBytesAvailable);
+      if Length(Response) > 0 then
+        Process.Output.Read(Response[1], Length(Response));
+    finally
+      Process.Free;
+    end;
+
+    StartPos := 1;
+    while True do
+    begin
+      NamePos := PosEx('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/', Response, StartPos);
+      if NamePos = 0 then Break;
+      StartPos := NamePos + Length('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/');
+      EndPos := PosEx('"', Response, StartPos);
+      if EndPos = 0 then Break;
+      ItemName := Copy(Response, StartPos, EndPos - StartPos);
+
+      if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS', ItemName) > 0) then
+      begin
+        DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/' + ItemName;
+        WriteLn('[DLSS-ENABLER] HTML scraping found URL: ', DownloadUrl);
+        Break;
+      end;
+      StartPos := EndPos + 1;
+    end;
   end;
 
   if DownloadUrl = '' then
@@ -2850,7 +2890,7 @@ begin
     if AIsStable then
       DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/DLSS%20Enabler%204.8.12%20STABLE%20757%204.8.12%202026-07-26T18-01Z%20K8HToGjQv.zip'
     else
-      DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/DLSS%20Enabler%204.8.13.5%20TRUNK.zip';
+      DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/DLSS%20Enabler%204.8.13.6%20RC2%20TRUNK.zip';
   end;
 
   ZipFile := DestDir + 'dlssenabler.zip';
@@ -2860,6 +2900,14 @@ begin
 
   if FileExists(ZipFile) then
   begin
+    if FileSize(ZipFile) < 10000 then
+    begin
+      WriteLn('[DLSS-ENABLER] ERROR: Download failed or corrupt archive (size < 10KB)');
+      DeleteFile(ZipFile);
+      Result := False;
+      Exit;
+    end;
+
     WriteLn('[DLSS-ENABLER] Extracting zip archive into ', DestDir, '...');
     Process := TProcess.Create(nil);
     try

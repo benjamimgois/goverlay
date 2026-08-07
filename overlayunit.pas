@@ -660,6 +660,7 @@ type
     FSplashDetailLabel:   TLabel;
     FSplashPercentLabel:  TLabel;
     FSplashProgressBar:   TProgressBar;
+    FStartupDownloadsChecked: Boolean;
 
     // Moved to public:
     {     FNavItems:       array of TPanel;    // item panels
@@ -2914,6 +2915,9 @@ procedure Tgoverlayform.StartupDownloadsAsync(Data: PtrInt);
 var
   NeedsDownload: Boolean;
 begin
+  if FStartupDownloadsChecked then Exit;
+  FStartupDownloadsChecked := True;
+
   NeedsDownload := (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll')) or
                    (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'OptiScaler.dll')) or
                    (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll')) or
