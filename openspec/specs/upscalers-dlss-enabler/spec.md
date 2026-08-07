@@ -11,6 +11,18 @@ The "OptiScaler" sub-card (`FOsOptiSec`) SHALL layout "File name" and "Menu scal
 - **WHEN** the user selects the "DLSS Enabler" radio button
 - **THEN** the OptiScaler configuration sub-cards (`FOsMainSec`, `FOsSpatialSec`, `FOsTemporalSec`, `FOsReflexSec`) are hidden, and the DLSS Enabler configuration sub-card (`FOsDlssEnablerSec`) is displayed in their place.
 
+### Requirement: DLSS-Enabler Dual Channel Support (Stable & Bleeding-edge)
+- GOverlay SHALL query `https://api.github.com/repos/benjamimgois/OptiScaler-builds/contents/de?ref=nightly-action` to list available builds.
+- GOverlay SHALL parse the version string from matching build filenames by extracting the text segment following `"DLSS Enabler "` up to the first space.
+- WHEN Stable channel is selected for DLSS Enabler (`OPT_CHANNEL=0`), GOverlay SHALL download the build filename containing `"STABLE"` into `~/.local/share/goverlay/dlssenabler-stable/`.
+- WHEN Bleeding-edge channel is selected for DLSS Enabler (`OPT_CHANNEL=1`), GOverlay SHALL download the build filename containing `"TRUNK"` into `~/.local/share/goverlay/dlssenabler-edge/`.
+- GOverlay SHALL extract `version.dll` from the downloaded ZIP archive into the respective channel cache directory.
+- GOverlay SHALL write `dlssenablerversion=<parsed_version>` and `upscalertype=1` to `goverlay.vars` inside the channel directory.
+
+#### Scenario: DLSS-Enabler Channel Download and Installation
+- **WHEN** DLSS Enabler channel is updated or selected
+- **THEN** the target build (Stable or Bleeding-edge) is downloaded, extracted to the appropriate cache folder, and version information is updated in `goverlay.vars`
+
 ### Requirement: Frame Generation Comboboxes in OptiScaler Options
 The OptiScaler section SHALL provide two combobox controls for Frame Generation: `fgInputComboBox` ("FG Input") and `fgOutputComboBox` ("FG Output").
 
