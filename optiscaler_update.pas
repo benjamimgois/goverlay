@@ -74,6 +74,10 @@ type
     FOptiStableURL: string;
     FOptiEdgeVersion: string;
     FOptiEdgeURL: string;
+    FDlssStableVersion: string;
+    FDlssStableURL: string;
+    FDlssEdgeVersion: string;
+    FDlssEdgeURL: string;
 
     procedure LoadVersionsFromFile;
     procedure UpdateButtonClick(Sender: TObject);
@@ -786,13 +790,17 @@ var
   OutputList: TStringList;
   Response: string;
   JSONData: TJSONData;
-  JSONObject, StableObj, EdgeObj: TJSONObject;
+  JSONObject, StableObj, EdgeObj, DlssStableObj, DlssEdgeObj: TJSONObject;
 begin
   Result := False;
   AStableVer := '';
   AStableURL := '';
   AEdgeVer := '';
   AEdgeURL := '';
+  FDlssStableVersion := '';
+  FDlssStableURL := '';
+  FDlssEdgeVersion := '';
+  FDlssEdgeURL := '';
   Process := TProcess.Create(nil);
   OutputList := TStringList.Create;
   try
@@ -827,6 +835,21 @@ begin
                 AEdgeVer := EdgeObj.Get('version', '');
                 AEdgeURL := EdgeObj.Get('url', '');
               end;
+
+              // Parse DLSS Enabler entries from versions.json
+              DlssStableObj := TJSONObject(JSONObject.Find('dlssenabler_stable'));
+              if Assigned(DlssStableObj) then
+              begin
+                FDlssStableVersion := DlssStableObj.Get('version', '');
+                FDlssStableURL     := DlssStableObj.Get('url', '');
+              end;
+              DlssEdgeObj := TJSONObject(JSONObject.Find('dlssenabler_edge'));
+              if Assigned(DlssEdgeObj) then
+              begin
+                FDlssEdgeVersion := DlssEdgeObj.Get('version', '');
+                FDlssEdgeURL     := DlssEdgeObj.Get('url', '');
+              end;
+
               Result := (AStableVer <> '') and (AEdgeVer <> '');
             end;
           finally
@@ -883,8 +906,25 @@ var
   Process: TProcess;
   Response, ItemName, TargetKeyword: string;
   StartPos, EndPos, NamePos, SpacePos: Integer;
+  DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL: string;
 begin
   Result := '';
+
+  // 1. Check if DLSS Enabler version tag is available from versions.json manifest
+  if AIsStable and (FDlssStableVersion <> '') then
+    Exit(FDlssStableVersion)
+  else if (not AIsStable) and (FDlssEdgeVersion <> '') then
+    Exit(FDlssEdgeVersion);
+
+  if FetchManifest(True, DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL) then
+  begin
+    if AIsStable and (FDlssStableVersion <> '') then
+      Exit(FDlssStableVersion)
+    else if (not AIsStable) and (FDlssEdgeVersion <> '') then
+      Exit(FDlssEdgeVersion);
+  end;
+
+  // 2. Fall back to HTML directory scraping (bypassing GitHub API rate limit)
   if AIsStable then
     TargetKeyword := 'STABLE'
   else
@@ -896,7 +936,7 @@ begin
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
     Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('https://api.github.com/repos/benjamimgois/OptiScaler-builds/contents/de?ref=nightly-action');
+    Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/tree/nightly-action/de');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
     SetLength(Response, Process.Output.NumBytesAvailable);
@@ -906,28 +946,49 @@ begin
     StartPos := 1;
     while True do
     begin
-      NamePos := PosEx('"name"', Response, StartPos);
+      NamePos := PosEx('DLSS%20Enabler%20', Response, StartPos);
+      if NamePos = 0 then
+        NamePos := PosEx('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/', Response, StartPos);
       if NamePos = 0 then Break;
-      StartPos := NamePos + 6;
-      StartPos := PosEx('"', Response, StartPos);
-      if StartPos = 0 then Break;
-      Inc(StartPos);
-      EndPos := PosEx('"', Response, StartPos);
-      if EndPos = 0 then Break;
-      ItemName := Copy(Response, StartPos, EndPos - StartPos);
-      StartPos := EndPos + 1;
 
-      if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS Enabler ', ItemName) > 0) then
+      if Copy(Response, NamePos, 17) = 'DLSS%20Enabler%20' then
       begin
-        NamePos := Pos('DLSS Enabler ', ItemName) + Length('DLSS Enabler ');
-        SpacePos := PosEx(' ', ItemName, NamePos);
-        if SpacePos > NamePos then
-          Result := Copy(ItemName, NamePos, SpacePos - NamePos);
+        StartPos := NamePos;
+        EndPos := PosEx('.zip', Response, StartPos);
+        if EndPos = 0 then Break;
+        ItemName := Copy(Response, StartPos, EndPos + 4 - StartPos);
+        ItemName := StringReplace(ItemName, '%20', ' ', [rfReplaceAll]);
+      end
+      else
+      begin
+        StartPos := NamePos + Length('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/');
+        EndPos := PosEx('"', Response, StartPos);
+        if EndPos = 0 then Break;
+        ItemName := Copy(Response, StartPos, EndPos - StartPos);
+        ItemName := StringReplace(ItemName, '%20', ' ', [rfReplaceAll]);
+      end;
+
+      if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS', ItemName) > 0) then
+      begin
+        NamePos := Pos('DLSS Enabler ', ItemName);
+        if NamePos > 0 then
+        begin
+          NamePos := NamePos + Length('DLSS Enabler ');
+          SpacePos := PosEx(' ', ItemName, NamePos);
+          if SpacePos > NamePos then
+            Result := Copy(ItemName, NamePos, SpacePos - NamePos);
+        end;
         Break;
       end;
+      StartPos := EndPos + 1;
     end;
   finally
     Process.Free;
+  end;
+
+  if Result = '' then
+  begin
+    if AIsStable then Result := '4.8.12' else Result := '4.8.13.6';
   end;
 end;
 
@@ -1286,6 +1347,14 @@ begin
     except
       on E: Exception do
         WriteLn('[ERROR] FetchFakeNvapiLatest: Exception - ', E.ClassName, ': ', E.Message);
+    end;
+
+    if not Result then
+    begin
+      WriteLn('[DEBUG] FetchFakeNvapiLatest: Using direct release URL fallback (bypassing GitHub API rate limit)');
+      ATag := 'v1.4.1';
+      AURL := 'https://github.com/optiscaler/fakenvapi/releases/latest/download/fakenvapi.7z';
+      Result := True;
     end;
   finally
     OutputList.Free;
@@ -2740,6 +2809,7 @@ end;
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response: string;
+  DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL: string;
   Process: TProcess;
   VarsList: TStringList;
   AlreadyExtracted: Boolean;
@@ -2785,70 +2855,41 @@ begin
   TagName := '';
   DownloadUrl := '';
 
-  WriteLn('[DLSS-ENABLER] Fetching builds list from OptiScaler-builds...');
-
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := 'curl';
-    Process.Parameters.Add('-sL');
-    Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('https://api.github.com/repos/benjamimgois/OptiScaler-builds/contents/de?ref=nightly-action');
-    Process.Options := [poWaitOnExit, poUsePipes];
-    Process.Execute;
-    SetLength(Response, Process.Output.NumBytesAvailable);
-    if Length(Response) > 0 then
-      Process.Output.Read(Response[1], Length(Response));
-  finally
-    Process.Free;
-  end;
-
-  StartPos := 1;
-  while True do
+  // 1. Try manifest first (versions.json from CDN)
+  if Assigned(goverlayform) and Assigned(goverlayform.FOptiscalerUpdate) then
   begin
-    NamePos := PosEx('"name"', Response, StartPos);
-    if NamePos = 0 then Break;
-    StartPos := NamePos + 6;
-    StartPos := PosEx('"', Response, StartPos);
-    if StartPos = 0 then Break;
-    Inc(StartPos);
-    EndPos := PosEx('"', Response, StartPos);
-    if EndPos = 0 then Break;
-    ItemName := Copy(Response, StartPos, EndPos - StartPos);
-
-    if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS Enabler ', ItemName) > 0) then
+    if AIsStable and (goverlayform.FOptiscalerUpdate.FDlssStableURL <> '') then
     begin
-      NamePos := Pos('DLSS Enabler ', ItemName) + Length('DLSS Enabler ');
-      SpacePos := PosEx(' ', ItemName, NamePos);
-      if SpacePos > NamePos then
-        TagName := Copy(ItemName, NamePos, SpacePos - NamePos);
-
-      // Extract download_url
-      NamePos := PosEx('"download_url"', Response, EndPos);
-      if NamePos > 0 then
-      begin
-        StartPos := PosEx('http', Response, NamePos);
-        if StartPos > 0 then
-        begin
-          SpacePos := PosEx('"', Response, StartPos);
-          if SpacePos > StartPos then
-            DownloadUrl := Copy(Response, StartPos, SpacePos - StartPos);
-        end;
-      end;
-      Break;
+      DownloadUrl := goverlayform.FOptiscalerUpdate.FDlssStableURL;
+      TagName     := goverlayform.FOptiscalerUpdate.FDlssStableVersion;
+    end
+    else if (not AIsStable) and (goverlayform.FOptiscalerUpdate.FDlssEdgeURL <> '') then
+    begin
+      DownloadUrl := goverlayform.FOptiscalerUpdate.FDlssEdgeURL;
+      TagName     := goverlayform.FOptiscalerUpdate.FDlssEdgeVersion;
     end;
-    StartPos := EndPos + 1;
   end;
 
-  if TagName = '' then
+  if (DownloadUrl = '') and Assigned(goverlayform) and Assigned(goverlayform.FOptiscalerUpdate) then
   begin
-    if AIsStable then TagName := '4.8.12' else TagName := '4.8.13.6';
+    goverlayform.FOptiscalerUpdate.FetchManifest(True, DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL);
+    if AIsStable and (goverlayform.FOptiscalerUpdate.FDlssStableURL <> '') then
+    begin
+      DownloadUrl := goverlayform.FOptiscalerUpdate.FDlssStableURL;
+      TagName     := goverlayform.FOptiscalerUpdate.FDlssStableVersion;
+    end
+    else if (not AIsStable) and (goverlayform.FOptiscalerUpdate.FDlssEdgeURL <> '') then
+    begin
+      DownloadUrl := goverlayform.FOptiscalerUpdate.FDlssEdgeURL;
+      TagName     := goverlayform.FOptiscalerUpdate.FDlssEdgeVersion;
+    end;
   end;
 
-  // HTML directory scraping fallback if API returned no download_url
-  if DownloadUrl = '' then
+  if DownloadUrl <> '' then
+    WriteLn('[DLSS-ENABLER] Found URL from versions.json manifest: ', DownloadUrl)
+  else
   begin
-    WriteLn('[DLSS-ENABLER] GitHub API rate limited or failed, attempting HTML directory list scraping...');
+    WriteLn('[DLSS-ENABLER] Fetching builds list via HTML directory scraping (bypassing GitHub API)...');
     Process := TProcess.Create(nil);
     try
       Process.Executable := 'curl';
@@ -2868,21 +2909,50 @@ begin
     StartPos := 1;
     while True do
     begin
-      NamePos := PosEx('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/', Response, StartPos);
+      NamePos := PosEx('DLSS%20Enabler%20', Response, StartPos);
+      if NamePos = 0 then
+        NamePos := PosEx('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/', Response, StartPos);
       if NamePos = 0 then Break;
-      StartPos := NamePos + Length('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/');
-      EndPos := PosEx('"', Response, StartPos);
-      if EndPos = 0 then Break;
-      ItemName := Copy(Response, StartPos, EndPos - StartPos);
+
+      if Copy(Response, NamePos, 17) = 'DLSS%20Enabler%20' then
+      begin
+        StartPos := NamePos;
+        EndPos := PosEx('.zip', Response, StartPos);
+        if EndPos = 0 then Break;
+        ItemName := Copy(Response, StartPos, EndPos + 4 - StartPos);
+        ItemName := StringReplace(ItemName, '%20', ' ', [rfReplaceAll]);
+      end
+      else
+      begin
+        StartPos := NamePos + Length('/benjamimgois/OptiScaler-builds/blob/nightly-action/de/');
+        EndPos := PosEx('"', Response, StartPos);
+        if EndPos = 0 then Break;
+        ItemName := Copy(Response, StartPos, EndPos - StartPos);
+        ItemName := StringReplace(ItemName, '%20', ' ', [rfReplaceAll]);
+      end;
 
       if (Pos(TargetKeyword, ItemName) > 0) and (Pos('DLSS', ItemName) > 0) then
       begin
-        DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/' + ItemName;
-        WriteLn('[DLSS-ENABLER] HTML scraping found URL: ', DownloadUrl);
+        NamePos := Pos('DLSS Enabler ', ItemName);
+        if NamePos > 0 then
+        begin
+          NamePos := NamePos + Length('DLSS Enabler ');
+          SpacePos := PosEx(' ', ItemName, NamePos);
+          if SpacePos > NamePos then
+            TagName := Copy(ItemName, NamePos, SpacePos - NamePos);
+        end;
+
+        DownloadUrl := 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/de/' + StringReplace(ItemName, ' ', '%20', [rfReplaceAll]);
+        WriteLn('[DLSS-ENABLER] HTML directory scraping found URL: ', DownloadUrl);
         Break;
       end;
       StartPos := EndPos + 1;
     end;
+  end;
+
+  if TagName = '' then
+  begin
+    if AIsStable then TagName := '4.8.12' else TagName := '4.8.13.6';
   end;
 
   if DownloadUrl = '' then
