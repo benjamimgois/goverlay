@@ -656,7 +656,6 @@ type
     FSplashForm:          TForm;
     FSplashLogoImage:     TImage;
     FSplashTitleLabel:    TLabel;
-    FSplashActionLabel:   TLabel;
     FSplashDetailLabel:   TLabel;
     FSplashPercentLabel:  TLabel;
     FSplashProgressBar:   TProgressBar;
@@ -2820,19 +2819,7 @@ begin
   FSplashTitleLabel.AutoSize    := False;
   FSplashTitleLabel.SetBounds(0, 88, SW, 36);
 
-  // 3. Action Label (Above progress bar, centered): "Action: Extracting core..."
-  FSplashActionLabel := TLabel.Create(FSplashForm);
-  FSplashActionLabel.Parent      := FSplashForm;
-  FSplashActionLabel.Caption     := 'Action: Preparing...';
-  FSplashActionLabel.Font.Name   := 'Noto Sans';
-  FSplashActionLabel.Font.Size   := 10;
-  FSplashActionLabel.Font.Color  := RGBToColor(200, 210, 225);
-  FSplashActionLabel.Transparent := True;
-  FSplashActionLabel.Alignment   := taCenter;
-  FSplashActionLabel.AutoSize    := False;
-  FSplashActionLabel.SetBounds(32, 230, SW - 64, 20);
-
-  // 4. Progress bar (12px height, cyan accent)
+  // 3. Progress bar (12px height, cyan accent)
   FSplashProgressBar := TProgressBar.Create(FSplashForm);
   FSplashProgressBar.Parent   := FSplashForm;
   FSplashProgressBar.Min      := 0;
@@ -2840,7 +2827,7 @@ begin
   FSplashProgressBar.Position := 0;
   FSplashProgressBar.SetBounds(32, 258, SW - 64, 12);
 
-  // 5. Detail Label (Below progress bar, left-aligned): "OptiScaler (Edge): Extracting core..."
+  // 4. Detail Label (Below progress bar, left-aligned): "OptiScaler (Edge): Extracting core..."
   FSplashDetailLabel := TLabel.Create(FSplashForm);
   FSplashDetailLabel.Parent      := FSplashForm;
   FSplashDetailLabel.Caption     := AStatus;
@@ -2852,7 +2839,7 @@ begin
   FSplashDetailLabel.AutoSize    := False;
   FSplashDetailLabel.SetBounds(32, 280, SW - 128, 22);
 
-  // 6. Percentage label (Below progress bar, right-aligned): "41%"
+  // 5. Percentage label (Below progress bar, right-aligned): "41%"
   FSplashPercentLabel := TLabel.Create(FSplashForm);
   FSplashPercentLabel.Parent      := FSplashForm;
   FSplashPercentLabel.Caption     := '0%';
@@ -2871,8 +2858,8 @@ end;
 
 procedure Tgoverlayform.UpdateBootSplash(APercent: Integer; const AStatus: string);
 var
-  CleanStatus, ActionStr, DetailStr: string;
-  P, P2: Integer;
+  CleanStatus, DetailStr: string;
+  P: Integer;
 begin
   if not Assigned(FSplashForm) then Exit;
 
@@ -2885,15 +2872,6 @@ begin
     CleanStatus := Copy(CleanStatus, 1, P - 1);
 
   DetailStr := CleanStatus;
-
-  P2 := Pos(': ', CleanStatus);
-  if P2 > 0 then
-    ActionStr := Copy(CleanStatus, P2 + 2, Length(CleanStatus) - P2 - 1)
-  else
-    ActionStr := CleanStatus;
-
-  if Assigned(FSplashActionLabel) then
-    FSplashActionLabel.Caption := 'Action: ' + ActionStr;
 
   if Assigned(FSplashDetailLabel) then
     FSplashDetailLabel.Caption := DetailStr;
