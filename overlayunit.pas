@@ -653,11 +653,13 @@ type
     FBasaltHelper:    TObject;
     FMangoHelper:     TObject;
 
-    FSplashForm:         TForm;
-    FSplashLogoImage:    TImage;
-    FSplashStatusLabel:  TLabel;
-    FSplashPercentLabel: TLabel;
-    FSplashProgressBar:  TProgressBar;
+    FSplashForm:          TForm;
+    FSplashLogoImage:     TImage;
+    FSplashTitleLabel:    TLabel;
+    FSplashActionLabel:   TLabel;
+    FSplashDetailLabel:   TLabel;
+    FSplashPercentLabel:  TLabel;
+    FSplashProgressBar:   TProgressBar;
 
     // Moved to public:
     {     FNavItems:       array of TPanel;    // item panels
@@ -840,6 +842,7 @@ type
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
     procedure ShowBootSplash(const AStatus: string);
+    procedure SplashFormPaint(Sender: TObject);
     procedure UpdateBootSplash(APercent: Integer; const AStatus: string);
     procedure HideBootSplash;
     procedure StartupDownloadsAsync(Data: PtrInt);
@@ -2753,33 +2756,44 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.SplashFormPaint(Sender: TObject);
+var
+  R: TRect;
+begin
+  if not Assigned(FSplashForm) then Exit;
+  R := FSplashForm.ClientRect;
+  FSplashForm.Canvas.GradientFill(R, RGBToColor(14, 24, 42), RGBToColor(6, 10, 20), gdVertical);
+end;
+
 procedure Tgoverlayform.ShowBootSplash(const AStatus: string);
 const
-  SW = 480;
-  SH = 210;
+  SW = 560;
+  SH = 360;
 var
   LogoFile: string;
   LogoImg: TPicture;
 begin
   if Assigned(FSplashForm) then Exit;
 
-  // Create compact standalone splash window (no title bar, no decorations)
+  // Create standalone splash window (560x360, no window decorations)
   FSplashForm := TForm.Create(nil);
   FSplashForm.BorderStyle := bsNone;
   FSplashForm.FormStyle   := fsStayOnTop;
-  FSplashForm.Color       := RGBToColor(22, 26, 40);
+  FSplashForm.Color       := RGBToColor(10, 16, 28);
   FSplashForm.Width       := SW;
   FSplashForm.Height      := SH;
   FSplashForm.Position    := poScreenCenter;
   FSplashForm.Caption     := '';
+  FSplashForm.OnPaint     := @SplashFormPaint;
 
-  // Logo
+  // 1. Header Branding: Logo (48x48)
   FSplashLogoImage := TImage.Create(FSplashForm);
-  FSplashLogoImage.Parent      := FSplashForm;
-  FSplashLogoImage.Stretch     := True;
+  FSplashLogoImage.Parent       := FSplashForm;
+  FSplashLogoImage.Stretch      := True;
   FSplashLogoImage.Proportional := True;
-  FSplashLogoImage.Center      := True;
-  FSplashLogoImage.SetBounds((SW - 80) div 2, 16, 80, 80);
+  FSplashLogoImage.Center       := True;
+  FSplashLogoImage.Transparent  := True;
+  FSplashLogoImage.SetBounds((SW - 48) div 2, 28, 48, 48);
   LogoFile := GetIconFile;
   if FileExists(LogoFile) then
   begin
@@ -2792,47 +2806,100 @@ begin
     end;
   end;
 
-  // Status label
-  FSplashStatusLabel := TLabel.Create(FSplashForm);
-  FSplashStatusLabel.Parent    := FSplashForm;
-  FSplashStatusLabel.Caption   := AStatus;
-  FSplashStatusLabel.Font.Name := 'Noto Sans';
-  FSplashStatusLabel.Font.Size := 11;
-  FSplashStatusLabel.Font.Style := [fsBold];
-  FSplashStatusLabel.Font.Color := RGBToColor(48, 190, 240);
-  FSplashStatusLabel.SetBounds(16, 108, SW - 32, 22);
+  // 2. Header Branding: "Goverlay" Title
+  FSplashTitleLabel := TLabel.Create(FSplashForm);
+  FSplashTitleLabel.Parent      := FSplashForm;
+  FSplashTitleLabel.Caption     := 'Goverlay';
+  FSplashTitleLabel.Font.Name   := 'Noto Sans';
+  FSplashTitleLabel.Font.Size   := 22;
+  FSplashTitleLabel.Font.Style  := [fsBold];
+  FSplashTitleLabel.Font.Color  := clWhite;
+  FSplashTitleLabel.Transparent := True;
+  FSplashTitleLabel.Alignment   := taCenter;
+  FSplashTitleLabel.AutoSize    := False;
+  FSplashTitleLabel.SetBounds(0, 88, SW, 36);
 
-  // Percentage label (right side, above progress bar)
-  FSplashPercentLabel := TLabel.Create(FSplashForm);
-  FSplashPercentLabel.Parent    := FSplashForm;
-  FSplashPercentLabel.Caption   := '0%';
-  FSplashPercentLabel.Font.Name := 'Noto Sans';
-  FSplashPercentLabel.Font.Size := 10;
-  FSplashPercentLabel.Font.Color := clWhite;
-  FSplashPercentLabel.SetBounds(SW - 56, 136, 40, 18);
-  FSplashPercentLabel.Alignment := taRightJustify;
+  // 3. Action Label (Above progress bar, centered): "Action: Extracting core..."
+  FSplashActionLabel := TLabel.Create(FSplashForm);
+  FSplashActionLabel.Parent      := FSplashForm;
+  FSplashActionLabel.Caption     := 'Action: Preparing...';
+  FSplashActionLabel.Font.Name   := 'Noto Sans';
+  FSplashActionLabel.Font.Size   := 10;
+  FSplashActionLabel.Font.Color  := RGBToColor(200, 210, 225);
+  FSplashActionLabel.Transparent := True;
+  FSplashActionLabel.Alignment   := taCenter;
+  FSplashActionLabel.AutoSize    := False;
+  FSplashActionLabel.SetBounds(32, 230, SW - 64, 20);
 
-  // Progress bar
+  // 4. Progress bar (12px height, cyan accent)
   FSplashProgressBar := TProgressBar.Create(FSplashForm);
   FSplashProgressBar.Parent   := FSplashForm;
   FSplashProgressBar.Min      := 0;
   FSplashProgressBar.Max      := 100;
   FSplashProgressBar.Position := 0;
-  FSplashProgressBar.SetBounds(16, 158, SW - 32, 20);
+  FSplashProgressBar.SetBounds(32, 258, SW - 64, 12);
+
+  // 5. Detail Label (Below progress bar, left-aligned): "OptiScaler (Edge): Extracting core..."
+  FSplashDetailLabel := TLabel.Create(FSplashForm);
+  FSplashDetailLabel.Parent      := FSplashForm;
+  FSplashDetailLabel.Caption     := AStatus;
+  FSplashDetailLabel.Font.Name   := 'Noto Sans';
+  FSplashDetailLabel.Font.Size   := 10;
+  FSplashDetailLabel.Font.Color  := RGBToColor(210, 220, 235);
+  FSplashDetailLabel.Transparent := True;
+  FSplashDetailLabel.Alignment   := taLeftJustify;
+  FSplashDetailLabel.AutoSize    := False;
+  FSplashDetailLabel.SetBounds(32, 280, SW - 128, 22);
+
+  // 6. Percentage label (Below progress bar, right-aligned): "41%"
+  FSplashPercentLabel := TLabel.Create(FSplashForm);
+  FSplashPercentLabel.Parent      := FSplashForm;
+  FSplashPercentLabel.Caption     := '0%';
+  FSplashPercentLabel.Font.Name   := 'Noto Sans';
+  FSplashPercentLabel.Font.Size   := 10;
+  FSplashPercentLabel.Font.Style  := [fsBold];
+  FSplashPercentLabel.Font.Color  := RGBToColor(56, 189, 201);
+  FSplashPercentLabel.Transparent := True;
+  FSplashPercentLabel.Alignment   := taRightJustify;
+  FSplashPercentLabel.AutoSize    := False;
+  FSplashPercentLabel.SetBounds(SW - 88, 280, 56, 22);
 
   FSplashForm.Show;
   Application.ProcessMessages;
 end;
 
 procedure Tgoverlayform.UpdateBootSplash(APercent: Integer; const AStatus: string);
+var
+  CleanStatus, ActionStr, DetailStr: string;
+  P, P2: Integer;
 begin
   if not Assigned(FSplashForm) then Exit;
+
   if Assigned(FSplashProgressBar) then
     FSplashProgressBar.Position := APercent;
-  if Assigned(FSplashStatusLabel) then
-    FSplashStatusLabel.Caption := AStatus;
+
+  CleanStatus := AStatus;
+  P := Pos(' (', CleanStatus);
+  if P > 0 then
+    CleanStatus := Copy(CleanStatus, 1, P - 1);
+
+  DetailStr := CleanStatus;
+
+  P2 := Pos(': ', CleanStatus);
+  if P2 > 0 then
+    ActionStr := Copy(CleanStatus, P2 + 2, Length(CleanStatus) - P2 - 1)
+  else
+    ActionStr := CleanStatus;
+
+  if Assigned(FSplashActionLabel) then
+    FSplashActionLabel.Caption := 'Action: ' + ActionStr;
+
+  if Assigned(FSplashDetailLabel) then
+    FSplashDetailLabel.Caption := DetailStr;
+
   if Assigned(FSplashPercentLabel) then
     FSplashPercentLabel.Caption := IntToStr(APercent) + '%';
+
   Application.ProcessMessages;
 end;
 
