@@ -196,7 +196,7 @@ const
 
 const
   STAT_NAMES: array[0..5] of string = (
-    'OptiScaler', 'DLSS Enabler', 'Streamline SDK', 'FakeNVAPI', 'DLSS / FSR / XeSS', 'OptiPatcher');
+    'OptiScaler', 'DLSS / FSR / XeSS', 'DLSS Enabler', 'FakeNVAPI', 'Streamline SDK', 'OptiPatcher');
 var
   i: Integer;
   Dot: TShape;
@@ -268,6 +268,10 @@ begin
     dlssEnablerVersionLabel := TLabel.Create(FForm);
     dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
     dlssEnablerVersionLabel.Visible := False;
+
+    streamlineVersionLabel := TLabel.Create(FForm);
+    streamlineVersionLabel.Parent := FOsUpscalerCard;
+    streamlineVersionLabel.Visible := False;
 
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;
@@ -814,40 +818,46 @@ begin
               FOsStatDots[0].Brush.Color := CLR_NONE;
           end;
 
-        1: // DLSS Enabler
+        1: // DLSS / FSR / XeSS
+          begin
+            DlssV := dlssLabel1.Caption;
+            FsrV  := fsrLabel1.Caption;
+            XessV := xessLabel1.Caption;
+
+            if (DlssV = '') or (DlssV = '--') then DlssV := '—';
+            if (FsrV  = '') or (FsrV  = '--') then FsrV  := '—';
+            if (XessV = '') or (XessV = '--') then XessV := '—';
+
+            VerCaption := DlssV + ' / ' + FsrV + ' / ' + XessV;
+            FOsStatVerLbls[1].Caption    := VerCaption;
+            FOsStatVerLbls[1].Font.Color := PURPLE;
+
+            HasAnyUpscaler := (DlssV <> '—') or (FsrV <> '—') or (XessV <> '—');
+            if HasAnyUpscaler then
+              FOsStatDots[1].Brush.Color := CLR_OK
+            else
+              FOsStatDots[1].Brush.Color := CLR_NONE;
+          end;
+
+        2: // DLSS Enabler
           begin
             if not (Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked) then
             begin
-              FOsStatVerLbls[1].Caption    := '--';
-              FOsStatVerLbls[1].Font.Color := PURPLE;
-              FOsStatDots[1].Brush.Color   := CLR_NONE;
+              FOsStatVerLbls[2].Caption    := '--';
+              FOsStatVerLbls[2].Font.Color := PURPLE;
+              FOsStatDots[2].Brush.Color   := CLR_NONE;
             end
             else
             begin
               Ver := dlssEnablerVersionLabel.Caption;
               VerCaption := IfThen(Ver <> '', Ver, '—');
-              FOsStatVerLbls[1].Caption    := VerCaption;
-              FOsStatVerLbls[1].Font.Color := PURPLE;
+              FOsStatVerLbls[2].Caption    := VerCaption;
+              FOsStatVerLbls[2].Font.Color := PURPLE;
               if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
-                FOsStatDots[1].Brush.Color := CLR_OK
+                FOsStatDots[2].Brush.Color := CLR_OK
               else
-                FOsStatDots[1].Brush.Color := CLR_NONE;
+                FOsStatDots[2].Brush.Color := CLR_NONE;
             end;
-          end;
-
-        2: // Streamline SDK
-          begin
-            if Assigned(streamlineVersionLabel) then
-              Ver := streamlineVersionLabel.Caption
-            else
-              Ver := '';
-            VerCaption := IfThen(Ver <> '', Ver, '—');
-            FOsStatVerLbls[2].Caption    := VerCaption;
-            FOsStatVerLbls[2].Font.Color := PURPLE;
-            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
-              FOsStatDots[2].Brush.Color := CLR_OK
-            else
-              FOsStatDots[2].Brush.Color := CLR_NONE;
           end;
 
         3: // FakeNVAPI
@@ -862,22 +872,16 @@ begin
               FOsStatDots[3].Brush.Color := CLR_NONE;
           end;
 
-        4: // DLSS / FSR / XeSS
+        4: // Streamline SDK
           begin
-            DlssV := dlssLabel1.Caption;
-            FsrV  := fsrLabel1.Caption;
-            XessV := xessLabel1.Caption;
-
-            if (DlssV = '') or (DlssV = '--') then DlssV := '—';
-            if (FsrV  = '') or (FsrV  = '--') then FsrV  := '—';
-            if (XessV = '') or (XessV = '--') then XessV := '—';
-
-            VerCaption := DlssV + ' / ' + FsrV + ' / ' + XessV;
+            if Assigned(streamlineVersionLabel) then
+              Ver := streamlineVersionLabel.Caption
+            else
+              Ver := '';
+            VerCaption := IfThen(Ver <> '', Ver, '—');
             FOsStatVerLbls[4].Caption    := VerCaption;
             FOsStatVerLbls[4].Font.Color := PURPLE;
-
-            HasAnyUpscaler := (DlssV <> '—') or (FsrV <> '—') or (XessV <> '—');
-            if HasAnyUpscaler then
+            if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[4].Brush.Color := CLR_OK
             else
               FOsStatDots[4].Brush.Color := CLR_NONE;
@@ -896,6 +900,8 @@ begin
           end;
       end;
     end;
+
+    ReflowOptiScalerTabNew(0);
   end;
 end;
 
@@ -919,7 +925,7 @@ const
   IGAP    = 6;
 var
   CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
-  ColX: array[0..1] of Integer;
+  ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
   OptW, FakeW, ColM, X1, X2, X3, X4, Y0: Integer;
@@ -1100,6 +1106,15 @@ begin
     ColX[0] := PAD;
     ColX[1] := PAD + ColW;
 
+    MaxNameW[0] := 0;
+    MaxNameW[1] := 0;
+    for i := 0 to 5 do
+    begin
+      Col := i mod 2;
+      if FOsStatNameLbls[i].Width > MaxNameW[Col] then
+        MaxNameW[Col] := FOsStatNameLbls[i].Width;
+    end;
+
     for i := 0 to 5 do
     begin
       Col    := i mod 2;
@@ -1111,12 +1126,8 @@ begin
       FOsStatNameLbls[i].Left := ColX[Col] + DOT_SZ + 6;
       FOsStatNameLbls[i].Top  := Row + (ROW_H - 16) div 2;
 
-      if Col = 0 then
-        FOsStatVerLbls[i].Left := ColX[0] + DOT_SZ + 6 + 90
-      else
-        FOsStatVerLbls[i].Left := ColX[1] + DOT_SZ + 6 + 140;
-
-      FOsStatVerLbls[i].Top   := Row + (ROW_H - 16) div 2;
+      FOsStatVerLbls[i].Left := ColX[Col] + DOT_SZ + 6 + MaxNameW[Col] + 12;
+      FOsStatVerLbls[i].Top  := Row + (ROW_H - 16) div 2;
     end;
   end;
 end;
@@ -1196,8 +1207,11 @@ begin
       begin
         dlssenablerRadioButton.Checked := True;
         optiscalerRadioButton.Checked := False;
-        optversionComboBox.ItemIndex := 0; // Stable Channel
-        optversionComboBox.Enabled := False;
+        optversionComboBox.Enabled := True;
+        if Settings.OptVersionItemIndex in [0, 1] then
+          optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+        else
+          optversionComboBox.ItemIndex := 0;
       end
       else
       begin

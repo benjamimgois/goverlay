@@ -4521,8 +4521,7 @@ begin
 
   if Assigned(optversionComboBox) then
   begin
-    optversionComboBox.ItemIndex := 0; // Stable Channel
-    optversionComboBox.Enabled := False;
+    optversionComboBox.Enabled := True;
   end;
 end;
 

@@ -1632,7 +1632,7 @@ begin
                 DlssEnablerVer := Value;
               if (StreamlineVer = '') and (SameText(Key, 'streamlineversion') or SameText(Key, 'streamline')) then
                 StreamlineVer := Value;
-              if (Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked) or (OptiVer = '') then
+              if (OptiVer = '') then
               begin
                 if SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
                   OptiVer := Value;
@@ -1643,6 +1643,38 @@ begin
           CloseFile(DlssEdgeFile);
         end;
       except
+      end;
+    end;
+
+    if (OptiVer = '') then
+    begin
+      DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+      if FileExists(DlssEdgeVars) then
+      begin
+        try
+          AssignFile(DlssEdgeFile, DlssEdgeVars);
+          Reset(DlssEdgeFile);
+          try
+            while not Eof(DlssEdgeFile) do
+            begin
+              ReadLn(DlssEdgeFile, Line);
+              SepPos := Pos('=', Line);
+              if SepPos > 0 then
+              begin
+                Key := Copy(Line, 1, SepPos - 1);
+                Value := Copy(Line, SepPos + 1, MaxInt);
+                if SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
+                begin
+                  OptiVer := Value;
+                  Break;
+                end;
+              end;
+            end;
+          finally
+            CloseFile(DlssEdgeFile);
+          end;
+        except
+        end;
       end;
     end;
 
@@ -2762,7 +2794,6 @@ begin
   VarsList := TStringList.Create;
   try
     VarsList.Add('dlssenablerversion=' + TagName);
-    VarsList.Add('optiScalerVersion=' + TagName);
     VarsList.Add('dlssenablertag=' + TagName);
     VarsList.Add('upscalertype=1');
     VarsList.SaveToFile(VarsFilePath);
