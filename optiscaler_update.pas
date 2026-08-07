@@ -904,7 +904,8 @@ end;
 function TOptiscalerTab.GetDlssEnablerLatestTag(AIsStable: Boolean = True; ASilent: Boolean = False): string;
 var
   Process: TProcess;
-  Response, ItemName, TargetKeyword: string;
+  OutputList: TStringList;
+  Response, ItemName, TargetKeyword, TmpFile: string;
   StartPos, EndPos, NamePos, SpacePos: Integer;
   DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL: string;
 begin
@@ -931,17 +932,24 @@ begin
     TargetKeyword := 'TRUNK';
 
   Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_de_tag.html';
   try
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
     Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(TmpFile);
     Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/tree/nightly-action/de');
-    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Options := [poWaitOnExit];
     Process.Execute;
-    SetLength(Response, Process.Output.NumBytesAvailable);
-    if Length(Response) > 0 then
-      Process.Output.Read(Response[1], Length(Response));
+    if FileExists(TmpFile) then
+    begin
+      OutputList.LoadFromFile(TmpFile);
+      Response := OutputList.Text;
+      DeleteFile(TmpFile);
+    end;
 
     StartPos := 1;
     while True do
@@ -2808,10 +2816,10 @@ end;
 
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
-  DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response: string;
+  DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response, TmpFile: string;
   DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL: string;
   Process: TProcess;
-  VarsList: TStringList;
+  VarsList, OutputList: TStringList;
   AlreadyExtracted: Boolean;
   StartPos, EndPos, NamePos, SpacePos: Integer;
   StartPct, EndPct: Integer;
@@ -2891,18 +2899,26 @@ begin
   begin
     WriteLn('[DLSS-ENABLER] Fetching builds list via HTML directory scraping (bypassing GitHub API)...');
     Process := TProcess.Create(nil);
+    OutputList := TStringList.Create;
+    TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_de_install.html';
     try
       Process.Executable := 'curl';
       Process.Parameters.Add('-sL');
       Process.Parameters.Add('-H');
       Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(TmpFile);
       Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/tree/nightly-action/de');
-      Process.Options := [poWaitOnExit, poUsePipes];
+      Process.Options := [poWaitOnExit];
       Process.Execute;
-      SetLength(Response, Process.Output.NumBytesAvailable);
-      if Length(Response) > 0 then
-        Process.Output.Read(Response[1], Length(Response));
+      if FileExists(TmpFile) then
+      begin
+        OutputList.LoadFromFile(TmpFile);
+        Response := OutputList.Text;
+        DeleteFile(TmpFile);
+      end;
     finally
+      OutputList.Free;
       Process.Free;
     end;
 
