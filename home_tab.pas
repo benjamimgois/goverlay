@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, Process, LCLIntf,
-  themeunit, constants, hintsunit, apputils, overlayunit, systemdetector, optiscaler_update, StrUtils, FileUtil, Types,
+  themeunit, constants, hintsunit, apputils, overlayunit, systemdetector, optiscaler_update, bgmod_resources, StrUtils, FileUtil, Types,
   ComCtrls, goverlay_system, Math;
 
 type
@@ -36,6 +36,8 @@ type
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
     function  GetVkSumiVersion: string;
+    function  IsDlssEnablerInstalled: Boolean;
+    function  GetDlssEnablerVersion: string;
     function  FindBinPath(const BinName: string): string;
     function  FindLibPath(const LibName: string): string;
   end;
@@ -72,7 +74,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..3] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'vkSumi');
+  MOD_NAMES: array[0..4] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -316,12 +318,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, vkSumi)
-    for i := 0 to 3 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi)
+    for i := 0 to 4 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -417,8 +419,8 @@ const
   CLR_MISSING = $004444BB;  // red
 var
   Missing: TStringList;
-  MangoOK, VkOK, OptiOK, SumiOK: Boolean;
-  MangoVer, VkVer, SumiVer: string;
+  MangoOK, VkOK, OptiOK, DlssOK, SumiOK: Boolean;
+  MangoVer, VkVer, DlssVer, SumiVer: string;
 begin
   with FForm do
   begin
@@ -431,6 +433,7 @@ begin
       VkOK    := (Missing.IndexOf('vkbasalt') < 0) and
                  (Missing.IndexOf('vkBasalt runtime 25.08') < 0);
       OptiOK  := FForm.IsOptiScalerInstalled;
+      DlssOK  := Self.IsDlssEnablerInstalled;
       SumiOK  := (Missing.IndexOf('vksumi') < 0) and
                  (Missing.IndexOf('vkSumi runtime') < 0);
     finally
@@ -440,7 +443,8 @@ begin
     FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
     FHomeModDots[1].Brush.Color := Math.IfThen(VkOK,    CLR_OK, CLR_MISSING);
     FHomeModDots[2].Brush.Color := Math.IfThen(OptiOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[3].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[3].Brush.Color := Math.IfThen(DlssOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[4].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
 
     MangoVer := Self.GetMangoHudVersion;
     if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
@@ -457,9 +461,13 @@ begin
     else
       FHomeModVerLbls[2].Caption := 'not found';
 
+    DlssVer := Self.GetDlssEnablerVersion;
+    if DlssVer = '' then DlssVer := StrUtils.IfThen(DlssOK, 'installed', 'not found');
+    FHomeModVerLbls[3].Caption := DlssVer;
+
     SumiVer := Self.GetVkSumiVersion;
     if SumiVer = '' then SumiVer := StrUtils.IfThen(SumiOK, 'installed', 'not found');
-    FHomeModVerLbls[3].Caption := SumiVer;
+    FHomeModVerLbls[4].Caption := SumiVer;
   end;
 end;
 
@@ -482,12 +490,25 @@ const
     end;
   end;
 
+var
+  DlssVer: string;
 begin
   with FForm do
   begin
     // Update OptiScaler version in module status
     if Assigned(FHomeModVerLbls[2]) and Assigned(optlabel1) and (optlabel1.Caption <> '') then
       FHomeModVerLbls[2].Caption := optlabel1.Caption;
+
+    // Update DLSS Enabler version in module status
+    if Assigned(FHomeModVerLbls[3]) then
+    begin
+      DlssVer := Self.GetDlssEnablerVersion;
+      if (DlssVer <> '') and (DlssVer <> '--') then
+      begin
+        FHomeModVerLbls[3].Caption := DlssVer;
+        if Assigned(FHomeModDots[3]) then FHomeModDots[3].Brush.Color := $0044BB44;
+      end;
+    end;
 
     // Library sub-rows: FakeNvAPI[0], Optipatcher[1], FSR[2], XeSS[3], DLSS[4]
     SetLib(0, fakenvapi1);
@@ -876,6 +897,51 @@ begin
       finally S.Free; end;
     except end;
   finally P.Free; end;
+end;
+
+function THomeTabHelper.IsDlssEnablerInstalled: Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll') or
+            FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(False)) + 'version.dll');
+end;
+
+function THomeTabHelper.GetDlssEnablerVersion: string;
+var
+  VarsPath: string;
+  VarsList: TStringList;
+  IsStable: Boolean;
+begin
+  Result := '';
+
+  if Assigned(FForm) and Assigned(FForm.dlssEnablerVersionLabel) and
+     (FForm.dlssEnablerVersionLabel.Caption <> '') and (FForm.dlssEnablerVersionLabel.Caption <> '--') then
+  begin
+    Result := FForm.dlssEnablerVersionLabel.Caption;
+    Exit;
+  end;
+
+  IsStable := True;
+  if Assigned(FForm) and Assigned(FForm.optversionComboBox) and (FForm.optversionComboBox.ItemIndex = 1) then
+    IsStable := False;
+
+  VarsPath := IncludeTrailingPathDelimiter(GetDlssEnablerPath(IsStable)) + 'goverlay.vars';
+  if not FileExists(VarsPath) then
+    VarsPath := IncludeTrailingPathDelimiter(GetDlssEnablerPath(not IsStable)) + 'goverlay.vars';
+
+  if FileExists(VarsPath) then
+  begin
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(VarsPath);
+      Result := VarsList.Values['dlssenablerversion'];
+      if Result = '' then
+        Result := VarsList.Values['dlssenabler'];
+      if Result = '' then
+        Result := VarsList.Values['dlssenablertag'];
+    finally
+      VarsList.Free;
+    end;
+  end;
 end;
 
 procedure THomeTabHelper.NicknameClick(Sender: TObject);

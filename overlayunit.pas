@@ -1087,8 +1087,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..3] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, vkSumi
-    FHomeModVerLbls:   array[0..3] of TLabel;   // version text
+    FHomeModDots:      array[0..4] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi
+    FHomeModVerLbls:   array[0..4] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
