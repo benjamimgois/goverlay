@@ -2857,24 +2857,14 @@ begin
 end;
 
 procedure Tgoverlayform.UpdateBootSplash(APercent: Integer; const AStatus: string);
-var
-  CleanStatus, DetailStr: string;
-  P: Integer;
 begin
   if not Assigned(FSplashForm) then Exit;
 
   if Assigned(FSplashProgressBar) then
     FSplashProgressBar.Position := APercent;
 
-  CleanStatus := AStatus;
-  P := Pos(' (', CleanStatus);
-  if P > 0 then
-    CleanStatus := Copy(CleanStatus, 1, P - 1);
-
-  DetailStr := CleanStatus;
-
   if Assigned(FSplashDetailLabel) then
-    FSplashDetailLabel.Caption := DetailStr;
+    FSplashDetailLabel.Caption := AStatus;
 
   if Assigned(FSplashPercentLabel) then
     FSplashPercentLabel.Caption := IntToStr(APercent) + '%';

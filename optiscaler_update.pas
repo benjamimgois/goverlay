@@ -2754,13 +2754,13 @@ begin
 
   if AIsStable then
   begin
-    ChanLabel := 'DLSS Enabler (Stable)';
+    ChanLabel := 'Downloading DLSS-Enabler stable';
     StartPct := 45;
     EndPct := 65;
   end
   else
   begin
-    ChanLabel := 'DLSS Enabler (Edge)';
+    ChanLabel := 'Downloading DLSS-Enabler edge';
     StartPct := 75;
     EndPct := 95;
   end;
@@ -2768,13 +2768,13 @@ begin
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
     if Assigned(AOnProgress) then
-      AOnProgress(EndPct + 5, ChanLabel + ' ready');
+      AOnProgress(EndPct + 5, ChanLabel);
     Result := True;
     Exit;
   end;
 
   if Assigned(AOnProgress) then
-    AOnProgress(StartPct - 3, 'DLSS Enabler: Checking builds...');
+    AOnProgress(StartPct - 3, ChanLabel);
 
   ForceDirectories(DestDir);
   if AIsStable then
@@ -2896,7 +2896,7 @@ begin
   ZipFile := DestDir + 'dlssenabler.zip';
   WriteLn('[DLSS-ENABLER] Downloading ', DownloadUrl, ' to ', ZipFile);
 
-  RunCurlWithProgress(DownloadUrl, ZipFile, StartPct, EndPct, 'DLSS Enabler: Downloading ' + ChanLabel, AOnProgress);
+  RunCurlWithProgress(DownloadUrl, ZipFile, StartPct, EndPct, ChanLabel + ' (core)', AOnProgress);
 
   if FileExists(ZipFile) then
   begin
@@ -3130,20 +3130,20 @@ begin
   if AIsStable then
   begin
     TargetCacheDir := GetBGModOriginalPath;
-    ChanLabel := 'OptiScaler (Stable)';
+    ChanLabel := 'Downloading Optiscaler stable';
     StartPct := 0;
     EndPct := 25;
   end
   else
   begin
     TargetCacheDir := GetBGModOriginalEdgePath;
-    ChanLabel := 'OptiScaler (Edge)';
+    ChanLabel := 'Downloading Optiscaler edge';
     StartPct := 25;
     EndPct := 50;
   end;
 
   if Assigned(AOnProgress) then
-    AOnProgress(StartPct + 2, ChanLabel + ': Checking installation...');
+    AOnProgress(StartPct + 2, ChanLabel);
 
   WriteLn('[AUTO-INSTALL] ========================================');
   WriteLn('[AUTO-INSTALL] Checking ', ChanLabel, ' installation...');
@@ -3154,7 +3154,7 @@ begin
   begin
     WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in ', TargetCacheDir, ', no installation needed');
     if Assigned(AOnProgress) then
-      AOnProgress(EndPct, ChanLabel + ': Already installed');
+      AOnProgress(EndPct, ChanLabel);
     Result := True;
     Exit;
   end;
@@ -3204,7 +3204,7 @@ begin
     WriteLn('[AUTO-INSTALL] Downloading...');
     
     // Download file using curl with progress updates
-    ExitCode := RunCurlWithProgress(DownloadURL, SevenZFilePath, StartPct + 4, StartPct + 15, ChanLabel + ': Downloading core', AOnProgress);
+    ExitCode := RunCurlWithProgress(DownloadURL, SevenZFilePath, StartPct + 4, StartPct + 15, ChanLabel + ' (core)', AOnProgress);
     
     if (ExitCode <> 0) or not FileExists(SevenZFilePath) then
     begin
@@ -3215,7 +3215,7 @@ begin
     WriteLn('[AUTO-INSTALL] Download completed, extracting to ', TargetCacheDir, '...');
 
     if Assigned(AOnProgress) then
-      AOnProgress(StartPct + 16, ChanLabel + ': Extracting core...');
+      AOnProgress(StartPct + 16, ChanLabel + ' (extracting core)');
 
     // Extract to target cache directory
     Process := TProcess.Create(nil);
@@ -3285,14 +3285,14 @@ begin
 
     // Download NVIDIA DLSS DLLs to target cache
     WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
-    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll', StartPct + 17, StartPct + 19, ChanLabel + ': Downloading NVIDIA DLSS (1/3)', AOnProgress);
-    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll', StartPct + 19, StartPct + 21, ChanLabel + ': Downloading NVIDIA DLSS (2/3)', AOnProgress);
-    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll', StartPct + 21, StartPct + 22, ChanLabel + ': Downloading NVIDIA DLSS (3/3)', AOnProgress);
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll', StartPct + 17, StartPct + 19, ChanLabel + ' (nvidia dlss)', AOnProgress);
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll', StartPct + 19, StartPct + 21, ChanLabel + ' (nvidia dlss)', AOnProgress);
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll', StartPct + 21, StartPct + 22, ChanLabel + ' (nvidia dlss)', AOnProgress);
 
     // Download auxiliary dlssg_to_fsr3 DLL
     WriteLn('[AUTO-INSTALL] Downloading dlssg_to_fsr3 DLL...');
     RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
-      IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll', StartPct + 22, StartPct + 23, ChanLabel + ': Downloading FrameGen bridge', AOnProgress);
+      IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll', StartPct + 22, StartPct + 23, ChanLabel + ' (framegen bridge)', AOnProgress);
 
     // Fetch and download/extract latest FakeNVAPI
     WriteLn('[AUTO-INSTALL] Downloading FakeNVAPI...');
@@ -3301,13 +3301,13 @@ begin
     begin
       WriteLn('[AUTO-INSTALL] Found FakeNVAPI tag: ', FakeNvapiTag);
       Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
-      ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ': Downloading FakeNVAPI', AOnProgress);
+      ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ' (fakenvapi)', AOnProgress);
 
       if (ExitCode = 0) and FileExists(Fake7zPath) then
       begin
         WriteLn('[AUTO-INSTALL] Extracting FakeNVAPI...');
         if Assigned(AOnProgress) then
-          AOnProgress(StartPct + 24, ChanLabel + ': Extracting FakeNVAPI...');
+          AOnProgress(StartPct + 24, ChanLabel + ' (extracting fakenvapi)');
         Process := TProcess.Create(nil);
         try
           Process.Executable := '7z';
@@ -3354,7 +3354,7 @@ begin
 
     // Download FSR INT8 DLL using curl with progress
     RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-      IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ': Downloading FSR components', AOnProgress);
+      IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ' (fsr)', AOnProgress);
 
     // Write/update DLSS download date in goverlay.vars
     VarsFilePath := IncludeTrailingPathDelimiter(TargetCacheDir) + 'goverlay.vars';
@@ -3517,7 +3517,7 @@ begin
       WriteLn('[AUTO-INSTALL] ', ChanLabel, ' installation completed!');
       WriteLn('[AUTO-INSTALL] ========================================');
       if Assigned(AOnProgress) then
-        AOnProgress(EndPct, ChanLabel + ': Installation complete');
+        AOnProgress(EndPct, ChanLabel);
       Result := True;
     end
     else
