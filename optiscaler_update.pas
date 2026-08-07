@@ -10,12 +10,15 @@ uses
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
 
+type
+  TDownloadProgressProc = procedure(APercent: Integer; const AStatus: string) of object;
+
 // Check and automatically install OptiScaler if not present
 // Returns True if OptiScaler is installed (or was successfully installed)
-function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
+function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
 // Check and automatically install DLSS Enabler if not present
-function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
 // Check and automatically install Streamline SDK if not present
 function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
@@ -2658,24 +2661,120 @@ begin
   end;
 end;
 
-function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
+function RunCurlWithProgress(const AUrl, AOutputFile: string; AStartPct, AEndPct: Integer; const AStatusPrefix: string; AOnProgress: TDownloadProgressProc): Integer;
+var
+  Process: TProcess;
+  Buffer: string;
+  BytesRead, P, i: Integer;
+  NumStr: string;
+  PctVal: Double;
+  CurPct, LastPct: Integer;
+begin
+  Result := -1;
+  LastPct := AStartPct;
+  if Assigned(AOnProgress) then
+    AOnProgress(AStartPct, AStatusPrefix);
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-#');
+    Process.Parameters.Add('-L');
+    Process.Parameters.Add('--connect-timeout');
+    Process.Parameters.Add('10');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(AOutputFile);
+    Process.Parameters.Add(AUrl);
+    Process.Options := [poUsePipes];
+    Process.Execute;
+
+    SetLength(Buffer, 512);
+    while Process.Running or (Process.Stderr.NumBytesAvailable > 0) do
+    begin
+      if Process.Stderr.NumBytesAvailable > 0 then
+      begin
+        BytesRead := Process.Stderr.Read(Buffer[1], Length(Buffer));
+        if BytesRead > 0 then
+        begin
+          P := BytesRead;
+          while P >= 1 do
+          begin
+            if Buffer[P] = '%' then
+            begin
+              i := P - 1;
+              while (i >= 1) and (Buffer[i] in ['0'..'9', '.']) do
+                Dec(i);
+              if i < P - 1 then
+              begin
+                NumStr := Copy(Buffer, i + 1, P - i - 1);
+                PctVal := StrToFloatDef(NumStr, -1);
+                if (PctVal >= 0) and (PctVal <= 100) then
+                begin
+                  CurPct := AStartPct + Round((AEndPct - AStartPct) * (PctVal / 100.0));
+                  if (CurPct <> LastPct) and Assigned(AOnProgress) then
+                  begin
+                    LastPct := CurPct;
+                    AOnProgress(CurPct, AStatusPrefix + Format(' (%d%%)', [Round(PctVal)]));
+                  end;
+                end;
+              end;
+              Break;
+            end;
+            Dec(P);
+          end;
+        end;
+      end;
+      Sleep(20);
+    end;
+    Result := Process.ExitStatus;
+  finally
+    Process.Free;
+  end;
+
+  if (Result = 0) and Assigned(AOnProgress) then
+    AOnProgress(AEndPct, AStatusPrefix);
+end;
+
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response: string;
   Process: TProcess;
   VarsList: TStringList;
   AlreadyExtracted: Boolean;
   StartPos, EndPos, NamePos, SpacePos: Integer;
+  StartPct, EndPct: Integer;
+  ChanLabel: string;
 begin
   Result := False;
   DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(AIsStable));
   VarsFilePath := DestDir + 'goverlay.vars';
   AlreadyExtracted := FileExists(DestDir + 'version.dll');
 
+  if AIsStable then
+  begin
+    ChanLabel := 'DLSS Enabler (Stable)';
+    StartPct := 45;
+    EndPct := 65;
+  end
+  else
+  begin
+    ChanLabel := 'DLSS Enabler (Edge)';
+    StartPct := 75;
+    EndPct := 95;
+  end;
+
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct + 5, ChanLabel + ' ready');
     Result := True;
     Exit;
   end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct - 3, 'DLSS Enabler: Checking builds...');
 
   ForceDirectories(DestDir);
   if AIsStable then
@@ -2757,20 +2856,7 @@ begin
   ZipFile := DestDir + 'dlssenabler.zip';
   WriteLn('[DLSS-ENABLER] Downloading ', DownloadUrl, ' to ', ZipFile);
 
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := 'curl';
-    Process.Parameters.Add('-sL');
-    Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
-    Process.Parameters.Add('-o');
-    Process.Parameters.Add(ZipFile);
-    Process.Parameters.Add(DownloadUrl);
-    Process.Options := [poWaitOnExit];
-    Process.Execute;
-  finally
-    Process.Free;
-  end;
+  RunCurlWithProgress(DownloadUrl, ZipFile, StartPct, EndPct, 'DLSS Enabler: Downloading ' + ChanLabel, AOnProgress);
 
   if FileExists(ZipFile) then
   begin
@@ -2954,9 +3040,7 @@ begin
   Result := FileExists(DestDir + 'sl.common.dll') or FileExists(DestDir + 'sl.interposer.dll');
 end;
 
-// Check and automatically install OptiScaler if not present
-// Returns True if OptiScaler is installed (or was successfully installed)
-function CheckAndInstallOptiScaler(const AFGModPath: string): Boolean;
+function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   OptiScalerTag: string;
   DownloadURL: string;
@@ -2965,7 +3049,6 @@ var
   Process: TProcess;
   ExitCode: Integer;
   OptiscalerTabTemp: TOptiscalerTab;
-  VarsFile: TextFile;
   VarsFilePath: string;
   VarsList: TStringList;
   VarsIdx: Integer;
@@ -2990,22 +3073,45 @@ var
   TargetFsrVersion: string;
   TargetXessVersion: string;
   OptiCfg: TConfigFile;
+  TargetCacheDir: string;
+  ChanLabel: string;
+  StartPct, EndPct: Integer;
 begin
   Result := False;
 
+  if AIsStable then
+  begin
+    TargetCacheDir := GetBGModOriginalPath;
+    ChanLabel := 'OptiScaler (Stable)';
+    StartPct := 0;
+    EndPct := 25;
+  end
+  else
+  begin
+    TargetCacheDir := GetBGModOriginalEdgePath;
+    ChanLabel := 'OptiScaler (Edge)';
+    StartPct := 25;
+    EndPct := 50;
+  end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct + 2, ChanLabel + ': Checking installation...');
+
   WriteLn('[AUTO-INSTALL] ========================================');
-  WriteLn('[AUTO-INSTALL] Checking OptiScaler installation...');
+  WriteLn('[AUTO-INSTALL] Checking ', ChanLabel, ' installation...');
   WriteLn('[AUTO-INSTALL] ========================================');
   
-  // Check if OptiScaler.dll already exists in stable cache
-  if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
+  // Check if OptiScaler.dll already exists in target cache
+  if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler.dll') then
   begin
-    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in stable cache, no installation needed');
+    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in ', TargetCacheDir, ', no installation needed');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, ChanLabel + ': Already installed');
     Result := True;
     Exit;
   end;
   
-  WriteLn('[AUTO-INSTALL] OptiScaler.dll not found, starting automatic installation...');
+  WriteLn('[AUTO-INSTALL] OptiScaler.dll not found in ', TargetCacheDir, ', starting automatic installation...');
   
   try
     OptiscalerTabTemp := TOptiscalerTab.Create;
@@ -3013,16 +3119,31 @@ begin
       // Get user directory
       UserDir := GetUserDir;
       
-      // Get stable version tag using the existing working method
-      WriteLn('[AUTO-INSTALL] Getting OptiScaler Stable tag...');
+      // Get version tag
       OptiScalerTag := '';
-      
-      OptiScalerTag := OptiscalerTabTemp.GetOptiScalerStableTag;
-      DownloadURL := OptiscalerTabTemp.FOptiStableURL;
-      if OptiScalerTag <> '' then
-        WriteLn('[AUTO-INSTALL] Found stable tag: ', OptiScalerTag)
+      if AIsStable then
+      begin
+        WriteLn('[AUTO-INSTALL] Getting OptiScaler Stable tag...');
+        OptiScalerTag := OptiscalerTabTemp.GetOptiScalerStableTag;
+        DownloadURL := OptiscalerTabTemp.FOptiStableURL;
+        if DownloadURL = '' then
+          DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
+        SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable-auto.7z';
+      end
       else
-        WriteLn('[AUTO-INSTALL] No stable tag found');
+      begin
+        WriteLn('[AUTO-INSTALL] Getting OptiScaler Edge tag...');
+        OptiScalerTag := OptiscalerTabTemp.GetOptiScalerPreReleaseTag;
+        DownloadURL := OptiscalerTabTemp.FOptiEdgeURL;
+        if DownloadURL = '' then
+          DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-edge.7z', [OptiScalerTag]);
+        SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-edge-auto.7z';
+      end;
+
+      if OptiScalerTag <> '' then
+        WriteLn('[AUTO-INSTALL] Found ', ChanLabel, ' tag: ', OptiScalerTag)
+      else
+        WriteLn('[AUTO-INSTALL] No ', ChanLabel, ' tag found');
     
     // Verify we have a tag
     if OptiScalerTag = '' then
@@ -3031,45 +3152,30 @@ begin
       Exit;
     end;
     
-    // Build download URL
-    if DownloadURL = '' then
-      DownloadURL := Format('https://github.com/benjamimgois/OptiScaler-builds/releases/download/%s/optiscaler-stable.7z', [OptiScalerTag]);
-    SevenZFilePath := IncludeTrailingPathDelimiter(UserDir) + 'optiscaler-stable-auto.7z';
-    
     WriteLn('[AUTO-INSTALL] Download URL: ', DownloadURL);
     WriteLn('[AUTO-INSTALL] Downloading...');
     
-    // Download file using curl
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(SevenZFilePath);
-      Process.Parameters.Add(DownloadURL);
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      ExitCode := Process.ExitStatus;
-    finally
-      Process.Free;
-    end;
+    // Download file using curl with progress updates
+    ExitCode := RunCurlWithProgress(DownloadURL, SevenZFilePath, StartPct + 4, StartPct + 15, ChanLabel + ': Downloading core', AOnProgress);
     
     if (ExitCode <> 0) or not FileExists(SevenZFilePath) then
     begin
       WriteLn('[AUTO-INSTALL] ERROR: Download failed');
       Exit;
     end;
-    
-    WriteLn('[AUTO-INSTALL] Download completed, extracting to .fgmod_original...');
 
-    // Extract to the pristine .fgmod_original directory (not the global fgmod).
-    // This keeps the original free of any user config changes.
+    WriteLn('[AUTO-INSTALL] Download completed, extracting to ', TargetCacheDir, '...');
+
+    if Assigned(AOnProgress) then
+      AOnProgress(StartPct + 16, ChanLabel + ': Extracting core...');
+
+    // Extract to target cache directory
     Process := TProcess.Create(nil);
     try
       Process.Executable := '7z';
       Process.Parameters.Add('x');
       Process.Parameters.Add('-y');
-      Process.Parameters.Add('-o' + GetBGModOriginalPath);
+      Process.Parameters.Add('-o' + TargetCacheDir);
       Process.Parameters.Add(SevenZFilePath);
       Process.Options := [poWaitOnExit];
       Process.Execute;
@@ -3085,14 +3191,14 @@ begin
       Exit;
     end;
 
-    WriteLn('[AUTO-INSTALL] Extraction to .bgmod_original completed');
+    WriteLn('[AUTO-INSTALL] Extraction to ', TargetCacheDir, ' completed');
 
     // Ensure template OptiScaler.ini in cache uses Fsr4Update=auto
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.ini') then
+    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler.ini') then
     begin
       OptiCfg := TConfigFile.Create;
       try
-        if OptiCfg.Load(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.ini') then
+        if OptiCfg.Load(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler.ini') then
         begin
           OptiCfg.SetValue('Fsr4Update=', 'auto');
           OptiCfg.Save;
@@ -3103,7 +3209,7 @@ begin
     end;
 
     // MOVE CONTENTS OF SUBFOLDER "OptiScaler" TO ROOT if it exists
-    if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler') then
+    if DirectoryExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler') then
     begin
       WriteLn('[AUTO-INSTALL] Moving files from OptiScaler/ subfolder to root...');
       Process := TProcess.Create(nil);
@@ -3111,9 +3217,9 @@ begin
         Process.Executable := 'sh';
         Process.Parameters.Add('-c');
         Process.Parameters.Add('cp -rf ' +
-          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler/.') + ' ' +
-          QuotedStr(GetBGModOriginalPath) + ' && rm -rf ' +
-          QuotedStr(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler'));
+          QuotedStr(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler/.') + ' ' +
+          QuotedStr(TargetCacheDir) + ' && rm -rf ' +
+          QuotedStr(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler'));
         Process.Options := [poWaitOnExit];
         Process.Execute;
       finally
@@ -3121,83 +3227,24 @@ begin
       end;
     end;
 
-    // Rename bgmod.sh to bgmod in .bgmod_original if it exists
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh') then
+    // Rename bgmod.sh to bgmod in cache if it exists
+    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'bgmod.sh') then
     begin
-      RenameFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod.sh',
-                 IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod');
-      fpChmod(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'bgmod', &755);
+      RenameFile(IncludeTrailingPathDelimiter(TargetCacheDir) + 'bgmod.sh',
+                 IncludeTrailingPathDelimiter(TargetCacheDir) + 'bgmod');
+      fpChmod(IncludeTrailingPathDelimiter(TargetCacheDir) + 'bgmod', &755);
     end;
 
-    // Download NVIDIA DLSS DLLs to .bgmod_original
+    // Download NVIDIA DLSS DLLs to target cache
     WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlss.dll');
-      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      if Process.ExitStatus = 0 then
-        WriteLn('[AUTO-INSTALL] nvngx_dlss.dll downloaded')
-      else
-        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlss.dll');
-    finally
-      Process.Free;
-    end;
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssd.dll');
-      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      if Process.ExitStatus = 0 then
-        WriteLn('[AUTO-INSTALL] nvngx_dlssd.dll downloaded')
-      else
-        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlssd.dll');
-    finally
-      Process.Free;
-    end;
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'nvngx_dlssg.dll');
-      Process.Parameters.Add(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      if Process.ExitStatus = 0 then
-        WriteLn('[AUTO-INSTALL] nvngx_dlssg.dll downloaded')
-      else
-        WriteLn('[AUTO-INSTALL] WARN: Failed to download nvngx_dlssg.dll');
-    finally
-      Process.Free;
-    end;
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll', StartPct + 17, StartPct + 19, ChanLabel + ': Downloading NVIDIA DLSS (1/3)', AOnProgress);
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll', StartPct + 19, StartPct + 21, ChanLabel + ': Downloading NVIDIA DLSS (2/3)', AOnProgress);
+    RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll', StartPct + 21, StartPct + 22, ChanLabel + ': Downloading NVIDIA DLSS (3/3)', AOnProgress);
 
     // Download auxiliary dlssg_to_fsr3 DLL
     WriteLn('[AUTO-INSTALL] Downloading dlssg_to_fsr3 DLL...');
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'dlssg_to_fsr3_amd_is_better.dll');
-      Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      if Process.ExitStatus = 0 then
-        WriteLn('[AUTO-INSTALL] dlssg_to_fsr3_amd_is_better.dll downloaded')
-      else
-        WriteLn('[AUTO-INSTALL] WARN: Failed to download dlssg_to_fsr3_amd_is_better.dll');
-    finally
-      Process.Free;
-    end;
+    RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
+      IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll', StartPct + 22, StartPct + 23, ChanLabel + ': Downloading FrameGen bridge', AOnProgress);
 
     // Fetch and download/extract latest FakeNVAPI
     WriteLn('[AUTO-INSTALL] Downloading FakeNVAPI...');
@@ -3206,29 +3253,19 @@ begin
     begin
       WriteLn('[AUTO-INSTALL] Found FakeNVAPI tag: ', FakeNvapiTag);
       Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
-      Process := TProcess.Create(nil);
-      try
-        Process.Executable := 'curl';
-        Process.Parameters.Add('-L');
-        Process.Parameters.Add('-o');
-        Process.Parameters.Add(Fake7zPath);
-        Process.Parameters.Add(FakeNvapiURL);
-        Process.Options := [poWaitOnExit];
-        Process.Execute;
-        ExitCode := Process.ExitStatus;
-      finally
-        Process.Free;
-      end;
+      ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ': Downloading FakeNVAPI', AOnProgress);
 
       if (ExitCode = 0) and FileExists(Fake7zPath) then
       begin
         WriteLn('[AUTO-INSTALL] Extracting FakeNVAPI...');
+        if Assigned(AOnProgress) then
+          AOnProgress(StartPct + 24, ChanLabel + ': Extracting FakeNVAPI...');
         Process := TProcess.Create(nil);
         try
           Process.Executable := '7z';
           Process.Parameters.Add('x');
           Process.Parameters.Add('-y');
-          Process.Parameters.Add('-o' + GetBGModOriginalPath);
+          Process.Parameters.Add('-o' + TargetCacheDir);
           Process.Parameters.Add(Fake7zPath);
           Process.Options := [poWaitOnExit];
           Process.Execute;
@@ -3256,38 +3293,23 @@ begin
 
     // Download and setup FSR upscaler DLLs
     WriteLn('[AUTO-INSTALL] Setting up FSR4_LATEST and FSR4_INT8 directories...');
-    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST');
-    ForceDirectories(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8');
+    ForceDirectories(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST');
+    ForceDirectories(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8');
 
-    // Copy current default upscaler dll to FSR4_LATEST (from root since OptiScaler subfolder contents were moved)
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+    // Copy current default upscaler dll to FSR4_LATEST
+    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
+      CopyFile(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll',
+               IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
       WriteLn('[AUTO-INSTALL] Copied default upscaler from root to FSR4_LATEST');
     end;
 
-    // Download FSR INT8 DLL using curl
-    Process := TProcess.Create(nil);
-    try
-      Process.Executable := 'curl';
-      Process.Parameters.Add('-L');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll');
-      Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll');
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-      if Process.ExitStatus = 0 then
-        WriteLn('[AUTO-INSTALL] FSR INT8 DLL downloaded to FSR4_INT8')
-      else
-        WriteLn('[AUTO-INSTALL] WARN: Failed to download FSR INT8 DLL');
-    finally
-      Process.Free;
-    end;
+    // Download FSR INT8 DLL using curl with progress
+    RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
+      IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ': Downloading FSR components', AOnProgress);
 
     // Write/update DLSS download date in goverlay.vars
-    // Do this BEFORE seeding so the global copy also receives the version stamp.
-    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+    VarsFilePath := IncludeTrailingPathDelimiter(TargetCacheDir) + 'goverlay.vars';
     VarsList := TStringList.Create;
     try
       try
@@ -3353,9 +3375,16 @@ begin
         else
           WriteLn('[AUTO-INSTALL] WARN: Failed to fetch vars.txt, using fallbacks');
 
-        // Auto-install is always stable channel
-        TargetFsrVersion := FsrStableVal;
-        TargetXessVersion := XessStableVal;
+        if AIsStable then
+        begin
+          TargetFsrVersion := FsrStableVal;
+          TargetXessVersion := XessStableVal;
+        end
+        else
+        begin
+          TargetFsrVersion := FsrEdgeVal;
+          TargetXessVersion := XessEdgeVal;
+        end;
 
         // Write FakeNvapiVersion if clean tag exists
         if FakeNvapiVerClean <> '' then
@@ -3411,14 +3440,17 @@ begin
         else
           WriteLn('[AUTO-INSTALL] Updated xessversion line');
 
-        // Save to pristine store
+        // Save to cache store
         VarsList.SaveToFile(VarsFilePath);
-        WriteLn('[AUTO-INSTALL] dlssversion saved to .bgmod_original');
+        WriteLn('[AUTO-INSTALL] dlssversion saved to ', TargetCacheDir);
 
-        // Also save to gameconfig/global/ (active global config)
-        ForceDirectories(goverlayform.GetGameConfigDir(''));
-        VarsList.SaveToFile(IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('')) + 'goverlay.vars');
-        WriteLn('[AUTO-INSTALL] dlssversion saved to gameconfig/global/');
+        // Also save to gameconfig/global/ (active global config) if stable
+        if AIsStable then
+        begin
+          ForceDirectories(goverlayform.GetGameConfigDir(''));
+          VarsList.SaveToFile(IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('')) + 'goverlay.vars');
+          WriteLn('[AUTO-INSTALL] dlssversion saved to gameconfig/global/');
+        end;
       except
         on E: Exception do
           WriteLn('[AUTO-INSTALL] WARN: Could not write dlssversion - ', E.Message);
@@ -3427,18 +3459,17 @@ begin
       VarsList.Free;
     end;
 
-    // Also check and install DLSS Enabler if not present
-    CheckAndInstallDlssEnabler(True, False);
-
     // Clean up download file
     DeleteFile(SevenZFilePath);
 
-    // Verify installation in the stable cache path
-    if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
+    // Verify installation in the target cache path
+    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler.dll') then
     begin
       WriteLn('[AUTO-INSTALL] ========================================');
-      WriteLn('[AUTO-INSTALL] OptiScaler installation completed!');
+      WriteLn('[AUTO-INSTALL] ', ChanLabel, ' installation completed!');
       WriteLn('[AUTO-INSTALL] ========================================');
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, ChanLabel + ': Installation complete');
       Result := True;
     end
     else

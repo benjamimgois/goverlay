@@ -68,6 +68,21 @@ const
 
 type
 
+  { TStartupDownloadThread - runs OptiScaler/DLSS Enabler downloads in background
+    so the main thread stays free to repaint the splash form }
+  TStartupDownloadThread = class(TThread)
+  private
+    FOwner:   TObject;   // holds Tgoverlayform; declared as TObject to avoid forward-ref
+    FPercent: Integer;
+    FStatus:  string;
+    procedure DoUpdateSplash;
+    procedure OnDownloadProgress(APercent: Integer; const AStatus: string);
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOwner: TObject);
+  end;
+
   { TChangelogFetchThread - fetches release notes in background and shows popup }
   TChangelogFetchThread = class(TThread)
   private
@@ -638,6 +653,12 @@ type
     FBasaltHelper:    TObject;
     FMangoHelper:     TObject;
 
+    FSplashForm:         TForm;
+    FSplashLogoImage:    TImage;
+    FSplashStatusLabel:  TLabel;
+    FSplashPercentLabel: TLabel;
+    FSplashProgressBar:  TProgressBar;
+
     // Moved to public:
     {     FNavItems:       array of TPanel;    // item panels
     FNavIndicators:  array of TShape;    // left indicator bars
@@ -818,6 +839,10 @@ type
     procedure PresetCardMouseLeave(Sender: TObject);
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
+    procedure ShowBootSplash(const AStatus: string);
+    procedure UpdateBootSplash(APercent: Integer; const AStatus: string);
+    procedure HideBootSplash;
+    procedure StartupDownloadsAsync(Data: PtrInt);
     // Exposed: procedure BuildSettingsButton;
     // Exposed: procedure RestoreNavRailColors;
     // Exposed: procedure SettingsBtnMouseEnter(Sender: TObject);
@@ -2728,6 +2753,132 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.ShowBootSplash(const AStatus: string);
+const
+  SW = 480;
+  SH = 210;
+var
+  LogoFile: string;
+  LogoImg: TPicture;
+begin
+  if Assigned(FSplashForm) then Exit;
+
+  // Create compact standalone splash window (no title bar, no decorations)
+  FSplashForm := TForm.Create(nil);
+  FSplashForm.BorderStyle := bsNone;
+  FSplashForm.FormStyle   := fsStayOnTop;
+  FSplashForm.Color       := RGBToColor(22, 26, 40);
+  FSplashForm.Width       := SW;
+  FSplashForm.Height      := SH;
+  FSplashForm.Position    := poScreenCenter;
+  FSplashForm.Caption     := '';
+
+  // Logo
+  FSplashLogoImage := TImage.Create(FSplashForm);
+  FSplashLogoImage.Parent      := FSplashForm;
+  FSplashLogoImage.Stretch     := True;
+  FSplashLogoImage.Proportional := True;
+  FSplashLogoImage.Center      := True;
+  FSplashLogoImage.SetBounds((SW - 80) div 2, 16, 80, 80);
+  LogoFile := GetIconFile;
+  if FileExists(LogoFile) then
+  begin
+    LogoImg := TPicture.Create;
+    try
+      LogoImg.LoadFromFile(LogoFile);
+      FSplashLogoImage.Picture.Assign(LogoImg);
+    finally
+      LogoImg.Free;
+    end;
+  end;
+
+  // Status label
+  FSplashStatusLabel := TLabel.Create(FSplashForm);
+  FSplashStatusLabel.Parent    := FSplashForm;
+  FSplashStatusLabel.Caption   := AStatus;
+  FSplashStatusLabel.Font.Name := 'Noto Sans';
+  FSplashStatusLabel.Font.Size := 11;
+  FSplashStatusLabel.Font.Style := [fsBold];
+  FSplashStatusLabel.Font.Color := RGBToColor(48, 190, 240);
+  FSplashStatusLabel.SetBounds(16, 108, SW - 32, 22);
+
+  // Percentage label (right side, above progress bar)
+  FSplashPercentLabel := TLabel.Create(FSplashForm);
+  FSplashPercentLabel.Parent    := FSplashForm;
+  FSplashPercentLabel.Caption   := '0%';
+  FSplashPercentLabel.Font.Name := 'Noto Sans';
+  FSplashPercentLabel.Font.Size := 10;
+  FSplashPercentLabel.Font.Color := clWhite;
+  FSplashPercentLabel.SetBounds(SW - 56, 136, 40, 18);
+  FSplashPercentLabel.Alignment := taRightJustify;
+
+  // Progress bar
+  FSplashProgressBar := TProgressBar.Create(FSplashForm);
+  FSplashProgressBar.Parent   := FSplashForm;
+  FSplashProgressBar.Min      := 0;
+  FSplashProgressBar.Max      := 100;
+  FSplashProgressBar.Position := 0;
+  FSplashProgressBar.SetBounds(16, 158, SW - 32, 20);
+
+  FSplashForm.Show;
+  Application.ProcessMessages;
+end;
+
+procedure Tgoverlayform.UpdateBootSplash(APercent: Integer; const AStatus: string);
+begin
+  if not Assigned(FSplashForm) then Exit;
+  if Assigned(FSplashProgressBar) then
+    FSplashProgressBar.Position := APercent;
+  if Assigned(FSplashStatusLabel) then
+    FSplashStatusLabel.Caption := AStatus;
+  if Assigned(FSplashPercentLabel) then
+    FSplashPercentLabel.Caption := IntToStr(APercent) + '%';
+  Application.ProcessMessages;
+end;
+
+procedure Tgoverlayform.HideBootSplash;
+begin
+  if Assigned(FSplashForm) then
+    FreeAndNil(FSplashForm);
+  Application.ProcessMessages;
+end;
+
+procedure Tgoverlayform.StartupDownloadsAsync(Data: PtrInt);
+var
+  NeedsDownload: Boolean;
+begin
+  NeedsDownload := (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll')) or
+                   (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'OptiScaler.dll')) or
+                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll')) or
+                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(False)) + 'version.dll'));
+
+  if not NeedsDownload then Exit;
+
+  // Hide main window and show compact splash
+  Self.Hide;
+  ShowBootSplash('Downloading files...');
+
+  // Run downloads on a background thread so the main thread stays free to
+  // repaint the splash window via Application.ProcessMessages
+  with TStartupDownloadThread.Create(Self) do
+  begin
+    Start;
+    try
+      while not Finished do
+      begin
+        Application.ProcessMessages;
+        Sleep(16); // ~60 fps paint budget
+      end;
+    finally
+      Free;
+    end;
+  end;
+
+  HideBootSplash;
+  Self.Show;
+  RefreshOsStatusDots;
+end;
+
 procedure Tgoverlayform.FormCreate(Sender: TObject);
 var
  // Process: TProcess;
@@ -2748,6 +2899,7 @@ var
    SavedTheme: TThemeMode;
    SavedDriver: string;
    TestMode: Boolean;
+   NeedsDownload: Boolean;
 
 begin
   FGamesHelper := TGamesTabHelper.Create(Self);
@@ -2772,21 +2924,6 @@ begin
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
   InitializeBGModDirectory;
-
-  // Auto-install OptiScaler if not present in BGMOD directory
-  // This prevents BGMOD from failing due to missing dependencies
-  if (not TestMode) and IsBGModInitialized then
-  begin
-    if not IsBGModOptiScalerInstalled(GetBGModOriginalPath) then
-    begin
-      WriteLn('[GOVERLAY] OptiScaler not detected in BGMOD, starting automatic installation...');
-      SendNotification('GOverlay', 'Installing OptiScaler', GetIconFile);
-      CheckAndInstallOptiScaler(GetFGModPath);
-    end;
-
-    // Check and auto-install DLSS Enabler if missing from ~/.local/share/goverlay/dlssenabler-edge
-    CheckAndInstallDlssEnabler;
-  end;
 
   // Initialize the isolated global profile directory after bgmod/ has been
   // populated (either from bundled templates or from the auto-install above).
@@ -3973,7 +4110,10 @@ var
   TabWidget: QWidgetH;
   TabBar: QTabBarH;
   PanelWidget: QWidgetH;
+  TestMode, NeedsDownload: Boolean;
+  OrigParent, OrigLabelParent: TWinControl;
 begin
+  TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
   // Load Steam games grid once, after the form has its final dimensions
   if not FGamesLoaded then
   begin
@@ -4057,6 +4197,11 @@ begin
 
   // Ensure all UI controls fire auto-save
   WireAutoSaveEvents;
+
+  // Auto-install OptiScaler & DLSS Enabler if missing — deferred via QueueAsyncCall so
+  // the window is fully painted before the splash appears (same pattern as ShowChangelogAsync)
+  if (not TestMode) and IsBGModInitialized then
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -8706,6 +8851,44 @@ begin
     end;
   except
     // Fail silently so startup isn't aborted
+  end;
+end;
+
+{ TStartupDownloadThread }
+
+constructor TStartupDownloadThread.Create(AOwner: TObject);
+begin
+  inherited Create(True);   // suspended
+  FOwner := AOwner;
+  FreeOnTerminate := False; // caller waits for finish, then frees
+end;
+
+procedure TStartupDownloadThread.DoUpdateSplash;
+begin
+  Tgoverlayform(FOwner).UpdateBootSplash(FPercent, FStatus);
+end;
+
+procedure TStartupDownloadThread.OnDownloadProgress(APercent: Integer; const AStatus: string);
+begin
+  if Terminated then Exit;
+  FPercent := APercent;
+  FStatus  := AStatus;
+  Synchronize(@DoUpdateSplash);
+end;
+
+procedure TStartupDownloadThread.Execute;
+begin
+  try
+    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 25%)
+    CheckAndInstallOptiScaler(GetFGModPath, False, @OnDownloadProgress);  // Edge channel (25% - 50%)
+
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (50% - 75%)
+    CheckAndInstallDlssEnabler(False, False, @OnDownloadProgress);         // Edge channel (75% - 95%)
+
+    OnDownloadProgress(100, 'Finishing setup...');
+  except
+    on E: Exception do
+      WriteLn('[GOVERLAY] StartupDownload error: ', E.Message);
   end;
 end;
 
