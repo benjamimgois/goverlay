@@ -2904,12 +2904,13 @@ begin
 
   // 1. Header Branding Image: data/goverlay_splash.png
   FSplashBrandingImage := TImage.Create(FSplashForm);
-  FSplashBrandingImage.Parent       := FSplashForm;
-  FSplashBrandingImage.Stretch      := True;
-  FSplashBrandingImage.Proportional := True;
-  FSplashBrandingImage.Center       := True;
-  FSplashBrandingImage.Transparent  := True;
-  FSplashBrandingImage.SetBounds((SW - 340) div 2, 32, 340, 100);
+  FSplashBrandingImage.Parent           := FSplashForm;
+  FSplashBrandingImage.Stretch          := True;
+  FSplashBrandingImage.Proportional     := True;
+  FSplashBrandingImage.Center           := True;
+  FSplashBrandingImage.Transparent      := True;
+  FSplashBrandingImage.AntialiasingMode := amOn;
+  FSplashBrandingImage.SetBounds((SW - 270) div 2, 44, 270, 80);
 
   BrandingFile := 'data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
