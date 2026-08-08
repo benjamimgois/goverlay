@@ -2902,7 +2902,7 @@ begin
   FSplashPercentLabel.AutoSize    := False;
   FSplashPercentLabel.SetBounds(SW - 88, 194, 56, 22);
 
-  // 4. Detail Label (Bottom left): "Downloading Optiscaler stable (extracting core)"
+  // 4. Detail Label (Directly below progress bar, left-aligned): "Downloading Optiscaler stable..."
   FSplashDetailLabel := TLabel.Create(FSplashForm);
   FSplashDetailLabel.Parent      := FSplashForm;
   FSplashDetailLabel.Caption     := AStatus;
@@ -2912,9 +2912,9 @@ begin
   FSplashDetailLabel.Transparent := True;
   FSplashDetailLabel.Alignment   := taLeftJustify;
   FSplashDetailLabel.AutoSize    := False;
-  FSplashDetailLabel.SetBounds(32, 255, SW - 160, 24);
+  FSplashDetailLabel.SetBounds(32, 222, SW - 160, 22);
 
-  // 5. Details Button (Bottom right with terminal icon prompt ">_ Details")
+  // 5. Details Button (Bottom right corner with terminal icon prompt ">_ Details")
   FSplashDetailsButton := TSpeedButton.Create(FSplashForm);
   FSplashDetailsButton.Parent    := FSplashForm;
   FSplashDetailsButton.Caption   := '>_ Details';
@@ -2923,7 +2923,7 @@ begin
   FSplashDetailsButton.Font.Style := [fsBold];
   FSplashDetailsButton.Font.Color := RGBToColor(0, 255, 200);
   FSplashDetailsButton.Flat     := True;
-  FSplashDetailsButton.SetBounds(SW - 128, 250, 96, 32);
+  FSplashDetailsButton.SetBounds(SW - 108, SH - 36, 92, 28);
   FSplashDetailsButton.OnClick  := @OnSplashDetailsClick;
 
   if AStatus <> '' then
