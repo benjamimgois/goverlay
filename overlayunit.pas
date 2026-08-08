@@ -2902,16 +2902,18 @@ begin
   FSplashForm.Caption     := '';
   FSplashForm.OnPaint     := @SplashFormPaint;
 
-  // 1. Header Branding Image: data/goverlay_logo.png
+  // 1. Header Branding Image: data/goverlay_splash.png
   FSplashBrandingImage := TImage.Create(FSplashForm);
   FSplashBrandingImage.Parent       := FSplashForm;
   FSplashBrandingImage.Stretch      := True;
   FSplashBrandingImage.Proportional := True;
   FSplashBrandingImage.Center       := True;
   FSplashBrandingImage.Transparent  := True;
-  FSplashBrandingImage.SetBounds((SW - 460) div 2, 24, 460, 110);
+  FSplashBrandingImage.SetBounds((SW - 340) div 2, 32, 340, 100);
 
-  BrandingFile := 'data/goverlay_logo.png';
+  BrandingFile := 'data/goverlay_splash.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := 'data/goverlay_logo.png';
   if not FileExists(BrandingFile) then
     BrandingFile := GetIconFile;
 
