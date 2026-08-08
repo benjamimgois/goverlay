@@ -849,6 +849,7 @@ type
     procedure AddSplashLogRaw(const S: string);
     procedure AddSplashLog(const AMsg: string);
     procedure OnSplashDetailsClick(Sender: TObject);
+    procedure OnSplashLogFormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure ShowBootSplash(const AStatus: string);
     procedure SplashFormPaint(Sender: TObject);
     procedure UpdateBootSplash(APercent: Integer; const AStatus: string);
@@ -2872,6 +2873,13 @@ begin
   AddSplashLogRaw(AMsg + sLineBreak);
 end;
 
+procedure Tgoverlayform.OnSplashLogFormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  CloseAction := caFree;
+  FSplashLogForm := nil;
+  FSplashLogMemo := nil;
+end;
+
 procedure Tgoverlayform.OnSplashDetailsClick(Sender: TObject);
 var
   LogHeader: TLabel;
@@ -2895,6 +2903,7 @@ begin
   FSplashLogForm.Position := poScreenCenter;
   FSplashLogForm.Color := RGBToColor(10, 16, 28);
   FSplashLogForm.FormStyle := fsStayOnTop;
+  FSplashLogForm.OnClose := @OnSplashLogFormClose;
 
   LogHeader := TLabel.Create(FSplashLogForm);
   LogHeader.Parent := FSplashLogForm;
@@ -3059,7 +3068,7 @@ end;
 
 procedure Tgoverlayform.HideBootSplash;
 begin
-  if Assigned(FSplashLogForm) then
+  if Assigned(FSplashLogForm) and (not FSplashLogForm.Visible) then
     FreeAndNil(FSplashLogForm);
 
   if Assigned(FSplashForm) then
