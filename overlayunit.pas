@@ -662,6 +662,7 @@ type
     FSplashLogForm:          TForm;
     FSplashLogMemo:          TMemo;
     FSplashLogList:          TStringList;
+    FSplashLogRawBuffer:     string;
     FStartupDownloadsChecked: Boolean;
 
     // Moved to public:
@@ -844,6 +845,8 @@ type
     procedure PresetCardMouseLeave(Sender: TObject);
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
+    procedure ProcessSplashLogRaw(const S: string);
+    procedure AddSplashLogRaw(const S: string);
     procedure AddSplashLog(const AMsg: string);
     procedure OnSplashDetailsClick(Sender: TObject);
     procedure ShowBootSplash(const AStatus: string);
@@ -2770,15 +2773,103 @@ begin
   FSplashForm.Canvas.GradientFill(R, RGBToColor(14, 24, 42), RGBToColor(6, 10, 20), gdVertical);
 end;
 
+type
+  TTextIOFunc = function(var F: TextRec): Integer;
+
+var
+  OldStdoutInOut: TTextIOFunc = nil;
+  OldStderrInOut: TTextIOFunc = nil;
+
+function RedirectedStdoutInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStdoutInOut) then
+      Result := OldStdoutInOut(F)
+    else
+      Result := 0;
+
+    if Assigned(goverlayform) then
+      goverlayform.AddSplashLogRaw(S);
+  end
+  else
+    Result := 0;
+end;
+
+function RedirectedStderrInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStderrInOut) then
+      Result := OldStderrInOut(F)
+    else
+      Result := 0;
+
+    if Assigned(goverlayform) then
+      goverlayform.AddSplashLogRaw(S);
+  end
+  else
+    Result := 0;
+end;
+
+procedure InstallStdoutHook;
+begin
+  if OldStdoutInOut = nil then
+  begin
+    OldStdoutInOut := TTextIOFunc(TextRec(Output).InOutFunc);
+    TextRec(Output).InOutFunc := @RedirectedStdoutInOut;
+  end;
+  if OldStderrInOut = nil then
+  begin
+    OldStderrInOut := TTextIOFunc(TextRec(ErrOutput).InOutFunc);
+    TextRec(ErrOutput).InOutFunc := @RedirectedStderrInOut;
+  end;
+end;
+
+procedure Tgoverlayform.ProcessSplashLogRaw(const S: string);
+var
+  I: Integer;
+  CleanLine: string;
+begin
+  FSplashLogRawBuffer := FSplashLogRawBuffer + S;
+
+  while Pos(#10, FSplashLogRawBuffer) > 0 do
+  begin
+    I := Pos(#10, FSplashLogRawBuffer);
+    CleanLine := Copy(FSplashLogRawBuffer, 1, I - 1);
+    if (Length(CleanLine) > 0) and (CleanLine[Length(CleanLine)] = #13) then
+      Delete(CleanLine, Length(CleanLine), 1);
+
+    Delete(FSplashLogRawBuffer, 1, I);
+
+    if not Assigned(FSplashLogList) then
+      FSplashLogList := TStringList.Create;
+
+    FSplashLogList.Add(CleanLine);
+
+    if Assigned(FSplashLogMemo) and Assigned(FSplashLogMemo.Parent) then
+    begin
+      FSplashLogMemo.Lines.Add(CleanLine);
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.AddSplashLogRaw(const S: string);
+begin
+  ProcessSplashLogRaw(S);
+end;
+
 procedure Tgoverlayform.AddSplashLog(const AMsg: string);
 begin
-  if not Assigned(FSplashLogList) then
-    FSplashLogList := TStringList.Create;
-
-  FSplashLogList.Add(AMsg);
-
-  if Assigned(FSplashLogMemo) and Assigned(FSplashLogMemo.Parent) then
-    FSplashLogMemo.Lines.Add(AMsg);
+  AddSplashLogRaw(AMsg + sLineBreak);
 end;
 
 procedure Tgoverlayform.OnSplashDetailsClick(Sender: TObject);
@@ -9271,5 +9362,8 @@ begin
       DbgLog('CopyPasCubeLogs: exception: ' + E.Message);
   end;
 end;
+
+initialization
+  InstallStdoutHook;
 
 end.
