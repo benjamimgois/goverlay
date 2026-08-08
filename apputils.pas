@@ -44,18 +44,180 @@ function IsKernelModuleAvailable(const ModuleName: string): Boolean;
 /// <summary>Check runtime dependencies and return a list of missing items.</summary>
 function CheckDependencies(out Missing: TStringList): Boolean;
 
+/// <summary>Add a line to global log buffer (thread-safe).</summary>
+procedure AddGlobalLog(const Msg: string);
+
+/// <summary>Get a copy of all accumulated startup logs.</summary>
+procedure GetGlobalLogs(DestList: TStrings);
+
+/// <summary>Install TextRec stdout/stderr hooks to intercept all WriteLn calls.</summary>
+procedure InstallStdoutHook;
+
 implementation
 
 var
   GDbgT0: QWord = 0;  // Debug log baseline timestamp
+  GGlobalLogList: TStringList = nil;
+  GGlobalLogLock: TRTLCriticalSection;
+  GRawLogBuffer: string = '';
+
+type
+  TTextIOFunc = function(var F: TextRec): Integer;
+
+var
+  OldStdoutInOut: TTextIOFunc = nil;
+  OldStderrInOut: TTextIOFunc = nil;
+  OldStdOutAliasInOut: TTextIOFunc = nil;
+  OldStdErrAliasInOut: TTextIOFunc = nil;
+
+procedure AddGlobalLog(const Msg: string);
+var
+  I: Integer;
+  LineStr: string;
+begin
+  EnterCriticalSection(GGlobalLogLock);
+  try
+    if not Assigned(GGlobalLogList) then
+      GGlobalLogList := TStringList.Create;
+
+    GRawLogBuffer := GRawLogBuffer + Msg;
+
+    while Pos(#10, GRawLogBuffer) > 0 do
+    begin
+      I := Pos(#10, GRawLogBuffer);
+      LineStr := Copy(GRawLogBuffer, 1, I - 1);
+      if (Length(LineStr) > 0) and (LineStr[Length(LineStr)] = #13) then
+        Delete(LineStr, Length(LineStr), 1);
+      Delete(GRawLogBuffer, 1, I);
+
+      GGlobalLogList.Add(LineStr);
+    end;
+  finally
+    LeaveCriticalSection(GGlobalLogLock);
+  end;
+end;
+
+procedure GetGlobalLogs(DestList: TStrings);
+begin
+  if not Assigned(DestList) then Exit;
+  EnterCriticalSection(GGlobalLogLock);
+  try
+    if Assigned(GGlobalLogList) then
+      DestList.Assign(GGlobalLogList);
+  finally
+    LeaveCriticalSection(GGlobalLogLock);
+  end;
+end;
+
+function RedirectedStdoutInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStdoutInOut) then
+      Result := OldStdoutInOut(F)
+    else
+      Result := 0;
+
+    AddGlobalLog(S);
+  end
+  else
+    Result := 0;
+end;
+
+function RedirectedStderrInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStderrInOut) then
+      Result := OldStderrInOut(F)
+    else
+      Result := 0;
+
+    AddGlobalLog(S);
+  end
+  else
+    Result := 0;
+end;
+
+function RedirectedStdOutAliasInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStdOutAliasInOut) then
+      Result := OldStdOutAliasInOut(F)
+    else
+      Result := 0;
+
+    AddGlobalLog(S);
+  end
+  else
+    Result := 0;
+end;
+
+function RedirectedStdErrAliasInOut(var F: TextRec): Integer;
+var
+  S: string;
+begin
+  if F.BufPos > 0 then
+  begin
+    SetString(S, PChar(F.BufPtr), F.BufPos);
+
+    if Assigned(OldStdErrAliasInOut) then
+      Result := OldStdErrAliasInOut(F)
+    else
+      Result := 0;
+
+    AddGlobalLog(S);
+  end
+  else
+    Result := 0;
+end;
+
+procedure InstallStdoutHook;
+begin
+  if OldStdoutInOut = nil then
+  begin
+    OldStdoutInOut := TTextIOFunc(TextRec(Output).InOutFunc);
+    TextRec(Output).InOutFunc := @RedirectedStdoutInOut;
+  end;
+  if OldStderrInOut = nil then
+  begin
+    OldStderrInOut := TTextIOFunc(TextRec(ErrOutput).InOutFunc);
+    TextRec(ErrOutput).InOutFunc := @RedirectedStderrInOut;
+  end;
+  if OldStdOutAliasInOut = nil then
+  begin
+    OldStdOutAliasInOut := TTextIOFunc(TextRec(StdOut).InOutFunc);
+    TextRec(StdOut).InOutFunc := @RedirectedStdOutAliasInOut;
+  end;
+  if OldStdErrAliasInOut = nil then
+  begin
+    OldStdErrAliasInOut := TTextIOFunc(TextRec(StdErr).InOutFunc);
+    TextRec(StdErr).InOutFunc := @RedirectedStdErrAliasInOut;
+  end;
+end;
 
 procedure DbgLog(const Msg: string);
 var
   T: QWord;
+  FormattedMsg: string;
 begin
   T := GetTickCount64;
   if GDbgT0 = 0 then GDbgT0 := T;
-  WriteLn(StdErr, Format('[%6d ms] %s', [T - GDbgT0, Msg]));
+  FormattedMsg := Format('[%6d ms] %s', [T - GDbgT0, Msg]);
+  WriteLn(StdErr, FormattedMsg);
 end;
 
 function CompareVersions(const Version1, Version2: string): Integer;
@@ -361,5 +523,14 @@ begin
 
   Result := Missing.Count = 0;
 end;
+
+initialization
+  InitCriticalSection(GGlobalLogLock);
+  InstallStdoutHook;
+
+finalization
+  DoneCriticalSection(GGlobalLogLock);
+  if Assigned(GGlobalLogList) then
+    FreeAndNil(GGlobalLogList);
 
 end.

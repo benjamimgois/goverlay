@@ -2916,6 +2916,8 @@ begin
   if Assigned(FSplashLogList) then
     FSplashLogMemo.Lines.Assign(FSplashLogList);
 
+  GetGlobalLogs(FSplashLogMemo.Lines);
+
   FSplashLogForm.Show;
 end;
 
