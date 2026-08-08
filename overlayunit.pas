@@ -2880,6 +2880,11 @@ begin
   begin
     FSplashLogForm.Show;
     FSplashLogForm.BringToFront;
+    if Assigned(FSplashLogMemo) then
+    begin
+      GetGlobalLogs(FSplashLogMemo.Lines);
+      FSplashLogMemo.SelStart := Length(FSplashLogMemo.Text);
+    end;
     Exit;
   end;
 
@@ -2917,6 +2922,7 @@ begin
     FSplashLogMemo.Lines.Assign(FSplashLogList);
 
   GetGlobalLogs(FSplashLogMemo.Lines);
+  FSplashLogMemo.SelStart := Length(FSplashLogMemo.Text);
 
   FSplashLogForm.Show;
 end;
@@ -3041,6 +3047,12 @@ begin
 
   if Assigned(FSplashPercentLabel) then
     FSplashPercentLabel.Caption := IntToStr(APercent) + '%';
+
+  if Assigned(FSplashLogMemo) and Assigned(FSplashLogForm) and FSplashLogForm.Visible then
+  begin
+    GetGlobalLogs(FSplashLogMemo.Lines);
+    FSplashLogMemo.SelStart := Length(FSplashLogMemo.Text);
+  end;
 
   Application.ProcessMessages;
 end;
