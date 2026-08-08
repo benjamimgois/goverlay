@@ -5,7 +5,7 @@ unit apputils;
 interface
 
 uses
-  Classes, SysUtils, process, FileUtil, StrUtils, Graphics, Types, Math,
+  Classes, SysUtils, process, FileUtil, StrUtils, Graphics, Types, Math, BaseUnix, Unix,
   constants, configmanager, systemdetector;
 
 /// <summary>Write a timestamped debug message to stderr.</summary>
@@ -62,13 +62,48 @@ var
   GRawLogBuffer: string = '';
 
 type
-  TTextIOFunc = function(var F: TextRec): Integer;
+  TLogPipeThread = class(TThread)
+  private
+    FReadFd: cInt;
+    FOldStdoutFd: cInt;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AReadFd, AOldStdoutFd: cInt);
+  end;
+
+constructor TLogPipeThread.Create(AReadFd, AOldStdoutFd: cInt);
+begin
+  inherited Create(False);
+  FReadFd := AReadFd;
+  FOldStdoutFd := AOldStdoutFd;
+  FreeOnTerminate := True;
+end;
+
+procedure TLogPipeThread.Execute;
+var
+  Buffer: array[0..2047] of Char;
+  BytesRead: TsSize;
+  S: string;
+begin
+  while not Terminated do
+  begin
+    BytesRead := fpRead(FReadFd, Buffer[0], SizeOf(Buffer) - 1);
+    if BytesRead <= 0 then Break;
+
+    if FOldStdoutFd > 0 then
+      fpWrite(FOldStdoutFd, Buffer[0], BytesRead);
+
+    Buffer[BytesRead] := #0;
+    SetString(S, Buffer, BytesRead);
+    AddGlobalLog(S);
+  end;
+end;
 
 var
-  OldStdoutInOut: TTextIOFunc = nil;
-  OldStderrInOut: TTextIOFunc = nil;
-  OldStdOutAliasInOut: TTextIOFunc = nil;
-  OldStdErrAliasInOut: TTextIOFunc = nil;
+  FOldStdoutFd: cInt = -1;
+  FOldStderrFd: cInt = -1;
+  FPipeInstalled: Boolean = False;
 
 procedure AddGlobalLog(const Msg: string);
 var
@@ -109,103 +144,23 @@ begin
   end;
 end;
 
-function RedirectedStdoutInOut(var F: TextRec): Integer;
-var
-  S: string;
-begin
-  if F.BufPos > 0 then
-  begin
-    SetString(S, PChar(F.BufPtr), F.BufPos);
-
-    if Assigned(OldStdoutInOut) then
-      Result := OldStdoutInOut(F)
-    else
-      Result := 0;
-
-    AddGlobalLog(S);
-  end
-  else
-    Result := 0;
-end;
-
-function RedirectedStderrInOut(var F: TextRec): Integer;
-var
-  S: string;
-begin
-  if F.BufPos > 0 then
-  begin
-    SetString(S, PChar(F.BufPtr), F.BufPos);
-
-    if Assigned(OldStderrInOut) then
-      Result := OldStderrInOut(F)
-    else
-      Result := 0;
-
-    AddGlobalLog(S);
-  end
-  else
-    Result := 0;
-end;
-
-function RedirectedStdOutAliasInOut(var F: TextRec): Integer;
-var
-  S: string;
-begin
-  if F.BufPos > 0 then
-  begin
-    SetString(S, PChar(F.BufPtr), F.BufPos);
-
-    if Assigned(OldStdOutAliasInOut) then
-      Result := OldStdOutAliasInOut(F)
-    else
-      Result := 0;
-
-    AddGlobalLog(S);
-  end
-  else
-    Result := 0;
-end;
-
-function RedirectedStdErrAliasInOut(var F: TextRec): Integer;
-var
-  S: string;
-begin
-  if F.BufPos > 0 then
-  begin
-    SetString(S, PChar(F.BufPtr), F.BufPos);
-
-    if Assigned(OldStdErrAliasInOut) then
-      Result := OldStdErrAliasInOut(F)
-    else
-      Result := 0;
-
-    AddGlobalLog(S);
-  end
-  else
-    Result := 0;
-end;
-
 procedure InstallStdoutHook;
+var
+  PipeFds: array[0..1] of cInt;
 begin
-  if OldStdoutInOut = nil then
+  if FPipeInstalled then Exit;
+  FPipeInstalled := True;
+
+  FOldStdoutFd := fpDup(1);
+  FOldStderrFd := fpDup(2);
+
+  if fpPipe(PipeFds) = 0 then
   begin
-    OldStdoutInOut := TTextIOFunc(TextRec(Output).InOutFunc);
-    TextRec(Output).InOutFunc := @RedirectedStdoutInOut;
-  end;
-  if OldStderrInOut = nil then
-  begin
-    OldStderrInOut := TTextIOFunc(TextRec(ErrOutput).InOutFunc);
-    TextRec(ErrOutput).InOutFunc := @RedirectedStderrInOut;
-  end;
-  if OldStdOutAliasInOut = nil then
-  begin
-    OldStdOutAliasInOut := TTextIOFunc(TextRec(StdOut).InOutFunc);
-    TextRec(StdOut).InOutFunc := @RedirectedStdOutAliasInOut;
-  end;
-  if OldStdErrAliasInOut = nil then
-  begin
-    OldStdErrAliasInOut := TTextIOFunc(TextRec(StdErr).InOutFunc);
-    TextRec(StdErr).InOutFunc := @RedirectedStdErrAliasInOut;
+    fpDup2(PipeFds[1], 1);
+    fpDup2(PipeFds[1], 2);
+    fpClose(PipeFds[1]);
+
+    TLogPipeThread.Create(PipeFds[0], FOldStdoutFd);
   end;
 end;
 
