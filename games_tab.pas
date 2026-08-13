@@ -2949,10 +2949,10 @@ begin
   with FForm do
   begin
   if not (Sender is TMenuItem) then Exit;
-  FolderPath := TMenuItem(Sender).Caption;
+  // ShowRemoveFoldersMenu stores the folder in Hint; the caption is the
+  // label the user reads and is not parsed back into a path.
+  FolderPath := TMenuItem(Sender).Hint;
   if FolderPath = '' then Exit;
-  if Copy(FolderPath, 1, 8) = 'Remove: ' then
-    FolderPath := Copy(FolderPath, 9, MaxInt);
 
   // Ask user if they want to remove that folder
   if MessageDlg('Remove non-Steam folder', 
@@ -3014,6 +3014,9 @@ begin
         
         SubItem := TMenuItem.Create(nil);
         SubItem.Caption := 'Remove: ' + FolderPath;
+        // The click handler removes this exact path. It reads it from here
+        // rather than from the caption, which is display text.
+        SubItem.Hint := FolderPath;
         SubItem.OnClick := @RemoveFolderMenuItemClick;
         FRemoveFoldersMenu.Items.Add(SubItem);
         Inc(AddedCount);

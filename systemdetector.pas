@@ -7,6 +7,13 @@ interface
 uses
   Classes, SysUtils, Process, StrUtils, FileUtil, IniFiles, Dialogs, configmanager;
 
+const
+  // Values of GOVERLAY_PACKAGE_TYPE, read by the launcher and by bgmod.
+  // They are identifiers, not the wording shown on the Home tab.
+  GOVERLAY_PKG_FLATPAK  = 'flatpak';
+  GOVERLAY_PKG_APPIMAGE = 'appimage';
+  GOVERLAY_PKG_NATIVE   = 'native';
+
 type
   /// <summary>
   /// GPU vendor types
@@ -159,7 +166,13 @@ function IsLibraryAvailable(const LibName: string): Boolean;
 function IsNerdFontInstalled: Boolean;
 
 /// <summary>
-/// Gets GOverlay installation type (Flatpak, AppImage, or Native)
+/// Gets the GOverlay packaging identifier used by the launcher scripts
+/// </summary>
+/// <returns>GOVERLAY_PKG_FLATPAK, GOVERLAY_PKG_APPIMAGE or GOVERLAY_PKG_NATIVE</returns>
+function GetGOverlayPackageType: string;
+
+/// <summary>
+/// Gets GOverlay installation type (Flatpak, AppImage, or Native) for display
 /// </summary>
 /// <returns>String indicating installation type</returns>
 function GetGOverlayInstallationType: string;
@@ -1198,24 +1211,32 @@ begin
   Result := RunCommand('sh', ['-c', 'fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"'], Output);
 end;
 
-function GetGOverlayInstallationType: string;
+function GetGOverlayPackageType: string;
 begin
   if IsRunningInFlatpak then
-    Result := 'Flatpak'
+    Result := GOVERLAY_PKG_FLATPAK
   else if GetEnvironmentVariable('APPIMAGE') <> '' then
+    Result := GOVERLAY_PKG_APPIMAGE
+  else
+    Result := GOVERLAY_PKG_NATIVE;
+end;
+
+function GetGOverlayInstallationType: string;
+var
+  PkgType: string;
+begin
+  PkgType := GetGOverlayPackageType;
+  if PkgType = GOVERLAY_PKG_FLATPAK then
+    Result := 'Flatpak'
+  else if PkgType = GOVERLAY_PKG_APPIMAGE then
     Result := 'Appimage'
   else
     Result := 'Native package';
 end;
 
 function GetGOverlayPackageEnv: string;
-var
-  PkgType: string;
 begin
-  PkgType := LowerCase(GetGOverlayInstallationType);
-  if PkgType = 'native package' then
-    PkgType := 'native';
-  Result := 'GOVERLAY_PACKAGE_TYPE="' + PkgType + '" ';
+  Result := 'GOVERLAY_PACKAGE_TYPE="' + GetGOverlayPackageType + '" ';
 end;
 
 function IsPasCubeAvailable: Boolean;

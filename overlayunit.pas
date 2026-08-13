@@ -3565,7 +3565,7 @@ begin
     end;
     
     // Disable gamemodeCheckBox if gamemode is missing
-    if Missing.IndexOf('gamemode') >= 0 then
+    if Missing.IndexOf(DEP_GAMEMODE) >= 0 then
     begin
       gamemodeCheckBox.Enabled := False;
       gamemodeCheckBox.Hint := 'GameMode is not installed - install gamemode package to enable this feature';
