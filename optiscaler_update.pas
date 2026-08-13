@@ -266,7 +266,10 @@ begin
 
       if HasUpdate then
       begin
-        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FOptiTab.FormatDlssEnablerDisplayTag(FLatestOptiTag);
+        // Hint carries the bare tag for RefreshOsStatusDots; the caption is
+        // the sentence the user reads and is not parsed back.
+        FOptiTab.FOptiLabel2.Hint := FOptiTab.FormatDlssEnablerDisplayTag(FLatestOptiTag);
+        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FOptiTab.FOptiLabel2.Hint;
         FOptiTab.FOptiLabel2.Font.Color := clLime;
         FOptiTab.FOptiLabel2.Visible := True;
         if Assigned(FOptiTab.FUpdateBtn) then
@@ -306,6 +309,7 @@ begin
 
         if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
         begin
+          FOptiTab.FOptiLabel2.Hint := FLatestOptiTag;
           FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
           FOptiTab.FOptiLabel2.Font.Color := clLime;
           FOptiTab.FOptiLabel2.Visible := True;
@@ -1805,6 +1809,7 @@ begin
 
   if Assigned(FOptiLabel2) then
   begin
+    FOptiLabel2.Hint := '';
     FOptiLabel2.Caption := 'Searching for updates...';
     FOptiLabel2.Font.Color := clAqua;
     FOptiLabel2.Visible := True;
