@@ -60,6 +60,8 @@ install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
 	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-launch.sh
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons
 	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
+	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/languages
+	cp -r languages/* $(DESTDIR)$(prefix)$(datadir)/goverlay/languages/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod
 	cp -r data/bgmod/* $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/
 	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod

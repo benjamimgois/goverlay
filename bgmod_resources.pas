@@ -38,6 +38,11 @@ function IsBGModOptiScalerInstalled(const ABGModPath: string): Boolean;
 // Resolve the directory where compiled bgmod and bgmod-uninstaller binaries are stored
 function GetBGModBinariesSourceDir: string;
 
+// Resolve the directory holding the data GOverlay ships (assets, bgmod, the
+// translation catalogues). Copes with the source tree, an AppImage and an
+// installed prefix alike.
+function GetAppBaseDir: string;
+
 // Migrate FGMOD/BGMOD from old location if needed
 function MigrateBGModToXDG: Boolean;
 

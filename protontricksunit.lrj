@@ -1,0 +1,9 @@
+{"version":1,"strings":[
+{"hash":98369682,"name":"tprotontricksform.caption","sourcebytes":[87,105,110,101,32,112,114,101,102,105,120,32,109,97,110,97,103,101,114],"value":"Wine prefix manager"},
+{"hash":317493,"name":"tprotontricksform.gameslistview.columns[0].caption","sourcebytes":[71,97,109,101],"value":"Game"},
+{"hash":4748500,"name":"tprotontricksform.gameslistview.columns[1].caption","sourcebytes":[65,112,112,73,68],"value":"AppID"},
+{"hash":142550286,"name":"tprotontricksform.gameslistview.columns[2].caption","sourcebytes":[87,105,110,100,111,119,115,32,86,101,114,115,105,111,110],"value":"Windows Version"},
+{"hash":142550286,"name":"tprotontricksform.winvercombobox.texthint","sourcebytes":[87,105,110,100,111,119,115,32,86,101,114,115,105,111,110],"value":"Windows Version"},
+{"hash":4749113,"name":"tprotontricksform.applybutton.caption","sourcebytes":[65,112,112,108,121],"value":"Apply"},
+{"hash":4863637,"name":"tprotontricksform.closebutton.caption","sourcebytes":[67,108,111,115,101],"value":"Close"}
+]}
