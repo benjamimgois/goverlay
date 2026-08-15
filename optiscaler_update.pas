@@ -5,7 +5,7 @@ interface
 uses
   Classes, SysUtils, Forms, ComCtrls, Buttons, Process,
   RegExpr, fpjson, jsonparser, zipper, Dialogs, StdCtrls, Graphics, DateUtils,
-  constants, notificationunit;
+  constants, notificationunit, goverlay_strings;
 
 // Function to get the correct OptiScaler installation path (Flatpak-aware)
 function GetOptiScalerInstallPath: string;
@@ -774,8 +774,7 @@ begin
       begin
         WriteLn('[ERROR] GetLatestReleaseTag: Exception - ', E.ClassName, ': ', E.Message);
         if not ASilent then
-          ShowMessage('Error getting latest release: ' + E.Message + sLineBreak +
-                     'Check your internet connection and if curl is installed.');
+          ShowMessage(Format(rsReleaseFetchFailed, [E.Message]));
       end;
     end;
   finally
@@ -862,7 +861,7 @@ begin
       begin
         WriteLn('[ERROR] FetchManifest: Exception - ', E.ClassName, ': ', E.Message);
         if not ASilent then
-          ShowMessage('Error getting OptiScaler manifest: ' + E.Message);
+          ShowMessage(Format(rsManifestFetchFailed, [E.Message]));
       end;
     end;
   finally
@@ -1073,15 +1072,12 @@ begin
         if Process.ExitStatus <> 0 then
         begin
           WriteLn('[ERROR] DownloadFile: Curl failed with exit code: ', Process.ExitStatus);
-          ShowMessage('Error downloading file: curl exited with code ' + IntToStr(Process.ExitStatus) + sLineBreak +
-                     'URL: ' + AURL + sLineBreak +
-                     'Check your internet connection and if curl is installed.');
+          ShowMessage(Format(rsDownloadCurlFailed, [Process.ExitStatus, AURL]));
         end
         else if not FileExists(ADestFile) then
         begin
           WriteLn('[ERROR] DownloadFile: File does not exist after download: ', ADestFile);
-          ShowMessage('Error: Downloaded file does not exist.' + sLineBreak +
-                     'URL: ' + AURL);
+          ShowMessage(Format(rsDownloadMissingFile, [AURL]));
         end;
       end;
 
@@ -1089,9 +1085,7 @@ begin
       on E: Exception do
       begin
         WriteLn('[ERROR] DownloadFile: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Error downloading file: ' + E.Message + sLineBreak +
-                   'URL: ' + AURL + sLineBreak +
-                   'Check your internet connection and if curl is installed.');
+        ShowMessage(Format(rsDownloadFailed, [E.Message, AURL]));
       end;
     end;
   finally
@@ -1115,7 +1109,7 @@ begin
       Result := True;
     except
       on E: Exception do
-        ShowMessage('Error extracting ZIP: ' + E.Message);
+        ShowMessage(Format(rsZipExtractFailed, [E.Message]));
     end;
   finally
     UnZipper.Free;
@@ -1152,7 +1146,7 @@ begin
       else
       begin
         WriteLn('[ERROR] Extract7z: Source file does not exist!');
-        ShowMessage('Error: 7z file not found at: ' + A7zFile);
+        ShowMessage(Format(rsSevenZipMissing, [A7zFile]));
         Exit;
       end;
 
@@ -1227,10 +1221,7 @@ begin
       begin
         WriteLn('[ERROR] Extract7z: Extraction failed with exit code ', Process.ExitStatus);
         WriteLn('[ERROR] Extract7z: 7z exit code 2 typically means: fatal error, file not found, or invalid archive');
-        ShowMessage('Error extracting 7z file. Exit code: ' + IntToStr(Process.ExitStatus) +
-                   sLineBreak + sLineBreak +
-                   'Check terminal output for details.' + sLineBreak +
-                   'File: ' + A7zFile);
+        ShowMessage(Format(rsSevenZipFailed, [Process.ExitStatus, A7zFile]));
       end
       else
         WriteLn('[DEBUG] Extract7z: Extraction completed successfully');
@@ -1238,7 +1229,7 @@ begin
       on E: Exception do
       begin
         WriteLn('[ERROR] Extract7z: Exception - ', E.ClassName, ': ', E.Message);
-        ShowMessage('Error executing 7z: ' + E.Message);
+        ShowMessage(Format(rsSevenZipError, [E.Message]));
       end;
     end;
   finally
@@ -1278,7 +1269,7 @@ begin
 
             // Copy file
             if not CopyFile(SourceFile, DestFile) then
-              ShowMessage('Error copying file: ' + SearchRec.Name);
+              ShowMessage(Format(rsCopyFileFailed, [SearchRec.Name]));
 
             // If it's a .sh file, make it executable
             if LowerCase(ExtractFileExt(SearchRec.Name)) = '.sh' then
@@ -1925,7 +1916,7 @@ begin
 
   except
     on E: Exception do
-      ShowMessage('Error checking for updates: ' + E.Message);
+      ShowMessage(Format(rsUpdateCheckFailed, [E.Message]));
   end;
 end;
 
@@ -2130,13 +2121,13 @@ begin
       end
       else
       begin
-        ShowMessage('Please select a valid OptiScaler channel.');
+        ShowMessage(rsOptiScalerChannelInvalid);
         Exit;
       end;
     end
     else
     begin
-      ShowMessage('OptiScaler channel not configured.');
+      ShowMessage(rsOptiScalerChannelMissing);
       Exit;
     end;
 
@@ -2204,7 +2195,7 @@ begin
         on E: Exception do
           begin
             WriteLn('[ERROR] UpdateButtonClick: Failed to clean cache: ', E.Message);
-            ShowMessage('Error: Could not clean cache directory.' + sLineBreak + E.Message);
+            ShowMessage(Format(rsCacheCleanFailed, [E.Message]));
             Exit;
           end;
       end;
@@ -2668,7 +2659,7 @@ begin
         on E: Exception do
         begin
           WriteLn('[ERROR] UpdateButtonClick: Error reading goverlay.vars - ', E.Message);
-          ShowMessage('Warning: Could not read goverlay.vars: ' + E.Message);
+          ShowMessage(Format(rsVarsReadFailed, [E.Message]));
         end;
       end;
     end

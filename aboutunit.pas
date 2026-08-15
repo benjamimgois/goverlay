@@ -5,7 +5,7 @@ unit aboutunit;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LCLIntf, urlutils, themeunit, constants;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,ExtCtrls, LCLProc, LCLIntf, urlutils, themeunit, constants, goverlay_strings;
 
 type
 
@@ -132,10 +132,10 @@ procedure TaboutForm.donateImageClick(Sender: TObject);
 begin
   try
     if not OpenURL(URL_KOFI) then
-      ShowMessage('Unable to open the link in the default web browser.');
+      ShowMessage(rsLinkOpenFailed);
   except
     on E: Exception do
-      ShowMessage('Error opening the link: ' + E.Message);
+      ShowMessage(Format(rsLinkOpenError, [E.Message]));
   end;
 end;
 

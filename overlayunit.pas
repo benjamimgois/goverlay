@@ -16,7 +16,8 @@ uses
   qt5,
   {$ENDIF}
   qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
-  configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils;
+  configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils,
+  goverlay_strings;
 
 
 
@@ -1848,13 +1849,8 @@ begin
   if not FileExists(CUSTOMCFGFILE) then
   begin
     MessageDlg(
-      'Custom Preset Required',
-      'No custom configuration was found to load.' + LineEnding + LineEnding +
-      'To create your custom preset:' + LineEnding +
-      '1. Customize your desired elements and colors in GOverlay.' + LineEnding +
-      '2. Click the menu button in the bottom bar.' + LineEnding +
-      '3. Select "Save Options" -> "Save as Custom Config".' + LineEnding + LineEnding +
-      'Once created, click "Custom" anytime to apply your preset!',
+      rsCustomPresetTitle,
+      rsCustomPresetPrompt,
       mtInformation,
       [mbOK],
       0
@@ -5042,7 +5038,7 @@ begin
       // if output is 0, process is running, show message and stop
       if Process.ExitStatus = 0 then
     begin
-      ShowMessage('vkcube is running!');
+      ShowMessage(rsVkCubeRunning);
       Exit;
     end;
   finally
@@ -5198,7 +5194,7 @@ begin
   // check selection
   if not AnySelected(aveffectsListbox) then
   begin
-    ShowMessage('Select at least one effect in "available effects".');
+    ShowMessage(rsEffectSelectAvailable);
     Exit;
   end;
 
@@ -5228,7 +5224,7 @@ begin
       Inc(added);
     end
     else
-      ShowMessage('This effect is already active');
+      ShowMessage(rsEffectAlreadyActive);
   end;
 
   // select the last selected:
@@ -5392,10 +5388,10 @@ procedure Tgoverlayform.donateMenuItemClick(Sender: TObject);
 begin
   try
     if not OpenURL(URL_KOFI) then
-      ShowMessage('Unable to open the link in the default web browser.');
+      ShowMessage(rsLinkOpenFailed);
   except
     on E: Exception do
-      ShowMessage('Error opening the link: ' + E.Message);
+      ShowMessage(Format(rsLinkOpenError, [E.Message]));
   end;
 end;
 
@@ -5403,10 +5399,10 @@ procedure Tgoverlayform.patcherlistLabelClick(Sender: TObject);
 begin
   try
     if not OpenURL('https://github.com/optiscaler/OptiPatcher/blob/main/GameSupport.md') then
-      ShowMessage('Unable to open the link in the default web browser.');
+      ShowMessage(rsLinkOpenFailed);
   except
     on E: Exception do
-      ShowMessage('Error opening the link: ' + E.Message);
+      ShowMessage(Format(rsLinkOpenError, [E.Message]));
   end;
 end;
 
@@ -5659,12 +5655,12 @@ begin
   VideoPath := GetAppBaseDir + 'assets/video/bgmod-steam.mp4';
   if not FileExists(VideoPath) then
   begin
-    ShowMessage('Video tutorial not found.');
+    ShowMessage(rsVideoTutorialMissing);
     Exit;
   end;
 
   if not OpenURL('file://' + VideoPath) then
-    ShowMessage('Could not open video tutorial. Please install a media player.');
+    ShowMessage(rsVideoPlayerMissing);
 end;
 
 procedure Tgoverlayform.howtoHeroicClick(Sender: TObject);
@@ -5674,12 +5670,12 @@ begin
   VideoPath := GetAppBaseDir + 'assets/video/bgmod-heroic.mp4';
   if not FileExists(VideoPath) then
   begin
-    ShowMessage('Video tutorial not found.');
+    ShowMessage(rsVideoTutorialMissing);
     Exit;
   end;
 
   if not OpenURL('file://' + VideoPath) then
-    ShowMessage('Could not open video tutorial. Please install a media player.');
+    ShowMessage(rsVideoPlayerMissing);
 end;
 
 function Tgoverlayform.IsIntelCPU: Boolean;
@@ -5753,9 +5749,7 @@ begin
   // Check if running in Flatpak - cannot modify /sys permissions
   if IsRunningInFlatpak then
   begin
-    ShowMessage('Intel CPU power monitoring fix is not available in Flatpak.' + LineEnding + LineEnding +
-                'Flatpak applications cannot modify system file permissions in /sys/.' + LineEnding + LineEnding +
-                'This fix must be applied from outside the Flatpak sandbox on the host system.');
+    ShowMessage(rsIntelFixNoFlatpak);
     Exit;
   end;
 
@@ -5763,27 +5757,19 @@ begin
 
   if FileExists(UdevFile) then
   begin
-    Response := MessageDlg('Intel CPU Power Fix',
-                           'The persistent udev rule fix is currently active.' + LineEnding + LineEnding +
-                           'Do you want to disable and remove it?',
+    Response := MessageDlg(rsIntelFixTitle, rsIntelFixRemovePrompt,
                            mtConfirmation, [mbYes, mbNo], 0);
     if Response = mrYes then
     begin
       ExecuteShellCommand('pkexec rm -f ' + UdevFile);
-      ShowMessage('Persistent udev rule removed. Please reboot to restore default permissions.');
+      ShowMessage(rsIntelFixRemoved);
       InitializeIntelPowerFixButton;
     end;
     Exit;
   end;
 
   // Otherwise, the fix is either temporary or inactive
-  Response := MessageDlg('Intel CPU Power Fix',
-                         'Due to a known vulnerability in Intel CPUs, the energy_uj file has to be readable by your user.' + LineEnding +
-                         'Having the file readable may potentially be a security vulnerability.' + LineEnding + LineEnding +
-                         'How would you like to apply the fix?' + LineEnding + LineEnding +
-                         '- Yes: Apply PERMANENTLY (creates persistent udev rule).' + LineEnding +
-                         '- No: Apply TEMPORARILY for this session only (resets on reboot).' + LineEnding +
-                         '- Cancel: Abort changes.',
+  Response := MessageDlg(rsIntelFixTitle, rsIntelFixApplyPrompt,
                          mtConfirmation, [mbYes, mbNo, mbCancel], 0);
 
   if Response = mrYes then
@@ -5798,7 +5784,7 @@ begin
   end
   else
   begin
-    ShowMessage('Action aborted by user');
+    ShowMessage(rsActionAborted);
   end;
 end;
 
@@ -6149,7 +6135,7 @@ var
 begin
   if VKBASALTFOLDER = '' then
   begin
-    ShowMessage('vkBasalt directory not found');
+    ShowMessage(rsVkBasaltDirMissing);
     Exit;
   end;
 
@@ -6594,7 +6580,7 @@ begin
           end
           else
           begin
-            ShowMessage('Error: Could not find MangoHud configuration file.');
+            ShowMessage(rsMangoHudConfigMissing);
           end;
         end;
       end;
@@ -6645,13 +6631,13 @@ procedure Tgoverlayform.subBitBtnClick(Sender: TObject);
 begin
   if acteffectsListbox.Items.Count = 0 then
   begin
-    ShowMessage('There are no active effects');
+    ShowMessage(rsEffectNoneActive);
     Exit;
   end;
 
   if not AnySelected(acteffectsListbox) then
   begin
-    ShowMessage('Select at least one effect to remove');
+    ShowMessage(rsEffectSelectToRemove);
     Exit;
   end;
 
@@ -6917,10 +6903,8 @@ begin
     begin
       // Show warning dialog before enabling
       DialogResult := MessageDlg(
-        'Enable MangoHud Globally',
-        'Enabling MangoHud globally may cause unexpected issues in some applications and desktop environments. ' +
-        'Make sure you know what you are doing.' + LineEnding + LineEnding +
-        'Do you want to continue?',
+        rsMangoHudGlobalTitle,
+        rsMangoHudGlobalPrompt,
         mtWarning,
         [mbYes, mbNo],
         0
@@ -6945,9 +6929,8 @@ begin
       
       // Ask if user wants to restart session now
       DialogResult := MessageDlg(
-        'Restart Session',
-        'MangoHud has been enabled globally. A session restart is required for changes to take effect.' + LineEnding + LineEnding +
-        'Do you want to restart your session now?',
+        rsRestartSessionTitle,
+        rsMangoHudEnabledPrompt,
         mtInformation,
         [mbYes, mbNo],
         0
@@ -6970,9 +6953,8 @@ begin
       
       // Ask if user wants to restart session now
       DialogResult := MessageDlg(
-        'Restart Session',
-        'MangoHud has been disabled globally. A session restart is required for changes to take effect.' + LineEnding + LineEnding +
-        'Do you want to restart your session now?',
+        rsRestartSessionTitle,
+        rsMangoHudDisabledPrompt,
         mtInformation,
         [mbYes, mbNo],
         0
@@ -6988,8 +6970,8 @@ begin
     on E: Exception do
     begin
       MessageDlg(
-        'Error',
-        'Failed to toggle MangoHud global enable: ' + E.Message,
+        rsErrorTitle,
+        Format(rsMangoHudGlobalFailed, [E.Message]),
         mtError,
         [mbOK],
         0
@@ -7007,10 +6989,8 @@ begin
   if IsRunningInFlatpak and gamemodeCheckBox.Checked then
   begin
     DialogResult := MessageDlg(
-      'GameMode Warning',
-      'You are running GOverlay in Flatpak. GameMode must be installed on your host system for this feature to work.' + LineEnding + LineEnding +
-      'If GameMode is not installed, games may fail to launch.' + LineEnding + LineEnding +
-      'Do you want to continue?',
+      rsGameModeTitle,
+      rsGameModeFlatpakPrompt,
       mtWarning,
       [mbYes, mbNo],
       0
@@ -7128,7 +7108,7 @@ begin
   IsSteamRunning := IsProcessRunningPure('steam');
   if IsSteamRunning then
   begin
-    ShowMessage('Steam is currently running. Please close Steam completely (Steam -> Exit) before creating the shortcut, as Steam will overwrite and discard any changes when it exits.');
+    ShowMessage(rsSteamRunning);
     Exit;
   end;
 
@@ -7147,7 +7127,7 @@ begin
 
   if not FileExists(PythonScript) then
   begin
-    ShowMessage('Steam shortcut helper script not found: ' + PythonScript);
+    ShowMessage(Format(rsSteamHelperMissing, [PythonScript]));
     Exit;
   end;
 
@@ -7163,7 +7143,7 @@ begin
     ShortcutProc.Executable := FindDefaultExecutablePath('python3');
     if ShortcutProc.Executable = '' then
     begin
-      ShowMessage('python3 is not installed or not in PATH.');
+      ShowMessage(rsPython3Missing);
       Exit;
     end;
 
@@ -7186,7 +7166,7 @@ begin
     if ShortcutProc.ExitStatus = 0 then
       ShowMessage(Msg)
     else
-      ShowMessage('Error (Code ' + IntToStr(ShortcutProc.ExitStatus) + '):' + LineEnding + Msg);
+      ShowMessage(Format(rsSteamShortcutFailed, [ShortcutProc.ExitStatus, Msg]));
   finally
     ShortcutProc.Free;
     OutputList.Free;

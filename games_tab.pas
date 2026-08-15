@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus,
   LCLtype, Clipbrd, LCLIntf, IniFiles, FileUtil, StrUtils, Types, fpjson,
   jsonparser, themeunit, systemdetector, constants, bgmod_resources, hintsunit,
-  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils;
+  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils, goverlay_strings;
 
 const
   CARD_W      = 150;
@@ -2913,7 +2913,7 @@ begin
       for I := 0 to Lines.Count - 1 do
         if Trim(Lines[I]) = SelectedDir then
         begin
-          ShowMessage('This folder has already been added.');
+          ShowMessage(rsFolderAlreadyAdded);
           Exit;
         end;
     finally
@@ -2955,8 +2955,8 @@ begin
     FolderPath := Copy(FolderPath, 9, MaxInt);
 
   // Ask user if they want to remove that folder
-  if MessageDlg('Remove non-Steam folder', 
-                'Are you sure you want to remove the folder "' + FolderPath + '" from Goverlay?', 
+  if MessageDlg(rsRemoveFolderTitle,
+                Format(rsRemoveFolderPrompt, [FolderPath]),
                 mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
     NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
