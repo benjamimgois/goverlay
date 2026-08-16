@@ -583,10 +583,12 @@ begin
   // ·· [3] Fonts ····························································
   Place(fontComboBox,       FVisualSections[3], 6,  22);
   Place(fontcolorLabel,     FVisualSections[3], 6,  84);
-  Place(FontcolorButton,    FVisualSections[3], 52, 82);
+  Place(FontcolorButton,    FVisualSections[3], 60, 82);
   Place(fontLabel,          FVisualSections[3], 6,  142);
-  Place(fontsizeTrackBar,   FVisualSections[3], 40, 140);
-  Place(fontsizevalueLabel, FVisualSections[3], 40, 164);
+  // Slider and colour button start at 60, not 40/52: fontLabel needs room for a
+  // caption longer than "Size", and the two rows stay aligned with each other.
+  Place(fontsizeTrackBar,   FVisualSections[3], 60, 140);
+  Place(fontsizevalueLabel, FVisualSections[3], 60, 164);
   fontcolorLabel.Font.Color     := TextColor; fontcolorLabel.Transparent     := True;
   fontLabel.Font.Color          := TextColor; fontLabel.Transparent          := True;
   fontsizevalueLabel.Font.Color := TextColor; fontsizevalueLabel.Transparent := True;
@@ -947,7 +949,7 @@ begin
 
   // Fonts section: elastic widths (controls are relative to section panel)
   fontComboBox.Width     := SecW1 - 12;
-  fontsizeTrackBar.Width := SecW1 - 46;
+  fontsizeTrackBar.Width := SecW1 - 66;
   fontsizevalueLabel.Left := (SecW1 div 2) - 5;
 
   // Position section: Image fills panel, radio buttons proportional within it

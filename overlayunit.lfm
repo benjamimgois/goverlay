@@ -6624,7 +6624,7 @@ object goverlayform: Tgoverlayform
             Left = 5
             Height = 17
             Top = 63
-            Width = 100
+            Width = 116
             Align = alCustom
             AutoSize = False
             BorderSpacing.Top = 30
