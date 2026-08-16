@@ -5,7 +5,7 @@ unit tweaks_md3;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit;
+  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit, goverlay_strings;
 
 type
   TTweakRow = record
@@ -848,18 +848,18 @@ begin
                    (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
                     FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
                 begin
-                  ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
+                  ShowMessage(rsAntiLagBlockedByKorthos);
                 end
                 else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
                          (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
                         (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
                 begin
-                  ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
+                  ShowMessage(rsKorthosBlockedByAntiLag);
                 end
                 else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
-                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
                 else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
-                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
                 else
                 begin
                   Chk.Checked := not Chk.Checked;
@@ -888,18 +888,18 @@ begin
                    (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
                     FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
                 begin
-                  ShowMessage('You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active.');
+                  ShowMessage(rsAntiLagBlockedByKorthos);
                 end
                 else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
                          (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
                         (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
                 begin
-                  ShowMessage('You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active.');
+                  ShowMessage(rsKorthosBlockedByAntiLag);
                 end
                 else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
-                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
                 else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
-                  ShowMessage('You cannot enable both ''LOW_LATENCY_LAYER_SPOOF_NVIDIA'' and ''DXVK_CONFIG="dxgi.hideAmdGpu = True"'' at the same time.')
+                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
                 else
                 begin
                   Chk.Checked := not Chk.Checked;

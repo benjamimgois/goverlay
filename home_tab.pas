@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, Process, LCLIntf,
   themeunit, constants, hintsunit, apputils, overlayunit, systemdetector, optiscaler_update, bgmod_resources, StrUtils, FileUtil, Types,
-  ComCtrls, goverlay_system, Math;
+  ComCtrls, goverlay_system, Math, goverlay_strings;
 
 type
   THomeTabHelper = class
@@ -710,9 +710,7 @@ var
   i: Integer;
   AllDeleted: Boolean;
 begin
-  if MessageDlg('Clear Configuration',
-    'All files and settings will be removed and GOverlay will return to its initial configuration.' + sLineBreak + sLineBreak +
-    'Do you want to continue?',
+  if MessageDlg(rsClearConfigTitle, rsClearConfigPrompt,
     mtWarning, [mbYes, mbNo], 0) <> mrYes then
     Exit;
 
@@ -744,11 +742,9 @@ begin
   end;
 
   if AllDeleted then
-    ShowMessage('Configuration cleared successfully.' + sLineBreak +
-                'Please restart GOverlay.')
+    ShowMessage(rsClearConfigDone)
   else
-    ShowMessage('Some configuration folders could not be removed.' + sLineBreak +
-                'Please check file permissions and restart GOverlay.');
+    ShowMessage(rsClearConfigPartial);
 end;
 
 procedure THomeTabHelper.ClearConfigBtnEnter(Sender: TObject);

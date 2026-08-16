@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  ComCtrls, Buttons, StdCtrls, Process, LCLIntf;
+  ComCtrls, Buttons, StdCtrls, Process, LCLIntf, goverlay_strings;
 
 type
 
@@ -280,7 +280,7 @@ begin
   FPlayBtn.Visible := True;
 
   if not OpenURL('file://' + VideoPath) then
-    ShowMessage('Could not open video tutorial. Please install a media player.');
+    ShowMessage(rsVideoPlayerMissing);
 end;
 
 procedure ThowtoForm.StopVideo;

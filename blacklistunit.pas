@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons,
-  ExtCtrls, themeunit;
+  ExtCtrls, themeunit, goverlay_strings;
 
 type
 
@@ -66,7 +66,7 @@ begin
     // check if field is empty
   if Trim(blacklistedit.Text) = '' then
   begin
-    ShowMessage('Insert a program name');
+    ShowMessage(rsBlacklistNameRequired);
     Exit;
   end;
 
@@ -77,7 +77,7 @@ begin
   end
   else
   begin
-    ShowMessage('This program is already on the blacklist.');
+    ShowMessage(rsBlacklistDuplicate);
     Exit;
   end;
 
@@ -104,7 +104,7 @@ begin
    // check if any item is selected
    if SelectedIndex = -1 then
    begin
-     ShowMessage('Select an item to remove.');
+     ShowMessage(rsBlacklistSelectToRemove);
      Exit;
    end;
 

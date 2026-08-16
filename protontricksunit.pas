@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
   ExtCtrls, Process, themeunit, strutils, systemdetector, LCLType, Grids,
-  BaseUnix;
+  BaseUnix, goverlay_strings;
 
 type
 
@@ -221,8 +221,7 @@ begin
   else
   begin
     statusLabel.Caption := '✗ protontricks exited with code ' + IntToStr(ExitCode) + '.';
-    ShowMessage('Error: protontricks exited with code ' + IntToStr(ExitCode) +
-      '. Make sure protontricks is installed.');
+    ShowMessage(Format(rsProtontricksFailed, [ExitCode]));
   end;
 end;
 
@@ -416,7 +415,7 @@ begin
     except
       on E: Exception do
       begin
-        ShowMessage('Error executing protontricks: ' + E.Message);
+        ShowMessage(Format(rsProtontricksError, [E.Message]));
         Exit;
       end;
     end;

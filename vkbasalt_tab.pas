@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids, git2pas,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls;
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings;
 
 type
   TVkBasaltTabHelper = class
@@ -950,7 +950,7 @@ begin
 
     if VKBASALTFOLDER = '' then
     begin
-      ShowMessage('vkBasalt directory not found');
+      ShowMessage(rsVkBasaltDirMissing);
       Exit;
     end;
 
@@ -1073,7 +1073,7 @@ begin
             SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
           end
           else
-            ShowMessage('Error while synchronizing reshade repo. Code: ' + IntToStr(P.ExitStatus));
+            ShowMessage(Format(rsReshadeSyncFailed, [P.ExitStatus]));
         finally
           if Assigned(P) then P.Free;
         end;

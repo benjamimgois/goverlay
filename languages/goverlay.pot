@@ -1,6 +1,342 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+#: goverlay_strings.rsactionaborted
+msgid "Action aborted by user"
+msgstr ""
+
+#: goverlay_strings.rsantilagblockedbykorthos
+msgid "You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active."
+msgstr ""
+
+#: goverlay_strings.rsblacklistduplicate
+msgid "This program is already on the blacklist."
+msgstr ""
+
+#: goverlay_strings.rsblacklistnamerequired
+msgid "Insert a program name"
+msgstr ""
+
+#: goverlay_strings.rsblacklistselecttoremove
+msgid "Select an item to remove."
+msgstr ""
+
+#: goverlay_strings.rscachecleanfailed
+#, object-pascal-format
+msgid ""
+"Error: Could not clean cache directory.\n"
+"%s"
+msgstr ""
+
+#: goverlay_strings.rsclearconfigdone
+msgid ""
+"Configuration cleared successfully.\n"
+"Please restart GOverlay."
+msgstr ""
+
+#: goverlay_strings.rsclearconfigpartial
+msgid ""
+"Some configuration folders could not be removed.\n"
+"Please check file permissions and restart GOverlay."
+msgstr ""
+
+#: goverlay_strings.rsclearconfigprompt
+msgid ""
+"All files and settings will be removed and GOverlay will return to its initial configuration.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+
+#: goverlay_strings.rsclearconfigtitle
+msgid "Clear Configuration"
+msgstr ""
+
+#: goverlay_strings.rscopyfilefailed
+#, object-pascal-format
+msgid "Error copying file: %s"
+msgstr ""
+
+#: goverlay_strings.rscustompresetprompt
+msgid ""
+"No custom configuration was found to load.\n"
+"\n"
+"To create your custom preset:\n"
+"1. Customize your desired elements and colors in GOverlay.\n"
+"2. Click the menu button in the bottom bar.\n"
+"3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
+"\n"
+"Once created, click \"Custom\" anytime to apply your preset!"
+msgstr ""
+
+#: goverlay_strings.rscustompresettitle
+msgid "Custom Preset Required"
+msgstr ""
+
+#: goverlay_strings.rsdownloadcurlfailed
+#, object-pascal-format
+msgid ""
+"Error downloading file: curl exited with code %d\n"
+"URL: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+
+#: goverlay_strings.rsdownloadfailed
+#, object-pascal-format
+msgid ""
+"Error downloading file: %s\n"
+"URL: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+
+#: goverlay_strings.rsdownloadmissingfile
+#, object-pascal-format
+msgid ""
+"Error: Downloaded file does not exist.\n"
+"URL: %s"
+msgstr ""
+
+#: goverlay_strings.rseffectalreadyactive
+msgid "This effect is already active"
+msgstr ""
+
+#: goverlay_strings.rseffectnoneactive
+msgid "There are no active effects"
+msgstr ""
+
+#: goverlay_strings.rseffectselectavailable
+msgid "Select at least one effect in \"available effects\"."
+msgstr ""
+
+#: goverlay_strings.rseffectselecttoremove
+msgid "Select at least one effect to remove"
+msgstr ""
+
+#: goverlay_strings.rserrortitle
+msgid "Error"
+msgstr ""
+
+#: goverlay_strings.rsfolderalreadyadded
+msgid "This folder has already been added."
+msgstr ""
+
+#: goverlay_strings.rsgamemodeflatpakprompt
+msgid ""
+"You are running GOverlay in Flatpak. GameMode must be installed on your host system for this feature to work.\n"
+"\n"
+"If GameMode is not installed, games may fail to launch.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+
+#: goverlay_strings.rsgamemodetitle
+msgid "GameMode Warning"
+msgstr ""
+
+#: goverlay_strings.rsintelfixapplyprompt
+msgid ""
+"Due to a known vulnerability in Intel CPUs, the energy_uj file has to be readable by your user.\n"
+"Having the file readable may potentially be a security vulnerability.\n"
+"\n"
+"How would you like to apply the fix?\n"
+"\n"
+"- Yes: Apply PERMANENTLY (creates persistent udev rule).\n"
+"- No: Apply TEMPORARILY for this session only (resets on reboot).\n"
+"- Cancel: Abort changes."
+msgstr ""
+
+#: goverlay_strings.rsintelfixnoflatpak
+msgid ""
+"Intel CPU power monitoring fix is not available in Flatpak.\n"
+"\n"
+"Flatpak applications cannot modify system file permissions in /sys/.\n"
+"\n"
+"This fix must be applied from outside the Flatpak sandbox on the host system."
+msgstr ""
+
+#: goverlay_strings.rsintelfixremoved
+msgid "Persistent udev rule removed. Please reboot to restore default permissions."
+msgstr ""
+
+#: goverlay_strings.rsintelfixremoveprompt
+msgid ""
+"The persistent udev rule fix is currently active.\n"
+"\n"
+"Do you want to disable and remove it?"
+msgstr ""
+
+#: goverlay_strings.rsintelfixtitle
+msgid "Intel CPU Power Fix"
+msgstr ""
+
+#: goverlay_strings.rskorthosblockedbyantilag
+msgid "You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active."
+msgstr ""
+
+#: goverlay_strings.rslinkopenerror
+#, object-pascal-format
+msgid "Error opening the link: %s"
+msgstr ""
+
+#: goverlay_strings.rslinkopenfailed
+msgid "Unable to open the link in the default web browser."
+msgstr ""
+
+#: goverlay_strings.rsmangohudconfigmissing
+msgid "Error: Could not find MangoHud configuration file."
+msgstr ""
+
+#: goverlay_strings.rsmangohuddisabledprompt
+msgid ""
+"MangoHud has been disabled globally. A session restart is required for changes to take effect.\n"
+"\n"
+"Do you want to restart your session now?"
+msgstr ""
+
+#: goverlay_strings.rsmangohudenabledprompt
+msgid ""
+"MangoHud has been enabled globally. A session restart is required for changes to take effect.\n"
+"\n"
+"Do you want to restart your session now?"
+msgstr ""
+
+#: goverlay_strings.rsmangohudglobalfailed
+#, object-pascal-format
+msgid "Failed to toggle MangoHud global enable: %s"
+msgstr ""
+
+#: goverlay_strings.rsmangohudglobalprompt
+msgid ""
+"Enabling MangoHud globally may cause unexpected issues in some applications and desktop environments. Make sure you know what you are doing.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+
+#: goverlay_strings.rsmangohudglobaltitle
+msgid "Enable MangoHud Globally"
+msgstr ""
+
+#: goverlay_strings.rsmanifestfetchfailed
+#, object-pascal-format
+msgid "Error getting OptiScaler manifest: %s"
+msgstr ""
+
+#: goverlay_strings.rsoptiscalerchannelinvalid
+msgid "Please select a valid OptiScaler channel."
+msgstr ""
+
+#: goverlay_strings.rsoptiscalerchannelmissing
+msgid "OptiScaler channel not configured."
+msgstr ""
+
+#: goverlay_strings.rsprotontrickserror
+#, object-pascal-format
+msgid "Error executing protontricks: %s"
+msgstr ""
+
+#: goverlay_strings.rsprotontricksfailed
+#, object-pascal-format
+msgid "Error: protontricks exited with code %d. Make sure protontricks is installed."
+msgstr ""
+
+#: goverlay_strings.rspython3missing
+msgid "python3 is not installed or not in PATH."
+msgstr ""
+
+#: goverlay_strings.rsreleasefetchfailed
+#, object-pascal-format
+msgid ""
+"Error getting latest release: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+
+#: goverlay_strings.rsremovefolderprompt
+#, object-pascal-format
+msgid "Are you sure you want to remove the folder \"%s\" from Goverlay?"
+msgstr ""
+
+#: goverlay_strings.rsremovefoldertitle
+msgid "Remove non-Steam folder"
+msgstr ""
+
+#: goverlay_strings.rsreshadesyncfailed
+#, object-pascal-format
+msgid "Error while synchronizing reshade repo. Code: %d"
+msgstr ""
+
+#: goverlay_strings.rsrestartsessiontitle
+msgid "Restart Session"
+msgstr ""
+
+#: goverlay_strings.rssevenziperror
+#, object-pascal-format
+msgid "Error executing 7z: %s"
+msgstr ""
+
+#: goverlay_strings.rssevenzipfailed
+#, object-pascal-format
+msgid ""
+"Error extracting 7z file. Exit code: %d\n"
+"\n"
+"Check terminal output for details.\n"
+"File: %s"
+msgstr ""
+
+#: goverlay_strings.rssevenzipmissing
+#, object-pascal-format
+msgid "Error: 7z file not found at: %s"
+msgstr ""
+
+#: goverlay_strings.rsspoofblockedbyhideamdgpu
+msgid "You cannot enable both 'LOW_LATENCY_LAYER_SPOOF_NVIDIA' and 'DXVK_CONFIG=\"dxgi.hideAmdGpu = True\"' at the same time."
+msgstr ""
+
+#: goverlay_strings.rssteamhelpermissing
+#, object-pascal-format
+msgid "Steam shortcut helper script not found: %s"
+msgstr ""
+
+#: goverlay_strings.rssteamrunning
+msgid "Steam is currently running. Please close Steam completely (Steam -> Exit) before creating the shortcut, as Steam will overwrite and discard any changes when it exits."
+msgstr ""
+
+#: goverlay_strings.rssteamshortcutfailed
+#, object-pascal-format
+msgid ""
+"Error (Code %d):\n"
+"%s"
+msgstr ""
+
+#: goverlay_strings.rsupdatecheckfailed
+#, object-pascal-format
+msgid "Error checking for updates: %s"
+msgstr ""
+
+#: goverlay_strings.rsvarsreadfailed
+#, object-pascal-format
+msgid "Warning: Could not read goverlay.vars: %s"
+msgstr ""
+
+#: goverlay_strings.rsvideoplayermissing
+msgid "Could not open video tutorial. Please install a media player."
+msgstr ""
+
+#: goverlay_strings.rsvideotutorialmissing
+msgid "Video tutorial not found."
+msgstr ""
+
+#: goverlay_strings.rsvkbasaltdirmissing
+msgid "vkBasalt directory not found"
+msgstr ""
+
+#: goverlay_strings.rsvkcuberunning
+msgid "vkcube is running!"
+msgstr ""
+
+#: goverlay_strings.rszipextractfailed
+#, object-pascal-format
+msgid "Error extracting ZIP: %s"
+msgstr ""
+
 #: taboutform.abouttabsheet.caption
 msgctxt "taboutform.abouttabsheet.caption"
 msgid "About"
