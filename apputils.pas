@@ -420,61 +420,61 @@ begin
   begin
     if not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/x86_64-linux-gnu/libMangoHud.so') and
        not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') then
-      Missing.Add('MangoHud runtime 25.08');
+      Missing.Add(DEP_MANGOHUD_RUNTIME);
     if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') and
        not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') then
-      Missing.Add('vkBasalt runtime 25.08');
+      Missing.Add(DEP_VKBASALT_RUNTIME);
     if not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') and
        not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') then
-      Missing.Add('vkSumi runtime');
+      Missing.Add(DEP_VKSUMI_RUNTIME);
   end
   else
   begin
     if not IsCommandAvailable('mangohud') then
-      Missing.Add('mangohud');
+      Missing.Add(DEP_MANGOHUD);
     if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') and
        not IsLibraryAvailable('libvkbasalt') then
-      Missing.Add('vkbasalt');
+      Missing.Add(DEP_VKBASALT);
 
     // vulkan-low-latency-layer: check Vulkan layer JSON then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/low_latency_layer.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/low_latency_layer.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/low_latency_layer.json') and
        not IsLibraryAvailable('libVkLayer_KORTHOS_LowLatency') then
-      Missing.Add('vulkan-low-latency-layer');
+      Missing.Add(DEP_LOW_LATENCY_LAYER);
   end;
 
 
   if not IsCommandAvailable('7z') then
-    Missing.Add('p7zip');
+    Missing.Add(DEP_P7ZIP);
   if not IsCommandAvailable('curl') then
-    Missing.Add('curl');
+    Missing.Add(DEP_CURL);
   if not IsCommandAvailable('git') then
-    Missing.Add('git');
+    Missing.Add(DEP_GIT);
 
   if not IsRunningInFlatpak then
   begin
     if not IsCommandAvailable('protontricks') then
-      Missing.Add('protontricks');
+      Missing.Add(DEP_PROTONTRICKS);
   end;
 
   if not IsRunningInFlatpak then
   begin
     if not IsCommandAvailable('gamemoderun') then
-      Missing.Add('gamemode');
+      Missing.Add(DEP_GAMEMODE);
   end;
 
   {$IFDEF LCLqt6}
   if not IsLibraryAvailable('libQt6Pas') then
-    Missing.Add('libqt6pas');
+    Missing.Add(DEP_LIBQT6PAS);
   {$ELSE}
   if not IsLibraryAvailable('libQt5Pas') then
-    Missing.Add('libqt5pas');
+    Missing.Add(DEP_LIBQT5PAS);
   {$ENDIF}
 
   if not IsNerdFontInstalled then
-    Missing.Add('nerdfonts');
+    Missing.Add(DEP_NERDFONTS);
 
   Result := Missing.Count = 0;
 end;

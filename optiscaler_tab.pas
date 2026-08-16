@@ -776,7 +776,6 @@ const
   CLR_NONE   = $00666666;   // gray  — not installed
   PURPLE     = $BB99FF;
   CLR_UPDATE = $0044AAFF;   // blue highlight — update available
-  PREFIX_LEN = 17; // Length('Update Available ')
 var
   i: Integer;
   Ver, NewTag, VerCaption: string;
@@ -797,9 +796,9 @@ begin
 
             if optLabel2.Visible and (optLabel2.Caption <> '') then
             begin
-              NewTag := optLabel2.Caption;
-              if Pos('Update Available ', NewTag) = 1 then
-                NewTag := Copy(NewTag, PREFIX_LEN + 1, MaxInt);
+              // The update notice stores the bare tag in Hint; its caption is
+              // a sentence and must not be taken apart to recover the tag.
+              NewTag := optLabel2.Hint;
               if NewTag <> '' then
               begin
                 VerCaption := VerCaption + ' → ' + NewTag;

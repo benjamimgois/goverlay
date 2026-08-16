@@ -15,6 +15,29 @@ const
   APP_AUTHOR = 'Benjamim Gois';
 
   // ============================================================================
+  // DEPENDENCY LIST ENTRIES
+  // ============================================================================
+  // Entries CheckDependencies puts into its Missing list. The list is shown to
+  // the user and searched by the Home tab and the Tweaks tab, so the producer
+  // and every consumer must name an entry through the same constant instead of
+  // repeating the wording.
+  DEP_MANGOHUD          = 'mangohud';
+  DEP_MANGOHUD_RUNTIME  = 'MangoHud runtime 25.08';
+  DEP_VKBASALT          = 'vkbasalt';
+  DEP_VKBASALT_RUNTIME  = 'vkBasalt runtime 25.08';
+  DEP_VKSUMI            = 'vksumi';
+  DEP_VKSUMI_RUNTIME    = 'vkSumi runtime';
+  DEP_LOW_LATENCY_LAYER = 'vulkan-low-latency-layer';
+  DEP_P7ZIP             = 'p7zip';
+  DEP_CURL              = 'curl';
+  DEP_GIT               = 'git';
+  DEP_PROTONTRICKS      = 'protontricks';
+  DEP_GAMEMODE          = 'gamemode';
+  DEP_LIBQT6PAS         = 'libqt6pas';
+  DEP_LIBQT5PAS         = 'libqt5pas';
+  DEP_NERDFONTS         = 'nerdfonts';
+
+  // ============================================================================
   // GITHUB URLS
   // ============================================================================
 

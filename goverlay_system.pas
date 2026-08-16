@@ -378,69 +378,69 @@ begin
     // MangoHud extension
     if not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/x86_64-linux-gnu/libMangoHud.so') and
        not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') then
-      Missing.Add('MangoHud runtime 25.08');
+      Missing.Add(DEP_MANGOHUD_RUNTIME);
 
     // vkBasalt extension
     if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') and
        not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') then
-      Missing.Add('vkBasalt runtime 25.08');
+      Missing.Add(DEP_VKBASALT_RUNTIME);
 
     // vkSumi extension
     if not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') and
        not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') then
-      Missing.Add('vkSumi runtime');
+      Missing.Add(DEP_VKSUMI_RUNTIME);
   end
   else
   begin
     // Native: mangohud binary (all distros install it to PATH)
     if not IsCommandAvailable('mangohud') then
-      Missing.Add('mangohud');
+      Missing.Add(DEP_MANGOHUD);
 
     // vkBasalt: check Vulkan layer JSON (distro-agnostic) then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') and
        not IsLibraryAvailable('libvkbasalt') then
-      Missing.Add('vkbasalt');
+      Missing.Add(DEP_VKBASALT);
 
     // vkSumi: check Vulkan layer JSON then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/vksumi.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/vksumi.json') and
        not IsLibraryAvailable('libVkLayer_vksumi') then
-      Missing.Add('vksumi');
+      Missing.Add(DEP_VKSUMI);
 
     // vulkan-low-latency-layer: check Vulkan layer JSON then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/low_latency_layer.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/low_latency_layer.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/low_latency_layer.json') and
        not IsLibraryAvailable('libVkLayer_KORTHOS_LowLatency') then
-      Missing.Add('vulkan-low-latency-layer');
+      Missing.Add(DEP_LOW_LATENCY_LAYER);
   end;
 
 
 
   // check if 7z is available
   if not IsCommandAvailable('7z') then
-    Missing.Add('p7zip');
+    Missing.Add(DEP_P7ZIP);
 
   // check if curl is available
   if not IsCommandAvailable('curl') then
-    Missing.Add('curl');
+    Missing.Add(DEP_CURL);
 
   // check if git is available
   if not IsCommandAvailable('git') then
-    Missing.Add('git');
+    Missing.Add(DEP_GIT);
 
   // check if Nerd Font is available
   if not IsNerdFontInstalled then
-    Missing.Add('nerdfonts');
+    Missing.Add(DEP_NERDFONTS);
 
   // check if protontricks is available
   // Skip check in Flatpak since we fallback to com.github.Matoking.protontricks Flatpak
   if not IsRunningInFlatpak then
   begin
     if not IsCommandAvailable('protontricks') then
-      Missing.Add('protontricks');
+      Missing.Add(DEP_PROTONTRICKS);
   end;
 
   // check if gamemoderun is available (required for GameMode feature in Tweaks tab)
@@ -448,7 +448,7 @@ begin
   if not IsRunningInFlatpak then
   begin
     if not IsCommandAvailable('gamemoderun') then
-      Missing.Add('gamemode');
+      Missing.Add(DEP_GAMEMODE);
   end;
 
   // Check for libqt6pas (Qt6 Pascal bindings — required for Goverlay GUI).
@@ -456,10 +456,10 @@ begin
   // IsLibraryAvailable checks both via case-insensitive ldconfig + path scan.
   {$IFDEF LCLqt6}
   if not IsLibraryAvailable('libQt6Pas') then
-    Missing.Add('libqt6pas');
+    Missing.Add(DEP_LIBQT6PAS);
   {$ELSE}
   if not IsLibraryAvailable('libQt5Pas') then
-    Missing.Add('libqt5pas');
+    Missing.Add(DEP_LIBQT5PAS);
   {$ENDIF}
 
   // check if zenergy module is available

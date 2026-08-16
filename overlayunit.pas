@@ -3565,7 +3565,7 @@ begin
     end;
     
     // Disable gamemodeCheckBox if gamemode is missing
-    if Missing.IndexOf('gamemode') >= 0 then
+    if Missing.IndexOf(DEP_GAMEMODE) >= 0 then
     begin
       gamemodeCheckBox.Enabled := False;
       gamemodeCheckBox.Hint := 'GameMode is not installed - install gamemode package to enable this feature';
@@ -4062,11 +4062,13 @@ begin
   // Category colour
   if aCol = 1 then
   begin
+    // Both sides of these comparisons come from TweakCategoryName, so the
+    // colouring follows the header text instead of being pinned to one wording.
     Cat := Grid.Cells[1, aRow];
-    if Cat = 'General'    then Grid.Canvas.Font.Color := $00E8E8E8;
-    if Cat = 'Graphics'   then Grid.Canvas.Font.Color := $00F0A860;
-    if Cat = 'Performance'then Grid.Canvas.Font.Color := $0040D8F0;
-    if Cat = 'Custom'     then Grid.Canvas.Font.Color := $00B0B0B0;
+    if Cat = TweakCategoryName(TWEAK_CAT_GENERAL)  then Grid.Canvas.Font.Color := $00E8E8E8;
+    if Cat = TweakCategoryName(TWEAK_CAT_GRAPHICS) then Grid.Canvas.Font.Color := $00F0A860;
+    if Cat = TweakCategoryName(TWEAK_CAT_PERF)     then Grid.Canvas.Font.Color := $0040D8F0;
+    if Cat = TweakCategoryName(TWEAK_CAT_CUSTOM)   then Grid.Canvas.Font.Color := $00B0B0B0;
   end;
 
   // Monospace for variable column
@@ -4185,7 +4187,7 @@ begin
           FTweaksGrid.Cells[0, i + 1] := '1'
         else
           FTweaksGrid.Cells[0, i + 1] := '0';
-        FTweaksGrid.Cells[1, i + 1] := TWEAK_ROWS[i].Category;
+        FTweaksGrid.Cells[1, i + 1] := TweakCategoryName(TWEAK_ROWS[i].Category);
         FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
         FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
       end;
@@ -4610,7 +4612,7 @@ begin
     Row := FTweaksGrid.RowCount;
     FTweaksGrid.RowCount := Row + 1;
     FTweaksGrid.Cells[0, Row] := '1';         // checked by default
-    FTweaksGrid.Cells[1, Row] := 'Custom';
+    FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
     FTweaksGrid.Cells[2, Row] := Val;
     FTweaksGrid.Cells[3, Row] := '';
   end;

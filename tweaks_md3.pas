@@ -10,43 +10,53 @@ uses
 type
   TTweakRow = record
     CheckBox: TCheckBox;
-    Category: string;
+    // Category is the identity of the group a row belongs to, not the text
+    // drawn for it. TweakCategoryName maps it to the header caption.
+    Category: Integer;
     VarName: string;
     Description: string;
   end;
 
 const
+  TWEAK_CAT_GENERAL  = 0;
+  TWEAK_CAT_GRAPHICS = 1;
+  TWEAK_CAT_PERF     = 2;
+  TWEAK_CAT_LATENCY  = 3;
+  // Custom rows are added by the user at run time; they are not part of
+  // TWEAK_ROWS but share the category column of the backing grid.
+  TWEAK_CAT_CUSTOM   = 4;
+
   TWEAK_ROW_COUNT = 29;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
-    (CheckBox: nil; Category: 'General';    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
-    (CheckBox: nil; Category: 'Performance'; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
-    (CheckBox: nil; Category: 'General';    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
-    (CheckBox: nil; Category: 'General';    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Uses OpenGL over Vulkan translation (ZINK)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: 'Performance';VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: 'Graphics';   VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: 'Latency reduction'; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities')
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Uses OpenGL over Vulkan translation (ZINK)'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities')
   );
 
 type
@@ -71,8 +81,24 @@ type
   end;
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
+// Header caption for a TWEAK_CAT_* value. Display only: nothing branches on
+// the string it returns.
+function TweakCategoryName(ACategory: Integer): string;
 
 implementation
+
+function TweakCategoryName(ACategory: Integer): string;
+begin
+  case ACategory of
+    TWEAK_CAT_GENERAL:  Result := 'General';
+    TWEAK_CAT_GRAPHICS: Result := 'Graphics';
+    TWEAK_CAT_PERF:     Result := 'Performance';
+    TWEAK_CAT_LATENCY:  Result := 'Latency reduction';
+    TWEAK_CAT_CUSTOM:   Result := 'Custom';
+  else
+    Result := '';
+  end;
+end;
 
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
 begin
@@ -256,7 +282,7 @@ begin
   for i := 0 to TWEAK_ROW_COUNT - 1 do
   begin
     FForm.FTweaksGrid.Cells[0, i + 1] := '0';
-    FForm.FTweaksGrid.Cells[1, i + 1] := TWEAK_ROWS[i].Category;
+    FForm.FTweaksGrid.Cells[1, i + 1] := TweakCategoryName(TWEAK_ROWS[i].Category);
     FForm.FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
     FForm.FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
   end;
@@ -516,10 +542,10 @@ begin
 
   ItemH := ItemHeight;
   HeadH := HeaderHeight;
-  CatNames[0] := 'General';
-  CatNames[1] := 'Graphics';
-  CatNames[2] := 'Performance';
-  CatNames[3] := 'Latency reduction';
+  CatNames[0] := TweakCategoryName(TWEAK_CAT_GENERAL);
+  CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
+  CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
+  CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
   CatExpanded := FForm.FTweaksCatExpanded;
 
   Y := -FForm.FTweaksScrollPos;
@@ -546,7 +572,7 @@ begin
       CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
-        if TWEAK_ROWS[i].Category <> CatNames[CatIdx] then Continue;
+        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
         Chk := GetTweakRowCheckBox(FForm, i);
         if Is2Col then
         begin
@@ -578,7 +604,7 @@ begin
 
   // Custom variables header
   R := Rect(0, Y, PB.Width, Y + HeadH);
-  DrawHeader(PB.Canvas, R, 'Custom', '✎', True, HoverIdx = RowIdx);
+  DrawHeader(PB.Canvas, R, TweakCategoryName(TWEAK_CAT_CUSTOM), '✎', True, HoverIdx = RowIdx);
   Inc(Y, HeadH);
   Inc(RowIdx);
 
@@ -634,7 +660,7 @@ var
   PB: TPaintBox;
   OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
   YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
-  CatName, TweakHint: string;
+  TweakHint: string;
   Is2Col: Boolean;
 begin
   PB := Sender as TPaintBox;
@@ -651,13 +677,6 @@ begin
 
   for CatIdx := 0 to 3 do
   begin
-    case CatIdx of
-      0: CatName := 'General';
-      1: CatName := 'Graphics';
-      2: CatName := 'Performance';
-      3: CatName := 'Latency reduction';
-    end;
-
     // Header
     if (Y >= YPos) and (Y < YPos + HeadH) then
     begin
@@ -672,7 +691,7 @@ begin
       CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
-        if TWEAK_ROWS[i].Category <> CatName then Continue;
+        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
         if Is2Col then
         begin
           Col := CatItemCount mod 2;
@@ -683,7 +702,7 @@ begin
             FForm.FTweaksHoverIdx := RowIdx;
             if TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1' then
               TweakHint := 'Works only with proton-cachyos'
-            else if CatName = 'Latency reduction' then
+            else if CatIdx = TWEAK_CAT_LATENCY then
               TweakHint := 'Needs Korthos low latency layer installed';
             Break;
           end;
@@ -698,7 +717,7 @@ begin
             FForm.FTweaksHoverIdx := RowIdx;
             if TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1' then
               TweakHint := 'Works only with proton-cachyos'
-            else if CatName = 'Latency reduction' then
+            else if CatIdx = TWEAK_CAT_LATENCY then
               TweakHint := 'Needs Korthos low latency layer installed';
             Break;
           end;
@@ -780,7 +799,6 @@ var
   PB: TPaintBox;
   ItemH, HeadH, RowIdx, i, CatIdx: Integer;
   YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
-  CatName: string;
   ToggleX: Integer;
   Chk: TCheckBox;
   Is2Col: Boolean;
@@ -796,13 +814,6 @@ begin
 
   for CatIdx := 0 to 3 do
   begin
-    case CatIdx of
-      0: CatName := 'General';
-      1: CatName := 'Graphics';
-      2: CatName := 'Performance';
-      3: CatName := 'Latency reduction';
-    end;
-
     // Header click = toggle expand
     if (Y >= YPos) and (Y < YPos + HeadH) then
     begin
@@ -818,7 +829,7 @@ begin
       CatItemCount := 0;
       for i := 0 to TWEAK_ROW_COUNT - 1 do
       begin
-        if TWEAK_ROWS[i].Category <> CatName then Continue;
+        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
         if Is2Col then
         begin
           Col := CatItemCount mod 2;
@@ -1018,7 +1029,7 @@ begin
   Row := FForm.FTweaksGrid.RowCount;
   FForm.FTweaksGrid.RowCount := Row + 1;
   FForm.FTweaksGrid.Cells[0, Row] := '1';
-  FForm.FTweaksGrid.Cells[1, Row] := 'Custom';
+  FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
   FForm.FTweaksGrid.Cells[2, Row] := Val;
   FForm.FTweaksGrid.Cells[3, Row] := '';
   FForm.FTweaksPaintBox.Invalidate;
@@ -1528,7 +1539,7 @@ begin
           Row := FForm.FTweaksGrid.RowCount;
           FForm.FTweaksGrid.RowCount := Row + 1;
           FForm.FTweaksGrid.Cells[0, Row] := '1';
-          FForm.FTweaksGrid.Cells[1, Row] := 'Custom';
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
           FForm.FTweaksGrid.Cells[2, Row] := Key + '=' + Val;
           FForm.FTweaksGrid.Cells[3, Row] := '';
         end;

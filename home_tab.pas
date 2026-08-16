@@ -428,14 +428,14 @@ begin
 
     CheckDependencies(Missing);
     try
-      MangoOK := (Missing.IndexOf('mangohud') < 0) and
-                 (Missing.IndexOf('MangoHud runtime 25.08') < 0);
-      VkOK    := (Missing.IndexOf('vkbasalt') < 0) and
-                 (Missing.IndexOf('vkBasalt runtime 25.08') < 0);
+      MangoOK := (Missing.IndexOf(DEP_MANGOHUD) < 0) and
+                 (Missing.IndexOf(DEP_MANGOHUD_RUNTIME) < 0);
+      VkOK    := (Missing.IndexOf(DEP_VKBASALT) < 0) and
+                 (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
       OptiOK  := FForm.IsOptiScalerInstalled;
       DlssOK  := Self.IsDlssEnablerInstalled;
-      SumiOK  := (Missing.IndexOf('vksumi') < 0) and
-                 (Missing.IndexOf('vkSumi runtime') < 0);
+      SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
+                 (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
     finally
       Missing.Free;
     end;
@@ -523,7 +523,8 @@ procedure THomeTabHelper.RefreshHomeDeps;
 const
   {$IFDEF LCLqt6}
   DEP_KEYS: array[0..6] of string = (
-    'p7zip', 'curl', 'git', 'gamemode', 'libqt6pas', 'nerdfonts', 'vulkan-low-latency-layer');
+    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT6PAS, DEP_NERDFONTS,
+    DEP_LOW_LATENCY_LAYER);
   DEP_DISPLAY: array[0..6] of string = (
     '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts', 'Korthos low latency');
   DEP_HINTS: array[0..6] of string = (
@@ -536,7 +537,8 @@ const
     'Vulkan Low Latency layer — latency reduction layer');
   {$ELSE}
   DEP_KEYS: array[0..6] of string = (
-    'p7zip', 'curl', 'git', 'gamemode', 'libqt5pas', 'nerdfonts', 'vulkan-low-latency-layer');
+    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT5PAS, DEP_NERDFONTS,
+    DEP_LOW_LATENCY_LAYER);
   DEP_DISPLAY: array[0..6] of string = (
     '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts', 'Korthos low latency');
   DEP_HINTS: array[0..6] of string = (
