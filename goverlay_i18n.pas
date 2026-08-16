@@ -31,12 +31,69 @@ function GetLanguagesDir: string;
 implementation
 
 uses
-  SysUtils, LCLTranslator, bgmod_resources;
+  Classes, SysUtils, TypInfo, LResources, LCLTranslator, bgmod_resources;
 
 const
   // Base name of the catalogues: goverlay.pot for the template that the IDE
   // regenerates, goverlay.<lang>.po for a translation.
   LOCALE_FILE_NAME = 'goverlay';
+
+  // Published property that carries a value rather than a label. See
+  // TValueSafeTranslator.
+  VALUE_PROPERTY = 'Text';
+
+type
+
+  { TValueSafeTranslator }
+
+  // Wraps the translator the LCL installs and keeps the Text property out of
+  // its reach.
+  //
+  // Text on an edit or a combo box is not something the user reads, it is
+  // something the program writes down: vkbtogglekeyCombobox.Text ends up as
+  // "toggleKey = Home" in vkBasalt.conf, filenameComboBox.Text as OptiScaler's
+  // DLL name, hudonoffComboBox.Text as MangoHud's "toggle_hud = Shift_R+F12",
+  // shortcutkeyComboBox.Text as a raw key code. Every one of those defaults is
+  // also an entry of the Items list next to it, and Items are not translated at
+  // all, so a translated Text can only end up disagreeing with the list it was
+  // picked from and putting a word MangoHud and vkBasalt do not know into a
+  // configuration file.
+  //
+  // Captions, hints and TextHint - the placeholder property meant for prompts -
+  // are passed straight through.
+  TValueSafeTranslator = class(TAbstractTranslator)
+  private
+    FInner: TAbstractTranslator;
+  public
+    constructor Create(AInner: TAbstractTranslator);
+    destructor Destroy; override;
+    procedure TranslateStringProperty(Sender: TObject; const Instance: TPersistent;
+      PropInfo: PPropInfo; var Content: string); override;
+  end;
+
+constructor TValueSafeTranslator.Create(AInner: TAbstractTranslator);
+begin
+  inherited Create;
+  // Takes ownership: LCLTranslator frees whatever LRSTranslator points at.
+  FInner := AInner;
+end;
+
+destructor TValueSafeTranslator.Destroy;
+begin
+  FreeAndNil(FInner);
+  inherited Destroy;
+end;
+
+procedure TValueSafeTranslator.TranslateStringProperty(Sender: TObject;
+  const Instance: TPersistent; PropInfo: PPropInfo; var Content: string);
+begin
+  if (PropInfo = nil) or (FInner = nil) then
+    Exit;
+  // Leaving Content alone keeps the value the form was streamed with.
+  if SameText(PropInfo^.Name, VALUE_PROPERTY) then
+    Exit;
+  FInner.TranslateStringProperty(Sender, Instance, PropInfo, Content);
+end;
 
 function GetLanguagesDir: string;
 begin
@@ -60,6 +117,12 @@ begin
   // walk over and re-translate; the translator installed here does the work
   // while the forms are being streamed in.
   SetDefaultLang('', Dir, LOCALE_FILE_NAME, False);
+
+  // SetDefaultLang leaves its translator in LRSTranslator. Wrap it before the
+  // first form is streamed so that no catalogue, in any language, can rewrite a
+  // Text property into a configuration file.
+  if LRSTranslator <> nil then
+    LRSTranslator := TValueSafeTranslator.Create(LRSTranslator);
 end;
 
 end.
