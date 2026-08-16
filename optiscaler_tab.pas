@@ -781,10 +781,13 @@ var
   Ver, NewTag, VerCaption: string;
   DlssV, FsrV, XessV: string;
   HasAnyUpscaler: Boolean;
+  IsDlssEnablerActive: Boolean;
 begin
   with FForm do
   begin
     if not Assigned(FOsStatDots[0]) then Exit;
+
+    IsDlssEnablerActive := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
 
     for i := 0 to 5 do
     begin
@@ -794,7 +797,7 @@ begin
             Ver := optlabel1.Caption;
             VerCaption := IfThen(Ver <> '', Ver, '—');
 
-            if optLabel2.Visible and (optLabel2.Caption <> '') then
+            if (not IsDlssEnablerActive) and optLabel2.Visible and (optLabel2.Caption <> '') then
             begin
               // The update notice stores the bare tag in Hint; its caption is
               // a sentence and must not be taken apart to recover the tag.
@@ -840,7 +843,7 @@ begin
 
         2: // DLSS Enabler
           begin
-            if not (Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked) then
+            if not IsDlssEnablerActive then
             begin
               FOsStatVerLbls[2].Caption    := '--';
               FOsStatVerLbls[2].Font.Color := PURPLE;
@@ -850,6 +853,20 @@ begin
             begin
               Ver := dlssEnablerVersionLabel.Caption;
               VerCaption := IfThen(Ver <> '', Ver, '—');
+
+              if optLabel2.Visible and (optLabel2.Caption <> '') then
+              begin
+                NewTag := optLabel2.Hint;
+                if NewTag <> '' then
+                begin
+                  VerCaption := VerCaption + ' → ' + NewTag;
+                  FOsStatVerLbls[2].Caption    := VerCaption;
+                  FOsStatVerLbls[2].Font.Color := CLR_UPDATE;
+                  FOsStatDots[2].Brush.Color   := CLR_OK;
+                  Continue;
+                end;
+              end;
+
               FOsStatVerLbls[2].Caption    := VerCaption;
               FOsStatVerLbls[2].Font.Color := PURPLE;
               if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then

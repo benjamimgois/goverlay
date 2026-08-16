@@ -4850,6 +4850,11 @@ begin
       if Idx >= 0 then
         filenameComboBox.ItemIndex := Idx;
     end;
+    if Assigned(optlabel2) then
+    begin
+      optlabel2.Visible := False;
+      optlabel2.Hint := '';
+    end;
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
@@ -4891,6 +4896,11 @@ begin
       Idx := filenameComboBox.Items.IndexOf('version.dll');
       if Idx >= 0 then
         filenameComboBox.ItemIndex := Idx;
+    end;
+    if Assigned(optlabel2) then
+    begin
+      optlabel2.Visible := False;
+      optlabel2.Hint := '';
     end;
   end;
   UpdateUpscalerImageOpacity;
