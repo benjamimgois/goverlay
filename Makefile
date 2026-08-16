@@ -3,12 +3,12 @@ bindir = /bin
 libexecdir = /libexec
 datadir = /share
 
-all: goverlay start_goverlay.sh bgmod bgmod-uninstaller pascube_bin
+all: goverlay start_goverlay.sh bgmod bgmod-uninstaller pascube
 
 goverlay: *.pas *.lfm goverlay.lpi goverlay.lpr goverlay.ico
 	lazbuild -B goverlay.lpi --bm=Release $(LAZBUILDOPTS)
 
-pascube_bin:
+pascube: pascube_src/pascube.lpi pascube_src/pascube.lpr $(wildcard pascube_src/src/*.pas)
 	lazbuild -B pascube_src/pascube.lpi $(LAZBUILDOPTS)
 	cp pascube_src/pascube ./pascube
 
@@ -42,7 +42,7 @@ clean:
 	rm -f tests/logic/logic_tests tests/gui/gui_tests tests/gui/gui_tests.compiled
 	rm -rf tests/logic/lib/ tests/gui/lib/ tests/logic/backup/ tests/gui/backup/
 
-install: goverlay data/goverlay.sh bgmod bgmod-uninstaller
+install: goverlay pascube bgmod bgmod-uninstaller data/goverlay.sh
 	install -D -m=755 goverlay $(DESTDIR)$(prefix)$(libexecdir)/goverlay
 	install -D -m=755 pascube $(DESTDIR)$(prefix)$(libexecdir)/pascube
 	install -D -m=755 bgmod $(DESTDIR)$(prefix)$(libexecdir)/bgmod
