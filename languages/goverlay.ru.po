@@ -465,7 +465,7 @@ msgstr ""
 
 #: tblacklistform.blacklistlabel.caption
 msgid "Enter application name to ignore MangoHud"
-msgstr "Введите имя приложения, которое MangoHud должен игнорировать"
+msgstr "Приложение, которое MangoHud игнорирует"
 
 #: tblacklistform.caption
 msgctxt "tblacklistform.caption"
@@ -482,7 +482,7 @@ msgstr "Удалить выбранное приложение"
 
 #: tgoverlayform.activegpulabel.caption
 msgid "Active GPU"
-msgstr "Активный ГП"
+msgstr "Активный GPU"
 
 #: tgoverlayform.actprotonlogscheckbox.caption
 msgid "Active Proton Logs"
@@ -557,7 +557,7 @@ msgstr "Определено автоматически"
 
 #: tgoverlayform.autouploadcheckbox.caption
 msgid "Autoupload results"
-msgstr "Отправлять результаты"
+msgstr "Автоотправка"
 
 #: tgoverlayform.autouploadcheckbox.hint
 msgid "Enables automatic uploads of logs to flightlessmango.com"
@@ -632,7 +632,7 @@ msgstr ""
 
 #: tgoverlayform.checkupdbitbtn.caption
 msgid "Check updates"
-msgstr "Проверить обновления"
+msgstr "Проверить"
 
 #: tgoverlayform.colorthemelabel.caption
 msgid "Color Theme"
@@ -676,7 +676,7 @@ msgstr "Частота ядра"
 
 #: tgoverlayform.cpugroupbox.caption
 msgid "CPU / Memory"
-msgstr "ЦП / память"
+msgstr "CPU / память"
 
 #: tgoverlayform.cpuload1colorbutton.hint
 msgctxt "tgoverlayform.cpuload1colorbutton.hint"
@@ -709,15 +709,15 @@ msgstr "Основные показатели"
 
 #: tgoverlayform.cpunameedit.texthint
 msgid "-- CPU Model --"
-msgstr "-- Модель ЦП --"
+msgstr "-- Модель CPU --"
 
 #: tgoverlayform.cpupowercheckbox.caption
 msgid "CPU Power"
-msgstr "Мощность ЦП"
+msgstr "Мощность CPU"
 
 #: tgoverlayform.cputempcheckbox.caption
 msgid "CPU temp"
-msgstr "Температура ЦП"
+msgstr "Температура CPU"
 
 #: tgoverlayform.cputemplabel.caption
 msgid "Temperature / Power"
@@ -794,7 +794,7 @@ msgstr ""
 
 #: tgoverlayform.displayservercheckbox.caption
 msgid "Display Server"
-msgstr "Сервер отображения"
+msgstr "Тип сеанса"
 
 #: tgoverlayform.displayservercheckbox.hint
 msgid "Display if your session is x11 or wayland"
@@ -995,7 +995,7 @@ msgstr ""
 
 #: tgoverlayform.forcelatencyflexcheckbox.caption
 msgid "Force LatencyFlex"
-msgstr "Принудительный LatencyFlex"
+msgstr "Всегда LatencyFlex"
 
 #: tgoverlayform.forcelatencyflexcheckbox.hint
 msgid "Useful in native fsg fg games"
@@ -1015,7 +1015,7 @@ msgstr ""
 
 #: tgoverlayform.forcereflexcheckbox.caption
 msgid "Force Reflex"
-msgstr "Принудительный Reflex"
+msgstr "Всегда Reflex"
 
 #: tgoverlayform.forcereflexcheckbox.hint
 msgctxt "tgoverlayform.forcereflexcheckbox.hint"
@@ -1348,7 +1348,7 @@ msgstr ""
 
 #: tgoverlayform.gpudrivergroupbox.caption
 msgid "GPU Driver"
-msgstr "Драйвер ГП"
+msgstr "Драйвер GPU"
 
 #: tgoverlayform.gpuefficiencycheckbox.caption
 msgctxt "tgoverlayform.gpuefficiencycheckbox.caption"
@@ -1372,7 +1372,7 @@ msgstr "Частота ядра"
 #: tgoverlayform.gpugroupbox.caption
 msgctxt "tgoverlayform.gpugroupbox.caption"
 msgid "GPU"
-msgstr "ГП"
+msgstr "GPU"
 
 #: tgoverlayform.gpuinfolabel.caption
 msgctxt "tgoverlayform.gpuinfolabel.caption"
@@ -1417,7 +1417,7 @@ msgstr "Модель"
 
 #: tgoverlayform.gpunameedit.texthint
 msgid "-- GPU NAME --"
-msgstr "-- НАЗВАНИЕ ГП --"
+msgstr "-- НАЗВАНИЕ GPU --"
 
 #: tgoverlayform.gpupowercheckbox.caption
 msgctxt "tgoverlayform.gpupowercheckbox.caption"
@@ -1452,7 +1452,7 @@ msgstr "Показывает, идёт ли троттлинг ГП по мощ�
 
 #: tgoverlayform.gputhrottlinggraphcheckbox.caption
 msgid "Throttling  graph"
-msgstr "График троттлинга"
+msgstr "На графике"
 
 #: tgoverlayform.gputhrottlinggraphcheckbox.hint
 msgid "Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling"
@@ -1989,7 +1989,7 @@ msgstr "Видеопамять, занятая процессом"
 
 #: tgoverlayform.ramtempcheckbox.caption
 msgid "RAM temp"
-msgstr "Температура ОЗУ"
+msgstr "Температура RAM"
 
 #: tgoverlayform.ramtempcheckbox.hint
 msgid "only supports DDR5 with spd5118 driver"
@@ -1997,7 +1997,7 @@ msgstr "поддерживается только DDR5 с драйвером spd
 
 #: tgoverlayform.ramusagecheckbox.caption
 msgid "RAM"
-msgstr "ОЗУ"
+msgstr "RAM"
 
 #: tgoverlayform.reflexcombobox.hint
 msgctxt "tgoverlayform.reflexcombobox.hint"
@@ -2015,7 +2015,7 @@ msgstr ""
 
 #: tgoverlayform.refreshratecheckbox.caption
 msgid "Refresh rate*"
-msgstr "Частота обновления*"
+msgstr "Частота экрана*"
 
 #: tgoverlayform.refreshratecheckbox.hint
 msgid "*Gamescope only"
@@ -2167,7 +2167,7 @@ msgstr "Убрать эффект из списка"
 
 #: tgoverlayform.swapusagecheckbox.caption
 msgid "Swap"
-msgstr "Подкачка"
+msgstr "SWAP"
 
 #: tgoverlayform.systemgroupbox.caption
 msgid "System Information"
@@ -2210,7 +2210,7 @@ msgstr ""
 
 #: tgoverlayform.transparencylabel.caption
 msgid "Alpha"
-msgstr "Прозрачность"
+msgstr "Альфа"
 
 #: tgoverlayform.tweakslabel.caption
 msgctxt "tgoverlayform.tweakslabel.caption"
@@ -2330,7 +2330,7 @@ msgstr "Показывать режим вывода Vulkan"
 
 #: tgoverlayform.vramusagecheckbox.caption
 msgid "VRAM"
-msgstr "Видеопамять"
+msgstr "VRAM"
 
 #: tgoverlayform.vsynccombobox.hint
 msgid ""
@@ -2407,7 +2407,7 @@ msgstr ""
 
 #: tgoverlayform.winesynccheckbox.caption
 msgid "Wine Sync"
-msgstr "Синхронизация Wine"
+msgstr "Синхронизация"
 
 #: tgoverlayform.wow64checkbox.caption
 msgid "Use WOW64"
