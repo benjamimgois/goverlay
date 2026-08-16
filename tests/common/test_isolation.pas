@@ -6,6 +6,7 @@ interface
 
 procedure EnsureIsolatedEnvironment(const ASeedDriver: string);
 function IsolatedHome: string;
+function IsSafeSandboxDir(const ADir: string): Boolean;
 procedure CleanupIsolatedEnvironment(ASuccess: Boolean);
 
 implementation
@@ -24,6 +25,15 @@ function execv(path: PChar; argv: PPChar): cint; cdecl; external 'c' name 'execv
 var
   FHome: string = '';
 
+function IsSafeSandboxDir(const ADir: string): Boolean;
+var
+  TempPrefix: string;
+begin
+  if ADir = '' then Exit(False);
+  TempPrefix := IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_';
+  Result := (Pos(TempPrefix, ADir) = 1) and (Length(ADir) > Length(TempPrefix));
+end;
+
 function IsolatedHome: string;
 begin
   Result := FHome;
@@ -31,15 +41,23 @@ end;
 
 procedure EnsureIsolatedEnvironment(const ASeedDriver: string);
 var
-  ConfDir: string;
+  ConfDir, SandboxDir, CurHome: string;
   Conf: TextFile;
   Args: array of PChar;
   i: Integer;
 begin
+  SandboxDir := GetEnvironmentVariable('GOVERLAY_TEST_SANDBOX_DIR');
+  CurHome := GetEnvironmentVariable('HOME');
+
   // Phase B: already re-executed with the isolated HOME in place.
-  if GetEnvironmentVariable('GOVERLAY_TEST_ISOLATED') = '1' then
+  if SandboxDir <> '' then
   begin
-    FHome := GetEnvironmentVariable('HOME');
+    if (CurHome <> SandboxDir) or not IsSafeSandboxDir(CurHome) then
+    begin
+      WriteLn(StdErr, '[test] FATAL: Invalid or unsafe isolated HOME detected: ', CurHome);
+      Halt(2);
+    end;
+    FHome := CurHome;
     WriteLn('[test] Isolated HOME: ', FHome);
     Exit;
   end;
@@ -68,8 +86,9 @@ begin
   CloseFile(Conf);
 
   setenv(PChar('HOME'), PChar(FHome), 1);
-  setenv(PChar('GOVERLAY_TEST_ISOLATED'), PChar('1'), 1);
+  setenv(PChar('GOVERLAY_TEST_SANDBOX_DIR'), PChar(FHome), 1);
 
+  Args := nil;
   SetLength(Args, ParamCount + 2);
   for i := 0 to ParamCount do
     Args[i] := PChar(ParamStr(i));
@@ -85,9 +104,14 @@ procedure CleanupIsolatedEnvironment(ASuccess: Boolean);
 begin
   if ASuccess then
   begin
-    if (FHome <> '') and DirectoryExists(FHome) then
-      DeleteDirectory(FHome, False);
-    WriteLn('[test] Isolated HOME cleaned up.');
+    if IsSafeSandboxDir(FHome) then
+    begin
+      if DirectoryExists(FHome) then
+        DeleteDirectory(FHome, False);
+      WriteLn('[test] Isolated HOME cleaned up.');
+    end
+    else
+      WriteLn(StdErr, '[test] WARNING: Refusing to clean up non-sandbox directory: ', FHome);
   end
   else
     WriteLn('[test] FAILURES detected - preserved isolated HOME at: ', FHome);

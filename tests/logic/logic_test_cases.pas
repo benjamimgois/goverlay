@@ -20,6 +20,12 @@ type
     procedure TestSectionBracketFlexibility;
   end;
 
+  TSandboxIsolationTests = class(TTestCase)
+  published
+    procedure TestIsSafeSandboxDirValid;
+    procedure TestIsSafeSandboxDirRejectsUnsafePaths;
+  end;
+
 implementation
 
 uses
@@ -122,8 +128,28 @@ begin
   AssertFalse('Unbracketed FrameGen section not created', Pos(#10'FrameGen'#10, TextContent) > 0);
 end;
 
+procedure TSandboxIsolationTests.TestIsSafeSandboxDirValid;
+var
+  ValidSandbox: string;
+begin
+  ValidSandbox := IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_12345678';
+  AssertTrue('Valid sandbox path accepted', IsSafeSandboxDir(ValidSandbox));
+end;
+
+procedure TSandboxIsolationTests.TestIsSafeSandboxDirRejectsUnsafePaths;
+begin
+  AssertFalse('Empty path rejected', IsSafeSandboxDir(''));
+  AssertFalse('Root path rejected', IsSafeSandboxDir('/'));
+  AssertFalse('Home path rejected', IsSafeSandboxDir('/home/testuser'));
+  AssertFalse('Root home rejected', IsSafeSandboxDir('/root'));
+  AssertFalse('Base temp directory rejected', IsSafeSandboxDir(GetTempDir(False)));
+  AssertFalse('Temp prefix alone rejected', IsSafeSandboxDir(IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_'));
+  AssertFalse('Arbitrary temp folder rejected', IsSafeSandboxDir(IncludeTrailingPathDelimiter(GetTempDir(False)) + 'other_folder'));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
+  RegisterTest(TSandboxIsolationTests);
 
 end.
