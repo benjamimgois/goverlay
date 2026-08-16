@@ -20,6 +20,7 @@ This document provides guidelines for contributing to the project. Following the
   - [Code Style](#code-style)
   - [Commit Messages](#commit-messages)
   - [Testing](#testing)
+  - [Translations](#translations)
 - [Project Structure](#project-structure)
 - [Building and Running](#building-and-running)
 - [License](#license)
@@ -283,6 +284,28 @@ Before submitting a PR, ensure:
 
 ---
 
+### Translations
+
+The project has i18n enabled in `goverlay.lpi`, so the Lazarus IDE refreshes
+`languages/goverlay.pot` on every build from the form captions (the `.lrj`
+files next to each `.lfm`) and from the `resourcestring` sections. Keep the
+`.lrj` files in the repository: without them a build in the IDE would drop
+every form string from the template.
+
+To add a language, copy the template to `languages/goverlay.<code>.po`
+(`goverlay.pt_BR.po`, `goverlay.de.po`, ...), fill the `msgstr` lines and leave
+the `#:` lines untouched — that is what the running program looks strings up
+by. `make install` puts the whole directory in
+`<prefix>/share/goverlay/languages`.
+
+To try a translation without changing your locale:
+
+```bash
+./start_goverlay.sh --lang=pt_BR
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -300,6 +323,8 @@ goverlay/
 │   ├── systemdetector.pas   # System detection utilities
 │   └── ...                  # Other units
 ├── *.lfm                    # Lazarus form files (UI layouts)
+├── *.lrj                    # Translatable strings grabbed from the forms
+├── languages/               # Translation catalogues (.pot template, .po files)
 ├── goverlay.lpi             # Lazarus project file
 ├── goverlay.lpr             # Main program file
 ├── Makefile                 # Build configuration

@@ -8,7 +8,7 @@ uses
   cthreads, // <--- Agora será sempre incluído no Linux
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, overlayunit, aboutunit, blacklistUnit, howto;
+  Forms, goverlay_i18n, overlayunit, aboutunit, blacklistUnit, howto;
 
 
 
@@ -31,6 +31,8 @@ begin
   RequireDerivedFormResource:=True;
   Application.Scaled:=True;
   Application.Title:='Goverlay';
+  // Has to happen before the forms below are created, see goverlay_i18n.
+  InitTranslation;
   Application.Initialize;
   Application.CreateForm(Tgoverlayform, goverlayform);
   Application.CreateForm(TaboutForm, aboutForm);

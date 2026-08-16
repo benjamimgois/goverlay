@@ -1,0 +1,6 @@
+{"version":1,"strings":[
+{"hash":21176227,"name":"tblacklistform.caption","sourcebytes":[66,108,97,99,107,108,105,115,116,101,100,32,65,112,112,115],"value":"Blacklisted Apps"},
+{"hash":210375717,"name":"tblacklistform.insertblacklistbitbtn.hint","sourcebytes":[83,97,118,101,32,97,112,112,108,105,99,97,116,105,111,110,32,110,97,109,101],"value":"Save application name"},
+{"hash":163011758,"name":"tblacklistform.removeblacklistbitbtn.hint","sourcebytes":[82,101,109,111,118,101,32,115,101,108,101,99,116,101,100,32,97,112,112,108,105,99,97,116,105,111,110],"value":"Remove selected application"},
+{"hash":259924980,"name":"tblacklistform.blacklistlabel.caption","sourcebytes":[69,110,116,101,114,32,97,112,112,108,105,99,97,116,105,111,110,32,110,97,109,101,32,116,111,32,105,103,110,111,114,101,32,77,97,110,103,111,72,117,100],"value":"Enter application name to ignore MangoHud"}
+]}

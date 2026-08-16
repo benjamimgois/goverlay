@@ -1,0 +1,8 @@
+{"version":1,"strings":[
+{"hash":246659565,"name":"thowtoform.caption","sourcebytes":[104,111,119,116,111,70,111,114,109],"value":"howtoForm"},
+{"hash":5942141,"name":"thowtoform.steamsheet.caption","sourcebytes":[83,116,101,97,109],"value":"Steam"},
+{"hash":1054,"name":"thowtoform.nextbitbtn.caption","sourcebytes":[62,62],"value":">>"},
+{"hash":82613747,"name":"thowtoform.heroicsheet.caption","sourcebytes":[72,101,114,111,105,99],"value":"Heroic"},
+{"hash":1020,"name":"thowtoform.previousbitbtn.caption","sourcebytes":[60,60],"value":"<<"},
+{"hash":4863637,"name":"thowtoform.closehowtobitbtn.caption","sourcebytes":[67,108,111,115,101],"value":"Close"}
+]}

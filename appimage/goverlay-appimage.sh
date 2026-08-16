@@ -68,6 +68,12 @@ if [ -d "${PROJECT_ROOT}/data" ]; then
 else
   echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/data does not exist!"
 fi
+if [ -d "${PROJECT_ROOT}/languages" ]; then
+  echo "[AppImageBuild] Copying languages from ${PROJECT_ROOT}/languages to ./AppDir/bin/"
+  cp -rv "${PROJECT_ROOT}/languages" ./AppDir/bin/
+else
+  echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/languages does not exist!"
+fi
 # Copy unwrapped bgmod and bgmod-uninstaller binaries directly to AppDir/lib
 mkdir -p ./AppDir/lib
 cp -pf /usr/lib/bgmod ./AppDir/lib/bgmod
