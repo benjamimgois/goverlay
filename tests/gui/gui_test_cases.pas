@@ -816,7 +816,7 @@ begin
 
   AssertTrue('OptiLabel2 is visible when update available', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
   AssertEquals('OptiScaler status row remains stable version', 'stable-0.9.4', goverlayform.FOsStatVerLbls[0].Caption);
-  AssertEquals('DLSS Enabler status row shows update arrow', '4.8.12 → 4.8.13.19', goverlayform.FOsStatVerLbls[2].Caption);
+  AssertEquals('DLSS Enabler status row shows update arrow', '4.8.12 → v0.10.0-pre1_7233fc0c', goverlayform.FOsStatVerLbls[2].Caption);
   AssertEquals('DLSS Enabler status row font color is CLR_UPDATE', $0044AAFF, goverlayform.FOsStatVerLbls[2].Font.Color);
 end;
 

@@ -53,6 +53,9 @@ procedure GetGlobalLogs(DestList: TStrings);
 /// <summary>Install TextRec stdout/stderr hooks to intercept all WriteLn calls.</summary>
 procedure InstallStdoutHook;
 
+/// <summary>Restore original stdout/stderr file descriptors and remove hooks.</summary>
+procedure RestoreStdoutHook;
+
 implementation
 
 var
@@ -144,24 +147,56 @@ begin
   end;
 end;
 
+const
+  FD_CLOEXEC = 1;
+
 procedure InstallStdoutHook;
 var
+  ExeName: string;
   PipeFds: array[0..1] of cInt;
 begin
   if FPipeInstalled then Exit;
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+  ExeName := LowerCase(ExtractFileName(ParamStr(0)));
+  if Pos('test', ExeName) > 0 then Exit;
   FPipeInstalled := True;
 
   FOldStdoutFd := fpDup(1);
   FOldStderrFd := fpDup(2);
+  if FOldStdoutFd >= 0 then
+    FpFcntl(FOldStdoutFd, F_SETFD, FD_CLOEXEC);
+  if FOldStderrFd >= 0 then
+    FpFcntl(FOldStderrFd, F_SETFD, FD_CLOEXEC);
 
   if fpPipe(PipeFds) = 0 then
   begin
+    FpFcntl(PipeFds[0], F_SETFD, FD_CLOEXEC);
+    FpFcntl(PipeFds[1], F_SETFD, FD_CLOEXEC);
+
     fpDup2(PipeFds[1], 1);
     fpDup2(PipeFds[1], 2);
     fpClose(PipeFds[1]);
 
     TLogPipeThread.Create(PipeFds[0], FOldStdoutFd);
   end;
+end;
+
+procedure RestoreStdoutHook;
+begin
+  if not FPipeInstalled then Exit;
+  if FOldStdoutFd >= 0 then
+  begin
+    fpDup2(FOldStdoutFd, 1);
+    fpClose(FOldStdoutFd);
+    FOldStdoutFd := -1;
+  end;
+  if FOldStderrFd >= 0 then
+  begin
+    fpDup2(FOldStderrFd, 2);
+    fpClose(FOldStderrFd);
+    FOldStderrFd := -1;
+  end;
+  FPipeInstalled := False;
 end;
 
 procedure DbgLog(const Msg: string);
