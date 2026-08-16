@@ -76,6 +76,7 @@ type
     procedure TestVkBasaltRoundTrip;
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
+    procedure TestProtonLocalShaderCacheTweak;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -1578,6 +1579,25 @@ begin
   AssertTrue('simdeckCheckBox reloaded', goverlayform.simdeckCheckBox.Checked);
   AssertTrue('enhdrCheckBox reloaded', goverlayform.enhdrCheckBox.Checked);
   AssertTrue('obs_vkcaptureCheckBox reloaded', goverlayform.obs_vkcaptureCheckBox.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestProtonLocalShaderCacheTweak;
+begin
+  NavigateTweaksTab;
+  AssertTrue('FProtonLocalShaderCacheCheckBox created', Assigned(goverlayform.FProtonLocalShaderCacheCheckBox));
+
+  goverlayform.FProtonLocalShaderCacheCheckBox.Checked := True;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  AssertEquals('PROTON_LOCAL_SHADER_CACHE persisted in bgmod.conf', '1', ReadBgmodConf('Env', 'PROTON_LOCAL_SHADER_CACHE'));
+
+  // Reload config from bgmod.conf into UI and assert state is loaded
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('FProtonLocalShaderCacheCheckBox reloaded as true', goverlayform.FProtonLocalShaderCacheCheckBox.Checked);
+
+  goverlayform.FProtonLocalShaderCacheCheckBox.Checked := False;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  AssertEquals('PROTON_LOCAL_SHADER_CACHE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_LOCAL_SHADER_CACHE'));
 end;
 
 procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;

@@ -1221,6 +1221,7 @@ type
     FLowLatencySpoofNvidiaCheckBox: TCheckBox;
     FLowLatencyHideAmdGpuCheckBox: TCheckBox;
     FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1
+    FProtonLocalShaderCacheCheckBox: TCheckBox; // PROTON_LOCAL_SHADER_CACHE=1
 
     // Navigation rail fields (moved from private)
     FNavItems:       array of TPanel;    // item panels
