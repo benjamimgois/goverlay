@@ -210,7 +210,7 @@ begin
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
     Process.Parameters.Add(Command);
-    Process.Options := [poNoConsole];
+    Process.Options := [poNoConsole, poWaitOnExit];
     Process.Execute;
   finally
     Process.Free;
