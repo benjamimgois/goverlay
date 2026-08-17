@@ -1210,7 +1210,6 @@ type
     FTweaksScrollBar:  TScrollBar;
     FTweaksScrollPos:  Integer;
     FTweaksHoverIdx:   Integer;
-    FTweaksFABBtn:     TSpeedButton;
     FTweaksCatExpanded: array[0..3] of Boolean; // General, Graphics, Performance, Latency reduction
     FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
     FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
@@ -1306,7 +1305,6 @@ type
     procedure TweaksMD3BuildItems;
     procedure TweaksMD3ToggleItem(Index: Integer);
     procedure TweaksMD3FABClick(Sender: TObject);
-    procedure TweaksMD3FABPaint(Sender: TObject);
 
     function IsOptiScalerInstalled: Boolean;
     procedure ShowStatusMessage(const AMessage: string; ADuration: Integer = 3000);
@@ -1393,6 +1391,7 @@ type
     procedure InitFloatingDock;
     procedure DockPreviewClick(Sender: TObject);
     procedure DockMenuClick(Sender: TObject);
+    procedure DockAddClick(Sender: TObject);
     procedure DockFinishClick(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
@@ -1786,8 +1785,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-// Floating dock — no preview and no menu on tweaks tab
-if Assigned(FFADock) then FFADock.UpdateForTab(False, False);
+// Floating dock — show Add button and Finish on tweaks tab
+if Assigned(FFADock) then FFADock.UpdateForTab(False, False, True);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
@@ -1934,7 +1933,7 @@ begin
 
 
   // Floating dock — show Preview and Menu buttons for vkBasalt/vkSumi
-  if Assigned(FFADock) then FFADock.UpdateForTab(True, True);
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -2778,9 +2777,10 @@ begin
   FFADock := TFloatingActionDock.Create(goverlayPanel);
   FFADock.OnPreviewClick := @DockPreviewClick;
   FFADock.OnMenuClick    := @DockMenuClick;
+  FFADock.OnAddClick     := @DockAddClick;
   FFADock.OnFinishClick  := @DockFinishClick;
   // Start hidden; each tab-switch will call UpdateForTab to show/configure it.
-  FFADock.UpdateForTab(False);
+  FFADock.UpdateForTab(False, False, False);
 
   // Initialize floating overlays
   FFloatingToast    := TFloatingToast.Create(goverlayPanel);
@@ -2797,6 +2797,12 @@ end;
 procedure Tgoverlayform.DockMenuClick(Sender: TObject);
 begin
   popupBitBtnClick(nil);
+end;
+
+// Dock: Add button — opens custom environment variable creation dialog
+procedure Tgoverlayform.DockAddClick(Sender: TObject);
+begin
+  TweaksMD3FABClick(nil);
 end;
 
 // Dock: Finish Config button — opens the Finish Configuration modal dialog
@@ -4262,10 +4268,6 @@ procedure Tgoverlayform.InitTweaksMD3;
 begin
   TTweaksMD3Helper(FTweaksHelper).InitTweaksMD3;
 end;
-procedure Tgoverlayform.TweaksMD3FABPaint(Sender: TObject);
-begin
-  TTweaksMD3Helper(FTweaksHelper).FABPaint(Sender);
-end;
 procedure Tgoverlayform.TweaksMD3BuildItems;
 // Virtual — items are rendered on-the-fly in paint event using checkboxes + custom list
 begin
@@ -4777,7 +4779,7 @@ begin
 
 
   // Floating dock hidden on Games tab
-  if Assigned(FFADock) then FFADock.UpdateForTab(False);
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
@@ -4822,7 +4824,7 @@ commandPanel.Visible:=false;
 
 
 // Floating dock — show Preview and Menu buttons for MangoHud
-if Assigned(FFADock) then FFADock.UpdateForTab(True, True);
+if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -5001,8 +5003,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  // Floating dock — no Preview and no Menu on OptiScaler tab
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False);
+  // Floating dock — no Preview, no Menu, no Add on OptiScaler tab
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;

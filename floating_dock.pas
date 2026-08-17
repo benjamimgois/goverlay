@@ -8,9 +8,10 @@ unit floating_dock;
 //
 //    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
 //    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options)
-//    [ ✦ Finish  ]   (primary accent button, always visible)
+//    [   + Add   ]   (optional — shown on EnvVars tab)
+//    [  ✦ Finish ]   (primary accent button, always visible)
 //
-//  Call UpdateForTab(AShowPreview, AShowMenu) whenever the navigation tab changes.
+//  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd) on tab switch.
 // ---------------------------------------------------------------------------
 
 interface
@@ -33,55 +34,59 @@ type
     // Buttons (in pill, left-to-right layout)
     FPreviewBtn:     TSpeedButton;
     FMenuBtn:        TSpeedButton;
+    FAddBtn:         TSpeedButton;
     FFinishBtn:      TSpeedButton;
 
     FPreviewVisible: Boolean;
     FMenuVisible:    Boolean;
+    FAddVisible:     Boolean;
 
     FOnPreviewClick: TNotifyEvent;
     FOnMenuClick:    TNotifyEvent;
+    FOnAddClick:     TNotifyEvent;
     FOnFinishClick:  TNotifyEvent;
 
     procedure PillPaint(Sender: TObject);
     procedure FinishBtnClick(Sender: TObject);
     procedure MenuBtnClick(Sender: TObject);
     procedure PreviewBtnClick(Sender: TObject);
+    procedure AddBtnClick(Sender: TObject);
     procedure LayoutButtons;
 
   public
     constructor Create(AParent: TWinControl);
     destructor  Destroy; override;
 
-    // Call when switching tabs.
-    // AShowPreview: True for tabs that support 3D preview (MangoHud, vkBasalt, vkSumi)
-    // AShowMenu: True if the tab has popup menu options
-    procedure UpdateForTab(AShowPreview: Boolean; AShowMenu: Boolean = True);
+    // Call when switching tabs:
+    // AShowPreview: True for tabs with 3D preview support
+    // AShowMenu: True for tabs with popup menu options
+    // AShowAdd: True for EnvVars tab
+    procedure UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean);
 
     procedure BringToFront;
 
     property OnPreviewClick: TNotifyEvent read FOnPreviewClick write FOnPreviewClick;
     property OnMenuClick:    TNotifyEvent read FOnMenuClick    write FOnMenuClick;
+    property OnAddClick:     TNotifyEvent read FOnAddClick     write FOnAddClick;
     property OnFinishClick:  TNotifyEvent read FOnFinishClick  write FOnFinishClick;
   end;
 
 implementation
 
 // ---------------------------------------------------------------------------
-// Geometry constants
+// Compact geometry constants
 // ---------------------------------------------------------------------------
 const
-  DOCK_RIGHT    = 24;   // distance from right edge of parent
-  DOCK_BOTTOM   = 24;   // distance from bottom edge of parent
-  BTN_H         = 36;   // button height
-  BTN_GAP       = 4;    // gap between buttons
-  PREVIEW_W     = 108;  // width of preview button
-  MENU_W        = 44;   // width of menu button
-  FINISH_W      = 100;  // width of finish button
-  INNER_PAD_X   = 8;    // horizontal padding inside pill
-  INNER_PAD_Y   = 6;    // vertical padding inside pill
-
-  // Parent background color to eliminate white corner artifacts
-  CLR_CONTAINER_BG = $281A16; // RGBToColor(22, 26, 40) in BGR
+  DOCK_RIGHT    = 16;   // distance from right edge of parent (compact)
+  DOCK_BOTTOM   = 14;   // distance from bottom edge of parent (compact)
+  BTN_H         = 30;   // button height (compact)
+  BTN_GAP       = 3;    // gap between buttons
+  PREVIEW_W     = 88;   // width of preview button
+  MENU_W        = 34;   // width of menu button
+  ADD_W         = 76;   // width of add button
+  FINISH_W      = 84;   // width of finish button
+  INNER_PAD_X   = 6;    // horizontal padding inside pill
+  INNER_PAD_Y   = 4;    // vertical padding inside pill (Total height = 38px)
 
 // ---------------------------------------------------------------------------
 // Constructor / Destructor
@@ -95,6 +100,7 @@ begin
   FParent         := AParent;
   FPreviewVisible := True;
   FMenuVisible    := True;
+  FAddVisible     := False;
 
   TotalPillW := INNER_PAD_X * 2
               + PREVIEW_W + BTN_GAP
@@ -128,9 +134,9 @@ begin
   // ---- Preview button ----
   FPreviewBtn             := TSpeedButton.Create(FDockPanel);
   FPreviewBtn.Parent      := FDockPanel;
-  FPreviewBtn.Caption     := ' ▶  Preview';
+  FPreviewBtn.Caption     := ' ▶ Preview';
   FPreviewBtn.Font.Name   := 'Noto Sans';
-  FPreviewBtn.Font.Size   := 9;
+  FPreviewBtn.Font.Size   := 8;
   FPreviewBtn.Font.Style  := [fsBold];
   FPreviewBtn.Font.Color  := RGBToColor(180, 190, 205);
   FPreviewBtn.Flat        := True;
@@ -143,7 +149,7 @@ begin
   FMenuBtn.Parent         := FDockPanel;
   FMenuBtn.Caption        := ' ☰';
   FMenuBtn.Font.Name      := 'Noto Sans';
-  FMenuBtn.Font.Size      := 12;
+  FMenuBtn.Font.Size      := 11;
   FMenuBtn.Font.Style     := [];
   FMenuBtn.Font.Color     := RGBToColor(180, 190, 205);
   FMenuBtn.Flat           := True;
@@ -151,12 +157,25 @@ begin
   FMenuBtn.ShowHint       := True;
   FMenuBtn.Hint           := 'Options & presets menu';
 
+  // ---- Add button (EnvVars) ----
+  FAddBtn                 := TSpeedButton.Create(FDockPanel);
+  FAddBtn.Parent          := FDockPanel;
+  FAddBtn.Caption         := ' + Add';
+  FAddBtn.Font.Name       := 'Noto Sans';
+  FAddBtn.Font.Size       := 8;
+  FAddBtn.Font.Style      := [fsBold];
+  FAddBtn.Font.Color      := RGBToColor(180, 190, 205);
+  FAddBtn.Flat            := True;
+  FAddBtn.OnClick         := @AddBtnClick;
+  FAddBtn.ShowHint        := True;
+  FAddBtn.Hint            := 'Add custom environment variable';
+
   // ---- Finish button ----
   FFinishBtn              := TSpeedButton.Create(FDockPanel);
   FFinishBtn.Parent       := FDockPanel;
   FFinishBtn.Caption      := ' ✦ Finish';
   FFinishBtn.Font.Name    := 'Noto Sans';
-  FFinishBtn.Font.Size    := 9;
+  FFinishBtn.Font.Size    := 8;
   FFinishBtn.Font.Style   := [fsBold];
   FFinishBtn.Font.Color   := clWhite;
   FFinishBtn.Flat         := True;
@@ -186,13 +205,18 @@ begin
     Inc(TotalPillW, PREVIEW_W + BTN_GAP);
   if FMenuVisible then
     Inc(TotalPillW, MENU_W + BTN_GAP);
+  if FAddVisible then
+    Inc(TotalPillW, ADD_W + BTN_GAP);
 
   // Resize the dock panel and reposition to right edge
   FDockPanel.Width  := TotalPillW;
+  FDockPanel.Height := BTN_H + INNER_PAD_Y * 2;
   FDockPanel.Left   := FParent.ClientWidth - TotalPillW - DOCK_RIGHT;
+  FDockPanel.Top    := FParent.ClientHeight - FDockPanel.Height - DOCK_BOTTOM;
 
   // Resize pill box
-  FPillBox.Width := TotalPillW;
+  FPillBox.Width  := TotalPillW;
+  FPillBox.Height := FDockPanel.Height;
 
   // Place buttons left-to-right inside pill
   X := INNER_PAD_X;
@@ -215,6 +239,15 @@ begin
   else
     FMenuBtn.Visible := False;
 
+  if FAddVisible then
+  begin
+    FAddBtn.SetBounds(X, INNER_PAD_Y, ADD_W, BTN_H);
+    FAddBtn.Visible := True;
+    Inc(X, ADD_W + BTN_GAP);
+  end
+  else
+    FAddBtn.Visible := False;
+
   FFinishBtn.SetBounds(X, INNER_PAD_Y, FINISH_W, BTN_H);
 end;
 
@@ -233,7 +266,7 @@ begin
   R   := Rect(0, 0, PB.Width, PB.Height);
   Rad := PB.Height div 2;
 
-  // 1. Clear full rect with the parent background color to eliminate white edges
+  // 1. Clear full rect with container background to eliminate white edges
   PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
   PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
   PB.Canvas.FillRect(R);
@@ -241,9 +274,9 @@ begin
   // 2. Drop shadow
   PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
   PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 2, R.Top + 3, R.Right + 2, R.Bottom + 3, Rad, Rad);
+  PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
 
-  IsSoloFinish := not FPreviewVisible and not FMenuVisible;
+  IsSoloFinish := not FPreviewVisible and not FMenuVisible and not FAddVisible;
 
   if IsSoloFinish then
   begin
@@ -270,8 +303,8 @@ begin
 
     // Separator line before finish button
     PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
-    PB.Canvas.MoveTo(BX, R.Top + 6);
-    PB.Canvas.LineTo(BX, R.Bottom - 6);
+    PB.Canvas.MoveTo(BX, R.Top + 4);
+    PB.Canvas.LineTo(BX, R.Bottom - 4);
   end;
 end;
 
@@ -289,6 +322,11 @@ begin
   if Assigned(FOnMenuClick) then FOnMenuClick(Self);
 end;
 
+procedure TFloatingActionDock.AddBtnClick(Sender: TObject);
+begin
+  if Assigned(FOnAddClick) then FOnAddClick(Self);
+end;
+
 procedure TFloatingActionDock.FinishBtnClick(Sender: TObject);
 begin
   if Assigned(FOnFinishClick) then FOnFinishClick(Self);
@@ -298,10 +336,11 @@ end;
 // Public methods
 // ---------------------------------------------------------------------------
 
-procedure TFloatingActionDock.UpdateForTab(AShowPreview: Boolean; AShowMenu: Boolean = True);
+procedure TFloatingActionDock.UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean);
 begin
   FPreviewVisible := AShowPreview;
   FMenuVisible    := AShowMenu;
+  FAddVisible     := AShowAdd;
   LayoutButtons;
   FPillBox.Invalidate;
   FDockPanel.BringToFront;

@@ -74,7 +74,6 @@ type
     procedure MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure ScrollChange(Sender: TObject);
     procedure FABClick(Sender: TObject);
-    procedure FABPaint(Sender: TObject);
     function ItemHeight: Integer;
     function HeaderHeight: Integer;
     procedure InitTweaksCards;
@@ -196,25 +195,6 @@ begin
   FForm.FTweaksScrollBar.Visible     := False;
   FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
 
-  // Floating Action Button — pill "+ Add"
-  FForm.FTweaksFABBtn := TSpeedButton.Create(FForm);
-  FForm.FTweaksFABBtn.Parent       := FForm.tweaksTabSheet;
-  FForm.FTweaksFABBtn.Width        := 88;
-  FForm.FTweaksFABBtn.Height       := 36;
-  FForm.FTweaksFABBtn.Left         := FForm.tweaksTabSheet.ClientWidth - 88 - 24;
-  FForm.FTweaksFABBtn.Top          := FForm.tweaksTabSheet.ClientHeight - 36 - 80; // above Finish pill dock
-  FForm.FTweaksFABBtn.Anchors      := [akRight, akBottom];
-  FForm.FTweaksFABBtn.Caption      := '+ Add';
-  FForm.FTweaksFABBtn.Font.Name    := 'Noto Sans';
-  FForm.FTweaksFABBtn.Font.Size    := 9;
-  FForm.FTweaksFABBtn.Font.Style   := [fsBold];
-  FForm.FTweaksFABBtn.Font.Color   := clWhite;
-  FForm.FTweaksFABBtn.Flat         := True;
-  FForm.FTweaksFABBtn.ShowHint     := True;
-  FForm.FTweaksFABBtn.Hint         := 'Add custom environment variable';
-  FForm.FTweaksFABBtn.OnClick      := @FForm.TweaksMD3FABClick;
-  FForm.FTweaksFABBtn.OnPaint      := @FForm.TweaksMD3FABPaint;
-
   // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
   FForm.FAntilagCheckBox := TCheckBox.Create(FForm);
   FForm.FAntilagCheckBox.Parent      := FForm;
@@ -303,45 +283,6 @@ begin
     FForm.FTweaksGrid.Cells[2, i + 1] := TWEAK_ROWS[i].VarName;
     FForm.FTweaksGrid.Cells[3, i + 1] := TWEAK_ROWS[i].Description;
   end;
-end;
-
-procedure TTweaksMD3Helper.FABPaint(Sender: TObject);
-var
-  Btn: TSpeedButton;
-  R: TRect;
-  Rad, TextW, TextH: Integer;
-  CaptionText: string;
-begin
-  Btn := Sender as TSpeedButton;
-  R := Rect(0, 0, Btn.Width, Btn.Height);
-  Rad := Btn.Height div 2;
-
-  // Clear corners with container background
-  Btn.Canvas.Brush.Color := RGBToColor(22, 26, 40);
-  Btn.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
-  Btn.Canvas.FillRect(R);
-
-  // Drop shadow
-  Btn.Canvas.Brush.Color := RGBToColor(0, 0, 0);
-  Btn.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  Btn.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
-
-  // Pill fill (Accent cyan)
-  Btn.Canvas.Brush.Color := RGBToColor(32, 120, 180);
-  Btn.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
-  Btn.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
-
-  // Text "+ Add"
-  CaptionText := '+ Add';
-  Btn.Canvas.Font.Name  := 'Noto Sans';
-  Btn.Canvas.Font.Size  := 9;
-  Btn.Canvas.Font.Style := [fsBold];
-  Btn.Canvas.Font.Color := clWhite;
-  Btn.Canvas.Brush.Style := bsClear;
-  TextW := Btn.Canvas.TextWidth(CaptionText);
-  TextH := Btn.Canvas.TextHeight(CaptionText);
-  Btn.Canvas.TextOut((Btn.Width - TextW) div 2, (Btn.Height - TextH) div 2, CaptionText);
-  Btn.Canvas.Brush.Style := bsSolid;
 end;
 
 procedure TTweaksMD3Helper.Paint(Sender: TObject);

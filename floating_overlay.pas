@@ -83,8 +83,9 @@ const
 
 constructor TFloatingToast.Create(AParent: TWinControl);
 const
-  TOAST_W = 160;
-  TOAST_H = 34;
+  TOAST_W = 136;
+  TOAST_H = 28;
+  TOAST_MARGIN = 16;
 begin
   inherited Create;
   FParent  := AParent;
@@ -99,8 +100,8 @@ begin
   FToastPanel.Width := TOAST_W;
   FToastPanel.Height := TOAST_H;
   FToastPanel.Anchors := [akLeft, akBottom];
-  FToastPanel.Left := 24;
-  FToastPanel.Top := Max(10, AParent.ClientHeight - TOAST_H - 24);
+  FToastPanel.Left := TOAST_MARGIN;
+  FToastPanel.Top := Max(10, AParent.ClientHeight - TOAST_H - 14);
   FToastPanel.Visible := False;
 
   FPaintBox := TPaintBox.Create(FToastPanel);
@@ -148,17 +149,17 @@ begin
 
   // Checkmark icon
   PB.Canvas.Font.Name  := 'Noto Sans';
-  PB.Canvas.Font.Size  := 10;
+  PB.Canvas.Font.Size  := 9;
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := RGBToColor(56, 217, 169); // mint green
   PB.Canvas.Brush.Style := bsClear;
-  PB.Canvas.TextOut(12, (PB.Height - PB.Canvas.TextHeight('✓')) div 2, '✓');
+  PB.Canvas.TextOut(10, (PB.Height - PB.Canvas.TextHeight('✓')) div 2, '✓');
 
   // Text
-  PB.Canvas.Font.Size  := 9;
+  PB.Canvas.Font.Size  := 8;
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := clWhite;
-  PB.Canvas.TextOut(28, (PB.Height - PB.Canvas.TextHeight(FMessage)) div 2, FMessage);
+  PB.Canvas.TextOut(24, (PB.Height - PB.Canvas.TextHeight(FMessage)) div 2, FMessage);
   PB.Canvas.Brush.Style := bsSolid;
 end;
 
@@ -195,8 +196,8 @@ end;
 
 procedure TFloatingToast.Reposition;
 begin
-  FToastPanel.Left := 24;
-  FToastPanel.Top := Max(10, FParent.ClientHeight - FToastPanel.Height - 24);
+  FToastPanel.Left := 16;
+  FToastPanel.Top := Max(10, FParent.ClientHeight - FToastPanel.Height - 14);
 end;
 
 { TFloatingProgressBanner }
@@ -211,8 +212,8 @@ end;
 
 constructor TFloatingProgressBanner.Create(AParent: TWinControl);
 const
-  BANNER_W = 380;
-  BANNER_H = 54;
+  BANNER_W = 340;
+  BANNER_H = 46;
 begin
   inherited Create;
   FParent  := AParent;
@@ -228,7 +229,7 @@ begin
   FBannerPanel.Width := BANNER_W;
   FBannerPanel.Height := BANNER_H;
   FBannerPanel.Anchors := [akTop];
-  FBannerPanel.Top := 16;
+  FBannerPanel.Top := 14;
   FBannerPanel.Left := Max(10, (AParent.ClientWidth - BANNER_W) div 2);
   FBannerPanel.Visible := False;
 
@@ -253,7 +254,7 @@ var
 begin
   PB := Sender as TPaintBox;
   R := Rect(0, 0, PB.Width, PB.Height);
-  Rad := 12;
+  Rad := 10;
 
   // Clear bounding rect with container background to eliminate white edges
   PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
@@ -263,7 +264,7 @@ begin
   // Drop shadow
   PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
   PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 3, R.Top + 3, R.Right + 3, R.Bottom + 3, Rad, Rad);
+  PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
 
   // Background card
   PB.Canvas.Brush.Color := RGBToColor(24, 30, 40);
@@ -272,25 +273,25 @@ begin
 
   // Status Message text
   PB.Canvas.Font.Name  := 'Noto Sans';
-  PB.Canvas.Font.Size  := 9;
+  PB.Canvas.Font.Size  := 8;
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := RGBToColor(240, 232, 226);
   PB.Canvas.Brush.Style := bsClear;
-  PB.Canvas.TextOut(14, 10, FMessage);
+  PB.Canvas.TextOut(12, 8, FMessage);
 
   // Percentage text on right
   PctStr := IntToStr(EnsureRange(FPercent, 0, 100)) + '%';
-  PB.Canvas.Font.Size  := 9;
+  PB.Canvas.Font.Size  := 8;
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := RGBToColor(48, 190, 240); // Cyan
-  PB.Canvas.TextOut(PB.Width - PB.Canvas.TextWidth(PctStr) - 14, 10, PctStr);
+  PB.Canvas.TextOut(PB.Width - PB.Canvas.TextWidth(PctStr) - 12, 8, PctStr);
 
   // Progress Bar Track
-  BarR := Rect(14, 32, PB.Width - 14, 40);
+  BarR := Rect(12, 26, PB.Width - 12, 34);
   PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Brush.Color := RGBToColor(36, 46, 61);
   PB.Canvas.Pen.Color   := RGBToColor(36, 46, 61);
-  PB.Canvas.RoundRect(BarR.Left, BarR.Top, BarR.Right, BarR.Bottom, 4, 4);
+  PB.Canvas.RoundRect(BarR.Left, BarR.Top, BarR.Right, BarR.Bottom, 3, 3);
 
   // Progress Bar Fill
   TrackW := BarR.Right - BarR.Left;
@@ -300,7 +301,7 @@ begin
     FillR := Rect(BarR.Left, BarR.Top, BarR.Left + FillW, BarR.Bottom);
     PB.Canvas.Brush.Color := RGBToColor(48, 190, 240); // Vivid cyan fill
     PB.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
-    PB.Canvas.RoundRect(FillR.Left, FillR.Top, FillR.Right, FillR.Bottom, 4, 4);
+    PB.Canvas.RoundRect(FillR.Left, FillR.Top, FillR.Right, FillR.Bottom, 3, 3);
   end;
 end;
 
@@ -344,7 +345,7 @@ end;
 
 procedure TFloatingProgressBanner.Reposition;
 begin
-  FBannerPanel.Top := 16;
+  FBannerPanel.Top := 14;
   FBannerPanel.Left := Max(10, (FParent.ClientWidth - FBannerPanel.Width) div 2);
 end;
 
