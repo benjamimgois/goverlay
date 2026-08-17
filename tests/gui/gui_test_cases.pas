@@ -742,6 +742,8 @@ begin
 end;
 
 procedure TGoverlayGuiTests.TestFloatingActionDockAndFinishDialog;
+var
+  TestPanel: TPanel;
 begin
   AssertTrue('FFADock is assigned', Assigned(goverlayform.FFADock));
   AssertEquals('goverlayPageControl BorderSpacing.Bottom is 0', 0, goverlayform.goverlayPageControl.BorderSpacing.Bottom);
@@ -764,6 +766,18 @@ begin
   // Switch to Games tab -> dock completely hidden (no pill on games tab)
   goverlayform.gamesLabelClick(nil);
   AssertFalse('Dock is NOT visible on Games tab', goverlayform.FFADock.Visible);
+
+  // Click a game card -> transitions to MangoHud, dock visible, legacy bar hidden
+  TestPanel := TPanel.Create(nil);
+  try
+    TestPanel.Hint := 'TestGameDock';
+    goverlayform.GameCardClick(TestPanel);
+    AssertFalse('Legacy goverlaybarPanel is NOT visible after game card click', goverlayform.goverlaybarPanel.Visible);
+    AssertTrue('Dock is visible after game card click', goverlayform.FFADock.Visible);
+  finally
+    TestPanel.Free;
+    goverlayform.gamesLabelClick(nil);
+  end;
 
   // Progress overlay test
   goverlayform.FFloatingProgress.ShowProgress('Testing progress...', 50);
@@ -1808,9 +1822,11 @@ begin
     AssertEquals('MANGOHUDCFGFILE set on game card click', ExpectedDir + 'MangoHud.conf', MANGOHUDCFGFILE);
     AssertEquals('VKBASALTCFGFILE set on game card click', ExpectedDir + 'vkBasalt.conf', VKBASALTCFGFILE);
     AssertEquals('VKSUMICFGFILE set on game card click', ExpectedDir + 'vkSumi.conf', VKSUMICFGFILE);
+    AssertFalse('goverlaybarPanel is hidden on game card click', goverlayform.goverlaybarPanel.Visible);
+    AssertTrue('FFADock is visible on game card click', goverlayform.FFADock.Visible);
   finally
     Panel.Free;
-    goverlayform.FActiveGameName := '';
+    goverlayform.gamesLabelClick(nil);
   end;
 end;
 

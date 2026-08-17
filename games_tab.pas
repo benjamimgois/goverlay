@@ -2307,12 +2307,10 @@ begin
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;
   notificationLabel.Visible := False;
-  commandPanel.Visible       := False;
+  commandPanel.Visible      := False;
 
-  goverlaybarPanel.Visible  := True;
-  popupBitBtn.Visible := True;
-  FPreviewBtn.Visible  := True;
-  FForm.UpdateCommandPanelRightAnchor(True);
+  if Assigned(FFADock) then
+    FFADock.UpdateForTab(True, True, False);
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   LoadMangoHudConfig;

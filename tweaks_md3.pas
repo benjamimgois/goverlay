@@ -1377,7 +1377,6 @@ begin
   FForm.notificationLabel.Visible := False;
   FForm.FLaunchCommand := LaunchCommand;
   FForm.commandPaintBox.Invalidate;
-  FForm.commandPanel.Visible := True;
 end;
 
 procedure TTweaksMD3Helper.LoadTweaksFromFGMod;

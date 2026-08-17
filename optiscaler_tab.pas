@@ -1327,7 +1327,6 @@ begin
       notificationLabel.Visible := False;
       FLaunchCommand := LaunchCommand;
       commandPaintBox.Invalidate;
-      commandPanel.Visible := True;
     end;
   end;
 end;

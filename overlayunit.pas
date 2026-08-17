@@ -6143,7 +6143,6 @@ begin
   notificationLabel.Visible := False;
   FLaunchCommand := LaunchCommand;
   commandPaintBox.Invalidate;
-  commandPanel.Visible := True;
 end;
 
 procedure Tgoverlayform.LoadVkSumiConfig;
@@ -6262,7 +6261,6 @@ begin
   notificationLabel.Visible := False;
   FLaunchCommand := LaunchCommand;
   commandPaintBox.Invalidate;
-  commandPanel.Visible := True;
 end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
@@ -6306,7 +6304,6 @@ begin
     if globalenableMenuItem.Checked then
     begin
       notificationLabel.Visible := False;
-      commandPanel.Visible := True;
       FLaunchCommand := 'MangoHud will be displayed in every vulkan application';
       commandPaintBox.Invalidate;
     end
@@ -6335,7 +6332,6 @@ begin
       notificationLabel.Visible := False;
       FLaunchCommand := LaunchCommand;
       commandPaintBox.Invalidate;
-      commandPanel.Visible := True;
     end;
 
     //########################################### SAVE BLACKLIST
