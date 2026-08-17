@@ -21,6 +21,14 @@ type
     FAnimTick:        Integer;
     FCopiedTick:      Integer;
 
+    // Header & Custom Chrome
+    FHeaderPanel:     TPanel;
+    FTitleLabel:      TLabel;
+    FSubtitleLabel:   TLabel;
+    FCloseIconLbl:    TLabel;
+    FDragging:        Boolean;
+    FDragStart:       TPoint;
+
     // Platform switcher
     FSteamBtn:        TSpeedButton;
     FHeroicBtn:       TSpeedButton;
@@ -30,17 +38,23 @@ type
 
     // Command area
     FCmdPanel:        TPanel;
-    FCmdLabel:        TLabel;    // shows the command text
+    FCmdLabel:        TLabel;
+    FCmdPromptLbl:    TLabel;
+    FCmdTextLbl:      TLabel;
     FCopyBtn:         TSpeedButton;
-
-    // Close
-    FCloseBtn:        TSpeedButton;
 
     // Section divider panels (for custom paint)
     FDivider1:        TPaintBox;
-    FDivider2:        TPaintBox;
 
     procedure BuildUI;
+    procedure FormPaint(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure HeaderMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure HeaderMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure CloseIconMouseEnter(Sender: TObject);
+    procedure CloseIconMouseLeave(Sender: TObject);
+    procedure CmdPanelPaint(Sender: TObject);
     procedure AnimTimerTick(Sender: TObject);
     procedure AnimBoxPaint(Sender: TObject);
     procedure CopyBtnClick(Sender: TObject);
@@ -109,6 +123,7 @@ begin
     FPlatform    := fpSteam;
   FAnimTick      := 0;
   FCopiedTick    := 0;
+  FDragging      := False;
   BuildUI;
 end;
 
@@ -126,50 +141,83 @@ end;
 procedure TFinishDialogForm.BuildUI;
 const
   DLG_W  = 540;
-  DLG_H  = 560;
+  DLG_H  = 478;
   PAD    = 18;
   BTN_H  = 34;
-  RAD    = 8;
 var
   Y: Integer;
-  TitleLbl, Subtitle: TLabel;
 begin
   // --- Form base style ---
   Caption      := 'Finish Configuration';
-  BorderStyle  := bsSingle;
-  BorderIcons  := [biSystemMenu];
+  BorderStyle  := bsNone;
+  BorderIcons  := [];
   Width        := DLG_W;
   Height       := DLG_H;
-  Color        := RGBToColor(22, 24, 34);
+  Color        := RGBToColor(22, 26, 40);
   Position     := poMainFormCenter;
   KeyPreview   := True;
-  OnKeyDown    := nil;
+  OnKeyDown    := @FormKeyDown;
+  OnPaint      := @FormPaint;
+  OnMouseDown  := @HeaderMouseDown;
+  OnMouseMove  := @HeaderMouseMove;
+  OnMouseUp    := @HeaderMouseUp;
 
-  Y := PAD;
+  // --- Header Panel ---
+  FHeaderPanel             := TPanel.Create(Self);
+  FHeaderPanel.Parent      := Self;
+  FHeaderPanel.SetBounds(0, 0, DLG_W, 58);
+  FHeaderPanel.BevelOuter  := bvNone;
+  FHeaderPanel.BevelInner  := bvNone;
+  FHeaderPanel.Color       := Color;
+  FHeaderPanel.OnMouseDown := @HeaderMouseDown;
+  FHeaderPanel.OnMouseMove := @HeaderMouseMove;
+  FHeaderPanel.OnMouseUp   := @HeaderMouseUp;
 
-  // --- Title ---
-  TitleLbl           := TLabel.Create(Self);
-  TitleLbl.Parent    := Self;
-  TitleLbl.Caption   := 'Finish Configuration';
-  TitleLbl.Font.Name := 'Noto Sans';
-  TitleLbl.Font.Size := 14;
-  TitleLbl.Font.Style := [fsBold];
-  TitleLbl.Font.Color := clWhite;
-  TitleLbl.Left := PAD;
-  TitleLbl.Top  := Y;
-  TitleLbl.AutoSize := True;
+  // Title
+  FTitleLabel              := TLabel.Create(Self);
+  FTitleLabel.Parent       := FHeaderPanel;
+  FTitleLabel.Caption      := 'Finish Configuration';
+  FTitleLabel.Font.Name    := 'Noto Sans';
+  FTitleLabel.Font.Size    := 13;
+  FTitleLabel.Font.Style   := [fsBold];
+  FTitleLabel.Font.Color   := clWhite;
+  FTitleLabel.Left         := PAD;
+  FTitleLabel.Top          := 14;
+  FTitleLabel.AutoSize     := True;
+  FTitleLabel.OnMouseDown  := @HeaderMouseDown;
+  FTitleLabel.OnMouseMove  := @HeaderMouseMove;
+  FTitleLabel.OnMouseUp    := @HeaderMouseUp;
 
-  Subtitle           := TLabel.Create(Self);
-  Subtitle.Parent    := Self;
-  Subtitle.Caption   := 'Apply the generated launch command to your game launcher';
-  Subtitle.Font.Name := 'Noto Sans';
-  Subtitle.Font.Size := 9;
-  Subtitle.Font.Color := RGBToColor(107, 114, 128);
-  Subtitle.Left := PAD;
-  Subtitle.Top  := Y + 24;
-  Subtitle.AutoSize := True;
+  // Subtitle
+  FSubtitleLabel             := TLabel.Create(Self);
+  FSubtitleLabel.Parent      := FHeaderPanel;
+  FSubtitleLabel.Caption     := 'Apply the generated launch command to your game launcher';
+  FSubtitleLabel.Font.Name   := 'Noto Sans';
+  FSubtitleLabel.Font.Size   := 9;
+  FSubtitleLabel.Font.Color  := RGBToColor(140, 150, 168);
+  FSubtitleLabel.Left        := PAD;
+  FSubtitleLabel.Top         := 36;
+  FSubtitleLabel.AutoSize    := True;
+  FSubtitleLabel.OnMouseDown := @HeaderMouseDown;
+  FSubtitleLabel.OnMouseMove := @HeaderMouseMove;
+  FSubtitleLabel.OnMouseUp   := @HeaderMouseUp;
 
-  Inc(Y, 56);
+  // Top-Right Close "✕" button
+  FCloseIconLbl              := TLabel.Create(Self);
+  FCloseIconLbl.Parent       := FHeaderPanel;
+  FCloseIconLbl.SetBounds(DLG_W - 38, 14, 24, 24);
+  FCloseIconLbl.Font.Name    := 'Noto Sans';
+  FCloseIconLbl.Font.Size    := 12;
+  FCloseIconLbl.Font.Style   := [fsBold];
+  FCloseIconLbl.Font.Color   := RGBToColor(160, 170, 190);
+  FCloseIconLbl.Caption      := '✕';
+  FCloseIconLbl.Alignment    := taCenter;
+  FCloseIconLbl.Cursor       := crHandPoint;
+  FCloseIconLbl.OnClick      := @CloseBtnClick;
+  FCloseIconLbl.OnMouseEnter := @CloseIconMouseEnter;
+  FCloseIconLbl.OnMouseLeave := @CloseIconMouseLeave;
+
+  Y := 68;
 
   // --- Platform switcher ---
   FSteamBtn             := TSpeedButton.Create(Self);
@@ -215,7 +263,7 @@ begin
   FAnimBox.Height    := 175;
   FAnimBox.OnPaint   := @AnimBoxPaint;
 
-  Inc(Y, 175 + 14);
+  Inc(Y, 175 + 12);
 
   // --- Section divider ---
   FDivider1          := TPaintBox.Create(Self);
@@ -226,7 +274,7 @@ begin
   FDivider1.Height   := 1;
   FDivider1.OnPaint  := @PaintDivider;
 
-  Inc(Y, 10);
+  Inc(Y, 8);
 
   // --- Launch command label ---
   FCmdLabel            := TLabel.Create(Self);
@@ -239,36 +287,50 @@ begin
   FCmdLabel.Top        := Y;
   FCmdLabel.AutoSize   := True;
 
-  Inc(Y, 20);
+  Inc(Y, 18);
 
-  // --- Command panel ---
+  // --- High-Contrast Terminal Command panel ---
   FCmdPanel              := TPanel.Create(Self);
   FCmdPanel.Parent       := Self;
   FCmdPanel.Left         := PAD;
   FCmdPanel.Top          := Y;
   FCmdPanel.Width        := DLG_W - PAD * 2;
   FCmdPanel.Height       := 44;
-  FCmdPanel.Color        := RGBToColor(20, 24, 36);
+  FCmdPanel.Color        := RGBToColor(12, 16, 26);
   FCmdPanel.BevelOuter   := bvNone;
   FCmdPanel.BevelInner   := bvNone;
+  FCmdPanel.OnPaint      := @CmdPanelPaint;
+
+  // Terminal prompt symbol
+  FCmdPromptLbl           := TLabel.Create(Self);
+  FCmdPromptLbl.Parent    := FCmdPanel;
+  FCmdPromptLbl.Caption   := '❯_';
+  FCmdPromptLbl.Font.Name := 'DejaVu Sans Mono';
+  FCmdPromptLbl.Font.Size := 10;
+  FCmdPromptLbl.Font.Style:= [fsBold];
+  FCmdPromptLbl.Font.Color:= RGBToColor(48, 190, 240);
+  FCmdPromptLbl.Left      := 10;
+  FCmdPromptLbl.Top       := 0;
+  FCmdPromptLbl.Width     := 24;
+  FCmdPromptLbl.Height    := FCmdPanel.Height;
+  FCmdPromptLbl.Layout    := tlCenter;
+  FCmdPromptLbl.AutoSize  := False;
 
   // Command text inside panel
-  with TLabel.Create(Self) do
-  begin
-    Parent     := FCmdPanel;
-    Name       := 'CmdTextLbl';
-    Font.Name  := 'DejaVu Sans Mono';
-    Font.Size  := 8;
-    Font.Color := RGBToColor(48, 190, 240);
-    Left       := 10;
-    Top        := 0;
-    Width      := FCmdPanel.Width - 110;
-    Height     := FCmdPanel.Height;
-    Caption    := FLaunchCommand;
-    Layout     := tlCenter;
-    AutoSize   := False;
-    WordWrap   := False;
-  end;
+  FCmdTextLbl           := TLabel.Create(Self);
+  FCmdTextLbl.Parent    := FCmdPanel;
+  FCmdTextLbl.Name      := 'CmdTextLbl';
+  FCmdTextLbl.Font.Name := 'DejaVu Sans Mono';
+  FCmdTextLbl.Font.Size := 9;
+  FCmdTextLbl.Font.Color:= RGBToColor(230, 242, 255);
+  FCmdTextLbl.Left      := 34;
+  FCmdTextLbl.Top       := 0;
+  FCmdTextLbl.Width     := FCmdPanel.Width - 34 - 92;
+  FCmdTextLbl.Height    := FCmdPanel.Height;
+  FCmdTextLbl.Caption   := FLaunchCommand;
+  FCmdTextLbl.Layout    := tlCenter;
+  FCmdTextLbl.AutoSize  := False;
+  FCmdTextLbl.WordWrap  := False;
 
   // Copy button
   FCopyBtn            := TSpeedButton.Create(Self);
@@ -278,14 +340,15 @@ begin
   FCopyBtn.Font.Size  := 9;
   FCopyBtn.Font.Style := [fsBold];
   FCopyBtn.Font.Color := clWhite;
-  FCopyBtn.Left       := FCmdPanel.Width - 90;
+  FCopyBtn.Left       := FCmdPanel.Width - 88;
   FCopyBtn.Top        := 7;
   FCopyBtn.Width      := 80;
   FCopyBtn.Height     := 30;
   FCopyBtn.Flat       := True;
+  FCopyBtn.Cursor     := crHandPoint;
   FCopyBtn.OnClick    := @CopyBtnClick;
 
-  Inc(Y, 44 + 14);
+  Inc(Y, 44 + 12);
 
   // --- Steps label ---
   FStepsLabel            := TLabel.Create(Self);
@@ -298,24 +361,7 @@ begin
   FStepsLabel.Width      := DLG_W - PAD * 2;
   FStepsLabel.AutoSize   := False;
   FStepsLabel.WordWrap   := True;
-  FStepsLabel.Height     := 60;
-
-  Inc(Y, 64);
-
-  // --- Close button ---
-  FCloseBtn            := TSpeedButton.Create(Self);
-  FCloseBtn.Parent     := Self;
-  FCloseBtn.Caption    := '  Done';
-  FCloseBtn.Font.Name  := 'Noto Sans';
-  FCloseBtn.Font.Size  := 10;
-  FCloseBtn.Font.Style := [fsBold];
-  FCloseBtn.Font.Color := clWhite;
-  FCloseBtn.Left       := DLG_W - PAD - 110;
-  FCloseBtn.Top        := Y;
-  FCloseBtn.Width      := 110;
-  FCloseBtn.Height     := BTN_H;
-  FCloseBtn.Flat       := True;
-  FCloseBtn.OnClick    := @CloseBtnClick;
+  FStepsLabel.Height     := 64;
 
   // --- Animation timer ---
   FAnimTimer          := TTimer.Create(Self);
@@ -325,6 +371,81 @@ begin
 
   // Apply initial text
   UpdateForPlatform;
+end;
+
+// ---------------------------------------------------------------------------
+// Painting, Dragging and Keyboard Events
+// ---------------------------------------------------------------------------
+
+procedure TFinishDialogForm.FormPaint(Sender: TObject);
+begin
+  Canvas.Brush.Style := bsClear;
+  Canvas.Pen.Color := RGBToColor(45, 55, 80);
+  Canvas.Pen.Width := 2;
+  Canvas.Rectangle(0, 0, Width, Height);
+end;
+
+procedure TFinishDialogForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+  begin
+    FAnimTimer.Enabled := False;
+    ModalResult := mrCancel;
+  end;
+end;
+
+procedure TFinishDialogForm.HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbLeft then
+  begin
+    FDragging := True;
+    FDragStart := Mouse.CursorPos;
+  end;
+end;
+
+procedure TFinishDialogForm.HeaderMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  CurPos: TPoint;
+begin
+  if FDragging then
+  begin
+    CurPos := Mouse.CursorPos;
+    Left := Left + (CurPos.X - FDragStart.X);
+    Top := Top + (CurPos.Y - FDragStart.Y);
+    FDragStart := CurPos;
+  end;
+end;
+
+procedure TFinishDialogForm.HeaderMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbLeft then
+    FDragging := False;
+end;
+
+procedure TFinishDialogForm.CloseIconMouseEnter(Sender: TObject);
+begin
+  FCloseIconLbl.Font.Color := clWhite;
+end;
+
+procedure TFinishDialogForm.CloseIconMouseLeave(Sender: TObject);
+begin
+  FCloseIconLbl.Font.Color := RGBToColor(160, 170, 190);
+end;
+
+procedure TFinishDialogForm.CmdPanelPaint(Sender: TObject);
+var
+  BorderClr: TColor;
+begin
+  FCmdPanel.Canvas.Brush.Color := RGBToColor(12, 16, 26);
+  FCmdPanel.Canvas.Brush.Style := bsSolid;
+  if FPlatform = fpSteam then
+    BorderClr := RGBToColor(48, 140, 220)
+  else
+    BorderClr := RGBToColor(35, 180, 160);
+
+  FCmdPanel.Canvas.Pen.Color := BorderClr;
+  FCmdPanel.Canvas.Pen.Width := 1;
+  FCmdPanel.Canvas.RoundRect(0, 0, FCmdPanel.Width, FCmdPanel.Height, 6, 6);
 end;
 
 // ---------------------------------------------------------------------------
@@ -362,8 +483,10 @@ begin
         '3. Paste the command into the "Launch Options" field and close the dialog.';
       FSteamBtn.Font.Color := clWhite;
       FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
-      // Update command display
-      TLabel(FCmdPanel.FindChildControl('CmdTextLbl')).Caption := FLaunchCommand;
+      if Assigned(FCmdPromptLbl) then
+        FCmdPromptLbl.Font.Color := RGBToColor(48, 190, 240);
+      if Assigned(FCmdTextLbl) then
+        FCmdTextLbl.Caption := FLaunchCommand;
     end;
     fpHeroic:
     begin
@@ -375,10 +498,14 @@ begin
         '3. Paste into the "Wrapper" field, click "+", and save.';
       FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
       FHeroicBtn.Font.Color := clWhite;
-      // Update command display
-      TLabel(FCmdPanel.FindChildControl('CmdTextLbl')).Caption := BuildHeroicCommand;
+      if Assigned(FCmdPromptLbl) then
+        FCmdPromptLbl.Font.Color := RGBToColor(85, 235, 216);
+      if Assigned(FCmdTextLbl) then
+        FCmdTextLbl.Caption := BuildHeroicCommand;
     end;
   end;
+  if Assigned(FCmdPanel) then
+    FCmdPanel.Invalidate;
   FAnimBox.Invalidate;
   ResetCopyBtn;
 end;

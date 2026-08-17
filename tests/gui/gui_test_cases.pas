@@ -1940,6 +1940,11 @@ begin
   Dlg := TFinishDialogForm.Create(goverlayform, 'MANGOHUD=1 %command%', 'Control Ultimate Edition');
   Bmp := TBitmap.Create;
   try
+    AssertTrue('Dialog is borderless (bsNone)', Dlg.BorderStyle = bsNone);
+    AssertTrue('Dialog has no native border icons', Dlg.BorderIcons = []);
+    AssertTrue('Dialog height is optimized', Dlg.Height <= 500);
+    AssertTrue('Dialog KeyPreview is enabled for Escape key', Dlg.KeyPreview);
+
     Bmp.SetSize(540, 180);
     // Exercise Steam painting and initial instructions
     Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
