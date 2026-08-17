@@ -284,7 +284,7 @@ begin
   Rewrite(F);
   WriteLn(F, '[Menu]');
   WriteLn(F, 'ShortcutKey=auto');
-  WriteLn(F, 'Scale=1.0');
+  WriteLn(F, 'Scale=auto');
   WriteLn(F);
   WriteLn(F, '[Upscalers]');
   WriteLn(F, 'Dx11Upscaler=auto');
@@ -357,15 +357,28 @@ var
 begin
   SeedOptiScalerFiles;
   NavigateOptiScalerTab;
-  goverlayform.menuscaleTrackBar.Position := 15;
+  AssertTrue('menuscaleComboBox assigned', Assigned(goverlayform.menuscaleComboBox));
+  AssertEquals('menuscaleComboBox item 0 is auto', 'auto', goverlayform.menuscaleComboBox.Items[0]);
+  AssertEquals('menuscaleComboBox item 1 is 1.0', '1.0', goverlayform.menuscaleComboBox.Items[1]);
+  AssertEquals('menuscaleComboBox default is auto (index 0)', 0, goverlayform.menuscaleComboBox.ItemIndex);
+
+  // Set to 1.5 (index 6)
+  goverlayform.menuscaleComboBox.ItemIndex := 6;
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
   AssertTrue('Scale=1.5 persisted', Pos('Scale=1.5', Content) > 0);
 
-  goverlayform.menuscaleTrackBar.Position := 10;
+  // Set to 1.0 (index 1)
+  goverlayform.menuscaleComboBox.ItemIndex := 1;
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
   AssertTrue('Scale=1.0 persisted', Pos('Scale=1.0', Content) > 0);
+
+  // Set back to auto (index 0)
+  goverlayform.menuscaleComboBox.ItemIndex := 0;
+  SaveOpti;
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('Scale=auto persisted', Pos('Scale=auto', Content) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiShortcutKeySave;

@@ -4842,12 +4842,20 @@ var
   Idx: Integer;
 begin
   //Display new values and trackbar changes (divide by 10)
-  menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
+  if menuscaleTrackbar.Position <= 0 then
+    menuscalevalueLabel.Caption := 'auto'
+  else
+    menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackbar.Position / 10);
   if Assigned(menuscaleComboBox) then
   begin
-    Idx := menuscaleTrackbar.Position - 10;
-    if (Idx >= 0) and (Idx < menuscaleComboBox.Items.Count) then
-      menuscaleComboBox.ItemIndex := Idx;
+    if menuscaleTrackbar.Position <= 0 then
+      menuscaleComboBox.ItemIndex := 0
+    else
+    begin
+      Idx := menuscaleTrackbar.Position - 9;
+      if (Idx >= 1) and (Idx < menuscaleComboBox.Items.Count) then
+        menuscaleComboBox.ItemIndex := Idx;
+    end;
   end;
   StartAutoSaveTimer;
 end;

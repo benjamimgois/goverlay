@@ -435,6 +435,7 @@ begin
       menuscaleComboBox := TComboBox.Create(FForm);
       menuscaleComboBox.Name := 'menuscaleComboBox';
       menuscaleComboBox.Style := csDropDownList;
+      menuscaleComboBox.Items.Add('auto');
       menuscaleComboBox.Items.Add('1.0');
       menuscaleComboBox.Items.Add('1.1');
       menuscaleComboBox.Items.Add('1.2');
@@ -446,7 +447,7 @@ begin
       menuscaleComboBox.Items.Add('1.8');
       menuscaleComboBox.Items.Add('1.9');
       menuscaleComboBox.Items.Add('2.0');
-      menuscaleComboBox.ItemIndex := 5; // default 1.5
+      menuscaleComboBox.ItemIndex := 0; // default auto
     end;
     menuscaleComboBox.AnchorSideLeft.Control   := nil; menuscaleComboBox.AnchorSideTop.Control    := nil;
     menuscaleComboBox.AnchorSideRight.Control  := nil; menuscaleComboBox.AnchorSideBottom.Control := nil;
@@ -1182,13 +1183,21 @@ begin
         FOsShortcutCaptureBtn.Caption := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
 
       menuscaleTrackBar.Position := Settings.MenuScalePosition;
-      menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
+      if Settings.MenuScalePosition <= 0 then
+        menuscalevalueLabel.Caption := 'auto'
+      else
+        menuscalevalueLabel.Caption := FormatFloat('#0.0', menuscaleTrackBar.Position / 10);
       if Assigned(menuscaleComboBox) then
       begin
-        Idx := Settings.MenuScalePosition - 10;
-        if Idx < 0 then Idx := 0;
-        if Idx > 10 then Idx := 10;
-        menuscaleComboBox.ItemIndex := Idx;
+        if Settings.MenuScalePosition <= 0 then
+          menuscaleComboBox.ItemIndex := 0
+        else
+        begin
+          Idx := Settings.MenuScalePosition - 9; // 10 -> 1 ('1.0'), 20 -> 11 ('2.0')
+          if Idx < 1 then Idx := 1;
+          if Idx > 11 then Idx := 11;
+          menuscaleComboBox.ItemIndex := Idx;
+        end;
       end;
 
       overrideCheckBox.Checked := Settings.OverrideChecked;
@@ -1270,7 +1279,10 @@ begin
     Settings.ShortcutKey := shortcutkeyComboBox.Text;
     if Assigned(menuscaleComboBox) and (menuscaleComboBox.ItemIndex >= 0) then
     begin
-      Settings.MenuScalePosition := 10 + menuscaleComboBox.ItemIndex;
+      if menuscaleComboBox.ItemIndex = 0 then
+        Settings.MenuScalePosition := 0
+      else
+        Settings.MenuScalePosition := 9 + menuscaleComboBox.ItemIndex;
       menuscaleTrackBar.Position := Settings.MenuScalePosition;
     end
     else

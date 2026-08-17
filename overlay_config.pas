@@ -655,11 +655,16 @@ begin
   if SelectedShortcutKey = '' then
     SelectedShortcutKey := 'auto';
 
-  // Calculate Scale value (divide by 10)
-  ScaleFloat := Settings.MenuScalePosition / 10.0;
-  FS := DefaultFormatSettings;
-  FS.DecimalSeparator := '.';
-  ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
+  // Calculate Scale value
+  if Settings.MenuScalePosition <= 0 then
+    ScaleValue := 'auto'
+  else
+  begin
+    ScaleFloat := Settings.MenuScalePosition / 10.0;
+    FS := DefaultFormatSettings;
+    FS.DecimalSeparator := '.';
+    ScaleValue := FloatToStrF(ScaleFloat, ffFixed, 3, 1, FS);
+  end;
 
   if Settings.OverrideChecked then
     OverrideNvapiDllValue := 'true'
@@ -1211,7 +1216,7 @@ begin
   Settings.FilenameItemIndex := 0;
   Settings.EmuFp8Checked := False;
   Settings.ShortcutKey := '0x2d';
-  Settings.MenuScalePosition := 10;
+  Settings.MenuScalePosition := 0;
   Settings.OverrideChecked := False;
   Settings.SpoofChecked := False;
   Settings.FsrversionItemIndex := 0;
@@ -1267,8 +1272,12 @@ begin
           Settings.ShortcutKey := Value;
 
         Value := OptiCfg.GetValue(OPTI_KEY_SCALE, '', OPTI_INI_SECTION_MENU);
-        if TryStrToFloat(Value, FloatValue, FS) then
-          Settings.MenuScalePosition := Round(FloatValue * 10);
+        if SameText(Trim(Value), 'auto') or (Trim(Value) = '') then
+          Settings.MenuScalePosition := 0
+        else if TryStrToFloat(Value, FloatValue, FS) then
+          Settings.MenuScalePosition := Round(FloatValue * 10)
+        else
+          Settings.MenuScalePosition := 0;
 
         Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
         Value := OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, '');
