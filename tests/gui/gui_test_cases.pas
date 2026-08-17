@@ -781,6 +781,50 @@ begin
     goverlayform.gamesLabelClick(nil);
   end;
 
+  // Hover and press state tests for Finish pill
+  AssertFalse('Finish button not hovered initially', goverlayform.FFADock.FinishHovered);
+  AssertFalse('Finish button not pressed initially', goverlayform.FFADock.FinishPressed);
+
+  goverlayform.FFADock.SimulateFinishHover(True);
+  AssertTrue('Finish button is hovered', goverlayform.FFADock.FinishHovered);
+
+  goverlayform.FFADock.SimulateFinishPress(True);
+  AssertTrue('Finish button is pressed', goverlayform.FFADock.FinishPressed);
+
+  goverlayform.FFADock.SimulateFinishPress(False);
+  AssertFalse('Finish button is no longer pressed', goverlayform.FFADock.FinishPressed);
+
+  goverlayform.FFADock.SimulateFinishHover(False);
+  AssertFalse('Finish button is no longer hovered', goverlayform.FFADock.FinishHovered);
+
+  // Hover and press state tests for secondary dock buttons
+  AssertFalse('Menu button not hovered initially', goverlayform.FFADock.MenuHovered);
+  goverlayform.FFADock.SimulateMenuHover(True);
+  AssertTrue('Menu button is hovered', goverlayform.FFADock.MenuHovered);
+  goverlayform.FFADock.SimulateMenuPress(True);
+  AssertTrue('Menu button is pressed', goverlayform.FFADock.MenuPressed);
+  goverlayform.FFADock.SimulateMenuPress(False);
+  goverlayform.FFADock.SimulateMenuHover(False);
+  AssertFalse('Menu button is no longer hovered', goverlayform.FFADock.MenuHovered);
+
+  AssertFalse('Preview button not hovered initially', goverlayform.FFADock.PreviewHovered);
+  goverlayform.FFADock.SimulatePreviewHover(True);
+  AssertTrue('Preview button is hovered', goverlayform.FFADock.PreviewHovered);
+  goverlayform.FFADock.SimulatePreviewPress(True);
+  AssertTrue('Preview button is pressed', goverlayform.FFADock.PreviewPressed);
+  goverlayform.FFADock.SimulatePreviewPress(False);
+  goverlayform.FFADock.SimulatePreviewHover(False);
+  AssertFalse('Preview button is no longer hovered', goverlayform.FFADock.PreviewHovered);
+
+  AssertFalse('Add button not hovered initially', goverlayform.FFADock.AddHovered);
+  goverlayform.FFADock.SimulateAddHover(True);
+  AssertTrue('Add button is hovered', goverlayform.FFADock.AddHovered);
+  goverlayform.FFADock.SimulateAddPress(True);
+  AssertTrue('Add button is pressed', goverlayform.FFADock.AddPressed);
+  goverlayform.FFADock.SimulateAddPress(False);
+  goverlayform.FFADock.SimulateAddHover(False);
+  AssertFalse('Add button is no longer hovered', goverlayform.FFADock.AddHovered);
+
   // Progress overlay test
   goverlayform.FFloatingProgress.ShowProgress('Testing progress...', 50);
   AssertTrue('Progress banner is visible', goverlayform.FFloatingProgress.Visible);
