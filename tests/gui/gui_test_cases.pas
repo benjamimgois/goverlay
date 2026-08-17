@@ -1459,6 +1459,8 @@ begin
   AssertEquals('delayTrackBar reloaded', 5, goverlayform.delayTrackBar.Position);
   AssertEquals('intervalTrackBar reloaded', 100, goverlayform.intervalTrackBar.Position);
   AssertEquals('logtoggleComboBox reloaded', 'Shift_L+F10', goverlayform.logtoggleComboBox.Text);
+  AssertEquals('logtoggleLabel caption is Logging toggle', 'Logging toggle', goverlayform.logtoggleLabel.Caption);
+  AssertEquals('customcommandEdit left is aligned with card margin', 11, goverlayform.customcommandEdit.Left);
   AssertTrue('versioningCheckBox reloaded', goverlayform.versioningCheckBox.Checked);
   AssertTrue('autouploadCheckBox reloaded', goverlayform.autouploadCheckBox.Checked);
 

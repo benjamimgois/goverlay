@@ -2426,7 +2426,7 @@ begin
   Place(mediaCheckBox,       FExtSysCard, 11,  283 + HDR); DarkCheck(mediaCheckBox);
   Place(networkCheckBox,     FExtSysCard, 128, 283 + HDR); DarkCheck(networkCheckBox);
   Place(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR); DarkCheck(fahrenheitCheckBox);
-  Place(customcommandEdit,   FExtSysCard, 372, 283 + HDR); // keeps black/lime colors
+  Place(customcommandEdit,   FExtSysCard, 11,  315 + HDR); // keeps black/lime colors
   customcommandEdit.Font.Name := 'DejaVu Sans Mono';
   Place(mediaColorButton,    FExtSysCard, 6,   305 + HDR);
   Place(networkComboBox,     FExtSysCard, 128, 305 + HDR);
@@ -2451,6 +2451,7 @@ begin
   Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);  DarkLabel(intervalvalueLabel);
 
   Place(logtoggleLabel, FExtLogCard, 356, 40 + HDR);
+  logtoggleLabel.Caption     := 'Logging toggle';
   logtoggleLabel.Font.Color  := WHITE;
   logtoggleLabel.Transparent := True;
 
@@ -2497,7 +2498,7 @@ const
   MARGIN = 4;
   GAP    = 6;
   HDR    = 34;
-  BASE_SYS_H = 345;
+  BASE_SYS_H = 385;
   BASE_LOG_H = 195;
 var
   CW, TotalH, AvailH, ActiveSysH, ActiveLogH: Integer;
@@ -2515,7 +2516,7 @@ begin
   AvailH := FExtScrollBox.ClientHeight - 3 * MARGIN - GAP;
   if AvailH > (BASE_SYS_H + BASE_LOG_H) then
   begin
-    ActiveSysH := Max(BASE_SYS_H, Round(AvailH * 0.62));
+    ActiveSysH := Max(BASE_SYS_H, Round(AvailH * 0.65));
     ActiveLogH := Max(BASE_LOG_H, AvailH - ActiveSysH);
   end
   else
@@ -2568,64 +2569,64 @@ begin
   archCheckBox.Left          := X5;
   archCheckBox.Top           := 32 + HDR;
 
-  wineLabel.Top              := 60 + HDR;
+  wineLabel.Top              := 60 + HDR + SysYOff1;
   wineCheckBox.Left          := X0;
-  wineCheckBox.Top           := 81 + HDR;
+  wineCheckBox.Top           := 81 + HDR + SysYOff1;
   engineversionCheckBox.Left := X1;
-  engineversionCheckBox.Top  := 81 + HDR;
+  engineversionCheckBox.Top  := 81 + HDR + SysYOff1;
   engineshortCheckBox.Left   := X2;
-  engineshortCheckBox.Top    := 81 + HDR;
+  engineshortCheckBox.Top    := 81 + HDR + SysYOff1;
   winesyncCheckBox.Left      := X3;
-  winesyncCheckBox.Top       := 81 + HDR;
+  winesyncCheckBox.Top       := 81 + HDR + SysYOff1;
   dxapiCheckBox.Left         := X4;
-  dxapiCheckBox.Top          := 81 + HDR;
+  dxapiCheckBox.Top          := 81 + HDR + SysYOff1;
   fexstatsCheckBox.Left      := X5;
-  fexstatsCheckBox.Top       := 81 + HDR;
+  fexstatsCheckBox.Top       := 81 + HDR + SysYOff1;
   wineColorButton.Left       := X0 - 4;
-  wineColorButton.Top        := 103 + HDR;
+  wineColorButton.Top        := 103 + HDR + SysYOff1;
   engineColorButton.Left     := X1 - 6;
-  engineColorButton.Top      := 103 + HDR;
+  engineColorButton.Top      := 103 + HDR + SysYOff1;
 
-  optionsLabel.Top           := 120 + HDR;
+  optionsLabel.Top           := 120 + HDR + SysYOff2;
   hudversionCheckBox.Left    := X0;
-  hudversionCheckBox.Top     := 141 + HDR;
+  hudversionCheckBox.Top     := 141 + HDR + SysYOff2;
   gamemodestatusCheckBox.Left:= X1;
-  gamemodestatusCheckBox.Top := 141 + HDR;
+  gamemodestatusCheckBox.Top := 141 + HDR + SysYOff2;
   vkbasaltstatusCheckBox.Left:= X2;
-  vkbasaltstatusCheckBox.Top := 141 + HDR;
+  vkbasaltstatusCheckBox.Top := 141 + HDR + SysYOff2;
   fcatCheckBox.Left          := X3;
-  fcatCheckBox.Top           := 141 + HDR;
+  fcatCheckBox.Top           := 141 + HDR + SysYOff2;
   fsrCheckBox.Left           := X4;
-  fsrCheckBox.Top            := 141 + HDR;
+  fsrCheckBox.Top            := 141 + HDR + SysYOff2;
   hdrCheckBox.Left           := X5;
-  hdrCheckBox.Top            := 141 + HDR;
+  hdrCheckBox.Top            := 141 + HDR + SysYOff2;
 
-  batteryLabel.Top           := 170 + HDR;
+  batteryLabel.Top           := 170 + HDR + SysYOff3;
   batteryCheckBox.Left       := X0;
-  batteryCheckBox.Top        := 191 + HDR;
+  batteryCheckBox.Top        := 191 + HDR + SysYOff3;
   batterywattCheckBox.Left   := X1;
-  batterywattCheckBox.Top    := 191 + HDR;
+  batterywattCheckBox.Top    := 191 + HDR + SysYOff3;
   batterytimeCheckBox.Left   := X2;
-  batterytimeCheckBox.Top    := 191 + HDR;
+  batterytimeCheckBox.Top    := 191 + HDR + SysYOff3;
   deviceCheckBox.Left        := X3;
-  deviceCheckBox.Top         := 191 + HDR;
+  deviceCheckBox.Top         := 191 + HDR + SysYOff3;
   batteryColorButton.Left    := X0 - 5;
-  batteryColorButton.Top     := 213 + HDR;
+  batteryColorButton.Top     := 213 + HDR + SysYOff3;
 
-  othersLabel.Top            := 238 + HDR;
+  othersLabel.Top            := 238 + HDR + SysYOff4;
   mediaCheckBox.Left         := X0;
-  mediaCheckBox.Top          := 259 + HDR;
+  mediaCheckBox.Top          := 259 + HDR + SysYOff4;
   mediaColorButton.Left      := X0 - 5;
-  mediaColorButton.Top       := 281 + HDR;
+  mediaColorButton.Top       := 281 + HDR + SysYOff4;
   networkCheckBox.Left       := X1;
-  networkCheckBox.Top        := 259 + HDR;
+  networkCheckBox.Top        := 259 + HDR + SysYOff4;
   networkComboBox.Left       := X1;
-  networkComboBox.Top        := 281 + HDR;
+  networkComboBox.Top        := 281 + HDR + SysYOff4;
   fahrenheitCheckBox.Left    := X2;
-  fahrenheitCheckBox.Top     := 259 + HDR;
-  customcommandEdit.Left     := X3;
-  customcommandEdit.Top      := 259 + HDR;
-  customcommandEdit.Width    := Max(200, CW - X3 - 20);
+  fahrenheitCheckBox.Top     := 259 + HDR + SysYOff4;
+  customcommandEdit.Left     := X0;
+  customcommandEdit.Top      := 315 + HDR + SysYOff4;
+  customcommandEdit.Width    := Max(200, CW - 2 * X0);
 
   // Reposition Logging controls
   logdurationLabel.Left      := X0;

@@ -6,10 +6,10 @@ unit floating_dock;
 //  TFloatingActionDock — a compact pill-style floating action bar that sits
 //  above the bottom-right corner of goverlayPanel. It hosts contextual buttons:
 //
+//    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options, always on the left)
 //    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
-//    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options)
 //    [   + Add   ]   (optional — shown on EnvVars tab)
-//    [  ✦ Finish ]   (primary accent button, always visible when dock is shown)
+//    [  ✦ Finish ]   (primary accent button, always visible on the right)
 //
 //  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd, AVisible) on tab switch.
 // ---------------------------------------------------------------------------
@@ -252,17 +252,8 @@ begin
   FPillBox.Width  := TotalPillW;
   FPillBox.Height := FDockPanel.Height;
 
-  // Place buttons left-to-right inside pill
+  // Place buttons left-to-right inside pill: [Menu] -> [Preview] -> [Add] -> [Finish]
   X := INNER_PAD_X;
-
-  if FPreviewVisible then
-  begin
-    FPreviewBtn.SetBounds(X, INNER_PAD_Y, PREVIEW_W, BTN_H);
-    FPreviewBtn.Visible := True;
-    Inc(X, PREVIEW_W + BTN_GAP);
-  end
-  else
-    FPreviewBtn.Visible := False;
 
   if FMenuVisible then
   begin
@@ -272,6 +263,15 @@ begin
   end
   else
     FMenuBtn.Visible := False;
+
+  if FPreviewVisible then
+  begin
+    FPreviewBtn.SetBounds(X, INNER_PAD_Y, PREVIEW_W, BTN_H);
+    FPreviewBtn.Visible := True;
+    Inc(X, PREVIEW_W + BTN_GAP);
+  end
+  else
+    FPreviewBtn.Visible := False;
 
   if FAddVisible then
   begin

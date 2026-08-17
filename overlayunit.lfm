@@ -9169,7 +9169,7 @@ object goverlayform: Tgoverlayform
             Width = 65
             BorderSpacing.Top = 40
             BorderSpacing.Bottom = 3
-            Caption = 'Optiscaler toggle'
+            Caption = 'Logging toggle'
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased
