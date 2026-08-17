@@ -354,7 +354,9 @@ begin
     autodetectnvLabel.Top         := autodetectnvLabel.Top + 62;
     autodetectnvLabel.Transparent := True;
     autodetectnvLabel.Font.Color  := GREEN;
+    autodetectnvLabel.Font.Size   := 8;
     autodetectnvLabel.Parent      := FOsGpuCard;
+    autodetectnvLabel.BringToFront;
 
     autodetectmesaLabel.AnchorSideLeft.Control   := nil;
     autodetectmesaLabel.AnchorSideTop.Control    := nil;
@@ -364,7 +366,9 @@ begin
     autodetectmesaLabel.Top         := autodetectmesaLabel.Top + 62;
     autodetectmesaLabel.Transparent := True;
     autodetectmesaLabel.Font.Color  := GREEN;
+    autodetectmesaLabel.Font.Size   := 8;
     autodetectmesaLabel.Parent      := FOsGpuCard;
+    autodetectmesaLabel.BringToFront;
 
     gpudriverGroupBox.Visible := False;
 
@@ -942,6 +946,7 @@ const
   IGAP    = 6;
 var
   CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
+  MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
@@ -998,13 +1003,15 @@ begin
     FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CW - CardW - GAP, GPU_H);
     ItemW := (CardW - 2 * PAD) div 2;
 
+    MesaW := Min(144, ItemW - 24);
     mesaRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
-    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 58) div 2 - 2, Min(144, ItemW - 24), 58);
-    autodetectmesaLabel.SetBounds(PAD + 22, HDR + GPU_GH - autodetectmesaLabel.Height - 2, autodetectmesaLabel.Width, autodetectmesaLabel.Height);
+    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 58) div 2 - 2, MesaW, 58);
+    autodetectmesaLabel.SetBounds(PAD + 22 + (MesaW - autodetectmesaLabel.Width) div 2, HDR + GPU_GH - autodetectmesaLabel.Height - 2, autodetectmesaLabel.Width, autodetectmesaLabel.Height);
 
+    NvW := Min(185, ItemW - 24);
     nvidiaRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
-    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 42) div 2 - 2, Min(185, ItemW - 24), 42);
-    autodetectnvLabel.SetBounds(PAD + ItemW + 22, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
+    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 42) div 2 - 2, NvW, 42);
+    autodetectnvLabel.SetBounds(PAD + ItemW + 22 + (NvW - autodetectnvLabel.Width) div 2, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
 
     // ── Card 1: Options (4 Equal Columns: Main 25%, Spatial 25%, Temporal 25%, Reflex/Antilag 25%) ──
     FOsOptionsCard.SetBounds(MARGIN, MARGIN + GPU_H + GAP, CW, OptH);

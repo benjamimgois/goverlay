@@ -3898,11 +3898,22 @@ begin
     FOptiscalerUpdate.InitializeTab;
 
     // Check NVIDIA module and configure controls
-    // On first run auto-detect; afterwards restore the user's last choice.
+    // Show "Auto Detected" indicator under the hardware-detected driver.
     FOsDriverLoading := True;
     try
-      autodetectnvLabel.Visible := False;
-      autodetectmesaLabel.Visible := False;
+      if IsNvidiaModuleLoaded then
+      begin
+        autodetectnvLabel.Visible := True;
+        autodetectnvLabel.Font.Color := clOlive;
+        autodetectmesaLabel.Visible := False;
+      end
+      else
+      begin
+        autodetectmesaLabel.Visible := True;
+        autodetectmesaLabel.Font.Color := clOlive;
+        autodetectnvLabel.Visible := False;
+      end;
+
       SavedDriver := LoadOptiScalerDriverPreference;
       if SameText(SavedDriver, 'nvidia') then
         nvidiaRadioButton.Checked := True
@@ -3912,17 +3923,9 @@ begin
       begin
         // First launch (no preference saved yet): run auto-detection
         if IsNvidiaModuleLoaded then
-        begin
-          nvidiaRadioButton.Checked := True;
-          autodetectnvLabel.Visible := True;
-          autodetectnvLabel.Font.Color := clOlive;
-        end
+          nvidiaRadioButton.Checked := True
         else
-        begin
           mesaRadioButton.Checked := True;
-          autodetectmesaLabel.Visible := True;
-          autodetectmesaLabel.Font.Color := clOlive;
-        end;
       end;
     finally
       FOsDriverLoading := False;
