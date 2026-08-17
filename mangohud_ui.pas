@@ -2450,18 +2450,27 @@ begin
   Place(delayvalueLabel,   FExtLogCard, 151, 96 + HDR);  DarkLabel(delayvalueLabel);
   Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);  DarkLabel(intervalvalueLabel);
 
-  Place(logtoggleLabel, FExtLogCard, 356, 40 + HDR);
+  // Top row: Log folder
+  Place(logfolderLabel,  FExtLogCard, 356, 40 + HDR); DarkLabel(logfolderLabel);
+  Place(logfolderEdit,   FExtLogCard, 356, 61 + HDR);
+  logfolderEdit.Color      := OUTER_BG;
+  logfolderEdit.Font.Color := WHITE;
+  logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
+  Place(logfolderBitBtn, FExtLogCard, 783, 61 + HDR);
+
+  // Bottom row: Logging toggle
+  Place(logtoggleLabel, FExtLogCard, 356, 106 + HDR);
   logtoggleLabel.Caption     := 'Logging toggle';
   logtoggleLabel.Font.Color  := WHITE;
   logtoggleLabel.Transparent := True;
 
-  Place(logtoggleComboBox, FExtLogCard, 356, 61 + HDR);
+  Place(logtoggleComboBox, FExtLogCard, 356, 127 + HDR);
   logtoggleComboBox.Visible := False;
 
   FLoggingCaptureBtn := TBitBtn.Create(FExtLogCard);
   FLoggingCaptureBtn.Parent  := FExtLogCard;
   FLoggingCaptureBtn.Tag     := 3;
-  FLoggingCaptureBtn.SetBounds(356, 61 + HDR, 160, 28);
+  FLoggingCaptureBtn.SetBounds(356, 127 + HDR, 140, 28);
   FLoggingCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FLoggingCaptureBtn.Cursor  := crHandPoint;
   if Trim(logtoggleComboBox.Text) <> '' then
@@ -2470,14 +2479,9 @@ begin
     FLoggingCaptureBtn.Caption := '⌨ Capture';
 
   Place(autouploadCheckBox, FExtLogCard, 530, 67 + HDR); DarkCheck(autouploadCheckBox);
+  autouploadCheckBox.Visible := False;
   Place(versioningCheckBox, FExtLogCard, 665, 67 + HDR); DarkCheck(versioningCheckBox);
-
-  Place(logfolderLabel,  FExtLogCard, 527, 122 + HDR); DarkLabel(logfolderLabel);
-  Place(logfolderEdit,   FExtLogCard, 335, 143 + HDR);
-  logfolderEdit.Color      := OUTER_BG;
-  logfolderEdit.Font.Color := WHITE;
-  logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
-  Place(logfolderBitBtn, FExtLogCard, 783, 143 + HDR);
+  versioningCheckBox.Visible := False;
 
   Place(logtoggleImage, FExtLogCard, 325, 63 + HDR);
   logtoggleImage.Visible := False;
@@ -2650,30 +2654,28 @@ begin
   intervalvalueLabel.Left    := X2 + 43;
   intervalvalueLabel.Top     := 96 + HDR;
 
+  // Top row: Log folder (spans across the card above the floating dock)
+  logfolderLabel.Left        := X3;
+  logfolderLabel.Top         := 40 + HDR;
+  logfolderEdit.Left         := X3;
+  logfolderEdit.Top          := 61 + HDR;
+  logfolderEdit.Width        := Max(200, CW - X3 - 48);
+  logfolderBitBtn.Left       := X3 + logfolderEdit.Width + 4;
+  logfolderBitBtn.Top        := 61 + HDR;
+
+  // Bottom row: Logging toggle key (compact button at X3, avoiding bottom-right floating dock)
   logtoggleLabel.Left        := X3;
-  logtoggleLabel.Top         := 40 + HDR;
+  logtoggleLabel.Top         := 106 + HDR;
   logtoggleComboBox.Left     := X3;
-  logtoggleComboBox.Top      := 61 + HDR;
+  logtoggleComboBox.Top      := 127 + HDR;
   if Assigned(FLoggingCaptureBtn) then
   begin
     FLoggingCaptureBtn.Left  := X3;
-    FLoggingCaptureBtn.Top   := 61 + HDR;
+    FLoggingCaptureBtn.Top   := 127 + HDR;
   end;
 
-  autouploadCheckBox.Left    := Max(X4, X3 + 172);
-  autouploadCheckBox.Top     := 67 + HDR;
-  versioningCheckBox.Left    := Max(X5, autouploadCheckBox.Left + 150);
-  versioningCheckBox.Top     := 67 + HDR;
-
-  // Anchor Log folder controls to the bottom of the Logging card so they are
-  // always fully visible regardless of card height.
-  logfolderEdit.Width        := Max(200, CW - X3 - 50);
-  logfolderBitBtn.Left       := X3 + logfolderEdit.Width + 4;
-  logfolderBitBtn.Top        := 131 + HDR;
-  logfolderEdit.Left         := X3;
-  logfolderEdit.Top          := 131 + HDR;
-  logfolderLabel.Left        := X3;
-  logfolderLabel.Top         := 112 + HDR;
+  autouploadCheckBox.Visible := False;
+  versioningCheckBox.Visible := False;
   end;
 end;
 

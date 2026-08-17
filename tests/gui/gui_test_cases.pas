@@ -1461,6 +1461,8 @@ begin
   AssertEquals('logtoggleComboBox reloaded', 'Shift_L+F10', goverlayform.logtoggleComboBox.Text);
   AssertEquals('logtoggleLabel caption is Logging toggle', 'Logging toggle', goverlayform.logtoggleLabel.Caption);
   AssertEquals('customcommandEdit left is aligned with card margin', 11, goverlayform.customcommandEdit.Left);
+  AssertFalse('autouploadCheckBox is hidden', goverlayform.autouploadCheckBox.Visible);
+  AssertFalse('versioningCheckBox is hidden', goverlayform.versioningCheckBox.Visible);
   AssertTrue('versioningCheckBox reloaded', goverlayform.versioningCheckBox.Checked);
   AssertTrue('autouploadCheckBox reloaded', goverlayform.autouploadCheckBox.Checked);
 
