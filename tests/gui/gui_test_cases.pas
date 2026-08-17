@@ -744,6 +744,7 @@ end;
 procedure TGoverlayGuiTests.TestFloatingActionDockAndFinishDialog;
 begin
   AssertTrue('FFADock is assigned', Assigned(goverlayform.FFADock));
+  AssertEquals('goverlayPageControl BorderSpacing.Bottom is 0', 0, goverlayform.goverlayPageControl.BorderSpacing.Bottom);
 
   // Switch to MangoHud tab -> dock updated (Preview, Menu, Finish)
   goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);

@@ -2476,7 +2476,6 @@ object goverlayform: Tgoverlayform
       Width = 834
       ActivePage = performanceTabSheet
       Anchors = [akTop, akLeft, akRight, akBottom]
-      BorderSpacing.Bottom = 42
       Font.Height = -13
       Font.Name = 'Noto Sans'
       Font.Quality = fqAntialiased

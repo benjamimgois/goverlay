@@ -835,7 +835,7 @@ const
   GPU_TOP    = 52;
   GPU_H      = 67;
   CARD_TOP   = GPU_TOP + GPU_H + 10;  // = 129
-  TABBAR_H   = 77;   // TPageControl tab bar (35) + goverlaybarPanel (40) + margin (2)
+  TABBAR_H   = 35;   // TPageControl tab bar header
   HUD_H      = 56;
   HDR        = 34;
   R1_TOP     = HDR + 4;   // = 38
@@ -1569,7 +1569,7 @@ const
   ROW1_H     = 180;  // Information card — fixed height
   BASE_ROW2_H = 389;
   ROW2_TOP   = ROW1_TOP + ROW1_H + GAP;  // = 185
-  TABBAR_H   = 77;   // TPageControl tab bar (35) + goverlaybarPanel (40) + margin (2)
+  TABBAR_H   = 35;   // TPageControl tab bar header
   GB_OFF     = 24;
   IMARGIN    = 6;
   IGAP       = 8;

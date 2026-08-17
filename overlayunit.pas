@@ -3249,6 +3249,7 @@ begin
   goverlayPanel.ParentColor := False;
   goverlayPanel.OnPaint := @PresetsWrapperPaint;
   goverlayPageControl.Style := tsTabs;
+  goverlayPageControl.BorderSpacing.Bottom := 0;
   
   // Apply comprehensive tooltips to all components
   ApplyAllHints(Self);

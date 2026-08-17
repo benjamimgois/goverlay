@@ -992,7 +992,7 @@ begin
   DbgLog(Format('  SetNavActive(%d) BEGIN', [AIndex]));
   FForm.FNavActive := AIndex;
   if AIndex >= 0 then
-    FForm.goverlayPageControl.BorderSpacing.Bottom := 42;
+    FForm.goverlayPageControl.BorderSpacing.Bottom := 0;
   for i := 0 to High(FForm.FNavItems) do
   begin
     if i = AIndex then

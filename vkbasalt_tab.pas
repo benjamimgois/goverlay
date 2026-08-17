@@ -286,7 +286,6 @@ begin
   // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
   RSHD_H := TabH - 2 * MARGIN - BTIN_H - TOGL_H - 2 * GAP;
   if RSHD_H < 120 then RSHD_H := 120;  // minimum sensible height
-  if RSHD_H > 340 then RSHD_H := 340;  // cap to reduce vertical space
   FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
 
   if Assigned(FVkReshadePB) then
