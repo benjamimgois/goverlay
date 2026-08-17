@@ -406,6 +406,9 @@ begin
     goverlaybarPanel.Visible  := False;
     goverlayPageControl.BorderSpacing.Bottom := 0;
 
+    if Assigned(FFADock) then
+      FFADock.UpdateForTab(False, False, False, False);
+
     // Refresh all home tab sections
     Self.RefreshHomeOptiStatus;
     Self.RefreshHomeModuleStatus;

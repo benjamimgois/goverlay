@@ -1708,6 +1708,7 @@ begin
   for i := 0 to 3 do
     if Assigned(goverlayform.FNavToolBtns[i]) then
       AssertFalse(Format('Toggle %d hidden on Home tab', [i]), goverlayform.FNavToolBtns[i].Visible);
+  AssertFalse('Dock is NOT visible on Home tab', goverlayform.FFADock.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
