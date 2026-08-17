@@ -90,12 +90,13 @@ type
     procedure TestGameCardClickSynchronizesAllToolPaths;
     procedure TestVkBasaltRestoreDefaults;
     procedure TestPerformanceFiltersLayoutOnResize;
+    procedure TestFinishConfigurationDialogModernSteamUI;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -1872,6 +1873,32 @@ begin
   AssertTrue('mipmapTrackBar aligns with mipmapLabel at maximized width',
     Abs((goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width div 2) -
         (goverlayform.mipmapLabel.Left + goverlayform.mipmapLabel.Width div 2)) < 5);
+end;
+
+procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;
+var
+  Dlg: TFinishDialogForm;
+  Bmp: TBitmap;
+begin
+  Dlg := TFinishDialogForm.Create(goverlayform, 'MANGOHUD=1 %command%', 'Control Ultimate Edition');
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(540, 180);
+    // Exercise PaintAnimSteam with game title
+    Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
+
+    // Switch to Heroic and back to Steam
+    Dlg.HeroicBtnClick(nil);
+    Dlg.PaintAnimHeroic(Bmp.Canvas, 540, 180);
+
+    Dlg.SteamBtnClick(nil);
+    Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
+
+    AssertTrue('Modern Steam finish dialog painted successfully', True);
+  finally
+    Bmp.Free;
+    Dlg.Free;
+  end;
 end;
 
 initialization

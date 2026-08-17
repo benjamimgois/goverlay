@@ -17,6 +17,7 @@ type
   private
     FPlatform:        TFinishPlatform;
     FLaunchCommand:   string;
+    FGameTitle:       string;
     FAnimTimer:       TTimer;
     FAnimTick:        Integer;
     FCopiedTick:      Integer;
@@ -45,23 +46,23 @@ type
 
     procedure BuildUI;
     procedure AnimTimerTick(Sender: TObject);
-    procedure PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
-    procedure PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
     procedure AnimBoxPaint(Sender: TObject);
     procedure CopyBtnClick(Sender: TObject);
-    procedure SteamBtnClick(Sender: TObject);
-    procedure HeroicBtnClick(Sender: TObject);
     procedure CloseBtnClick(Sender: TObject);
     procedure PaintDivider(Sender: TObject);
     procedure UpdateForPlatform;
     procedure ResetCopyBtn;
     function  BuildHeroicCommand: string;
   public
-    constructor Create(AOwner: TComponent; const ALaunchCommand: string); reintroduce;
+    constructor Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''); reintroduce;
     destructor Destroy; override;
+    procedure PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
+    procedure PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
+    procedure SteamBtnClick(Sender: TObject);
+    procedure HeroicBtnClick(Sender: TObject);
   end;
 
-procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string);
+procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
 
 implementation
 
@@ -83,11 +84,11 @@ const
 // ShowFinishDialog helper
 // ---------------------------------------------------------------------------
 
-procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string);
+procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
 var
   Dlg: TFinishDialogForm;
 begin
-  Dlg := TFinishDialogForm.Create(AOwner, ALaunchCommand);
+  Dlg := TFinishDialogForm.Create(AOwner, ALaunchCommand, AGameTitle);
   try
     Dlg.ShowModal;
   finally
@@ -99,10 +100,11 @@ end;
 // Constructor / Destructor
 // ---------------------------------------------------------------------------
 
-constructor TFinishDialogForm.Create(AOwner: TComponent; const ALaunchCommand: string);
+constructor TFinishDialogForm.Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
 begin
   inherited CreateNew(AOwner);
   FLaunchCommand := ALaunchCommand;
+  FGameTitle     := AGameTitle;
   FPlatform      := fpSteam;
   FAnimTick      := 0;
   FCopiedTick    := 0;
@@ -122,8 +124,8 @@ end;
 
 procedure TFinishDialogForm.BuildUI;
 const
-  DLG_W  = 520;
-  DLG_H  = 540;
+  DLG_W  = 540;
+  DLG_H  = 560;
   PAD    = 18;
   BTN_H  = 34;
   RAD    = 8;
@@ -209,10 +211,10 @@ begin
   FAnimBox.Left      := PAD;
   FAnimBox.Top       := Y;
   FAnimBox.Width     := DLG_W - PAD * 2;
-  FAnimBox.Height    := 170;
+  FAnimBox.Height    := 175;
   FAnimBox.OnPaint   := @AnimBoxPaint;
 
-  Inc(Y, 170 + 14);
+  Inc(Y, 175 + 14);
 
   // --- Section divider ---
   FDivider1          := TPaintBox.Create(Self);
@@ -439,112 +441,140 @@ begin
   end;
 end;
 
-// Draw a simplified Steam Properties dialog walkthrough animation
+// Draw modern Steam Properties dialog walkthrough animation
 procedure TFinishDialogForm.PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
-const
-  CLR_WIN_BG  = $211E1C;
-  CLR_WIN_BAR = $302A25;
-  CLR_ROW_HL  = $4E3B28;   // amber highlight
-  CLR_INPUT   = $181520;
-  CLR_ACCENT_C = $F0BE30;  // cyan
 var
   Phase, FadeAlpha: Integer;
-  // Window geometry
-  WL, WT, WR, WB, WW, WH: Integer;
-  // sub-rects
-  TabBarR, ContentR, InputR, InputLblR, CursorR: TRect;
-  // Label positions
-  PropLblW, PropLblH: Integer;
-  ArrowX, ArrowY: Integer;
-  BounceOff: Integer;
-  LabelText: string;
+  WW, WH, WL, WT, WR, WB: Integer;
+  SidebarW: Integer;
+  GameTitleStr, CmdPreview: string;
+  InputR, CursorR: TRect;
+  ArrowX, ArrowY, BounceOff: Integer;
+  ToggleL, ToggleT, ToggleW, ToggleH: Integer;
 begin
-  // Background
-  ACanvas.Brush.Color := RGBToColor(16, 18, 28);
-  ACanvas.Pen.Color   := RGBToColor(16, 18, 28);
+  // Outer background
+  ACanvas.Brush.Color := RGBToColor(14, 16, 24);
+  ACanvas.Pen.Color   := RGBToColor(14, 16, 24);
   ACanvas.FillRect(Rect(0, 0, AW, AH));
 
-  // --- Fake Steam "Properties" Window ---
-  WW := Round(AW * 0.82);
-  WH := Round(AH * 0.84);
+  // --- Modern Steam Properties Window Frame ---
+  WW := AW - 24;
+  WH := AH - 14;
   WL := (AW - WW) div 2;
   WT := (AH - WH) div 2;
   WR := WL + WW;
   WB := WT + WH;
 
-  // Window shadow
+  // Window Shadow
   ACanvas.Brush.Color := RGBToColor(0, 0, 0);
   ACanvas.Pen.Color   := RGBToColor(0, 0, 0);
   ACanvas.FillRect(Rect(WL + 4, WT + 4, WR + 4, WB + 4));
 
-  // Window background
-  ACanvas.Brush.Color := RGBToColor(33, 30, 28);
-  ACanvas.Pen.Color   := RGBToColor(62, 55, 48);
+  // Window main background (Right content panel)
+  ACanvas.Brush.Color := RGBToColor(23, 29, 37);
+  ACanvas.Pen.Color   := RGBToColor(43, 53, 66);
   ACanvas.Rectangle(WL, WT, WR, WB);
 
-  // Title bar
-  TabBarR := Rect(WL + 1, WT + 1, WR - 1, WT + 28);
-  ACanvas.Brush.Color := RGBToColor(48, 42, 37);
-  ACanvas.Pen.Color   := RGBToColor(48, 42, 37);
-  ACanvas.FillRect(TabBarR);
+  // Top-right window controls (— □ ✕)
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(143, 152, 160);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WR - 38, WT + 4, '—  □  ✕');
+
+  // Left Sidebar
+  SidebarW := 125;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(19, 25, 34);
+  ACanvas.Pen.Color   := RGBToColor(35, 43, 54);
+  ACanvas.Rectangle(WL, WT, WL + SidebarW, WB);
+
+  // Game Title at Top of Sidebar
+  if Trim(FGameTitle) <> '' then
+    GameTitleStr := UpperCase(Trim(FGameTitle))
+  else
+    GameTitleStr := 'GLOBAL OVERLAY';
+
+  if Length(GameTitleStr) > 16 then
+    GameTitleStr := Copy(GameTitleStr, 1, 14) + '..';
 
   ACanvas.Font.Name  := 'DejaVu Sans';
-  ACanvas.Font.Size  := 8;
-  ACanvas.Font.Color := RGBToColor(200, 195, 190);
-  ACanvas.Font.Style := [];
-  ACanvas.TextOut(WL + 10, WT + 8, 'Properties — My Game');
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := RGBToColor(26, 159, 255); // Steam Cyan
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 8, WT + 8, GameTitleStr);
 
-  // Close button in title bar
-  ACanvas.Brush.Color := RGBToColor(220, 60, 60);
-  ACanvas.Pen.Color   := RGBToColor(220, 60, 60);
-  ACanvas.FillRect(Rect(WR - 22, WT + 6, WR - 6, WT + 22));
+  // Active Menu Item ("General")
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(43, 57, 71);
+  ACanvas.Pen.Color   := RGBToColor(55, 72, 90);
+  ACanvas.RoundRect(WL + 6, WT + 25, WL + SidebarW - 6, WT + 43, 4, 4);
+
   ACanvas.Font.Color := clWhite;
   ACanvas.Font.Size  := 7;
-  ACanvas.TextOut(WR - 17, WT + 8, 'x');
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 12, WT + 28, 'General');
 
-  // Tab strip
+  // Inactive Menu Items
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Color := RGBToColor(143, 152, 160);
+  ACanvas.TextOut(WL + 12, WT + 48, 'Compatibility');
+  ACanvas.TextOut(WL + 12, WT + 66, 'Updates');
+  ACanvas.TextOut(WL + 12, WT + 84, 'Installed Files');
+  ACanvas.TextOut(WL + 12, WT + 102, 'Controller');
+  ACanvas.TextOut(WL + 12, WT + 120, 'Privacy');
+
+  // Right Content Area: "General" Title
   ACanvas.Font.Size  := 8;
   ACanvas.Font.Style := [fsBold];
-  ACanvas.Font.Color := RGBToColor(200, 195, 190);
-
-  // "General" tab highlighted
-  ACanvas.Brush.Color := RGBToColor(55, 50, 44);
-  ACanvas.Pen.Color   := RGBToColor(62, 55, 48);
-  ACanvas.Rectangle(WL + 1, WT + 29, WL + 75, WT + 48);
   ACanvas.Font.Color := clWhite;
-  ACanvas.TextOut(WL + 10, WT + 33, 'General');
+  ACanvas.TextOut(WL + SidebarW + 12, WT + 8, 'General');
 
-  // Other tabs (muted)
-  ACanvas.Brush.Color := RGBToColor(33, 30, 28);
-  ACanvas.Font.Color  := RGBToColor(140, 130, 120);
-  ACanvas.Font.Style  := [];
-  ACanvas.TextOut(WL + 82, WT + 33, 'DLC');
-  ACanvas.TextOut(WL + 114, WT + 33, 'Updates');
-  ACanvas.TextOut(WL + 164, WT + 33, 'Local Files');
+  // Steam Overlay row
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(215, 222, 228);
+  ACanvas.TextOut(WL + SidebarW + 12, WT + 28, 'Enable the Steam Overlay while in-game');
 
-  // Content area
-  ContentR := Rect(WL + 1, WT + 48, WR - 1, WB - 1);
-  ACanvas.Brush.Color := RGBToColor(40, 37, 34);
-  ACanvas.Pen.Color   := RGBToColor(40, 37, 34);
-  ACanvas.FillRect(ContentR);
+  // Overlay Toggle Switch (Blue active pill)
+  ToggleL := WR - 36;
+  ToggleT := WT + 28;
+  ToggleW := 24;
+  ToggleH := 13;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(26, 159, 255);
+  ACanvas.Pen.Color   := RGBToColor(26, 159, 255);
+  ACanvas.RoundRect(ToggleL, ToggleT, ToggleL + ToggleW, ToggleT + ToggleH, 10, 10);
 
-  // "Launch Options" label
-  ACanvas.Font.Name  := 'DejaVu Sans';
-  ACanvas.Font.Size  := 8;
+  // Toggle knob (white circle)
+  ACanvas.Brush.Color := clWhite;
+  ACanvas.Pen.Color   := clWhite;
+  ACanvas.Ellipse(ToggleL + 12, ToggleT + 1, ToggleL + 23, ToggleT + 12);
+
+  // Launch Options section
+  ACanvas.Font.Size  := 7;
   ACanvas.Font.Style := [fsBold];
-  ACanvas.Font.Color := RGBToColor(200, 195, 190);
-  LabelText := 'LAUNCH OPTIONS';
-  PropLblW := ACanvas.TextWidth(LabelText);
-  PropLblH := ACanvas.TextHeight(LabelText);
-  ACanvas.TextOut(WL + 16, WB - 78, LabelText);
+  ACanvas.Font.Color := RGBToColor(225, 231, 236);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + SidebarW + 12, WT + 52, 'Launch Options');
 
-  // Input box
-  InputR := Rect(WL + 16, WB - 60, WR - 16, WB - 30);
-  ACanvas.Brush.Color := RGBToColor(24, 21, 32);
-  ACanvas.Pen.Color   := RGBToColor(80, 72, 64);
-  ACanvas.Rectangle(InputR);
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(143, 152, 160);
+  ACanvas.TextOut(WL + SidebarW + 12, WT + 68, 'Advanced users may choose to enter modifications to their launch options.');
 
-  // Pulsing highlight (phase-driven)
+  // Input Box
+  InputR := Rect(WL + SidebarW + 12, WT + 84, WR - 14, WT + 110);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(14, 20, 27);
+  ACanvas.Pen.Color   := RGBToColor(43, 53, 66);
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 4, 4);
+
+  // Pulsing highlight border
   Phase := (FAnimTick mod 90);
   if Phase < 45 then
     FadeAlpha := Phase * 5
@@ -552,47 +582,55 @@ begin
     FadeAlpha := (90 - Phase) * 5;
   FadeAlpha := Max(40, Min(220, FadeAlpha));
 
-  // Draw the highlight border with lerped alpha via color mixing
+  ACanvas.Brush.Style := bsClear;
   ACanvas.Pen.Color := RGBToColor(
-    30 + FadeAlpha div 4,
-    90 + FadeAlpha div 2,
-    190 + FadeAlpha div 8);
+    26 + (FadeAlpha * (255 - 26)) div 255,
+    159 + (FadeAlpha * (255 - 159)) div 510,
+    255);
   ACanvas.Pen.Width := 2;
-  ACanvas.Rectangle(InputR);
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 4, 4);
   ACanvas.Pen.Width := 1;
 
-  // Truncated command text inside input box
-  ACanvas.Font.Name  := 'DejaVu Sans Mono';
-  ACanvas.Font.Size  := 7;
-  ACanvas.Font.Style := [];
-  ACanvas.Font.Color := RGBToColor(48, 190, 240);
-  ACanvas.Brush.Style := bsClear;
-  ACanvas.TextOut(InputR.Left + 6, InputR.Top + 8, '/home/user/.local/share/goverlay/bgmod %command%');
-  ACanvas.Brush.Style := bsSolid;
+  // Truncated command preview inside input box
+  CmdPreview := FLaunchCommand;
+  if CmdPreview = '' then
+    CmdPreview := '"/home/user/.local/share/goverlay/bgmod" %command%';
+  if Length(CmdPreview) > 40 then
+    CmdPreview := Copy(CmdPreview, 1, 37) + '...';
 
-  // Animated cursor blink in the input box
+  ACanvas.Font.Name  := 'DejaVu Sans Mono';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(78, 195, 252);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(InputR.Left + 8, InputR.Top + 7, CmdPreview);
+
+  // Blinking cursor in input box
   if (FAnimTick mod 30) < 18 then
   begin
-    CursorR.Left   := InputR.Left + 6;
+    CursorR.Left   := InputR.Left + 8 + ACanvas.TextWidth(CmdPreview) + 2;
     CursorR.Top    := InputR.Top + 6;
-    CursorR.Right  := InputR.Left + 8;
-    CursorR.Bottom := InputR.Bottom - 8;
-    ACanvas.Brush.Color := RGBToColor(48, 190, 240);
-    ACanvas.Pen.Color   := RGBToColor(48, 190, 240);
-    ACanvas.FillRect(CursorR);
+    CursorR.Right  := CursorR.Left + 2;
+    CursorR.Bottom := InputR.Bottom - 6;
+    if CursorR.Right < InputR.Right - 4 then
+    begin
+      ACanvas.Brush.Style := bsSolid;
+      ACanvas.Brush.Color := RGBToColor(26, 159, 255);
+      ACanvas.Pen.Color   := RGBToColor(26, 159, 255);
+      ACanvas.FillRect(CursorR);
+    end;
   end;
 
-  // Bouncing arrow pointing at the input box
+  // Bouncing guide arrow
   BounceOff := Round(3 * Sin(FAnimTick * 0.12));
-  ArrowX := WL - 18 + BounceOff;
-  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 6;
+  ArrowX := InputR.Left - 10 + BounceOff;
+  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 5;
   ACanvas.Font.Name  := 'DejaVu Sans';
-  ACanvas.Font.Size  := 12;
-  ACanvas.Font.Color := RGBToColor(48, 190, 240);
+  ACanvas.Font.Size  := 10;
+  ACanvas.Font.Color := RGBToColor(26, 159, 255);
   ACanvas.Font.Style := [fsBold];
   ACanvas.Brush.Style := bsClear;
   ACanvas.TextOut(ArrowX, ArrowY, '>');
-  ACanvas.Brush.Style := bsSolid;
 end;
 
 // Draw a simplified Heroic "Settings" dialog walkthrough animation
