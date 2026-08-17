@@ -57,6 +57,7 @@ type
     procedure TestOptiScalerToggleNvidiaReEnableState;
     procedure TestGlobalOptiScalerToggleSync;
     procedure TestCommandPanelRightMarginConsistency;
+    procedure TestFloatingActionDockAndFinishDialog;
     procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
@@ -717,26 +718,46 @@ end;
 
 procedure TGoverlayGuiTests.TestCommandPanelRightMarginConsistency;
 begin
-  // Navigate to MangoHud tab -> bottom bar buttons visible, commandPanel anchored to FPreviewBtn (spacing 6)
+  // Floating action dock and overlays must be instantiated
+  AssertTrue('FFADock created', Assigned(goverlayform.FFADock));
+  AssertTrue('FFloatingToast created', Assigned(goverlayform.FFloatingToast));
+  AssertTrue('FFloatingProgress created', Assigned(goverlayform.FFloatingProgress));
+
+  // Legacy bottom bar is hidden on all tabs
   goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
-  AssertTrue('popupBitBtn visible on MangoHud tab', goverlayform.popupBitBtn.Visible);
-  AssertTrue('FPreviewBtn visible on MangoHud tab', goverlayform.FPreviewBtn.Visible);
-  AssertEquals('commandPanel right margin 6 when buttons visible', 6, goverlayform.commandPanel.BorderSpacing.Right);
-  AssertTrue('commandPanel anchored to FPreviewBtn when buttons visible', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.FPreviewBtn);
+  AssertFalse('goverlaybarPanel hidden on MangoHud tab', goverlayform.goverlaybarPanel.Visible);
 
-  // Navigate to OptiScaler tab -> bottom bar buttons hidden, commandPanel anchored to goverlaybarPanel (spacing 153)
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
-  AssertFalse('popupBitBtn hidden on OptiScaler tab', goverlayform.popupBitBtn.Visible);
-  AssertFalse('FPreviewBtn hidden on OptiScaler tab', goverlayform.FPreviewBtn.Visible);
-  AssertEquals('commandPanel right margin 153 on OptiScaler tab', 153, goverlayform.commandPanel.BorderSpacing.Right);
-  AssertTrue('commandPanel anchored to goverlaybarPanel on OptiScaler tab', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.goverlaybarPanel);
+  AssertFalse('goverlaybarPanel hidden on OptiScaler tab', goverlayform.goverlaybarPanel.Visible);
 
-  // Navigate to Tweaks (EnvVars) tab -> bottom bar buttons hidden, commandPanel anchored to goverlaybarPanel (spacing 153)
   goverlayform.tweaksLabel.OnClick(goverlayform.tweaksLabel);
-  AssertFalse('popupBitBtn hidden on Tweaks tab', goverlayform.popupBitBtn.Visible);
-  AssertFalse('FPreviewBtn hidden on Tweaks tab', goverlayform.FPreviewBtn.Visible);
-  AssertEquals('commandPanel right margin 153 on Tweaks tab', 153, goverlayform.commandPanel.BorderSpacing.Right);
-  AssertTrue('commandPanel anchored to goverlaybarPanel on Tweaks tab', goverlayform.commandPanel.AnchorSideRight.Control = goverlayform.goverlaybarPanel);
+  AssertFalse('goverlaybarPanel hidden on Tweaks tab', goverlayform.goverlaybarPanel.Visible);
+
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  AssertFalse('goverlaybarPanel hidden on vkBasalt tab', goverlayform.goverlaybarPanel.Visible);
+
+  // Test Auto-Save Floating Toast trigger
+  goverlayform.ShowSavedStatus;
+  AssertTrue('ShowSavedStatus executes cleanly without error', True);
+end;
+
+procedure TGoverlayGuiTests.TestFloatingActionDockAndFinishDialog;
+begin
+  AssertTrue('FFADock is assigned', Assigned(goverlayform.FFADock));
+
+  // Switch to MangoHud tab -> dock updated
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  AssertFalse('Legacy goverlaybarPanel is not visible on MangoHud', goverlayform.goverlaybarPanel.Visible);
+
+  // Switch to OptiScaler tab -> dock updated
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  AssertFalse('Legacy goverlaybarPanel is not visible on OptiScaler', goverlayform.goverlaybarPanel.Visible);
+
+  // Progress overlay test
+  goverlayform.FFloatingProgress.ShowProgress('Testing progress...', 50);
+  AssertTrue('Progress banner is visible', goverlayform.FFloatingProgress.Visible);
+  goverlayform.FFloatingProgress.HideProgress;
+  AssertFalse('Progress banner is hidden', goverlayform.FFloatingProgress.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;

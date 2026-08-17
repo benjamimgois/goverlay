@@ -17,7 +17,8 @@ uses
   {$ENDIF}
   qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils,
-  goverlay_strings;
+  goverlay_strings,
+  floating_dock, finish_dialog, floating_overlay;
 
 
 
@@ -1276,6 +1277,9 @@ type
     {     FActiveGameName:    string;   // non-empty when editing a game-specific config
     FActiveGameIsNonSteam: Boolean; } // true when editing a non-steam game config
     FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
+    FFADock:            TFloatingActionDock;      // floating action pill-dock
+    FFloatingToast:     TFloatingToast;           // floating auto-save toast overlay
+    FFloatingProgress:  TFloatingProgressBanner;  // floating download progress banner
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
@@ -1386,6 +1390,10 @@ type
     procedure UpdateGeSpeedButtonState;
     procedure UpdateGlobalEnableMenuItemVisibility;
     procedure UpdateCommandPanelRightAnchor(AButtonsVisible: Boolean);
+    procedure InitFloatingDock;
+    procedure DockPreviewClick(Sender: TObject);
+    procedure DockMenuClick(Sender: TObject);
+    procedure DockFinishClick(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
@@ -1778,12 +1786,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-//Show Global Enable controls and bottom bar for tweaks tabs
-
-goverlaybarPanel.Visible:=true;
-popupBitBtn.Visible := False;
-FPreviewBtn.Visible  := False;
-UpdateCommandPanelRightAnchor(False);
+//Show Global Enable controls — no preview on tweaks tab
+if Assigned(FFADock) then FFADock.UpdateForTab(False);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
@@ -1803,9 +1807,13 @@ begin
   checkupdBitBtn.Visible := False;
   updateProgressBar.Visible := True;
   updatestatusLabel.Visible := True;
+  if Assigned(FFloatingProgress) then
+    FFloatingProgress.ShowProgress('Downloading OptiScaler components...', 0);
   try
     FOptiscalerUpdate.UpdateButtonClick(Sender);
   finally
+    if Assigned(FFloatingProgress) then
+      FFloatingProgress.HideProgress;
     updateProgressBar.Visible := False;
     updatestatusLabel.Visible := False;
     optversionComboBox.Visible := True;
@@ -1925,11 +1933,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  //Restore bottom bar
-  goverlaybarPanel.Visible:=true;
-  popupBitBtn.Visible := True;
-  FPreviewBtn.Visible  := True;
-  UpdateCommandPanelRightAnchor(True);
+  // Floating dock — show Preview button for vkBasalt/vkSumi
+  if Assigned(FFADock) then FFADock.UpdateForTab(True);
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -2763,6 +2768,45 @@ begin
   end;
 end;
 
+// ---------------------------------------------------------------------------
+//  InitFloatingDock — creates the floating action pill-dock anchored to
+//  goverlayPanel (the main content area) and wires its three action buttons.
+// ---------------------------------------------------------------------------
+
+procedure Tgoverlayform.InitFloatingDock;
+begin
+  FFADock := TFloatingActionDock.Create(goverlayPanel);
+  FFADock.OnPreviewClick := @DockPreviewClick;
+  FFADock.OnMenuClick    := @DockMenuClick;
+  FFADock.OnFinishClick  := @DockFinishClick;
+  // Start hidden; each tab-switch will call UpdateForTab to show/configure it.
+  FFADock.UpdateForTab(False);
+
+  // Initialize floating overlays
+  FFloatingToast    := TFloatingToast.Create(goverlayPanel);
+  FFloatingProgress := TFloatingProgressBanner.Create(goverlayPanel);
+end;
+
+// Dock: Preview button — forwards to the existing pascube / vkcube launch logic
+procedure Tgoverlayform.DockPreviewClick(Sender: TObject);
+begin
+  PreviewBtnClick(nil);
+end;
+
+// Dock: Menu button — shows the options popup (save, presets, etc.)
+procedure Tgoverlayform.DockMenuClick(Sender: TObject);
+begin
+  popupBitBtnClick(nil);
+end;
+
+// Dock: Finish Config button — opens the Finish Configuration modal dialog
+procedure Tgoverlayform.DockFinishClick(Sender: TObject);
+begin
+  ShowFinishDialog(Self, FLaunchCommand);
+end;
+
+
+
 procedure Tgoverlayform.SplashFormPaint(Sender: TObject);
 var
   R: TRect;
@@ -3445,7 +3489,11 @@ begin
   // Bring settings button to front to ensure it's visible
   settingsSpeedButton.BringToFront;
 
+  // Create the floating action dock (replaces goverlaybarPanel for actions)
+  InitFloatingDock;
 
+  // Hide the legacy bottom bar — the floating dock replaces it on all tabs
+  goverlaybarPanel.Visible := False;
 
   // Disable Protontricks button in Flatpak (requires permissions not approved by Flathub)
   if IsRunningInFlatpak then
@@ -4728,8 +4776,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  //Hide Global Enable controls and bottom bar for games tab
-  goverlaybarPanel.Visible:=false;
+  // Floating dock hidden on Games tab
+  if Assigned(FFADock) then FFADock.UpdateForTab(False);
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
@@ -4773,13 +4821,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-//Show Global Enable controls and bottom bar for MangoHud tabs
-
-
-goverlaybarPanel.Visible:=true;
-popupBitBtn.Visible := True;
-FPreviewBtn.Visible  := True;
-UpdateCommandPanelRightAnchor(True);
+//Show Global Enable controls — show Preview button for MangoHud
+if Assigned(FFADock) then FFADock.UpdateForTab(True);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -4958,11 +5001,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  //Restore bottom bar
-  goverlaybarPanel.Visible:=true;
-  popupBitBtn.Visible := False;
-  FPreviewBtn.Visible  := False;
-  UpdateCommandPanelRightAnchor(False);
+  // Floating dock — no Preview button for OptiScaler
+  if Assigned(FFADock) then FFADock.UpdateForTab(False);
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -4984,7 +5024,24 @@ begin
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
+var
+  StatusMsg: string;
 begin
+  if FAutoDownloadingReshade then
+    StatusMsg := 'Downloading reshade shaders...'
+  else if APhase <> '' then
+    StatusMsg := APhase
+  else
+    StatusMsg := 'Downloading shaders...';
+
+  if Assigned(FFloatingProgress) then
+  begin
+    if (APercent >= 0) and (APercent < 100) then
+      FFloatingProgress.UpdateProgress(APercent, StatusMsg)
+    else if APercent >= 100 then
+      FFloatingProgress.HideProgress;
+  end;
+
   if Assigned(FReshadeProgressBar) then
   begin
     if FReshadeProgressBar.Min <> 0 then FReshadeProgressBar.Min := 0;
@@ -7319,7 +7376,9 @@ end;
 
 procedure Tgoverlayform.ShowSavedStatus;
 begin
-  if Assigned(savedStatusLabel) then
+  if Assigned(FFloatingToast) then
+    FFloatingToast.ShowToast('Settings saved')
+  else if Assigned(savedStatusLabel) then
   begin
     savedStatusLabel.Caption := '✓ Saved';
     savedStatusLabel.Visible := True;
@@ -7450,6 +7509,19 @@ begin
 
   if FGamesLoaded then
     ReflowGamesGrid;
+
+  // Keep floating overlays visible and repositioned after every resize
+  if Assigned(FFADock) then FFADock.BringToFront;
+  if Assigned(FFloatingToast) then
+  begin
+    FFloatingToast.Reposition;
+    FFloatingToast.BringToFront;
+  end;
+  if Assigned(FFloatingProgress) then
+  begin
+    FFloatingProgress.Reposition;
+    FFloatingProgress.BringToFront;
+  end;
 end;
 
 // ============================================================================
