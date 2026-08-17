@@ -89,6 +89,7 @@ type
     procedure TestMissingConfigResetsControlsAllTabs;
     procedure TestGameCardClickSynchronizesAllToolPaths;
     procedure TestVkBasaltRestoreDefaults;
+    procedure TestPerformanceFiltersLayoutOnResize;
   end;
 
 implementation
@@ -1845,6 +1846,31 @@ begin
   AssertEquals('acteffectsListBox cleared by restore defaults', 0, goverlayform.acteffectsListBox.Items.Count);
   AssertEquals('casTrackBar reset to 0 by restore defaults', 0, goverlayform.casTrackBar.Position);
   AssertEquals('fxaaTrackBar reset to 0 by restore defaults', 0, goverlayform.fxaaTrackBar.Position);
+end;
+
+procedure TGoverlayGuiTests.TestPerformanceFiltersLayoutOnResize;
+begin
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  goverlayform.performanceTabSheet.Show;
+
+  // Test at normal width (960x650)
+  goverlayform.ReflowPerformanceTab(960, 650);
+  AssertTrue('afLabel left of mipmapLabel at normal width',
+    goverlayform.afLabel.Left + goverlayform.afLabel.Width < goverlayform.mipmapLabel.Left);
+  AssertTrue('afTrackBar aligns with afLabel at normal width',
+    Abs((goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width div 2) -
+        (goverlayform.afLabel.Left + goverlayform.afLabel.Width div 2)) < 5);
+
+  // Test at maximized width (1920x1080)
+  goverlayform.ReflowPerformanceTab(1920, 1080);
+  AssertTrue('afLabel left of mipmapLabel at maximized width (no overlap)',
+    goverlayform.afLabel.Left + goverlayform.afLabel.Width < goverlayform.mipmapLabel.Left);
+  AssertTrue('afTrackBar aligns with afLabel at maximized width',
+    Abs((goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width div 2) -
+        (goverlayform.afLabel.Left + goverlayform.afLabel.Width div 2)) < 5);
+  AssertTrue('mipmapTrackBar aligns with mipmapLabel at maximized width',
+    Abs((goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width div 2) -
+        (goverlayform.mipmapLabel.Left + goverlayform.mipmapLabel.Width div 2)) < 5);
 end;
 
 initialization

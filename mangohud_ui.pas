@@ -1545,7 +1545,7 @@ begin
   showfpslimCheckBox.AnchorSideLeft.Control     := nil; showfpslimCheckBox.AnchorSideTop.Control     := nil; showfpslimCheckBox.AnchorSideRight.Control     := nil; showfpslimCheckBox.AnchorSideBottom.Control     := nil; showfpslimCheckBox.Anchors     := [akLeft, akTop];
   vpsCheckBox.AnchorSideLeft.Control            := nil; vpsCheckBox.AnchorSideTop.Control            := nil; vpsCheckBox.AnchorSideRight.Control            := nil; vpsCheckBox.AnchorSideBottom.Control            := nil; vpsCheckBox.Anchors            := [akLeft, akTop];
 
-  // Reparent Filters controls to FPerfFiltersSec
+  // Reparent Filters controls to FPerfFiltersSec and clear LCL anchors
   filterRadioGroup.Parent   := FPerfFiltersSec;
   afLabel.Parent            := FPerfFiltersSec;
   afTrackBar.Parent         := FPerfFiltersSec;
@@ -1554,11 +1554,13 @@ begin
   mipmapTrackBar.Parent     := FPerfFiltersSec;
   mipmapvalueLabel.Parent   := FPerfFiltersSec;
 
-  // Redirect filterRadioGroup anchors to point to FPerfFiltersSec
-  filterRadioGroup.AnchorSideLeft.Control := FPerfFiltersSec;
-  filterRadioGroup.AnchorSideTop.Control  := FPerfFiltersSec;
-  filterRadioGroup.BorderSpacing.Top      := 32;
-  filterRadioGroup.BorderSpacing.Left     := 12;
+  filterRadioGroup.AnchorSideLeft.Control := nil; filterRadioGroup.AnchorSideTop.Control := nil; filterRadioGroup.AnchorSideRight.Control := nil; filterRadioGroup.AnchorSideBottom.Control := nil; filterRadioGroup.Anchors := [akLeft, akTop];
+  afLabel.AnchorSideLeft.Control := nil; afLabel.AnchorSideTop.Control := nil; afLabel.AnchorSideRight.Control := nil; afLabel.AnchorSideBottom.Control := nil; afLabel.Anchors := [akLeft, akTop];
+  afTrackBar.AnchorSideLeft.Control := nil; afTrackBar.AnchorSideTop.Control := nil; afTrackBar.AnchorSideRight.Control := nil; afTrackBar.AnchorSideBottom.Control := nil; afTrackBar.Anchors := [akLeft, akTop];
+  afvalueLabel.AnchorSideLeft.Control := nil; afvalueLabel.AnchorSideTop.Control := nil; afvalueLabel.AnchorSideRight.Control := nil; afvalueLabel.AnchorSideBottom.Control := nil; afvalueLabel.Anchors := [akLeft, akTop];
+  mipmapLabel.AnchorSideLeft.Control := nil; mipmapLabel.AnchorSideTop.Control := nil; mipmapLabel.AnchorSideRight.Control := nil; mipmapLabel.AnchorSideBottom.Control := nil; mipmapLabel.Anchors := [akLeft, akTop];
+  mipmapTrackBar.AnchorSideLeft.Control := nil; mipmapTrackBar.AnchorSideTop.Control := nil; mipmapTrackBar.AnchorSideRight.Control := nil; mipmapTrackBar.AnchorSideBottom.Control := nil; mipmapTrackBar.Anchors := [akLeft, akTop];
+  mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
 
   SS := 'QGroupBox { border: none; }';
   QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
@@ -1586,8 +1588,7 @@ const
   IMARGIN    = 6;
   IGAP       = 8;
   // Offset from top of FPerfFiltersSec to where trackbars begin
-  // (filterRadioGroup ≈36px + afLabel ≈18px + spacing ≈4+4 = ~62px; use 65 for safety)
-  TRACK_TOP_OFF = 65;
+  TRACK_TOP_OFF = 68;
 var
   CardW, SecW, InfoMargin, ContW, ContH, i: Integer;
   LeftM, Col1W, Col2W, InnerGap: Integer;
@@ -1595,6 +1596,7 @@ var
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
   TabH, ActiveRow2H, FilterSecH, TrackH: Integer;
+  Col1Center, Col2Center: Integer;
 begin
   with FForm do
   begin
@@ -1623,15 +1625,42 @@ begin
     begin
       FilterSecH := ActiveRow2H - GB_OFF - IMARGIN;
       FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, FilterSecH);
-      filterRadioGroup.BorderSpacing.Top := 6;
-      afLabel.BorderSpacing.Top := 4;
-      mipmapLabel.BorderSpacing.Top := 4;
-      afTrackBar.BorderSpacing.Top := 4;
-      mipmapTrackBar.BorderSpacing.Top := 4;
-      // Trackbars grow to fill the section beneath the radiogroup + labels
-      TrackH := Max(80, FilterSecH - TRACK_TOP_OFF - 8);
-      afTrackBar.Height     := TrackH;
+
+      // Center filterRadioGroup horizontally at the top
+      filterRadioGroup.Width  := 349;
+      filterRadioGroup.Height := 41;
+      filterRadioGroup.Left   := (FPerfFiltersSec.ClientWidth - filterRadioGroup.Width) div 2;
+      filterRadioGroup.Top    := 6;
+
+      // Two filter columns beneath filterRadioGroup:
+      // Col 1 (Anisotropic): Centered over the left half of filterRadioGroup
+      // Col 2 (Mip-map LOD): Centered over the right half of filterRadioGroup
+      Col1Center := filterRadioGroup.Left + filterRadioGroup.Width div 4;
+      Col2Center := filterRadioGroup.Left + (filterRadioGroup.Width * 3) div 4;
+
+      // Position Labels above each trackbar
+      afLabel.Left := Col1Center - afLabel.Width div 2;
+      afLabel.Top  := filterRadioGroup.Top + filterRadioGroup.Height + 4;
+
+      mipmapLabel.Left := Col2Center - mipmapLabel.Width div 2;
+      mipmapLabel.Top  := afLabel.Top;
+
+      // Trackbars grow vertically to fill the section beneath the radiogroup + labels
+      TrackH := Max(80, FilterSecH - (afLabel.Top + afLabel.Height + 4) - 10);
+      afTrackBar.Left   := Col1Center - afTrackBar.Width div 2;
+      afTrackBar.Top    := afLabel.Top + afLabel.Height + 4;
+      afTrackBar.Height := TrackH;
+
+      mipmapTrackBar.Left   := Col2Center - mipmapTrackBar.Width div 2;
+      mipmapTrackBar.Top    := afTrackBar.Top;
       mipmapTrackBar.Height := TrackH;
+
+      // Position Value Labels to the left of each trackbar (vertically centered)
+      afvalueLabel.Left := afTrackBar.Left - afvalueLabel.Width - 5;
+      afvalueLabel.Top  := afTrackBar.Top + (TrackH - afvalueLabel.Height) div 2;
+
+      mipmapvalueLabel.Left := mipmapTrackBar.Left - mipmapvalueLabel.Width - 5;
+      mipmapvalueLabel.Top  := mipmapTrackBar.Top + (TrackH - mipmapvalueLabel.Height) div 2;
     end;
 
     // Position section title labels
