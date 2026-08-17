@@ -1877,24 +1877,58 @@ end;
 
 procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;
 var
-  Dlg: TFinishDialogForm;
+  Dlg, Dlg2, DlgNonSteam: TFinishDialogForm;
   Bmp: TBitmap;
 begin
   Dlg := TFinishDialogForm.Create(goverlayform, 'MANGOHUD=1 %command%', 'Control Ultimate Edition');
   Bmp := TBitmap.Create;
   try
     Bmp.SetSize(540, 180);
-    // Exercise PaintAnimSteam with game title
+    // Exercise Steam painting and initial instructions
     Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
+    AssertTrue('Steam instructions contain Properties > General',
+      Pos('Properties › General', Dlg.FStepsLabel.Caption) > 0);
+    AssertTrue('Steam platform selected by default for regular games',
+      Dlg.FPlatform = fpSteam);
 
-    // Switch to Heroic and back to Steam
+    // Test non-steam game defaults to Heroic platform
+    DlgNonSteam := TFinishDialogForm.Create(goverlayform, '/home/user/.local/share/goverlay/bgmod', 'Heroic Game', True);
+    try
+      AssertTrue('Non-steam game defaults to Heroic platform',
+        DlgNonSteam.FPlatform = fpHeroic);
+      AssertTrue('Non-steam dialog shows Heroic instructions initially',
+        Pos('Settings › Advanced › scroll down to "Wrapper Command"', DlgNonSteam.FStepsLabel.Caption) > 0);
+    finally
+      DlgNonSteam.Free;
+    end;
+
+    // Switch to Heroic and exercise Heroic painting and modern Advanced tab instructions
     Dlg.HeroicBtnClick(nil);
     Dlg.PaintAnimHeroic(Bmp.Canvas, 540, 180);
+    AssertTrue('Heroic instructions direct to Advanced tab',
+      Pos('Settings › Advanced › scroll down to "Wrapper Command"', Dlg.FStepsLabel.Caption) > 0);
+    AssertTrue('Heroic instructions direct to Wrapper field and plus button',
+      Pos('Paste into the "Wrapper" field, click "+", and save', Dlg.FStepsLabel.Caption) > 0);
 
+    // Verify BuildHeroicCommand strips quotes and %command%
+    AssertEquals('Heroic command strips quotes and %command%',
+      'MANGOHUD=1', Dlg.BuildHeroicCommand);
+
+    Dlg2 := TFinishDialogForm.Create(goverlayform, '"/home/user/.local/share/goverlay/gameconfig/God of War/bgmod" %command%', 'God of War');
+    try
+      AssertEquals('Heroic command for custom game config strips quotes and %command%',
+        '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildHeroicCommand);
+    finally
+      Dlg2.Free;
+    end;
+
+    // Switch back to Steam
     Dlg.SteamBtnClick(nil);
     Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
+    AssertTrue('Steam instructions restored after switching back',
+      Pos('Properties › General', Dlg.FStepsLabel.Caption) > 0);
 
-    AssertTrue('Modern Steam finish dialog painted successfully', True);
+    AssertTrue('Modern Steam and Heroic finish dialogs painted successfully', True);
   finally
     Bmp.Free;
     Dlg.Free;

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
-  Buttons, LCLIntf, LCLType, Clipbrd, Math;
+  Buttons, LCLIntf, LCLType, Clipbrd, Math, StrUtils;
 
 type
 
@@ -15,7 +15,6 @@ type
   { TFinishDialogForm }
   TFinishDialogForm = class(TForm)
   private
-    FPlatform:        TFinishPlatform;
     FLaunchCommand:   string;
     FGameTitle:       string;
     FAnimTimer:       TTimer;
@@ -34,9 +33,6 @@ type
     FCmdLabel:        TLabel;    // shows the command text
     FCopyBtn:         TSpeedButton;
 
-    // Instructions
-    FStepsLabel:      TLabel;
-
     // Close
     FCloseBtn:        TSpeedButton;
 
@@ -52,17 +48,19 @@ type
     procedure PaintDivider(Sender: TObject);
     procedure UpdateForPlatform;
     procedure ResetCopyBtn;
-    function  BuildHeroicCommand: string;
   public
-    constructor Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''); reintroduce;
+    FStepsLabel:      TLabel;
+    FPlatform:        TFinishPlatform;
+    constructor Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False); reintroduce;
     destructor Destroy; override;
+    function  BuildHeroicCommand: string;
     procedure PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
     procedure PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
     procedure SteamBtnClick(Sender: TObject);
     procedure HeroicBtnClick(Sender: TObject);
   end;
 
-procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
+procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False);
 
 implementation
 
@@ -84,11 +82,11 @@ const
 // ShowFinishDialog helper
 // ---------------------------------------------------------------------------
 
-procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
+procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False);
 var
   Dlg: TFinishDialogForm;
 begin
-  Dlg := TFinishDialogForm.Create(AOwner, ALaunchCommand, AGameTitle);
+  Dlg := TFinishDialogForm.Create(AOwner, ALaunchCommand, AGameTitle, AIsNonSteam);
   try
     Dlg.ShowModal;
   finally
@@ -100,12 +98,15 @@ end;
 // Constructor / Destructor
 // ---------------------------------------------------------------------------
 
-constructor TFinishDialogForm.Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = '');
+constructor TFinishDialogForm.Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False);
 begin
   inherited CreateNew(AOwner);
   FLaunchCommand := ALaunchCommand;
   FGameTitle     := AGameTitle;
-  FPlatform      := fpSteam;
+  if AIsNonSteam then
+    FPlatform    := fpHeroic
+  else
+    FPlatform    := fpSteam;
   FAnimTick      := 0;
   FCopiedTick    := 0;
   BuildUI;
@@ -331,10 +332,21 @@ end;
 // ---------------------------------------------------------------------------
 
 function TFinishDialogForm.BuildHeroicCommand: string;
+var
+  S: string;
 begin
-  // Heroic uses the same wrapper binary but the command is placed in the
-  // "Wrapper command" field, not as a launch option suffix.
-  Result := FLaunchCommand;
+  S := Trim(FLaunchCommand);
+  // Heroic "Wrapper" field expects the executable path without %command% suffix
+  if EndsText('%command%', S) then
+    S := Trim(Copy(S, 1, Length(S) - Length('%command%')));
+  if EndsText('%COMMAND%', S) then
+    S := Trim(Copy(S, 1, Length(S) - Length('%COMMAND%')));
+
+  // Remove quotes since Heroic treats the wrapper field as a pure binary path
+  S := StringReplace(S, '"', '', [rfReplaceAll]);
+  S := StringReplace(S, '''', '', [rfReplaceAll]);
+
+  Result := Trim(S);
 end;
 
 procedure TFinishDialogForm.UpdateForPlatform;
@@ -342,6 +354,8 @@ begin
   case FPlatform of
     fpSteam:
     begin
+      FSteamBtn.Down := True;
+      FHeroicBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the launch command.' + LineEnding +
         '2. In Steam, right-click your game › Properties › General.' + LineEnding +
@@ -353,10 +367,12 @@ begin
     end;
     fpHeroic:
     begin
+      FSteamBtn.Down := False;
+      FHeroicBtn.Down := True;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the wrapper command.' + LineEnding +
-        '2. In Heroic, open game Settings › Other › "Wrapper command".' + LineEnding +
-        '3. Paste the command and save. The game will now launch with GOverlay.';
+        '2. In Heroic, open game Settings › Advanced › scroll down to "Wrapper Command".' + LineEnding +
+        '3. Paste into the "Wrapper" field, click "+", and save.';
       FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
       FHeroicBtn.Font.Color := clWhite;
       // Update command display
@@ -633,12 +649,15 @@ begin
   ACanvas.TextOut(ArrowX, ArrowY, '>');
 end;
 
-// Draw a simplified Heroic "Settings" dialog walkthrough animation
+// Draw modern Heroic Games Launcher Settings dialog walkthrough animation
 procedure TFinishDialogForm.PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
 var
   Phase, FadeAlpha: Integer;
-  WL, WT, WR, WB, WW, WH: Integer;
-  InputR, TitleR: TRect;
+  WW, WH, WL, WT, WR, WB: Integer;
+  GameTitleStr, CmdPreview: string;
+  TabX, ArgX, WrapW, ArgW: Integer;
+  ScrollTrackR, ScrollThumbR: TRect;
+  InputR, ArgInputR, BtnR, CursorR: TRect;
   BounceOff, ArrowX, ArrowY: Integer;
 begin
   // Background
@@ -646,112 +665,219 @@ begin
   ACanvas.Pen.Color   := RGBToColor(14, 16, 24);
   ACanvas.FillRect(Rect(0, 0, AW, AH));
 
-  // --- Fake Heroic Settings Panel ---
-  WW := Round(AW * 0.82);
-  WH := Round(AH * 0.84);
+  // --- Modern Heroic Settings Panel Frame ---
+  WW := AW - 24;
+  WH := AH - 14;
   WL := (AW - WW) div 2;
   WT := (AH - WH) div 2;
   WR := WL + WW;
   WB := WT + WH;
 
-  // Shadow
+  // Window Shadow
   ACanvas.Brush.Color := RGBToColor(0, 0, 0);
   ACanvas.Pen.Color   := RGBToColor(0, 0, 0);
   ACanvas.FillRect(Rect(WL + 4, WT + 4, WR + 4, WB + 4));
 
-  // Window bg
-  ACanvas.Brush.Color := RGBToColor(26, 28, 38);
-  ACanvas.Pen.Color   := RGBToColor(50, 55, 80);
+  // Window Background (Dark Charcoal)
+  ACanvas.Brush.Color := RGBToColor(12, 16, 21);
+  ACanvas.Pen.Color   := RGBToColor(35, 43, 54);
   ACanvas.Rectangle(WL, WT, WR, WB);
 
-  // Header bar
-  TitleR := Rect(WL + 1, WT + 1, WR - 1, WT + 36);
-  ACanvas.Brush.Color := RGBToColor(36, 38, 54);
-  ACanvas.Pen.Color   := RGBToColor(36, 38, 54);
-  ACanvas.FillRect(TitleR);
+  // Top Title Bar
+  if Trim(FGameTitle) <> '' then
+    GameTitleStr := Trim(FGameTitle) + ' (Settings)'
+  else
+    GameTitleStr := 'GLOBAL OVERLAY (Settings)';
+
+  if Length(GameTitleStr) > 32 then
+    GameTitleStr := Copy(GameTitleStr, 1, 29) + '...';
+
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 8;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := clWhite;
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 10, WT + 6, GameTitleStr);
+
+  // Close button ✕
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(160, 168, 176);
+  ACanvas.TextOut(WR - 18, WT + 6, '✕');
+
+  // Horizontal Tabs Bar
+  TabX := WL + 10;
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+
+  // Inactive tabs
+  ACanvas.Font.Color := RGBToColor(138, 150, 160);
+  ACanvas.TextOut(TabX, WT + 24, 'WINE');
+  ACanvas.TextOut(TabX + 42, WT + 24, 'OTHER');
+
+  // Active tab "ADVANCED" in Heroic Cyan (#55EBD8)
+  ACanvas.Font.Color := RGBToColor(85, 235, 216);
+  ACanvas.TextOut(TabX + 92, WT + 24, 'ADVANCED');
+
+  // Solid Cyan underline indicator
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(85, 235, 216);
+  ACanvas.Pen.Color   := RGBToColor(85, 235, 216);
+  ACanvas.FillRect(Rect(TabX + 88, WT + 37, TabX + 154, WT + 39));
+
+  // Remaining inactive tabs
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Color := RGBToColor(138, 150, 160);
+  ACanvas.TextOut(TabX + 162, WT + 24, 'CLOUD SAVES');
+  ACanvas.TextOut(TabX + 242, WT + 24, 'GAMESCOPE');
+  ACanvas.TextOut(TabX + 318, WT + 24, 'LEGACY');
+
+  // Divider under horizontal tabs
+  ACanvas.Pen.Color := RGBToColor(28, 35, 45);
+  ACanvas.MoveTo(WL + 1, WT + 41);
+  ACanvas.LineTo(WR - 1, WT + 41);
+
+  // Vertical Scrollbar on Right edge (indicating scrolled-down state)
+  ScrollTrackR := Rect(WR - 7, WT + 43, WR - 3, WB - 3);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(21, 27, 34);
+  ACanvas.Pen.Color   := RGBToColor(21, 27, 34);
+  ACanvas.FillRect(ScrollTrackR);
+
+  ScrollThumbR := Rect(WR - 7, WB - 48, WR - 3, WB - 8);
+  ACanvas.Brush.Color := RGBToColor(56, 71, 86);
+  ACanvas.Pen.Color   := RGBToColor(56, 71, 86);
+  ACanvas.RoundRect(ScrollThumbR.Left, ScrollThumbR.Top, ScrollThumbR.Right, ScrollThumbR.Bottom, 2, 2);
+
+  // Scrolled context cue (previous setting row above)
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(90, 102, 115);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 12, WT + 47, 'Select a script to run before game starts:');
+
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(24, 30, 38);
+  ACanvas.Pen.Color   := RGBToColor(35, 43, 54);
+  ACanvas.RoundRect(WL + 12, WT + 59, WR - 16, WT + 73, 3, 3);
+  ACanvas.Font.Color := RGBToColor(110, 122, 135);
+  ACanvas.Font.Size  := 6;
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 18, WT + 61, 'Select script...');
+  ACanvas.TextOut(WR - 28, WT + 61, '📁');
+
+  // Section Header: "Wrapper Command:"
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := RGBToColor(220, 228, 235);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 12, WT + 79, 'Wrapper Command:');
+
+  // Subheaders: "Wrapper" and "Arguments" in Heroic Cyan (#55EBD8)
+  WrapW := ((WR - 16 - (WL + 12) - 34) * 55) div 100;
+  ArgW  := (WR - 16 - (WL + 12) - 34) - WrapW;
+  ArgX  := WL + 12 + WrapW + 8;
+
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := RGBToColor(85, 235, 216);
+  ACanvas.TextOut(WL + 12, WT + 94, 'Wrapper');
+  ACanvas.TextOut(ArgX, WT + 94, 'Arguments');
+
+  // Input Box 1: Wrapper
+  InputR := Rect(WL + 12, WT + 108, WL + 12 + WrapW, WT + 132);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(30, 37, 45);
+  ACanvas.Pen.Color   := RGBToColor(43, 53, 66);
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 4, 4);
+
+  // Pulsing highlight border on Wrapper box
+  Phase := (FAnimTick mod 90);
+  if Phase < 45 then
+    FadeAlpha := Phase * 5
+  else
+    FadeAlpha := (90 - Phase) * 5;
+  FadeAlpha := Max(40, Min(220, FadeAlpha));
+
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Pen.Color := RGBToColor(
+    85  + (FadeAlpha * (255 - 85)) div 510,
+    235 + (FadeAlpha * (255 - 235)) div 510,
+    216 + (FadeAlpha * (255 - 216)) div 510);
+  ACanvas.Pen.Width := 2;
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 4, 4);
+  ACanvas.Pen.Width := 1;
+
+  // Command preview inside Wrapper box
+  CmdPreview := BuildHeroicCommand;
+  if CmdPreview = '' then
+    CmdPreview := '/home/user/.local/share/goverlay/bgmod';
+  if Length(CmdPreview) > 30 then
+    CmdPreview := Copy(CmdPreview, 1, 27) + '...';
+
+  ACanvas.Font.Name  := 'DejaVu Sans Mono';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(85, 235, 216);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(InputR.Left + 6, InputR.Top + 6, CmdPreview);
+
+  // Blinking cursor in Wrapper box
+  if (FAnimTick mod 30) < 18 then
+  begin
+    CursorR.Left   := InputR.Left + 6 + ACanvas.TextWidth(CmdPreview) + 2;
+    CursorR.Top    := InputR.Top + 5;
+    CursorR.Right  := CursorR.Left + 2;
+    CursorR.Bottom := InputR.Bottom - 5;
+    if CursorR.Right < InputR.Right - 4 then
+    begin
+      ACanvas.Brush.Style := bsSolid;
+      ACanvas.Brush.Color := RGBToColor(85, 235, 216);
+      ACanvas.Pen.Color   := RGBToColor(85, 235, 216);
+      ACanvas.FillRect(CursorR);
+    end;
+  end;
+
+  // Input Box 2: Arguments
+  ArgInputR := Rect(ArgX, WT + 108, ArgX + ArgW, WT + 132);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(30, 37, 45);
+  ACanvas.Pen.Color   := RGBToColor(43, 53, 66);
+  ACanvas.RoundRect(ArgInputR.Left, ArgInputR.Top, ArgInputR.Right, ArgInputR.Bottom, 4, 4);
+
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(110, 120, 132);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(ArgInputR.Left + 6, ArgInputR.Top + 6, 'Wrapper Arguments');
+
+  // Add Button [+] (Heroic Green/Teal #00C9B7)
+  BtnR := Rect(WR - 34, WT + 108, WR - 14, WT + 132);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(0, 201, 183);
+  ACanvas.Pen.Color   := RGBToColor(0, 201, 183);
+  ACanvas.RoundRect(BtnR.Left, BtnR.Top, BtnR.Right, BtnR.Bottom, 4, 4);
 
   ACanvas.Font.Name  := 'DejaVu Sans';
   ACanvas.Font.Size  := 9;
   ACanvas.Font.Style := [fsBold];
-  ACanvas.Font.Color := RGBToColor(200, 200, 220);
+  ACanvas.Font.Color := clWhite;
   ACanvas.Brush.Style := bsClear;
-  ACanvas.TextOut(WL + 12, WT + 10, 'Game Settings — Other');
-  ACanvas.Brush.Style := bsSolid;
+  ACanvas.TextOut(BtnR.Left + 5, BtnR.Top + 3, '+');
 
-  // Sidebar-style section chips
-  ACanvas.Font.Size  := 8;
-  ACanvas.Font.Style := [];
-  ACanvas.Font.Color := RGBToColor(100, 110, 150);
-  ACanvas.TextOut(WL + 10, WT + 48, 'General');
-  ACanvas.TextOut(WL + 10, WT + 68, 'Display');
-
-  // "Other" highlighted
-  ACanvas.Brush.Color := RGBToColor(36, 44, 70);
-  ACanvas.Pen.Color   := RGBToColor(70, 100, 200);
-  ACanvas.Rectangle(WL + 6, WT + 84, WL + 64, WT + 100);
-  ACanvas.Font.Color  := clWhite;
-  ACanvas.Font.Style  := [fsBold];
-  ACanvas.Brush.Style := bsClear;
-  ACanvas.TextOut(WL + 10, WT + 88, 'Other');
-  ACanvas.Brush.Style := bsSolid;
-
-  // "Wrapper command" label
-  ACanvas.Font.Name  := 'DejaVu Sans';
-  ACanvas.Font.Size  := 8;
-  ACanvas.Font.Style := [fsBold];
-  ACanvas.Font.Color := RGBToColor(180, 185, 210);
-  ACanvas.Brush.Style := bsClear;
-  ACanvas.TextOut(WL + 80, WB - 78, 'WRAPPER COMMAND');
-  ACanvas.Brush.Style := bsSolid;
-
-  // Input
-  InputR := Rect(WL + 80, WB - 60, WR - 16, WB - 30);
-  ACanvas.Brush.Color := RGBToColor(18, 20, 32);
-  ACanvas.Pen.Color   := RGBToColor(60, 65, 100);
-  ACanvas.Rectangle(InputR);
-
-  // Pulsing highlight
-  Phase := (FAnimTick mod 90);
-  if Phase < 45 then FadeAlpha := Phase * 5
-  else FadeAlpha := (90 - Phase) * 5;
-  FadeAlpha := Max(40, Min(220, FadeAlpha));
-
-  ACanvas.Pen.Color := RGBToColor(
-    36 + FadeAlpha div 6,
-    60 + FadeAlpha div 3,
-    190 + FadeAlpha div 10);
-  ACanvas.Pen.Width := 2;
-  ACanvas.Rectangle(InputR);
-  ACanvas.Pen.Width := 1;
-
-  ACanvas.Font.Name  := 'DejaVu Sans Mono';
-  ACanvas.Font.Size  := 7;
-  ACanvas.Font.Style := [];
-  ACanvas.Font.Color := RGBToColor(36, 200, 100);
-  ACanvas.Brush.Style := bsClear;
-  ACanvas.TextOut(InputR.Left + 6, InputR.Top + 8, '/home/user/.local/share/goverlay/bgmod');
-  ACanvas.Brush.Style := bsSolid;
-
-  // Cursor blink
-  if (FAnimTick mod 30) < 18 then
-  begin
-    ACanvas.Brush.Color := RGBToColor(36, 200, 100);
-    ACanvas.Pen.Color   := RGBToColor(36, 200, 100);
-    ACanvas.FillRect(Rect(InputR.Left + 6, InputR.Top + 6,
-                          InputR.Left + 8, InputR.Bottom - 8));
-  end;
-
-  // Bouncing arrow
+  // Bouncing guide arrow pointing to Wrapper field
   BounceOff := Round(3 * Sin(FAnimTick * 0.12));
-  ArrowX := WL + 60 + BounceOff;
-  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 6;
+  ArrowX := InputR.Left - 10 + BounceOff;
+  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 5;
   ACanvas.Font.Name  := 'DejaVu Sans';
-  ACanvas.Font.Size  := 12;
-  ACanvas.Font.Color := RGBToColor(36, 200, 100);
+  ACanvas.Font.Size  := 10;
+  ACanvas.Font.Color := RGBToColor(85, 235, 216);
   ACanvas.Font.Style := [fsBold];
   ACanvas.Brush.Style := bsClear;
   ACanvas.TextOut(ArrowX, ArrowY, '>');
-  ACanvas.Brush.Style := bsSolid;
 end;
 
 // ---------------------------------------------------------------------------

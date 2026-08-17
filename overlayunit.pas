@@ -2808,7 +2808,7 @@ end;
 // Dock: Finish Config button — opens the Finish Configuration modal dialog
 procedure Tgoverlayform.DockFinishClick(Sender: TObject);
 begin
-  ShowFinishDialog(Self, FLaunchCommand, FActiveGameName);
+  ShowFinishDialog(Self, FLaunchCommand, FActiveGameName, FActiveGameIsNonSteam);
 end;
 
 

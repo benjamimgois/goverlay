@@ -1,16 +1,4 @@
-# finish-configuration-dialog Specification
-
-## Purpose
-Provides a dedicated, interactive popup dialog for finalizing overlay configurations, displaying platform-specific launch commands, custom tutorial animations, and one-click copy functionality.
-
-## Requirements
-
-### Requirement: Modal Finish Configuration Dialog
-The system SHALL display a modern modal dialog upon triggering the Finish Config action, showing the generated launch command for the current active configuration, instructions, and platform options in English.
-
-#### Scenario: Opening Finish Configuration dialog
-- **WHEN** user clicks the Finish Config button
-- **THEN** GOverlay SHALL display the Finish Configuration dialog containing the launch command box, copy button, platform selector, and animated guide.
+## MODIFIED Requirements
 
 ### Requirement: Platform Selection
 The system SHALL provide platform selection options for Steam and Heroic Games Launcher, adapting tutorial instructions and guide steps to the selected platform.
@@ -33,10 +21,3 @@ The system SHALL render custom lightweight step-by-step canvas/frame animations 
 #### Scenario: Viewing Heroic animated setup guide
 - **WHEN** the Finish Configuration dialog is active with Heroic platform selected
 - **THEN** the dialog SHALL render an animated visual walkthrough demonstrating the modern Heroic Games Launcher layout with horizontal tabs, Advanced tab active, scrollbar indicator, and an animated pulsing Wrapper field in the Wrapper Command section.
-
-### Requirement: One-Click Command Copy with Feedback
-The system SHALL copy the full generated launch command to the system clipboard upon clicking the copy button and provide immediate visual feedback.
-
-#### Scenario: Clicking Copy Command button
-- **WHEN** user clicks the Copy Command button
-- **THEN** the system SHALL copy the launch command string to the system clipboard and display temporary visual feedback (`Copied!`) in English.
