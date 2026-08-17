@@ -9,7 +9,7 @@ unit floating_dock;
 //    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options, always on the left)
 //    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
 //    [   + Add   ]   (optional — shown on EnvVars tab)
-//    [  ✦ Finish ]   (primary accent button, always visible on the right)
+//    [  ✓ Finish ]   (primary accent button, always visible on the right)
 //
 //  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd, AVisible) on tab switch.
 // ---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ begin
   // ---- Finish button ----
   FFinishBtn              := TSpeedButton.Create(FDockPanel);
   FFinishBtn.Parent       := FDockPanel;
-  FFinishBtn.Caption      := ' ✦ Finish';
+  FFinishBtn.Caption      := ' ✓ Finish';
   FFinishBtn.Font.Name    := 'Noto Sans';
   FFinishBtn.Font.Size    := 8;
   FFinishBtn.Font.Style   := [fsBold];
