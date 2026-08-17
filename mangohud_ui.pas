@@ -776,7 +776,7 @@ begin
   FVisualCaptureBtn := TBitBtn.Create(FVisualHudBar);
   FVisualCaptureBtn.Parent  := FVisualHudBar;
   FVisualCaptureBtn.Tag     := 1; // Visual Tab
-  FVisualCaptureBtn.SetBounds(11, 24, 160, 28);
+  FVisualCaptureBtn.SetBounds(11, 24, 140, 28);
   FVisualCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FVisualCaptureBtn.Cursor  := crHandPoint;
   if Trim(hudonoffComboBox.Text) <> '' then
@@ -793,7 +793,9 @@ begin
   hudcompactCheckBox.Anchors     := [akLeft, akTop];
   hudcompactCheckBox.Font.Color  := TextColor;
   hudcompactCheckBox.ParentColor := True;
-  hudcompactCheckBox.Top := 17;
+  hudcompactCheckBox.Width       := 115;
+  hudcompactCheckBox.Height      := 22;
+  hudcompactCheckBox.Top         := 28;
 
   // Create and reparent Horizontal Strech checkbox (Left set in Reflow)
   horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
@@ -806,7 +808,9 @@ begin
   horizontalstrechCheckBox.Anchors     := [akLeft, akTop];
   horizontalstrechCheckBox.Font.Color  := TextColor;
   horizontalstrechCheckBox.ParentColor := True;
-  horizontalstrechCheckBox.Top := 17;
+  horizontalstrechCheckBox.Width       := 135;
+  horizontalstrechCheckBox.Height      := 22;
+  horizontalstrechCheckBox.Top         := 28;
 
   // Reparent Hide by default checkbox (Left set in Reflow)
   hidehudCheckBox.Parent := FVisualHudBar;
@@ -817,7 +821,9 @@ begin
   hidehudCheckBox.Anchors     := [akLeft, akTop];
   hidehudCheckBox.Font.Color  := TextColor;
   hidehudCheckBox.ParentColor := True;
-  hidehudCheckBox.Top := 17;
+  hidehudCheckBox.Width       := 120;
+  hidehudCheckBox.Height      := 22;
+  hidehudCheckBox.Top         := 28;
 
   if CurrentTheme = tmLight then
     SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
@@ -999,12 +1005,18 @@ begin
   if Assigned(FVisualHudBar) then
   begin
     FVisualHudBar.SetBounds(0, ActiveHUD_TOP, W, HUD_H);
-    ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 8;
-    AvailW := W - ToggleRight - 8;
-    ThirdW := AvailW div 3;
-    hudcompactCheckBox.Left := ToggleRight + (ThirdW - hudcompactCheckBox.Width) div 2;
-    horizontalstrechCheckBox.Left := ToggleRight + ThirdW + (ThirdW - horizontalstrechCheckBox.Width) div 2;
-    hidehudCheckBox.Left    := ToggleRight + 2 * ThirdW + (ThirdW - hidehudCheckBox.Width) div 2;
+
+    // Vertically align checkboxes with FVisualCaptureBtn (Top 24, Height 28 -> center 38)
+    CY := FVisualCaptureBtn.Top + (FVisualCaptureBtn.Height - 22) div 2;
+    hudcompactCheckBox.Top := CY;
+    horizontalstrechCheckBox.Top := CY;
+    hidehudCheckBox.Top := CY;
+
+    // Position checkboxes sequentially to the right of FVisualCaptureBtn
+    ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 24;
+    hudcompactCheckBox.Left := ToggleRight;
+    horizontalstrechCheckBox.Left := hudcompactCheckBox.Left + hudcompactCheckBox.Width + 18;
+    hidehudCheckBox.Left := horizontalstrechCheckBox.Left + horizontalstrechCheckBox.Width + 18;
   end;
   end;
 end;
