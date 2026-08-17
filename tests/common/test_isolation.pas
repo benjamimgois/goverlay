@@ -12,7 +12,7 @@ procedure CleanupIsolatedEnvironment(ASuccess: Boolean);
 implementation
 
 uses
-  SysUtils, FileUtil, BaseUnix;
+  SysUtils, FileUtil, BaseUnix, apputils;
 
 {$IFDEF UNIX}
 // FPC 3.2 RTL ships no setenv wrapper; bind libc directly (test programs
@@ -93,6 +93,12 @@ begin
   for i := 0 to ParamCount do
     Args[i] := PChar(ParamStr(i));
   Args[ParamCount + 1] := nil;
+
+  // fpDup2 clears FD_CLOEXEC on the descriptor it writes to, so fds 1 and 2
+  // survive execv while the pipe's read end (CLOEXEC) and its reader thread do
+  // not. The child would then inherit a pipe nobody reads and die of SIGPIPE on
+  // its first WriteLn. Put the real stdout/stderr back before handing over.
+  RestoreStdoutHook;
   execv(PChar('/proc/self/exe'), PPChar(@Args[0]));
 
   // Only reached if exec fails
