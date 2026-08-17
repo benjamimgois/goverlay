@@ -77,6 +77,7 @@ type
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
     procedure TestProtonLocalShaderCacheTweak;
+    procedure TestProtonDiscordBridgeTweak;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -1598,6 +1599,25 @@ begin
   goverlayform.FProtonLocalShaderCacheCheckBox.Checked := False;
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   AssertEquals('PROTON_LOCAL_SHADER_CACHE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_LOCAL_SHADER_CACHE'));
+end;
+
+procedure TGoverlayGuiTests.TestProtonDiscordBridgeTweak;
+begin
+  NavigateTweaksTab;
+  AssertTrue('FProtonDiscordBridgeCheckBox created', Assigned(goverlayform.FProtonDiscordBridgeCheckBox));
+
+  goverlayform.FProtonDiscordBridgeCheckBox.Checked := True;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  AssertEquals('PROTON_DISCORD_BRIDGE persisted in bgmod.conf', '1', ReadBgmodConf('Env', 'PROTON_DISCORD_BRIDGE'));
+
+  // Reload config from bgmod.conf into UI and assert state is loaded
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('FProtonDiscordBridgeCheckBox reloaded as true', goverlayform.FProtonDiscordBridgeCheckBox.Checked);
+
+  goverlayform.FProtonDiscordBridgeCheckBox.Checked := False;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  AssertEquals('PROTON_DISCORD_BRIDGE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_DISCORD_BRIDGE'));
 end;
 
 procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;

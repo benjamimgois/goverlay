@@ -26,7 +26,7 @@ const
   // TWEAK_ROWS but share the category column of the backing grid.
   TWEAK_CAT_CUSTOM   = 4;
 
-  TWEAK_ROW_COUNT = 30;
+  TWEAK_ROW_COUNT = 31;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
@@ -57,7 +57,8 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache')
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.')
   );
 
 type
@@ -134,6 +135,7 @@ begin
     27: Result := Form.FAntilagCheckBox;
     28: Result := Form.FProtonVkd3dLowLatencyCheckBox;
     29: Result := Form.FProtonLocalShaderCacheCheckBox;
+    30: Result := Form.FProtonDiscordBridgeCheckBox;
   else
     Result := nil;
   end;
@@ -279,6 +281,12 @@ begin
   FForm.FProtonLocalShaderCacheCheckBox.Visible := False;
   FForm.FProtonLocalShaderCacheCheckBox.Name    := 'protonLocalShaderCacheCheckBox';
   FForm.FProtonLocalShaderCacheCheckBox.Caption := 'Enable PROTON_LOCAL_SHADER_CACHE';
+
+  FForm.FProtonDiscordBridgeCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonDiscordBridgeCheckBox.Parent  := FForm;
+  FForm.FProtonDiscordBridgeCheckBox.Visible := False;
+  FForm.FProtonDiscordBridgeCheckBox.Name    := 'protonDiscordBridgeCheckBox';
+  FForm.FProtonDiscordBridgeCheckBox.Caption := 'Enable PROTON_DISCORD_BRIDGE';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FForm.FTweaksGrid := TStringGrid.Create(FForm);
@@ -709,7 +717,8 @@ begin
           begin
             FForm.FTweaksHoverIdx := RowIdx;
             if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') then
+               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
+               (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
               TweakHint := 'Works only with proton-cachyos'
             else if CatIdx = TWEAK_CAT_LATENCY then
               TweakHint := 'Needs Korthos low latency layer installed';
@@ -725,7 +734,8 @@ begin
           begin
             FForm.FTweaksHoverIdx := RowIdx;
             if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') then
+               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
+               (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
               TweakHint := 'Works only with proton-cachyos'
             else if CatIdx = TWEAK_CAT_LATENCY then
               TweakHint := 'Needs Korthos low latency layer installed';
@@ -1231,6 +1241,7 @@ begin
                FForm.FLowLatencyHideAmdGpuCheckBox.Checked or
                FForm.FProtonVkd3dLowLatencyCheckBox.Checked or
                FForm.FProtonLocalShaderCacheCheckBox.Checked or
+               FForm.FProtonDiscordBridgeCheckBox.Checked or
                FForm.FFSR4UpgradeCheckBox.Checked or
                FForm.FDLSSUpgradeCheckBox.Checked or
                FForm.FXeSSUpgradeCheckBox.Checked or
@@ -1357,6 +1368,9 @@ begin
     if FForm.FProtonLocalShaderCacheCheckBox.Checked then
       Ini.WriteString('Env', 'PROTON_LOCAL_SHADER_CACHE', '1');
 
+    if FForm.FProtonDiscordBridgeCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_DISCORD_BRIDGE', '1');
+
     // 4. Custom environment variables from grid
     if Assigned(FForm.FTweaksGrid) then
     begin
@@ -1455,6 +1469,7 @@ begin
   FForm.FLowLatencyHideAmdGpuCheckBox.Checked := False;
   FForm.FProtonVkd3dLowLatencyCheckBox.Checked := False;
   FForm.FProtonLocalShaderCacheCheckBox.Checked := False;
+  FForm.FProtonDiscordBridgeCheckBox.Checked := False;
 
   // Reset custom env list
   FForm.customenvEdit.Text := '';
@@ -1546,6 +1561,8 @@ begin
         FForm.FProtonVkd3dLowLatencyCheckBox.Checked := Val = '1'
       else if SameText(Key, 'PROTON_LOCAL_SHADER_CACHE') then
         FForm.FProtonLocalShaderCacheCheckBox.Checked := Val = '1'
+      else if SameText(Key, 'PROTON_DISCORD_BRIDGE') then
+        FForm.FProtonDiscordBridgeCheckBox.Checked := Val = '1'
       else if not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
       begin
         // Treat as custom environment variable
