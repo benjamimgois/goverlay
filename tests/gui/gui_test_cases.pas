@@ -748,14 +748,21 @@ begin
   // Switch to MangoHud tab -> dock updated (Preview, Menu, Finish)
   goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
   AssertFalse('Legacy goverlaybarPanel is not visible on MangoHud', goverlayform.goverlaybarPanel.Visible);
+  AssertTrue('Dock is visible on MangoHud', goverlayform.FFADock.Visible);
 
   // Switch to Tweaks tab -> dock updated (Add, Finish)
   goverlayform.tweaksLabel.OnClick(goverlayform.tweaksLabel);
   AssertFalse('Legacy goverlaybarPanel is not visible on Tweaks', goverlayform.goverlaybarPanel.Visible);
+  AssertTrue('Dock is visible on Tweaks', goverlayform.FFADock.Visible);
 
   // Switch to OptiScaler tab -> dock updated to solo Finish pill
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertFalse('Legacy goverlaybarPanel is not visible on OptiScaler', goverlayform.goverlaybarPanel.Visible);
+  AssertTrue('Dock is visible on OptiScaler', goverlayform.FFADock.Visible);
+
+  // Switch to Games tab -> dock completely hidden (no pill on games tab)
+  goverlayform.gamesLabelClick(nil);
+  AssertFalse('Dock is NOT visible on Games tab', goverlayform.FFADock.Visible);
 
   // Progress overlay test
   goverlayform.FFloatingProgress.ShowProgress('Testing progress...', 50);

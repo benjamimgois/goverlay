@@ -2780,7 +2780,7 @@ begin
   FFADock.OnAddClick     := @DockAddClick;
   FFADock.OnFinishClick  := @DockFinishClick;
   // Start hidden; each tab-switch will call UpdateForTab to show/configure it.
-  FFADock.UpdateForTab(False, False, False);
+  FFADock.UpdateForTab(False, False, False, False);
 
   // Initialize floating overlays
   FFloatingToast    := TFloatingToast.Create(goverlayPanel);
@@ -4779,7 +4779,7 @@ begin
 
 
   // Floating dock hidden on Games tab
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False, False);
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);

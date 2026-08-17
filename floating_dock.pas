@@ -9,9 +9,9 @@ unit floating_dock;
 //    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
 //    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options)
 //    [   + Add   ]   (optional — shown on EnvVars tab)
-//    [  ✦ Finish ]   (primary accent button, always visible)
+//    [  ✦ Finish ]   (primary accent button, always visible when dock is shown)
 //
-//  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd) on tab switch.
+//  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd, AVisible) on tab switch.
 // ---------------------------------------------------------------------------
 
 interface
@@ -46,6 +46,8 @@ type
     FOnAddClick:     TNotifyEvent;
     FOnFinishClick:  TNotifyEvent;
 
+    function  GetVisible: Boolean;
+    procedure SetVisible(AValue: Boolean);
     procedure PillPaint(Sender: TObject);
     procedure FinishBtnClick(Sender: TObject);
     procedure MenuBtnClick(Sender: TObject);
@@ -61,10 +63,14 @@ type
     // AShowPreview: True for tabs with 3D preview support
     // AShowMenu: True for tabs with popup menu options
     // AShowAdd: True for EnvVars tab
-    procedure UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean);
+    // AVisible: False to completely hide the dock (e.g. on Games tab)
+    procedure UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True);
 
+    procedure Show;
+    procedure Hide;
     procedure BringToFront;
 
+    property Visible:        Boolean      read GetVisible write SetVisible;
     property OnPreviewClick: TNotifyEvent read FOnPreviewClick write FOnPreviewClick;
     property OnMenuClick:    TNotifyEvent read FOnMenuClick    write FOnMenuClick;
     property OnAddClick:     TNotifyEvent read FOnAddClick     write FOnAddClick;
@@ -190,6 +196,34 @@ destructor TFloatingActionDock.Destroy;
 begin
   FDockPanel.Visible := False;
   inherited;
+end;
+
+function TFloatingActionDock.GetVisible: Boolean;
+begin
+  if Assigned(FDockPanel) then
+    Result := FDockPanel.Visible
+  else
+    Result := False;
+end;
+
+procedure TFloatingActionDock.SetVisible(AValue: Boolean);
+begin
+  if Assigned(FDockPanel) then
+  begin
+    FDockPanel.Visible := AValue;
+    if AValue then
+      FDockPanel.BringToFront;
+  end;
+end;
+
+procedure TFloatingActionDock.Show;
+begin
+  SetVisible(True);
+end;
+
+procedure TFloatingActionDock.Hide;
+begin
+  SetVisible(False);
 end;
 
 // ---------------------------------------------------------------------------
@@ -336,8 +370,11 @@ end;
 // Public methods
 // ---------------------------------------------------------------------------
 
-procedure TFloatingActionDock.UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean);
+procedure TFloatingActionDock.UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True);
 begin
+  SetVisible(AVisible);
+  if not AVisible then Exit;
+
   FPreviewVisible := AShowPreview;
   FMenuVisible    := AShowMenu;
   FAddVisible     := AShowAdd;
@@ -348,7 +385,8 @@ end;
 
 procedure TFloatingActionDock.BringToFront;
 begin
-  FDockPanel.BringToFront;
+  if FDockPanel.Visible then
+    FDockPanel.BringToFront;
 end;
 
 end.
