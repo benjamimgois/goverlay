@@ -196,16 +196,17 @@ begin
   FForm.FTweaksScrollBar.Visible     := False;
   FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
 
-  // Floating Action Button — circular "+"
+  // Floating Action Button — pill "+ Add"
   FForm.FTweaksFABBtn := TSpeedButton.Create(FForm);
   FForm.FTweaksFABBtn.Parent       := FForm.tweaksTabSheet;
-  FForm.FTweaksFABBtn.Width        := 48;
-  FForm.FTweaksFABBtn.Height       := 48;
-  FForm.FTweaksFABBtn.Left         := FForm.tweaksTabSheet.ClientWidth - 64;
-  FForm.FTweaksFABBtn.Top          := FForm.tweaksTabSheet.ClientHeight - 96; // above Save button
+  FForm.FTweaksFABBtn.Width        := 88;
+  FForm.FTweaksFABBtn.Height       := 36;
+  FForm.FTweaksFABBtn.Left         := FForm.tweaksTabSheet.ClientWidth - 88 - 24;
+  FForm.FTweaksFABBtn.Top          := FForm.tweaksTabSheet.ClientHeight - 36 - 80; // above Finish pill dock
   FForm.FTweaksFABBtn.Anchors      := [akRight, akBottom];
-  FForm.FTweaksFABBtn.Caption      := '+';
-  FForm.FTweaksFABBtn.Font.Size    := 24;
+  FForm.FTweaksFABBtn.Caption      := '+ Add';
+  FForm.FTweaksFABBtn.Font.Name    := 'Noto Sans';
+  FForm.FTweaksFABBtn.Font.Size    := 9;
   FForm.FTweaksFABBtn.Font.Style   := [fsBold];
   FForm.FTweaksFABBtn.Font.Color   := clWhite;
   FForm.FTweaksFABBtn.Flat         := True;
@@ -308,28 +309,39 @@ procedure TTweaksMD3Helper.FABPaint(Sender: TObject);
 var
   Btn: TSpeedButton;
   R: TRect;
-  PlusW, PlusH: Integer;
+  Rad, TextW, TextH: Integer;
+  CaptionText: string;
 begin
   Btn := Sender as TSpeedButton;
   R := Rect(0, 0, Btn.Width, Btn.Height);
+  Rad := Btn.Height div 2;
 
-  // Circle background
-  Btn.Canvas.Brush.Color := RGBToColor(48, 190, 240); // accent cyan
+  // Clear corners with container background
+  Btn.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  Btn.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
+  Btn.Canvas.FillRect(R);
+
+  // Drop shadow
+  Btn.Canvas.Brush.Color := RGBToColor(0, 0, 0);
+  Btn.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
+  Btn.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
+
+  // Pill fill (Accent cyan)
+  Btn.Canvas.Brush.Color := RGBToColor(32, 120, 180);
   Btn.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
-  Btn.Canvas.Ellipse(R);
+  Btn.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
 
-  // Shadow ring
-  Btn.Canvas.Pen.Color := RGBToColor(38, 160, 210);
-  Btn.Canvas.Ellipse(R.Left + 1, R.Top + 1, R.Right - 1, R.Bottom - 1);
-
-  // Draw "+" manually in the centre
-  Btn.Canvas.Font.Name  := 'DejaVu Sans';
-  Btn.Canvas.Font.Size  := 22;
+  // Text "+ Add"
+  CaptionText := '+ Add';
+  Btn.Canvas.Font.Name  := 'Noto Sans';
+  Btn.Canvas.Font.Size  := 9;
   Btn.Canvas.Font.Style := [fsBold];
   Btn.Canvas.Font.Color := clWhite;
-  PlusW := Btn.Canvas.TextWidth('+');
-  PlusH := Btn.Canvas.TextHeight('+');
-  Btn.Canvas.TextOut((Btn.Width - PlusW) div 2, (Btn.Height - PlusH) div 2 - 1, '+');
+  Btn.Canvas.Brush.Style := bsClear;
+  TextW := Btn.Canvas.TextWidth(CaptionText);
+  TextH := Btn.Canvas.TextHeight(CaptionText);
+  Btn.Canvas.TextOut((Btn.Width - TextW) div 2, (Btn.Height - TextH) div 2, CaptionText);
+  Btn.Canvas.Brush.Style := bsSolid;
 end;
 
 procedure TTweaksMD3Helper.Paint(Sender: TObject);

@@ -744,12 +744,18 @@ end;
 procedure TGoverlayGuiTests.TestFloatingActionDockAndFinishDialog;
 begin
   AssertTrue('FFADock is assigned', Assigned(goverlayform.FFADock));
+  AssertTrue('FTweaksFABBtn is assigned', Assigned(goverlayform.FTweaksFABBtn));
+  AssertEquals('FTweaksFABBtn caption is + Add', '+ Add', goverlayform.FTweaksFABBtn.Caption);
 
   // Switch to MangoHud tab -> dock updated
   goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
   AssertFalse('Legacy goverlaybarPanel is not visible on MangoHud', goverlayform.goverlaybarPanel.Visible);
 
-  // Switch to OptiScaler tab -> dock updated
+  // Switch to Tweaks tab -> dock updated to solo Finish pill
+  goverlayform.tweaksLabel.OnClick(goverlayform.tweaksLabel);
+  AssertFalse('Legacy goverlaybarPanel is not visible on Tweaks', goverlayform.goverlaybarPanel.Visible);
+
+  // Switch to OptiScaler tab -> dock updated to solo Finish pill
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertFalse('Legacy goverlaybarPanel is not visible on OptiScaler', goverlayform.goverlaybarPanel.Visible);
 

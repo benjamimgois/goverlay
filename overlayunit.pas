@@ -1786,8 +1786,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-//Show Global Enable controls — no preview on tweaks tab
-if Assigned(FFADock) then FFADock.UpdateForTab(False);
+// Floating dock — no preview and no menu on tweaks tab
+if Assigned(FFADock) then FFADock.UpdateForTab(False, False);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
@@ -1933,8 +1933,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  // Floating dock — show Preview button for vkBasalt/vkSumi
-  if Assigned(FFADock) then FFADock.UpdateForTab(True);
+  // Floating dock — show Preview and Menu buttons for vkBasalt/vkSumi
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True);
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -4821,8 +4821,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-//Show Global Enable controls — show Preview button for MangoHud
-if Assigned(FFADock) then FFADock.UpdateForTab(True);
+// Floating dock — show Preview and Menu buttons for MangoHud
+if Assigned(FFADock) then FFADock.UpdateForTab(True, True);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
@@ -5001,8 +5001,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  // Floating dock — no Preview button for OptiScaler
-  if Assigned(FFADock) then FFADock.UpdateForTab(False);
+  // Floating dock — no Preview and no Menu on OptiScaler tab
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False);
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;

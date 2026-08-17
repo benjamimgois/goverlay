@@ -94,8 +94,8 @@ begin
   FToastPanel.Parent := AParent;
   FToastPanel.BevelOuter := bvNone;
   FToastPanel.BevelInner := bvNone;
-  FToastPanel.Color := clNone;
-  FToastPanel.ParentBackground := True;
+  FToastPanel.Color := RGBToColor(22, 26, 40);
+  FToastPanel.ParentBackground := False;
   FToastPanel.Width := TOAST_W;
   FToastPanel.Height := TOAST_H;
   FToastPanel.Anchors := [akLeft, akBottom];
@@ -130,6 +130,11 @@ begin
   PB := Sender as TPaintBox;
   R := Rect(0, 0, PB.Width, PB.Height);
   Rad := PB.Height div 2;
+
+  // Clear bounding rect with container background to eliminate white edges
+  PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
+  PB.Canvas.FillRect(R);
 
   // Drop shadow
   PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
@@ -218,8 +223,8 @@ begin
   FBannerPanel.Parent := AParent;
   FBannerPanel.BevelOuter := bvNone;
   FBannerPanel.BevelInner := bvNone;
-  FBannerPanel.Color := clNone;
-  FBannerPanel.ParentBackground := True;
+  FBannerPanel.Color := RGBToColor(22, 26, 40);
+  FBannerPanel.ParentBackground := False;
   FBannerPanel.Width := BANNER_W;
   FBannerPanel.Height := BANNER_H;
   FBannerPanel.Anchors := [akTop];
@@ -249,6 +254,11 @@ begin
   PB := Sender as TPaintBox;
   R := Rect(0, 0, PB.Width, PB.Height);
   Rad := 12;
+
+  // Clear bounding rect with container background to eliminate white edges
+  PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
+  PB.Canvas.FillRect(R);
 
   // Drop shadow
   PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);

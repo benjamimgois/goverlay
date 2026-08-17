@@ -4,20 +4,19 @@ unit floating_dock;
 
 // ---------------------------------------------------------------------------
 //  TFloatingActionDock — a compact pill-style floating action bar that sits
-//  above the bottom-right corner of goverlayPanel.  It hosts up to three
-//  contextual buttons:
+//  above the bottom-right corner of goverlayPanel. It hosts contextual buttons:
 //
-//    [ ▶ Preview ]   (optional — hidden on tabs without 3D support)
-//    [  ☰  Menu  ]
-//    [ ✦ Finish Config ]  (primary accent button, always visible)
+//    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
+//    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options)
+//    [ ✦ Finish  ]   (primary accent button, always visible)
 //
-//  Call UpdateForTab() whenever the active navigation tab changes.
+//  Call UpdateForTab(AShowPreview, AShowMenu) whenever the navigation tab changes.
 // ---------------------------------------------------------------------------
 
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, Buttons, StdCtrls,
+  Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, Buttons,
   LCLIntf, LCLType, Math;
 
 type
@@ -25,18 +24,19 @@ type
   { TFloatingActionDock }
   TFloatingActionDock = class(TObject)
   private
-    FParent:       TWinControl;   // goverlayPanel or similar
-    FDockPanel:    TPanel;        // invisible container — clips all children
+    FParent:         TWinControl;   // goverlayPanel
+    FDockPanel:      TPanel;        // container
 
     // Inner pill paint box (draws the pill background)
-    FPillBox:      TPaintBox;
+    FPillBox:        TPaintBox;
 
-    // Buttons (in pill, right-to-left layout)
-    FFinishBtn:    TSpeedButton;
-    FMenuBtn:      TSpeedButton;
-    FPreviewBtn:   TSpeedButton;
+    // Buttons (in pill, left-to-right layout)
+    FPreviewBtn:     TSpeedButton;
+    FMenuBtn:        TSpeedButton;
+    FFinishBtn:      TSpeedButton;
 
-    FPreviewVisible: Boolean;     // current state
+    FPreviewVisible: Boolean;
+    FMenuVisible:    Boolean;
 
     FOnPreviewClick: TNotifyEvent;
     FOnMenuClick:    TNotifyEvent;
@@ -52,9 +52,10 @@ type
     constructor Create(AParent: TWinControl);
     destructor  Destroy; override;
 
-    // Call after the parent has been resized or when switching tabs.
+    // Call when switching tabs.
     // AShowPreview: True for tabs that support 3D preview (MangoHud, vkBasalt, vkSumi)
-    procedure UpdateForTab(AShowPreview: Boolean);
+    // AShowMenu: True if the tab has popup menu options
+    procedure UpdateForTab(AShowPreview: Boolean; AShowMenu: Boolean = True);
 
     procedure BringToFront;
 
@@ -75,23 +76,12 @@ const
   BTN_GAP       = 4;    // gap between buttons
   PREVIEW_W     = 108;  // width of preview button
   MENU_W        = 44;   // width of menu button
-  FINISH_W      = 140;  // width of finish button
+  FINISH_W      = 100;  // width of finish button
   INNER_PAD_X   = 8;    // horizontal padding inside pill
   INNER_PAD_Y   = 6;    // vertical padding inside pill
 
-  // Pill colours
-  CLR_PILL_BG     = $2A2218;   // #18222A — very dark navy surface
-  CLR_PILL_BORDER = $4E4030;   // #30404E — muted border
-  CLR_PILL_SHADOW = $00000000; // not used directly (we draw manually)
-
-  // Finish button accent
-  CLR_FINISH_BG   = $B07820;   // #2078B0 — vivid cyan (BGR)
-  CLR_FINISH_HV   = $C08830;   // hover lighten
-
-  CLR_BTN_BG      = $3A2E22;   // standard button surface
-  CLR_BTN_FG      = $C8C0B8;   // standard button text (muted white)
-  CLR_FINISH_FG   = $FFFFFF;   // finish button text (white)
-  CLR_ACCENT_FG   = $F0BE30;   // accent colour for finish label
+  // Parent background color to eliminate white corner artifacts
+  CLR_CONTAINER_BG = $281A16; // RGBToColor(22, 26, 40) in BGR
 
 // ---------------------------------------------------------------------------
 // Constructor / Destructor
@@ -102,30 +92,30 @@ var
   TotalPillW, TotalPillH: Integer;
 begin
   inherited Create;
-  FParent := AParent;
+  FParent         := AParent;
   FPreviewVisible := True;
+  FMenuVisible    := True;
 
-  // Total pill size (calculated for max 3 buttons)
   TotalPillW := INNER_PAD_X * 2
               + PREVIEW_W + BTN_GAP
               + MENU_W    + BTN_GAP
               + FINISH_W;
   TotalPillH := BTN_H + INNER_PAD_Y * 2;
 
-  // Invisible anchor panel — just used for positioning/clipping
-  FDockPanel               := TPanel.Create(AParent);
-  FDockPanel.Parent        := AParent;
-  FDockPanel.BevelOuter    := bvNone;
-  FDockPanel.BevelInner    := bvNone;
-  FDockPanel.Color         := clNone;
-  FDockPanel.ParentBackground := True;
-  FDockPanel.Width         := TotalPillW;
-  FDockPanel.Height        := TotalPillH;
-  FDockPanel.Anchors       := [akRight, akBottom];
-  FDockPanel.Left          := AParent.ClientWidth - TotalPillW - DOCK_RIGHT;
-  FDockPanel.Top           := AParent.ClientHeight - TotalPillH - DOCK_BOTTOM;
+  // Anchor panel matching container background seamlessly
+  FDockPanel                  := TPanel.Create(AParent);
+  FDockPanel.Parent           := AParent;
+  FDockPanel.BevelOuter       := bvNone;
+  FDockPanel.BevelInner       := bvNone;
+  FDockPanel.Color            := RGBToColor(22, 26, 40);
+  FDockPanel.ParentBackground := False;
+  FDockPanel.Width            := TotalPillW;
+  FDockPanel.Height           := TotalPillH;
+  FDockPanel.Anchors          := [akRight, akBottom];
+  FDockPanel.Left             := AParent.ClientWidth - TotalPillW - DOCK_RIGHT;
+  FDockPanel.Top              := AParent.ClientHeight - TotalPillH - DOCK_BOTTOM;
 
-  // Pill background paint box (fills the dock panel)
+  // Pill background paint box
   FPillBox             := TPaintBox.Create(FDockPanel);
   FPillBox.Parent      := FDockPanel;
   FPillBox.Left        := 0;
@@ -164,7 +154,7 @@ begin
   // ---- Finish button ----
   FFinishBtn              := TSpeedButton.Create(FDockPanel);
   FFinishBtn.Parent       := FDockPanel;
-  FFinishBtn.Caption      := ' ✦ Finish Config';
+  FFinishBtn.Caption      := ' ✦ Finish';
   FFinishBtn.Font.Name    := 'Noto Sans';
   FFinishBtn.Font.Size    := 9;
   FFinishBtn.Font.Style   := [fsBold];
@@ -179,7 +169,6 @@ end;
 
 destructor TFloatingActionDock.Destroy;
 begin
-  // FDockPanel and its children are owned by AParent — do not free here
   FDockPanel.Visible := False;
   inherited;
 end;
@@ -192,22 +181,17 @@ procedure TFloatingActionDock.LayoutButtons;
 var
   X, TotalPillW: Integer;
 begin
-  // Determine total pill width based on preview visibility
+  TotalPillW := INNER_PAD_X * 2 + FINISH_W;
   if FPreviewVisible then
-    TotalPillW := INNER_PAD_X * 2
-                + PREVIEW_W + BTN_GAP
-                + MENU_W    + BTN_GAP
-                + FINISH_W
-  else
-    TotalPillW := INNER_PAD_X * 2
-                + MENU_W + BTN_GAP
-                + FINISH_W;
+    Inc(TotalPillW, PREVIEW_W + BTN_GAP);
+  if FMenuVisible then
+    Inc(TotalPillW, MENU_W + BTN_GAP);
 
-  // Resize the dock panel
+  // Resize the dock panel and reposition to right edge
   FDockPanel.Width  := TotalPillW;
   FDockPanel.Left   := FParent.ClientWidth - TotalPillW - DOCK_RIGHT;
 
-  // Resize pill box to match
+  // Resize pill box
   FPillBox.Width := TotalPillW;
 
   // Place buttons left-to-right inside pill
@@ -222,8 +206,14 @@ begin
   else
     FPreviewBtn.Visible := False;
 
-  FMenuBtn.SetBounds(X, INNER_PAD_Y, MENU_W, BTN_H);
-  Inc(X, MENU_W + BTN_GAP);
+  if FMenuVisible then
+  begin
+    FMenuBtn.SetBounds(X, INNER_PAD_Y, MENU_W, BTN_H);
+    FMenuBtn.Visible := True;
+    Inc(X, MENU_W + BTN_GAP);
+  end
+  else
+    FMenuBtn.Visible := False;
 
   FFinishBtn.SetBounds(X, INNER_PAD_Y, FINISH_W, BTN_H);
 end;
@@ -236,36 +226,53 @@ procedure TFloatingActionDock.PillPaint(Sender: TObject);
 var
   PB: TPaintBox;
   R: TRect;
-  Rad, BX, BW: Integer;
+  Rad, BX: Integer;
+  IsSoloFinish: Boolean;
 begin
   PB  := Sender as TPaintBox;
   R   := Rect(0, 0, PB.Width, PB.Height);
-  Rad := (PB.Height) div 2;  // full pill radius
+  Rad := PB.Height div 2;
 
-  // Drop shadow (simple offset rectangle, slightly darker)
+  // 1. Clear full rect with the parent background color to eliminate white edges
+  PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
+  PB.Canvas.FillRect(R);
+
+  // 2. Drop shadow
   PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
   PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 3, R.Top + 4, R.Right + 3, R.Bottom + 4, Rad, Rad);
+  PB.Canvas.RoundRect(R.Left + 2, R.Top + 3, R.Right + 2, R.Bottom + 3, Rad, Rad);
 
-  // Pill background
-  PB.Canvas.Brush.Color := RGBToColor(24, 30, 42);
-  PB.Canvas.Pen.Color   := RGBToColor(46, 58, 80);
-  PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+  IsSoloFinish := not FPreviewVisible and not FMenuVisible;
 
-  // Finish button accent background (right portion)
-  BX := FFinishBtn.Left;
-  BW := FINISH_W;
-  PB.Canvas.Brush.Color := RGBToColor(32, 120, 180);   // cyan accent fill
-  PB.Canvas.Pen.Color   := RGBToColor(32, 120, 180);
-  // Draw right-rounded accent area
-  PB.Canvas.RoundRect(BX, R.Top + 1, R.Right - 1, R.Bottom - 1, Rad - 1, Rad - 1);
-  // Square off the left side of the accent area by drawing a filled rect
-  PB.Canvas.FillRect(Rect(BX, R.Top + 1, BX + Rad, R.Bottom - 1));
+  if IsSoloFinish then
+  begin
+    // Standalone Finish pill: entire pill has the cyan accent fill
+    PB.Canvas.Brush.Color := RGBToColor(32, 120, 180);
+    PB.Canvas.Pen.Color   := RGBToColor(48, 190, 240);
+    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+  end
+  else
+  begin
+    // Multi-button pill: dark background
+    PB.Canvas.Brush.Color := RGBToColor(24, 30, 42);
+    PB.Canvas.Pen.Color   := RGBToColor(46, 58, 80);
+    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
 
-  // Separator line between menu and finish
-  PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
-  PB.Canvas.MoveTo(BX, R.Top + 6);
-  PB.Canvas.LineTo(BX, R.Bottom - 6);
+    // Finish button accent background (right portion)
+    BX := FFinishBtn.Left;
+    PB.Canvas.Brush.Color := RGBToColor(32, 120, 180);
+    PB.Canvas.Pen.Color   := RGBToColor(32, 120, 180);
+    // Draw right-rounded accent area
+    PB.Canvas.RoundRect(BX, R.Top + 1, R.Right - 1, R.Bottom - 1, Rad - 1, Rad - 1);
+    // Square off the left side of the accent area
+    PB.Canvas.FillRect(Rect(BX, R.Top + 1, BX + Rad, R.Bottom - 1));
+
+    // Separator line before finish button
+    PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
+    PB.Canvas.MoveTo(BX, R.Top + 6);
+    PB.Canvas.LineTo(BX, R.Bottom - 6);
+  end;
 end;
 
 // ---------------------------------------------------------------------------
@@ -291,9 +298,10 @@ end;
 // Public methods
 // ---------------------------------------------------------------------------
 
-procedure TFloatingActionDock.UpdateForTab(AShowPreview: Boolean);
+procedure TFloatingActionDock.UpdateForTab(AShowPreview: Boolean; AShowMenu: Boolean = True);
 begin
   FPreviewVisible := AShowPreview;
+  FMenuVisible    := AShowMenu;
   LayoutButtons;
   FPillBox.Invalidate;
   FDockPanel.BringToFront;
