@@ -3136,9 +3136,7 @@ begin
   FStartupDownloadsChecked := True;
 
   NeedsDownload := (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll')) or
-                   (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'OptiScaler.dll')) or
-                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll')) or
-                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(False)) + 'version.dll'));
+                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll'));
 
   if not NeedsDownload then Exit;
 
@@ -9192,11 +9190,8 @@ end;
 procedure TStartupDownloadThread.Execute;
 begin
   try
-    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 25%)
-    CheckAndInstallOptiScaler(GetFGModPath, False, @OnDownloadProgress);  // Edge channel (25% - 50%)
-
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (50% - 75%)
-    CheckAndInstallDlssEnabler(False, False, @OnDownloadProgress);         // Edge channel (75% - 95%)
+    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 50%)
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (50% - 95%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

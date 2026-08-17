@@ -259,10 +259,12 @@ begin
       if (CurrentVersion = '') and Assigned(FOptiTab.FDlssEnablerLabel) then
         CurrentVersion := FOptiTab.FDlssEnablerLabel.Caption;
 
-      HasUpdate := (FLatestOptiTag <> '') and (CurrentVersion <> '') and (CurrentVersion <> '—') and
-                   (not SameText(CurrentVersion, FLatestOptiTag)) and
-                   (Pos(CurrentVersion, FLatestOptiTag) <> 1) and
-                   (Pos(FLatestOptiTag, CurrentVersion) <> 1);
+      HasUpdate := (FLatestOptiTag <> '') and (
+                   (CurrentVersion = '') or (CurrentVersion = '—') or (CurrentVersion = '--') or
+                   ((not SameText(CurrentVersion, FLatestOptiTag)) and
+                    (Pos(CurrentVersion, FLatestOptiTag) <> 1) and
+                    (Pos(FLatestOptiTag, CurrentVersion) <> 1))
+                   );
 
       if HasUpdate then
       begin
@@ -288,7 +290,15 @@ begin
       else
         CurrentVersion := '';
 
-      if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
+      if (FLatestOptiTag <> '') and ((CurrentVersion = '') or (CurrentVersion = '—') or (CurrentVersion = '--')) then
+      begin
+        FOptiTab.FOptiLabel2.Hint := FLatestOptiTag;
+        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+        FOptiTab.FOptiLabel2.Font.Color := clLime;
+        FOptiTab.FOptiLabel2.Visible := True;
+        HasUpdates := True;
+      end
+      else if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
       begin
         NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
         NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
@@ -2829,26 +2839,26 @@ begin
   if AIsStable then
   begin
     ChanLabel := 'Downloading DLSS-Enabler stable';
-    StartPct := 45;
-    EndPct := 65;
+    StartPct := 50;
+    EndPct := 95;
   end
   else
   begin
     ChanLabel := 'Downloading DLSS-Enabler edge';
-    StartPct := 75;
+    StartPct := 50;
     EndPct := 95;
   end;
 
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
     if Assigned(AOnProgress) then
-      AOnProgress(EndPct + 5, ChanLabel);
+      AOnProgress(EndPct, ChanLabel);
     Result := True;
     Exit;
   end;
 
   if Assigned(AOnProgress) then
-    AOnProgress(StartPct - 3, ChanLabel);
+    AOnProgress(StartPct + 2, ChanLabel);
 
   ForceDirectories(DestDir);
   if AIsStable then
@@ -3214,13 +3224,13 @@ begin
     TargetCacheDir := GetBGModOriginalPath;
     ChanLabel := 'Downloading Optiscaler stable';
     StartPct := 0;
-    EndPct := 25;
+    EndPct := 50;
   end
   else
   begin
     TargetCacheDir := GetBGModOriginalEdgePath;
     ChanLabel := 'Downloading Optiscaler edge';
-    StartPct := 25;
+    StartPct := 0;
     EndPct := 50;
   end;
 

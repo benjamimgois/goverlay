@@ -1,10 +1,4 @@
-# Capability Spec: Startup Asset Pre-download and Progress UI
-
-## Purpose
-
-Ensures missing OptiScaler and DLSS Enabler asset binaries (stable channels only) are automatically pre-downloaded on startup with a clean, borderless boot splash progress UI, while bleeding-edge channels are downloaded on-demand in the UI.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Startup Pre-download of DLSS Enabler Channels
 - WHEN GOverlay starts up:
