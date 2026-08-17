@@ -1,9 +1,4 @@
-# nonsteam-add-folder-floating-button Specification
-
-## Purpose
-Provides contextual non-Steam game folder management directly on the Games tab through the floating action dock and hamburger menu.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Floating action button on Add game folder card
 GOverlay SHALL provide non-Steam game folder addition and management through the Floating Action Dock and its contextual hamburger menu, rather than displaying a dummy add card or hovering three-dot button in the games grid.

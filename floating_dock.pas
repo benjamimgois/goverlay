@@ -49,6 +49,8 @@ type
     FPreviewVisible: Boolean;
     FMenuVisible:    Boolean;
     FAddVisible:     Boolean;
+    FFinishVisible:  Boolean;
+    FAddCaption:     string;
 
     FOnPreviewClick: TNotifyEvent;
     FOnMenuClick:    TNotifyEvent;
@@ -104,9 +106,12 @@ type
     // Call when switching tabs:
     // AShowPreview: True for tabs with 3D preview support
     // AShowMenu: True for tabs with popup menu options
-    // AShowAdd: True for EnvVars tab
-    // AVisible: False to completely hide the dock (e.g. on Games tab)
-    procedure UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True);
+    // AShowAdd: True for EnvVars/Games tab
+    // AVisible: False to completely hide the dock (e.g. on Home tab)
+    // AShowFinish: True to display the primary Finish button (False on Games tab)
+    // AAddCaption: Button text for the Add button (e.g. '+ Add' or '+ Add Folder')
+    procedure UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True;
+      AShowFinish: Boolean = True; const AAddCaption: string = '+ Add');
 
     procedure Show;
     procedure Hide;
@@ -214,6 +219,8 @@ begin
   FPreviewVisible := True;
   FMenuVisible    := True;
   FAddVisible     := False;
+  FFinishVisible  := True;
+  FAddCaption     := '+ Add';
 
   FMenuHovered    := False;
   FMenuPressed    := False;
@@ -279,7 +286,7 @@ begin
   FPreviewBox.ShowHint     := True;
   FPreviewBox.Hint         := 'Launch a quick 3D preview (pascube / vkcube)';
 
-  // ---- Add button (EnvVars, custom state-aware painting) ----
+  // ---- Add button (EnvVars / Games, custom state-aware painting) ----
   FAddBox              := TPaintBox.Create(FDockPanel);
   FAddBox.Parent       := FDockPanel;
   FAddBox.Cursor       := crHandPoint;
@@ -290,7 +297,7 @@ begin
   FAddBox.OnMouseUp    := @AddMouseUp;
   FAddBox.OnClick      := @AddClick;
   FAddBox.ShowHint     := True;
-  FAddBox.Hint         := 'Add custom environment variable';
+  FAddBox.Hint         := 'Add action';
 
   // ---- Finish button (custom state-aware painting) ----
   FFinishBox              := TPaintBox.Create(FDockPanel);
@@ -348,15 +355,42 @@ end;
 
 procedure TFloatingActionDock.LayoutButtons;
 var
-  X, TotalPillW: Integer;
+  X, TotalPillW, AddW, VisibleBtnCount: Integer;
 begin
-  TotalPillW := INNER_PAD_X * 2 + FINISH_W;
-  if FPreviewVisible then
-    Inc(TotalPillW, PREVIEW_W + BTN_GAP);
+  if Length(FAddCaption) > 6 then
+    AddW := 104
+  else
+    AddW := ADD_W;
+
+  TotalPillW := INNER_PAD_X * 2;
+  VisibleBtnCount := 0;
+
   if FMenuVisible then
-    Inc(TotalPillW, MENU_W + BTN_GAP);
+  begin
+    Inc(TotalPillW, MENU_W);
+    Inc(VisibleBtnCount);
+  end;
+  if FPreviewVisible then
+  begin
+    Inc(TotalPillW, PREVIEW_W);
+    Inc(VisibleBtnCount);
+  end;
   if FAddVisible then
-    Inc(TotalPillW, ADD_W + BTN_GAP);
+  begin
+    Inc(TotalPillW, AddW);
+    Inc(VisibleBtnCount);
+  end;
+  if FFinishVisible then
+  begin
+    Inc(TotalPillW, FINISH_W);
+    Inc(VisibleBtnCount);
+  end;
+
+  if VisibleBtnCount > 1 then
+    Inc(TotalPillW, (VisibleBtnCount - 1) * BTN_GAP);
+
+  if TotalPillW < INNER_PAD_X * 2 + 50 then
+    TotalPillW := INNER_PAD_X * 2 + 50;
 
   // Resize the dock panel and reposition to right edge
   FDockPanel.Width  := TotalPillW;
@@ -391,14 +425,20 @@ begin
 
   if FAddVisible then
   begin
-    FAddBox.SetBounds(X, INNER_PAD_Y, ADD_W, BTN_H);
+    FAddBox.SetBounds(X, INNER_PAD_Y, AddW, BTN_H);
     FAddBox.Visible := True;
-    Inc(X, ADD_W + BTN_GAP);
+    Inc(X, AddW + BTN_GAP);
   end
   else
     FAddBox.Visible := False;
 
-  FFinishBox.SetBounds(X, INNER_PAD_Y, FINISH_W, BTN_H);
+  if FFinishVisible then
+  begin
+    FFinishBox.SetBounds(X, INNER_PAD_Y, FINISH_W, BTN_H);
+    FFinishBox.Visible := True;
+  end
+  else
+    FFinishBox.Visible := False;
 end;
 
 // ---------------------------------------------------------------------------
@@ -447,7 +487,7 @@ begin
   PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
   PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
 
-  IsSoloFinish := not FPreviewVisible and not FMenuVisible and not FAddVisible;
+  IsSoloFinish := FFinishVisible and not FPreviewVisible and not FMenuVisible and not FAddVisible;
   FinishFill   := GetFinishFillColor;
 
   if IsSoloFinish then
@@ -464,19 +504,22 @@ begin
     PB.Canvas.Pen.Color   := RGBToColor(46, 58, 80);
     PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
 
-    // Finish button accent background (right portion)
-    BX := FFinishBox.Left;
-    PB.Canvas.Brush.Color := FinishFill;
-    PB.Canvas.Pen.Color   := FinishFill;
-    // Draw right-rounded accent area
-    PB.Canvas.RoundRect(BX, R.Top + 1, R.Right - 1, R.Bottom - 1, Rad - 1, Rad - 1);
-    // Square off the left side of the accent area
-    PB.Canvas.FillRect(Rect(BX, R.Top + 1, BX + Rad, R.Bottom - 1));
+    if FFinishVisible then
+    begin
+      // Finish button accent background (right portion)
+      BX := FFinishBox.Left;
+      PB.Canvas.Brush.Color := FinishFill;
+      PB.Canvas.Pen.Color   := FinishFill;
+      // Draw right-rounded accent area
+      PB.Canvas.RoundRect(BX, R.Top + 1, R.Right - 1, R.Bottom - 1, Rad - 1, Rad - 1);
+      // Square off the left side of the accent area
+      PB.Canvas.FillRect(Rect(BX, R.Top + 1, BX + Rad, R.Bottom - 1));
 
-    // Separator line before finish button
-    PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
-    PB.Canvas.MoveTo(BX, R.Top + 4);
-    PB.Canvas.LineTo(BX, R.Bottom - 4);
+      // Separator line before finish button
+      PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
+      PB.Canvas.MoveTo(BX, R.Top + 4);
+      PB.Canvas.LineTo(BX, R.Bottom - 4);
+    end;
   end;
 end;
 
@@ -492,7 +535,7 @@ end;
 
 procedure TFloatingActionDock.AddPaint(Sender: TObject);
 begin
-  DrawSecondaryButton(FAddBox, FAddHovered, FAddPressed, ' + Add', 8, [fsBold]);
+  DrawSecondaryButton(FAddBox, FAddHovered, FAddPressed, ' ' + FAddCaption, 8, [fsBold]);
 end;
 
 procedure TFloatingActionDock.FinishPaint(Sender: TObject);
@@ -784,7 +827,8 @@ end;
 // Public methods
 // ---------------------------------------------------------------------------
 
-procedure TFloatingActionDock.UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True);
+procedure TFloatingActionDock.UpdateForTab(AShowPreview, AShowMenu, AShowAdd: Boolean; AVisible: Boolean = True;
+  AShowFinish: Boolean = True; const AAddCaption: string = '+ Add');
 begin
   SetVisible(AVisible);
   if not AVisible then Exit;
@@ -792,6 +836,8 @@ begin
   FPreviewVisible := AShowPreview;
   FMenuVisible    := AShowMenu;
   FAddVisible     := AShowAdd;
+  FFinishVisible  := AShowFinish;
+  FAddCaption     := AAddCaption;
   LayoutButtons;
   FPillBox.Invalidate;
   FDockPanel.BringToFront;

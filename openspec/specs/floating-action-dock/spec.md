@@ -33,7 +33,11 @@ The system SHALL present action controls within the floating action dock accordi
 
 #### Scenario: Viewing tabs without 3D overlay support
 - **WHEN** user is on OptiScaler or EnvVars tabs
-- **THEN** the dock SHALL hide the 3D Preview button (`▶`) and adjust its compact pill width while keeping the Menu button (`☰`) and the Finish Config button (`Finish Config`) visible.
+- **THEN** the dock SHALL hide the 3D Preview button (`▶`) and adjust its compact pill width while keeping the Menu button (`☰`) and the Finish Config button (`Finish Config`) visible, showing `+ Add` on EnvVars.
+
+#### Scenario: Viewing Games tab
+- **WHEN** user is on the Games tab
+- **THEN** the dock SHALL display the Menu button (`☰`) and the Add button with caption `+ Add Folder`, while hiding the 3D Preview button and the Finish Config button.
 
 ### Requirement: Action Button Interactions
 The system SHALL execute corresponding workflows when floating dock buttons are clicked.
@@ -44,11 +48,15 @@ The system SHALL execute corresponding workflows when floating dock buttons are 
 
 #### Scenario: Clicking Menu button
 - **WHEN** user clicks the Menu button in the floating dock
-- **THEN** GOverlay SHALL display the contextual options popup menu for the active tab.
+- **THEN** GOverlay SHALL display the contextual options popup menu for the active tab (including non-Steam folder management and library refresh on Games tab).
 
 #### Scenario: Clicking Finish Config button
 - **WHEN** user clicks the Finish Config button in the floating dock
 - **THEN** GOverlay SHALL open the Finish Configuration and Launch Setup dialog.
+
+#### Scenario: Clicking Add Folder button on Games tab
+- **WHEN** user clicks the Add Folder button in the floating dock while on the Games tab
+- **THEN** GOverlay SHALL open the directory picker dialog to select and add a non-Steam game folder.
 
 ### Requirement: Permanent Suppression of Legacy Bottom Bar
 The system SHALL keep the legacy bottom bar (`goverlaybarPanel`) and embedded command panel (`commandPanel`) permanently hidden across all navigation actions, game card selections, and configuration save operations, relying exclusively on the floating action dock for actions and the Finish dialog for launch options.

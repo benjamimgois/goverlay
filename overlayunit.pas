@@ -1283,6 +1283,7 @@ type
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
     FGameCardMenu: TPopupMenu;      // right-click context menu for game cards
     FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
+    FGamesPopupMenu: TPopupMenu;     // contextual menu for Games tab floating dock
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FUninstallMenuItem: TMenuItem;
     FRightClickedCard: TPanel;      // card that triggered the context menu
@@ -1371,6 +1372,7 @@ type
     procedure SetNavActive(AIndex: Integer);
     procedure GameCardClick(Sender: TObject);
     procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+    procedure ShowGamesPopupMenu;
     procedure CoverThreadTerminated(Sender: TObject);
     function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
     function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
@@ -2779,8 +2781,8 @@ begin
   FFADock.OnMenuClick    := @DockMenuClick;
   FFADock.OnAddClick     := @DockAddClick;
   FFADock.OnFinishClick  := @DockFinishClick;
-  // Start hidden; each tab-switch will call UpdateForTab to show/configure it.
-  FFADock.UpdateForTab(False, False, False, False);
+  // Initialize for initial Games tab
+  FFADock.UpdateForTab(False, True, True, True, False, '+ Add Folder');
 
   // Initialize floating overlays
   FFloatingToast    := TFloatingToast.Create(goverlayPanel);
@@ -2793,16 +2795,22 @@ begin
   PreviewBtnClick(nil);
 end;
 
-// Dock: Menu button — shows the options popup (save, presets, etc.)
+// Dock: Menu button — shows the options popup (save, presets, etc. or Games tab menu)
 procedure Tgoverlayform.DockMenuClick(Sender: TObject);
 begin
-  popupBitBtnClick(nil);
+  if (goverlayPageControl.ActivePage = gamesTabSheet) and Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).ShowGamesPopupMenu
+  else
+    popupBitBtnClick(nil);
 end;
 
-// Dock: Add button — opens custom environment variable creation dialog
+// Dock: Add button — opens custom environment variable creation dialog or folder picker
 procedure Tgoverlayform.DockAddClick(Sender: TObject);
 begin
-  TweaksMD3FABClick(nil);
+  if (goverlayPageControl.ActivePage = gamesTabSheet) and Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).AddNonSteamFolderClick(nil)
+  else
+    TweaksMD3FABClick(nil);
 end;
 
 // Dock: Finish Config button — opens the Finish Configuration modal dialog
@@ -4469,10 +4477,10 @@ begin
     'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
     'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
     'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-    'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); } ' +
-    '#saveBitBtn { background-color: rgb(0, 140, 50); color: rgb(255,255,255); border: 1px solid rgb(0, 170, 60); font-weight: bold; } ' +
-    '#saveBitBtn:hover { background-color: rgb(0, 165, 60); border: 1px solid rgb(0, 190, 70); }';
-  QApplication_setStyleSheet(QApplicationH(QCoreApplication_instance()), @GlobalSS);
+    'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
+  // Apply slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox, QPushButton) to the main form
+  // Scoped to Tgoverlayform so native system dialogs (e.g. QFileDialog / TSelectDirectoryDialog) preserve clean system colors.
+  QWidget_setStyleSheet(TQtWidget(Handle).Widget, @GlobalSS);
 
   // Instantly apply theme to all tab cards and controls on application startup
   ApplyCustomEnvTheme;
@@ -4780,8 +4788,8 @@ begin
   commandPanel.Visible:=false;
 
 
-  // Floating dock hidden on Games tab
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False, False);
+  // Floating dock configured for Games tab
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, True, True, True, False, '+ Add Folder');
 end;
 
 procedure Tgoverlayform.mangohudLabelClick(Sender: TObject);
@@ -8546,6 +8554,10 @@ end;
 procedure Tgoverlayform.ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
 begin
   TGamesTabHelper(FGamesHelper).ShowRemoveFoldersMenu(Sender, X, Y);
+end;
+procedure Tgoverlayform.ShowGamesPopupMenu;
+begin
+  TGamesTabHelper(FGamesHelper).ShowGamesPopupMenu;
 end;
 procedure Tgoverlayform.RemoveFolderMenuItemClick(Sender: TObject);
 begin

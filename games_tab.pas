@@ -100,8 +100,11 @@ type
     procedure GameCardOpenFolderClick(Sender: TObject);
     procedure GameCardOpenPrefixClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
+    procedure AddFolderMenuItemClick(Sender: TObject);
+    procedure RefreshLibraryMenuItemClick(Sender: TObject);
     procedure RemoveFolderMenuItemClick(Sender: TObject);
     procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
+    procedure ShowGamesPopupMenu;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GamesEmptySpaceClick(Sender: TObject);
     procedure RefreshGameCards;
@@ -1255,81 +1258,11 @@ begin
     // Load non-Steam game folders and append their cards
     LoadNonSteamFolders(j, CardsPerRow, RowMargin);
 
-    // ── "Add non-Steam folder" card (always last) ──
-    CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
-    CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
-
-    CardPanel := TPanel.Create(FForm);
-    CardPanel.Parent := FGamesPanel;
-    CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
-    CardPanel.BevelOuter := bvNone;
-    CardPanel.Caption := '';
-    CardPanel.Tag := 9998;  // marker: add-folder card
-    CardPanel.Color := RGBToColor(40, 44, 52);
-    CardPanel.Hint := 'Click to add a non-Steam game folder';
-    CardPanel.ShowHint := True;
-    CardPanel.Cursor := crHandPoint;
-    CardPanel.OnMouseEnter := @GameCardMouseEnter;
-    CardPanel.OnMouseLeave := @GameCardMouseLeave;
-    CardPanel.OnClick := @AddNonSteamFolderClick;
-    CardPanel.OnMouseUp := @GameCardMouseUp;
-
-    CardImage := TImage.Create(CardPanel);
-    CardImage.Parent := CardPanel;
-    CardImage.SetBounds(0, 0, CARD_W, CARD_H);
-    CardImage.Stretch := True;
-    CardImage.Proportional := False;
-    CardImage.Center := False;
-    CardImage.Cursor := crHandPoint;
-    CardImage.OnMouseEnter := @GameCardMouseEnter;
-    CardImage.OnMouseLeave := @GameCardMouseLeave;
-    CardImage.OnClick := @AddNonSteamFolderClick;
-    CardImage.OnMouseUp := @GameCardMouseUp;
-
-    // Big "+" sign in centre
-    BdgLbl := TLabel.Create(CardPanel);
-    BdgLbl.Parent := CardPanel;
-    BdgLbl.AutoSize := False;
-    BdgLbl.SetBounds((CARD_W - 64) div 2, (CARD_H - 100) div 2, 64, 64);
-    BdgLbl.Caption := '+';
-    BdgLbl.Font.Color := clSilver;
-    BdgLbl.Font.Size := 48;
-    BdgLbl.Font.Style := [];
-    BdgLbl.Alignment := taCenter;
-    BdgLbl.Layout := tlCenter;
-    BdgLbl.Transparent := True;
-    BdgLbl.Cursor := crHandPoint;
-    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-    BdgLbl.OnClick := @AddNonSteamFolderClick;
-    BdgLbl.OnMouseUp := @GameCardMouseUp;
-
-    // Label below icon
-    BdgLbl := TLabel.Create(CardPanel);
-    BdgLbl.Parent := CardPanel;
-    BdgLbl.AutoSize := False;
-    BdgLbl.SetBounds(8, CARD_H - 56, CARD_W - 16, 40);
-    BdgLbl.Caption := 'Add game folder';
-    BdgLbl.Font.Color := clSilver;
-    BdgLbl.Font.Size := 9;
-    BdgLbl.Font.Style := [fsBold];
-    BdgLbl.Alignment := taCenter;
-    BdgLbl.Layout := tlCenter;
-    BdgLbl.WordWrap := True;
-    BdgLbl.Transparent := True;
-    BdgLbl.Cursor := crHandPoint;
-    BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-    BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-    BdgLbl.OnClick := @AddNonSteamFolderClick;
-    BdgLbl.OnMouseUp := @GameCardMouseUp;
-
-    FCardPanels.Add(CardPanel);
-    FOrigCovers.Add(nil);
-    CreateActionPanel(CardPanel);
-    Inc(j);
-
-    // Recalculate panel size including non-Steam and add-folder cards
-    TotalRows := (j + CardsPerRow - 1) div CardsPerRow;
+    // Recalculate panel size based on loaded game cards
+    if j > 0 then
+      TotalRows := (j + CardsPerRow - 1) div CardsPerRow
+    else
+      TotalRows := 0;
     FGamesPanel.Width := FGamesScrollBox.Width;
     FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
 
@@ -2667,11 +2600,6 @@ begin
   begin
     FRightClickedCard := CardPanel;
 
-    if CardPanel.Tag = 9998 then
-    begin
-      ShowRemoveFoldersMenu(Panel, Panel.Width div 2, Panel.Height div 2);
-      Exit;
-    end;
     if Assigned(FOpenPrefixMenuItem) then
       FOpenPrefixMenuItem.Visible :=
         (CardPanel.Hint <> '') and (CardPanel.Hint[1] = '(');
@@ -2981,6 +2909,91 @@ begin
 end;
 
 
+
+procedure TGamesTabHelper.AddFolderMenuItemClick(Sender: TObject);
+begin
+  AddNonSteamFolderClick(Sender);
+end;
+
+procedure TGamesTabHelper.RefreshLibraryMenuItemClick(Sender: TObject);
+begin
+  RefreshGameCards;
+end;
+
+procedure TGamesTabHelper.ShowGamesPopupMenu;
+var
+  Pt: TPoint;
+  NonSteamFile: string;
+  Lines: TStringList;
+  I, AddedCount: Integer;
+  AddItem, RemoveMenu, SubItem, SepItem, RefreshItem: TMenuItem;
+  FolderPath: string;
+begin
+  with FForm do
+  begin
+    if not Assigned(FGamesPopupMenu) then
+      FGamesPopupMenu := TPopupMenu.Create(FForm)
+    else
+      FGamesPopupMenu.Items.Clear;
+
+    // 1. Add game folder...
+    AddItem := TMenuItem.Create(FGamesPopupMenu);
+    AddItem.Caption := 'Add game folder...';
+    AddItem.OnClick := @AddFolderMenuItemClick;
+    FGamesPopupMenu.Items.Add(AddItem);
+
+    // 2. Remove game folder ▸ (Sub-menu)
+    RemoveMenu := TMenuItem.Create(FGamesPopupMenu);
+    RemoveMenu.Caption := 'Remove game folder';
+    FGamesPopupMenu.Items.Add(RemoveMenu);
+
+    NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
+    Lines := TStringList.Create;
+    AddedCount := 0;
+    try
+      if FileExists(NonSteamFile) then
+      begin
+        Lines.LoadFromFile(NonSteamFile);
+        for I := 0 to Lines.Count - 1 do
+        begin
+          FolderPath := Trim(Lines[I]);
+          if FolderPath = '' then Continue;
+
+          SubItem := TMenuItem.Create(RemoveMenu);
+          SubItem.Caption := FolderPath;
+          SubItem.Hint := FolderPath;
+          SubItem.OnClick := @RemoveFolderMenuItemClick;
+          RemoveMenu.Add(SubItem);
+          Inc(AddedCount);
+        end;
+      end;
+
+      if AddedCount = 0 then
+      begin
+        SubItem := TMenuItem.Create(RemoveMenu);
+        SubItem.Caption := '(No custom folders added)';
+        SubItem.Enabled := False;
+        RemoveMenu.Add(SubItem);
+      end;
+    finally
+      Lines.Free;
+    end;
+
+    // 3. Separator
+    SepItem := TMenuItem.Create(FGamesPopupMenu);
+    SepItem.Caption := '-';
+    FGamesPopupMenu.Items.Add(SepItem);
+
+    // 4. Refresh game library
+    RefreshItem := TMenuItem.Create(FGamesPopupMenu);
+    RefreshItem.Caption := 'Refresh game library';
+    RefreshItem.OnClick := @RefreshLibraryMenuItemClick;
+    FGamesPopupMenu.Items.Add(RefreshItem);
+
+    Pt := Mouse.CursorPos;
+    FGamesPopupMenu.PopUp(Pt.X, Pt.Y);
+  end;
+end;
 
 procedure TGamesTabHelper.ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
 var

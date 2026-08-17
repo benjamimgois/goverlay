@@ -778,9 +778,9 @@ begin
   AssertFalse('Legacy goverlaybarPanel is not visible on OptiScaler', goverlayform.goverlaybarPanel.Visible);
   AssertTrue('Dock is visible on OptiScaler', goverlayform.FFADock.Visible);
 
-  // Switch to Games tab -> dock completely hidden (no pill on games tab)
+  // Switch to Games tab -> dock visible with Menu and + Add Folder
   goverlayform.gamesLabelClick(nil);
-  AssertFalse('Dock is NOT visible on Games tab', goverlayform.FFADock.Visible);
+  AssertTrue('Dock is visible on Games tab', goverlayform.FFADock.Visible);
 
   // Click a game card -> transitions to MangoHud, dock visible, legacy bar hidden
   TestPanel := TPanel.Create(nil);
@@ -1756,6 +1756,15 @@ begin
 
   goverlayform.ShowRemoveFoldersMenu(goverlayform, 0, 0);
   AssertEquals('Second invocation clears and rebuilds without crash', 1, goverlayform.FRemoveFoldersMenu.Items.Count);
+
+  // Test Games tab popup menu
+  goverlayform.ShowGamesPopupMenu;
+  AssertTrue('FGamesPopupMenu created', Assigned(goverlayform.FGamesPopupMenu));
+  AssertTrue('Games popup menu has items', goverlayform.FGamesPopupMenu.Items.Count >= 4);
+  AssertEquals('First item is Add game folder...', 'Add game folder...', goverlayform.FGamesPopupMenu.Items[0].Caption);
+  AssertEquals('Second item is Remove game folder', 'Remove game folder', goverlayform.FGamesPopupMenu.Items[1].Caption);
+  AssertEquals('Remove sub-item has folder', FakeFolder, goverlayform.FGamesPopupMenu.Items[1].Items[0].Caption);
+  AssertEquals('Fourth item is Refresh game library', 'Refresh game library', goverlayform.FGamesPopupMenu.Items[3].Caption);
 end;
 
 procedure TGoverlayGuiTests.TestHomeTabHidesToggles;
