@@ -2791,8 +2791,8 @@ begin
     bottomrightRadioButton.Checked := False;
 
     // Trackbars and their labels
-    transpTrackBar.Position := 10;
-    alphavalueLabel.Caption := '1.0';
+    transpTrackBar.Position := 6;
+    alphavalueLabel.Caption := '0.6';
     
     fontsizeTrackBar.Position := 24;
     fontsizevalueLabel.Caption := '24';
