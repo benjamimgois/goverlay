@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
-  Clipbrd, IniFiles, themeunit, constants, hintsunit, apputils, configkeys, configmanager, systemdetector;
+  Clipbrd, IniFiles, Math, themeunit, constants, hintsunit, apputils, configkeys, configmanager, systemdetector;
 
 type
   { TLosslessScalingTabHelper }
@@ -602,7 +602,7 @@ begin
   FLsGpuComboBox.SetBounds(RightColX, 90, ColW, ROW_H);
   CurY := CurY + FLsHardwareCard.Height + CARD_PAD;
   
-  FLsBgPanel.Height := CurY;
+  FLsBgPanel.SetBounds(0, 0, W, Max(FLsScrollBox.ClientHeight, CurY));
   ApplyThemeStyles;
 end;
 

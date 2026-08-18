@@ -7580,6 +7580,7 @@ begin
   ReflowExtrasTab(ContentW);
   ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
+  ReflowLosslessScalingTab(ContentW);
   ReflowVkBasaltTab(ContentW);
   ReflowVkSumiTab(ContentW);
 

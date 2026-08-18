@@ -18,7 +18,8 @@ When the user clicks the "Upscalers" item in the sidebar navigation rail:
 - **AND** the active page defaults to the last selected or primary upscaler tab.
 
 ### Requirement: Lossless Scaling Tab UI & Cards Layout
-The Lossless Scaling tab (`losslessScalingTabSheet`) SHALL render inside a responsive scroll box with dark theme card styling (`StyleMainCard` / `StyleSubCard`):
+The Lossless Scaling tab (`losslessScalingTabSheet`) SHALL render inside a responsive scroll box with dark theme card styling (`StyleMainCard` / `StyleSubCard`).
+The background panel (`FLsBgPanel`) SHALL always expand to cover at least the entire visible viewport height (`ClientHeight`) of the scroll box (`FLsScrollBox`), ensuring no unstyled or disabled viewport areas are visible when the tool is disabled or the window is resized:
 1. **General & Engine Setup Card**:
    - Path to `Lossless.dll` (`dllPathEdit`)
    - File picker browse button (`browseDllBtn`)
@@ -46,6 +47,15 @@ The Lossless Scaling tab (`losslessScalingTabSheet`) SHALL render inside a respo
 #### Scenario: User adjusts Frame Generation Multiplier
 - **WHEN** the user changes the multiplier to `3x`
 - **THEN** `LSFGVK_MULTIPLIER=3` is reflected in the environment preview and saved configuration.
+
+#### Scenario: Viewing Lossless Scaling tab when Upscalers tool is disabled
+- **WHEN** the Upscalers sidebar toggle is OFF
+- **AND** the user views the Lossless Scaling tab
+- **THEN** all controls remain disabled, but the entire tab background renders seamlessly with the active theme background color without gray background gaps.
+
+#### Scenario: Resizing the main application window
+- **WHEN** the main GOverlay window is resized
+- **THEN** `ReflowLosslessScalingTab` recalculates panel dimensions and ensures `FLsBgPanel` spans the full viewport width and height.
 
 ### Requirement: Steam Library Auto-Detection
 GOverlay SHALL look for `Lossless.dll` in known default Steam paths:
