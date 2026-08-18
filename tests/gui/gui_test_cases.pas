@@ -86,6 +86,7 @@ type
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
+    procedure TestHomeTabLibraries;
     procedure TestWindowResizabilityAndGeometry;
     procedure TestSidebarTabPathResetGlobalMode;
     procedure TestTweaksResetOnMissingConfig;
@@ -1968,6 +1969,15 @@ begin
     if Assigned(goverlayform.FNavToolBtns[i]) then
       AssertFalse(Format('Toggle %d hidden on Home tab', [i]), goverlayform.FNavToolBtns[i].Visible);
   AssertFalse('Dock is NOT visible on Home tab', goverlayform.FFADock.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestHomeTabLibraries;
+begin
+  goverlayform.ShowHomeTab(nil);
+  AssertTrue('Home tab is visible', goverlayform.FHomeTabSheet.TabVisible);
+  AssertTrue('lsfg-vk status dot assigned', Assigned(goverlayform.FHomeModDots[5]));
+  AssertTrue('lsfg-vk version label assigned', Assigned(goverlayform.FHomeModVerLbls[5]));
+  AssertTrue('lsfg-vk version label text not empty', goverlayform.FHomeModVerLbls[5].Caption <> '');
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;

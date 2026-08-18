@@ -36,6 +36,7 @@ const
   DEP_LIBQT6PAS         = 'libqt6pas';
   DEP_LIBQT5PAS         = 'libqt5pas';
   DEP_NERDFONTS         = 'nerdfonts';
+  DEP_LSFGVK            = 'lsfg-vk';
 
   // ============================================================================
   // GITHUB URLS
@@ -52,6 +53,9 @@ const
 
   // vkBasalt Repository
   URL_VKBASALT_REPO = 'https://github.com/DadSchoorse/vkBasalt';
+
+  // LSFG-VK Repository
+  URL_LSFGVK_REPO = 'https://github.com/Pietruszka33/lsfg-vk';
 
   // ReplaySorcery Repository
   URL_REPLAYSORCERY_REPO = 'https://github.com/matanui159/ReplaySorcery';
