@@ -427,22 +427,19 @@ end;
 
 function IsKernelModuleAvailable(const ModuleName: string): Boolean;
 var
-  AProcess: TProcess;
-  OutputLines: TStringList;
+  LsmodPath, Output: string;
 begin
   Result := False;
-  AProcess := TProcess.Create(nil);
-  OutputLines := TStringList.Create;
-  try
-    AProcess.Executable := FindDefaultExecutablePath('lsmod');
-    AProcess.Options := [poUsePipes];
-    AProcess.Execute;
-    OutputLines.LoadFromStream(AProcess.Output);
-    Result := OutputLines.Text.Contains(ModuleName);
-  finally
-    AProcess.Free;
-    OutputLines.Free;
-  end;
+  LsmodPath := FindDefaultExecutablePath('lsmod');
+  if LsmodPath = '' then Exit;
+
+  // Reading AProcess.Output straight after Execute only returns whatever has
+  // already reached the pipe - one 4 KiB page here - so every module past that
+  // point looks unloaded. RunCommand keeps draining until lsmod exits, without
+  // the 64 KiB deadlock that poWaitOnExit on its own would risk.
+  Output := '';
+  if RunCommand(LsmodPath, [], Output) then
+    Result := Output.Contains(ModuleName);
 end;
 
 function CheckDependencies(out Missing: TStringList): Boolean;
