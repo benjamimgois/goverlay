@@ -93,7 +93,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="36">
+    <Units Count="37">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -254,6 +254,10 @@
         <Filename Value="floating_overlay.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit35>
+      <Unit36>
+        <Filename Value="lossless_scaling_tab.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit36>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

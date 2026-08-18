@@ -30,6 +30,8 @@ type
     procedure TestFormCreated;
     procedure TestDriverToggleRoundTrip;
     procedure TestNavigateOptiScalerTab;
+    procedure TestNavigateLosslessScalingTab;
+    procedure TestLosslessScalingEnvVarsGeneration;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -97,7 +99,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -157,8 +159,31 @@ begin
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertTrue('optiscaler tab is active after sidebar click',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.optiscalerTabSheet);
+  AssertTrue('lossless scaling tab is visible alongside optiscaler',
+    goverlayform.losslessScalingTabSheet.TabVisible);
   AssertFalse('forcereflex stays disabled on nvidia after tab click', goverlayform.forcereflexCheckBox.Enabled);
   AssertFalse('spoof stays disabled on nvidia after tab click', goverlayform.spoofCheckBox.Enabled);
+end;
+
+procedure TGoverlayGuiTests.TestNavigateLosslessScalingTab;
+begin
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  AssertTrue('lossless scaling tab is visible', goverlayform.losslessScalingTabSheet.TabVisible);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  AssertTrue('lossless scaling tab is active',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.losslessScalingTabSheet);
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingEnvVarsGeneration;
+var
+  Helper: TLosslessScalingTabHelper;
+  EnvVars: string;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+  EnvVars := Helper.GetActiveEnvVars;
+  AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
+  AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;

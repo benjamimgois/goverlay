@@ -393,6 +393,7 @@ begin
     vkbasalttabsheet.TabVisible  := False;
     vksumiTabSheet.TabVisible    := False;
     optiscalertabsheet.TabVisible := False;
+    losslessScalingTabSheet.TabVisible := False;
     tweakstabsheet.TabVisible    := False;
     gamesTabSheet.TabVisible     := False;
     FHomeTabSheet.TabVisible     := True;

@@ -492,6 +492,7 @@ type
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltTabSheet: TTabSheet;
     vksumiTabSheet: TTabSheet;
+    losslessScalingTabSheet: TTabSheet;
     vkbtogglekeyCombobox: TComboBox;
     vktoggleLabel: TLabel;
     vpsCheckBox: TCheckBox;
@@ -905,6 +906,8 @@ type
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
+    procedure InitLosslessScalingTab;
+    procedure losslessScalingTabSheetShow(Sender: TObject);
     procedure BuildFpsLimitEdit;
     procedure UpdatePerfCardTheme;
     // Exposing: procedure UpdateGenericCardTheme(Card: TPanel);
@@ -1291,6 +1294,7 @@ type
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
     FOptiIconGfx:  TPortableNetworkGraphic;
   public
+    FLosslessScalingHelper: TObject;
     procedure RefreshOsStatusDots;
     procedure RefreshHomeOptiStatus;
     procedure PerfCardPaint(Sender: TObject);
@@ -1358,6 +1362,7 @@ type
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
+    procedure ReflowLosslessScalingTab(AContentW: Integer);
     procedure ReflowMetricsTab(AContentW: Integer);
     procedure ReflowExtrasTab(AContentW: Integer);
     procedure ReflowVkBasaltTab(AContentW: Integer);
@@ -1604,7 +1609,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab;
 
 function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
@@ -1777,6 +1782,7 @@ goverlayPageControl.ShowTabs:=false; //disable mangohud tab
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
 gamesTabSheet.TabVisible:=false; //disable games tab
 tweakstabsheet.TabVisible:=true;
 
@@ -1917,6 +1923,7 @@ begin
   metricsTabSheet.TabVisible:=false;
   extrasTabSheet.TabVisible:=false;
   optiscalertabsheet.TabVisible:=false;
+  losslessScalingTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
   gamesTabSheet.TabVisible:=false;
   FHomeTabSheet.TabVisible:=false;
@@ -2730,6 +2737,7 @@ begin
   FreeAndNil(FMangoIconGfx);
   FreeAndNil(FOptiIconGfx);
   FreeAndNil(FOptiScalerHelper);
+  FreeAndNil(FLosslessScalingHelper);
   FreeAndNil(FHomeHelper);
   FreeAndNil(FNavHelper);
   FreeAndNil(FTweaksHelper);
@@ -3201,6 +3209,7 @@ begin
   FBasaltHelper := TVkBasaltTabHelper.Create(Self);
   FMangoHelper := TMangoHudUiHelper.Create(Self);
   FOptiScalerHelper := TOptiScalerTabHelper.Create(Self);
+  FLosslessScalingHelper := TLosslessScalingTabHelper.Create(Self);
   FHomeHelper := THomeTabHelper.Create(Self);
   FNavHelper := TSidebarNavHelper.Create(Self);
   FReshadeDownloadedOnFirstShow := False;
@@ -3281,6 +3290,14 @@ begin
   vksumiTabSheet.Caption     := 'vkSumi';
   vksumiTabSheet.TabVisible  := False;
   vksumiTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex + 1;
+
+  // Create Lossless Scaling tab sheet
+  losslessScalingTabSheet := TTabSheet.Create(goverlayPageControl);
+  losslessScalingTabSheet.PageControl := goverlayPageControl;
+  losslessScalingTabSheet.Caption     := 'Lossless Scaling';
+  losslessScalingTabSheet.TabVisible  := False;
+  losslessScalingTabSheet.PageIndex   := optiscalertabsheet.PageIndex + 1;
+  losslessScalingTabSheet.OnShow      := @losslessScalingTabSheetShow;
 
   BuildVkSumiTab;
   InitTweaksCards;
@@ -3461,6 +3478,9 @@ begin
 
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
+
+  // Initialize Lossless Scaling tab
+  InitLosslessScalingTab;
 
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
@@ -4772,6 +4792,7 @@ begin
   vkbasalttabsheet.TabVisible:=false;
   vksumiTabSheet.TabVisible:=false;
   optiscalertabsheet.TabVisible:=false;
+  losslessScalingTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
 
   gamesTabSheet.TabVisible:=true;
@@ -4822,6 +4843,7 @@ extrasTabSheet.TabVisible:=true;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
+losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
 gamesTabSheet.TabVisible:=false; //disable games tab
 FHomeTabSheet.TabVisible:=false; //hide home tab when switching to mangohud
@@ -4999,14 +5021,22 @@ begin
   SetNavActive(3);
 
 //Disable tabs
-  goverlayPageControl.ShowTabs:=false;
+  goverlayPageControl.ShowTabs:=true;
+  presetTabSheet.TabVisible:=false;
+  visualTabSheet.TabVisible:=false;
+  performanceTabSheet.TabVisible:=false;
+  metricsTabSheet.TabVisible:=false;
+  extrasTabSheet.TabVisible:=false;
   vkbasalttabsheet.TabVisible:=false;
   vksumiTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
   gamesTabSheet.TabVisible:=false; //disable games tab
+  FHomeTabSheet.TabVisible:=false;
 
   optiscalertabsheet.TabVisible:=true;
-  goverlayPageControl.ActivePage:= optiscalerTabsheet;
+  losslessScalingTabSheet.TabVisible:=true;
+  if (goverlayPageControl.ActivePage <> losslessScalingTabSheet) and (goverlayPageControl.ActivePage <> optiscalertabsheet) then
+    goverlayPageControl.ActivePage:= optiscalerTabsheet;
 
   // Auto-check and update OptiPatcher (rolling release) or DLSS Enabler in background
   if Assigned(FOptiscalerUpdate) then
@@ -8118,6 +8148,32 @@ end;
 procedure Tgoverlayform.ReflowOptiScalerTabNew(AContentW: Integer);
 begin
   TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(AContentW);
+end;
+
+// ============================================================================
+// LOSSLESS SCALING TAB
+// ============================================================================
+
+procedure Tgoverlayform.InitLosslessScalingTab;
+begin
+  if Assigned(FLosslessScalingHelper) then
+    TLosslessScalingTabHelper(FLosslessScalingHelper).InitLosslessScalingTab;
+end;
+
+procedure Tgoverlayform.ReflowLosslessScalingTab(AContentW: Integer);
+begin
+  if Assigned(FLosslessScalingHelper) then
+    TLosslessScalingTabHelper(FLosslessScalingHelper).ReflowLosslessScalingTab(AContentW);
+end;
+
+procedure Tgoverlayform.losslessScalingTabSheetShow(Sender: TObject);
+begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+  UpdateGeSpeedButtonState;
+  UpdateGlobalEnableMenuItemVisibility;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+  ReflowLosslessScalingTab(0);
 end;
 
 

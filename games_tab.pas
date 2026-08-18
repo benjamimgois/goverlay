@@ -2236,6 +2236,7 @@ begin
   goverlayPageControl.ShowTabs := True;
   vkbasalttabsheet.TabVisible  := False;
   optiscalertabsheet.TabVisible := False;
+  losslessScalingTabSheet.TabVisible := False;
   tweakstabsheet.TabVisible    := False;
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;
