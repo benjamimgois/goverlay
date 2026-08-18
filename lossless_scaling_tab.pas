@@ -416,7 +416,7 @@ begin
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
   StyleActionButton(FLsBrowseDllBtn);
   
-  // ── Card 1: Frame Generation ──────────────────────────────────────────────
+  // ── Card 1: Configuration ────────────────────────────────────────────────
   FLsFrameGenCard := TPanel.Create(FForm);
   FLsFrameGenCard.Parent := FLsBgPanel;
   FLsFrameGenCard.Caption := '';
@@ -424,11 +424,11 @@ begin
   FLsFgTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFgTitleLbl.Parent := FLsFrameGenCard;
   FLsFgTitleLbl.ShowAccelChar := False;
-  StyleMainCard(FLsFrameGenCard, FLsFgTitleLbl, 'Frame Generation');
+  StyleMainCard(FLsFrameGenCard, FLsFgTitleLbl, 'Configuration');
   
   FLsMultiplierTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierTitleLbl.Parent := FLsFrameGenCard;
-  FLsMultiplierTitleLbl.Caption := 'Multiplier (LSFGVK_MULTIPLIER)';
+  FLsMultiplierTitleLbl.Caption := 'Multiplier';
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
   
   FLsMultiplierDescLbl := TLabel.Create(FLsFrameGenCard);
@@ -448,7 +448,7 @@ begin
   
   FLsFlowScaleTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFlowScaleTitleLbl.Parent := FLsFrameGenCard;
-  FLsFlowScaleTitleLbl.Caption := 'Flow Scale (LSFGVK_FLOW_SCALE)';
+  FLsFlowScaleTitleLbl.Caption := 'Flow Scale';
   StyleLabel(FLsFlowScaleTitleLbl, lrControlLabel);
   
   FLsFlowScaleDescLbl := TLabel.Create(FLsFrameGenCard);
@@ -472,7 +472,7 @@ begin
   
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
-  FLsPerfModeCheckBox.Caption := 'Performance Mode (LSFGVK_PERFORMANCE_MODE=1)';
+  FLsPerfModeCheckBox.Caption := 'Performance Mode';
   FLsPerfModeCheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsPerfModeCheckBox);
   
@@ -493,7 +493,7 @@ begin
   
   FLsNoFp16CheckBox := TCheckBox.Create(FLsHardwareCard);
   FLsNoFp16CheckBox.Parent := FLsHardwareCard;
-  FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision (LSFGVK_NO_FP16=1)';
+  FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsNoFp16CheckBox);
   
@@ -504,7 +504,7 @@ begin
   
   FLsPacingTitleLbl := TLabel.Create(FLsHardwareCard);
   FLsPacingTitleLbl.Parent := FLsHardwareCard;
-  FLsPacingTitleLbl.Caption := 'Pacing Mode (LSFGVK_PACING)';
+  FLsPacingTitleLbl.Caption := 'Pacing Mode';
   StyleLabel(FLsPacingTitleLbl, lrControlLabel);
   
   FLsPacingComboBox := TComboBox.Create(FLsHardwareCard);
@@ -521,7 +521,7 @@ begin
   
   FLsGpuTitleLbl := TLabel.Create(FLsHardwareCard);
   FLsGpuTitleLbl.Parent := FLsHardwareCard;
-  FLsGpuTitleLbl.Caption := 'Target GPU Device (LSFGVK_GPU)';
+  FLsGpuTitleLbl.Caption := 'Target GPU Device';
   StyleLabel(FLsGpuTitleLbl, lrControlLabel);
   
   FLsGpuComboBox := TComboBox.Create(FLsHardwareCard);
@@ -619,10 +619,10 @@ begin
   if IsValid then
   begin
     if IsDark then
-      SS := 'QLineEdit { background-color: rgb(24, 56, 36); color: rgb(255, 255, 255); border: 1px solid rgb(68, 204, 102); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
-            'QLineEdit:focus { border: 1px solid rgb(90, 240, 130); }'
+      SS := 'QLineEdit { background-color: rgb(20, 36, 30); color: rgb(240, 250, 242); border: 1px solid rgb(42, 105, 66); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+            'QLineEdit:focus { border: 1px solid rgb(55, 140, 88); }'
     else
-      SS := 'QLineEdit { background-color: rgb(232, 250, 236); color: rgb(0, 80, 20); border: 1px solid rgb(46, 125, 50); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      SS := 'QLineEdit { background-color: rgb(240, 248, 242); color: rgb(0, 80, 20); border: 1px solid rgb(80, 150, 100); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
   end
   else
   begin
