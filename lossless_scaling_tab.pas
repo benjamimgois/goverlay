@@ -284,8 +284,10 @@ begin
   // QComboBoxes
   if IsDark then
     SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
-          'QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 18px; border-left: none; } ' +
-          'QComboBox QAbstractItemView { background-color: rgb(26,30,46); color: rgb(255,255,255); selection-background-color: rgb(48,190,240); selection-color: rgb(0,0,0); border: 1px solid rgb(55,70,108); }'
+          'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
+          'QComboBox:focus { border: 1px solid rgb(48,190,240); } ' +
+          'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
+          'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); selection-background-color: rgb(50,90,175); border: 1px solid rgb(55,70,108); }'
   else
     SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
 
@@ -403,6 +405,7 @@ begin
   FLsDllPathEdit.Font.Name := 'DejaVu Sans Mono';
   FLsDllPathEdit.Font.Height := -13;
   FLsDllPathEdit.Font.Quality := fqAntialiased;
+  FLsDllPathEdit.ReadOnly := True;
   FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
   FLsDllPathEdit.OnChange := @DllPathChange;
   StyleInputControl(FLsDllPathEdit);
@@ -442,6 +445,8 @@ begin
   FLsMultiplierComboBox.Items.Add('2x (Double FPS)');
   FLsMultiplierComboBox.Items.Add('3x (Triple FPS)');
   FLsMultiplierComboBox.Items.Add('4x (Quadruple FPS)');
+  FLsMultiplierComboBox.Items.Add('5x (Quintuple FPS)');
+  FLsMultiplierComboBox.Items.Add('6x (Sextuple FPS)');
   FLsMultiplierComboBox.ItemIndex := 0;
   FLsMultiplierComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsMultiplierComboBox);
@@ -695,6 +700,8 @@ begin
       0: MultVal := 2;
       1: MultVal := 3;
       2: MultVal := 4;
+      3: MultVal := 5;
+      4: MultVal := 6;
     else
       MultVal := 2;
     end;
