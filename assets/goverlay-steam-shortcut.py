@@ -109,7 +109,7 @@ def main():
             for user_dir in os.listdir(base):
                 config_dir = os.path.join(base, user_dir, "config")
                 if os.path.isdir(config_dir):
-                    vdf_path = os.path.join(config_dir, "shortcuts.vdf")
+                    vdf_path = os.path.realpath(os.path.join(config_dir, "shortcuts.vdf"))
                     if vdf_path not in shortcut_files:
                         shortcut_files.append(vdf_path)
                         
@@ -123,10 +123,17 @@ def main():
     for vdf_path in shortcut_files:
         try:
             # Check if writeable/readable
-            if os.path.exists(vdf_path) and not os.access(vdf_path, os.W_OK):
-                print(f"Skipping (no write permission): {vdf_path}")
-                fail_count += 1
-                continue
+            if os.path.exists(vdf_path):
+                if not os.access(vdf_path, os.W_OK):
+                    print(f"Skipping (no write permission): {vdf_path}")
+                    fail_count += 1
+                    continue
+            else:
+                config_parent = os.path.dirname(vdf_path)
+                if not os.access(config_parent, os.W_OK):
+                    print(f"Skipping (no write permission): {vdf_path}")
+                    fail_count += 1
+                    continue
                 
             shortcuts = parse_shortcuts(vdf_path)
             
