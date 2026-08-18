@@ -1004,7 +1004,7 @@ end;
 
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
-  TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgPacing, LsfgPerfStr, LsfgHdrStr: string;
+  TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr: string;
   LsfgMult: Integer;
   TomlLines: TStringList;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
@@ -1119,6 +1119,7 @@ begin
       LsfgFlow := Ini.ReadString('Config', 'LS_FLOW_SCALE', Ini.ReadString('Env', 'LSFG_FLOW_SCALE', '1.0'));
       LsfgPerf := Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', Ini.ReadString('Env', 'LSFG_PERFORMANCE_MODE', '0'));
       LsfgHdr := Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', '0'));
+      LsfgLegacy := Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', '1'));
       LsfgPacing := Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', 'fifo'));
       
       Ini.ReadSectionValues('Env', EnvList);
@@ -1487,6 +1488,7 @@ begin
             else if Key = 'flow_scale' then LsfgFlow := Val
             else if Key = 'performance_mode' then LsfgPerfStr := Val
             else if Key = 'hdr_mode' then LsfgHdrStr := Val
+            else if (Key = 'legacy') or (Key = 'no_fp16') then LsfgLegacyStr := Val
             else if Key = 'experimental_present_mode' then LsfgPacing := Val;
           end;
         end;
@@ -1500,6 +1502,10 @@ begin
       if (LsfgHdrStr <> 'true') and (LsfgHdrStr <> 'false') then
       begin
         if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
+      end;
+      if (LsfgLegacyStr <> 'true') and (LsfgLegacyStr <> 'false') then
+      begin
+        if LsfgLegacy = '1' then LsfgLegacyStr := 'true' else LsfgLegacyStr := 'false';
       end;
       if LsfgPacing = '' then LsfgPacing := 'fifo';
       
@@ -1522,6 +1528,7 @@ begin
         TomlLines.Add('flow_scale = ' + LsfgFlow);
         TomlLines.Add('performance_mode = ' + LsfgPerfStr);
         TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+        TomlLines.Add('legacy = ' + LsfgLegacyStr);
         TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
         TomlLines.Add('');
         if ChangeFileExt(TargetExeName, '') <> TargetExeName then
@@ -1533,6 +1540,7 @@ begin
           TomlLines.Add('flow_scale = ' + LsfgFlow);
           TomlLines.Add('performance_mode = ' + LsfgPerfStr);
           TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+          TomlLines.Add('legacy = ' + LsfgLegacyStr);
           TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
           TomlLines.Add('');
         end;
@@ -1545,6 +1553,7 @@ begin
       TomlLines.Add('flow_scale = ' + LsfgFlow);
       TomlLines.Add('performance_mode = ' + LsfgPerfStr);
       TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+      TomlLines.Add('legacy = ' + LsfgLegacyStr);
       TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
       TomlLines.Add('');
       
@@ -1555,6 +1564,7 @@ begin
       TomlLines.Add('flow_scale = ' + LsfgFlow);
       TomlLines.Add('performance_mode = ' + LsfgPerfStr);
       TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+      TomlLines.Add('legacy = ' + LsfgLegacyStr);
       TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
       
       TomlLines.SaveToFile(TomlPath);

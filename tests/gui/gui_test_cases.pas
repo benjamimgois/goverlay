@@ -269,6 +269,8 @@ begin
     Helper.LoadLosslessConfig;
     AssertEquals('Loaded Multiplier is 3x (index 2) from lsfg.toml', 2, Helper.MultiplierComboBox.ItemIndex);
     AssertTrue('Loaded PerfMode is True from lsfg.toml', Helper.PerfModeCheckBox.Checked);
+    AssertTrue('Loaded NoFp16 is True from lsfg.toml', Helper.NoFp16CheckBox.Checked);
+    AssertTrue('NoFp16 hint contains AMD uplift description', Pos('giant performance uplift on AMD GPUs', Helper.NoFp16CheckBox.Hint) > 0);
     AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
     
     // Now test switching Multiplier to 1x (no framegen)

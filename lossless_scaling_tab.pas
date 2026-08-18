@@ -489,7 +489,8 @@ begin
   FLsNoFp16CheckBox.Parent := FLsHardwareCard;
   FLsNoFp16CheckBox.ParentColor := True;
   FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
-  FLsNoFp16CheckBox.Hint := 'Disables half-precision arithmetic for compatibility with GPUs lacking FP16 speedups';
+  FLsNoFp16CheckBox.Hint := 'Has a giant performance uplift on AMD GPUs.' + LineEnding +
+    'Does not affect NVIDIA GPUs (GTX 1000-series or older cards will actually see a big performance decrease)';
   FLsNoFp16CheckBox.ShowHint := True;
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsNoFp16CheckBox);
@@ -714,7 +715,7 @@ var
   OutDir, OutPath, PacingStr, DllP: string;
   MultVal: Integer;
   FlowStr, ExeName: string;
-  PerfStr, HdrStr: string;
+  PerfStr, HdrStr, LegacyStr: string;
 begin
   Result := '';
   if FLsMultiplierComboBox.ItemIndex <= 0 then Exit;
@@ -747,6 +748,7 @@ begin
   FlowStr := StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
   if FLsPerfModeCheckBox.Checked then PerfStr := 'true' else PerfStr := 'false';
   if FLsHdrModeCheckBox.Checked then HdrStr := 'true' else HdrStr := 'false';
+  if FLsNoFp16CheckBox.Checked then LegacyStr := 'true' else LegacyStr := 'false';
   
   case FLsPacingComboBox.ItemIndex of
     1: PacingStr := 'vsync';
@@ -771,6 +773,7 @@ begin
     Lines.Add('flow_scale = ' + FlowStr);
     Lines.Add('performance_mode = ' + PerfStr);
     Lines.Add('hdr_mode = ' + HdrStr);
+    Lines.Add('legacy = ' + LegacyStr);
     Lines.Add('experimental_present_mode = "' + PacingStr + '"');
     Lines.Add('');
     Lines.Add('[[game]]');
@@ -780,6 +783,7 @@ begin
     Lines.Add('flow_scale = ' + FlowStr);
     Lines.Add('performance_mode = ' + PerfStr);
     Lines.Add('hdr_mode = ' + HdrStr);
+    Lines.Add('legacy = ' + LegacyStr);
     Lines.Add('experimental_present_mode = "' + PacingStr + '"');
     
     if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
@@ -793,6 +797,7 @@ begin
       Lines.Add('flow_scale = ' + FlowStr);
       Lines.Add('performance_mode = ' + PerfStr);
       Lines.Add('hdr_mode = ' + HdrStr);
+      Lines.Add('legacy = ' + LegacyStr);
       Lines.Add('experimental_present_mode = "' + PacingStr + '"');
     end;
     
@@ -822,7 +827,7 @@ begin
 end;
 
 procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
-  out AFlowScale: Double; out APerfMode, AHdrMode: Boolean; out APacing: string);
+  out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string);
 var
   Lines: TStringList;
   i, p: Integer;
@@ -833,6 +838,7 @@ begin
   AFlowScale := 1.0;
   APerfMode := False;
   AHdrMode := False;
+  ANoFp16 := True;
   APacing := 'fifo';
   
   if not FileExists(AFilePath) then Exit;
@@ -866,6 +872,8 @@ begin
           APerfMode := (LowerCase(Val) = 'true') or (Val = '1')
         else if Key = 'hdr_mode' then
           AHdrMode := (LowerCase(Val) = 'true') or (Val = '1')
+        else if (Key = 'legacy') or (Key = 'no_fp16') then
+          ANoFp16 := (LowerCase(Val) = 'true') or (Val = '1')
         else if Key = 'experimental_present_mode' then
           APacing := LowerCase(Val);
       end;
@@ -880,7 +888,7 @@ var
   Ini: TIniFile;
   CfgPath, CfgDir, TomlPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
   FlowInt, MultInt, GpuIdx: Integer;
-  IsLosslessOn, TomlFound, PerfModeVal, HdrModeVal: Boolean;
+  IsLosslessOn, TomlFound, PerfModeVal, HdrModeVal, NoFp16Val: Boolean;
   ParsedFlow: Double;
 begin
   if Assigned(FForm) and (FForm is Tgoverlayform) then
@@ -898,7 +906,7 @@ begin
       FLsFlowScaleValueLabel.Caption := '100%';
     FLsPerfModeCheckBox.Checked := False;
     FLsHdrModeCheckBox.Checked := False;
-    FLsNoFp16CheckBox.Checked := False;
+    FLsNoFp16CheckBox.Checked := True;
     FLsPacingComboBox.ItemIndex := 0; // auto
     FLsGpuComboBox.ItemIndex := 0; // Auto (-1)
 
@@ -917,7 +925,7 @@ begin
     TomlFound := False;
     if FileExists(TomlPath) then
     begin
-      ParseLsfgToml(TomlPath, DllVal, MultInt, ParsedFlow, PerfModeVal, HdrModeVal, PacingVal);
+      ParseLsfgToml(TomlPath, DllVal, MultInt, ParsedFlow, PerfModeVal, HdrModeVal, NoFp16Val, PacingVal);
       TomlFound := True;
       if DllVal <> '' then
         FLsDllPathEdit.Text := DllVal;
@@ -946,6 +954,7 @@ begin
         
       FLsPerfModeCheckBox.Checked := PerfModeVal;
       FLsHdrModeCheckBox.Checked := HdrModeVal;
+      FLsNoFp16CheckBox.Checked := NoFp16Val;
       
       PacingVal := LowerCase(Trim(PacingVal));
       if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
@@ -997,7 +1006,7 @@ begin
         
         FLsPerfModeCheckBox.Checked := (Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', Ini.ReadString('Env', 'LSFG_PERFORMANCE_MODE', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', '0'))) = '1');
         FLsHdrModeCheckBox.Checked := (Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0'))) = '1');
-        FLsNoFp16CheckBox.Checked := (Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0'))) = '1');
+        FLsNoFp16CheckBox.Checked := (Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '1'))) = '1');
         
         PacingVal := LowerCase(Trim(Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', Ini.ReadString('Env', 'LSFGVK_PACING', 'auto')))));
         if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
