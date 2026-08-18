@@ -27,24 +27,21 @@ type
     FLsDllPathEdit: TEdit;
     FLsBrowseDllBtn: TBitBtn;
     
-    // Card 1: Frame Generation
+    // Card 1: Configuration
     FLsFgTitleLbl: TLabel;
     FLsMultiplierTitleLbl: TLabel;
-    FLsMultiplierDescLbl: TLabel;
     FLsMultiplierComboBox: TComboBox;
     
     FLsFlowScaleTitleLbl: TLabel;
-    FLsFlowScaleDescLbl: TLabel;
     FLsFlowScaleTrackBar: TTrackBar;
     FLsFlowScaleValueLabel: TLabel;
     
     FLsPerfModeCheckBox: TCheckBox;
-    FLsPerfModeDescLbl: TLabel;
+    FLsHdrModeCheckBox: TCheckBox;
     
     // Card 2: Hardware & Pacing
     FLsHwTitleLbl: TLabel;
     FLsNoFp16CheckBox: TCheckBox;
-    FLsNoFp16DescLbl: TLabel;
     
     FLsPacingTitleLbl: TLabel;
     FLsPacingComboBox: TComboBox;
@@ -313,6 +310,11 @@ begin
     FLsPerfModeCheckBox.Font.Color := TextColor;
     QWidget_setStyleSheet(TQtWidget(FLsPerfModeCheckBox.Handle).Widget, @SS);
   end;
+  if Assigned(FLsHdrModeCheckBox) and FLsHdrModeCheckBox.HandleAllocated then
+  begin
+    FLsHdrModeCheckBox.Font.Color := TextColor;
+    QWidget_setStyleSheet(TQtWidget(FLsHdrModeCheckBox.Handle).Widget, @SS);
+  end;
   if Assigned(FLsNoFp16CheckBox) and FLsNoFp16CheckBox.HandleAllocated then
   begin
     FLsNoFp16CheckBox.Font.Color := TextColor;
@@ -321,11 +323,7 @@ begin
 
   // Labels color update
   if Assigned(FLsMultiplierTitleLbl) then FLsMultiplierTitleLbl.Font.Color := TextColor;
-  if Assigned(FLsMultiplierDescLbl) then FLsMultiplierDescLbl.Font.Color := HintColor;
   if Assigned(FLsFlowScaleTitleLbl) then FLsFlowScaleTitleLbl.Font.Color := TextColor;
-  if Assigned(FLsFlowScaleDescLbl) then FLsFlowScaleDescLbl.Font.Color := HintColor;
-  if Assigned(FLsPerfModeDescLbl) then FLsPerfModeDescLbl.Font.Color := HintColor;
-  if Assigned(FLsNoFp16DescLbl) then FLsNoFp16DescLbl.Font.Color := HintColor;
   if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Font.Color := TextColor;
   if Assigned(FLsGpuTitleLbl) then FLsGpuTitleLbl.Font.Color := TextColor;
   if Assigned(FLsFlowScaleValueLabel) then FLsFlowScaleValueLabel.Font.Color := AccentColor;
@@ -388,7 +386,7 @@ begin
   FLsBgPanel.Left := 0;
   FLsBgPanel.Top := 0;
   FLsBgPanel.Width := FLsScrollBox.ClientWidth;
-  FLsBgPanel.Height := 520;
+  FLsBgPanel.Height := 480;
   
   // ── Card 0: DLL file path ─────────────────────────────────────────────────
   FLsGeneralCard := TPanel.Create(FForm);
@@ -432,12 +430,9 @@ begin
   FLsMultiplierTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierTitleLbl.Parent := FLsFrameGenCard;
   FLsMultiplierTitleLbl.Caption := 'Multiplier';
+  FLsMultiplierTitleLbl.Hint := 'Double, triple, quadruple, quintuple or sextuple your FPS output';
+  FLsMultiplierTitleLbl.ShowHint := True;
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
-  
-  FLsMultiplierDescLbl := TLabel.Create(FLsFrameGenCard);
-  FLsMultiplierDescLbl.Parent := FLsFrameGenCard;
-  FLsMultiplierDescLbl.Caption := 'Double, triple or quadruple your FPS output';
-  StyleLabel(FLsMultiplierDescLbl, lrMutedHint);
   
   FLsMultiplierComboBox := TComboBox.Create(FLsFrameGenCard);
   FLsMultiplierComboBox.Parent := FLsFrameGenCard;
@@ -448,18 +443,17 @@ begin
   FLsMultiplierComboBox.Items.Add('5x (Quintuple FPS)');
   FLsMultiplierComboBox.Items.Add('6x (Sextuple FPS)');
   FLsMultiplierComboBox.ItemIndex := 0;
+  FLsMultiplierComboBox.Hint := 'Double, triple, quadruple, quintuple or sextuple your FPS output';
+  FLsMultiplierComboBox.ShowHint := True;
   FLsMultiplierComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsMultiplierComboBox);
   
   FLsFlowScaleTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFlowScaleTitleLbl.Parent := FLsFrameGenCard;
   FLsFlowScaleTitleLbl.Caption := 'Flow Scale';
+  FLsFlowScaleTitleLbl.Hint := 'Lower internal motion estimation resolution for higher speed';
+  FLsFlowScaleTitleLbl.ShowHint := True;
   StyleLabel(FLsFlowScaleTitleLbl, lrControlLabel);
-  
-  FLsFlowScaleDescLbl := TLabel.Create(FLsFrameGenCard);
-  FLsFlowScaleDescLbl.Parent := FLsFrameGenCard;
-  FLsFlowScaleDescLbl.Caption := 'Lower internal motion estimation resolution for higher speed';
-  StyleLabel(FLsFlowScaleDescLbl, lrMutedHint);
   
   FLsFlowScaleTrackBar := TTrackBar.Create(FLsFrameGenCard);
   FLsFlowScaleTrackBar.Parent := FLsFrameGenCard;
@@ -467,6 +461,8 @@ begin
   FLsFlowScaleTrackBar.Max := 100;
   FLsFlowScaleTrackBar.Position := 100;
   FLsFlowScaleTrackBar.TickStyle := tsNone;
+  FLsFlowScaleTrackBar.Hint := 'Lower internal motion estimation resolution for higher speed';
+  FLsFlowScaleTrackBar.ShowHint := True;
   FLsFlowScaleTrackBar.OnChange := @FlowScaleChange;
   
   FLsFlowScaleValueLabel := TLabel.Create(FLsFrameGenCard);
@@ -478,13 +474,18 @@ begin
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
   FLsPerfModeCheckBox.Caption := 'Performance Mode';
+  FLsPerfModeCheckBox.Hint := 'Massively improve generation performance at a slight cost of image quality';
+  FLsPerfModeCheckBox.ShowHint := True;
   FLsPerfModeCheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsPerfModeCheckBox);
   
-  FLsPerfModeDescLbl := TLabel.Create(FLsFrameGenCard);
-  FLsPerfModeDescLbl.Parent := FLsFrameGenCard;
-  FLsPerfModeDescLbl.Caption := 'Massively improve generation performance at a slight cost of image quality';
-  StyleLabel(FLsPerfModeDescLbl, lrMutedHint);
+  FLsHdrModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
+  FLsHdrModeCheckBox.Parent := FLsFrameGenCard;
+  FLsHdrModeCheckBox.Caption := 'HDR Mode';
+  FLsHdrModeCheckBox.Hint := 'Switches shaders to HDR mode (only enable if game runs in HDR)';
+  FLsHdrModeCheckBox.ShowHint := True;
+  FLsHdrModeCheckBox.OnChange := @ControlStateChange;
+  StyleToggleControl(FLsHdrModeCheckBox);
   
   // ── Card 2: Hardware & Pacing ─────────────────────────────────────────────
   FLsHardwareCard := TPanel.Create(FForm);
@@ -499,17 +500,16 @@ begin
   FLsNoFp16CheckBox := TCheckBox.Create(FLsHardwareCard);
   FLsNoFp16CheckBox.Parent := FLsHardwareCard;
   FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
+  FLsNoFp16CheckBox.Hint := 'Disables half-precision arithmetic for compatibility with GPUs lacking FP16 speedups';
+  FLsNoFp16CheckBox.ShowHint := True;
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsNoFp16CheckBox);
-  
-  FLsNoFp16DescLbl := TLabel.Create(FLsHardwareCard);
-  FLsNoFp16DescLbl.Parent := FLsHardwareCard;
-  FLsNoFp16DescLbl.Caption := 'Disables half-precision arithmetic for compatibility with GPUs lacking FP16 speedups';
-  StyleLabel(FLsNoFp16DescLbl, lrMutedHint);
   
   FLsPacingTitleLbl := TLabel.Create(FLsHardwareCard);
   FLsPacingTitleLbl.Parent := FLsHardwareCard;
   FLsPacingTitleLbl.Caption := 'Pacing Mode';
+  FLsPacingTitleLbl.Hint := 'Frame pacing mode to use (auto, vsync, mailbox, immediate, none)';
+  FLsPacingTitleLbl.ShowHint := True;
   StyleLabel(FLsPacingTitleLbl, lrControlLabel);
   
   FLsPacingComboBox := TComboBox.Create(FLsHardwareCard);
@@ -521,17 +521,23 @@ begin
   FLsPacingComboBox.Items.Add('immediate (Uncapped)');
   FLsPacingComboBox.Items.Add('none (No Pacing)');
   FLsPacingComboBox.ItemIndex := 0;
+  FLsPacingComboBox.Hint := 'Frame pacing mode to use (auto, vsync, mailbox, immediate, none)';
+  FLsPacingComboBox.ShowHint := True;
   FLsPacingComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsPacingComboBox);
   
   FLsGpuTitleLbl := TLabel.Create(FLsHardwareCard);
   FLsGpuTitleLbl.Parent := FLsHardwareCard;
   FLsGpuTitleLbl.Caption := 'Target GPU Device';
+  FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation';
+  FLsGpuTitleLbl.ShowHint := True;
   StyleLabel(FLsGpuTitleLbl, lrControlLabel);
   
   FLsGpuComboBox := TComboBox.Create(FLsHardwareCard);
   FLsGpuComboBox.Parent := FLsHardwareCard;
   FLsGpuComboBox.Style := csDropDownList;
+  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation';
+  FLsGpuComboBox.ShowHint := True;
   FLsGpuComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsGpuComboBox);
   PopulateGpuList;
@@ -558,7 +564,7 @@ end;
 
 procedure TLosslessScalingTabHelper.ReflowLosslessScalingTab(AContentW: Integer);
 var
-  W, CardW, CurY: Integer;
+  W, CardW, CurY, ColW, RightColX: Integer;
 begin
   if not Assigned(FLsScrollBox) or not Assigned(FLsGeneralCard) then Exit;
   
@@ -576,33 +582,37 @@ begin
   FLsBrowseDllBtn.SetBounds(CardW - CARD_PAD - 32, 34, 32, ROW_H);
   CurY := CurY + FLsGeneralCard.Height + 12;
   
-  // ── Card 1 Layout: Frame Generation ───────────────────────────────────────
-  FLsFrameGenCard.SetBounds(CARD_PAD, CurY, CardW, 204);
+  // ── Card 1 Layout: Configuration ─────────────────────────────────────────
+  // Left column: Multiplier and Flow Scale (controls directly below labels)
+  // Right column: Performance Mode and HDR Mode checkboxes
+  ColW := (CardW - (CARD_PAD * 2) - 20) div 2;
+  RightColX := CARD_PAD + ColW + 20;
   
-  FLsMultiplierTitleLbl.SetBounds(CARD_PAD, 36, 240, 18);
-  FLsMultiplierDescLbl.SetBounds(CARD_PAD, 54, 280, 16);
-  FLsMultiplierComboBox.SetBounds(CardW - 200, 40, 186, ROW_H);
+  FLsFrameGenCard.SetBounds(CARD_PAD, CurY, CardW, 160);
   
-  FLsFlowScaleTitleLbl.SetBounds(CARD_PAD, 86, 240, 18);
-  FLsFlowScaleDescLbl.SetBounds(CARD_PAD, 104, 280, 16);
-  FLsFlowScaleTrackBar.SetBounds(CardW - 260, 90, 196, ROW_H);
-  FLsFlowScaleValueLabel.SetBounds(CardW - 54, 95, 48, 20);
+  // Left column
+  FLsMultiplierTitleLbl.SetBounds(CARD_PAD, 36, ColW, 18);
+  FLsMultiplierComboBox.SetBounds(CARD_PAD, 56, ColW, ROW_H);
   
-  FLsPerfModeCheckBox.SetBounds(CARD_PAD, 142, CardW - (CARD_PAD * 2), 22);
-  FLsPerfModeDescLbl.SetBounds(CARD_PAD + 22, 166, CardW - (CARD_PAD * 2) - 24, 18);
+  FLsFlowScaleTitleLbl.SetBounds(CARD_PAD, 94, ColW, 18);
+  FLsFlowScaleTrackBar.SetBounds(CARD_PAD, 114, ColW - 48, ROW_H);
+  FLsFlowScaleValueLabel.SetBounds(CARD_PAD + ColW - 44, 118, 44, 20);
+  
+  // Right column
+  FLsPerfModeCheckBox.SetBounds(RightColX, 58, ColW, 24);
+  FLsHdrModeCheckBox.SetBounds(RightColX, 116, ColW, 24);
   CurY := CurY + FLsFrameGenCard.Height + 12;
   
-  // ── Card 2 Layout: Hardware & Pacing ──────────────────────────────────────
-  FLsHardwareCard.SetBounds(CARD_PAD, CurY, CardW, 168);
+  // ── Card 2 Layout: Hardware & Pacing ─────────────────────────────────────
+  FLsHardwareCard.SetBounds(CARD_PAD, CurY, CardW, 142);
   
-  FLsNoFp16CheckBox.SetBounds(CARD_PAD, 36, CardW - (CARD_PAD * 2), 22);
-  FLsNoFp16DescLbl.SetBounds(CARD_PAD + 22, 58, CardW - (CARD_PAD * 2) - 24, 18);
+  FLsNoFp16CheckBox.SetBounds(CARD_PAD, 36, CardW - (CARD_PAD * 2), 24);
   
-  FLsPacingTitleLbl.SetBounds(CARD_PAD, 88, 240, 18);
-  FLsPacingComboBox.SetBounds(CARD_PAD, 108, (CardW div 2) - 20, ROW_H);
+  FLsPacingTitleLbl.SetBounds(CARD_PAD, 70, ColW, 18);
+  FLsPacingComboBox.SetBounds(CARD_PAD, 90, ColW, ROW_H);
   
-  FLsGpuTitleLbl.SetBounds((CardW div 2) + 10, 88, 240, 18);
-  FLsGpuComboBox.SetBounds((CardW div 2) + 10, 108, (CardW div 2) - 24, ROW_H);
+  FLsGpuTitleLbl.SetBounds(RightColX, 70, ColW, 18);
+  FLsGpuComboBox.SetBounds(RightColX, 90, ColW, ROW_H);
   CurY := CurY + FLsHardwareCard.Height + CARD_PAD;
   
   FLsBgPanel.Height := CurY;
@@ -716,6 +726,9 @@ begin
     if FLsPerfModeCheckBox.Checked then
       Parts.Add('LSFGVK_PERFORMANCE_MODE=1');
       
+    if FLsHdrModeCheckBox.Checked then
+      Parts.Add('LSFGVK_HDR_MODE=1');
+      
     if FLsNoFp16CheckBox.Checked then
       Parts.Add('LSFGVK_NO_FP16=1');
       
@@ -760,6 +773,7 @@ begin
     if Assigned(FLsFlowScaleValueLabel) then
       FLsFlowScaleValueLabel.Caption := IntToStr(FLsFlowScaleTrackBar.Position) + '%';
     FLsPerfModeCheckBox.Checked := Ini.ReadBool('LosslessScaling', 'PerformanceMode', False);
+    FLsHdrModeCheckBox.Checked := Ini.ReadBool('LosslessScaling', 'HdrMode', False);
     FLsNoFp16CheckBox.Checked := Ini.ReadBool('LosslessScaling', 'NoFp16', False);
     FLsPacingComboBox.ItemIndex := Ini.ReadInteger('LosslessScaling', 'PacingIndex', 0);
     FLsGpuComboBox.ItemIndex := Ini.ReadInteger('LosslessScaling', 'GpuIndex', 0);
@@ -786,6 +800,7 @@ begin
     Ini.WriteInteger('LosslessScaling', 'MultiplierIndex', FLsMultiplierComboBox.ItemIndex);
     Ini.WriteInteger('LosslessScaling', 'FlowScale', FLsFlowScaleTrackBar.Position);
     Ini.WriteBool('LosslessScaling', 'PerformanceMode', FLsPerfModeCheckBox.Checked);
+    Ini.WriteBool('LosslessScaling', 'HdrMode', FLsHdrModeCheckBox.Checked);
     Ini.WriteBool('LosslessScaling', 'NoFp16', FLsNoFp16CheckBox.Checked);
     Ini.WriteInteger('LosslessScaling', 'PacingIndex', FLsPacingComboBox.ItemIndex);
     Ini.WriteInteger('LosslessScaling', 'GpuIndex', FLsGpuComboBox.ItemIndex);
