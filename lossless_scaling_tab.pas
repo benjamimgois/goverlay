@@ -22,13 +22,10 @@ type
     FLsFrameGenCard: TPanel;
     FLsHardwareCard: TPanel;
     
-    // Card 0: General & DLL Setup
+    // Card 0: DLL file path
     FLsDllTitleLbl: TLabel;
     FLsDllPathEdit: TEdit;
     FLsBrowseDllBtn: TBitBtn;
-    FLsAutoDetectBtn: TBitBtn;
-    FLsDllStatusShape: TShape;
-    FLsDllStatusLabel: TLabel;
     
     // Card 1: Frame Generation
     FLsFgTitleLbl: TLabel;
@@ -57,7 +54,6 @@ type
     
     procedure DllPathChange(Sender: TObject);
     procedure BrowseDllClick(Sender: TObject);
-    procedure AutoDetectDllClick(Sender: TObject);
     procedure FlowScaleChange(Sender: TObject);
     procedure ControlStateChange(Sender: TObject);
     procedure LsScrollBoxResize(Sender: TObject);
@@ -282,16 +278,8 @@ begin
     FLsHardwareCard.Invalidate;
   end;
 
-  // QLineEdit
-  if Assigned(FLsDllPathEdit) and FLsDllPathEdit.HandleAllocated then
-  begin
-    if IsDark then
-      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; selection-background-color: rgb(48,190,240); selection-color: rgb(0,0,0); } ' +
-            'QLineEdit:focus { border: 1px solid rgb(48,190,240); }'
-    else
-      SS := 'QLineEdit { background-color: rgb(255,255,255); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
-    QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
-  end;
+  // QLineEdit & DLL Status styling
+  UpdateDllStatus;
 
   // QComboBoxes
   if IsDark then
@@ -365,8 +353,6 @@ begin
 
   if Assigned(FLsBrowseDllBtn) and FLsBrowseDllBtn.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsBrowseDllBtn.Handle).Widget, @SS);
-  if Assigned(FLsAutoDetectBtn) and FLsAutoDetectBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsAutoDetectBtn.Handle).Widget, @SS);
 end;
 
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;
@@ -399,9 +385,9 @@ begin
   FLsBgPanel.Left := 0;
   FLsBgPanel.Top := 0;
   FLsBgPanel.Width := FLsScrollBox.ClientWidth;
-  FLsBgPanel.Height := 580;
+  FLsBgPanel.Height := 520;
   
-  // ── Card 0: General & DLL Setup ───────────────────────────────────────────
+  // ── Card 0: DLL file path ─────────────────────────────────────────────────
   FLsGeneralCard := TPanel.Create(FForm);
   FLsGeneralCard.Parent := FLsBgPanel;
   FLsGeneralCard.Caption := '';
@@ -409,7 +395,7 @@ begin
   FLsDllTitleLbl := TLabel.Create(FLsGeneralCard);
   FLsDllTitleLbl.Parent := FLsGeneralCard;
   FLsDllTitleLbl.ShowAccelChar := False;
-  StyleMainCard(FLsGeneralCard, FLsDllTitleLbl, 'General & Lossless DLL Setup');
+  StyleMainCard(FLsGeneralCard, FLsDllTitleLbl, 'DLL file path');
   
   FLsDllPathEdit := TEdit.Create(FLsGeneralCard);
   FLsDllPathEdit.Parent := FLsGeneralCard;
@@ -423,25 +409,6 @@ begin
   FLsBrowseDllBtn.Cursor := crHandPoint;
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
   StyleActionButton(FLsBrowseDllBtn);
-  
-  FLsAutoDetectBtn := TBitBtn.Create(FLsGeneralCard);
-  FLsAutoDetectBtn.Parent := FLsGeneralCard;
-  FLsAutoDetectBtn.Caption := '🔍 Auto-Detect Steam';
-  FLsAutoDetectBtn.Cursor := crHandPoint;
-  FLsAutoDetectBtn.OnClick := @AutoDetectDllClick;
-  StyleActionButton(FLsAutoDetectBtn);
-  
-  FLsDllStatusShape := TShape.Create(FLsGeneralCard);
-  FLsDllStatusShape.Parent := FLsGeneralCard;
-  FLsDllStatusShape.Shape := stCircle;
-  FLsDllStatusShape.Pen.Style := psClear;
-  FLsDllStatusShape.Brush.Color := clRed;
-  
-  FLsDllStatusLabel := TLabel.Create(FLsGeneralCard);
-  FLsDllStatusLabel.Parent := FLsGeneralCard;
-  FLsDllStatusLabel.Caption := 'Lossless.dll not found';
-  FLsDllStatusLabel.Font.Color := CLR_TEXT_MUTED;
-  FLsDllStatusLabel.Font.Size := FONT_SZ_HINT;
   
   // ── Card 1: Frame Generation ──────────────────────────────────────────────
   FLsFrameGenCard := TPanel.Create(FForm);
@@ -592,14 +559,10 @@ begin
   CardW := W - (CARD_PAD * 2);
   CurY := CARD_PAD;
   
-  // ── Card 0 Layout: General & DLL Setup ────────────────────────────────────
-  FLsGeneralCard.SetBounds(CARD_PAD, CurY, CardW, 114);
-  FLsDllPathEdit.SetBounds(CARD_PAD, 36, CardW - 270, ROW_H);
-  FLsBrowseDllBtn.SetBounds(CardW - 260, 36, 100, ROW_H);
-  FLsAutoDetectBtn.SetBounds(CardW - 152, 36, 138, ROW_H);
-  
-  FLsDllStatusShape.SetBounds(CARD_PAD + 2, 78, 12, 12);
-  FLsDllStatusLabel.SetBounds(CARD_PAD + 20, 76, CardW - (CARD_PAD * 2) - 24, 20);
+  // ── Card 0 Layout: DLL file path ──────────────────────────────────────────
+  FLsGeneralCard.SetBounds(CARD_PAD, CurY, CardW, 76);
+  FLsDllPathEdit.SetBounds(CARD_PAD, 34, CardW - 120, ROW_H);
+  FLsBrowseDllBtn.SetBounds(CardW - 110, 34, 96, ROW_H);
   CurY := CurY + FLsGeneralCard.Height + 12;
   
   // ── Card 1 Layout: Frame Generation ───────────────────────────────────────
@@ -638,24 +601,32 @@ end;
 procedure TLosslessScalingTabHelper.UpdateDllStatus;
 var
   P: string;
+  SS: WideString;
+  IsValid: Boolean;
+  IsDark: Boolean;
 begin
-  if not Assigned(FLsDllStatusShape) or not Assigned(FLsDllPathEdit) then Exit;
+  if not Assigned(FLsDllPathEdit) or not FLsDllPathEdit.HandleAllocated then Exit;
   P := Trim(FLsDllPathEdit.Text);
-  if (P <> '') and FileExists(P) then
+  IsValid := (P <> '') and FileExists(P);
+  IsDark := (CurrentTheme = tmDark);
+  
+  if IsValid then
   begin
-    FLsDllStatusShape.Brush.Color := RGBToColor(68, 204, 102); // Green
-    FLsDllStatusLabel.Caption := '✓ Valid Lossless.dll found at specified path';
-    FLsDllStatusLabel.Font.Color := RGBToColor(68, 204, 102);
+    if IsDark then
+      SS := 'QLineEdit { background-color: rgb(24, 56, 36); color: rgb(255, 255, 255); border: 1px solid rgb(68, 204, 102); border-radius: 4px; padding: 2px 6px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+            'QLineEdit:focus { border: 1px solid rgb(90, 240, 130); }'
+    else
+      SS := 'QLineEdit { background-color: rgb(232, 250, 236); color: rgb(0, 80, 20); border: 1px solid rgb(46, 125, 50); border-radius: 4px; padding: 2px 6px; }';
   end
   else
   begin
-    FLsDllStatusShape.Brush.Color := RGBToColor(238, 68, 68); // Red
-    if P = '' then
-      FLsDllStatusLabel.Caption := '● No DLL path specified (Click "Auto-Detect Steam" or "Browse")'
+    if IsDark then
+      SS := 'QLineEdit { background-color: rgb(38, 46, 72); color: rgb(255, 255, 255); border: 1px solid rgb(55, 70, 108); border-radius: 4px; padding: 2px 6px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+            'QLineEdit:focus { border: 1px solid rgb(48, 190, 240); }'
     else
-      FLsDllStatusLabel.Caption := '✗ Lossless.dll not found at: ' + P;
-    FLsDllStatusLabel.Font.Color := CLR_TEXT_MUTED;
+      SS := 'QLineEdit { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding: 2px 6px; }';
   end;
+  QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
 end;
 
 procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
@@ -683,23 +654,6 @@ begin
     end;
   finally
     OD.Free;
-  end;
-end;
-
-procedure TLosslessScalingTabHelper.AutoDetectDllClick(Sender: TObject);
-var
-  Found: string;
-begin
-  Found := DetectSteamLosslessDll;
-  if Found <> '' then
-  begin
-    FLsDllPathEdit.Text := Found;
-    ShowMessage('Lossless.dll detected successfully!' + LineEnding + Found);
-  end
-  else
-  begin
-    ShowMessage('Could not automatically locate Lossless.dll in Steam libraries.' + LineEnding +
-                'Please select the DLL manually via the "Browse" button.');
   end;
 end;
 
