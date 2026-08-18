@@ -343,16 +343,17 @@ begin
     QWidget_setStyleSheet(TQtWidget(FLsFlowScaleTrackBar.Handle).Widget, @SS);
 
   // Action Buttons (QPushButtons)
-  if IsDark then
-    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; font-weight: bold; } ' +
-          'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-          'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }'
-  else
-    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 3px 8px; }';
-
   if Assigned(FLsBrowseDllBtn) and FLsBrowseDllBtn.HandleAllocated then
+  begin
+    if IsDark then
+      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; } ' +
+            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
+            'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); border: 1px solid rgb(40,48,70); }'
+    else
+      SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px; }';
     QWidget_setStyleSheet(TQtWidget(FLsBrowseDllBtn.Handle).Widget, @SS);
+  end;
 end;
 
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;
@@ -399,13 +400,18 @@ begin
   
   FLsDllPathEdit := TEdit.Create(FLsGeneralCard);
   FLsDllPathEdit.Parent := FLsGeneralCard;
+  FLsDllPathEdit.Font.Name := 'DejaVu Sans Mono';
+  FLsDllPathEdit.Font.Height := -13;
+  FLsDllPathEdit.Font.Quality := fqAntialiased;
   FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
   FLsDllPathEdit.OnChange := @DllPathChange;
   StyleInputControl(FLsDllPathEdit);
   
   FLsBrowseDllBtn := TBitBtn.Create(FLsGeneralCard);
   FLsBrowseDllBtn.Parent := FLsGeneralCard;
-  FLsBrowseDllBtn.Caption := '📁 Browse';
+  FLsBrowseDllBtn.Caption := '';
+  FLsBrowseDllBtn.Images := Tgoverlayform(FForm).iconsImageList;
+  FLsBrowseDllBtn.ImageIndex := 24;
   FLsBrowseDllBtn.Cursor := crHandPoint;
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
   StyleActionButton(FLsBrowseDllBtn);
@@ -561,8 +567,8 @@ begin
   
   // ── Card 0 Layout: DLL file path ──────────────────────────────────────────
   FLsGeneralCard.SetBounds(CARD_PAD, CurY, CardW, 76);
-  FLsDllPathEdit.SetBounds(CARD_PAD, 34, CardW - 120, ROW_H);
-  FLsBrowseDllBtn.SetBounds(CardW - 110, 34, 96, ROW_H);
+  FLsDllPathEdit.SetBounds(CARD_PAD, 34, CardW - (CARD_PAD * 2) - 38, ROW_H);
+  FLsBrowseDllBtn.SetBounds(CardW - CARD_PAD - 32, 34, 32, ROW_H);
   CurY := CurY + FLsGeneralCard.Height + 12;
   
   // ── Card 1 Layout: Frame Generation ───────────────────────────────────────
@@ -613,18 +619,18 @@ begin
   if IsValid then
   begin
     if IsDark then
-      SS := 'QLineEdit { background-color: rgb(24, 56, 36); color: rgb(255, 255, 255); border: 1px solid rgb(68, 204, 102); border-radius: 4px; padding: 2px 6px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+      SS := 'QLineEdit { background-color: rgb(24, 56, 36); color: rgb(255, 255, 255); border: 1px solid rgb(68, 204, 102); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
             'QLineEdit:focus { border: 1px solid rgb(90, 240, 130); }'
     else
-      SS := 'QLineEdit { background-color: rgb(232, 250, 236); color: rgb(0, 80, 20); border: 1px solid rgb(46, 125, 50); border-radius: 4px; padding: 2px 6px; }';
+      SS := 'QLineEdit { background-color: rgb(232, 250, 236); color: rgb(0, 80, 20); border: 1px solid rgb(46, 125, 50); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
   end
   else
   begin
     if IsDark then
-      SS := 'QLineEdit { background-color: rgb(38, 46, 72); color: rgb(255, 255, 255); border: 1px solid rgb(55, 70, 108); border-radius: 4px; padding: 2px 6px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+      SS := 'QLineEdit { background-color: rgb(38, 46, 72); color: rgb(255, 255, 255); border: 1px solid rgb(55, 70, 108); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
             'QLineEdit:focus { border: 1px solid rgb(48, 190, 240); }'
     else
-      SS := 'QLineEdit { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding: 2px 6px; }';
+      SS := 'QLineEdit { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
   end;
   QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
 end;
