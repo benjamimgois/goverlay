@@ -295,28 +295,27 @@ begin
   if Assigned(FLsGpuComboBox) and FLsGpuComboBox.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsGpuComboBox.Handle).Widget, @SS);
 
-  // QCheckBoxes
+  // QCheckBoxes (transparent background matching other cards)
   if IsDark then
-    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; font-size: 13px; font-family: "Noto Sans", sans-serif; } ' +
-          'QCheckBox::indicator { width: 16px; height: 16px; background-color: rgb(26,30,46); border: 1px solid rgb(120,130,160); border-radius: 3px; } ' +
-          'QCheckBox::indicator:checked { background-color: rgb(48,190,240); border-color: rgb(48,190,240); }'
+    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; border: none; }'
   else
-    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; font-size: 13px; font-family: "Noto Sans", sans-serif; } ' +
-          'QCheckBox::indicator { width: 16px; height: 16px; background-color: rgb(255,255,255); border: 1px solid rgb(180,180,180); border-radius: 3px; } ' +
-          'QCheckBox::indicator:checked { background-color: rgb(0,120,215); border-color: rgb(0,120,215); }';
+    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; border: none; }';
 
   if Assigned(FLsPerfModeCheckBox) and FLsPerfModeCheckBox.HandleAllocated then
   begin
+    FLsPerfModeCheckBox.ParentColor := True;
     FLsPerfModeCheckBox.Font.Color := TextColor;
     QWidget_setStyleSheet(TQtWidget(FLsPerfModeCheckBox.Handle).Widget, @SS);
   end;
   if Assigned(FLsHdrModeCheckBox) and FLsHdrModeCheckBox.HandleAllocated then
   begin
+    FLsHdrModeCheckBox.ParentColor := True;
     FLsHdrModeCheckBox.Font.Color := TextColor;
     QWidget_setStyleSheet(TQtWidget(FLsHdrModeCheckBox.Handle).Widget, @SS);
   end;
   if Assigned(FLsNoFp16CheckBox) and FLsNoFp16CheckBox.HandleAllocated then
   begin
+    FLsNoFp16CheckBox.ParentColor := True;
     FLsNoFp16CheckBox.Font.Color := TextColor;
     QWidget_setStyleSheet(TQtWidget(FLsNoFp16CheckBox.Handle).Widget, @SS);
   end;
@@ -473,6 +472,7 @@ begin
   
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
+  FLsPerfModeCheckBox.ParentColor := True;
   FLsPerfModeCheckBox.Caption := 'Performance Mode';
   FLsPerfModeCheckBox.Hint := 'Massively improve generation performance at a slight cost of image quality';
   FLsPerfModeCheckBox.ShowHint := True;
@@ -481,6 +481,7 @@ begin
   
   FLsHdrModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsHdrModeCheckBox.Parent := FLsFrameGenCard;
+  FLsHdrModeCheckBox.ParentColor := True;
   FLsHdrModeCheckBox.Caption := 'HDR Mode';
   FLsHdrModeCheckBox.Hint := 'Switches shaders to HDR mode (only enable if game runs in HDR)';
   FLsHdrModeCheckBox.ShowHint := True;
@@ -499,6 +500,7 @@ begin
   
   FLsNoFp16CheckBox := TCheckBox.Create(FLsHardwareCard);
   FLsNoFp16CheckBox.Parent := FLsHardwareCard;
+  FLsNoFp16CheckBox.ParentColor := True;
   FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
   FLsNoFp16CheckBox.Hint := 'Disables half-precision arithmetic for compatibility with GPUs lacking FP16 speedups';
   FLsNoFp16CheckBox.ShowHint := True;
