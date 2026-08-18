@@ -2659,7 +2659,7 @@ begin
   fahrenheitCheckBox.Top     := 259 + HDR + SysYOff4;
   customcommandEdit.Left     := X0;
   customcommandEdit.Top      := 315 + HDR + SysYOff4;
-  customcommandEdit.Width    := Max(200, CW - 2 * X0);
+  customcommandEdit.Width    := (fahrenheitCheckBox.Left + fahrenheitCheckBox.Width) - X0;
 
   // Reposition Logging controls
   logdurationLabel.Left      := X0;

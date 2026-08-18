@@ -140,7 +140,8 @@ begin
   SetHint('resolutionCheckBox', 'Resolution' + LineEnding +
     'Displays current screen resolution');
   SetHint('refreshrateCheckBox', 'Refresh rate' + LineEnding +
-    'Shows monitor refresh rate in Hz');
+    'Shows monitor refresh rate in Hz' + LineEnding +
+    'Needs GAMESCOPE');
   SetHint('displayserverCheckBox', 'Display server' + LineEnding +
     'Displays X11, Wayland, etc.');
   SetHint('timeCheckBox', 'Current time' + LineEnding +
@@ -179,9 +180,11 @@ begin
   // ============================================================================
 
   SetHint('fsrCheckBox', 'FSR indicator' + LineEnding +
-    'Shows when FidelityFX Super Resolution is active');
+    'Shows when FidelityFX Super Resolution is active' + LineEnding +
+    'Needs GAMESCOPE');
   SetHint('hdrCheckBox', 'HDR indicator' + LineEnding +
-    'Displays when HDR is enabled');
+    'Displays when HDR is enabled' + LineEnding +
+    'Needs GAMESCOPE');
   SetHint('fcatCheckBox', 'FCAT' + LineEnding +
     'Frame Capture Analysis Tool - frame analysis');
   SetHint('ftraceCheckBox', 'Ftrace' + LineEnding +

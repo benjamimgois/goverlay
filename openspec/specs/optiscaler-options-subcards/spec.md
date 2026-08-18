@@ -3,7 +3,7 @@
 ## Requirements
 
 ### Requirement: Four Independent Options Sub-Cards
-The system SHALL display the OptiScaler options panel as 4 independent sub-cards ("Main", "Spatial Upscaler", "Temporal Upscaler", and "Reflex / Antilag") of equal width inside the "Options" card.
+The system SHALL display the OptiScaler options panel as 4 independent sub-cards ("Main", "Upscaler", "Framegen", and "Reflex / Antilag") of equal width inside the "Options" card.
 
 #### Scenario: Displaying the OptiScaler options card
 - **WHEN** the user views the OptiScaler tab
@@ -12,8 +12,8 @@ The system SHALL display the OptiScaler options panel as 4 independent sub-cards
 ### Requirement: Control Organization Across Sub-Cards
 The system SHALL group controls into their corresponding sub-card panel:
 - "Main": File name selection, Menu scale, OptiPatcher toggle, and Shortcut toggle key.
-- "Spatial Upscaler": Preferred upscaler selection, Spoof DLSS toggle, and Force FSR4-i8 toggle.
-- "Temporal Upscaler": FG Input selection, FG Output selection, and Force MLFG toggle.
+- "Upscaler": Preferred upscaler selection, Spoof DLSS toggle, and Force FSR4-i8 toggle.
+- "Framegen": FG Input selection, FG Output selection, and Force MLFG toggle.
 - "Reflex / Antilag": Force Reflex toggle & mode, and Force LatencyFlex toggle & mode.
 
 #### Scenario: Interacting with controls in independent sub-cards

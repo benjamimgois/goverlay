@@ -393,7 +393,7 @@ begin
     FOsSpatialSec.OnPaint := @SubCardPaint;
     FOsSpatialLbl := TLabel.Create(FOsSpatialSec);
     FOsSpatialLbl.Parent := FOsSpatialSec;
-    StyleSubCard(FOsSpatialSec, FOsSpatialLbl, 'Spatial Upscaler');
+    StyleSubCard(FOsSpatialSec, FOsSpatialLbl, 'Upscaler');
 
     FOsTemporalSec := TPanel.Create(FForm);
     FOsTemporalSec.Parent  := FOsOptionsCard;
@@ -401,7 +401,7 @@ begin
     FOsTemporalSec.OnPaint := @SubCardPaint;
     FOsTemporalLbl := TLabel.Create(FOsTemporalSec);
     FOsTemporalLbl.Parent := FOsTemporalSec;
-    StyleSubCard(FOsTemporalSec, FOsTemporalLbl, 'Temporal Upscaler');
+    StyleSubCard(FOsTemporalSec, FOsTemporalLbl, 'Framegen');
 
     FOsImgSec := TPanel.Create(FForm);
     FOsImgSec.Parent      := FOsOptionsCard;

@@ -9,7 +9,7 @@ Provides configuration and management of upscaler engines (OptiScaler and DLSS E
 ### Requirement: Tab Rebrand and Top Cards Layout
 The sidebar navigation item SHALL display the caption "Upscalers" instead of "OptiScaler".
 The top section of the Upscalers tab SHALL render two 50% width cards side-by-side: "Method" on the left and "GPU Driver" on the right.
-The "OptiScaler" sub-card (`FOsOptiSec`) SHALL layout "File name" and "Menu scale" controls in the Main sub-card, "Preferred upscaler", "Spoof DLSS", and "Force FSR4-i8" controls in the Spatial Upscaler sub-card, "FG Input", "FG Output", and "Force MLFG in RDNA3" controls in the Temporal Upscaler sub-card, and "Force Reflex" and "Force LatencyFlex" controls in the Reflex / Antilag sub-card.
+The "OptiScaler" sub-card (`FOsOptiSec`) SHALL layout "File name" and "Menu scale" controls in the Main sub-card, "Preferred upscaler", "Spoof DLSS", and "Force FSR4-i8" controls in the Upscaler sub-card, "FG Input", "FG Output", and "Force MLFG in RDNA3" controls in the Framegen sub-card, and "Force Reflex" and "Force LatencyFlex" controls in the Reflex / Antilag sub-card.
 
 #### Scenario: Switching between OptiScaler and DLSS Enabler modes
 - **WHEN** the user selects the "DLSS Enabler" radio button
