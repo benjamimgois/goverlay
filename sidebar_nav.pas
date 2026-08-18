@@ -731,6 +731,8 @@ begin
     2:
     begin
       FForm.SetControlTreeEnabled(FForm.optiscalertabsheet,  AEnabled);
+      if Assigned(FForm.losslessScalingTabSheet) then
+        FForm.SetControlTreeEnabled(FForm.losslessScalingTabSheet, AEnabled);
       if AEnabled then
       begin
         if Assigned(FForm.nvidiaRadioButton) and FForm.nvidiaRadioButton.Checked then
@@ -769,7 +771,7 @@ begin
     Result := 0
   else if (P = FForm.vkbasaltTabsheet) or (P = FForm.vksumiTabSheet) then
     Result := 1
-  else if P = FForm.optiscalertabsheet then
+  else if (P = FForm.optiscalertabsheet) or (P = FForm.losslessScalingTabSheet) then
     Result := 2
   else if P = FForm.tweaksTabSheet then
     Result := 3

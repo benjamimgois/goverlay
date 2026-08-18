@@ -36,6 +36,7 @@ type
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
     function  GetVkSumiVersion: string;
+    function  GetLsfgVkVersion: string;
     function  IsDlssEnablerInstalled: Boolean;
     function  GetDlssEnablerVersion: string;
     function  FindBinPath(const BinName: string): string;
@@ -74,7 +75,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..4] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi');
+  MOD_NAMES: array[0..5] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -318,12 +319,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 5 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 6 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi)
-    for i := 0 to 4 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk)
+    for i := 0 to 5 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -393,6 +394,7 @@ begin
     vkbasalttabsheet.TabVisible  := False;
     vksumiTabSheet.TabVisible    := False;
     optiscalertabsheet.TabVisible := False;
+    losslessScalingTabSheet.TabVisible := False;
     tweakstabsheet.TabVisible    := False;
     gamesTabSheet.TabVisible     := False;
     FHomeTabSheet.TabVisible     := True;
@@ -422,8 +424,8 @@ const
   CLR_MISSING = $004444BB;  // red
 var
   Missing: TStringList;
-  MangoOK, VkOK, OptiOK, DlssOK, SumiOK: Boolean;
-  MangoVer, VkVer, DlssVer, SumiVer: string;
+  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK: Boolean;
+  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer: string;
 begin
   with FForm do
   begin
@@ -439,6 +441,7 @@ begin
       DlssOK  := Self.IsDlssEnablerInstalled;
       SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
                  (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
+      LsfgOK  := (Missing.IndexOf(DEP_LSFGVK) < 0);
     finally
       Missing.Free;
     end;
@@ -448,6 +451,7 @@ begin
     FHomeModDots[2].Brush.Color := Math.IfThen(OptiOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[3].Brush.Color := Math.IfThen(DlssOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[4].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[5].Brush.Color := Math.IfThen(LsfgOK,  CLR_OK, CLR_MISSING);
 
     MangoVer := Self.GetMangoHudVersion;
     if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
@@ -471,6 +475,10 @@ begin
     SumiVer := Self.GetVkSumiVersion;
     if SumiVer = '' then SumiVer := StrUtils.IfThen(SumiOK, 'installed', 'not found');
     FHomeModVerLbls[4].Caption := SumiVer;
+
+    LsfgVer := Self.GetLsfgVkVersion;
+    if LsfgVer = '' then LsfgVer := StrUtils.IfThen(LsfgOK, 'installed', 'not found');
+    FHomeModVerLbls[5].Caption := LsfgVer;
   end;
 end;
 
@@ -834,6 +842,33 @@ begin
     P.Parameters.Add('pacman -Q vksumi 2>/dev/null | awk ''{print $2}'' || ' +
                      'dpkg-query -W -f=''${Version}'' vksumi 2>/dev/null || ' +
                      'rpm -q --qf ''%{VERSION}'' vksumi 2>/dev/null || echo ""');
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then Result := Trim(S[0]);
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
+function THomeTabHelper.GetLsfgVkVersion: string;
+var
+  P: TProcess;
+  S: TStringList;
+begin
+  Result := '';
+  if IsRunningInFlatpak then Exit;
+  P := TProcess.Create(nil);
+  try
+    P.Executable := FindDefaultExecutablePath('sh');
+    P.Parameters.Add('-c');
+    P.Parameters.Add('pacman -Q lsfg-vk 2>/dev/null | awk ''{print $2}'' || ' +
+                     'pacman -Q lsfg-vk-git 2>/dev/null | awk ''{print $2}'' || ' +
+                     'dpkg-query -W -f=''${Version}'' lsfg-vk 2>/dev/null || ' +
+                     'rpm -q --qf ''%{VERSION}'' lsfg-vk 2>/dev/null || echo ""');
     P.Options := [poUsePipes, poWaitOnExit];
     try
       P.Execute;

@@ -430,6 +430,32 @@ begin
         TButton(ctrl).Color := LighterBackgroundColor;
       TButton(ctrl).Font.Color := TextColor;
     end
+    else if ctrl is TTrackBar then
+    begin
+      TTrackBar(ctrl).TickStyle := tsNone;
+      if TTrackBar(ctrl).HandleAllocated then
+      begin
+        if ATheme = tmDark then
+          SS := 'QSlider::groove:horizontal { height: 6px; background: rgb(38,46,72); border-radius: 3px; } ' +
+                'QSlider::sub-page:horizontal { background: rgb(48,190,240); border-radius: 3px; } ' +
+                'QSlider::handle:horizontal { background: rgb(220,225,240); border: 1px solid rgb(48,190,240); width: 14px; margin-top: -4px; margin-bottom: -4px; border-radius: 7px; } ' +
+                'QSlider::handle:horizontal:hover { background: rgb(255,255,255); } ' +
+                'QSlider::groove:vertical { width: 6px; background: rgb(38,46,72); border-radius: 3px; } ' +
+                'QSlider::add-page:vertical { background: rgb(48,190,240); border-radius: 3px; } ' +
+                'QSlider::handle:vertical { background: rgb(220,225,240); border: 1px solid rgb(48,190,240); height: 14px; margin-left: -4px; margin-right: -4px; border-radius: 7px; } ' +
+                'QSlider::handle:vertical:hover { background: rgb(255,255,255); }'
+        else
+          SS := 'QSlider::groove:horizontal { height: 6px; background: rgb(220,220,220); border-radius: 3px; } ' +
+                'QSlider::sub-page:horizontal { background: rgb(0,120,215); border-radius: 3px; } ' +
+                'QSlider::handle:horizontal { background: rgb(255,255,255); border: 1px solid rgb(180,180,180); width: 14px; margin-top: -4px; margin-bottom: -4px; border-radius: 7px; } ' +
+                'QSlider::handle:horizontal:hover { background: rgb(240,240,240); } ' +
+                'QSlider::groove:vertical { width: 6px; background: rgb(220,220,220); border-radius: 3px; } ' +
+                'QSlider::add-page:vertical { background: rgb(0,120,215); border-radius: 3px; } ' +
+                'QSlider::handle:vertical { background: rgb(255,255,255); border: 1px solid rgb(180,180,180); height: 14px; margin-left: -4px; margin-right: -4px; border-radius: 7px; } ' +
+                'QSlider::handle:vertical:hover { background: rgb(240,240,240); }';
+        QWidget_setStyleSheet(TQtWidget(TTrackBar(ctrl).Handle).Widget, @SS);
+      end;
+    end
     else if ctrl is TPageControl then
     begin
       for j := 0 to TPageControl(ctrl).PageCount - 1 do

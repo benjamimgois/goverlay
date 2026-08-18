@@ -573,12 +573,12 @@ begin
   Place(hudbackgroundColorButton, FVisualSections[2], 52, 28);
   Place(transparencyLabel,        FVisualSections[2], 6,  72);
   Place(transpTrackBar,           FVisualSections[2], 52, 70);
-  Place(alphavalueLabel,          FVisualSections[2], 52, 92);
+  Place(alphavalueLabel,          FVisualSections[2], 52 + transpTrackBar.Width + 8, 72);
   backgroundLabel.Font.Color   := TextColor; backgroundLabel.Transparent   := True;
   transparencyLabel.Font.Color := TextColor; transparencyLabel.Transparent := True;
-  alphavalueLabel.Font.Color   := TextColor; alphavalueLabel.Transparent   := True;
+  alphavalueLabel.Font.Color   := CLR_TEXT_ACCENT; alphavalueLabel.Font.Style := [fsBold]; alphavalueLabel.Transparent   := True;
   hudbackgroundColorButton.Color := BarBg;
-  transpTrackBar.Color := BarBg; transpTrackBar.ParentColor := False;
+  transpTrackBar.Color := BarBg; transpTrackBar.ParentColor := False; transpTrackBar.TickStyle := tsNone;
 
   // ·· [3] Fonts ····························································
   Place(fontComboBox,       FVisualSections[3], 6,  22);
@@ -588,12 +588,12 @@ begin
   // Slider and colour button start at 60, not 40/52: fontLabel needs room for a
   // caption longer than "Size", and the two rows stay aligned with each other.
   Place(fontsizeTrackBar,   FVisualSections[3], 60, 140);
-  Place(fontsizevalueLabel, FVisualSections[3], 60, 164);
+  Place(fontsizevalueLabel, FVisualSections[3], 60 + fontsizeTrackBar.Width + 8, 142);
   fontcolorLabel.Font.Color     := TextColor; fontcolorLabel.Transparent     := True;
   fontLabel.Font.Color          := TextColor; fontLabel.Transparent          := True;
-  fontsizevalueLabel.Font.Color := TextColor; fontsizevalueLabel.Transparent := True;
+  fontsizevalueLabel.Font.Color := CLR_TEXT_ACCENT; fontsizevalueLabel.Font.Style := [fsBold]; fontsizevalueLabel.Transparent := True;
   FontcolorButton.Color  := BarBg;
-  fontsizeTrackBar.Color := BarBg; fontsizeTrackBar.ParentColor := False;
+  fontsizeTrackBar.Color := BarBg; fontsizeTrackBar.ParentColor := False; fontsizeTrackBar.TickStyle := tsNone;
 
   // ·· [4] Position ·························································
   Image1.Stretch      := True;
@@ -941,9 +941,10 @@ begin
   roundImage.Left := GrpX + 26;
   roundImage.Top  := CY - 21;
 
-  // Background section: transpTrackBar stretches to fill panel
-  transpTrackBar.Width := SecW3 - 60;
-  alphavalueLabel.Left := 52 + (transpTrackBar.Width div 2) - 8;
+  // Background section: transpTrackBar stretches to fill panel leaving room for alphavalueLabel on the right
+  transpTrackBar.Width := Max(30, SecW3 - 52 - 44);
+  alphavalueLabel.Left := 52 + transpTrackBar.Width + 8;
+  alphavalueLabel.Top  := transpTrackBar.Top + 2;
 
   // ── Row 2 section panels ──────────────────────────────────────────────────
   if Assigned(FVisualSections[3]) then
@@ -954,9 +955,10 @@ begin
     FVisualSections[5].SetBounds(S2 + 4, ActiveR2_TOP, SecW3, ActiveR2_H);
 
   // Fonts section: elastic widths (controls are relative to section panel)
-  fontComboBox.Width     := SecW1 - 12;
-  fontsizeTrackBar.Width := SecW1 - 66;
-  fontsizevalueLabel.Left := (SecW1 div 2) - 5;
+  fontComboBox.Width      := SecW1 - 12;
+  fontsizeTrackBar.Width  := Max(30, SecW1 - 60 - 44);
+  fontsizevalueLabel.Left := 60 + fontsizeTrackBar.Width + 8;
+  fontsizevalueLabel.Top  := fontsizeTrackBar.Top + 2;
 
   // Position section: Image fills panel, radio buttons proportional within it
   ImgW := SecW2 - 8;
@@ -1153,6 +1155,11 @@ begin
       SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
     QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
   end;
+
+  alphavalueLabel.Font.Color    := CLR_TEXT_ACCENT;
+  alphavalueLabel.Font.Style    := [fsBold];
+  fontsizevalueLabel.Font.Color := CLR_TEXT_ACCENT;
+  fontsizevalueLabel.Font.Style := [fsBold];
   end;
 end;
 
@@ -1561,6 +1568,15 @@ begin
   mipmapLabel.AnchorSideLeft.Control := nil; mipmapLabel.AnchorSideTop.Control := nil; mipmapLabel.AnchorSideRight.Control := nil; mipmapLabel.AnchorSideBottom.Control := nil; mipmapLabel.Anchors := [akLeft, akTop];
   mipmapTrackBar.AnchorSideLeft.Control := nil; mipmapTrackBar.AnchorSideTop.Control := nil; mipmapTrackBar.AnchorSideRight.Control := nil; mipmapTrackBar.AnchorSideBottom.Control := nil; mipmapTrackBar.Anchors := [akLeft, akTop];
   mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
+
+  afTrackBar.TickStyle := tsNone;
+  mipmapTrackBar.TickStyle := tsNone;
+  afvalueLabel.Font.Color := CLR_TEXT_ACCENT;
+  afvalueLabel.Font.Style := [fsBold];
+  afvalueLabel.Transparent := True;
+  mipmapvalueLabel.Font.Color := CLR_TEXT_ACCENT;
+  mipmapvalueLabel.Font.Style := [fsBold];
+  mipmapvalueLabel.Transparent := True;
 
   SS := 'QGroupBox { border: none; }';
   QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
@@ -2475,9 +2491,16 @@ begin
   Place(durationTrackBar,  FExtLogCard, 26,  40 + HDR);
   Place(delayTrackBar,     FExtLogCard, 123, 40 + HDR);
   Place(intervalTrackBar,  FExtLogCard, 218, 40 + HDR);
-  Place(durationvalueLabel,FExtLogCard, 54,  96 + HDR);  DarkLabel(durationvalueLabel);
-  Place(delayvalueLabel,   FExtLogCard, 151, 96 + HDR);  DarkLabel(delayvalueLabel);
-  Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);  DarkLabel(intervalvalueLabel);
+  Place(durationvalueLabel,FExtLogCard, 54,  96 + HDR);
+  Place(delayvalueLabel,   FExtLogCard, 151, 96 + HDR);
+  Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);
+
+  durationTrackBar.TickStyle := tsNone;
+  delayTrackBar.TickStyle := tsNone;
+  intervalTrackBar.TickStyle := tsNone;
+  durationvalueLabel.Font.Color := CLR_TEXT_ACCENT; durationvalueLabel.Font.Style := [fsBold]; durationvalueLabel.Transparent := True;
+  delayvalueLabel.Font.Color := CLR_TEXT_ACCENT; delayvalueLabel.Font.Style := [fsBold]; delayvalueLabel.Transparent := True;
+  intervalvalueLabel.Font.Color := CLR_TEXT_ACCENT; intervalvalueLabel.Font.Style := [fsBold]; intervalvalueLabel.Transparent := True;
 
   // Top row: Log folder
   Place(logfolderLabel,  FExtLogCard, 356, 40 + HDR); DarkLabel(logfolderLabel);

@@ -15,6 +15,7 @@ type
     procedure NavigateVkBasaltTab;
     procedure NavigateVkSumiTab;
     procedure NavigateOptiScalerTab;
+    procedure NavigateTweaksTab;
     procedure SeedOptiScalerFiles;
     function OptiIniPath: string;
     function FakeIniPath: string;
@@ -30,6 +31,9 @@ type
     procedure TestFormCreated;
     procedure TestDriverToggleRoundTrip;
     procedure TestNavigateOptiScalerTab;
+    procedure TestNavigateLosslessScalingTab;
+    procedure TestLosslessScalingEnvVarsGeneration;
+    procedure TestLosslessScalingBgmodConfRoundtrip;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -74,7 +78,6 @@ type
     procedure TestMangoExtrasTab;
     procedure TestMangoGlobalSideEffects;
     procedure TestMangoSettingsPersistence;
-    procedure NavigateTweaksTab;
     procedure TestVkBasaltRoundTrip;
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
@@ -83,6 +86,7 @@ type
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
+    procedure TestHomeTabLibraries;
     procedure TestWindowResizabilityAndGeometry;
     procedure TestSidebarTabPathResetGlobalMode;
     procedure TestTweaksResetOnMissingConfig;
@@ -97,7 +101,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -157,8 +161,140 @@ begin
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertTrue('optiscaler tab is active after sidebar click',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.optiscalerTabSheet);
+  AssertTrue('lossless scaling tab is visible alongside optiscaler',
+    goverlayform.losslessScalingTabSheet.TabVisible);
   AssertFalse('forcereflex stays disabled on nvidia after tab click', goverlayform.forcereflexCheckBox.Enabled);
   AssertFalse('spoof stays disabled on nvidia after tab click', goverlayform.spoofCheckBox.Enabled);
+end;
+
+procedure TGoverlayGuiTests.TestNavigateLosslessScalingTab;
+begin
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  AssertTrue('lossless scaling tab is visible', goverlayform.losslessScalingTabSheet.TabVisible);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  AssertTrue('lossless scaling tab is active',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.losslessScalingTabSheet);
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingEnvVarsGeneration;
+var
+  Helper: TLosslessScalingTabHelper;
+  EnvVars: string;
+  DummyDll: string;
+  DummyFile: TFileStream;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+  
+  DummyDll := IsolatedHome + '/.local/share/goverlay/test_lsfg_env.dll';
+  ForceDirectories(ExtractFilePath(DummyDll));
+  DummyFile := TFileStream.Create(DummyDll, fmCreate);
+  DummyFile.Free;
+  try
+    Helper.DllPathEdit.Text := DummyDll;
+    
+    // Default 1x (no framegen) -> empty env vars
+    Helper.MultiplierComboBox.ItemIndex := 0;
+    EnvVars := Helper.GetActiveEnvVars;
+    AssertEquals('1x yields empty env vars', '', EnvVars);
+    
+    // 2x enabled -> exports LSFGVK_ENV and LSFGVK_MULTIPLIER=2
+    Helper.MultiplierComboBox.ItemIndex := 1;
+    EnvVars := Helper.GetActiveEnvVars;
+    AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
+    AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
+  finally
+    if FileExists(DummyDll) then DeleteFile(DummyDll);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingBgmodConfRoundtrip;
+var
+  Helper: TLosslessScalingTabHelper;
+  DummyDll, TargetConfPath: string;
+  Ini: TIniFile;
+  DummyFile: TFileStream;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+  
+  // Create a temporary dummy DLL file to simulate valid Lossless.dll
+  DummyDll := IsolatedHome + '/.local/share/goverlay/test_Lossless.dll';
+  ForceDirectories(ExtractFilePath(DummyDll));
+  DummyFile := TFileStream.Create(DummyDll, fmCreate);
+  DummyFile.Free;
+  try
+    // Set UI values (ItemIndex 2 = 3x)
+    Helper.DllPathEdit.Text := DummyDll;
+    Helper.MultiplierComboBox.ItemIndex := 2; // 3x
+    Helper.FlowScaleTrackBar.Position := 85;
+    Helper.PerfModeCheckBox.Checked := True;
+    Helper.HdrModeCheckBox.Checked := True;
+    Helper.NoFp16CheckBox.Checked := True;
+    Helper.PacingComboBox.ItemIndex := 1; // vsync
+    
+    // Verify controls enabled when multiplier > 0
+    AssertTrue('FlowScale enabled at 3x', Helper.FlowScaleTrackBar.Enabled);
+    AssertTrue('PerfMode enabled at 3x', Helper.PerfModeCheckBox.Enabled);
+    
+    // Save configuration to bgmod.conf
+    Helper.SaveLosslessConfig;
+    
+    TargetConfPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'bgmod.conf';
+    AssertTrue('bgmod.conf was created', FileExists(TargetConfPath));
+    
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('GOVERLAY_LOSSLESS is 1 in [Config]', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
+      AssertEquals('LSFGVK_ENV is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_ENV', '0'));
+      AssertEquals('LSFGVK_DLL_PATH matches in [Env]', DummyDll, Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
+      AssertEquals('LSFGVK_MULTIPLIER is 3 in [Env]', '3', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
+      AssertEquals('LSFGVK_PERFORMANCE_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', '0'));
+      AssertEquals('LSFGVK_HDR_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0'));
+      AssertEquals('LSFGVK_NO_FP16 is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0'));
+      AssertEquals('LSFGVK_PACING is vsync in [Env]', 'vsync', Ini.ReadString('Env', 'LSFGVK_PACING', ''));
+    finally
+      Ini.Free;
+    end;
+    
+    // Test LoadLosslessConfig roundtrip
+    goverlayform.FLoadingConfig := True;
+    try
+      Helper.MultiplierComboBox.ItemIndex := 0;
+      Helper.PerfModeCheckBox.Checked := False;
+    finally
+      goverlayform.FLoadingConfig := False;
+    end;
+    Helper.LoadLosslessConfig;
+    AssertEquals('Loaded Multiplier is 3x (index 2)', 2, Helper.MultiplierComboBox.ItemIndex);
+    AssertTrue('Loaded PerfMode is True', Helper.PerfModeCheckBox.Checked);
+    AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
+    
+    // Now test switching Multiplier to 1x (no framegen)
+    Helper.MultiplierComboBox.ItemIndex := 0;
+    Helper.MultiplierComboBox.OnChange(Helper.MultiplierComboBox);
+    AssertFalse('FlowScale disabled at 1x', Helper.FlowScaleTrackBar.Enabled);
+    AssertFalse('PerfMode disabled at 1x', Helper.PerfModeCheckBox.Enabled);
+    AssertFalse('HdrMode disabled at 1x', Helper.HdrModeCheckBox.Enabled);
+    AssertFalse('Pacing disabled at 1x', Helper.PacingComboBox.Enabled);
+    AssertFalse('Gpu disabled at 1x', Helper.GpuComboBox.Enabled);
+    
+    Helper.SaveLosslessConfig;
+    
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('GOVERLAY_LOSSLESS is 0 in [Config]', '0', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
+      AssertEquals('LSFGVK_ENV key is removed', '', Ini.ReadString('Env', 'LSFGVK_ENV', ''));
+      AssertEquals('LSFGVK_DLL_PATH key is removed', '', Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
+      AssertEquals('LSFGVK_MULTIPLIER key is removed', '', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
+      AssertEquals('LSFGVK_PERFORMANCE_MODE key is removed', '', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', ''));
+    finally
+      Ini.Free;
+    end;
+  finally
+    if FileExists(DummyDll) then
+      DeleteFile(DummyDll);
+  end;
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;
@@ -1127,6 +1263,10 @@ begin
   AssertTrue('hidehudCheckBox reloaded', goverlayform.hidehudCheckBox.Checked);
   AssertTrue('hudcompactCheckBox reloaded', goverlayform.hudcompactCheckBox.Checked);
   AssertTrue('horizontalstrechCheckBox reloaded', goverlayform.horizontalstrechCheckBox.Checked);
+  AssertEquals('alphavalueLabel color', TColor(CLR_TEXT_ACCENT), TColor(goverlayform.alphavalueLabel.Font.Color));
+  AssertTrue('alphavalueLabel bold', fsBold in goverlayform.alphavalueLabel.Font.Style);
+  AssertEquals('fontsizevalueLabel color', TColor(CLR_TEXT_ACCENT), TColor(goverlayform.fontsizevalueLabel.Font.Color));
+  AssertTrue('fontsizevalueLabel bold', fsBold in goverlayform.fontsizevalueLabel.Font.Style);
 
   // Reverse direction
   goverlayform.hudtitleEdit.Text := '';
@@ -1833,6 +1973,15 @@ begin
     if Assigned(goverlayform.FNavToolBtns[i]) then
       AssertFalse(Format('Toggle %d hidden on Home tab', [i]), goverlayform.FNavToolBtns[i].Visible);
   AssertFalse('Dock is NOT visible on Home tab', goverlayform.FFADock.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestHomeTabLibraries;
+begin
+  goverlayform.ShowHomeTab(nil);
+  AssertTrue('Home tab is visible', goverlayform.FHomeTabSheet.TabVisible);
+  AssertTrue('lsfg-vk status dot assigned', Assigned(goverlayform.FHomeModDots[5]));
+  AssertTrue('lsfg-vk version label assigned', Assigned(goverlayform.FHomeModVerLbls[5]));
+  AssertTrue('lsfg-vk version label text not empty', goverlayform.FHomeModVerLbls[5].Caption <> '');
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;

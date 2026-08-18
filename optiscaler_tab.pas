@@ -5,7 +5,7 @@ unit optiscaler_tab;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config,
   {$IFDEF LCLqt6}
   qt6,
@@ -672,7 +672,9 @@ begin
     DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
     // In-Game Menu section
     DarkLbl(menuLabel,           PURPLE);
-    DarkLbl(menuscalevalueLabel, WHITE);
+    menuscalevalueLabel.Font.Color := RGBToColor(48, 190, 240);
+    menuscalevalueLabel.Font.Style := [fsBold];
+    menuscaleTrackBar.TickStyle    := tsNone;
     menuLabel.Transparent          := True;
     menuscalevalueLabel.Transparent := True;
     DarkLbl(mark1Label,          GRAY); mark1Label.Transparent := True;

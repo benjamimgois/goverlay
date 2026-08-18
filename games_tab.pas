@@ -2236,6 +2236,7 @@ begin
   goverlayPageControl.ShowTabs := True;
   vkbasalttabsheet.TabVisible  := False;
   optiscalertabsheet.TabVisible := False;
+  losslessScalingTabSheet.TabVisible := False;
   tweakstabsheet.TabVisible    := False;
   gamesTabSheet.TabVisible     := False;
   goverlayPageControl.ActivePage := presetTabsheet;
@@ -2991,7 +2992,8 @@ begin
     FGamesPopupMenu.Items.Add(RefreshItem);
 
     Pt := Mouse.CursorPos;
-    FGamesPopupMenu.PopUp(Pt.X, Pt.Y);
+    if GetEnvironmentVariable('GOVERLAY_TEST_SANDBOX_DIR') = '' then
+      FGamesPopupMenu.PopUp(Pt.X, Pt.Y);
   end;
 end;
 
@@ -3047,7 +3049,8 @@ begin
   end;
 
   Pt := TControl(Sender).ClientToScreen(Point(X, Y));
-  FRemoveFoldersMenu.PopUp(Pt.X, Pt.Y);
+  if GetEnvironmentVariable('GOVERLAY_TEST_SANDBOX_DIR') = '' then
+    FRemoveFoldersMenu.PopUp(Pt.X, Pt.Y);
   end;
 end;
 

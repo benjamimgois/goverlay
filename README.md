@@ -131,6 +131,7 @@ An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and re
 
 - [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) — Vulkan post-processing effects
 - [**`vksumi`**](https://github.com/reakjra/vkSumi) *(optional but recommended)* — Alternative Vulkan post-processor with 15 tunable parameters
+- [**`lsfg-vk`**](https://github.com/Pietruszka33/lsfg-vk) — Lossless Scaling Frame Generation Vulkan layer
 - [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) — Displays AMD CPU power metrics in MangoHud
 - [**`protontricks`**](https://github.com/Matoking/protontricks) — Proton prefix management (native builds only, disabled in Flatpak)
 

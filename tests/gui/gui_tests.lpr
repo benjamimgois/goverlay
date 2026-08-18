@@ -60,5 +60,7 @@ begin
   CleanupIsolatedEnvironment(SuiteOk);
 
   if not SuiteOk then
-    Halt(1);
+    Halt(1)
+  else
+    Halt(0);
 end.
