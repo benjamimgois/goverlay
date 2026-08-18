@@ -667,6 +667,8 @@ type
     FSplashLogList:          TStringList;
     FSplashLogRawBuffer:     string;
     FStartupDownloadsChecked: Boolean;
+    FDeferredChangelogVersion: string;
+    FDeferredChangelogNotes:   string;
 
     // Moved to public:
     {     FNavItems:       array of TPanel;    // item panels
@@ -959,6 +961,7 @@ type
     procedure LoadWindowGeometry;
     procedure CheckAndShowChangelog;
     procedure ShowChangelogAsync(Data: PtrInt);
+    procedure DeferredShowChangelogPopup(Data: PtrInt);
     procedure RefreshGameCardsAsync(Data: PtrInt);
     function  GetMangoHudConfigEnvPrefix: string;
     function  GetMangoHudLaunchEnv: string;
@@ -3154,7 +3157,11 @@ begin
   NeedsDownload := (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll')) or
                    (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll'));
 
-  if not NeedsDownload then Exit;
+  if not NeedsDownload then
+  begin
+    Application.QueueAsyncCall(@ShowChangelogAsync, 0);
+    Exit;
+  end;
 
   // Hide main window and show compact splash
   Self.Hide;
@@ -3179,6 +3186,9 @@ begin
   HideBootSplash;
   Self.Show;
   RefreshOsStatusDots;
+
+  // Check and display changelog popup only after main window is fully visible
+  Application.QueueAsyncCall(@ShowChangelogAsync, 0);
 end;
 
 procedure Tgoverlayform.FormCreate(Sender: TObject);
@@ -4517,9 +4527,6 @@ begin
   TabBar := QTabWidget_tabBar(QTabWidgetH(TabWidget));
   QTabBar_setExpanding(TabBar, True);
 
-  // Check and display changelog popup after form is loaded and mapped
-  Application.QueueAsyncCall(@ShowChangelogAsync, 0);
-
   // Initialize Intel CPU power monitoring fix button state
   InitializeIntelPowerFixButton;
 
@@ -4527,9 +4534,13 @@ begin
   WireAutoSaveEvents;
 
   // Auto-install OptiScaler & DLSS Enabler if missing — deferred via QueueAsyncCall so
-  // the window is fully painted before the splash appears (same pattern as ShowChangelogAsync)
+  // the window is fully painted before the splash appears.
+  // When startup downloads finish (or if none needed), ShowChangelogAsync is queued so "What's New"
+  // only appears once the main window is visible.
   if (not TestMode) and IsBGModInitialized then
-    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0)
+  else
+    Application.QueueAsyncCall(@ShowChangelogAsync, 0);
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -9311,7 +9322,24 @@ end;
 
 procedure TChangelogFetchThread.DoShowChangelog;
 begin
+  if Assigned(goverlayform) and ((not goverlayform.Visible) or Assigned(goverlayform.FSplashForm)) then
+  begin
+    goverlayform.FDeferredChangelogVersion := FVersion;
+    goverlayform.FDeferredChangelogNotes   := FReleaseNotes;
+    Application.QueueAsyncCall(@goverlayform.DeferredShowChangelogPopup, 0);
+    Exit;
+  end;
   ShowChangelogPopup(FVersion, FReleaseNotes);
+end;
+
+procedure Tgoverlayform.DeferredShowChangelogPopup(Data: PtrInt);
+begin
+  if (not Visible) or Assigned(FSplashForm) then
+  begin
+    Application.QueueAsyncCall(@DeferredShowChangelogPopup, 0);
+    Exit;
+  end;
+  ShowChangelogPopup(FDeferredChangelogVersion, FDeferredChangelogNotes);
 end;
 
 procedure TChangelogFetchThread.Execute;
