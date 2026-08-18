@@ -258,22 +258,13 @@ begin
     FLsBgPanel.Invalidate;
   end;
 
-  // Cards
+  // Cards - styled using standard UpdateGenericCardTheme (which enforces transparent checkboxes)
   if Assigned(FLsGeneralCard) then
-  begin
-    FLsGeneralCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
-    FLsGeneralCard.Invalidate;
-  end;
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsGeneralCard);
   if Assigned(FLsFrameGenCard) then
-  begin
-    FLsFrameGenCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
-    FLsFrameGenCard.Invalidate;
-  end;
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsFrameGenCard);
   if Assigned(FLsHardwareCard) then
-  begin
-    FLsHardwareCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
-    FLsHardwareCard.Invalidate;
-  end;
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsHardwareCard);
 
   // QLineEdit & DLL Status styling
   UpdateDllStatus;
@@ -294,31 +285,6 @@ begin
     QWidget_setStyleSheet(TQtWidget(FLsPacingComboBox.Handle).Widget, @SS);
   if Assigned(FLsGpuComboBox) and FLsGpuComboBox.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsGpuComboBox.Handle).Widget, @SS);
-
-  // QCheckBoxes (transparent background matching other cards)
-  if IsDark then
-    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; border: none; }'
-  else
-    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; border: none; }';
-
-  if Assigned(FLsPerfModeCheckBox) and FLsPerfModeCheckBox.HandleAllocated then
-  begin
-    FLsPerfModeCheckBox.ParentColor := True;
-    FLsPerfModeCheckBox.Font.Color := TextColor;
-    QWidget_setStyleSheet(TQtWidget(FLsPerfModeCheckBox.Handle).Widget, @SS);
-  end;
-  if Assigned(FLsHdrModeCheckBox) and FLsHdrModeCheckBox.HandleAllocated then
-  begin
-    FLsHdrModeCheckBox.ParentColor := True;
-    FLsHdrModeCheckBox.Font.Color := TextColor;
-    QWidget_setStyleSheet(TQtWidget(FLsHdrModeCheckBox.Handle).Widget, @SS);
-  end;
-  if Assigned(FLsNoFp16CheckBox) and FLsNoFp16CheckBox.HandleAllocated then
-  begin
-    FLsNoFp16CheckBox.ParentColor := True;
-    FLsNoFp16CheckBox.Font.Color := TextColor;
-    QWidget_setStyleSheet(TQtWidget(FLsNoFp16CheckBox.Handle).Widget, @SS);
-  end;
 
   // Labels color update
   if Assigned(FLsMultiplierTitleLbl) then FLsMultiplierTitleLbl.Font.Color := TextColor;

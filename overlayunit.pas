@@ -4641,6 +4641,10 @@ begin
     FVsBgPanel.Invalidate;
   end;
 
+  // Update Lossless Scaling tab theme
+  if Assigned(FLosslessScalingHelper) then
+    TLosslessScalingTabHelper(FLosslessScalingHelper).ApplyThemeStyles;
+
   // Apply modern scrollbar stylesheet to dynamic tab scrollboxes and standalone scrollbars
   if Assigned(FGamesScrollBox)  then ApplyModernScrollBarStylesheet(FGamesScrollBox);
   if Assigned(FMtScrollBox)      then ApplyModernScrollBarStylesheet(FMtScrollBox);
