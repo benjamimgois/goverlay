@@ -61,6 +61,7 @@ type
     procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
+    procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -926,6 +927,62 @@ begin
   AssertEquals('OptiScaler status row remains stable version', 'stable-0.9.4', goverlayform.FOsStatVerLbls[0].Caption);
   AssertEquals('DLSS Enabler status row shows update arrow', '4.8.12 → v0.10.0-pre1_7233fc0c', goverlayform.FOsStatVerLbls[2].Caption);
   AssertEquals('DLSS Enabler status row font color is CLR_UPDATE', $0044AAFF, goverlayform.FOsStatVerLbls[2].Font.Color);
+end;
+
+procedure TGoverlayGuiTests.TestDlssEnablerChannelUpdateSuppressesDowngrades;
+var
+  VarsPath: string;
+  VarsList: TStringList;
+  UpdateThread: TOptiUpdateThread;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.dlssenablerRadioButton.Checked := True;
+  goverlayform.optversionComboBox.ItemIndex := 1; // Bleeding-edge
+
+  // 1. Seed installed bleeding-edge version 4.9.0.6
+  VarsPath := IsolatedHome + '/.local/share/goverlay/dlssenabler-edge/goverlay.vars';
+  ForceDirectories(ExtractFilePath(VarsPath));
+  VarsList := TStringList.Create;
+  try
+    VarsList.Add('dlssenablerversion=4.9.0.6');
+    VarsList.Add('dlssenablertag=4.9.0.6');
+    VarsList.Add('upscalertype=1');
+    VarsList.SaveToFile(VarsPath);
+  finally
+    VarsList.Free;
+  end;
+
+  goverlayform.FOptiscalerUpdate.LoadVersionsFromFile;
+  goverlayform.RefreshOsStatusDots;
+
+  // 2. Remote check returns older version 4.8.13.6 (e.g. cross-channel stable / older tag)
+  UpdateThread := TOptiUpdateThread.Create(goverlayform.FOptiscalerUpdate, False, False);
+  try
+    UpdateThread.FLatestOptiTag := '4.8.13.6';
+    UpdateThread.SyncUpdateUI;
+  finally
+    UpdateThread.Free;
+  end;
+
+  goverlayform.RefreshOsStatusDots;
+  AssertFalse('OptiLabel2 is NOT visible on downgrade (4.8.13.6 < 4.9.0.6)', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
+  AssertEquals('DLSS Enabler status row shows installed 4.9.0.6 without update arrow', '4.9.0.6', goverlayform.FOsStatVerLbls[2].Caption);
+  AssertEquals('DLSS Enabler status row color is PURPLE', $BB99FF, goverlayform.FOsStatVerLbls[2].Font.Color);
+
+  // 3. Remote check returns strictly newer version 4.9.0.7
+  UpdateThread := TOptiUpdateThread.Create(goverlayform.FOptiscalerUpdate, False, False);
+  try
+    UpdateThread.FLatestOptiTag := '4.9.0.7';
+    UpdateThread.SyncUpdateUI;
+  finally
+    UpdateThread.Free;
+  end;
+
+  goverlayform.RefreshOsStatusDots;
+  AssertTrue('OptiLabel2 is visible when newer version 4.9.0.7 is available', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
+  AssertEquals('DLSS Enabler status row shows update arrow for 4.9.0.7', '4.9.0.6 → 4.9.0.7', goverlayform.FOsStatVerLbls[2].Caption);
+  AssertEquals('DLSS Enabler status row color is CLR_UPDATE', $0044AAFF, goverlayform.FOsStatVerLbls[2].Font.Color);
 end;
 
 procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;

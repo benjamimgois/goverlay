@@ -259,12 +259,18 @@ begin
       if (CurrentVersion = '') and Assigned(FOptiTab.FDlssEnablerLabel) then
         CurrentVersion := FOptiTab.FDlssEnablerLabel.Caption;
 
-      HasUpdate := (FLatestOptiTag <> '') and (
-                   (CurrentVersion = '') or (CurrentVersion = '—') or (CurrentVersion = '--') or
-                   ((not SameText(CurrentVersion, FLatestOptiTag)) and
-                    (Pos(CurrentVersion, FLatestOptiTag) <> 1) and
-                    (Pos(FLatestOptiTag, CurrentVersion) <> 1))
-                   );
+      if (FLatestOptiTag <> '') and ((CurrentVersion = '') or (CurrentVersion = '—') or (CurrentVersion = '--')) then
+      begin
+        HasUpdate := True;
+      end
+      else if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
+      begin
+        NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
+        NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
+        HasUpdate := (CompareVersions(NormLatest, NormCurrent) > 0);
+      end
+      else
+        HasUpdate := False;
 
       if HasUpdate then
       begin
@@ -1005,11 +1011,6 @@ begin
     end;
   finally
     Process.Free;
-  end;
-
-  if Result = '' then
-  begin
-    if AIsStable then Result := '4.8.12' else Result := '4.8.13.6';
   end;
 end;
 
