@@ -179,12 +179,32 @@ procedure TGoverlayGuiTests.TestLosslessScalingEnvVarsGeneration;
 var
   Helper: TLosslessScalingTabHelper;
   EnvVars: string;
+  DummyDll: string;
+  DummyFile: TFileStream;
 begin
   Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
   AssertTrue('Lossless helper is assigned', Assigned(Helper));
-  EnvVars := Helper.GetActiveEnvVars;
-  AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
-  AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
+  
+  DummyDll := IsolatedHome + '/.local/share/goverlay/test_lsfg_env.dll';
+  ForceDirectories(ExtractFilePath(DummyDll));
+  DummyFile := TFileStream.Create(DummyDll, fmCreate);
+  DummyFile.Free;
+  try
+    Helper.DllPathEdit.Text := DummyDll;
+    
+    // Default 1x (no framegen) -> empty env vars
+    Helper.MultiplierComboBox.ItemIndex := 0;
+    EnvVars := Helper.GetActiveEnvVars;
+    AssertEquals('1x yields empty env vars', '', EnvVars);
+    
+    // 2x enabled -> exports LSFGVK_ENV and LSFGVK_MULTIPLIER=2
+    Helper.MultiplierComboBox.ItemIndex := 1;
+    EnvVars := Helper.GetActiveEnvVars;
+    AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
+    AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
+  finally
+    if FileExists(DummyDll) then DeleteFile(DummyDll);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingBgmodConfRoundtrip;
@@ -203,14 +223,18 @@ begin
   DummyFile := TFileStream.Create(DummyDll, fmCreate);
   DummyFile.Free;
   try
-    // Set UI values
+    // Set UI values (ItemIndex 2 = 3x)
     Helper.DllPathEdit.Text := DummyDll;
-    Helper.MultiplierComboBox.ItemIndex := 1; // 3x
+    Helper.MultiplierComboBox.ItemIndex := 2; // 3x
     Helper.FlowScaleTrackBar.Position := 85;
     Helper.PerfModeCheckBox.Checked := True;
     Helper.HdrModeCheckBox.Checked := True;
     Helper.NoFp16CheckBox.Checked := True;
     Helper.PacingComboBox.ItemIndex := 1; // vsync
+    
+    // Verify controls enabled when multiplier > 0
+    AssertTrue('FlowScale enabled at 3x', Helper.FlowScaleTrackBar.Enabled);
+    AssertTrue('PerfMode enabled at 3x', Helper.PerfModeCheckBox.Enabled);
     
     // Save configuration to bgmod.conf
     Helper.SaveLosslessConfig;
@@ -241,11 +265,19 @@ begin
       goverlayform.FLoadingConfig := False;
     end;
     Helper.LoadLosslessConfig;
-    AssertEquals('Loaded Multiplier is 3x (index 1)', 1, Helper.MultiplierComboBox.ItemIndex);
+    AssertEquals('Loaded Multiplier is 3x (index 2)', 2, Helper.MultiplierComboBox.ItemIndex);
     AssertTrue('Loaded PerfMode is True', Helper.PerfModeCheckBox.Checked);
+    AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
     
-    // Now test deactivation cleanup: set empty/invalid DLL path and save
-    Helper.DllPathEdit.Text := '/nonexistent/path/Lossless.dll';
+    // Now test switching Multiplier to 1x (no framegen)
+    Helper.MultiplierComboBox.ItemIndex := 0;
+    Helper.MultiplierComboBox.OnChange(Helper.MultiplierComboBox);
+    AssertFalse('FlowScale disabled at 1x', Helper.FlowScaleTrackBar.Enabled);
+    AssertFalse('PerfMode disabled at 1x', Helper.PerfModeCheckBox.Enabled);
+    AssertFalse('HdrMode disabled at 1x', Helper.HdrModeCheckBox.Enabled);
+    AssertFalse('Pacing disabled at 1x', Helper.PacingComboBox.Enabled);
+    AssertFalse('Gpu disabled at 1x', Helper.GpuComboBox.Enabled);
+    
     Helper.SaveLosslessConfig;
     
     Ini := TIniFile.Create(TargetConfPath);

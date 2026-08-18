@@ -65,6 +65,7 @@ type
     procedure InitLosslessScalingTab;
     procedure ReflowLosslessScalingTab(AContentW: Integer);
     procedure ApplyThemeStyles;
+    procedure UpdateControlsEnabled;
     procedure LoadLosslessConfig;
     procedure SaveLosslessConfig;
     function GetActiveEnvVars: string;
@@ -384,6 +385,8 @@ begin
   FLsDllPathEdit.Font.Height := -13;
   FLsDllPathEdit.Font.Quality := fqAntialiased;
   FLsDllPathEdit.ReadOnly := True;
+  FLsDllPathEdit.AutoSelect := False;
+  FLsDllPathEdit.TabStop := False;
   FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
   FLsDllPathEdit.OnChange := @DllPathChange;
   StyleInputControl(FLsDllPathEdit);
@@ -410,20 +413,21 @@ begin
   FLsMultiplierTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierTitleLbl.Parent := FLsFrameGenCard;
   FLsMultiplierTitleLbl.Caption := 'Multiplier';
-  FLsMultiplierTitleLbl.Hint := 'Double, triple, quadruple, quintuple or sextuple your FPS output';
+  FLsMultiplierTitleLbl.Hint := 'Frame generation multiplier (1x disabled, 2x double, up to 6x)';
   FLsMultiplierTitleLbl.ShowHint := True;
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
   
   FLsMultiplierComboBox := TComboBox.Create(FLsFrameGenCard);
   FLsMultiplierComboBox.Parent := FLsFrameGenCard;
   FLsMultiplierComboBox.Style := csDropDownList;
+  FLsMultiplierComboBox.Items.Add('1x (no framegen)');
   FLsMultiplierComboBox.Items.Add('2x (Double FPS)');
   FLsMultiplierComboBox.Items.Add('3x (Triple FPS)');
   FLsMultiplierComboBox.Items.Add('4x (Quadruple FPS)');
   FLsMultiplierComboBox.Items.Add('5x (Quintuple FPS)');
   FLsMultiplierComboBox.Items.Add('6x (Sextuple FPS)');
   FLsMultiplierComboBox.ItemIndex := 0;
-  FLsMultiplierComboBox.Hint := 'Double, triple, quadruple, quintuple or sextuple your FPS output';
+  FLsMultiplierComboBox.Hint := 'Frame generation multiplier (1x disabled, 2x double, up to 6x)';
   FLsMultiplierComboBox.ShowHint := True;
   FLsMultiplierComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsMultiplierComboBox);
@@ -631,6 +635,26 @@ begin
       SS := 'QLineEdit { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
   end;
   QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
+  FLsDllPathEdit.SelStart := 0;
+  FLsDllPathEdit.SelLength := 0;
+end;
+
+procedure TLosslessScalingTabHelper.UpdateControlsEnabled;
+var
+  FgActive: Boolean;
+begin
+  FgActive := Assigned(FLsMultiplierComboBox) and (FLsMultiplierComboBox.ItemIndex > 0);
+  
+  if Assigned(FLsFlowScaleTitleLbl) then FLsFlowScaleTitleLbl.Enabled := FgActive;
+  if Assigned(FLsFlowScaleTrackBar) then FLsFlowScaleTrackBar.Enabled := FgActive;
+  if Assigned(FLsFlowScaleValueLabel) then FLsFlowScaleValueLabel.Enabled := FgActive;
+  if Assigned(FLsPerfModeCheckBox) then FLsPerfModeCheckBox.Enabled := FgActive;
+  if Assigned(FLsHdrModeCheckBox) then FLsHdrModeCheckBox.Enabled := FgActive;
+  if Assigned(FLsNoFp16CheckBox) then FLsNoFp16CheckBox.Enabled := FgActive;
+  if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Enabled := FgActive;
+  if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Enabled := FgActive;
+  if Assigned(FLsGpuTitleLbl) then FLsGpuTitleLbl.Enabled := FgActive;
+  if Assigned(FLsGpuComboBox) then FLsGpuComboBox.Enabled := FgActive;
 end;
 
 procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
@@ -672,6 +696,7 @@ end;
 
 procedure TLosslessScalingTabHelper.ControlStateChange(Sender: TObject);
 begin
+  UpdateControlsEnabled;
   if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
   SaveLosslessConfig;
 end;
@@ -684,20 +709,24 @@ var
   FlowVal: Double;
   PacingStr: string;
 begin
+  if FLsMultiplierComboBox.ItemIndex <= 0 then
+    Exit('');
+
+  DllP := Trim(FLsDllPathEdit.Text);
+  if (DllP = '') or not FileExists(DllP) then
+    Exit('');
+
   Parts := TStringList.Create;
   try
     Parts.Add('LSFGVK_ENV=1');
-    
-    DllP := Trim(FLsDllPathEdit.Text);
-    if DllP <> '' then
-      Parts.Add('LSFGVK_DLL_PATH="' + DllP + '"');
+    Parts.Add('LSFGVK_DLL_PATH="' + DllP + '"');
       
     case FLsMultiplierComboBox.ItemIndex of
-      0: MultVal := 2;
-      1: MultVal := 3;
-      2: MultVal := 4;
-      3: MultVal := 5;
-      4: MultVal := 6;
+      1: MultVal := 2;
+      2: MultVal := 3;
+      3: MultVal := 4;
+      4: MultVal := 5;
+      5: MultVal := 6;
     else
       MultVal := 2;
     end;
@@ -748,6 +777,7 @@ var
   Ini: TIniFile;
   CfgPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
   FlowInt, MultInt, GpuIdx: Integer;
+  IsLosslessOn: Boolean;
 begin
   if Assigned(FForm) and (FForm is Tgoverlayform) then
     Tgoverlayform(FForm).FLoadingConfig := True;
@@ -756,7 +786,7 @@ begin
     
     // Set defaults
     FLsDllPathEdit.Text := DetectSteamLosslessDll;
-    FLsMultiplierComboBox.ItemIndex := 0; // 2x
+    FLsMultiplierComboBox.ItemIndex := 0; // 1x (no framegen)
     FLsFlowScaleTrackBar.Position := 100;
     if Assigned(FLsFlowScaleValueLabel) then
       FLsFlowScaleValueLabel.Caption := '100%';
@@ -770,20 +800,29 @@ begin
     begin
       Ini := TIniFile.Create(CfgPath);
       try
+        IsLosslessOn := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
+
         DllVal := Ini.ReadString('Env', 'LSFGVK_DLL_PATH', '');
         if DllVal <> '' then
           FLsDllPathEdit.Text := DllVal;
           
-        MultVal := Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', '2');
-        MultInt := StrToIntDef(MultVal, 2);
-        case MultInt of
-          2: FLsMultiplierComboBox.ItemIndex := 0;
-          3: FLsMultiplierComboBox.ItemIndex := 1;
-          4: FLsMultiplierComboBox.ItemIndex := 2;
-          5: FLsMultiplierComboBox.ItemIndex := 3;
-          6: FLsMultiplierComboBox.ItemIndex := 4;
+        MultVal := Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', '0');
+        MultInt := StrToIntDef(MultVal, 0);
+        if IsLosslessOn and (MultInt >= 2) then
+        begin
+          case MultInt of
+            2: FLsMultiplierComboBox.ItemIndex := 1;
+            3: FLsMultiplierComboBox.ItemIndex := 2;
+            4: FLsMultiplierComboBox.ItemIndex := 3;
+            5: FLsMultiplierComboBox.ItemIndex := 4;
+            6: FLsMultiplierComboBox.ItemIndex := 5;
+          else
+            FLsMultiplierComboBox.ItemIndex := 1; // Default to 2x if enabled
+          end;
+        end
         else
-          FLsMultiplierComboBox.ItemIndex := 0;
+        begin
+          FLsMultiplierComboBox.ItemIndex := 0; // 1x (no framegen)
         end;
         
         FlowVal := Ini.ReadString('Env', 'LSFGVK_FLOW_SCALE', '');
@@ -827,7 +866,13 @@ begin
       Tgoverlayform(FForm).FLoadingConfig := False;
   end;
   
+  UpdateControlsEnabled;
   UpdateDllStatus;
+  if Assigned(FLsDllPathEdit) then
+  begin
+    FLsDllPathEdit.SelStart := 0;
+    FLsDllPathEdit.SelLength := 0;
+  end;
 end;
 
 procedure TLosslessScalingTabHelper.SaveLosslessConfig;
@@ -837,13 +882,14 @@ var
   IsEnabled: Boolean;
   MultVal: Integer;
 begin
+  UpdateControlsEnabled;
   CfgPath := GetConfigFile;
   CfgDir := ExtractFilePath(CfgPath);
   if not DirectoryExists(CfgDir) then
     ForceDirectories(CfgDir);
     
   DllPath := Trim(FLsDllPathEdit.Text);
-  IsEnabled := (DllPath <> '') and FileExists(DllPath);
+  IsEnabled := (DllPath <> '') and FileExists(DllPath) and (FLsMultiplierComboBox.ItemIndex > 0);
   
   Ini := TIniFile.Create(CfgPath);
   try
@@ -857,10 +903,11 @@ begin
       Ini.WriteString('Env', 'LSFGVK_DLL_PATH', DllPath);
       
       case FLsMultiplierComboBox.ItemIndex of
-        1: MultVal := 3;
-        2: MultVal := 4;
-        3: MultVal := 5;
-        4: MultVal := 6;
+        1: MultVal := 2;
+        2: MultVal := 3;
+        3: MultVal := 4;
+        4: MultVal := 5;
+        5: MultVal := 6;
       else
         MultVal := 2;
       end;
@@ -906,7 +953,7 @@ begin
     end
     else
     begin
-      // Disabled / invalid DLL: set GOVERLAY_LOSSLESS=0 and remove all LSFGVK_* keys from [Env]
+      // Disabled (1x or invalid DLL): set GOVERLAY_LOSSLESS=0 and remove all LSFGVK_* keys from [Env]
       Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '0');
       Ini.DeleteKey('Env', 'LSFGVK_ENV');
       Ini.DeleteKey('Env', 'LSFGVK_DLL_PATH');

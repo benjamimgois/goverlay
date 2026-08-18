@@ -8185,7 +8185,14 @@ begin
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
   if Assigned(FLosslessScalingHelper) then
+  begin
     TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
+    if Assigned(TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit) then
+    begin
+      TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelStart := 0;
+      TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelLength := 0;
+    end;
+  end;
   ReflowLosslessScalingTab(0);
 end;
 
