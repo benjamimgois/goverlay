@@ -27,11 +27,21 @@ var
 
 function IsSafeSandboxDir(const ADir: string): Boolean;
 var
-  TempPrefix: string;
+  TempPrefix, Resolved: string;
 begin
   if ADir = '' then Exit(False);
+
+  // Compare resolved paths, never the raw string. A path such as
+  // '<tmp>/goverlay_test_x/../../home/user' passes any prefix test while the
+  // kernel resolves it to '/home/user' - and DeleteDirectory follows the
+  // resolved path, not the string that was checked. Refuse traversal outright
+  // and then measure what the path actually points at.
+  if Pos(PathDelim + '..' + PathDelim,
+         PathDelim + ADir + PathDelim) > 0 then Exit(False);
+
+  Resolved := ExcludeTrailingPathDelimiter(ExpandFileName(ADir));
   TempPrefix := IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_';
-  Result := (Pos(TempPrefix, ADir) = 1) and (Length(ADir) > Length(TempPrefix));
+  Result := (Pos(TempPrefix, Resolved) = 1) and (Length(Resolved) > Length(TempPrefix));
 end;
 
 function IsolatedHome: string;

@@ -24,6 +24,8 @@ type
   published
     procedure TestIsSafeSandboxDirValid;
     procedure TestIsSafeSandboxDirRejectsUnsafePaths;
+    procedure TestIsSafeSandboxDirRejectsTraversal;
+    procedure TestIsSafeSandboxDirAcceptsDottedNames;
   end;
 
 implementation
@@ -145,6 +147,45 @@ begin
   AssertFalse('Base temp directory rejected', IsSafeSandboxDir(GetTempDir(False)));
   AssertFalse('Temp prefix alone rejected', IsSafeSandboxDir(IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_'));
   AssertFalse('Arbitrary temp folder rejected', IsSafeSandboxDir(IncludeTrailingPathDelimiter(GetTempDir(False)) + 'other_folder'));
+end;
+
+// The paths below all start with the sandbox prefix, so a string comparison
+// accepts every one of them - while the kernel resolves them outside the
+// sandbox, which is where DeleteDirectory would then do its work.
+procedure TSandboxIsolationTests.TestIsSafeSandboxDirRejectsTraversal;
+var
+  Prefix: string;
+begin
+  Prefix := IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_x';
+
+  AssertFalse('Escape to a home directory rejected',
+    IsSafeSandboxDir(Prefix + '/../../home/testuser'));
+  AssertFalse('Escape to filesystem root rejected',
+    IsSafeSandboxDir(Prefix + '/../..'));
+  AssertFalse('Escape to the temp root rejected',
+    IsSafeSandboxDir(Prefix + '/..'));
+  AssertFalse('Trailing traversal rejected',
+    IsSafeSandboxDir(Prefix + '/subdir/../../'));
+  AssertFalse('Traversal in the middle of a longer path rejected',
+    IsSafeSandboxDir(Prefix + '/a/../../../etc/skel'));
+  AssertFalse('Traversal that also leaves the temp root rejected',
+    IsSafeSandboxDir(Prefix + '/../../../root'));
+
+  // Landing back inside the sandbox is still refused: a directory about to be
+  // deleted recursively is not the place to trust a path that needs resolving.
+  AssertFalse('Traversal that resolves back inside is still rejected',
+    IsSafeSandboxDir(Prefix + '/subdir/..'));
+end;
+
+procedure TSandboxIsolationTests.TestIsSafeSandboxDirAcceptsDottedNames;
+var
+  Prefix: string;
+begin
+  // Dots are only dangerous as a whole path component; they are legal in names.
+  Prefix := IncludeTrailingPathDelimiter(GetTempDir(False)) + 'goverlay_test_';
+  AssertTrue('Name containing dots accepted', IsSafeSandboxDir(Prefix + '12345..678'));
+  AssertTrue('Name ending in dots accepted', IsSafeSandboxDir(Prefix + '12345678..'));
+  AssertTrue('Trailing slash accepted', IsSafeSandboxDir(Prefix + '12345678/'));
 end;
 
 initialization
