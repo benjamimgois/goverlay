@@ -821,17 +821,74 @@ begin
     Result := '';
 end;
 
+procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
+  out AFlowScale: Double; out APerfMode, AHdrMode: Boolean; out APacing: string);
+var
+  Lines: TStringList;
+  i, p: Integer;
+  Line, Key, Val: string;
+begin
+  ADll := '';
+  AMultiplier := 2;
+  AFlowScale := 1.0;
+  APerfMode := False;
+  AHdrMode := False;
+  APacing := 'fifo';
+  
+  if not FileExists(AFilePath) then Exit;
+  
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AFilePath);
+    for i := 0 to Lines.Count - 1 do
+    begin
+      Line := Trim(Lines[i]);
+      if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
+      p := Pos('=', Line);
+      if p > 0 then
+      begin
+        Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+        Val := Trim(Copy(Line, p + 1, MaxInt));
+        // Strip surrounding quotes
+        if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+          Val := Copy(Val, 2, Length(Val) - 2);
+          
+        if Key = 'dll' then
+        begin
+          if (ADll = '') or FileExists(Val) then
+            ADll := Val;
+        end
+        else if Key = 'multiplier' then
+          AMultiplier := StrToIntDef(Val, AMultiplier)
+        else if Key = 'flow_scale' then
+          AFlowScale := StrToFloatDef(StringReplace(Val, '.', DecimalSeparator, []), AFlowScale)
+        else if Key = 'performance_mode' then
+          APerfMode := (LowerCase(Val) = 'true') or (Val = '1')
+        else if Key = 'hdr_mode' then
+          AHdrMode := (LowerCase(Val) = 'true') or (Val = '1')
+        else if Key = 'experimental_present_mode' then
+          APacing := LowerCase(Val);
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
 procedure TLosslessScalingTabHelper.LoadLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
+  CfgPath, CfgDir, TomlPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
   FlowInt, MultInt, GpuIdx: Integer;
-  IsLosslessOn: Boolean;
+  IsLosslessOn, TomlFound, PerfModeVal, HdrModeVal: Boolean;
+  ParsedFlow: Double;
 begin
   if Assigned(FForm) and (FForm is Tgoverlayform) then
     Tgoverlayform(FForm).FLoadingConfig := True;
   try
     CfgPath := GetConfigFile;
+    CfgDir := ExtractFilePath(CfgPath);
+    TomlPath := IncludeTrailingPathDelimiter(CfgDir) + 'lsfg.toml';
     
     // Set defaults
     FLsDllPathEdit.Text := DetectSteamLosslessDll;
@@ -845,12 +902,64 @@ begin
     FLsPacingComboBox.ItemIndex := 0; // auto
     FLsGpuComboBox.ItemIndex := 0; // Auto (-1)
 
+    // Check if GOVERLAY_LOSSLESS is enabled in bgmod.conf
+    IsLosslessOn := False;
     if FileExists(CfgPath) then
     begin
       Ini := TIniFile.Create(CfgPath);
       try
         IsLosslessOn := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
+      finally
+        Ini.Free;
+      end;
+    end;
 
+    TomlFound := False;
+    if FileExists(TomlPath) then
+    begin
+      ParseLsfgToml(TomlPath, DllVal, MultInt, ParsedFlow, PerfModeVal, HdrModeVal, PacingVal);
+      TomlFound := True;
+      if DllVal <> '' then
+        FLsDllPathEdit.Text := DllVal;
+        
+      if IsLosslessOn or (MultInt >= 2) then
+      begin
+        case MultInt of
+          2: FLsMultiplierComboBox.ItemIndex := 1;
+          3: FLsMultiplierComboBox.ItemIndex := 2;
+          4: FLsMultiplierComboBox.ItemIndex := 3;
+          5: FLsMultiplierComboBox.ItemIndex := 4;
+          6: FLsMultiplierComboBox.ItemIndex := 5;
+        else
+          FLsMultiplierComboBox.ItemIndex := 1;
+        end;
+      end
+      else
+        FLsMultiplierComboBox.ItemIndex := 0;
+        
+      FlowInt := Round(ParsedFlow * 100);
+      if FlowInt < 25 then FlowInt := 25;
+      if FlowInt > 100 then FlowInt := 100;
+      FLsFlowScaleTrackBar.Position := FlowInt;
+      if Assigned(FLsFlowScaleValueLabel) then
+        FLsFlowScaleValueLabel.Caption := IntToStr(FlowInt) + '%';
+        
+      FLsPerfModeCheckBox.Checked := PerfModeVal;
+      FLsHdrModeCheckBox.Checked := HdrModeVal;
+      
+      PacingVal := LowerCase(Trim(PacingVal));
+      if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
+      else if PacingVal = 'mailbox' then FLsPacingComboBox.ItemIndex := 2
+      else if PacingVal = 'immediate' then FLsPacingComboBox.ItemIndex := 3
+      else if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 4
+      else FLsPacingComboBox.ItemIndex := 0;
+    end;
+
+    // Fallback migration: if lsfg.toml not found, check legacy bgmod.conf keys
+    if not TomlFound and FileExists(CfgPath) then
+    begin
+      Ini := TIniFile.Create(CfgPath);
+      try
         DllVal := Ini.ReadString('Config', 'LS_DLL_PATH', Ini.ReadString('Env', 'LSFG_DLL_PATH', Ini.ReadString('Env', 'LSFGVK_DLL_PATH', '')));
         if DllVal <> '' then
           FLsDllPathEdit.Text := DllVal;
@@ -866,14 +975,12 @@ begin
             5: FLsMultiplierComboBox.ItemIndex := 4;
             6: FLsMultiplierComboBox.ItemIndex := 5;
           else
-            FLsMultiplierComboBox.ItemIndex := 1; // Default to 2x if enabled
+            FLsMultiplierComboBox.ItemIndex := 1;
           end;
         end
         else
-        begin
-          FLsMultiplierComboBox.ItemIndex := 0; // 1x (no framegen)
-        end;
-        
+          FLsMultiplierComboBox.ItemIndex := 0;
+          
         FlowVal := Ini.ReadString('Config', 'LS_FLOW_SCALE', Ini.ReadString('Env', 'LSFG_FLOW_SCALE', Ini.ReadString('Env', 'LSFGVK_FLOW_SCALE', '')));
         if FlowVal <> '' then
         begin
@@ -927,9 +1034,8 @@ end;
 procedure TLosslessScalingTabHelper.SaveLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath, CfgDir, DllPath, PacingStr: string;
+  CfgPath, CfgDir, DllPath: string;
   IsEnabled: Boolean;
-  MultVal: Integer;
 begin
   UpdateControlsEnabled;
   CfgPath := GetConfigFile;
@@ -944,60 +1050,20 @@ begin
   try
     if IsEnabled then
     begin
-      // 1. Write Config section
+      // 1. Write only the master switch to Config section
       Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '1');
-      Ini.WriteString('Config', 'LS_DLL_PATH', DllPath);
-      
-      case FLsMultiplierComboBox.ItemIndex of
-        1: MultVal := 2;
-        2: MultVal := 3;
-        3: MultVal := 4;
-        4: MultVal := 5;
-        5: MultVal := 6;
-      else
-        MultVal := 2;
-      end;
-      Ini.WriteString('Config', 'LS_MULTIPLIER', IntToStr(MultVal));
-      
-      if FLsFlowScaleTrackBar.Position < 100 then
-        Ini.WriteString('Config', 'LS_FLOW_SCALE', StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]))
-      else
-        Ini.DeleteKey('Config', 'LS_FLOW_SCALE');
-        
-      if FLsPerfModeCheckBox.Checked then
-        Ini.WriteString('Config', 'LS_PERFORMANCE_MODE', '1')
-      else
-        Ini.DeleteKey('Config', 'LS_PERFORMANCE_MODE');
-        
-      if FLsHdrModeCheckBox.Checked then
-        Ini.WriteString('Config', 'LS_HDR_MODE', '1')
-      else
-        Ini.DeleteKey('Config', 'LS_HDR_MODE');
-        
-      if FLsNoFp16CheckBox.Checked then
-        Ini.WriteString('Config', 'LS_NO_FP16', '1')
-      else
-        Ini.DeleteKey('Config', 'LS_NO_FP16');
-        
-      case FLsPacingComboBox.ItemIndex of
-        1: PacingStr := 'vsync';
-        2: PacingStr := 'mailbox';
-        3: PacingStr := 'immediate';
-        4: PacingStr := 'none';
-      else
-        PacingStr := '';
-      end;
-      if PacingStr <> '' then
-        Ini.WriteString('Config', 'LS_PACING', PacingStr)
-      else
-        Ini.DeleteKey('Config', 'LS_PACING');
-        
-      if FLsGpuComboBox.ItemIndex > 0 then
-        Ini.WriteString('Config', 'LS_GPU', IntToStr(FLsGpuComboBox.ItemIndex - 1))
-      else
-        Ini.DeleteKey('Config', 'LS_GPU');
 
-      // 2. Unconditionally clean up any legacy LSFG_* or LSFGVK_* keys from [Env]
+      // 2. Prune any redundant LS_* keys from [Config]
+      Ini.DeleteKey('Config', 'LS_DLL_PATH');
+      Ini.DeleteKey('Config', 'LS_MULTIPLIER');
+      Ini.DeleteKey('Config', 'LS_FLOW_SCALE');
+      Ini.DeleteKey('Config', 'LS_PERFORMANCE_MODE');
+      Ini.DeleteKey('Config', 'LS_HDR_MODE');
+      Ini.DeleteKey('Config', 'LS_NO_FP16');
+      Ini.DeleteKey('Config', 'LS_PACING');
+      Ini.DeleteKey('Config', 'LS_GPU');
+
+      // 3. Prune any legacy LSFG_* or LSFGVK_* keys from [Env]
       Ini.DeleteKey('Env', 'LSFG_DLL_PATH');
       Ini.DeleteKey('Env', 'LSFG_MULTIPLIER');
       Ini.DeleteKey('Env', 'LSFG_FLOW_SCALE');
@@ -1016,12 +1082,12 @@ begin
       Ini.DeleteKey('Env', 'LSFGVK_PACING');
       Ini.DeleteKey('Env', 'LSFGVK_GPU');
 
-      // 3. Write target lsfg.toml file
+      // 4. Write target lsfg.toml as the single source of truth
       WriteLsfgTomlConfig(CfgDir);
     end
     else
     begin
-      // Disabled (1x or invalid DLL): set GOVERLAY_LOSSLESS=0 and remove all LS_* from [Config] and LSFG_* from [Env]
+      // Disabled (1x or invalid DLL): set GOVERLAY_LOSSLESS=0, prune keys, and remove lsfg.toml
       Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '0');
       Ini.DeleteKey('Config', 'LS_DLL_PATH');
       Ini.DeleteKey('Config', 'LS_MULTIPLIER');

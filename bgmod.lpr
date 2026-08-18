@@ -1467,11 +1467,43 @@ begin
     TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml';
     TomlLines := TStringList.Create;
     try
+      // If lsfg.toml already exists, load existing settings from it
+      if FileExists(TomlPath) then
+      begin
+        TomlLines.LoadFromFile(TomlPath);
+        for i := 0 to TomlLines.Count - 1 do
+        begin
+          Line := Trim(TomlLines[i]);
+          if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
+          p := Pos('=', Line);
+          if p > 0 then
+          begin
+            Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+            Val := Trim(Copy(Line, p + 1, MaxInt));
+            if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+              Val := Copy(Val, 2, Length(Val) - 2);
+            if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
+            else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
+            else if Key = 'flow_scale' then LsfgFlow := Val
+            else if Key = 'performance_mode' then LsfgPerfStr := Val
+            else if Key = 'hdr_mode' then LsfgHdrStr := Val
+            else if Key = 'experimental_present_mode' then LsfgPacing := Val;
+          end;
+        end;
+      end;
+      
       if LsfgFlow = '' then LsfgFlow := '1.0';
-      if LsfgPerf = '1' then LsfgPerfStr := 'true' else LsfgPerfStr := 'false';
-      if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
+      if (LsfgPerfStr <> 'true') and (LsfgPerfStr <> 'false') then
+      begin
+        if LsfgPerf = '1' then LsfgPerfStr := 'true' else LsfgPerfStr := 'false';
+      end;
+      if (LsfgHdrStr <> 'true') and (LsfgHdrStr <> 'false') then
+      begin
+        if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
+      end;
       if LsfgPacing = '' then LsfgPacing := 'fifo';
       
+      TomlLines.Clear;
       TomlLines.Add('version = 1');
       TomlLines.Add('');
       if LsfgDllPath <> '' then

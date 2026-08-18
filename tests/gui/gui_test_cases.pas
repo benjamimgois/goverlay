@@ -249,20 +249,16 @@ begin
     Ini := TIniFile.Create(TargetConfPath);
     try
       AssertEquals('GOVERLAY_LOSSLESS is 1 in [Config]', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
-      AssertEquals('LS_DLL_PATH matches in [Config]', DummyDll, Ini.ReadString('Config', 'LS_DLL_PATH', ''));
-      AssertEquals('LS_MULTIPLIER is 3 in [Config]', '3', Ini.ReadString('Config', 'LS_MULTIPLIER', ''));
-      AssertEquals('LS_PERFORMANCE_MODE is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', '0'));
-      AssertEquals('LS_HDR_MODE is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_HDR_MODE', '0'));
-      AssertEquals('LS_NO_FP16 is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_NO_FP16', '0'));
-      AssertEquals('LS_PACING is vsync in [Config]', 'vsync', Ini.ReadString('Config', 'LS_PACING', ''));
-      // Verify [Env] is completely clean of LSFG_*
+      // Verify [Config] and [Env] do NOT have duplicate LS_* or LSFG_* keys
+      AssertEquals('LS_DLL_PATH is not in [Config]', '', Ini.ReadString('Config', 'LS_DLL_PATH', ''));
+      AssertEquals('LS_MULTIPLIER is not in [Config]', '', Ini.ReadString('Config', 'LS_MULTIPLIER', ''));
       AssertEquals('LSFG_DLL_PATH is not in [Env]', '', Ini.ReadString('Env', 'LSFG_DLL_PATH', ''));
       AssertEquals('LSFG_MULTIPLIER is not in [Env]', '', Ini.ReadString('Env', 'LSFG_MULTIPLIER', ''));
     finally
       Ini.Free;
     end;
     
-    // Test LoadLosslessConfig roundtrip
+    // Test LoadLosslessConfig roundtrip from lsfg.toml
     goverlayform.FLoadingConfig := True;
     try
       Helper.MultiplierComboBox.ItemIndex := 0;
@@ -271,8 +267,8 @@ begin
       goverlayform.FLoadingConfig := False;
     end;
     Helper.LoadLosslessConfig;
-    AssertEquals('Loaded Multiplier is 3x (index 2)', 2, Helper.MultiplierComboBox.ItemIndex);
-    AssertTrue('Loaded PerfMode is True', Helper.PerfModeCheckBox.Checked);
+    AssertEquals('Loaded Multiplier is 3x (index 2) from lsfg.toml', 2, Helper.MultiplierComboBox.ItemIndex);
+    AssertTrue('Loaded PerfMode is True from lsfg.toml', Helper.PerfModeCheckBox.Checked);
     AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
     
     // Now test switching Multiplier to 1x (no framegen)
@@ -291,10 +287,10 @@ begin
       AssertEquals('GOVERLAY_LOSSLESS is 0 in [Config]', '0', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
       AssertEquals('LS_DLL_PATH key is removed from [Config]', '', Ini.ReadString('Config', 'LS_DLL_PATH', ''));
       AssertEquals('LS_MULTIPLIER key is removed from [Config]', '', Ini.ReadString('Config', 'LS_MULTIPLIER', ''));
-      AssertEquals('LS_PERFORMANCE_MODE key is removed from [Config]', '', Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', ''));
     finally
       Ini.Free;
     end;
+    AssertFalse('lsfg.toml is removed when disabled', FileExists(TargetTomlPath));
   finally
     if FileExists(DummyDll) then
       DeleteFile(DummyDll);
