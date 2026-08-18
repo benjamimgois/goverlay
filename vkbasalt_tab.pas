@@ -147,25 +147,25 @@ begin
   FVkCasValLbl := TLabel.Create(FForm);
   FVkCasValLbl.Parent := FVkBuiltinCard;
   FVkCasValLbl.Caption := casvalueLabel.Caption;
-  FVkCasValLbl.Font.Color := CLR_WHITE; FVkCasValLbl.Font.Size := 9;
+  FVkCasValLbl.Font.Color := RGBToColor(48, 190, 240); FVkCasValLbl.Font.Style := [fsBold]; FVkCasValLbl.Font.Size := 9;
   FVkCasValLbl.Color := BG; FVkCasValLbl.Anchors := [akLeft, akTop];
 
   FVkFxaaValLbl := TLabel.Create(FForm);
   FVkFxaaValLbl.Parent := FVkBuiltinCard;
   FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
-  FVkFxaaValLbl.Font.Color := CLR_WHITE; FVkFxaaValLbl.Font.Size := 9;
+  FVkFxaaValLbl.Font.Color := RGBToColor(48, 190, 240); FVkFxaaValLbl.Font.Style := [fsBold]; FVkFxaaValLbl.Font.Size := 9;
   FVkFxaaValLbl.Color := BG; FVkFxaaValLbl.Anchors := [akLeft, akTop];
 
   FVkSmaaValLbl := TLabel.Create(FForm);
   FVkSmaaValLbl.Parent := FVkBuiltinCard;
   FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
-  FVkSmaaValLbl.Font.Color := CLR_WHITE; FVkSmaaValLbl.Font.Size := 9;
+  FVkSmaaValLbl.Font.Color := RGBToColor(48, 190, 240); FVkSmaaValLbl.Font.Style := [fsBold]; FVkSmaaValLbl.Font.Size := 9;
   FVkSmaaValLbl.Color := BG; FVkSmaaValLbl.Anchors := [akLeft, akTop];
 
   FVkDlsValLbl := TLabel.Create(FForm);
   FVkDlsValLbl.Parent := FVkBuiltinCard;
   FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
-  FVkDlsValLbl.Font.Color := CLR_WHITE; FVkDlsValLbl.Font.Size := 9;
+  FVkDlsValLbl.Font.Color := RGBToColor(48, 190, 240); FVkDlsValLbl.Font.Style := [fsBold]; FVkDlsValLbl.Font.Size := 9;
   FVkDlsValLbl.Color := BG; FVkDlsValLbl.Anchors := [akLeft, akTop];
 
   // Load custom icons for Built-in Effects card

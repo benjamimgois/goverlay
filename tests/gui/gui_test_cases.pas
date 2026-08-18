@@ -1263,6 +1263,10 @@ begin
   AssertTrue('hidehudCheckBox reloaded', goverlayform.hidehudCheckBox.Checked);
   AssertTrue('hudcompactCheckBox reloaded', goverlayform.hudcompactCheckBox.Checked);
   AssertTrue('horizontalstrechCheckBox reloaded', goverlayform.horizontalstrechCheckBox.Checked);
+  AssertEquals('alphavalueLabel color', TColor(CLR_TEXT_ACCENT), TColor(goverlayform.alphavalueLabel.Font.Color));
+  AssertTrue('alphavalueLabel bold', fsBold in goverlayform.alphavalueLabel.Font.Style);
+  AssertEquals('fontsizevalueLabel color', TColor(CLR_TEXT_ACCENT), TColor(goverlayform.fontsizevalueLabel.Font.Color));
+  AssertTrue('fontsizevalueLabel bold', fsBold in goverlayform.fontsizevalueLabel.Font.Style);
 
   // Reverse direction
   goverlayform.hudtitleEdit.Text := '';

@@ -4497,8 +4497,16 @@ begin
     'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
     'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
     'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-    'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
-  // Apply slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox, QPushButton) to the main form
+    'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); } ' +
+    'QSlider::groove:horizontal { height: 6px; background: rgb(38,46,72); border-radius: 3px; } ' +
+    'QSlider::sub-page:horizontal { background: rgb(48,190,240); border-radius: 3px; } ' +
+    'QSlider::handle:horizontal { background: rgb(220,225,240); border: 1px solid rgb(48,190,240); width: 14px; margin-top: -4px; margin-bottom: -4px; border-radius: 7px; } ' +
+    'QSlider::handle:horizontal:hover { background: rgb(255,255,255); } ' +
+    'QSlider::groove:vertical { width: 6px; background: rgb(38,46,72); border-radius: 3px; } ' +
+    'QSlider::add-page:vertical { background: rgb(48,190,240); border-radius: 3px; } ' +
+    'QSlider::handle:vertical { background: rgb(220,225,240); border: 1px solid rgb(48,190,240); height: 14px; margin-left: -4px; margin-right: -4px; border-radius: 7px; } ' +
+    'QSlider::handle:vertical:hover { background: rgb(255,255,255); }';
+  // Apply slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox, QPushButton, QSlider) to the main form
   // Scoped to Tgoverlayform so native system dialogs (e.g. QFileDialog / TSelectDirectoryDialog) preserve clean system colors.
   QWidget_setStyleSheet(TQtWidget(Handle).Widget, @GlobalSS);
 
