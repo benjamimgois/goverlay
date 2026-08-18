@@ -174,6 +174,8 @@ begin
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
   AssertTrue('lossless scaling tab is active',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.losslessScalingTabSheet);
+  AssertTrue('preview pill is visible in dock on lossless scaling tab',
+    goverlayform.FFADock.PreviewVisible);
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingEnvVarsGeneration;
@@ -198,11 +200,10 @@ begin
     EnvVars := Helper.GetActiveEnvVars;
     AssertEquals('1x yields empty env vars', '', EnvVars);
     
-    // 2x enabled -> exports LSFGVK_ENV and LSFGVK_MULTIPLIER=2
+    // 2x enabled -> exports LSFG_CONFIG pointing to lsfg.toml
     Helper.MultiplierComboBox.ItemIndex := 1;
     EnvVars := Helper.GetActiveEnvVars;
-    AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
-    AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
+    AssertTrue('LSFG_CONFIG is present', Pos('LSFG_CONFIG=', EnvVars) > 0);
   finally
     if FileExists(DummyDll) then DeleteFile(DummyDll);
   end;
@@ -211,7 +212,7 @@ end;
 procedure TGoverlayGuiTests.TestLosslessScalingBgmodConfRoundtrip;
 var
   Helper: TLosslessScalingTabHelper;
-  DummyDll, TargetConfPath: string;
+  DummyDll, TargetConfPath, TargetTomlPath: string;
   Ini: TIniFile;
   DummyFile: TFileStream;
 begin
@@ -241,18 +242,22 @@ begin
     Helper.SaveLosslessConfig;
     
     TargetConfPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'bgmod.conf';
+    TargetTomlPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'lsfg.toml';
     AssertTrue('bgmod.conf was created', FileExists(TargetConfPath));
+    AssertTrue('lsfg.toml was created', FileExists(TargetTomlPath));
     
     Ini := TIniFile.Create(TargetConfPath);
     try
       AssertEquals('GOVERLAY_LOSSLESS is 1 in [Config]', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
-      AssertEquals('LSFGVK_ENV is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_ENV', '0'));
-      AssertEquals('LSFGVK_DLL_PATH matches in [Env]', DummyDll, Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
-      AssertEquals('LSFGVK_MULTIPLIER is 3 in [Env]', '3', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
-      AssertEquals('LSFGVK_PERFORMANCE_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', '0'));
-      AssertEquals('LSFGVK_HDR_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0'));
-      AssertEquals('LSFGVK_NO_FP16 is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0'));
-      AssertEquals('LSFGVK_PACING is vsync in [Env]', 'vsync', Ini.ReadString('Env', 'LSFGVK_PACING', ''));
+      AssertEquals('LS_DLL_PATH matches in [Config]', DummyDll, Ini.ReadString('Config', 'LS_DLL_PATH', ''));
+      AssertEquals('LS_MULTIPLIER is 3 in [Config]', '3', Ini.ReadString('Config', 'LS_MULTIPLIER', ''));
+      AssertEquals('LS_PERFORMANCE_MODE is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', '0'));
+      AssertEquals('LS_HDR_MODE is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_HDR_MODE', '0'));
+      AssertEquals('LS_NO_FP16 is 1 in [Config]', '1', Ini.ReadString('Config', 'LS_NO_FP16', '0'));
+      AssertEquals('LS_PACING is vsync in [Config]', 'vsync', Ini.ReadString('Config', 'LS_PACING', ''));
+      // Verify [Env] is completely clean of LSFG_*
+      AssertEquals('LSFG_DLL_PATH is not in [Env]', '', Ini.ReadString('Env', 'LSFG_DLL_PATH', ''));
+      AssertEquals('LSFG_MULTIPLIER is not in [Env]', '', Ini.ReadString('Env', 'LSFG_MULTIPLIER', ''));
     finally
       Ini.Free;
     end;
@@ -284,10 +289,9 @@ begin
     Ini := TIniFile.Create(TargetConfPath);
     try
       AssertEquals('GOVERLAY_LOSSLESS is 0 in [Config]', '0', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
-      AssertEquals('LSFGVK_ENV key is removed', '', Ini.ReadString('Env', 'LSFGVK_ENV', ''));
-      AssertEquals('LSFGVK_DLL_PATH key is removed', '', Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
-      AssertEquals('LSFGVK_MULTIPLIER key is removed', '', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
-      AssertEquals('LSFGVK_PERFORMANCE_MODE key is removed', '', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', ''));
+      AssertEquals('LS_DLL_PATH key is removed from [Config]', '', Ini.ReadString('Config', 'LS_DLL_PATH', ''));
+      AssertEquals('LS_MULTIPLIER key is removed from [Config]', '', Ini.ReadString('Config', 'LS_MULTIPLIER', ''));
+      AssertEquals('LS_PERFORMANCE_MODE key is removed from [Config]', '', Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', ''));
     finally
       Ini.Free;
     end;

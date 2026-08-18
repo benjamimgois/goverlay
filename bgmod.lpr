@@ -67,6 +67,7 @@ end;
 
 var
   GameDir: string;
+  TargetExeName: string;
   CentralLogDir: string;
   CentralLogFile: string;
   BgmodPath: string;
@@ -947,8 +948,9 @@ begin
         LauncherList.Free;
       end;
       
+      TargetExeName := ExtractFileName(Arg);
       GameDir := ExtractFilePath(Arg);
-      Log('Resolved GameDir from argument: ' + GameDir);
+      Log('Resolved GameDir from argument: ' + GameDir + ' (exe: ' + TargetExeName + ')');
       Break;
     end;
   end;
@@ -968,8 +970,9 @@ begin
         ExePath := GetCommandOutput(Cmd);
         if ExePath <> '' then
         begin
+          TargetExeName := ExtractFileName(ExePath);
           GameDir := ExtractFilePath(ExePath);
-          Log('Resolved Lutris GameDir: ' + GameDir);
+          Log('Resolved Lutris GameDir: ' + GameDir + ' (exe: ' + TargetExeName + ')');
         end
         else
           Log('Failed to resolve Lutris slug or game configuration file');
@@ -1001,6 +1004,9 @@ end;
 
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
+  TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgPacing, LsfgPerfStr, LsfgHdrStr: string;
+  LsfgMult: Integer;
+  TomlLines: TStringList;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
   UpscalerType, InstalledUpscaler: Integer;
   Ini: TIniFile;
@@ -1107,6 +1113,13 @@ begin
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
+      
+      LsfgDllPath := Ini.ReadString('Config', 'LS_DLL_PATH', Ini.ReadString('Env', 'LSFG_DLL_PATH', ''));
+      LsfgMult := Ini.ReadInteger('Config', 'LS_MULTIPLIER', Ini.ReadInteger('Env', 'LSFG_MULTIPLIER', 2));
+      LsfgFlow := Ini.ReadString('Config', 'LS_FLOW_SCALE', Ini.ReadString('Env', 'LSFG_FLOW_SCALE', '1.0'));
+      LsfgPerf := Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', Ini.ReadString('Env', 'LSFG_PERFORMANCE_MODE', '0'));
+      LsfgHdr := Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', '0'));
+      LsfgPacing := Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', 'fifo'));
       
       Ini.ReadSectionValues('Env', EnvList);
     finally
@@ -1413,10 +1426,10 @@ begin
       Key := Copy(Line, 1, p - 1);
       Val := Copy(Line, p + 1, MaxInt);
       // Always export DXIL_SPIRV_CONFIG and MANGOHUD_CONFIGFILE.
-      // Export LSFGVK_* environment variables if GOverlayLossless is enabled.
+      // Export LSFG_* / LSFGVK_* environment variables if GOverlayLossless is enabled.
       // Other environment variables are exported if GOverlayTweaks is enabled.
       if (Key = 'MANGOHUD_CONFIGFILE') or (Key = 'DXIL_SPIRV_CONFIG') or
-         (GOverlayLossless and (Pos('LSFGVK_', Key) = 1)) or
+         (GOverlayLossless and ((Pos('LSFG_', Key) = 1) or (Pos('LSFGVK_', Key) = 1))) or
          GOverlayTweaks then
       begin
         SetEnvVarInList(EnvStrings, Key, Val);
@@ -1447,6 +1460,77 @@ begin
       NewOverrides := DllBase + '=n,b';
     SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
+  end;
+  
+  if GOverlayLossless then
+  begin
+    TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml';
+    TomlLines := TStringList.Create;
+    try
+      if LsfgFlow = '' then LsfgFlow := '1.0';
+      if LsfgPerf = '1' then LsfgPerfStr := 'true' else LsfgPerfStr := 'false';
+      if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
+      if LsfgPacing = '' then LsfgPacing := 'fifo';
+      
+      TomlLines.Add('version = 1');
+      TomlLines.Add('');
+      if LsfgDllPath <> '' then
+      begin
+        TomlLines.Add('[global]');
+        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('');
+      end;
+      
+      if TargetExeName <> '' then
+      begin
+        TomlLines.Add('[[game]]');
+        TomlLines.Add('exe = "' + TargetExeName + '"');
+        if LsfgDllPath <> '' then TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+        TomlLines.Add('flow_scale = ' + LsfgFlow);
+        TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+        TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+        TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        TomlLines.Add('');
+        if ChangeFileExt(TargetExeName, '') <> TargetExeName then
+        begin
+          TomlLines.Add('[[game]]');
+          TomlLines.Add('exe = "' + ChangeFileExt(TargetExeName, '') + '"');
+          if LsfgDllPath <> '' then TomlLines.Add('dll = "' + LsfgDllPath + '"');
+          TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+          TomlLines.Add('flow_scale = ' + LsfgFlow);
+          TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+          TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+          TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+          TomlLines.Add('');
+        end;
+      end;
+      
+      TomlLines.Add('[[game]]');
+      TomlLines.Add('exe = "wine64-preloader"');
+      if LsfgDllPath <> '' then TomlLines.Add('dll = "' + LsfgDllPath + '"');
+      TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+      TomlLines.Add('flow_scale = ' + LsfgFlow);
+      TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+      TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+      TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+      TomlLines.Add('');
+      
+      TomlLines.Add('[[game]]');
+      TomlLines.Add('exe = "wine-preloader"');
+      if LsfgDllPath <> '' then TomlLines.Add('dll = "' + LsfgDllPath + '"');
+      TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+      TomlLines.Add('flow_scale = ' + LsfgFlow);
+      TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+      TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+      TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+      
+      TomlLines.SaveToFile(TomlPath);
+      SetEnvVarInList(EnvStrings, 'LSFG_CONFIG', TomlPath);
+      Log('Export: LSFG_CONFIG=' + TomlPath);
+    finally
+      TomlLines.Free;
+    end;
   end;
   
   EnvList.Free;

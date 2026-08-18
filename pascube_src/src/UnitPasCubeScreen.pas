@@ -1653,8 +1653,8 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
    end;
   end;
  
-   // Limit FPS to 60 on idle menu and results screens to save GPU power
-   if fBenchmarkPhase in [bpIdleMenu, bpResults] then begin
+   // Limit FPS to 60 on idle menu and results screens to save GPU power (unless --uncapped is active)
+   if (fBenchmarkPhase in [bpIdleMenu, bpResults]) and not (assigned(pvApplication) and (pvApplication is TPasCubeApplication) and TPasCubeApplication(pvApplication).UncappedFPS) then begin
     pvApplication.MaximumFramesPerSecond := 60.0;
    end else begin
     pvApplication.MaximumFramesPerSecond := 0.0;

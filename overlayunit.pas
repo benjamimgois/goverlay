@@ -969,6 +969,8 @@ type
     function  GetVkSumiConfigEnvPrefix: string;
     function  GetVkBasaltLaunchEnv: string;
     function  GetVkSumiLaunchEnv: string;
+    function  GetLosslessScalingLaunchEnv: string;
+    function  GetPasCubeUncappedParam: string;
     // Exposed: procedure UpdateGameContextLabel;
     // Exposed: procedure PreviewBtnClick(Sender: TObject);
     // Exposed: procedure LoadGlobalThumb;
@@ -5074,8 +5076,14 @@ begin
   commandPanel.Visible:=false;
 
 
-  // Floating dock — no Preview, no Menu, no Add on OptiScaler tab
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+  // Floating dock — Preview enabled if Lossless Scaling tab is active, otherwise hidden on OptiScaler tab
+  if Assigned(FFADock) then
+  begin
+    if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+      FFADock.UpdateForTab(True, False, False)
+    else
+      FFADock.UpdateForTab(False, False, False);
+  end;
   //Update geSpeedButton state for OptiScaler
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
@@ -5152,7 +5160,7 @@ begin
     end;
     DbgLog('*** RUN PASCUBE MENU CLICK - RUNNING PASCUBE ***');
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
@@ -5196,16 +5204,16 @@ begin
   if IsRunningInFlatpak then
   begin
     if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube-wayland &')
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube-wayland &')
     else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
   end
   else
   begin
     if USERSESSION = 'wayland' then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &')
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &')
     else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
+      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
   end;
 end;
 
@@ -8199,7 +8207,7 @@ end;
 
 procedure Tgoverlayform.losslessScalingTabSheetShow(Sender: TObject);
 begin
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, False, False);
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
@@ -8940,6 +8948,29 @@ begin
     Result := '';
 end;
 
+function Tgoverlayform.GetLosslessScalingLaunchEnv: string;
+var
+  EnvStr: string;
+begin
+  Result := '';
+  if (FActiveGameName <> '') and not FNavToolEnabled[2] then
+    Exit;
+  if Assigned(FLosslessScalingHelper) then
+  begin
+    EnvStr := TLosslessScalingTabHelper(FLosslessScalingHelper).BuildEnvLine;
+    if EnvStr <> '' then
+      Result := EnvStr + ' ';
+  end;
+end;
+
+function Tgoverlayform.GetPasCubeUncappedParam: string;
+begin
+  if (goverlayPageControl.ActivePage = losslessScalingTabSheet) or (GetLosslessScalingLaunchEnv <> '') then
+    Result := ' --uncapped'
+  else
+    Result := '';
+end;
+
 procedure Tgoverlayform.UpdateGameContextLabel;
 begin
   // Game context label removed — active game is shown in the sidebar thumb instead
@@ -8954,8 +8985,10 @@ begin
     except
     end;
     DbgLog('*** PREVIEW BUTTON CLICK - RUNNING PASCUBE ***');
+    if GetLosslessScalingLaunchEnv <> '' then
+      DbgLog('[LosslessScaling] ' + Trim(GetLosslessScalingLaunchEnv));
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
@@ -8964,7 +8997,7 @@ begin
   else if IsCommandAvailable('vkcube') then
   begin
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + 'vkcube &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
   end
   else
     SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);

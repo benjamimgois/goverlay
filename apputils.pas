@@ -315,6 +315,7 @@ var
   Process: TProcess;
   LogPath: string;
   NohupLogFile: string;
+  CleanCmd: string;
 begin
   Process := TProcess.Create(nil);
   try
@@ -322,9 +323,13 @@ begin
     if not DirectoryExists(LogPath) then
       ForceDirectories(LogPath);
     NohupLogFile := IncludeTrailingPathDelimiter(LogPath) + 'nohup.out';
+    CleanCmd := Trim(Command);
+    if (Length(CleanCmd) > 0) and (CleanCmd[Length(CleanCmd)] = '&') then
+      CleanCmd := Trim(Copy(CleanCmd, 1, Length(CleanCmd) - 1));
+
     Process.Executable := FindDefaultExecutablePath('sh');
     Process.Parameters.Add('-c');
-    Process.Parameters.Add('nohup sh -c ''' + Command + ''' >> "' + NohupLogFile + '" 2>&1 &');
+    Process.Parameters.Add('( ' + CleanCmd + ' ) 2>&1 | tee -a "' + NohupLogFile + '" &');
     Process.Options := [];
     Process.Execute;
     Sleep(200);

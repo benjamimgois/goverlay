@@ -132,6 +132,10 @@ type
     procedure PerformFinishClick;
 
     property Visible:        Boolean      read GetVisible write SetVisible;
+    property PreviewVisible: Boolean      read FPreviewVisible;
+    property MenuVisible:    Boolean      read FMenuVisible;
+    property AddVisible:     Boolean      read FAddVisible;
+    property FinishVisible:  Boolean      read FFinishVisible;
     property MenuHovered:    Boolean      read FMenuHovered;
     property MenuPressed:    Boolean      read FMenuPressed;
     property PreviewHovered: Boolean      read FPreviewHovered;

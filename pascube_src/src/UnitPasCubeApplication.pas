@@ -40,6 +40,7 @@ type TPasCubeApplication=class(TpvApplication)
        fDesiredY:TpvInt32;
        fHasDesiredPosition:boolean;
        fVersion:string;
+       fUncappedFPS:boolean;
       public
        constructor Create; override;
        destructor Destroy; override;
@@ -55,6 +56,7 @@ type TPasCubeApplication=class(TpvApplication)
       published
        property TextOverlay:TTextOverlay read fTextOverlay;
        property Version:string read fVersion write fVersion;
+       property UncappedFPS:boolean read fUncappedFPS write fUncappedFPS;
       end;
 
 var Application:TPasCubeApplication=nil;
@@ -74,6 +76,7 @@ begin
  fDesiredY:=0;
  fHasDesiredPosition:=false;
  fVersion:='1.8.0';
+ fUncappedFPS:=false;
 end;
 
 destructor TPasCubeApplication.Destroy;
@@ -100,7 +103,7 @@ begin
  AndroidSeparateMouseAndTouch:=true;
  UseAudio:=false;
  WaitOnPreviousFrames:=false;
-  VulkanAPIVersion:=VK_API_VERSION_1_0;
+  VulkanAPIVersion:=VK_API_VERSION_1_3;
   Blocking:=true;
   PresentMode:=TpvApplicationPresentMode.Immediate;
  Width:=1920;
@@ -124,6 +127,8 @@ begin
   end else if (Arg='--version') and (Index<ParamCount) then begin
    Inc(Index);
    fVersion:=ParamStr(Index);
+  end else if (Arg='--uncapped') or (Arg='--unlimited-fps') then begin
+   fUncappedFPS:=true;
   end;
   Inc(Index);
  end;
