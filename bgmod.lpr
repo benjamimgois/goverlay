@@ -1001,7 +1001,7 @@ end;
 
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
-  GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, PreserveIni: Boolean;
+  GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
   UpscalerType, InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
@@ -1087,6 +1087,7 @@ begin
   GOverlayVkBasalt := False;
   GOverlayOptiscaler := False;
   GOverlayTweaks := False;
+  GOverlayLossless := False;
   DllName := 'dxgi.dll';
   PreserveIni := True;
   
@@ -1102,6 +1103,7 @@ begin
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       GOverlayTweaks := Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '0') = '1';
+      GOverlayLossless := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
@@ -1122,6 +1124,7 @@ begin
       ', vkBasalt=' + BoolToStr(GOverlayVkBasalt, '1', '0') + 
       ', OptiScaler=' + BoolToStr(GOverlayOptiscaler, '1', '0') + 
       ', Tweaks=' + BoolToStr(GOverlayTweaks, '1', '0') +
+      ', Lossless=' + BoolToStr(GOverlayLossless, '1', '0') +
       ', DLL=' + DllName +
       ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false'));
       
@@ -1410,8 +1413,11 @@ begin
       Key := Copy(Line, 1, p - 1);
       Val := Copy(Line, p + 1, MaxInt);
       // Always export DXIL_SPIRV_CONFIG and MANGOHUD_CONFIGFILE.
+      // Export LSFGVK_* environment variables if GOverlayLossless is enabled.
       // Other environment variables are exported if GOverlayTweaks is enabled.
-      if (Key = 'MANGOHUD_CONFIGFILE') or (Key = 'DXIL_SPIRV_CONFIG') or GOverlayTweaks then
+      if (Key = 'MANGOHUD_CONFIGFILE') or (Key = 'DXIL_SPIRV_CONFIG') or
+         (GOverlayLossless and (Pos('LSFGVK_', Key) = 1)) or
+         GOverlayTweaks then
       begin
         SetEnvVarInList(EnvStrings, Key, Val);
         Log('Export [Env]: ' + Key + '=' + Val);

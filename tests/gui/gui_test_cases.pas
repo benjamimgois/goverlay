@@ -15,6 +15,7 @@ type
     procedure NavigateVkBasaltTab;
     procedure NavigateVkSumiTab;
     procedure NavigateOptiScalerTab;
+    procedure NavigateTweaksTab;
     procedure SeedOptiScalerFiles;
     function OptiIniPath: string;
     function FakeIniPath: string;
@@ -32,6 +33,7 @@ type
     procedure TestNavigateOptiScalerTab;
     procedure TestNavigateLosslessScalingTab;
     procedure TestLosslessScalingEnvVarsGeneration;
+    procedure TestLosslessScalingBgmodConfRoundtrip;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -76,7 +78,6 @@ type
     procedure TestMangoExtrasTab;
     procedure TestMangoGlobalSideEffects;
     procedure TestMangoSettingsPersistence;
-    procedure NavigateTweaksTab;
     procedure TestVkBasaltRoundTrip;
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
@@ -184,6 +185,83 @@ begin
   EnvVars := Helper.GetActiveEnvVars;
   AssertTrue('LSFGVK_ENV=1 is present', Pos('LSFGVK_ENV=1', EnvVars) > 0);
   AssertTrue('LSFGVK_MULTIPLIER=2 is present', Pos('LSFGVK_MULTIPLIER=2', EnvVars) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingBgmodConfRoundtrip;
+var
+  Helper: TLosslessScalingTabHelper;
+  DummyDll, TargetConfPath: string;
+  Ini: TIniFile;
+  DummyFile: TFileStream;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+  
+  // Create a temporary dummy DLL file to simulate valid Lossless.dll
+  DummyDll := IsolatedHome + '/.local/share/goverlay/test_Lossless.dll';
+  ForceDirectories(ExtractFilePath(DummyDll));
+  DummyFile := TFileStream.Create(DummyDll, fmCreate);
+  DummyFile.Free;
+  try
+    // Set UI values
+    Helper.DllPathEdit.Text := DummyDll;
+    Helper.MultiplierComboBox.ItemIndex := 1; // 3x
+    Helper.FlowScaleTrackBar.Position := 85;
+    Helper.PerfModeCheckBox.Checked := True;
+    Helper.HdrModeCheckBox.Checked := True;
+    Helper.NoFp16CheckBox.Checked := True;
+    Helper.PacingComboBox.ItemIndex := 1; // vsync
+    
+    // Save configuration to bgmod.conf
+    Helper.SaveLosslessConfig;
+    
+    TargetConfPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'bgmod.conf';
+    AssertTrue('bgmod.conf was created', FileExists(TargetConfPath));
+    
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('GOVERLAY_LOSSLESS is 1 in [Config]', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
+      AssertEquals('LSFGVK_ENV is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_ENV', '0'));
+      AssertEquals('LSFGVK_DLL_PATH matches in [Env]', DummyDll, Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
+      AssertEquals('LSFGVK_MULTIPLIER is 3 in [Env]', '3', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
+      AssertEquals('LSFGVK_PERFORMANCE_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', '0'));
+      AssertEquals('LSFGVK_HDR_MODE is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0'));
+      AssertEquals('LSFGVK_NO_FP16 is 1 in [Env]', '1', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0'));
+      AssertEquals('LSFGVK_PACING is vsync in [Env]', 'vsync', Ini.ReadString('Env', 'LSFGVK_PACING', ''));
+    finally
+      Ini.Free;
+    end;
+    
+    // Test LoadLosslessConfig roundtrip
+    goverlayform.FLoadingConfig := True;
+    try
+      Helper.MultiplierComboBox.ItemIndex := 0;
+      Helper.PerfModeCheckBox.Checked := False;
+    finally
+      goverlayform.FLoadingConfig := False;
+    end;
+    Helper.LoadLosslessConfig;
+    AssertEquals('Loaded Multiplier is 3x (index 1)', 1, Helper.MultiplierComboBox.ItemIndex);
+    AssertTrue('Loaded PerfMode is True', Helper.PerfModeCheckBox.Checked);
+    
+    // Now test deactivation cleanup: set empty/invalid DLL path and save
+    Helper.DllPathEdit.Text := '/nonexistent/path/Lossless.dll';
+    Helper.SaveLosslessConfig;
+    
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('GOVERLAY_LOSSLESS is 0 in [Config]', '0', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
+      AssertEquals('LSFGVK_ENV key is removed', '', Ini.ReadString('Env', 'LSFGVK_ENV', ''));
+      AssertEquals('LSFGVK_DLL_PATH key is removed', '', Ini.ReadString('Env', 'LSFGVK_DLL_PATH', ''));
+      AssertEquals('LSFGVK_MULTIPLIER key is removed', '', Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', ''));
+      AssertEquals('LSFGVK_PERFORMANCE_MODE key is removed', '', Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', ''));
+    finally
+      Ini.Free;
+    end;
+  finally
+    if FileExists(DummyDll) then
+      DeleteFile(DummyDll);
+  end;
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;

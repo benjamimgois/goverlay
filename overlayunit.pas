@@ -6454,6 +6454,13 @@ end;  //  ################### END - SAVE MANGOHUD
       Exit;
     end;
 
+    // ################### START - SAVE LOSSLESS SCALING
+    if (goverlayPageControl.ActivePage = losslessScalingTabSheet) and Assigned(FLosslessScalingHelper) then
+    begin
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+      Exit;
+    end;
+
 
 
 
@@ -8177,6 +8184,8 @@ begin
   UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+  if Assigned(FLosslessScalingHelper) then
+    TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
   ReflowLosslessScalingTab(0);
 end;
 

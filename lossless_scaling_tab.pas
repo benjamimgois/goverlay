@@ -69,6 +69,15 @@ type
     procedure SaveLosslessConfig;
     function GetActiveEnvVars: string;
     function DetectSteamLosslessDll: string;
+    
+    property DllPathEdit: TEdit read FLsDllPathEdit;
+    property MultiplierComboBox: TComboBox read FLsMultiplierComboBox;
+    property FlowScaleTrackBar: TTrackBar read FLsFlowScaleTrackBar;
+    property PerfModeCheckBox: TCheckBox read FLsPerfModeCheckBox;
+    property HdrModeCheckBox: TCheckBox read FLsHdrModeCheckBox;
+    property NoFp16CheckBox: TCheckBox read FLsNoFp16CheckBox;
+    property PacingComboBox: TComboBox read FLsPacingComboBox;
+    property GpuComboBox: TComboBox read FLsGpuComboBox;
   end;
 
 implementation
@@ -80,7 +89,8 @@ uses
   qt5,
   {$ENDIF}
   qtwidgets,
-  overlayunit;
+  overlayunit,
+  overlay_config;
 
 const
   CARD_PAD = 14;
@@ -98,8 +108,13 @@ begin
 end;
 
 function TLosslessScalingTabHelper.GetConfigFile: string;
+var
+  GameName: string;
 begin
-  Result := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'lossless_scaling.ini';
+  GameName := '';
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    GameName := Tgoverlayform(FForm).FActiveGameName;
+  Result := GetGameConfigDir(GameName) + 'bgmod.conf';
 end;
 
 function TLosslessScalingTabHelper.DetectSteamLosslessDll: string;
@@ -621,6 +636,7 @@ end;
 procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
 begin
   UpdateDllStatus;
+  if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
   SaveLosslessConfig;
 end;
 
@@ -650,11 +666,13 @@ procedure TLosslessScalingTabHelper.FlowScaleChange(Sender: TObject);
 begin
   if Assigned(FLsFlowScaleValueLabel) and Assigned(FLsFlowScaleTrackBar) then
     FLsFlowScaleValueLabel.Caption := IntToStr(FLsFlowScaleTrackBar.Position) + '%';
+  if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
   SaveLosslessConfig;
 end;
 
 procedure TLosslessScalingTabHelper.ControlStateChange(Sender: TObject);
 begin
+  if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
   SaveLosslessConfig;
 end;
 
@@ -728,25 +746,85 @@ end;
 procedure TLosslessScalingTabHelper.LoadLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath: string;
+  CfgPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
+  FlowInt, MultInt, GpuIdx: Integer;
 begin
-  CfgPath := GetConfigFile;
-  if not FileExists(CfgPath) then Exit;
-  
-  Ini := TIniFile.Create(CfgPath);
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    Tgoverlayform(FForm).FLoadingConfig := True;
   try
-    FLsDllPathEdit.Text := Ini.ReadString('LosslessScaling', 'DllPath', '');
-    FLsMultiplierComboBox.ItemIndex := Ini.ReadInteger('LosslessScaling', 'MultiplierIndex', 0);
-    FLsFlowScaleTrackBar.Position := Ini.ReadInteger('LosslessScaling', 'FlowScale', 100);
+    CfgPath := GetConfigFile;
+    
+    // Set defaults
+    FLsDllPathEdit.Text := DetectSteamLosslessDll;
+    FLsMultiplierComboBox.ItemIndex := 0; // 2x
+    FLsFlowScaleTrackBar.Position := 100;
     if Assigned(FLsFlowScaleValueLabel) then
-      FLsFlowScaleValueLabel.Caption := IntToStr(FLsFlowScaleTrackBar.Position) + '%';
-    FLsPerfModeCheckBox.Checked := Ini.ReadBool('LosslessScaling', 'PerformanceMode', False);
-    FLsHdrModeCheckBox.Checked := Ini.ReadBool('LosslessScaling', 'HdrMode', False);
-    FLsNoFp16CheckBox.Checked := Ini.ReadBool('LosslessScaling', 'NoFp16', False);
-    FLsPacingComboBox.ItemIndex := Ini.ReadInteger('LosslessScaling', 'PacingIndex', 0);
-    FLsGpuComboBox.ItemIndex := Ini.ReadInteger('LosslessScaling', 'GpuIndex', 0);
+      FLsFlowScaleValueLabel.Caption := '100%';
+    FLsPerfModeCheckBox.Checked := False;
+    FLsHdrModeCheckBox.Checked := False;
+    FLsNoFp16CheckBox.Checked := False;
+    FLsPacingComboBox.ItemIndex := 0; // auto
+    FLsGpuComboBox.ItemIndex := 0; // Auto (-1)
+
+    if FileExists(CfgPath) then
+    begin
+      Ini := TIniFile.Create(CfgPath);
+      try
+        DllVal := Ini.ReadString('Env', 'LSFGVK_DLL_PATH', '');
+        if DllVal <> '' then
+          FLsDllPathEdit.Text := DllVal;
+          
+        MultVal := Ini.ReadString('Env', 'LSFGVK_MULTIPLIER', '2');
+        MultInt := StrToIntDef(MultVal, 2);
+        case MultInt of
+          2: FLsMultiplierComboBox.ItemIndex := 0;
+          3: FLsMultiplierComboBox.ItemIndex := 1;
+          4: FLsMultiplierComboBox.ItemIndex := 2;
+          5: FLsMultiplierComboBox.ItemIndex := 3;
+          6: FLsMultiplierComboBox.ItemIndex := 4;
+        else
+          FLsMultiplierComboBox.ItemIndex := 0;
+        end;
+        
+        FlowVal := Ini.ReadString('Env', 'LSFGVK_FLOW_SCALE', '');
+        if FlowVal <> '' then
+        begin
+          if Pos('.', FlowVal) > 0 then
+            FlowInt := Round(StrToFloatDef(StringReplace(FlowVal, '.', DecimalSeparator, []), 1.0) * 100)
+          else
+            FlowInt := StrToIntDef(FlowVal, 100);
+          if FlowInt < 25 then FlowInt := 25;
+          if FlowInt > 100 then FlowInt := 100;
+          FLsFlowScaleTrackBar.Position := FlowInt;
+          if Assigned(FLsFlowScaleValueLabel) then
+            FLsFlowScaleValueLabel.Caption := IntToStr(FlowInt) + '%';
+        end;
+        
+        FLsPerfModeCheckBox.Checked := Ini.ReadString('Env', 'LSFGVK_PERFORMANCE_MODE', '0') = '1';
+        FLsHdrModeCheckBox.Checked := Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0') = '1';
+        FLsNoFp16CheckBox.Checked := Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0') = '1';
+        
+        PacingVal := LowerCase(Trim(Ini.ReadString('Env', 'LSFGVK_PACING', 'auto')));
+        if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
+        else if PacingVal = 'mailbox' then FLsPacingComboBox.ItemIndex := 2
+        else if PacingVal = 'immediate' then FLsPacingComboBox.ItemIndex := 3
+        else if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 4
+        else FLsPacingComboBox.ItemIndex := 0;
+        
+        GpuVal := Trim(Ini.ReadString('Env', 'LSFGVK_GPU', ''));
+        if GpuVal <> '' then
+        begin
+          GpuIdx := StrToIntDef(GpuVal, -1) + 1;
+          if (GpuIdx >= 0) and (GpuIdx < FLsGpuComboBox.Items.Count) then
+            FLsGpuComboBox.ItemIndex := GpuIdx;
+        end;
+      finally
+        Ini.Free;
+      end;
+    end;
   finally
-    Ini.Free;
+    if Assigned(FForm) and (FForm is Tgoverlayform) then
+      Tgoverlayform(FForm).FLoadingConfig := False;
   end;
   
   UpdateDllStatus;
@@ -755,23 +833,91 @@ end;
 procedure TLosslessScalingTabHelper.SaveLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath, CfgDir: string;
+  CfgPath, CfgDir, DllPath, PacingVal: string;
+  IsEnabled: Boolean;
+  MultVal: Integer;
 begin
   CfgPath := GetConfigFile;
   CfgDir := ExtractFilePath(CfgPath);
   if not DirectoryExists(CfgDir) then
     ForceDirectories(CfgDir);
     
+  DllPath := Trim(FLsDllPathEdit.Text);
+  IsEnabled := (DllPath <> '') and FileExists(DllPath);
+  
   Ini := TIniFile.Create(CfgPath);
   try
-    Ini.WriteString('LosslessScaling', 'DllPath', Trim(FLsDllPathEdit.Text));
-    Ini.WriteInteger('LosslessScaling', 'MultiplierIndex', FLsMultiplierComboBox.ItemIndex);
-    Ini.WriteInteger('LosslessScaling', 'FlowScale', FLsFlowScaleTrackBar.Position);
-    Ini.WriteBool('LosslessScaling', 'PerformanceMode', FLsPerfModeCheckBox.Checked);
-    Ini.WriteBool('LosslessScaling', 'HdrMode', FLsHdrModeCheckBox.Checked);
-    Ini.WriteBool('LosslessScaling', 'NoFp16', FLsNoFp16CheckBox.Checked);
-    Ini.WriteInteger('LosslessScaling', 'PacingIndex', FLsPacingComboBox.ItemIndex);
-    Ini.WriteInteger('LosslessScaling', 'GpuIndex', FLsGpuComboBox.ItemIndex);
+    if IsEnabled then
+    begin
+      // 1. Write Config section
+      Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '1');
+      
+      // 2. Write Env section
+      Ini.WriteString('Env', 'LSFGVK_ENV', '1');
+      Ini.WriteString('Env', 'LSFGVK_DLL_PATH', DllPath);
+      
+      case FLsMultiplierComboBox.ItemIndex of
+        1: MultVal := 3;
+        2: MultVal := 4;
+        3: MultVal := 5;
+        4: MultVal := 6;
+      else
+        MultVal := 2;
+      end;
+      Ini.WriteString('Env', 'LSFGVK_MULTIPLIER', IntToStr(MultVal));
+      
+      if FLsFlowScaleTrackBar.Position < 100 then
+        Ini.WriteString('Env', 'LSFGVK_FLOW_SCALE', Format('%.2f', [FLsFlowScaleTrackBar.Position / 100.0]))
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_FLOW_SCALE');
+        
+      if FLsPerfModeCheckBox.Checked then
+        Ini.WriteString('Env', 'LSFGVK_PERFORMANCE_MODE', '1')
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_PERFORMANCE_MODE');
+        
+      if FLsHdrModeCheckBox.Checked then
+        Ini.WriteString('Env', 'LSFGVK_HDR_MODE', '1')
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_HDR_MODE');
+        
+      if FLsNoFp16CheckBox.Checked then
+        Ini.WriteString('Env', 'LSFGVK_NO_FP16', '1')
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_NO_FP16');
+        
+      case FLsPacingComboBox.ItemIndex of
+        1: PacingVal := 'vsync';
+        2: PacingVal := 'mailbox';
+        3: PacingVal := 'immediate';
+        4: PacingVal := 'none';
+      else
+        PacingVal := '';
+      end;
+      if PacingVal <> '' then
+        Ini.WriteString('Env', 'LSFGVK_PACING', PacingVal)
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_PACING');
+        
+      if FLsGpuComboBox.ItemIndex > 0 then
+        Ini.WriteString('Env', 'LSFGVK_GPU', IntToStr(FLsGpuComboBox.ItemIndex - 1))
+      else
+        Ini.DeleteKey('Env', 'LSFGVK_GPU');
+    end
+    else
+    begin
+      // Disabled / invalid DLL: set GOVERLAY_LOSSLESS=0 and remove all LSFGVK_* keys from [Env]
+      Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '0');
+      Ini.DeleteKey('Env', 'LSFGVK_ENV');
+      Ini.DeleteKey('Env', 'LSFGVK_DLL_PATH');
+      Ini.DeleteKey('Env', 'LSFGVK_MULTIPLIER');
+      Ini.DeleteKey('Env', 'LSFGVK_FLOW_SCALE');
+      Ini.DeleteKey('Env', 'LSFGVK_PERFORMANCE_MODE');
+      Ini.DeleteKey('Env', 'LSFGVK_HDR_MODE');
+      Ini.DeleteKey('Env', 'LSFGVK_NO_FP16');
+      Ini.DeleteKey('Env', 'LSFGVK_PACING');
+      Ini.DeleteKey('Env', 'LSFGVK_GPU');
+    end;
   finally
     Ini.Free;
   end;
