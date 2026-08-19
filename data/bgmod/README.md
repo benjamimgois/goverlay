@@ -28,6 +28,7 @@
 ### `[Config]` Section
 - `GOVERLAY_MANGOHUD` (0/1): Toggles MangoHud overlay.
 - `GOVERLAY_VKBASALT` (0/1): Toggles vkBasalt overlay.
+- `GOVERLAY_VKSUMI` (0/1): Toggles vkSumi color grading post-processor.
 - `GOVERLAY_OPTISCALER` (0/1): Toggles OptiScaler.
 - `GOVERLAY_TWEAKS` (0/1): Toggles Proton tweaks and env vars.
 - `DLL` (string): Target DLL name to load (default: `dxgi.dll`).

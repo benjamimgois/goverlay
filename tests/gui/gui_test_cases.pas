@@ -516,13 +516,16 @@ begin
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   Content := ReadFileText(ConfPath);
   AssertTrue('contrast = 0.5 persisted', Pos('contrast = 0.5', Content) > 0);
+  AssertEquals('GOVERLAY_VKSUMI is 1 when contrast is customized', '1', ReadBgmodConf('Config', 'GOVERLAY_VKSUMI'));
 
   // Restore defaults -> contrast back to 0.0 (falsifiable both directions)
   AssertTrue('restore button bound', Assigned(goverlayform.FVsRestoreBtn));
   AssertTrue('restore button OnClick bound', Assigned(goverlayform.FVsRestoreBtn.OnClick));
   goverlayform.FVsRestoreBtn.OnClick(goverlayform.FVsRestoreBtn);
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   Content := ReadFileText(ConfPath);
   AssertTrue('contrast = 0.0 after restore', Pos('contrast = 0.0', Content) > 0);
+  AssertEquals('GOVERLAY_VKSUMI is 0 after restoring defaults', '0', ReadBgmodConf('Config', 'GOVERLAY_VKSUMI'));
 end;
 
 // ────────────────────────── OptiScaler tab - full coverage ──────────────────────────

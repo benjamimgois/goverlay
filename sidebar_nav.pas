@@ -524,7 +524,7 @@ begin
         '[[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKBASALT=1',
         'ENABLE_VKBASALT=1');
       FForm.PatchGameFGModConditionalExport(GameCfgDir + 'fgmod',
-        '[[ "$GOVERLAY_VKBASALT" == "1" ]] && export ENABLE_VKSUMI=1',
+        '[[ "$GOVERLAY_VKSUMI" == "1" ]] && export ENABLE_VKSUMI=1',
         'ENABLE_VKSUMI=1');
     end;
     // OptiScaler toggle copies/removes all OptiScaler files and patches fgmod
@@ -695,15 +695,6 @@ begin
       Ini.WriteString('Config', FLAGS[AToolIdx], '1')
     else
       Ini.WriteString('Config', FLAGS[AToolIdx], '0');
-
-    // Also set ENABLE_VKSUMI if updating vkBasalt
-    if AToolIdx = 1 then
-    begin
-      if AEnabled then
-        Ini.WriteString('Config', 'ENABLE_VKSUMI', '1')
-      else
-        Ini.WriteString('Config', 'ENABLE_VKSUMI', '0');
-    end;
   finally
     Ini.Free;
   end;

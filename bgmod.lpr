@@ -1007,7 +1007,7 @@ var
   TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr: string;
   LsfgMult: Integer;
   TomlLines: TStringList;
-  GOverlayMangoHud, GOverlayVkBasalt, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
+  GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
   UpscalerType, InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
@@ -1091,6 +1091,7 @@ begin
   // Default values
   GOverlayMangoHud := False;
   GOverlayVkBasalt := False;
+  GOverlayVkSumi := False;
   GOverlayOptiscaler := False;
   GOverlayTweaks := False;
   GOverlayLossless := False;
@@ -1107,6 +1108,7 @@ begin
     try
       GOverlayMangoHud := Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1';
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
+      GOverlayVkSumi := Ini.ReadString('Config', 'GOVERLAY_VKSUMI', '0') = '1';
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       GOverlayTweaks := Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '0') = '1';
       GOverlayLossless := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
@@ -1136,6 +1138,7 @@ begin
   Log('Game directory: ' + GameDir);
   Log('Config: MangoHud=' + BoolToStr(GOverlayMangoHud, '1', '0') + 
       ', vkBasalt=' + BoolToStr(GOverlayVkBasalt, '1', '0') + 
+      ', vkSumi=' + BoolToStr(GOverlayVkSumi, '1', '0') + 
       ', OptiScaler=' + BoolToStr(GOverlayOptiscaler, '1', '0') + 
       ', Tweaks=' + BoolToStr(GOverlayTweaks, '1', '0') +
       ', Lossless=' + BoolToStr(GOverlayLossless, '1', '0') +
@@ -1394,15 +1397,15 @@ begin
         
       // --- vkBasalt Configuration Copy ---
       if GOverlayVkBasalt then
-      begin
-        SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
-        SafeCopyFile(BgmodPath + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
-      end
+        SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf')
       else
-      begin
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+
+      // --- vkSumi Configuration Copy ---
+      if GOverlayVkSumi then
+        SafeCopyFile(BgmodPath + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf')
+      else
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
-      end;
     end;
   end;
   
@@ -1448,8 +1451,12 @@ begin
   if GOverlayVkBasalt then
   begin
     SetEnvVarInList(EnvStrings, 'ENABLE_VKBASALT', '1');
+    Log('Export: ENABLE_VKBASALT=1');
+  end;
+  if GOverlayVkSumi then
+  begin
     SetEnvVarInList(EnvStrings, 'ENABLE_VKSUMI', '1');
-    Log('Export: ENABLE_VKBASALT=1, ENABLE_VKSUMI=1');
+    Log('Export: ENABLE_VKSUMI=1');
   end;
   if GOverlayOptiscaler then
   begin

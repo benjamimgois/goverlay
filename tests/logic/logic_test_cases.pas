@@ -28,10 +28,17 @@ type
     procedure TestIsSafeSandboxDirAcceptsDottedNames;
   end;
 
+  TVkSumiLogicTests = class(TTestCase)
+  published
+    procedure TestIsVkSumiAtDefaults;
+    procedure TestSaveVkSumiConfigDefaultsFlag;
+    procedure TestSaveVkSumiConfigCustomizedFlag;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -188,9 +195,123 @@ begin
   AssertTrue('Trailing slash accepted', IsSafeSandboxDir(Prefix + '12345678/'));
 end;
 
+procedure TVkSumiLogicTests.TestIsVkSumiAtDefaults;
+var
+  DefaultPositions, ModifiedPositions: array[0..14] of Integer;
+  i: Integer;
+begin
+  for i := 0 to 14 do
+    DefaultPositions[i] := VKSUMI_DEFAULTS[i];
+  AssertTrue('Exact default positions return True', IsVkSumiAtDefaults(DefaultPositions));
+
+  // Change exposure from 300 to 250
+  for i := 0 to 14 do
+    ModifiedPositions[i] := VKSUMI_DEFAULTS[i];
+  ModifiedPositions[2] := 250;
+  AssertFalse('Modified exposure returns False', IsVkSumiAtDefaults(ModifiedPositions));
+
+  // Change brightness from 100 to 105
+  for i := 0 to 14 do
+    ModifiedPositions[i] := VKSUMI_DEFAULTS[i];
+  ModifiedPositions[0] := 105;
+  AssertFalse('Modified brightness returns False', IsVkSumiAtDefaults(ModifiedPositions));
+end;
+
+procedure TVkSumiLogicTests.TestSaveVkSumiConfigDefaultsFlag;
+var
+  Settings: TVkSumiSettings;
+  ErrMsg, BgmodConfPath, SumiConfPath: string;
+  Ini: TIniFile;
+  Lines: TStringList;
+  i: Integer;
+begin
+  Settings.SumiFolder := IsolatedHome + '/.config/vkSumi';
+  Settings.SumiCfgFile := Settings.SumiFolder + '/vkSumi.conf';
+  Settings.Version := '1.2.3';
+  Settings.Channel := 'stable';
+  Settings.Enabled := True;
+  Settings.ToggleKeys := 'Shift_R+F9';
+  for i := 0 to 14 do
+    Settings.TrackbarPositions[i] := VKSUMI_DEFAULTS[i];
+  Settings.ActiveGameName := 'TestGame';
+
+  BgmodConfPath := GetGameConfigDir('TestGame') + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(BgmodConfPath));
+
+  // Seed bgmod.conf with GOVERLAY_VKBASALT=1
+  Ini := TIniFile.Create(BgmodConfPath);
+  try
+    Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
+  finally
+    Ini.Free;
+  end;
+
+  AssertTrue('SaveVkSumiConfig succeeds', SaveVkSumiConfig(Settings, ErrMsg));
+
+  // Assert GOVERLAY_VKSUMI is 0 and GOVERLAY_VKBASALT is preserved as 1
+  Ini := TIniFile.Create(BgmodConfPath);
+  try
+    AssertEquals('GOVERLAY_VKSUMI is 0 when all sliders at default', '0', Ini.ReadString('Config', 'GOVERLAY_VKSUMI', ''));
+    AssertEquals('GOVERLAY_VKBASALT remains untouched as 1', '1', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Assert vkSumi.conf has enabled = false
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(Settings.SumiCfgFile);
+    AssertTrue('enabled = false in vkSumi.conf when default', Pos('enabled     = false', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TVkSumiLogicTests.TestSaveVkSumiConfigCustomizedFlag;
+var
+  Settings: TVkSumiSettings;
+  ErrMsg, BgmodConfPath: string;
+  Ini: TIniFile;
+  Lines: TStringList;
+  i: Integer;
+begin
+  Settings.SumiFolder := IsolatedHome + '/.config/vkSumi';
+  Settings.SumiCfgFile := Settings.SumiFolder + '/vkSumi.conf';
+  Settings.Version := '1.2.3';
+  Settings.Channel := 'stable';
+  Settings.Enabled := True;
+  Settings.ToggleKeys := 'Shift_R+F9';
+  for i := 0 to 14 do
+    Settings.TrackbarPositions[i] := VKSUMI_DEFAULTS[i];
+  // Customize contrast
+  Settings.TrackbarPositions[1] := 130;
+  Settings.ActiveGameName := 'TestGameCustom';
+
+  BgmodConfPath := GetGameConfigDir('TestGameCustom') + 'bgmod.conf';
+  AssertTrue('SaveVkSumiConfig succeeds', SaveVkSumiConfig(Settings, ErrMsg));
+
+  // Assert GOVERLAY_VKSUMI is 1
+  Ini := TIniFile.Create(BgmodConfPath);
+  try
+    AssertEquals('GOVERLAY_VKSUMI is 1 when customized', '1', Ini.ReadString('Config', 'GOVERLAY_VKSUMI', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Assert vkSumi.conf has enabled = true
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(Settings.SumiCfgFile);
+    AssertTrue('enabled = true in vkSumi.conf when customized', Pos('enabled     = true', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
   RegisterTest(TSandboxIsolationTests);
+  RegisterTest(TVkSumiLogicTests);
 
 end.

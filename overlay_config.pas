@@ -213,9 +213,29 @@ type
     AutoUpload: Boolean;
   end;
 
+const
+  VKSUMI_DEFAULTS: array[0..14] of Integer = (
+    100, // Brightness
+    100, // Contrast
+    300, // Exposure
+    100, // Gamma
+    100, // Saturation
+    100, // Vibrance
+    180, // Hue
+    100, // Temperature
+    100, // Tint
+    100, // Red Gain
+    100, // Green Gain
+    100, // Blue Gain
+    100, // Shadows
+    100, // Midtones
+    100  // Highlights
+  );
+
 function SanitizeFileName(const AName: string): string;
 function GetGameConfigDir(const AGameName: string): string;
 
+function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
 function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
@@ -431,6 +451,21 @@ begin
   end;
 end;
 
+function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
+var
+  i: Integer;
+begin
+  Result := True;
+  for i := 0 to 14 do
+  begin
+    if (i <= High(Positions)) and (Positions[i] <> VKSUMI_DEFAULTS[i]) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
 const
   KEYS: array[0..14] of string = (
@@ -446,12 +481,16 @@ var
   i: Integer;
   FGModFilePath: string;
   Ini: TIniFile;
+  IsCustomized: Boolean;
 begin
   Result := False;
   ErrMsg := '';
   
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
+
+  // Check if any vkSumi slider is customized (different from neutral default)
+  IsCustomized := not IsVkSumiAtDefaults(Settings.TrackbarPositions);
 
   Lines := TStringList.Create;
   try
@@ -472,7 +511,7 @@ begin
     Lines.Add('PER_GAME_CONFIG_CREATION = false');
     Lines.Add('');
     
-    Lines.Add('enabled     = ' + LowerCase(BoolToStr(Settings.Enabled, True)));
+    Lines.Add('enabled     = ' + LowerCase(BoolToStr(IsCustomized and Settings.Enabled, True)));
     if Settings.ToggleKeys <> '' then
       Lines.Add('toggle_keys = ' + Settings.ToggleKeys + '    # in-game hotkey, X11 + XWayland (Wine/Proton)')
     else
@@ -522,22 +561,16 @@ begin
       DeleteFile(Settings.SumiCfgFile);
     Lines.SaveToFile(Settings.SumiCfgFile);
 
-    // Update bgmod.conf with ENABLE_VKSUMI setting
+    // Update bgmod.conf with GOVERLAY_VKSUMI setting (0 if all defaults, 1 if customized)
     FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
     try
-      if Settings.Enabled then
-      begin
-        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
-        Ini.WriteString('Config', 'ENABLE_VKSUMI', '1');
-      end
+      if IsCustomized and Settings.Enabled then
+        Ini.WriteString('Config', 'GOVERLAY_VKSUMI', '1')
       else
-      begin
-        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
-        Ini.WriteString('Config', 'ENABLE_VKSUMI', '0');
-      end;
+        Ini.WriteString('Config', 'GOVERLAY_VKSUMI', '0');
     finally
       Ini.Free;
     end;
