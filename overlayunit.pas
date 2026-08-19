@@ -3240,11 +3240,7 @@ begin
 
   // Load window and application branding icon
   try
-    ConfigFilePath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
-    if not FileExists(ConfigFilePath) then
-      ConfigFilePath := GetAppBaseDir + 'data/icons/256x256/goverlay.png';
-    if not FileExists(ConfigFilePath) then
-      ConfigFilePath := GetIconFile();
+    ConfigFilePath := GetAppBaseDir + 'goverlay.ico';
     if FileExists(ConfigFilePath) then
     begin
       Self.Icon.LoadFromFile(ConfigFilePath);
