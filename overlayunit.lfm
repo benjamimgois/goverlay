@@ -21404,16 +21404,6 @@ object goverlayform: Tgoverlayform
       ImageIndex = 15
       OnClick = blacklistMenuItemClick
     end
-    object runvkcubeItem: TMenuItem
-      Caption = 'Run vkCube'
-      ImageIndex = 4
-      OnClick = runvkcubeItemClick
-    end
-    object runpascubetItem: TMenuItem
-      Caption = 'Run PasCube'
-      ImageIndex = 4
-      OnClick = runpascubetItemClick
-    end
   end
   object settingsMenu: TPopupMenu
     Images = iconsImageList

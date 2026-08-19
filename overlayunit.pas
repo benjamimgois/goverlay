@@ -449,8 +449,6 @@ type
     timeCheckBox: TCheckBox;
     toggleImage: TImage;
     ToggleSpeedButton: TSpeedButton;
-    runpascubetItem: TMenuItem;
-    runvkcubeItem: TMenuItem;
     Timer: TTimer;
     loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
@@ -577,14 +575,12 @@ type
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
-    procedure runpascubetItemClick(Sender: TObject);
     procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
     procedure deckpreset2MenuItemClick(Sender: TObject);
     procedure deckpreset3MenuItemClick(Sender: TObject);
     procedure deckpreset4MenuItemClick(Sender: TObject);
-    procedure runvkcubeItemClick(Sender: TObject);
     procedure minusButtonClick(Sender: TObject);
     procedure mipmapTrackBarChange(Sender: TObject);
     procedure goverlayPaintBoxPaint(Sender: TObject);
@@ -5148,75 +5144,10 @@ begin
   TVkBasaltTabHelper(FBasaltHelper).reshaderefreshBitBtnClick(Sender);
 end;
 
-procedure Tgoverlayform.runpascubetItemClick(Sender: TObject);
-begin
-
-
-  if IsPasCubeAvailable then
-  begin
-    try
-      DeleteFile(IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'benchmark_debug.log');
-    except
-    end;
-    DbgLog('*** RUN PASCUBE MENU CLICK - RUNNING PASCUBE ***');
-    RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + ' &');
-    FBenchmarkWasRunning := True;
-    FBenchmarkStarted := False;
-    FBenchmarkStartTicks := 0;
-    FBenchmarkTimer.Enabled := True;
-  end
-  else
-    SendNotification('Goverlay', 'PasCube not located.', GetIconFile);
-
-end;
-
 procedure Tgoverlayform.saveoptionsItemClick(Sender: TObject);
 begin
 
 end;
-
-procedure Tgoverlayform.runvkcubeItemClick(Sender: TObject);
-begin
-  // check if vkcube is running
-    Process := TProcess.Create(nil);
-    try
-      Process.CommandLine := 'pgrep -x vkcube';
-      // No poUsePipes: we only need ExitStatus, and unread stdout/stderr
-      // can deadlock the child if the pipe buffer fills up.
-      Process.Options := [poWaitOnExit];
-      Process.Execute;
-
-      // if output is 0, process is running, show message and stop
-      if Process.ExitStatus = 0 then
-    begin
-      ShowMessage(rsVkCubeRunning);
-      Exit;
-    end;
-  finally
-    Process.Free;
-  end;
-
-  // Start vkcube (vulkan demo) only if not already running
-  // In Flatpak, MangoHud works via environment variable, not as a wrapper command
-  // In Flatpak, use vkcube-wayland binary instead of vkcube --wsi wayland
-  RestoreIfMaximized;
-  if IsRunningInFlatpak then
-  begin
-    if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube-wayland &')
-    else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
-  end
-  else
-  begin
-    if USERSESSION = 'wayland' then
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &')
-    else
-      ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
-  end;
-end;
-
 
 procedure Tgoverlayform.minusButtonClick(Sender: TObject);
 begin
@@ -6105,8 +6036,6 @@ begin
     deckpreset3MenuItem.Visible := False;
     deckpreset4MenuItem.Visible := False;
     blacklistMenuItem.Visible := False;
-    runvkcubeItem.Visible := False;
-    runpascubetItem.Visible := False;
   end
   else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
@@ -6121,8 +6050,6 @@ begin
     deckpreset3MenuItem.Visible := False;
     deckpreset4MenuItem.Visible := False;
     blacklistMenuItem.Visible := False;
-    runvkcubeItem.Visible := False;
-    runpascubetItem.Visible := False;
   end
   else
   begin
@@ -6136,8 +6063,6 @@ begin
     deckpreset3MenuItem.Visible := True;
     deckpreset4MenuItem.Visible := True;
     blacklistMenuItem.Visible := True;
-    runvkcubeItem.Visible := True;
-    runpascubetItem.Visible := True;
   end;
 
   popsaveMenu.PopUp;
