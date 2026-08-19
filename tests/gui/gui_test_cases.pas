@@ -34,6 +34,7 @@ type
     procedure TestNavigateLosslessScalingTab;
     procedure TestLosslessScalingEnvVarsGeneration;
     procedure TestLosslessScalingBgmodConfRoundtrip;
+    procedure TestLosslessScalingPerGameContextIsolation;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -320,6 +321,117 @@ begin
   finally
     if FileExists(DummyDll) then
       DeleteFile(DummyDll);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingPerGameContextIsolation;
+var
+  Helper: TLosslessScalingTabHelper;
+  DummyDll, GlobalDir, GameDir, GlobalToml, GameToml, GlobalConf, GameConf: string;
+  Ini: TIniFile;
+  DummyFileSL: TStringList;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('FLosslessScalingHelper is allocated', Helper);
+
+  GlobalDir := goverlayform.GetGameConfigDir('');
+  GameDir   := goverlayform.GetGameConfigDir('TestGameIso');
+  if not DirectoryExists(GlobalDir) then ForceDirectories(GlobalDir);
+  if not DirectoryExists(GameDir) then ForceDirectories(GameDir);
+
+  DummyDll := IncludeTrailingPathDelimiter(GlobalDir) + 'LosslessIsoTest.dll';
+  GlobalToml := IncludeTrailingPathDelimiter(GlobalDir) + 'lsfg.toml';
+  GameToml   := IncludeTrailingPathDelimiter(GameDir) + 'lsfg.toml';
+  GlobalConf := GlobalDir + 'bgmod.conf';
+  GameConf   := GameDir + 'bgmod.conf';
+
+  // Clean up any old test artifacts
+  if FileExists(GlobalToml) then DeleteFile(GlobalToml);
+  if FileExists(GameToml) then DeleteFile(GameToml);
+
+  DummyFileSL := TStringList.Create;
+  try
+    DummyFileSL.Text := 'dummy dll content';
+    DummyFileSL.SaveToFile(DummyDll);
+  finally
+    DummyFileSL.Free;
+  end;
+  try
+    // 1. Configure Global Mode with 4x FPS, 80% Flow Scale, PerfMode=True, HdrMode=True
+    goverlayform.FActiveGameName := '';
+    goverlayform.FLoadingConfig := True;
+    try
+      Helper.DllPathEdit.Text := DummyDll;
+      Helper.MultiplierTrackBar.Position := 4;
+      Helper.FlowScaleTrackBar.Position := 80;
+      Helper.PerfModeCheckBox.Checked := True;
+      Helper.HdrModeCheckBox.Checked := True;
+      Helper.NoFp16CheckBox.Checked := True;
+      Helper.PacingComboBox.ItemIndex := 3; // immediate
+    finally
+      goverlayform.FLoadingConfig := False;
+    end;
+
+    Helper.SaveLosslessConfig;
+
+    AssertTrue('Global lsfg.toml created', FileExists(GlobalToml));
+    AssertFalse('Game lsfg.toml not created by global save', FileExists(GameToml));
+
+    // 2. Switch to Game Profile and trigger tab show
+    goverlayform.FActiveGameName := 'TestGameIso';
+    goverlayform.losslessScalingTabSheetShow(nil);
+
+    // Verify game's unconfigured state on screen is default (1x Disabled, 100% flow)
+    AssertEquals('Game initial Multiplier is 1x (Disabled)', 1, Helper.MultiplierTrackBar.Position);
+    AssertEquals('Game initial FlowScale is 100%', 100, Helper.FlowScaleTrackBar.Position);
+    AssertFalse('Game initial PerfMode is False', Helper.PerfModeCheckBox.Checked);
+    AssertFalse('Game lsfg.toml was not prematurely created on tab show', FileExists(GameToml));
+
+    // 3. Configure Game Profile with 2x FPS, 60% Flow Scale, PerfMode=False, HdrMode=False
+    goverlayform.FLoadingConfig := True;
+    try
+      Helper.DllPathEdit.Text := DummyDll;
+      Helper.MultiplierTrackBar.Position := 2;
+      Helper.FlowScaleTrackBar.Position := 60;
+      Helper.PerfModeCheckBox.Checked := False;
+      Helper.HdrModeCheckBox.Checked := False;
+      Helper.NoFp16CheckBox.Checked := True;
+      Helper.PacingComboBox.ItemIndex := 1; // vsync
+    finally
+      goverlayform.FLoadingConfig := False;
+    end;
+
+    Helper.SaveLosslessConfig;
+
+    AssertTrue('Game lsfg.toml created after explicit game save', FileExists(GameToml));
+
+    // 4. Switch back to Global mode and trigger tab show
+    goverlayform.FActiveGameName := '';
+    goverlayform.losslessScalingTabSheetShow(nil);
+
+    // Verify Global values were restored intact
+    AssertEquals('Global restored Multiplier is 4x', 4, Helper.MultiplierTrackBar.Position);
+    AssertEquals('Global restored FlowScale is 80%', 80, Helper.FlowScaleTrackBar.Position);
+    AssertTrue('Global restored PerfMode is True', Helper.PerfModeCheckBox.Checked);
+    AssertTrue('Global restored HdrMode is True', Helper.HdrModeCheckBox.Checked);
+    AssertEquals('Global restored Pacing is immediate (3)', 3, Helper.PacingComboBox.ItemIndex);
+
+    // 5. Switch back to Game Profile and verify Game values remain intact
+    goverlayform.FActiveGameName := 'TestGameIso';
+    goverlayform.losslessScalingTabSheetShow(nil);
+
+    AssertEquals('Game restored Multiplier is 2x', 2, Helper.MultiplierTrackBar.Position);
+    AssertEquals('Game restored FlowScale is 60%', 60, Helper.FlowScaleTrackBar.Position);
+    AssertFalse('Game restored PerfMode is False', Helper.PerfModeCheckBox.Checked);
+    AssertFalse('Game restored HdrMode is False', Helper.HdrModeCheckBox.Checked);
+    AssertEquals('Game restored Pacing is vsync (1)', 1, Helper.PacingComboBox.ItemIndex);
+
+  finally
+    goverlayform.FActiveGameName := '';
+    if FileExists(DummyDll) then DeleteFile(DummyDll);
+    if FileExists(GlobalToml) then DeleteFile(GlobalToml);
+    if FileExists(GameToml) then DeleteFile(GameToml);
+    if DirectoryExists(GameDir) then DeleteDirectory(GameDir, False);
   end;
 end;
 

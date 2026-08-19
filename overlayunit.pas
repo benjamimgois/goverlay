@@ -904,9 +904,9 @@ type
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
-    procedure optiscalerTabSheetShow(Sender: TObject);
+    // Exposed: procedure optiscalerTabSheetShow(Sender: TObject);
     procedure InitLosslessScalingTab;
-    procedure losslessScalingTabSheetShow(Sender: TObject);
+    // Exposed: procedure losslessScalingTabSheetShow(Sender: TObject);
     procedure BuildFpsLimitEdit;
     procedure UpdatePerfCardTheme;
     // Exposing: procedure UpdateGenericCardTheme(Card: TPanel);
@@ -1402,6 +1402,9 @@ type
     procedure DockMenuClick(Sender: TObject);
     procedure DockAddClick(Sender: TObject);
     procedure DockFinishClick(Sender: TObject);
+    procedure optiscalerTabSheetShow(Sender: TObject);
+    procedure losslessScalingTabSheetShow(Sender: TObject);
+    procedure goverlayPageControlChange(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
@@ -3504,6 +3507,7 @@ begin
    visualTabSheet.OnShow := @visualTabSheetShow;
    metricsTabSheet.OnShow := @metricsTabSheetShow;
    tweaksTabSheet.OnShow := @tweaksTabSheetShow;
+   goverlayPageControl.OnChange := @goverlayPageControlChange;
 
   // Initialize Extras tab
   InitExtrasTab;
@@ -6272,6 +6276,13 @@ begin
     Exit;
   end;
 
+  // ################### SAVE LOSSLESS SCALING SETTINGS
+  if (goverlayPageControl.ActivePage = losslessScalingTabSheet) and Assigned(FLosslessScalingHelper) then
+  begin
+    TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+    Exit;
+  end;
+
   // ################### SAVE MANGOHUD
 
    if (goverlayPageControl.ActivePage <> vkbasaltTabSheet) and
@@ -6388,18 +6399,6 @@ end;  //  ################### END - SAVE MANGOHUD
       SaveVkSumiConfig;
       Exit;
     end;
-
-    // ################### START - SAVE LOSSLESS SCALING
-    if (goverlayPageControl.ActivePage = losslessScalingTabSheet) and Assigned(FLosslessScalingHelper) then
-    begin
-      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
-      Exit;
-    end;
-
-
-
-
-
 
 end; // ########################################      end save button click       ###############################################################################
 
@@ -7400,8 +7399,6 @@ end;
 procedure Tgoverlayform.SetSaveBtnEnabled(AEnabled: Boolean);
 begin
   TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(AEnabled);
-  if AEnabled and not FLoadingConfig then
-    TriggerAutoSave;
 end;
 
 procedure Tgoverlayform.SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
@@ -8101,16 +8098,41 @@ end;
 // LOSSLESS SCALING TAB
 // ============================================================================
 
+procedure Tgoverlayform.goverlayPageControlChange(Sender: TObject);
+begin
+  if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+    losslessScalingTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = optiscalerTabSheet then
+    optiscalerTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+    vkbasaltTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = vksumiTabSheet then
+    vkSumiTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+    tweaksTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = visualTabSheet then
+    visualTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = performanceTabSheet then
+    performanceTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = metricsTabSheet then
+    metricsTabSheetShow(nil);
+end;
+
 procedure Tgoverlayform.optiscalerTabSheetShow(Sender: TObject);
 begin
-  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
-  UpdateGeSpeedButtonState;
-  UpdateGlobalEnableMenuItemVisibility;
-  ApplyToolEnabledState(2, FNavToolEnabled[2]);
-  SetSaveBtnEnabled(FNavToolEnabled[2]);
-  LoadOptiScalerConfig;
-  fsrversionComboBoxChange(nil);
-  ReflowOptiScalerTabNew(0);
+  FLoadingConfig := True;
+  try
+    LoadOptiScalerConfig;
+    fsrversionComboBoxChange(nil);
+    ApplyToolEnabledState(2, FNavToolEnabled[2]);
+    UpdateGeSpeedButtonState;
+    UpdateGlobalEnableMenuItemVisibility;
+    TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
+    if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+    ReflowOptiScalerTabNew(0);
+  finally
+    FLoadingConfig := False;
+  end;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.CheckForUpdatesOnClick;
 end;
@@ -8129,21 +8151,28 @@ end;
 
 procedure Tgoverlayform.losslessScalingTabSheetShow(Sender: TObject);
 begin
-  if Assigned(FFADock) then FFADock.UpdateForTab(True, False, False);
-  UpdateGeSpeedButtonState;
-  UpdateGlobalEnableMenuItemVisibility;
-  ApplyToolEnabledState(2, FNavToolEnabled[2]);
-  SetSaveBtnEnabled(FNavToolEnabled[2]);
-  if Assigned(FLosslessScalingHelper) then
-  begin
-    TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
-    if Assigned(TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit) then
+  FLoadingConfig := True;
+  try
+    if Assigned(FLosslessScalingHelper) then
     begin
-      TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelStart := 0;
-      TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelLength := 0;
+      TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
+      if Assigned(TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit) then
+      begin
+        TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelStart := 0;
+        TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit.SelLength := 0;
+      end;
     end;
+    ApplyToolEnabledState(2, FNavToolEnabled[2]);
+    if FNavToolEnabled[2] and Assigned(FLosslessScalingHelper) then
+      TLosslessScalingTabHelper(FLosslessScalingHelper).UpdateControlsEnabled;
+    UpdateGeSpeedButtonState;
+    UpdateGlobalEnableMenuItemVisibility;
+    TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
+    if Assigned(FFADock) then FFADock.UpdateForTab(True, False, False);
+    ReflowLosslessScalingTab(0);
+  finally
+    FLoadingConfig := False;
   end;
-  ReflowLosslessScalingTab(0);
 end;
 
 

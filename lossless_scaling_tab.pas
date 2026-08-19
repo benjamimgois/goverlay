@@ -782,7 +782,7 @@ begin
   
   if ATargetDir <> '' then
     OutDir := ATargetDir
-  else if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
+  else if Assigned(FForm) and (FForm is Tgoverlayform) then
     OutDir := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName)
   else
     OutDir := TConfigManager.GetGoverlayFolder;
