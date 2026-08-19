@@ -712,7 +712,10 @@ procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
 begin
   UpdateDllStatus;
   if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
-  SaveLosslessConfig;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    Tgoverlayform(FForm).StartAutoSaveTimer
+  else
+    SaveLosslessConfig;
 end;
 
 procedure TLosslessScalingTabHelper.BrowseDllClick(Sender: TObject);
@@ -742,14 +745,20 @@ begin
   if Assigned(FLsFlowScaleValueLabel) and Assigned(FLsFlowScaleTrackBar) then
     FLsFlowScaleValueLabel.Caption := IntToStr(FLsFlowScaleTrackBar.Position) + '%';
   if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
-  SaveLosslessConfig;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    Tgoverlayform(FForm).StartAutoSaveTimer
+  else
+    SaveLosslessConfig;
 end;
 
 procedure TLosslessScalingTabHelper.ControlStateChange(Sender: TObject);
 begin
   UpdateControlsEnabled;
   if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
-  SaveLosslessConfig;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    Tgoverlayform(FForm).StartAutoSaveTimer
+  else
+    SaveLosslessConfig;
 end;
 
 function TLosslessScalingTabHelper.BuildEnvLine: string;
