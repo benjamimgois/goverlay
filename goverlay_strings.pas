@@ -32,6 +32,8 @@ resourcestring
   rsFolderAlreadyAdded = 'This folder has already been added.';
   rsRemoveFolderTitle = 'Remove non-Steam folder';
   rsRemoveFolderPrompt = 'Are you sure you want to remove the folder "%s" from Goverlay?';
+  rsUninstallChangesTitle = 'Uninstall changes';
+  rsUninstallChangesPrompt = 'Are you sure you want to uninstall all changes for "%s"?';
 
   // Home tab: clearing the configuration
   rsClearConfigTitle = 'Clear Configuration';

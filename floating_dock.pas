@@ -533,8 +533,87 @@ begin
 end;
 
 procedure TFloatingActionDock.PreviewPaint(Sender: TObject);
+var
+  PB: TPaintBox;
+  R: TRect;
+  FGColor: TColor;
+  TextW, TextH, TextX, TextY: Integer;
+  IconW, IconH, IconX, IconY, TotalW, ContentX, Gap, CX, CY: Integer;
+  PtsTop: array[0..4] of TPoint;
+  PtsBot: array[0..4] of TPoint;
 begin
-  DrawSecondaryButton(FPreviewBox, FPreviewHovered, FPreviewPressed, ' ▶ Preview', 8, [fsBold]);
+  PB := FPreviewBox;
+  R := Rect(0, 0, PB.Width, PB.Height);
+
+  if FPreviewPressed then
+  begin
+    PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);    // #1E2634
+    PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);    // #2E3D55
+    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
+    FGColor               := RGBToColor(220, 230, 240);
+  end
+  else if FPreviewHovered then
+  begin
+    PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);    // #2A3548 (sleek elevated slate)
+    PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);   // #3D4F6E (subtle clean outline)
+    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
+    FGColor               := clWhite;
+  end
+  else
+  begin
+    PB.Canvas.Brush.Style := bsClear;
+    FGColor               := RGBToColor(180, 190, 205); // #B4BECB
+  end;
+
+  PB.Canvas.Font.Name   := 'Noto Sans';
+  PB.Canvas.Font.Size   := 8;
+  PB.Canvas.Font.Style  := [fsBold];
+  PB.Canvas.Font.Color  := FGColor;
+  PB.Canvas.Brush.Style := bsClear;
+
+  TextW := PB.Canvas.TextWidth('Preview');
+  TextH := PB.Canvas.TextHeight('Preview');
+
+  IconW := 14;
+  IconH := 8;
+  Gap   := 6;
+  TotalW := IconW + Gap + TextW;
+  ContentX := (PB.Width - TotalW) div 2;
+
+  IconX := ContentX;
+  IconY := (PB.Height - IconH) div 2;
+  CX    := IconX + IconW div 2;
+  CY    := IconY + IconH div 2;
+
+  // Draw eye outline
+  PB.Canvas.Pen.Color := FGColor;
+  PB.Canvas.Pen.Width := 1;
+
+  PtsTop[0] := Point(IconX, CY);
+  PtsTop[1] := Point(IconX + 3, IconY + 1);
+  PtsTop[2] := Point(CX, IconY);
+  PtsTop[3] := Point(IconX + IconW - 3, IconY + 1);
+  PtsTop[4] := Point(IconX + IconW, CY);
+
+  PtsBot[0] := Point(IconX, CY);
+  PtsBot[1] := Point(IconX + 3, IconY + IconH - 1);
+  PtsBot[2] := Point(CX, IconY + IconH);
+  PtsBot[3] := Point(IconX + IconW - 3, IconY + IconH - 1);
+  PtsBot[4] := Point(IconX + IconW, CY);
+
+  PB.Canvas.Polyline(PtsTop);
+  PB.Canvas.Polyline(PtsBot);
+
+  // Pupil / iris center
+  PB.Canvas.Brush.Color := FGColor;
+  PB.Canvas.Brush.Style := bsSolid;
+  PB.Canvas.Ellipse(CX - 1, CY - 1, CX + 2, CY + 2);
+
+  // Draw text
+  PB.Canvas.Brush.Style := bsClear;
+  TextX := ContentX + IconW + Gap;
+  TextY := (PB.Height - TextH) div 2;
+  PB.Canvas.TextOut(TextX, TextY, 'Preview');
 end;
 
 procedure TFloatingActionDock.AddPaint(Sender: TObject);

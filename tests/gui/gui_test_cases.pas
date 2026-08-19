@@ -2356,6 +2356,7 @@ begin
   // 1. Verify openConfigFileMenuItem exists and is configured in popsaveMenu
   AssertNotNull('openConfigFileMenuItem exists in goverlayform', goverlayform.openConfigFileMenuItem);
   AssertEquals('openConfigFileMenuItem caption', 'Open config file', goverlayform.openConfigFileMenuItem.Caption);
+  AssertEquals('openConfigFileMenuItem ImageIndex', 39, goverlayform.openConfigFileMenuItem.ImageIndex);
 
   // 2. MangoHud tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
   NavigateMangoHud;

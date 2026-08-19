@@ -20,6 +20,8 @@ All icons are available in three sizes: 16x16, 24x24, and 32x32 pixels.
 | `check.svg` / `check.png` | Check mark | Verify/check status buttons |
 | `theme-light.svg` / `theme-light.png` | Sun icon | Light theme toggle button |
 | `theme-dark.svg` / `theme-dark.png` | Moon icon | Dark theme toggle button |
+| `doc.svg` / `doc.png` | Document icon | Open config file menu item |
+| `eye.svg` / `eye.png` | Eye icon | Floating action dock preview button |
 
 ## Button Mapping
 

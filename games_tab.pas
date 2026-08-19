@@ -2284,6 +2284,12 @@ begin
 
   if GameName = '' then Exit;
 
+  // Ask user for confirmation before uninstalling changes
+  if MessageDlg(rsUninstallChangesTitle,
+                Format(rsUninstallChangesPrompt, [GameName]),
+                mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
   GameCfgDir := GetGameConfigDir(GameName);
 
   // Recursively delete the GOverlay game config directory
