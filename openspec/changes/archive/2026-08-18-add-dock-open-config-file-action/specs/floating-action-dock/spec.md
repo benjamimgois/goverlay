@@ -1,28 +1,4 @@
-# floating-action-dock Specification
-
-## Purpose
-Provides a unified, modern floating action dock (pill-style bar) anchored in the bottom-right corner of GOverlay, hosting contextual quick-action buttons across all configuration tabs.
-
-## Requirements
-
-### Requirement: Floating Action Dock Rendering and Positioning
-The system SHALL display a floating action pill dock anchored at the bottom-right corner of the main content area, rendered with rounded pill borders, subtle elevation, dark translucent background, and state-aware custom-rendered action buttons with vibrant illuminated hover and pressed styling without dark widgetset override.
-
-#### Scenario: Displaying floating action dock
-- **WHEN** GOverlay main window is displayed
-- **THEN** the floating action dock SHALL be anchored at the bottom-right above tab content without being obscured by page elements.
-
-#### Scenario: Hovering over Finish action button
-- **WHEN** user hovers the mouse over the primary Finish action button
-- **THEN** the button SHALL illuminate with a brighter, more vibrant blue/cyan fill while preserving white text contrast.
-
-#### Scenario: Pressing Finish action button
-- **WHEN** user presses the primary Finish action button
-- **THEN** the button SHALL render an active deeper pressed state for immediate tactile feedback.
-
-#### Scenario: Hovering over secondary action buttons
-- **WHEN** user hovers the mouse over any secondary button (Menu, Preview, Add)
-- **THEN** the button SHALL render a distinct elevated slate chip background with crisp white text.
+## MODIFIED Requirements
 
 ### Requirement: Contextual Action Buttons in Dock
 The system SHALL present action controls within the floating action dock according to the capabilities of the currently active tab.
@@ -61,14 +37,3 @@ The system SHALL execute corresponding workflows when floating dock buttons are 
 #### Scenario: Selecting Open Config File from Hamburger Menu
 - **WHEN** user opens the floating dock hamburger menu (`☰`) on any configuration tab (MangoHud, vkBasalt, vkSumi, OptiScaler, Lossless Scaling, EnvVars) and selects "Open config file"
 - **THEN** GOverlay SHALL resolve the active tab's target configuration file (`MangoHud.conf`, `vkBasalt.conf`, `vkSumi.conf`, `OptiScaler.ini`, `lsfg.toml`, or `bgmod.conf`), create/save the file if not already present on disk, and open it in the default desktop text editor.
-
-### Requirement: Permanent Suppression of Legacy Bottom Bar
-The system SHALL keep the legacy bottom bar (`goverlaybarPanel`) and embedded command panel (`commandPanel`) permanently hidden across all navigation actions, game card selections, and configuration save operations, relying exclusively on the floating action dock for actions and the Finish dialog for launch options.
-
-#### Scenario: Selecting a game from Games tab
-- **WHEN** user selects a game card from the Games tab to edit its configuration
-- **THEN** GOverlay SHALL activate the floating action dock for MangoHud and keep the legacy bottom bar and command panel hidden (`Visible = False`).
-
-#### Scenario: Saving configuration
-- **WHEN** user saves configuration settings across any tab or profile mode
-- **THEN** GOverlay SHALL display the floating auto-save toast and maintain the legacy bottom bar and command panel in hidden state.

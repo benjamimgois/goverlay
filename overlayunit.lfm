@@ -21352,6 +21352,11 @@ object goverlayform: Tgoverlayform
     Images = iconsImageList
     Left = 96
     Top = 512
+    object openConfigFileMenuItem: TMenuItem
+      Caption = 'Open config file'
+      ImageIndex = 11
+      OnClick = openConfigFileMenuItemClick
+    end
     object loadconfigMenuItem: TMenuItem
       Caption = 'Load config'
       ImageIndex = 24

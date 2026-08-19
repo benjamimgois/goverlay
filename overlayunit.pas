@@ -450,6 +450,7 @@ type
     toggleImage: TImage;
     ToggleSpeedButton: TSpeedButton;
     Timer: TTimer;
+    openConfigFileMenuItem: TMenuItem;
     loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
@@ -575,6 +576,7 @@ type
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
+    procedure openConfigFileMenuItemClick(Sender: TObject);
     procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
@@ -1798,8 +1800,8 @@ notificationLabel.Visible:=false;
 commandPanel.Visible:=false;
 
 
-// Floating dock — show Add button and Finish on tweaks tab
-if Assigned(FFADock) then FFADock.UpdateForTab(False, False, True);
+// Floating dock — show Menu, Add button, and Finish on tweaks tab
+if Assigned(FFADock) then FFADock.UpdateForTab(False, True, True);
 UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
@@ -6009,6 +6011,9 @@ end;
 
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
+  // "Open config file" is always available at the top for all configuration tabs
+  openConfigFileMenuItem.Visible := True;
+
   // Control menu item visibility based on active tab
   if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
      (goverlayPageControl.ActivePage = vksumiTabSheet) then
@@ -6025,9 +6030,10 @@ begin
     blacklistMenuItem.Visible := False;
   end
   else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
+          (goverlayPageControl.ActivePage = losslessScalingTabSheet) or
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
   begin
-    // OptiScaler and Tweaks tabs: show only global enable
+    // OptiScaler, Lossless Scaling, and Tweaks tabs: show only open config file and global enable
     loadconfigMenuItem.Visible := False;
     saveoptionsItem.Visible := False;
     saveasMenuItem.Visible := False;
@@ -6418,6 +6424,79 @@ begin
 
   // Notification
   SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+end;
+
+procedure Tgoverlayform.openConfigFileMenuItemClick(Sender: TObject);
+var
+  TargetFile: string;
+begin
+  TargetFile := '';
+  
+  if (goverlayPageControl.ActivePage = presetTabSheet) or
+     (goverlayPageControl.ActivePage = visualTabSheet) or
+     (goverlayPageControl.ActivePage = performanceTabSheet) or
+     (goverlayPageControl.ActivePage = metricsTabSheet) or
+     (goverlayPageControl.ActivePage = extrasTabSheet) then
+  begin
+    TargetFile := MANGOHUDCFGFILE;
+    if (TargetFile = '') or not FileExists(TargetFile) then
+    begin
+      saveBitBtnClick(nil);
+      TargetFile := MANGOHUDCFGFILE;
+    end;
+  end
+  else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+  begin
+    TargetFile := VKBASALTCFGFILE;
+    if (TargetFile = '') or not FileExists(TargetFile) then
+    begin
+      saveBitBtnClick(nil);
+      TargetFile := VKBASALTCFGFILE;
+    end;
+  end
+  else if goverlayPageControl.ActivePage = vksumiTabSheet then
+  begin
+    TargetFile := VKSUMICFGFILE;
+    if (TargetFile = '') or not FileExists(TargetFile) then
+    begin
+      SaveVkSumiConfig;
+      TargetFile := VKSUMICFGFILE;
+    end;
+  end
+  else if goverlayPageControl.ActivePage = optiscalerTabSheet then
+  begin
+    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.ini';
+    if not FileExists(TargetFile) then
+      SaveOptiScalerConfig(True);
+  end
+  else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+  begin
+    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'lsfg.toml';
+    if not FileExists(TargetFile) and Assigned(FLosslessScalingHelper) then
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+  end
+  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+  begin
+    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'bgmod.conf';
+    if not FileExists(TargetFile) then
+      SaveTweaksConfig;
+  end;
+
+  if TargetFile <> '' then
+  begin
+    if not DirectoryExists(ExtractFilePath(TargetFile)) then
+      ForceDirectories(ExtractFilePath(TargetFile));
+    if not FileExists(TargetFile) then
+    begin
+      with TStringList.Create do
+      try
+        SaveToFile(TargetFile);
+      finally
+        Free;
+      end;
+    end;
+    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetFile) + ' &');
+  end;
 end;
 
 procedure Tgoverlayform.loadconfigMenuItemClick(Sender: TObject);
@@ -8128,7 +8207,7 @@ begin
     UpdateGeSpeedButtonState;
     UpdateGlobalEnableMenuItemVisibility;
     TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
-    if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+    if Assigned(FFADock) then FFADock.UpdateForTab(False, True, False);
     ReflowOptiScalerTabNew(0);
   finally
     FLoadingConfig := False;
@@ -8168,7 +8247,7 @@ begin
     UpdateGeSpeedButtonState;
     UpdateGlobalEnableMenuItemVisibility;
     TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
-    if Assigned(FFADock) then FFADock.UpdateForTab(True, False, False);
+    if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
     ReflowLosslessScalingTab(0);
   finally
     FLoadingConfig := False;
