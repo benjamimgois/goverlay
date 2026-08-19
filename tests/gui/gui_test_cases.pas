@@ -171,10 +171,25 @@ procedure TGoverlayGuiTests.TestNavigateLosslessScalingTab;
 begin
   goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
   AssertTrue('lossless scaling tab is visible', goverlayform.losslessScalingTabSheet.TabVisible);
+  AssertFalse('preview pill is hidden on optiscaler tab initially', goverlayform.FFADock.PreviewVisible);
+
+  // Switch to Lossless Scaling tab
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
   AssertTrue('lossless scaling tab is active',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.losslessScalingTabSheet);
   AssertTrue('preview pill is visible in dock on lossless scaling tab',
+    goverlayform.FFADock.PreviewVisible);
+
+  // Switch back to OptiScaler tab
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+  AssertTrue('optiscaler tab is active',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.optiscalerTabSheet);
+  AssertFalse('preview pill is hidden in dock on optiscaler tab after tab switch',
+    goverlayform.FFADock.PreviewVisible);
+
+  // Switch back to Lossless Scaling again
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  AssertTrue('preview pill is visible again on lossless scaling tab',
     goverlayform.FFADock.PreviewVisible);
 end;
 

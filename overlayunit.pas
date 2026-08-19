@@ -904,6 +904,7 @@ type
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
+    procedure optiscalerTabSheetShow(Sender: TObject);
     procedure InitLosslessScalingTab;
     procedure losslessScalingTabSheetShow(Sender: TObject);
     procedure BuildFpsLimitEdit;
@@ -3487,6 +3488,9 @@ begin
   // Initialize OptiScaler tab card layout
   InitOptiScalerTab;
 
+  // Initialize OptiScaler tab
+  optiscalerTabSheet.OnShow := @optiscalerTabSheetShow;
+
   // Initialize Lossless Scaling tab
   InitLosslessScalingTab;
 
@@ -5041,23 +5045,21 @@ begin
   DbgLog('>> optiscalerLabelClick BEGIN');
   SetNavActive(3);
 
-//Disable tabs
-  goverlayPageControl.ShowTabs:=true;
-  presetTabSheet.TabVisible:=false;
-  visualTabSheet.TabVisible:=false;
-  performanceTabSheet.TabVisible:=false;
-  metricsTabSheet.TabVisible:=false;
-  extrasTabSheet.TabVisible:=false;
-  vkbasalttabsheet.TabVisible:=false;
-  vksumiTabSheet.TabVisible:=false;
-  tweakstabsheet.TabVisible:=false;
-  gamesTabSheet.TabVisible:=false; //disable games tab
-  FHomeTabSheet.TabVisible:=false;
+  // Disable unrelated tabs
+  goverlayPageControl.ShowTabs := True;
+  presetTabSheet.TabVisible := False;
+  visualTabSheet.TabVisible := False;
+  performanceTabSheet.TabVisible := False;
+  metricsTabSheet.TabVisible := False;
+  extrasTabSheet.TabVisible := False;
+  vkbasalttabsheet.TabVisible := False;
+  vksumiTabSheet.TabVisible := False;
+  tweakstabsheet.TabVisible := False;
+  gamesTabSheet.TabVisible := False;
+  FHomeTabSheet.TabVisible := False;
 
-  optiscalertabsheet.TabVisible:=true;
-  losslessScalingTabSheet.TabVisible:=true;
-  if (goverlayPageControl.ActivePage <> losslessScalingTabSheet) and (goverlayPageControl.ActivePage <> optiscalertabsheet) then
-    goverlayPageControl.ActivePage:= optiscalerTabsheet;
+  optiscalertabsheet.TabVisible := True;
+  losslessScalingTabSheet.TabVisible := True;
 
   // Auto-check and update OptiPatcher (rolling release) or DLSS Enabler in background
   if Assigned(FOptiscalerUpdate) then
@@ -5067,35 +5069,16 @@ begin
       FOptiscalerUpdate.CheckForUpdatesOnClick;
   end;
 
-  //Hide notification messages
-  notificationLabel.Visible:=false;
-  commandPanel.Visible:=false;
+  // Hide notification messages
+  notificationLabel.Visible := False;
+  commandPanel.Visible := False;
 
-
-  // Floating dock — Preview enabled if Lossless Scaling tab is active, otherwise hidden on OptiScaler tab
-  if Assigned(FFADock) then
-  begin
-    if goverlayPageControl.ActivePage = losslessScalingTabSheet then
-      FFADock.UpdateForTab(True, False, False)
-    else
-      FFADock.UpdateForTab(False, False, False);
-  end;
-  //Update geSpeedButton state for OptiScaler
-  UpdateGeSpeedButtonState;
-  UpdateGlobalEnableMenuItemVisibility;
-  ApplyToolEnabledState(2, FNavToolEnabled[2]);
-  SetSaveBtnEnabled(FNavToolEnabled[2]);
-  // Reload all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
-  LoadOptiScalerConfig;
-  // Sync emufp8CheckBox enabled state with the current fsrversionComboBox selection
-  fsrversionComboBoxChange(nil);
-
-  // Recalculate tab layout to fill current viewport and anchor Software status at the bottom
-  ReflowOptiScalerTabNew(0);
-
-  // Automatically check for updates when entering the OptiScaler tab
-  if Assigned(FOptiscalerUpdate) then
-    FOptiscalerUpdate.CheckForUpdatesOnClick;
+  if (goverlayPageControl.ActivePage <> losslessScalingTabSheet) and (goverlayPageControl.ActivePage <> optiscalertabsheet) then
+    goverlayPageControl.ActivePage := optiscalerTabsheet
+  else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+    losslessScalingTabSheetShow(nil)
+  else
+    optiscalerTabSheetShow(nil);
 
   DbgLog('<< optiscalerLabelClick END');
 end;
@@ -8117,6 +8100,20 @@ end;
 // ============================================================================
 // LOSSLESS SCALING TAB
 // ============================================================================
+
+procedure Tgoverlayform.optiscalerTabSheetShow(Sender: TObject);
+begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(False, False, False);
+  UpdateGeSpeedButtonState;
+  UpdateGlobalEnableMenuItemVisibility;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+  LoadOptiScalerConfig;
+  fsrversionComboBoxChange(nil);
+  ReflowOptiScalerTabNew(0);
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.CheckForUpdatesOnClick;
+end;
 
 procedure Tgoverlayform.InitLosslessScalingTab;
 begin
