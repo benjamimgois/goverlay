@@ -20,17 +20,19 @@ type
     // Cards
     FLsGeneralCard: TPanel;
     FLsFrameGenCard: TPanel;
-    FLsHardwareCard: TPanel;
     
-    // Card 0: DLL file path
+    // Card 0: LossLess Scaling
     FLsDllTitleLbl: TLabel;
+    FLsLogoImage: TImage;
     FLsDllPathEdit: TEdit;
     FLsBrowseDllBtn: TBitBtn;
+    FLsDllStatusLabel: TLabel;
     
-    // Card 1: Configuration
+    // Card 1: Configuration (consolidated)
     FLsFgTitleLbl: TLabel;
     FLsMultiplierTitleLbl: TLabel;
-    FLsMultiplierComboBox: TComboBox;
+    FLsMultiplierTrackBar: TTrackBar;
+    FLsMultiplierValueLabel: TLabel;
     
     FLsFlowScaleTitleLbl: TLabel;
     FLsFlowScaleTrackBar: TTrackBar;
@@ -38,9 +40,6 @@ type
     
     FLsPerfModeCheckBox: TCheckBox;
     FLsHdrModeCheckBox: TCheckBox;
-    
-    // Card 2: Hardware & Pacing
-    FLsHwTitleLbl: TLabel;
     FLsNoFp16CheckBox: TCheckBox;
     
     FLsPacingTitleLbl: TLabel;
@@ -51,6 +50,7 @@ type
     
     procedure DllPathChange(Sender: TObject);
     procedure BrowseDllClick(Sender: TObject);
+    procedure MultiplierChange(Sender: TObject);
     procedure FlowScaleChange(Sender: TObject);
     procedure ControlStateChange(Sender: TObject);
     procedure LsScrollBoxResize(Sender: TObject);
@@ -73,9 +73,13 @@ type
     function WriteLsfgTomlConfig(const ATargetDir: string = ''): string;
     function DetectSteamLosslessDll: string;
     
+    property LogoImage: TImage read FLsLogoImage;
     property DllPathEdit: TEdit read FLsDllPathEdit;
-    property MultiplierComboBox: TComboBox read FLsMultiplierComboBox;
+    property DllStatusLabel: TLabel read FLsDllStatusLabel;
+    property MultiplierTrackBar: TTrackBar read FLsMultiplierTrackBar;
+    property MultiplierValueLabel: TLabel read FLsMultiplierValueLabel;
     property FlowScaleTrackBar: TTrackBar read FLsFlowScaleTrackBar;
+    property FlowScaleValueLabel: TLabel read FLsFlowScaleValueLabel;
     property PerfModeCheckBox: TCheckBox read FLsPerfModeCheckBox;
     property HdrModeCheckBox: TCheckBox read FLsHdrModeCheckBox;
     property NoFp16CheckBox: TCheckBox read FLsNoFp16CheckBox;
@@ -96,8 +100,10 @@ uses
   overlay_config;
 
 const
-  CARD_PAD = 14;
-  ROW_H    = 28;
+  MARGIN   = 4;   // outer margin inside scroll box (standard across all tabs)
+  GAP      = 6;   // gap between cards
+  PAD      = 14;  // inner horizontal padding inside cards
+  ROW_H    = 28;  // control row height
 
 constructor TLosslessScalingTabHelper.Create(AForm: TForm);
 begin
@@ -281,8 +287,6 @@ begin
     Tgoverlayform(FForm).UpdateGenericCardTheme(FLsGeneralCard);
   if Assigned(FLsFrameGenCard) then
     Tgoverlayform(FForm).UpdateGenericCardTheme(FLsFrameGenCard);
-  if Assigned(FLsHardwareCard) then
-    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsHardwareCard);
 
   // QLineEdit & DLL Status styling
   UpdateDllStatus;
@@ -297,8 +301,6 @@ begin
   else
     SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
 
-  if Assigned(FLsMultiplierComboBox) and FLsMultiplierComboBox.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsMultiplierComboBox.Handle).Widget, @SS);
   if Assigned(FLsPacingComboBox) and FLsPacingComboBox.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsPacingComboBox.Handle).Widget, @SS);
   if Assigned(FLsGpuComboBox) and FLsGpuComboBox.HandleAllocated then
@@ -309,9 +311,10 @@ begin
   if Assigned(FLsFlowScaleTitleLbl) then FLsFlowScaleTitleLbl.Font.Color := TextColor;
   if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Font.Color := TextColor;
   if Assigned(FLsGpuTitleLbl) then FLsGpuTitleLbl.Font.Color := TextColor;
+  if Assigned(FLsMultiplierValueLabel) then FLsMultiplierValueLabel.Font.Color := AccentColor;
   if Assigned(FLsFlowScaleValueLabel) then FLsFlowScaleValueLabel.Font.Color := AccentColor;
 
-  // Slider (QSlider)
+  // Sliders (QSlider)
   if IsDark then
     SS := 'QSlider::groove:horizontal { height: 6px; background: rgb(38,46,72); border-radius: 3px; } ' +
           'QSlider::sub-page:horizontal { background: rgb(48,190,240); border-radius: 3px; } ' +
@@ -322,6 +325,8 @@ begin
           'QSlider::sub-page:horizontal { background: rgb(0,120,215); border-radius: 3px; } ' +
           'QSlider::handle:horizontal { background: rgb(255,255,255); border: 1px solid rgb(180,180,180); width: 14px; margin-top: -4px; margin-bottom: -4px; border-radius: 7px; }';
 
+  if Assigned(FLsMultiplierTrackBar) and FLsMultiplierTrackBar.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FLsMultiplierTrackBar.Handle).Widget, @SS);
   if Assigned(FLsFlowScaleTrackBar) and FLsFlowScaleTrackBar.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsFlowScaleTrackBar.Handle).Widget, @SS);
 
@@ -333,7 +338,7 @@ begin
             'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
             'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
             'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); border: 1px solid rgb(40,48,70); }'
-    else
+  else
       SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px; }';
     QWidget_setStyleSheet(TQtWidget(FLsBrowseDllBtn.Handle).Widget, @SS);
   end;
@@ -371,7 +376,7 @@ begin
   FLsBgPanel.Width := FLsScrollBox.ClientWidth;
   FLsBgPanel.Height := 480;
   
-  // ── Card 0: DLL file path ─────────────────────────────────────────────────
+  // ── Card 0: LossLess Scaling ──────────────────────────────────────────────
   FLsGeneralCard := TPanel.Create(FForm);
   FLsGeneralCard.Parent := FLsBgPanel;
   FLsGeneralCard.Caption := '';
@@ -379,7 +384,17 @@ begin
   FLsDllTitleLbl := TLabel.Create(FLsGeneralCard);
   FLsDllTitleLbl.Parent := FLsGeneralCard;
   FLsDllTitleLbl.ShowAccelChar := False;
-  StyleMainCard(FLsGeneralCard, FLsDllTitleLbl, 'DLL file path');
+  StyleMainCard(FLsGeneralCard, FLsDllTitleLbl, 'LossLess Scaling');
+  
+  FLsLogoImage := TImage.Create(FLsGeneralCard);
+  FLsLogoImage.Parent := FLsGeneralCard;
+  FLsLogoImage.AntialiasingMode := amOn;
+  FLsLogoImage.Transparent := True;
+  FLsLogoImage.Center := True;
+  FLsLogoImage.Proportional := True;
+  FLsLogoImage.Stretch := True;
+  if FileExists(Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png') then
+    FLsLogoImage.Picture.LoadFromFile(Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png');
   
   FLsDllPathEdit := TEdit.Create(FLsGeneralCard);
   FLsDllPathEdit.Parent := FLsGeneralCard;
@@ -402,7 +417,14 @@ begin
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
   StyleActionButton(FLsBrowseDllBtn);
   
-  // ── Card 1: Configuration ────────────────────────────────────────────────
+  FLsDllStatusLabel := TLabel.Create(FLsGeneralCard);
+  FLsDllStatusLabel.Parent := FLsGeneralCard;
+  FLsDllStatusLabel.Caption := '● DLL file located';
+  FLsDllStatusLabel.Font.Style := [fsBold];
+  FLsDllStatusLabel.Font.Size := 9;
+  FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+  
+  // ── Card 1: Configuration (Consolidated) ──────────────────────────────────
   FLsFrameGenCard := TPanel.Create(FForm);
   FLsFrameGenCard.Parent := FLsBgPanel;
   FLsFrameGenCard.Caption := '';
@@ -412,27 +434,29 @@ begin
   FLsFgTitleLbl.ShowAccelChar := False;
   StyleMainCard(FLsFrameGenCard, FLsFgTitleLbl, 'Configuration');
   
+  // Row 1: Multiplier & Flow Scale Sliders
   FLsMultiplierTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierTitleLbl.Parent := FLsFrameGenCard;
   FLsMultiplierTitleLbl.Caption := 'Multiplier';
-  FLsMultiplierTitleLbl.Hint := 'Frame generation multiplier (1x disabled, 2x double, up to 6x)';
+  FLsMultiplierTitleLbl.Hint := 'Frame generation multiplier: 1x (disabled), 2x, up to 10x';
   FLsMultiplierTitleLbl.ShowHint := True;
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
   
-  FLsMultiplierComboBox := TComboBox.Create(FLsFrameGenCard);
-  FLsMultiplierComboBox.Parent := FLsFrameGenCard;
-  FLsMultiplierComboBox.Style := csDropDownList;
-  FLsMultiplierComboBox.Items.Add('1x (no framegen)');
-  FLsMultiplierComboBox.Items.Add('2x (Double FPS)');
-  FLsMultiplierComboBox.Items.Add('3x (Triple FPS)');
-  FLsMultiplierComboBox.Items.Add('4x (Quadruple FPS)');
-  FLsMultiplierComboBox.Items.Add('5x (Quintuple FPS)');
-  FLsMultiplierComboBox.Items.Add('6x (Sextuple FPS)');
-  FLsMultiplierComboBox.ItemIndex := 0;
-  FLsMultiplierComboBox.Hint := 'Frame generation multiplier (1x disabled, 2x double, up to 6x)';
-  FLsMultiplierComboBox.ShowHint := True;
-  FLsMultiplierComboBox.OnChange := @ControlStateChange;
-  StyleInputControl(FLsMultiplierComboBox);
+  FLsMultiplierTrackBar := TTrackBar.Create(FLsFrameGenCard);
+  FLsMultiplierTrackBar.Parent := FLsFrameGenCard;
+  FLsMultiplierTrackBar.Min := 1;
+  FLsMultiplierTrackBar.Max := 10;
+  FLsMultiplierTrackBar.Position := 1;
+  FLsMultiplierTrackBar.TickStyle := tsNone;
+  FLsMultiplierTrackBar.Hint := 'Frame generation multiplier: 1x (disabled), 2x, up to 10x';
+  FLsMultiplierTrackBar.ShowHint := True;
+  FLsMultiplierTrackBar.OnChange := @MultiplierChange;
+  
+  FLsMultiplierValueLabel := TLabel.Create(FLsFrameGenCard);
+  FLsMultiplierValueLabel.Parent := FLsFrameGenCard;
+  FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+  FLsMultiplierValueLabel.Font.Color := CLR_TEXT_ACCENT;
+  FLsMultiplierValueLabel.Font.Style := [fsBold];
   
   FLsFlowScaleTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFlowScaleTitleLbl.Parent := FLsFrameGenCard;
@@ -457,6 +481,7 @@ begin
   FLsFlowScaleValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsFlowScaleValueLabel.Font.Style := [fsBold];
   
+  // Row 2: Inline Toggles (3 Columns)
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
   FLsPerfModeCheckBox.ParentColor := True;
@@ -475,18 +500,8 @@ begin
   FLsHdrModeCheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsHdrModeCheckBox);
   
-  // ── Card 2: Hardware & Pacing ─────────────────────────────────────────────
-  FLsHardwareCard := TPanel.Create(FForm);
-  FLsHardwareCard.Parent := FLsBgPanel;
-  FLsHardwareCard.Caption := '';
-  FLsHardwareCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
-  FLsHwTitleLbl := TLabel.Create(FLsHardwareCard);
-  FLsHwTitleLbl.Parent := FLsHardwareCard;
-  FLsHwTitleLbl.ShowAccelChar := False;
-  StyleMainCard(FLsHardwareCard, FLsHwTitleLbl, 'Hardware & Pacing');
-  
-  FLsNoFp16CheckBox := TCheckBox.Create(FLsHardwareCard);
-  FLsNoFp16CheckBox.Parent := FLsHardwareCard;
+  FLsNoFp16CheckBox := TCheckBox.Create(FLsFrameGenCard);
+  FLsNoFp16CheckBox.Parent := FLsFrameGenCard;
   FLsNoFp16CheckBox.ParentColor := True;
   FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
   FLsNoFp16CheckBox.Hint := 'Has a giant performance uplift on AMD GPUs.' + LineEnding +
@@ -495,15 +510,16 @@ begin
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
   StyleToggleControl(FLsNoFp16CheckBox);
   
-  FLsPacingTitleLbl := TLabel.Create(FLsHardwareCard);
-  FLsPacingTitleLbl.Parent := FLsHardwareCard;
+  // Row 3: Dropdowns (2 Columns)
+  FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
+  FLsPacingTitleLbl.Parent := FLsFrameGenCard;
   FLsPacingTitleLbl.Caption := 'Pacing Mode';
   FLsPacingTitleLbl.Hint := 'Frame pacing mode to use (auto, vsync, mailbox, immediate, none)';
   FLsPacingTitleLbl.ShowHint := True;
   StyleLabel(FLsPacingTitleLbl, lrControlLabel);
   
-  FLsPacingComboBox := TComboBox.Create(FLsHardwareCard);
-  FLsPacingComboBox.Parent := FLsHardwareCard;
+  FLsPacingComboBox := TComboBox.Create(FLsFrameGenCard);
+  FLsPacingComboBox.Parent := FLsFrameGenCard;
   FLsPacingComboBox.Style := csDropDownList;
   FLsPacingComboBox.Items.Add('auto (Default / FIFO Recommended)');
   FLsPacingComboBox.Items.Add('vsync (Standard VSync)');
@@ -516,15 +532,15 @@ begin
   FLsPacingComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsPacingComboBox);
   
-  FLsGpuTitleLbl := TLabel.Create(FLsHardwareCard);
-  FLsGpuTitleLbl.Parent := FLsHardwareCard;
+  FLsGpuTitleLbl := TLabel.Create(FLsFrameGenCard);
+  FLsGpuTitleLbl.Parent := FLsFrameGenCard;
   FLsGpuTitleLbl.Caption := 'Target GPU Device';
   FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation';
   FLsGpuTitleLbl.ShowHint := True;
   StyleLabel(FLsGpuTitleLbl, lrControlLabel);
   
-  FLsGpuComboBox := TComboBox.Create(FLsHardwareCard);
-  FLsGpuComboBox.Parent := FLsHardwareCard;
+  FLsGpuComboBox := TComboBox.Create(FLsFrameGenCard);
+  FLsGpuComboBox.Parent := FLsFrameGenCard;
   FLsGpuComboBox.Style := csDropDownList;
   FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation';
   FLsGpuComboBox.ShowHint := True;
@@ -554,56 +570,60 @@ end;
 
 procedure TLosslessScalingTabHelper.ReflowLosslessScalingTab(AContentW: Integer);
 var
-  W, CardW, CurY, ColW, RightColX: Integer;
+  W, CW, CurY, Col2W, RightColX, Col3W, EditLeft, EditW: Integer;
 begin
   if not Assigned(FLsScrollBox) or not Assigned(FLsGeneralCard) then Exit;
   
-  W := AContentW;
-  if W <= 0 then W := FLsScrollBox.ClientWidth;
+  W := FLsScrollBox.ClientWidth;
+  if (W < 100) and (AContentW > 100) then
+    W := AContentW;
   if W < 500 then W := 500;
   
-  FLsBgPanel.Width := W;
-  CardW := W - (CARD_PAD * 2);
-  CurY := CARD_PAD;
+  CW := W - (MARGIN * 2);
+  CurY := MARGIN;
   
-  // ── Card 0 Layout: DLL file path ──────────────────────────────────────────
-  FLsGeneralCard.SetBounds(CARD_PAD, CurY, CardW, 76);
-  FLsDllPathEdit.SetBounds(CARD_PAD, 34, CardW - (CARD_PAD * 2) - 38, ROW_H);
-  FLsBrowseDllBtn.SetBounds(CardW - CARD_PAD - 32, 34, 32, ROW_H);
-  CurY := CurY + FLsGeneralCard.Height + 12;
+  // ── Card 0 Layout: LossLess Scaling ───────────────────────────────────────
+  FLsGeneralCard.SetBounds(MARGIN, CurY, CW, 102);
+  if Assigned(FLsLogoImage) then
+    FLsLogoImage.SetBounds(PAD, 36, 52, 52);
+    
+  EditLeft := PAD + 52 + 14;
+  EditW := CW - EditLeft - PAD - 38;
+  FLsDllPathEdit.SetBounds(EditLeft, 36, EditW, ROW_H);
+  FLsBrowseDllBtn.SetBounds(CW - PAD - 32, 36, 32, ROW_H);
+  if Assigned(FLsDllStatusLabel) then
+    FLsDllStatusLabel.SetBounds(EditLeft + 2, 68, CW - EditLeft - PAD, 20);
+  CurY := CurY + FLsGeneralCard.Height + GAP;
   
-  // ── Card 1 Layout: Configuration ─────────────────────────────────────────
-  // Left column: Multiplier and Flow Scale (controls directly below labels)
-  // Right column: Performance Mode and HDR Mode checkboxes
-  ColW := (CardW - (CARD_PAD * 2) - 20) div 2;
-  RightColX := CARD_PAD + ColW + 20;
+  // ── Card 1 Layout: Configuration (Option 2 Grid) ──────────────────────────
+  Col2W := (CW - (PAD * 2) - 20) div 2;
+  RightColX := PAD + Col2W + 20;
+  Col3W := (CW - (PAD * 2) - 24) div 3;
   
-  FLsFrameGenCard.SetBounds(CARD_PAD, CurY, CardW, 160);
+  FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 222);
   
-  // Left column
-  FLsMultiplierTitleLbl.SetBounds(CARD_PAD, 36, ColW, 18);
-  FLsMultiplierComboBox.SetBounds(CARD_PAD, 56, ColW, ROW_H);
+  // Row 1: Sliders
+  FLsMultiplierTitleLbl.SetBounds(PAD, 38, Col2W, 18);
+  FLsMultiplierTrackBar.SetBounds(PAD, 58, Col2W - 85, ROW_H);
+  FLsMultiplierValueLabel.SetBounds(PAD + Col2W - 80, 62, 80, 20);
   
-  FLsFlowScaleTitleLbl.SetBounds(CARD_PAD, 94, ColW, 18);
-  FLsFlowScaleTrackBar.SetBounds(CARD_PAD, 114, ColW - 48, ROW_H);
-  FLsFlowScaleValueLabel.SetBounds(CARD_PAD + ColW - 44, 118, 44, 20);
+  FLsFlowScaleTitleLbl.SetBounds(RightColX, 38, Col2W, 18);
+  FLsFlowScaleTrackBar.SetBounds(RightColX, 58, Col2W - 55, ROW_H);
+  FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 50, 62, 50, 20);
   
-  // Right column
-  FLsPerfModeCheckBox.SetBounds(RightColX, 58, ColW, 24);
-  FLsHdrModeCheckBox.SetBounds(RightColX, 116, ColW, 24);
-  CurY := CurY + FLsFrameGenCard.Height + 12;
+  // Row 2: 3 Inline Toggles
+  FLsPerfModeCheckBox.SetBounds(PAD, 106, Col3W, 24);
+  FLsHdrModeCheckBox.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
+  FLsNoFp16CheckBox.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
   
-  // ── Card 2 Layout: Hardware & Pacing ─────────────────────────────────────
-  FLsHardwareCard.SetBounds(CARD_PAD, CurY, CardW, 142);
+  // Row 3: 2 Dropdowns
+  FLsPacingTitleLbl.SetBounds(PAD, 148, Col2W, 18);
+  FLsPacingComboBox.SetBounds(PAD, 168, Col2W, ROW_H);
   
-  FLsNoFp16CheckBox.SetBounds(CARD_PAD, 36, CardW - (CARD_PAD * 2), 24);
+  FLsGpuTitleLbl.SetBounds(RightColX, 148, Col2W, 18);
+  FLsGpuComboBox.SetBounds(RightColX, 168, Col2W, ROW_H);
   
-  FLsPacingTitleLbl.SetBounds(CARD_PAD, 70, ColW, 18);
-  FLsPacingComboBox.SetBounds(CARD_PAD, 90, ColW, ROW_H);
-  
-  FLsGpuTitleLbl.SetBounds(RightColX, 70, ColW, 18);
-  FLsGpuComboBox.SetBounds(RightColX, 90, ColW, ROW_H);
-  CurY := CurY + FLsHardwareCard.Height + CARD_PAD;
+  CurY := CurY + FLsFrameGenCard.Height + MARGIN;
   
   FLsBgPanel.SetBounds(0, 0, W, Max(FLsScrollBox.ClientHeight, CurY));
   ApplyThemeStyles;
@@ -628,14 +648,26 @@ begin
             'QLineEdit:focus { border: 1px solid rgb(55, 140, 88); }'
     else
       SS := 'QLineEdit { background-color: rgb(240, 248, 242); color: rgb(0, 80, 20); border: 1px solid rgb(80, 150, 100); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      
+    if Assigned(FLsDllStatusLabel) then
+    begin
+      FLsDllStatusLabel.Caption := '● DLL file located';
+      FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+    end;
   end
   else
   begin
     if IsDark then
-      SS := 'QLineEdit { background-color: rgb(38, 46, 72); color: rgb(255, 255, 255); border: 1px solid rgb(55, 70, 108); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
-            'QLineEdit:focus { border: 1px solid rgb(48, 190, 240); }'
+      SS := 'QLineEdit { background-color: rgb(48, 20, 24); color: rgb(255, 210, 210); border: 1px solid rgb(160, 45, 55); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+            'QLineEdit:focus { border: 1px solid rgb(220, 60, 70); }'
     else
-      SS := 'QLineEdit { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      SS := 'QLineEdit { background-color: rgb(255, 235, 235); color: rgb(180, 20, 20); border: 1px solid rgb(200, 60, 60); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      
+    if Assigned(FLsDllStatusLabel) then
+    begin
+      FLsDllStatusLabel.Caption := '● Install Lossless scaling on steam or point the correct file path';
+      FLsDllStatusLabel.Font.Color := RGBToColor(255, 90, 95);
+    end;
   end;
   QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
   FLsDllPathEdit.SelStart := 0;
@@ -646,7 +678,7 @@ procedure TLosslessScalingTabHelper.UpdateControlsEnabled;
 var
   FgActive: Boolean;
 begin
-  FgActive := Assigned(FLsMultiplierComboBox) and (FLsMultiplierComboBox.ItemIndex > 0);
+  FgActive := Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position > 1);
   
   if Assigned(FLsFlowScaleTitleLbl) then FLsFlowScaleTitleLbl.Enabled := FgActive;
   if Assigned(FLsFlowScaleTrackBar) then FLsFlowScaleTrackBar.Enabled := FgActive;
@@ -658,6 +690,22 @@ begin
   if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Enabled := FgActive;
   if Assigned(FLsGpuTitleLbl) then FLsGpuTitleLbl.Enabled := FgActive;
   if Assigned(FLsGpuComboBox) then FLsGpuComboBox.Enabled := FgActive;
+end;
+
+procedure TLosslessScalingTabHelper.MultiplierChange(Sender: TObject);
+var
+  PosVal: Integer;
+begin
+  if not Assigned(FLsMultiplierTrackBar) then Exit;
+  PosVal := FLsMultiplierTrackBar.Position;
+  if Assigned(FLsMultiplierValueLabel) then
+  begin
+    if PosVal <= 1 then
+      FLsMultiplierValueLabel.Caption := '1x (Disabled)'
+    else
+      FLsMultiplierValueLabel.Caption := IntToStr(PosVal) + 'x FPS';
+  end;
+  ControlStateChange(Sender);
 end;
 
 procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
@@ -718,7 +766,7 @@ var
   PerfStr, HdrStr, LegacyStr: string;
 begin
   Result := '';
-  if FLsMultiplierComboBox.ItemIndex <= 0 then Exit;
+  if FLsMultiplierTrackBar.Position <= 1 then Exit;
   
   DllP := Trim(FLsDllPathEdit.Text);
   if (DllP = '') or not FileExists(DllP) then Exit;
@@ -735,15 +783,7 @@ begin
     
   OutPath := IncludeTrailingPathDelimiter(OutDir) + 'lsfg.toml';
   
-  case FLsMultiplierComboBox.ItemIndex of
-    1: MultVal := 2;
-    2: MultVal := 3;
-    3: MultVal := 4;
-    4: MultVal := 5;
-    5: MultVal := 6;
-  else
-    MultVal := 2;
-  end;
+  MultVal := FLsMultiplierTrackBar.Position;
   
   FlowStr := StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
   if FLsPerfModeCheckBox.Checked then PerfStr := 'true' else PerfStr := 'false';
@@ -812,7 +852,7 @@ function TLosslessScalingTabHelper.GetActiveEnvVars: string;
 var
   TomlP, DllP: string;
 begin
-  if FLsMultiplierComboBox.ItemIndex <= 0 then
+  if FLsMultiplierTrackBar.Position <= 1 then
     Exit('');
 
   DllP := Trim(FLsDllPathEdit.Text);
@@ -900,7 +940,9 @@ begin
     
     // Set defaults
     FLsDllPathEdit.Text := DetectSteamLosslessDll;
-    FLsMultiplierComboBox.ItemIndex := 0; // 1x (no framegen)
+    FLsMultiplierTrackBar.Position := 1; // 1x (no framegen)
+    if Assigned(FLsMultiplierValueLabel) then
+      FLsMultiplierValueLabel.Caption := '1x (Disabled)';
     FLsFlowScaleTrackBar.Position := 100;
     if Assigned(FLsFlowScaleValueLabel) then
       FLsFlowScaleValueLabel.Caption := '100%';
@@ -932,18 +974,16 @@ begin
         
       if IsLosslessOn or (MultInt >= 2) then
       begin
-        case MultInt of
-          2: FLsMultiplierComboBox.ItemIndex := 1;
-          3: FLsMultiplierComboBox.ItemIndex := 2;
-          4: FLsMultiplierComboBox.ItemIndex := 3;
-          5: FLsMultiplierComboBox.ItemIndex := 4;
-          6: FLsMultiplierComboBox.ItemIndex := 5;
-        else
-          FLsMultiplierComboBox.ItemIndex := 1;
-        end;
+        if MultInt < 1 then MultInt := 1;
+        if MultInt > 10 then MultInt := 10;
+        FLsMultiplierTrackBar.Position := MultInt;
+        MultiplierChange(nil);
       end
       else
-        FLsMultiplierComboBox.ItemIndex := 0;
+      begin
+        FLsMultiplierTrackBar.Position := 1;
+        MultiplierChange(nil);
+      end;
         
       FlowInt := Round(ParsedFlow * 100);
       if FlowInt < 25 then FlowInt := 25;
@@ -977,18 +1017,16 @@ begin
         MultInt := StrToIntDef(MultVal, 0);
         if IsLosslessOn and (MultInt >= 2) then
         begin
-          case MultInt of
-            2: FLsMultiplierComboBox.ItemIndex := 1;
-            3: FLsMultiplierComboBox.ItemIndex := 2;
-            4: FLsMultiplierComboBox.ItemIndex := 3;
-            5: FLsMultiplierComboBox.ItemIndex := 4;
-            6: FLsMultiplierComboBox.ItemIndex := 5;
-          else
-            FLsMultiplierComboBox.ItemIndex := 1;
-          end;
+          if MultInt < 1 then MultInt := 1;
+          if MultInt > 10 then MultInt := 10;
+          FLsMultiplierTrackBar.Position := MultInt;
+          MultiplierChange(nil);
         end
         else
-          FLsMultiplierComboBox.ItemIndex := 0;
+        begin
+          FLsMultiplierTrackBar.Position := 1;
+          MultiplierChange(nil);
+        end;
           
         FlowVal := Ini.ReadString('Config', 'LS_FLOW_SCALE', Ini.ReadString('Env', 'LSFG_FLOW_SCALE', Ini.ReadString('Env', 'LSFGVK_FLOW_SCALE', '')));
         if FlowVal <> '' then
@@ -1053,7 +1091,7 @@ begin
     ForceDirectories(CfgDir);
     
   DllPath := Trim(FLsDllPathEdit.Text);
-  IsEnabled := (DllPath <> '') and FileExists(DllPath) and (FLsMultiplierComboBox.ItemIndex > 0);
+  IsEnabled := (DllPath <> '') and FileExists(DllPath) and (FLsMultiplierTrackBar.Position > 1);
   
   Ini := TIniFile.Create(CfgPath);
   try

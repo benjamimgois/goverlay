@@ -18,35 +18,33 @@ When the user clicks the "Upscalers" item in the sidebar navigation rail:
 - **AND** the active page defaults to the last selected or primary upscaler tab.
 
 ### Requirement: Lossless Scaling Tab UI & Cards Layout
-The Lossless Scaling tab (`losslessScalingTabSheet`) SHALL render inside a responsive scroll box with dark theme card styling (`StyleMainCard` / `StyleSubCard`).
-The background panel (`FLsBgPanel`) SHALL always expand to cover at least the entire visible viewport height (`ClientHeight`) of the scroll box (`FLsScrollBox`), ensuring no unstyled or disabled viewport areas are visible when the tool is disabled or the window is resized:
-1. **General & Engine Setup Card**:
-   - Path to `Lossless.dll` (`dllPathEdit`)
-   - File picker browse button (`browseDllBtn`)
-   - Steam Auto-Detect button (`autoDetectDllBtn`)
-   - DLL detection status label (`dllStatusLabel` - Green with checkmark if file exists, Red if missing).
-2. **Frame Generation Card**:
-   - Frame multiplier selector (`multiplierRadioGroup` or `multiplierComboBox` with options `2x`, `3x`, `4x`)
-   - Flow scale trackbar (`flowScaleTrackBar` ranging from 25 to 100 with a label updating live)
-   - Performance mode toggle (`performanceModeCheckBox` / switch).
-3. **Hardware & Pacing Card**:
-   - Disable FP16 toggle (`noFp16CheckBox` - "Disable FP16 / Half-Precision")
-   - Pacing mode dropdown (`pacingComboBox` with options: `auto`, `vsync`, `mailbox`, `immediate`, `none`)
-   - Target GPU dropdown (`gpuComboBox` populated with available GPU devices detected by `systemdetector.pas`).
-4. **Environment Preview Card**:
-   - Read-only multi-line preview edit (`envPreviewMemo`) displaying the generated environment variables:
-     `LSFGVK_ENV=1 LSFGVK_DLL_PATH="..." LSFGVK_MULTIPLIER=... %command%`
-   - Copy to clipboard button (`copyEnvBtn`).
+The Lossless Scaling tab (`losslessScalingTabSheet`) SHALL render inside a responsive scroll box with dark theme card styling (`StyleMainCard` / `StyleSubCard`), structured into two consolidated cards:
+1. **LossLess Scaling Card**:
+   - `logoImage`: Lossless Scaling application icon (`assets/icons/lossless_scaling.png`) positioned on the left.
+   - `dllPathEdit`: Read-only path edit positioned to the right of the logo.
+   - `browseDllBtn`: File picker button positioned to the right of `dllPathEdit`.
+   - `dllStatusLabel`: Status label positioned below `dllPathEdit`. When `Lossless.dll` exists, displays `"● DLL file located"` in green. When missing, displays `"● Install Lossless scaling on steam or point the correct file path"` in red and styles `dllPathEdit` with an alert red background and border tint.
+2. **Configuration Card**:
+   - **Row 1**: Multiplier TrackBar (`multiplierTrackBar`, range 1 to 10) with dynamic value label (`multiplierValueLabel`, displaying `1x (Disabled)` or `Nx FPS`) on the left; Flow Scale TrackBar (`flowScaleTrackBar`, range 25 to 100) with dynamic value label (`flowScaleValueLabel`) on the right.
+   - **Row 2**: Three inline toggle checkboxes: Performance Mode (`performanceModeCheckBox`), HDR Mode (`hdrModeCheckBox`), and Disable FP16 / Half-Precision (`noFp16CheckBox`).
+   - **Row 3**: Pacing Mode dropdown (`pacingComboBox`) on the left; Target GPU Device dropdown (`gpuComboBox`) on the right.
 
-#### Scenario: User selects a custom DLL file
-- **WHEN** the user selects a valid `Lossless.dll` path using the file dialog or Auto-Detect button
-- **THEN** `dllPathEdit.Text` updates to the chosen path
-- **AND** `dllStatusLabel` updates to green "● DLL Found"
-- **AND** the environment preview updates `LSFGVK_DLL_PATH` immediately.
+#### Scenario: User adjusts Multiplier TrackBar
+- **WHEN** the user sets `multiplierTrackBar.Position` to `1`
+- **THEN** `multiplierValueLabel.Caption` displays `"1x (Disabled)"`
+- **AND** downstream controls (Flow Scale, Performance Mode, HDR Mode, FP16, Pacing, GPU) are disabled
+- **AND** `GOVERLAY_LOSSLESS` is set to `0`.
 
-#### Scenario: User adjusts Frame Generation Multiplier
-- **WHEN** the user changes the multiplier to `3x`
-- **THEN** `LSFGVK_MULTIPLIER=3` is reflected in the environment preview and saved configuration.
+#### Scenario: User adjusts Multiplier TrackBar to 4x
+- **WHEN** the user sets `multiplierTrackBar.Position` to `4`
+- **THEN** `multiplierValueLabel.Caption` displays `"4x FPS"`
+- **AND** downstream controls are enabled
+- **AND** `GOVERLAY_LOSSLESS` is set to `1` and `multiplier = 4` is saved to `lsfg.toml`.
+
+#### Scenario: Missing DLL file path
+- **WHEN** `dllPathEdit` contains an invalid or non-existent file path
+- **THEN** `dllStatusLabel.Caption` displays `"● Install Lossless scaling on steam or point the correct file path"` in red
+- **AND** `dllPathEdit` renders with an alert red background and border.
 
 #### Scenario: Viewing Lossless Scaling tab when Upscalers tool is disabled
 - **WHEN** the Upscalers sidebar toggle is OFF

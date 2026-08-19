@@ -196,12 +196,14 @@ begin
     Helper.DllPathEdit.Text := DummyDll;
     
     // Default 1x (no framegen) -> empty env vars
-    Helper.MultiplierComboBox.ItemIndex := 0;
+    Helper.MultiplierTrackBar.Position := 1;
+    Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
     EnvVars := Helper.GetActiveEnvVars;
     AssertEquals('1x yields empty env vars', '', EnvVars);
     
     // 2x enabled -> exports LSFG_CONFIG pointing to lsfg.toml
-    Helper.MultiplierComboBox.ItemIndex := 1;
+    Helper.MultiplierTrackBar.Position := 2;
+    Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
     EnvVars := Helper.GetActiveEnvVars;
     AssertTrue('LSFG_CONFIG is present', Pos('LSFG_CONFIG=', EnvVars) > 0);
   finally
@@ -219,22 +221,29 @@ begin
   Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
   AssertTrue('Lossless helper is assigned', Assigned(Helper));
   
+  // Test invalid DLL path status label
+  Helper.DllPathEdit.Text := '/nonexistent/path/Lossless.dll';
+  AssertTrue('Status label warns when DLL is missing', Pos('Install Lossless scaling on steam', Helper.DllStatusLabel.Caption) > 0);
+  
   // Create a temporary dummy DLL file to simulate valid Lossless.dll
   DummyDll := IsolatedHome + '/.local/share/goverlay/test_Lossless.dll';
   ForceDirectories(ExtractFilePath(DummyDll));
   DummyFile := TFileStream.Create(DummyDll, fmCreate);
   DummyFile.Free;
   try
-    // Set UI values (ItemIndex 2 = 3x)
+    // Set UI values (Position 3 = 3x)
     Helper.DllPathEdit.Text := DummyDll;
-    Helper.MultiplierComboBox.ItemIndex := 2; // 3x
+    AssertTrue('Status label confirms DLL located', Pos('DLL file located', Helper.DllStatusLabel.Caption) > 0);
+    
+    Helper.MultiplierTrackBar.Position := 3; // 3x
+    Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
     Helper.FlowScaleTrackBar.Position := 85;
     Helper.PerfModeCheckBox.Checked := True;
     Helper.HdrModeCheckBox.Checked := True;
     Helper.NoFp16CheckBox.Checked := True;
     Helper.PacingComboBox.ItemIndex := 1; // vsync
     
-    // Verify controls enabled when multiplier > 0
+    // Verify controls enabled when multiplier > 1
     AssertTrue('FlowScale enabled at 3x', Helper.FlowScaleTrackBar.Enabled);
     AssertTrue('PerfMode enabled at 3x', Helper.PerfModeCheckBox.Enabled);
     
@@ -261,21 +270,21 @@ begin
     // Test LoadLosslessConfig roundtrip from lsfg.toml
     goverlayform.FLoadingConfig := True;
     try
-      Helper.MultiplierComboBox.ItemIndex := 0;
+      Helper.MultiplierTrackBar.Position := 1;
       Helper.PerfModeCheckBox.Checked := False;
     finally
       goverlayform.FLoadingConfig := False;
     end;
     Helper.LoadLosslessConfig;
-    AssertEquals('Loaded Multiplier is 3x (index 2) from lsfg.toml', 2, Helper.MultiplierComboBox.ItemIndex);
+    AssertEquals('Loaded Multiplier is 3x (Position 3) from lsfg.toml', 3, Helper.MultiplierTrackBar.Position);
     AssertTrue('Loaded PerfMode is True from lsfg.toml', Helper.PerfModeCheckBox.Checked);
     AssertTrue('Loaded NoFp16 is True from lsfg.toml', Helper.NoFp16CheckBox.Checked);
     AssertTrue('NoFp16 hint contains AMD uplift description', Pos('giant performance uplift on AMD GPUs', Helper.NoFp16CheckBox.Hint) > 0);
     AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
     
     // Now test switching Multiplier to 1x (no framegen)
-    Helper.MultiplierComboBox.ItemIndex := 0;
-    Helper.MultiplierComboBox.OnChange(Helper.MultiplierComboBox);
+    Helper.MultiplierTrackBar.Position := 1;
+    Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
     AssertFalse('FlowScale disabled at 1x', Helper.FlowScaleTrackBar.Enabled);
     AssertFalse('PerfMode disabled at 1x', Helper.PerfModeCheckBox.Enabled);
     AssertFalse('HdrMode disabled at 1x', Helper.HdrModeCheckBox.Enabled);
