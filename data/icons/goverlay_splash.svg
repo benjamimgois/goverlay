@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200">
+  <defs>
+    <!-- Screen Visor Diagonal Gradient -->
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141B23" />
+      <stop offset="35%" stop-color="#1A283B" />
+      <stop offset="70%" stop-color="#154B6E" />
+      <stop offset="92%" stop-color="#219FD1" />
+      <stop offset="100%" stop-color="#3CD0F6" />
+    </linearGradient>
+
+    <!-- Screen Border Gradient -->
+    <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D3A54" />
+      <stop offset="60%" stop-color="#374D74" />
+      <stop offset="100%" stop-color="#4FD1F8" />
+    </linearGradient>
+
+    <!-- Outer Ambient Glow Filter for Brackets -->
+    <filter id="bracketGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur1" />
+      <feGaussianBlur stdDeviation="8" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .logotext {
+      font-family: 'Fira Sans', 'Inter', 'Noto Sans', 'Liberation Sans', sans-serif;
+      font-weight: 800;
+      font-size: 80px;
+      fill: #FFFFFF;
+      letter-spacing: 1px;
+    }
+    .tagline {
+      font-family: 'Fira Sans', 'Inter', 'Noto Sans', 'Liberation Sans', sans-serif;
+      font-weight: 600;
+      font-size: 26px;
+      fill: #E2E8F0;
+      letter-spacing: 2.38px;
+    }
+  </style>
+
+  <!-- Centered GOVERLAY logo group (width 427px, starting at x=90) -->
+  <g transform="translate(80, 10)">
+    <!-- Letter G -->
+    <text x="8" y="88" class="logotext">G</text>
+
+    <!-- HUD Visor Icon as 'O' (x=64, y=14) -->
+    <g transform="translate(64, 14) scale(0.180)">
+      <rect 
+        x="76" 
+        y="106" 
+        width="360" 
+        height="300" 
+        rx="10" 
+        ry="10" 
+        fill="url(#screenGrad)" 
+        stroke="url(#screenBorder)" 
+        stroke-width="4" 
+      />
+      <g stroke="#30BEF0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
+        <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
+        <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
+        <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
+        <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
+      </g>
+      <g stroke="#E0F7FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
+        <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
+        <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
+        <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
+      </g>
+    </g>
+
+    <!-- Letters VERLAY -->
+    <text x="160" y="88" class="logotext">VERLAY</text>
+  </g>
+
+  <!-- Tagline with exact symmetric bounding width (427px, starting at x=89) -->
+  <text x="89" y="156" class="tagline">Linux gaming tools, made easy</text>
+</svg>

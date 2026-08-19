@@ -391,10 +391,10 @@ var
   i: Integer;
 begin
   AppDir := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
-  IconFile := AppDir + 'assets/icons/goverlay.png';
+  IconFile := AppDir + 'data/icons/128x128/goverlay.png';
   if FileExists(IconFile) then Exit(IconFile);
 
-  IconFile := AppDir + 'data/icons/128x128/goverlay.png';
+  IconFile := AppDir + 'assets/icons/goverlay.png';
   if FileExists(IconFile) then Exit(IconFile);
 
   DataDirs := GetEnvironmentVariable('XDG_DATA_DIRS');

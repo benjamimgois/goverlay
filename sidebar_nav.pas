@@ -93,7 +93,7 @@ var
   i: Integer;
   Item: TPanel;
   Indicator: TShape;
-  IconPath: string;
+  IconPath, LogoPath: string;
   IconLbl: TLabel;
   CaptionLbl: TLabel;
   TopY: Integer;
@@ -105,6 +105,20 @@ begin
   FForm.vkbasaltShape.Visible  := False;  FForm.vkbasaltLabel.Visible  := False;
   FForm.optiscalerShape.Visible := False; FForm.optiscalerLabel.Visible := False;
   FForm.tweaksShape.Visible    := False;  FForm.tweaksLabel.Visible    := False;
+
+  // Load modern branding logo into header goverlayimage
+  LogoPath := FForm.GetAppBaseDir + 'data/goverlay_logo.png';
+  if not FileExists(LogoPath) then
+    LogoPath := FForm.GetAppBaseDir + 'data/goverlay_splash_small.png';
+  if FileExists(LogoPath) then
+  begin
+    FForm.goverlayimage.SetBounds(12, 18, NAV_W_EXPANDED - 24, 46);
+    FForm.goverlayimage.Stretch          := True;
+    FForm.goverlayimage.Proportional     := True;
+    FForm.goverlayimage.Center           := True;
+    FForm.goverlayimage.AntialiasingMode := amOn;
+    try FForm.goverlayimage.Picture.LoadFromFile(LogoPath); except end;
+  end;
 
   SetLength(FForm.FNavItems,      Length(ITEMS));
   SetLength(FForm.FNavIndicators, Length(ITEMS));
@@ -151,7 +165,7 @@ begin
   // Toggle button — small discrete arrow, bottom-right of logo area
   FForm.FNavToggleBtn := TSpeedButton.Create(FForm);
   FForm.FNavToggleBtn.Parent  := FForm;
-  FForm.FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 28, 53, 24, 24);
+  FForm.FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 28, 68, 24, 20);
   FForm.FNavToggleBtn.Caption    := '«';
   FForm.FNavToggleBtn.Font.Size  := 11;
   FForm.FNavToggleBtn.Font.Color := $00666666;
@@ -168,12 +182,15 @@ begin
   FForm.FNavSmallIcon.Proportional := True;
   FForm.FNavSmallIcon.Center       := True;
   FForm.FNavSmallIcon.Visible      := False;
-  // Load icon — try installed path first, then local data dir
-  IconPath := GetIconFile();
+  // Load icon — try local data dir first, then installed path
+  IconPath := FForm.GetAppBaseDir + 'data/icons/128x128/goverlay.png';
   if not FileExists(IconPath) then
-    IconPath := FForm.GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+    IconPath := GetIconFile();
   if FileExists(IconPath) then
+  begin
+    FForm.FNavSmallIcon.AntialiasingMode := amOn;
     try FForm.FNavSmallIcon.Picture.LoadFromFile(IconPath); except end;
+  end;
 
 
   for i := 0 to High(ITEMS) do
@@ -1179,8 +1196,10 @@ begin
   UpdateNavToolToggleVisibility(ShowLabels);
 
   FForm.FNavToggleBtn.Left := IfThen(ShowLabels, AWidth - 28, AWidth - 26);
+  FForm.FNavToggleBtn.Top  := IfThen(ShowLabels, 68, 56);
 
   FForm.goverlayimage.Visible  := ShowLabels;
+  FForm.goverlayimage.Width    := Max(1, AWidth - 24);
   FForm.FNavSmallIcon.Visible  := not ShowLabels;
   FForm.FNavSmallIcon.Left     := (AWidth - 40) div 2;
 

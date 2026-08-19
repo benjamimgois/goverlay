@@ -3031,7 +3031,7 @@ begin
   FSplashForm.Caption     := '';
   FSplashForm.OnPaint     := @SplashFormPaint;
 
-  // 1. Header Branding Image: data/goverlay_splash_small.png (220x65 crisp image)
+  // 1. Header Branding Image: data/goverlay_splash_small.png with subtitle
   FSplashBrandingImage := TImage.Create(FSplashForm);
   FSplashBrandingImage.Parent           := FSplashForm;
   FSplashBrandingImage.Stretch          := True;
@@ -3039,13 +3039,17 @@ begin
   FSplashBrandingImage.Center           := True;
   FSplashBrandingImage.Transparent      := True;
   FSplashBrandingImage.AntialiasingMode := amOn;
-  FSplashBrandingImage.SetBounds((SW - 220) div 2, 45, 220, 65);
+  FSplashBrandingImage.SetBounds((SW - 380) div 2, 35, 380, 120);
 
-  BrandingFile := 'data/goverlay_splash_small.png';
+  BrandingFile := GetAppBaseDir + 'data/goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := 'data/goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := GetAppBaseDir + 'data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
     BrandingFile := 'data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
-    BrandingFile := 'data/goverlay_logo.png';
+    BrandingFile := GetAppBaseDir + 'data/goverlay_logo.png';
   if not FileExists(BrandingFile) then
     BrandingFile := GetIconFile;
 
@@ -8356,7 +8360,7 @@ begin
   else
   begin
     BinaryDir := ExtractFilePath(Application.ExeName);
-    if DirectoryExists(BinaryDir + 'assets') then
+    if DirectoryExists(BinaryDir + 'assets') or DirectoryExists(BinaryDir + 'data') then
       Result := BinaryDir
     else
       Result := ExtractFilePath(ExtractFileDir(Application.ExeName)) + 'share/goverlay/';

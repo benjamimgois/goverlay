@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background / Visor Diagonal Gradient -->
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141B23" />
+      <stop offset="35%" stop-color="#1A283B" />
+      <stop offset="70%" stop-color="#154B6E" />
+      <stop offset="92%" stop-color="#219FD1" />
+      <stop offset="100%" stop-color="#3CD0F6" />
+    </linearGradient>
+
+    <!-- Subtle Screen Border Gradient -->
+    <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D3A54" />
+      <stop offset="60%" stop-color="#374D74" />
+      <stop offset="100%" stop-color="#4FD1F8" />
+    </linearGradient>
+
+    <!-- Outer Ambient Glow Filter for Brackets -->
+    <filter id="bracketGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur1" />
+      <feGaussianBlur stdDeviation="16" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Central HUD Screen (16:13 aspect ratio) -->
+  <rect 
+    x="76" 
+    y="106" 
+    width="360" 
+    height="300" 
+    rx="8" 
+    ry="8" 
+    fill="url(#screenGrad)" 
+    stroke="url(#screenBorder)" 
+    stroke-width="3" 
+  />
+
+  <!-- Glowing HUD Corner Framing Brackets -->
+  <g stroke="#30BEF0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
+    <!-- Top-Left Bracket -->
+    <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
+    <!-- Top-Right Bracket -->
+    <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
+    <!-- Bottom-Left Bracket -->
+    <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
+    <!-- Bottom-Right Bracket -->
+    <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
+  </g>
+
+  <!-- Crisp Inner Core Highlight for Brackets -->
+  <g stroke="#E0F7FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top-Left Bracket Core -->
+    <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
+    <!-- Top-Right Bracket Core -->
+    <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
+    <!-- Bottom-Left Bracket Core -->
+    <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
+    <!-- Bottom-Right Bracket Core -->
+    <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
+  </g>
+</svg>
