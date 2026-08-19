@@ -1,25 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Background / Visor Diagonal Gradient -->
+    <!-- Screen Diagonal Gradient -->
     <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#141B23" />
-      <stop offset="35%" stop-color="#1A283B" />
-      <stop offset="70%" stop-color="#154B6E" />
-      <stop offset="92%" stop-color="#219FD1" />
-      <stop offset="100%" stop-color="#3CD0F6" />
+      <stop offset="0%" stop-color="#111822" />
+      <stop offset="35%" stop-color="#152438" />
+      <stop offset="70%" stop-color="#0F4C75" />
+      <stop offset="92%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#00D2FF" />
     </linearGradient>
 
-    <!-- Subtle Screen Border Gradient -->
+    <!-- Screen Border -->
     <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2D3A54" />
-      <stop offset="60%" stop-color="#374D74" />
-      <stop offset="100%" stop-color="#4FD1F8" />
+      <stop offset="0%" stop-color="#243048" />
+      <stop offset="60%" stop-color="#2D466E" />
+      <stop offset="100%" stop-color="#38BDF8" />
     </linearGradient>
 
     <!-- Outer Ambient Glow Filter for Brackets -->
-    <filter id="bracketGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="8" result="blur1" />
-      <feGaussianBlur stdDeviation="16" result="blur2" />
+    <filter id="bracketGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur1" />
+      <feGaussianBlur stdDeviation="12" result="blur2" />
       <feMerge>
         <feMergeNode in="blur2" />
         <feMergeNode in="blur1" />
@@ -28,40 +28,32 @@
     </filter>
   </defs>
 
-  <!-- Central HUD Screen (16:13 aspect ratio) -->
+  <!-- Central HUD Screen -->
   <rect 
     x="76" 
     y="106" 
     width="360" 
     height="300" 
-    rx="8" 
-    ry="8" 
+    rx="12" 
+    ry="12" 
     fill="url(#screenGrad)" 
     stroke="url(#screenBorder)" 
-    stroke-width="3" 
+    stroke-width="4" 
   />
 
-  <!-- Glowing HUD Corner Framing Brackets -->
-  <g stroke="#30BEF0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
-    <!-- Top-Left Bracket -->
+  <!-- Outer Cyan Brackets (#00B4FF / #0099FF - pure vivid cyan-blue) -->
+  <g stroke="#00A8FF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
     <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
-    <!-- Top-Right Bracket -->
     <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
-    <!-- Bottom-Left Bracket -->
     <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
-    <!-- Bottom-Right Bracket -->
     <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
   </g>
 
-  <!-- Crisp Inner Core Highlight for Brackets -->
-  <g stroke="#E0F7FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <!-- Top-Left Bracket Core -->
+  <!-- Crisp White-Ice Inner Core -->
+  <g stroke="#F0F9FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
-    <!-- Top-Right Bracket Core -->
     <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
-    <!-- Bottom-Left Bracket Core -->
     <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
-    <!-- Bottom-Right Bracket Core -->
     <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
   </g>
 </svg>
