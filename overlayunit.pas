@@ -3238,6 +3238,21 @@ begin
   // download/install work so automated tests start deterministically.
   TestMode := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
 
+  // Load window and application branding icon
+  try
+    ConfigFilePath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+    if not FileExists(ConfigFilePath) then
+      ConfigFilePath := GetAppBaseDir + 'data/icons/256x256/goverlay.png';
+    if not FileExists(ConfigFilePath) then
+      ConfigFilePath := GetIconFile();
+    if FileExists(ConfigFilePath) then
+    begin
+      Self.Icon.LoadFromFile(ConfigFilePath);
+      Application.Icon.LoadFromFile(ConfigFilePath);
+    end;
+  except
+  end;
+
   //Program Version
   GVERSION := '1.9.0';
   GCHANNEL := 'git'; //stable ou git
