@@ -1,17 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 110" width="540" height="110">
   <defs>
     <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#111822" />
-      <stop offset="35%" stop-color="#152438" />
-      <stop offset="70%" stop-color="#0F4C75" />
-      <stop offset="92%" stop-color="#0284C7" />
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="40%" stop-color="#1E293B" />
+      <stop offset="75%" stop-color="#0369A1" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="layerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
       <stop offset="100%" stop-color="#4895EF" />
     </linearGradient>
-
-    <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#243048" />
-      <stop offset="60%" stop-color="#2D466E" />
-      <stop offset="100%" stop-color="#4895EF" />
+    <linearGradient id="layerGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
   </defs>
 
@@ -25,33 +26,19 @@
     }
   </style>
 
-  <g transform="translate(18, 12)">
+  <g transform="translate(14, 12)">
     <text x="0" y="80" class="brandtext">G</text>
 
-    <g transform="translate(56, 4) scale(0.182)">
-      <rect 
-        x="76" 
-        y="106" 
-        width="360" 
-        height="300" 
-        rx="16" 
-        ry="16" 
-        fill="url(#screenGrad)" 
-        stroke="url(#screenBorder)" 
-        stroke-width="4" 
-      />
-      <g stroke="#4895EF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
-        <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
-        <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
-        <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
-      </g>
-      <g stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
-        <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
-        <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
-        <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
-      </g>
+    <!-- Layered 'O' Option 2 -->
+    <g transform="translate(56, 6) scale(0.180)">
+      <path d="M 220 448 L 416 448 A 32 32 0 0 0 448 416 L 448 220" 
+            stroke="url(#layerGrad2)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <path d="M 164 392 L 360 392 A 32 32 0 0 0 392 360 L 392 164" 
+            stroke="url(#layerGrad1)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <rect x="64" y="64" width="272" height="272" rx="32" ry="32"
+            fill="url(#screenGrad)" stroke="#4895EF" stroke-width="24" />
+      <rect x="64" y="64" width="272" height="272" rx="32" ry="32"
+            fill="none" stroke="#FFFFFF" stroke-width="8" />
     </g>
 
     <text x="152" y="80" class="brandtext">VERLAY</text>
