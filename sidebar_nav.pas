@@ -112,7 +112,7 @@ begin
     LogoPath := FForm.GetAppBaseDir + 'data/goverlay_splash_small.png';
   if FileExists(LogoPath) then
   begin
-    FForm.goverlayimage.SetBounds(12, 18, NAV_W_EXPANDED - 24, 46);
+    FForm.goverlayimage.SetBounds(10, 14, NAV_W_EXPANDED - 20, 50);
     FForm.goverlayimage.Stretch          := True;
     FForm.goverlayimage.Proportional     := True;
     FForm.goverlayimage.Center           := True;
@@ -1199,7 +1199,8 @@ begin
   FForm.FNavToggleBtn.Top  := IfThen(ShowLabels, 68, 56);
 
   FForm.goverlayimage.Visible  := ShowLabels;
-  FForm.goverlayimage.Width    := Max(1, AWidth - 24);
+  FForm.goverlayimage.Left     := 10;
+  FForm.goverlayimage.Width    := Max(1, AWidth - 20);
   FForm.FNavSmallIcon.Visible  := not ShowLabels;
   FForm.FNavSmallIcon.Left     := (AWidth - 40) div 2;
 

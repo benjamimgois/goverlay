@@ -28,11 +28,11 @@
       font-weight: 600;
       font-size: 26px;
       fill: #E2E8F0;
-      letter-spacing: 2.9px;
+      letter-spacing: 2.8px;
     }
   </style>
 
-  <g transform="translate(72, 10)">
+  <g transform="translate(74, 10)">
     <text x="0" y="80" class="logotext">G</text>
 
     <!-- Layered 'O' Option A -->
@@ -50,5 +50,5 @@
     <text x="136" y="80" class="logotext">VERLAY</text>
   </g>
 
-  <text x="72" y="156" class="tagline">Linux gaming tools, made easy</text>
+  <text x="74" y="156" class="tagline">Linux gaming tools, made easy</text>
 </svg>
