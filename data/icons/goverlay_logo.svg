@@ -21,25 +21,30 @@
       font-weight: 800;
       font-size: 80px;
       fill: #FFFFFF;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
     }
   </style>
 
-  <g transform="translate(14, 12)">
+  <g transform="translate(12, 0)">
     <text x="0" y="80" class="brandtext">G</text>
 
-    <!-- Layered 'O' Option 1 -->
-    <g transform="translate(56, 6) scale(0.180)">
-      <path d="M 200 452 L 420 452 A 28 28 0 0 0 448 424 L 448 200" 
-            stroke="#2563EB" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-      <path d="M 152 404 L 372 404 A 28 28 0 0 0 400 376 L 400 152" 
-            stroke="#4895EF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-      <rect x="64" y="64" width="288" height="288" rx="28" ry="28"
-            fill="url(#screenGrad)" stroke="#FFFFFF" stroke-width="22" />
-      <rect x="80" y="80" width="256" height="256" rx="16" ry="16"
-            fill="none" stroke="url(#screenBorder)" stroke-width="4" />
+    <!-- Layered 'O' Option B -->
+    <g transform="translate(60, 23)">
+      <!-- Layer 3 (Back) -->
+      <path d="M 23.2 68 L 62 68 A 8 8 0 0 0 70 60 L 70 22.4" 
+            stroke="#2563EB" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+      <!-- Layer 2 (Middle) -->
+      <path d="M 17.4 62 L 56 62 A 8 8 0 0 0 64 54 L 64 16.8" 
+            stroke="#4895EF" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+      <!-- Layer 1 (Front Screen) -->
+      <rect x="0" y="0" width="58" height="56" rx="8" ry="8"
+            fill="url(#screenGrad)" stroke="#FFFFFF" stroke-width="4.5" />
+      <rect x="3.5" y="3.5" width="51" height="49" rx="5" ry="5"
+            fill="none" stroke="url(#screenBorder)" stroke-width="1.5" />
     </g>
 
-    <text x="152" y="80" class="brandtext">VERLAY</text>
+    <text x="130" y="80" class="brandtext">VERLAY</text>
   </g>
 </svg>
