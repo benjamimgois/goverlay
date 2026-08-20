@@ -28,27 +28,27 @@
       font-weight: 600;
       font-size: 26px;
       fill: #E2E8F0;
-      letter-spacing: 2.8px;
+      letter-spacing: 2.9px;
     }
   </style>
 
-  <g transform="translate(74, 10)">
+  <g transform="translate(72, 10)">
     <text x="0" y="80" class="logotext">G</text>
 
-    <!-- Layered 'O' -->
-    <g transform="translate(60, 23)">
-      <path d="M 23.2 68 L 62 68 A 8 8 0 0 0 70 60 L 70 22.4" 
-            stroke="#2563EB" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-      <path d="M 17.4 62 L 56 62 A 8 8 0 0 0 64 54 L 64 16.8" 
-            stroke="#4895EF" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-      <rect x="0" y="0" width="58" height="56" rx="8" ry="8"
-            fill="url(#screenGrad)" stroke="#FFFFFF" stroke-width="4.5" />
-      <rect x="3.5" y="3.5" width="51" height="49" rx="5" ry="5"
+    <!-- Layered 'O' Option A -->
+    <g transform="translate(62, 22)">
+      <path d="M 24 70 L 64 70 A 8 8 0 0 0 72 62 L 72 24" 
+            stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <path d="M 18 64 L 58 64 A 8 8 0 0 0 66 56 L 66 18" 
+            stroke="#4895EF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <rect x="0" y="0" width="60" height="58" rx="8" ry="8"
+            fill="url(#screenGrad)" stroke="#FFFFFF" stroke-width="4.8" />
+      <rect x="3.5" y="3.5" width="53" height="51" rx="5" ry="5"
             fill="none" stroke="url(#screenBorder)" stroke-width="1.5" />
     </g>
 
-    <text x="130" y="80" class="logotext">VERLAY</text>
+    <text x="136" y="80" class="logotext">VERLAY</text>
   </g>
 
-  <text x="74" y="156" class="tagline">Linux gaming tools, made easy</text>
+  <text x="72" y="156" class="tagline">Linux gaming tools, made easy</text>
 </svg>
