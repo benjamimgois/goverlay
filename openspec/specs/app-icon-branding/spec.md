@@ -5,7 +5,7 @@ Defines visual asset requirements, vector definitions, and multi-resolution rend
 ## Requirements
 
 ### Requirement: Modernized Slate-Navy and Cyan HUD Icon
-The system SHALL provide a modernized official GOverlay application icon featuring a centered HUD display visor with a diagonal Slate Navy to Cyan gradient (`#141B23` to `#3CD0F6`) and four corner framing brackets in vibrant Neon Cyan (`#30BEF0`).
+The system SHALL provide a modernized official GOverlay application icon featuring a centered HUD display visor with a diagonal Slate Navy to Blue gradient (`#111822` to `#4895EF`) and four corner framing brackets in vibrant Sapphire Blue (`#4895EF`).
 
 #### Scenario: Displaying application icon in system launcher and desktop environments
 - **WHEN** GOverlay is launched or displayed in desktop environments (GNOME, KDE Plasma, XFCE, Steam Deck)

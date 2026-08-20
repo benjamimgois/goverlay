@@ -6,14 +6,14 @@
       <stop offset="35%" stop-color="#152438" />
       <stop offset="70%" stop-color="#0F4C75" />
       <stop offset="92%" stop-color="#0284C7" />
-      <stop offset="100%" stop-color="#00D2FF" />
+      <stop offset="100%" stop-color="#4895EF" />
     </linearGradient>
 
     <!-- Screen Border -->
     <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#243048" />
       <stop offset="60%" stop-color="#2D466E" />
-      <stop offset="100%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#4895EF" />
     </linearGradient>
   </defs>
 
@@ -30,8 +30,8 @@
     stroke-width="4" 
   />
 
-  <!-- Solid Outer Electric Cyan Brackets (#00A8FF) -->
-  <g stroke="#00A8FF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <!-- Solid Outer Sapphire Blue Brackets (#4895EF) -->
+  <g stroke="#4895EF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
     <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
     <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />

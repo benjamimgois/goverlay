@@ -5,24 +5,14 @@
       <stop offset="35%" stop-color="#152438" />
       <stop offset="70%" stop-color="#0F4C75" />
       <stop offset="92%" stop-color="#0284C7" />
-      <stop offset="100%" stop-color="#00D2FF" />
+      <stop offset="100%" stop-color="#4895EF" />
     </linearGradient>
 
     <linearGradient id="screenBorder" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#243048" />
       <stop offset="60%" stop-color="#2D466E" />
-      <stop offset="100%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#4895EF" />
     </linearGradient>
-
-    <filter id="bracketGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur1" />
-      <feGaussianBlur stdDeviation="8" result="blur2" />
-      <feMerge>
-        <feMergeNode in="blur2" />
-        <feMergeNode in="blur1" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
 
   <style>
@@ -51,19 +41,19 @@
         y="106" 
         width="360" 
         height="300" 
-        rx="12" 
-        ry="12" 
+        rx="16" 
+        ry="16" 
         fill="url(#screenGrad)" 
         stroke="url(#screenBorder)" 
         stroke-width="4" 
       />
-      <g stroke="#00A8FF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
+      <g stroke="#4895EF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none">
         <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
         <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
         <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
         <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
       </g>
-      <g stroke="#F0F9FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <g stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
         <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
         <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
         <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
