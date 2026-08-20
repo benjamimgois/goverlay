@@ -16,8 +16,11 @@
         <TextName Value="GOverlay"/>
         <TextDesc Value="GOverlay"/>
       </XPManifest>
-      <Icon Value="0"/>
     </General>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <OutDir Value="languages"/>
+    </i18n>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <MinorVersionNr Value="9"/>
@@ -77,11 +80,6 @@
       <Version Value="2"/>
       <UseFileFilters Value="True"/>
     </PublishOptions>
-    <i18n>
-      <EnableI18N Value="True"/>
-      <EnableI18NForLFM Value="True"/>
-      <OutDir Value="languages"/>
-    </i18n>
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>

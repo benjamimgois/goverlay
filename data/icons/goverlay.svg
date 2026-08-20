@@ -15,17 +15,6 @@
       <stop offset="60%" stop-color="#2D466E" />
       <stop offset="100%" stop-color="#38BDF8" />
     </linearGradient>
-
-    <!-- Outer Ambient Glow Filter for Brackets -->
-    <filter id="bracketGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur1" />
-      <feGaussianBlur stdDeviation="12" result="blur2" />
-      <feMerge>
-        <feMergeNode in="blur2" />
-        <feMergeNode in="blur1" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
 
   <!-- Central HUD Screen -->
@@ -34,23 +23,23 @@
     y="106" 
     width="360" 
     height="300" 
-    rx="12" 
-    ry="12" 
+    rx="16" 
+    ry="16" 
     fill="url(#screenGrad)" 
     stroke="url(#screenBorder)" 
     stroke-width="4" 
   />
 
-  <!-- Outer Cyan Brackets (#00B4FF / #0099FF - pure vivid cyan-blue) -->
-  <g stroke="#00A8FF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#bracketGlow)">
+  <!-- Solid Outer Electric Cyan Brackets (#00A8FF) -->
+  <g stroke="#00A8FF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
     <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
     <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />
     <path d="M 392 448 L 452 448 A 16 16 0 0 0 468 432 L 468 372" />
   </g>
 
-  <!-- Crisp White-Ice Inner Core -->
-  <g stroke="#F0F9FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <!-- Solid Inner White Core Highlight (#FFFFFF) -->
+  <g stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 44 140 L 44 80 A 16 16 0 0 1 60 64 L 120 64" />
     <path d="M 392 64 L 452 64 A 16 16 0 0 1 468 80 L 468 140" />
     <path d="M 44 372 L 44 432 A 16 16 0 0 0 60 448 L 120 448" />

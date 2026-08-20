@@ -1,5 +1,6 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8\n"
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
 "Project-Id-Version: goverlay\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -374,6 +375,15 @@ msgid ""
 msgstr ""
 "Ошибка (код %d):\n"
 "%s"
+
+#: goverlay_strings.rsuninstallchangesprompt
+#, object-pascal-format
+msgid "Are you sure you want to uninstall all changes for \"%s\"?"
+msgstr ""
+
+#: goverlay_strings.rsuninstallchangestitle
+msgid "Uninstall changes"
+msgstr ""
 
 #: goverlay_strings.rsupdatecheckfailed
 #, object-pascal-format
@@ -1434,9 +1444,10 @@ msgid "Power Limit"
 msgstr "Предел мощности"
 
 #: tgoverlayform.gputempcheckbox.caption
+#, fuzzy
 msgctxt "tgoverlayform.gputempcheckbox.caption"
 msgid "GPU"
-msgstr ""
+msgstr "GPU"
 
 #: tgoverlayform.gputemplabel.caption
 msgid "Temperature"

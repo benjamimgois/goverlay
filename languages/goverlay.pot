@@ -306,6 +306,15 @@ msgid ""
 "%s"
 msgstr ""
 
+#: goverlay_strings.rsuninstallchangesprompt
+#, object-pascal-format
+msgid "Are you sure you want to uninstall all changes for \"%s\"?"
+msgstr ""
+
+#: goverlay_strings.rsuninstallchangestitle
+msgid "Uninstall changes"
+msgstr ""
+
 #: goverlay_strings.rsupdatecheckfailed
 #, object-pascal-format
 msgid "Error checking for updates: %s"
