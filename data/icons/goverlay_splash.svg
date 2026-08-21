@@ -28,7 +28,7 @@
       font-weight: 600;
       font-size: 26px;
       fill: #E2E8F0;
-      letter-spacing: 2.8px;
+      letter-spacing: 1.45px;
     }
   </style>
 
@@ -48,5 +48,5 @@
     <text x="142" y="68" class="logotext">VERLAY</text>
   </g>
 
-  <text x="74" y="164" class="tagline">Linux gaming tools, made easy</text>
+  <text x="74.5" y="164" class="tagline">Linux gaming tools, made easy</text>
 </svg>
