@@ -3039,7 +3039,7 @@ begin
   FSplashBrandingImage.Center           := True;
   FSplashBrandingImage.Transparent      := True;
   FSplashBrandingImage.AntialiasingMode := amOn;
-  FSplashBrandingImage.SetBounds((SW - 380) div 2, 35, 380, 120);
+  FSplashBrandingImage.SetBounds((SW - 300) div 2, 45, 300, 94);
 
   BrandingFile := GetAppBaseDir + 'data/goverlay_splash_small.png';
   if not FileExists(BrandingFile) then
