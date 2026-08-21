@@ -35,11 +35,11 @@
   <g transform="translate(20, 10)">
     <text x="0" y="68" class="logotext">G</text>
 
-    <!-- Layered 'O' -->
+    <!-- Layered 'O' Option A -->
     <path d="M 88 88 L 126 88 A 8 8 0 0 0 134 80 L 134 40" 
-          stroke="#2563EB" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          stroke="#60A5FA" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
     <path d="M 78 78 L 116 78 A 8 8 0 0 0 124 70 L 124 29" 
-          stroke="#4895EF" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          stroke="#38BDF8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
     <rect x="58" y="10" width="58" height="58" rx="8" ry="8"
           fill="url(#screenGrad)" stroke="#FFFFFF" stroke-width="4.8" />
     <rect x="61" y="13" width="52" height="52" rx="5" ry="5"

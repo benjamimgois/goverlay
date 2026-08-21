@@ -28,14 +28,14 @@
   <g transform="translate(4, 2)">
     <text x="0" y="64" class="brandtext">G</text>
 
-    <!-- Layered 'O' (Square matches font height, layers extend naturally below/right) -->
-    <!-- Layer 3 (Back - #2563EB) -->
+    <!-- Layered 'O' Option A (Sky & Light Sapphire) -->
+    <!-- Layer 3 (Back - #60A5FA) -->
     <path d="M 84 82 L 120 82 A 8 8 0 0 0 128 74 L 128 36" 
-          stroke="#2563EB" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          stroke="#60A5FA" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
 
-    <!-- Layer 2 (Middle - #4895EF) -->
+    <!-- Layer 2 (Middle - #38BDF8) -->
     <path d="M 74 73 L 111 73 A 8 8 0 0 0 119 65 L 119 26" 
-          stroke="#4895EF" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          stroke="#38BDF8" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
 
     <!-- Layer 1 (Front Screen - White Square) -->
     <rect x="56" y="10" width="54" height="54" rx="8" ry="8"

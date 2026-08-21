@@ -15,13 +15,13 @@
     </linearGradient>
   </defs>
 
-  <!-- Layer 3 (Backmost Layer) -->
+  <!-- Layer 3 (Backmost Layer - Light Sapphire) -->
   <path d="M 200 452 L 420 452 A 28 28 0 0 0 448 424 L 448 200" 
-        stroke="#2563EB" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        stroke="#60A5FA" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
 
-  <!-- Layer 2 (Middle Layer) -->
+  <!-- Layer 2 (Middle Layer - Sky Blue) -->
   <path d="M 152 404 L 372 404 A 28 28 0 0 0 400 376 L 400 152" 
-        stroke="#4895EF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        stroke="#38BDF8" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
 
   <!-- Layer 1 (Front Main Screen with Solid White Frame) -->
   <rect x="64" y="64" width="288" height="288" rx="28" ry="28"
