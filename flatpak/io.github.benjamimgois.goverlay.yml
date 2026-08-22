@@ -1,11 +1,11 @@
 app-id: io.github.benjamimgois.goverlay
 runtime: org.kde.Platform
-runtime-version: "6.10"
+runtime-version: "6.11"
 sdk: org.kde.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.freepascal
 base: io.qt.qtwebengine.BaseApp
-base-version: "6.10"
+base-version: "6.11"
 command: goverlay
 
 finish-args:
@@ -141,8 +141,8 @@ modules:
     sources:
       - type: git
         url: https://github.com/benjamimgois/goverlay.git
-        tag: 1.8.4
-        commit: b4ea99e75c41cae18c8dc3f1cccbb86caacef3da
+        tag: 1.9.0
+        commit: dcafa7ab51106b0119fe9f15f2db19ab8d1c4f5b
     build-commands:
       - |
         # Use Flatpak-compatible launcher script
