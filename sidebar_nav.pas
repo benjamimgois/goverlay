@@ -376,6 +376,7 @@ begin
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
   FForm.FHowToMenuItem.Caption := 'Video tutorial';
   FForm.FHowToMenuItem.ImageIndex := 18;
+  FForm.FHowToMenuItem.Visible := False;
 
   SteamItem := TMenuItem.Create(FForm.FHowToMenuItem);
   SteamItem.Caption := 'Steam';
@@ -393,6 +394,7 @@ begin
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
+  Sep.Visible := False;
   FForm.settingsMenu.Items.Insert(9, Sep);
 end;
 
