@@ -1,5 +1,5 @@
 <p align="center">
- <img width="320" height="225" alt="image" src="/data/goverlay_header.webp" />
+ <img width="320" height="225" alt="image" src="/data/goverlay_splash.png" />
 </p>
 
 <p align="center">
