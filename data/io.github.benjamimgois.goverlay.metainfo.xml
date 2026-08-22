@@ -3,7 +3,7 @@
     <id>io.github.benjamimgois.goverlay</id>
 
     <name>Goverlay</name>
-    <summary>Easily configure MangoHud, vkBasalt and OptiScaler</summary>
+    <summary>Easily configure MangoHud, vkBasalt, OptiScaler, and Lossless Scaling</summary>
     <developer id="io.github.benjamimgois">
         <name>Benjamim Gois</name>
     </developer>
@@ -17,7 +17,7 @@
 
     <description>
         <p>
-            Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Goverlay helps Linux gamers get the most out of their systems by providing an easy-to-use graphical interface to configure MangoHud, vkBasalt, and OptiScaler. Whether you're looking for performance monitoring, visual enhancements, or smarter upscaling, Goverlay makes everything accessible in just a few clicks.
+            Goverlay is an easy graphical interface to configure MangoHud, vkBasalt, OptiScaler, and Lossless Scaling. Goverlay helps Linux gamers get the most out of their systems by providing an intuitive graphical interface to configure performance monitoring overlays, visual enhancements, DLSS/FSR upscaling, and frame generation in just a few clicks.
         </p>
     </description>
 
@@ -60,6 +60,33 @@
     </screenshots>
 
     <releases>
+        <release version="1.9.0" date="2026-08-22">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Lossless Scaling (lsfg-vk) frame generation integration with 1x to 10x multiplier support, HDR Mode, Performance Mode, and per-game profile isolation</li>
+                    <li>DLSS Enabler integration with dual-channel (Stable and Bleeding-edge) downloads and NVIDIA Streamline SDK support</li>
+                    <li>Added "None" upscaler method option to allow using Lossless Scaling standalone without proxy DLL injection</li>
+                    <li>Brand new visual identity with modernized layered neon overlay branding, application icon, and startup boot splash</li>
+                    <li>Floating action dock with quick Finish walkthrough, 3D preview launcher, and configuration file shortcuts</li>
+                    <li>PasCube Vulkan 1.3 3D preview and benchmark suite with active frame generation detection and score protection</li>
+                    <li>Proton tweaks added for PROTON_LOCAL_SHADER_CACHE and PROTON_DISCORD_BRIDGE</li>
+                    <li>Internationalization (i18n) framework integration with full Russian translation catalogue</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Modernized dark theme card layouts and Slate Navy styled inputs, comboboxes, and trackbars across all tabs</li>
+                    <li>Debounced automatic configuration persistence without requiring a manual Save button</li>
+                    <li>High-resolution vector master upscaler logos with subpixel antialiasing and crisp rendering under Qt6</li>
+                    <li>Decoupled vkSumi post-processing flags and automated neutral default detection</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Hardened sandbox directory checks and eliminated pipe deadlocks in logging and testing</li>
+                    <li>Resolved Steam Flatpak shortcuts permissions and isolated global versus per-game configurations</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.8.10" date="2026-07-28">
             <description>
                 <p>New Features</p>
