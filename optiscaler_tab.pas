@@ -252,6 +252,8 @@ begin
 
     optiscalerLogoImage := TImage.Create(FForm);
     optiscalerLogoImage.AntialiasingMode := amOn;
+    optiscalerLogoImage.StretchInEnabled  := True;
+    optiscalerLogoImage.StretchOutEnabled := True;
     optiscalerLogoImage.Parent := FOsUpscalerCard;
     optiscalerLogoImage.Transparent := True;
     optiscalerLogoImage.Center := True;
@@ -259,6 +261,9 @@ begin
     optiscalerLogoImage.Stretch := True;
 
     dlssEnablerLogoImage := TImage.Create(FForm);
+    dlssEnablerLogoImage.AntialiasingMode := amOn;
+    dlssEnablerLogoImage.StretchInEnabled  := True;
+    dlssEnablerLogoImage.StretchOutEnabled := True;
     dlssEnablerLogoImage.Parent := FOsUpscalerCard;
     dlssEnablerLogoImage.Transparent := True;
     dlssEnablerLogoImage.Center := True;
@@ -273,19 +278,48 @@ begin
     streamlineVersionLabel.Parent := FOsUpscalerCard;
     streamlineVersionLabel.Visible := False;
 
+    noneUpscalerRadioButton := TRadioButton.Create(FForm);
+    noneUpscalerRadioButton.Parent := FOsUpscalerCard;
+    noneUpscalerRadioButton.Caption := '';
+    DarkRadio(noneUpscalerRadioButton);
+    noneUpscalerRadioButton.Checked := False;
+    noneUpscalerRadioButton.OnClick := @noneUpscalerRadioButtonClick;
+
+    noneUpscalerLogoImage := TImage.Create(FForm);
+    noneUpscalerLogoImage.AntialiasingMode := amOn;
+    noneUpscalerLogoImage.StretchInEnabled  := True;
+    noneUpscalerLogoImage.StretchOutEnabled := True;
+    noneUpscalerLogoImage.Parent := FOsUpscalerCard;
+    noneUpscalerLogoImage.Transparent := True;
+    noneUpscalerLogoImage.Center := True;
+    noneUpscalerLogoImage.Proportional := True;
+    noneUpscalerLogoImage.Stretch := True;
+
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;
+    FNoneUpscalerPngLogo := TPortableNetworkGraphic.Create;
 
     IconPath := GetAppBaseDir + 'assets/icons/upscaler_optiscaler.png';
+    if not FileExists(IconPath) then
+      IconPath := 'assets/icons/upscaler_optiscaler.png';
     if FileExists(IconPath) then
       FOptiScalerPngLogo.LoadFromFile(IconPath);
 
     IconPath := GetAppBaseDir + 'assets/icons/upscaler_dlss_enabler.png';
+    if not FileExists(IconPath) then
+      IconPath := 'assets/icons/upscaler_dlss_enabler.png';
     if FileExists(IconPath) then
       FDlssEnablerPngLogo.LoadFromFile(IconPath);
 
+    IconPath := GetAppBaseDir + 'assets/icons/upscaler_none.png';
+    if not FileExists(IconPath) then
+      IconPath := 'assets/icons/upscaler_none.png';
+    if FileExists(IconPath) then
+      FNoneUpscalerPngLogo.LoadFromFile(IconPath);
+
     optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
     dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
+    noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogo);
     UpdateUpscalerImageOpacity;
 
     // ── Card 0b: GPU Driver (Right) ─────────────────────────────────────
@@ -956,6 +990,8 @@ var
   ComboW, CheckW: Integer;
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
+  LogoH, LogoW_None, LogoW_Opti, LogoW_De: Integer;
+  GroupW_None, GroupW_Opti, GroupW_De, TotalGroupW, GapBetween: Integer;
 begin
   with FForm do
   begin
@@ -987,18 +1023,45 @@ begin
     if Assigned(FOsUpscalerCard) then
     begin
       FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CardW, GPU_H);
-      ItemW := (CardW - 2 * PAD) div 2;
-      LogoW := Min(120, Max(40, ItemW - 36));
+      InnerW := CardW - 2 * PAD;
 
+      LogoW_None := 48;
+      LogoW_Opti := 114;
+      LogoW_De   := 62;
+
+      GroupW_None := 22 + LogoW_None;
+      GroupW_Opti := 22 + LogoW_Opti;
+      GroupW_De   := 22 + LogoW_De;
+      TotalGroupW := GroupW_None + GroupW_Opti + GroupW_De;
+
+      if InnerW > TotalGroupW then
+        GapBetween := (InnerW - TotalGroupW) div 2
+      else
+        GapBetween := 2;
+
+      X1 := PAD;
+      X2 := X1 + GroupW_None + GapBetween;
+      X3 := CardW - PAD - GroupW_De;
+      if X3 < X2 + GroupW_Opti + 2 then
+        X3 := X2 + GroupW_Opti + 2;
+
+      // Column 1: None (leftmost)
+      if Assigned(noneUpscalerRadioButton) then
+        noneUpscalerRadioButton.SetBounds(X1, HDR + (GPU_GH - 20) div 2, 20, 20);
+      if Assigned(noneUpscalerLogoImage) then
+        noneUpscalerLogoImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
+
+      // Column 2: OptiScaler (middle)
       if Assigned(optiscalerRadioButton) then
-        optiscalerRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2, 20, 20);
+        optiscalerRadioButton.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(optiscalerLogoImage) then
-        optiscalerLogoImage.SetBounds(PAD + 22, HDR + (GPU_GH - 17) div 2, LogoW, 17);
+        optiscalerLogoImage.SetBounds(X2 + 22, HDR + (GPU_GH - 22) div 2, LogoW_Opti, 22);
 
+      // Column 3: DLSS Enabler (rightmost, 2-lines stacked)
       if Assigned(dlssenablerRadioButton) then
-        dlssenablerRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2, 20, 20);
+        dlssenablerRadioButton.SetBounds(X3, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(dlssEnablerLogoImage) then
-        dlssEnablerLogoImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 18) div 2, LogoW, 18);
+        dlssEnablerLogoImage.SetBounds(X3 + 22, HDR + (GPU_GH - 36) div 2, LogoW_De, 36);
     end;
 
     // ── Card 0b: GPU Driver (Right 50%) ─────────────────────────────────
@@ -1241,16 +1304,28 @@ begin
       begin
         dlssenablerRadioButton.Checked := True;
         optiscalerRadioButton.Checked := False;
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
         if Settings.OptVersionItemIndex in [0, 1] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
       end
+      else if Settings.UpscalerTypeItemIndex = 2 then
+      begin
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := True;
+        optiscalerRadioButton.Checked := False;
+        dlssenablerRadioButton.Checked := False;
+        optversionComboBox.Enabled := False;
+      end
       else
       begin
         optiscalerRadioButton.Checked := True;
         dlssenablerRadioButton.Checked := False;
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
         if Settings.OptVersionItemIndex in [0, 1] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
@@ -1315,7 +1390,9 @@ begin
       Settings.FGOutputItemIndex := fgOutputComboBox.ItemIndex
     else
       Settings.FGOutputItemIndex := 0;
-    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
+    if Assigned(noneUpscalerRadioButton) and noneUpscalerRadioButton.Checked then
+      Settings.UpscalerTypeItemIndex := 2
+    else if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
       Settings.UpscalerTypeItemIndex := 1
     else
       Settings.UpscalerTypeItemIndex := 0;

@@ -691,7 +691,11 @@ begin
   if not FileExists(ConfigPath) then Exit;
   Ini := TIniFile.Create(ConfigPath);
   try
-    Result := Ini.ReadString('Config', FLAGS[AToolIdx], DefaultVal) = '1';
+    if AToolIdx = 2 then
+      Result := (Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', DefaultVal) = '1') or
+                (Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1')
+    else
+      Result := Ini.ReadString('Config', FLAGS[AToolIdx], DefaultVal) = '1';
   finally
     Ini.Free;
   end;
@@ -708,10 +712,23 @@ begin
   ForceDirectories(ExtractFilePath(ConfigPath));
   Ini := TIniFile.Create(ConfigPath);
   try
-    if AEnabled then
-      Ini.WriteString('Config', FLAGS[AToolIdx], '1')
+    if AToolIdx = 2 then
+    begin
+      if AEnabled then
+        Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1')
+      else
+      begin
+        Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '0');
+        Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '0');
+      end;
+    end
     else
-      Ini.WriteString('Config', FLAGS[AToolIdx], '0');
+    begin
+      if AEnabled then
+        Ini.WriteString('Config', FLAGS[AToolIdx], '1')
+      else
+        Ini.WriteString('Config', FLAGS[AToolIdx], '0');
+    end;
   finally
     Ini.Free;
   end;
@@ -759,6 +776,13 @@ begin
               FForm.reflexComboBox.Enabled := FForm.forcereflexCheckBox.Checked;
           end;
         end;
+      end;
+      if Assigned(FForm.noneUpscalerRadioButton) and FForm.noneUpscalerRadioButton.Checked then
+      begin
+        if Assigned(FForm.FOsGpuCard) then FForm.SetControlTreeEnabled(FForm.FOsGpuCard, False);
+        if Assigned(FForm.FOsOptionsCard) then FForm.SetControlTreeEnabled(FForm.FOsOptionsCard, False);
+        if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Enabled := False;
+        if Assigned(FForm.checkupdBitBtn) then FForm.checkupdBitBtn.Enabled := False;
       end;
       if Assigned(FForm.dlssenablerToggleBtn) then FForm.dlssenablerToggleBtn.Enabled := False;
     end;

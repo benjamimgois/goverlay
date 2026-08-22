@@ -573,6 +573,7 @@ type
     procedure nvidiaRadioButtonChange(Sender: TObject);
     procedure optiscalerRadioButtonClick(Sender: TObject);
     procedure dlssenablerRadioButtonClick(Sender: TObject);
+    procedure noneUpscalerRadioButtonClick(Sender: TObject);
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
@@ -1084,12 +1085,15 @@ type
     FOsPatcherListBtn: TSpeedButton;
     optiscalerRadioButton: TRadioButton;
     dlssenablerRadioButton: TRadioButton;
+    noneUpscalerRadioButton: TRadioButton;
     optiscalerLogoImage: TImage;
     dlssEnablerLogoImage: TImage;
+    noneUpscalerLogoImage: TImage;
     dlssEnablerVersionLabel: TLabel;
     streamlineVersionLabel: TLabel;
     FOptiScalerPngLogo: TPortableNetworkGraphic;
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
+    FNoneUpscalerPngLogo: TPortableNetworkGraphic;
     FOsStatDots:     array[0..5] of TShape;
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel;
@@ -4972,10 +4976,13 @@ var
 begin
   if Assigned(optiscalerRadioButton) and not optiscalerRadioButton.Checked then Exit;
 
-  if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
+  if Assigned(optiscalerRadioButton) then
   begin
     optiscalerRadioButton.Checked := True;
-    dlssenablerRadioButton.Checked := False;
+    if Assigned(dlssenablerRadioButton) then
+      dlssenablerRadioButton.Checked := False;
+    if Assigned(noneUpscalerRadioButton) then
+      noneUpscalerRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5019,10 +5026,13 @@ var
 begin
   if Assigned(dlssenablerRadioButton) and not dlssenablerRadioButton.Checked then Exit;
 
-  if Assigned(optiscalerRadioButton) and Assigned(dlssenablerRadioButton) then
+  if Assigned(dlssenablerRadioButton) then
   begin
     dlssenablerRadioButton.Checked := True;
-    optiscalerRadioButton.Checked := False;
+    if Assigned(optiscalerRadioButton) then
+      optiscalerRadioButton.Checked := False;
+    if Assigned(noneUpscalerRadioButton) then
+      noneUpscalerRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5051,13 +5061,40 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.noneUpscalerRadioButtonClick(Sender: TObject);
+begin
+  if Assigned(noneUpscalerRadioButton) and not noneUpscalerRadioButton.Checked then Exit;
+
+  if Assigned(noneUpscalerRadioButton) then
+  begin
+    noneUpscalerRadioButton.Checked := True;
+    if Assigned(optiscalerRadioButton) then
+      optiscalerRadioButton.Checked := False;
+    if Assigned(dlssenablerRadioButton) then
+      dlssenablerRadioButton.Checked := False;
+  end;
+  UpdateUpscalerImageOpacity;
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+  if Assigned(FOptiscalerUpdate) then
+    FOptiscalerUpdate.LoadVersionsFromFile;
+
+  if Assigned(optversionComboBox) then
+    optversionComboBox.Enabled := False;
+
+  RefreshOsStatusDots;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+end;
+
 procedure Tgoverlayform.UpdateUpscalerImageOpacity;
 begin
-  if not Assigned(optiscalerLogoImage) or not Assigned(dlssEnablerLogoImage) then Exit;
-  if Assigned(optiscalerRadioButton) then
+  if Assigned(optiscalerLogoImage) and Assigned(optiscalerRadioButton) then
     optiscalerLogoImage.Enabled := optiscalerRadioButton.Checked;
-  if Assigned(dlssenablerRadioButton) then
+  if Assigned(dlssEnablerLogoImage) and Assigned(dlssenablerRadioButton) then
     dlssEnablerLogoImage.Enabled := dlssenablerRadioButton.Checked;
+  if Assigned(noneUpscalerLogoImage) and Assigned(noneUpscalerRadioButton) then
+    noneUpscalerLogoImage.Enabled := noneUpscalerRadioButton.Checked;
 end;
 
 

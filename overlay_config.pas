@@ -638,7 +638,10 @@ begin
   ForceDirectories(ExtractFilePath(FGModFilePath));
   Ini := TIniFile.Create(FGModFilePath);
   try
-    Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
+    if Settings.UpscalerTypeItemIndex = 2 then
+      Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '0')
+    else
+      Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1');
     Ini.WriteString('Config', 'DLL', SelectedDllName);
     Ini.WriteString('Config', 'PRESERVE_INI', 'true');
     Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);

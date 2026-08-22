@@ -1284,6 +1284,14 @@ begin
   goverlayform.dlssenablerRadioButtonClick(nil);
   AssertTrue('dlssenablerToggleLabel visible when DLSS Enabler is active', goverlayform.dlssenablerToggleLabel.Visible);
   AssertTrue('dlssenablerToggleBtn visible when DLSS Enabler is active', goverlayform.dlssenablerToggleBtn.Visible);
+
+  // When None radio button is checked
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(nil);
+  AssertFalse('OptiScaler unchecked when None is selected', goverlayform.optiscalerRadioButton.Checked);
+  AssertFalse('DLSS Enabler unchecked when None is selected', goverlayform.dlssenablerRadioButton.Checked);
+  AssertTrue('None is checked', goverlayform.noneUpscalerRadioButton.Checked);
+  AssertFalse('optversionComboBox disabled when None is selected', goverlayform.optversionComboBox.Enabled);
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────
