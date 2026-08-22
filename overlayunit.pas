@@ -971,6 +971,7 @@ type
     function  GetVkSumiLaunchEnv: string;
     function  GetLosslessScalingLaunchEnv: string;
     function  GetPasCubeUncappedParam: string;
+    function  GetPasCubeLosslessParam: string;
     // Exposed: procedure UpdateGameContextLabel;
     // Exposed: procedure PreviewBtnClick(Sender: TObject);
     // Exposed: procedure LoadGlobalThumb;
@@ -9053,6 +9054,14 @@ begin
     Result := '';
 end;
 
+function Tgoverlayform.GetPasCubeLosslessParam: string;
+begin
+  if (goverlayPageControl.ActivePage = losslessScalingTabSheet) or (GetLosslessScalingLaunchEnv <> '') then
+    Result := ' --lossless-scaling'
+  else
+    Result := '';
+end;
+
 procedure Tgoverlayform.UpdateGameContextLabel;
 begin
   // Game context label removed — active game is shown in the sidebar thumb instead
@@ -9070,7 +9079,7 @@ begin
     if GetLosslessScalingLaunchEnv <> '' then
       DbgLog('[LosslessScaling] ' + Trim(GetLosslessScalingLaunchEnv));
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + ' &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;

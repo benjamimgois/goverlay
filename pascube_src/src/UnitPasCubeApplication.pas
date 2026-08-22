@@ -41,6 +41,7 @@ type TPasCubeApplication=class(TpvApplication)
        fHasDesiredPosition:boolean;
        fVersion:string;
        fUncappedFPS:boolean;
+       fLosslessScalingActive:boolean;
       public
        constructor Create; override;
        destructor Destroy; override;
@@ -57,6 +58,7 @@ type TPasCubeApplication=class(TpvApplication)
        property TextOverlay:TTextOverlay read fTextOverlay;
        property Version:string read fVersion write fVersion;
        property UncappedFPS:boolean read fUncappedFPS write fUncappedFPS;
+       property LosslessScalingActive:boolean read fLosslessScalingActive write fLosslessScalingActive;
       end;
 
 var Application:TPasCubeApplication=nil;
@@ -77,6 +79,7 @@ begin
  fHasDesiredPosition:=false;
  fVersion:='1.8.0';
  fUncappedFPS:=false;
+ fLosslessScalingActive:=false;
 end;
 
 destructor TPasCubeApplication.Destroy;
@@ -129,9 +132,17 @@ begin
    fVersion:=ParamStr(Index);
   end else if (Arg='--uncapped') or (Arg='--unlimited-fps') then begin
    fUncappedFPS:=true;
+  end else if (Arg='--lossless-scaling') or (Arg='--lossless') or (Arg='--lsfg-active') then begin
+   fLosslessScalingActive:=true;
   end;
   Inc(Index);
  end;
+
+ if not fLosslessScalingActive then begin
+  if (GetEnvironmentVariable('LSFG_CONFIG') <> '') or (GetEnvironmentVariable('ENABLE_LSFGVK') = '1') then
+   fLosslessScalingActive:=true;
+ end;
+
  Title:='PasCube';
  if HasX or HasY then begin
   fDesiredX:=PosX;

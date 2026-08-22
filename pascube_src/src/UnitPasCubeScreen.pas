@@ -2265,7 +2265,13 @@ begin
 end;
 
 procedure TPasCubeScreen.StartBenchmark;
+var app: TPasCubeApplication;
 begin
+  app := UnitPasCubeApplication.Application;
+  if Assigned(app) and app.LosslessScalingActive then begin
+    DebugLog('StartBenchmark aborted: Lossless Scaling is active.');
+    Exit;
+  end;
   EnsurePasCubeNicknamePrompted;
   if Assigned(fDebugLog) then fDebugLog.Clear;
   DebugLog('=== START BENCHMARK ===');
@@ -2796,6 +2802,7 @@ procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, paddingX, paddingY: TpvFloat;
+    boxW, boxH, boxX, boxY: TpvFloat;
     isStartHovered, isViewHovered: Boolean;
     bgR, bgG, bgB, bgA: TpvFloat;
     fgR, fgG, fgB, fgA: TpvFloat;
@@ -2819,16 +2826,49 @@ begin
  // Centered Title (Increased font size to 3.0, using default font)
  app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
 
+ // Centered Alert Card when Lossless Scaling is active
+ if app.LosslessScalingActive then begin
+  boxW := 48.0 * charWidth;
+  boxH := 6.5 * charHeight;
+  boxX := cx - (boxW * 0.5);
+  boxY := (1080.0 * 0.5) - (boxH * 0.5);
+  app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                         20.0/255.0, 24.0/255.0, 36.0/255.0, 0.92,
+                         245.0/255.0, 166.0/255.0, 35.0/255.0, 0.85,
+                         255.0);
+
+  app.TextOverlay.AddText(cx, boxY + 1.2 * charHeight, 1.3, toaCenter,
+                          'Benchmark Disabled',
+                          0.0, 0.0, 0.0, 0.0,
+                          245.0/255.0, 166.0/255.0, 35.0/255.0, 1.0);
+
+  app.TextOverlay.AddText(cx, boxY + 2.9 * charHeight, 0.9, toaCenter,
+                          'Lossless Scaling (LSFG-VK) is currently active.',
+                          0.0, 0.0, 0.0, 0.0,
+                          1.0, 1.0, 1.0, 1.0);
+
+  app.TextOverlay.AddText(cx, boxY + 4.3 * charHeight, 0.8, toaCenter,
+                          'Disable Lossless Scaling in GOverlay to run benchmarks.',
+                          0.0, 0.0, 0.0, 0.0,
+                          185.0/255.0, 190.0/255.0, 205.0/255.0, 1.0);
+ end;
+
  // 1. Start benchmark button
- isStartHovered := IsStartButtonHovered(fLastMousePosition);
- if isStartHovered then begin
-  bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-  fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-  textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+ if app.LosslessScalingActive then begin
+  bgR := 18.0 / 255.0; bgG := 20.0 / 255.0; bgB := 28.0 / 255.0; bgA := 1.0;
+  fgR := 40.0 / 255.0; fgG := 45.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
+  textR := 110.0 / 255.0; textG := 115.0 / 255.0; textB := 130.0 / 255.0; textA := 1.0;
  end else begin
-  bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-  fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-  textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  isStartHovered := IsStartButtonHovered(fLastMousePosition);
+  if isStartHovered then begin
+   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+  end else begin
+   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+  end;
  end;
 
  if fHistoryCount > 0 then
@@ -2871,6 +2911,7 @@ begin
   if fBenchmarkPhase <> bpIdleMenu then Exit;
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
+  if app.LosslessScalingActive then Exit;
 
   cx := 1920.0 * 0.5;
   yText := 1080.0 - 110.0;
@@ -3402,7 +3443,15 @@ var URL, UserNick: string;
     JSONObj: TJSONObject;
     Payload: string;
     Prompted: Boolean;
+    app: TPasCubeApplication;
 begin
+  app := UnitPasCubeApplication.Application;
+  if Assigned(app) and app.LosslessScalingActive then begin
+    DebugLog('SubmitBenchmarkResults rejected: Lossless Scaling is active.');
+    fSubmitStatus := 3;
+    Exit;
+  end;
+
   URL := GetSubmitURL;
   if URL = '' then begin
     fSubmitStatus := 4;
