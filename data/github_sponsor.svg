@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 76" width="370" height="76">
+  <rect x="2" y="2" width="366" height="72" rx="36" ry="36" fill="#21262D" stroke="#EA4AAA" stroke-width="2" />
+  <g transform="translate(34, 18)">
+    <path d="M20 35.8 L17.1 33.2 C6.8 23.8 0 17.6 0 10 C0 4.4 4.4 0 10 0 C13.2 0 16.2 1.5 18.2 3.8 L20 5.9 L21.8 3.8 C23.8 1.5 26.8 0 30 0 C35.6 0 40 4.4 40 10 C40 17.6 33.2 23.8 22.9 33.2 L20 35.8 Z" fill="#EA4AAA" transform="scale(0.85)" />
+  </g>
+  <text x="86" y="48" font-family="'Noto Sans', 'Liberation Sans', sans-serif" font-weight="700" font-size="23" fill="#FFFFFF">Sponsor on GitHub</text>
+</svg>

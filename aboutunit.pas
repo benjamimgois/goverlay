@@ -12,6 +12,7 @@ type
   { TaboutForm }
 
   TaboutForm = class(TForm)
+    sponsorImage: TImage;
     donateImage: TImage;
     paypalDonateImage: TImage;
     meImage: TImage;
@@ -29,6 +30,7 @@ type
     aboutTabSheet: TTabSheet;
     licenseTabSheet: TTabSheet;
     procedure FormCreate(Sender: TObject);
+    procedure sponsorImageClick(Sender: TObject);
     procedure donateImageClick(Sender: TObject);
     procedure paypalDonateImageClick(Sender: TObject);
     procedure linksLabelClick(Sender: TObject);
@@ -119,6 +121,18 @@ begin
   begin
     try
       logoImage.Picture.LoadFromFile(LogoFile);
+    except
+    end;
+  end;
+
+  // Load GitHub Sponsor donate image dynamically if available
+  LogoFile := GetAppBaseDir + 'data/github_sponsor.png';
+  if not FileExists(LogoFile) then
+    LogoFile := 'data/github_sponsor.png';
+  if FileExists(LogoFile) then
+  begin
+    try
+      sponsorImage.Picture.LoadFromFile(LogoFile);
     except
     end;
   end;
@@ -221,6 +235,17 @@ begin
     meLabel.Transparent := True;
     gplMemo.Color := NewDarkBg;
     gplMemo.Font.Color := clWhite;
+  end;
+end;
+
+procedure TaboutForm.sponsorImageClick(Sender: TObject);
+begin
+  try
+    if not OpenURL(URL_GITHUB_SPONSORS) then
+      ShowMessage(rsLinkOpenFailed);
+  except
+    on E: Exception do
+      ShowMessage(Format(rsLinkOpenError, [E.Message]));
   end;
 end;
 

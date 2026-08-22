@@ -84,6 +84,7 @@ const
   // ============================================================================
   URL_TWITTER = 'https://twitter.com/benjamimgois';
   URL_LINKEDIN = 'https://www.linkedin.com/in/benjamim-gois-37100155/';
+  URL_GITHUB_SPONSORS = 'https://github.com/sponsors/benjamimgois';
   URL_KOFI = 'https://ko-fi.com/benjamimgois';
   URL_PAYPAL = 'https://www.paypal.com/donate/?hosted_button_id=YWQRQV83MCCS6';
 
