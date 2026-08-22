@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 88" width="370" height="88">
+  <rect x="2" y="2" width="366" height="84" rx="42" ry="42" fill="#FFC439" stroke="#E5A912" stroke-width="2" />
+  <g transform="translate(54, 17)">
+    <path d="M 14 6 L 27 6 C 36 6 42 11 40 20 C 38 28 32 34 24 34 L 18 34 L 12 58 L 2 58 L 14 6 Z" fill="#003087" />
+    <path d="M 22 17 L 35 17 C 43 17 48 22 46 30 C 44 38 38 44 30 44 L 24 44 L 20 62 L 11 62 L 22 17 Z" fill="#0079C1" />
+    <path d="M 22 17 L 31 17 C 38 17 42 21 40 28 C 38 34 33 39 26 39 L 24 44 L 20 62 L 11 62 L 22 17 Z" fill="#00457C" opacity="0.4" />
+  </g>
+  <text x="130" y="57" font-family="'Noto Sans', 'Liberation Sans', sans-serif" font-weight="800" font-size="33" fill="#003087">Donate</text>
+</svg>
