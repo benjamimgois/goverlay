@@ -2457,6 +2457,17 @@ begin
     goverlayform.gamesLabelClick(nil);
     AssertEquals('Returning to global mode restores global launch command',
       GlobalExpected, goverlayform.GetLaunchCommand);
+
+    // 6. Test MangoHud Global Enable does NOT replace launch command with descriptive text
+    goverlayform.globalenableMenuItem.Checked := True;
+    goverlayform.saveBitBtnClick(nil);
+    AssertEquals('Global launch command remains valid bgmod path when globalenableMenuItem is checked',
+      GlobalExpected, goverlayform.FLaunchCommand);
+    AssertEquals('GetLaunchCommand returns valid bgmod path when globalenableMenuItem is checked',
+      GlobalExpected, goverlayform.GetLaunchCommand);
+    AssertFalse('FLaunchCommand does not contain descriptive text',
+      Pos('will be displayed', goverlayform.FLaunchCommand) > 0);
+    goverlayform.globalenableMenuItem.Checked := False;
   finally
     TestPanel.Free;
     goverlayform.gamesLabelClick(nil);

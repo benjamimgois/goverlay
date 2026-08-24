@@ -46,7 +46,7 @@ The system SHALL display the generated launch command in a prominent, high-contr
 - **THEN** the system SHALL copy the active platform's command string to the system clipboard and display temporary visual feedback (`Copied!`) in English.
 
 ### Requirement: Dynamic Profile-Aware Launch Command Resolution
-GOverlay SHALL dynamically compute the launch command at the time the Finish Configuration dialog is invoked, reflecting the active game profile context, non-Steam launcher state, and enabled performance flags rather than relying on a static or cached command string.
+GOverlay SHALL dynamically compute the launch command at the time the Finish Configuration dialog is invoked, reflecting the active game profile context, non-Steam launcher state, and enabled performance flags rather than relying on a static or cached command string, and SHALL NOT replace executable launch commands with descriptive text when MangoHud Global Enable is active.
 
 #### Scenario: Opening Finish Configuration dialog in Game Profile mode
 - **WHEN** a game is active (`FActiveGameName <> ''`) and the user clicks the Finish button on the floating action dock
@@ -55,3 +55,7 @@ GOverlay SHALL dynamically compute the launch command at the time the Finish Con
 #### Scenario: Opening Finish Configuration dialog in Global Profile mode
 - **WHEN** no game is active (`FActiveGameName = ''`) and the user clicks the Finish button on the floating action dock
 - **THEN** GOverlay SHALL pass the dynamically resolved global launch command pointing to `GetGameConfigDir('') + 'bgmod'` (e.g. `"/home/user/.local/share/goverlay/gameconfig/global/bgmod" %command%`) to the Finish Configuration dialog.
+
+#### Scenario: Launch command with MangoHud Global Enable active
+- **WHEN** MangoHud Global Enable is toggled on (`globalenableMenuItem.Checked = True`)
+- **THEN** saving configuration or generating launch commands SHALL continue to return a valid executable `bgmod` launch command without substituting descriptive strings.

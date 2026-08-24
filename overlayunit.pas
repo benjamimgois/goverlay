@@ -6317,20 +6317,9 @@ begin
   // Popup a notification
     // SendNotification('MangoHud', 'Configuration saved', GetIconFile);
 
-  // If geSpeedButton is active (MangoHud enabled in fgmod), show the fgmod command
-    // If global enable is active, show message instead of command
-    if globalenableMenuItem.Checked then
-    begin
-      notificationLabel.Visible := False;
-      FLaunchCommand := 'MangoHud will be displayed in every vulkan application';
-      commandPaintBox.Invalidate;
-    end
-    else
-    begin
-      notificationLabel.Visible := False;
-      FLaunchCommand := GetLaunchCommand;
-      commandPaintBox.Invalidate;
-    end;
+    notificationLabel.Visible := False;
+    FLaunchCommand := GetLaunchCommand;
+    commandPaintBox.Invalidate;
 
     //########################################### SAVE BLACKLIST
     // The blacklist is always applied to the global MangoHud.conf (it filters
