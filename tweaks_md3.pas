@@ -1356,26 +1356,8 @@ begin
     Ini.Free;
   end;
 
-  // Build the Launch Command to display/use
-  if FForm.FActiveGameIsNonSteam then
-    LaunchCommand := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod '
-  else
-    LaunchCommand := '"' + FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod" ';
-
-  // Check if gamemode should be added
-  if FForm.GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-  // Always end with %command%
-  if not ( (FForm.FActiveGameName <> '') and FForm.FActiveGameIsNonSteam ) then
-    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
-  // RE Engine RT workaround suffix (after %command%)
-  if FForm.FReEngineRTCheckBox.Checked then
-    LaunchCommand := LaunchCommand + LAUNCH_SUFFIX_WINE_DETECTION;
-
   FForm.notificationLabel.Visible := False;
-  FForm.FLaunchCommand := LaunchCommand;
+  FForm.FLaunchCommand := FForm.GetLaunchCommand;
   FForm.commandPaintBox.Invalidate;
 end;
 

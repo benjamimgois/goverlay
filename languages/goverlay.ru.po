@@ -1675,7 +1675,9 @@ msgid "Shift_L+F2"
 msgstr ""
 
 #: tgoverlayform.logtogglelabel.caption
-msgid "Optiscaler toggle"
+#, fuzzy
+#| msgid "Optiscaler toggle"
+msgid "Logging toggle"
 msgstr "Переключение Optiscaler"
 
 #: tgoverlayform.mainmetriclabel.caption
@@ -1834,6 +1836,10 @@ msgstr "сдвиг по X"
 #: tgoverlayform.offsetyspinedit.hint
 msgid "offset Y"
 msgstr "сдвиг по Y"
+
+#: tgoverlayform.openconfigfilemenuitem.caption
+msgid "Open config file"
+msgstr ""
 
 #: tgoverlayform.optionsgroupbox.caption
 msgid "Basic Options"
@@ -2056,14 +2062,6 @@ msgstr "Разрешение"
 #: tgoverlayform.roundimage.hint
 msgid "Round edge"
 msgstr "Скруглённые углы"
-
-#: tgoverlayform.runpascubetitem.caption
-msgid "Run PasCube"
-msgstr "Запустить PasCube"
-
-#: tgoverlayform.runvkcubeitem.caption
-msgid "Run vkCube"
-msgstr "Запустить vkCube"
 
 #: tgoverlayform.saveasmenuitem.caption
 msgid "Save as"

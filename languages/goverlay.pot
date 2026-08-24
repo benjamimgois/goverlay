@@ -1498,7 +1498,7 @@ msgid "Shift_L+F2"
 msgstr ""
 
 #: tgoverlayform.logtogglelabel.caption
-msgid "Optiscaler toggle"
+msgid "Logging toggle"
 msgstr ""
 
 #: tgoverlayform.mainmetriclabel.caption
@@ -1644,6 +1644,10 @@ msgstr ""
 
 #: tgoverlayform.offsetyspinedit.hint
 msgid "offset Y"
+msgstr ""
+
+#: tgoverlayform.openconfigfilemenuitem.caption
+msgid "Open config file"
 msgstr ""
 
 #: tgoverlayform.optionsgroupbox.caption
@@ -1862,14 +1866,6 @@ msgstr ""
 
 #: tgoverlayform.roundimage.hint
 msgid "Round edge"
-msgstr ""
-
-#: tgoverlayform.runpascubetitem.caption
-msgid "Run PasCube"
-msgstr ""
-
-#: tgoverlayform.runvkcubeitem.caption
-msgid "Run vkCube"
 msgstr ""
 
 #: tgoverlayform.saveasmenuitem.caption

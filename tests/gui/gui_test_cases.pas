@@ -98,6 +98,7 @@ type
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
+    procedure TestDynamicLaunchCommandGeneration;
   end;
 
 implementation
@@ -2405,6 +2406,61 @@ begin
   AssertTrue('FFADock menu button visible on Tweaks tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on Tweaks', goverlayform.openConfigFileMenuItem.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestDynamicLaunchCommandGeneration;
+var
+  TestPanel: TPanel;
+  GlobalExpected, SteamExpected, NonSteamExpected: string;
+begin
+  // 1. In Global mode, launch command targets gameconfig/global/bgmod with quotes and %command%
+  goverlayform.gamesLabelClick(nil);
+  goverlayform.GetPerformanceCheckBox(0).Checked := False;
+  if Assigned(goverlayform.FReEngineRTCheckBox) then
+    goverlayform.FReEngineRTCheckBox.Checked := False;
+
+  GlobalExpected := '"' + goverlayform.GetGameConfigDir('') + 'bgmod" %command%';
+  AssertEquals('Global launch command targets gameconfig/global/bgmod',
+    GlobalExpected, goverlayform.GetLaunchCommand);
+
+  // 2. Select a Steam game card -> launch command dynamically resolves to game config path without manual save
+  TestPanel := TPanel.Create(nil);
+  try
+    TestPanel.Hint := '(1091500) Cyberpunk 2077' + LineEnding + '/path/to/game';
+    goverlayform.GameCardClick(TestPanel);
+
+    AssertFalse('Steam game is not non-steam', goverlayform.FActiveGameIsNonSteam);
+    AssertEquals('FActiveGameName matches', 'Cyberpunk 2077', goverlayform.FActiveGameName);
+
+    SteamExpected := '"' + goverlayform.GetGameConfigDir('Cyberpunk 2077') + 'bgmod" %command%';
+    AssertEquals('Steam game launch command resolves to game folder path',
+      SteamExpected, goverlayform.GetLaunchCommand);
+
+    // 3. Select a Non-Steam/Heroic game card -> launch command resolves to unquoted wrapper path without %command%
+    TestPanel.Hint := 'BatmanArkhamKnight' + LineEnding + '/path/to/heroic';
+    goverlayform.GameCardClick(TestPanel);
+
+    AssertTrue('Heroic game is non-steam', goverlayform.FActiveGameIsNonSteam);
+    AssertEquals('FActiveGameName matches', 'BatmanArkhamKnight', goverlayform.FActiveGameName);
+
+    NonSteamExpected := goverlayform.GetGameConfigDir('BatmanArkhamKnight') + 'bgmod ';
+    AssertEquals('Non-Steam game launch command resolves to unquoted wrapper path',
+      NonSteamExpected, goverlayform.GetLaunchCommand);
+
+    // 4. Test Gamemode integration
+    goverlayform.GetPerformanceCheckBox(0).Checked := True;
+    AssertTrue('Launch command contains gamemoderun when enabled',
+      Pos('gamemoderun', goverlayform.GetLaunchCommand) > 0);
+    goverlayform.GetPerformanceCheckBox(0).Checked := False;
+
+    // 5. Returning to global mode restores global launch command
+    goverlayform.gamesLabelClick(nil);
+    AssertEquals('Returning to global mode restores global launch command',
+      GlobalExpected, goverlayform.GetLaunchCommand);
+  finally
+    TestPanel.Free;
+    goverlayform.gamesLabelClick(nil);
+  end;
 end;
 
 initialization

@@ -1362,6 +1362,7 @@ type
     procedure NavAnimTick(Sender: TObject);
     procedure ApplyNavWidth(AWidth: Integer);
     procedure ApplyNavCollapsed;
+    function  GetLaunchCommand: string;
     function  GetGameConfigDir(const AGameName: string): string;
     function  GetActiveCustomConfigFile: string;
     function  GetTargetCustomConfigFile: string;
@@ -2836,7 +2837,7 @@ end;
 // Dock: Finish Config button — opens the Finish Configuration modal dialog
 procedure Tgoverlayform.DockFinishClick(Sender: TObject);
 begin
-  ShowFinishDialog(Self, FLaunchCommand, FActiveGameName, FActiveGameIsNonSteam);
+  ShowFinishDialog(Self, GetLaunchCommand, FActiveGameName, FActiveGameIsNonSteam);
 end;
 
 
@@ -3255,8 +3256,8 @@ begin
   end;
 
   //Program Version
-  GVERSION := '1.9.0';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.9.1';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
@@ -6129,7 +6130,6 @@ procedure Tgoverlayform.SaveVkSumiConfig;
 var
   Settings: TVkSumiSettings;
   ErrMsg: string;
-  LaunchCommand: string;
   i: Integer;
 begin
   Settings.SumiFolder := VKSUMIFOLDER;
@@ -6171,26 +6171,8 @@ begin
 
   // SendNotification('vkSumi', 'Configuration saved to ' + VKSUMICFGFILE, GetIconFile);
 
-  // Always show the bgmod command — use game-specific bgmod copy when in game mode
-  if FActiveGameName <> '' then
-  begin
-    if FActiveGameIsNonSteam then
-      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
-    else
-      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-  end
-  else
-    LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
-
-  // Check if gamemode should be added (check generalCheckGroup)
-  if GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
   notificationLabel.Visible := False;
-  FLaunchCommand := LaunchCommand;
+  FLaunchCommand := GetLaunchCommand;
   commandPaintBox.Invalidate;
 end;
 
@@ -6253,7 +6235,6 @@ procedure Tgoverlayform.SaveVkBasaltConfig;
 var
   Settings: TVkBasaltSettings;
   ErrMsg: string;
-  LaunchCommand: string;
 begin
   if VKBASALTFOLDER = '' then
   begin
@@ -6289,32 +6270,13 @@ begin
 
   // SendNotification('vkBasalt', 'configuration saved', GetIconFile);
 
-  // Always show the bgmod command — use game-specific bgmod copy when in game mode
-  if FActiveGameName <> '' then
-  begin
-    if FActiveGameIsNonSteam then
-      LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
-    else
-      LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-  end
-  else
-    LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
-
-  // Check if gamemode should be added (check generalCheckGroup)
-  if GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
   notificationLabel.Visible := False;
-  FLaunchCommand := LaunchCommand;
+  FLaunchCommand := GetLaunchCommand;
   commandPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
 var
-  LaunchCommand: string;
   FileLines: TStringList;
   i: Integer;
   GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
@@ -6365,28 +6327,8 @@ begin
     end
     else
     begin
-      // Build launch command — use the game-specific fgmod copy when in game
-      // mode so that MangoHud.conf is picked up from the game config directory.
-      // Quoted to handle spaces in game names / paths.
-      if FActiveGameName <> '' then
-      begin
-        if FActiveGameIsNonSteam then
-          LaunchCommand := GetGameConfigDir(FActiveGameName) + 'bgmod '
-        else
-          LaunchCommand := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-      end
-      else
-        LaunchCommand := '"' + GetGameConfigDir('') + 'bgmod" ';
-
-  // Check if gamemode should be added (check performanceCheckGroup)
-  if GetPerformanceCheckBox(0).Checked then
-    LaunchCommand := LaunchCommand + ENV_GAMEMODERUN + ' ';
-
-  if not ( (FActiveGameName <> '') and FActiveGameIsNonSteam ) then
-    LaunchCommand := LaunchCommand + LAUNCH_COMMAND_SUFFIX;
-
       notificationLabel.Visible := False;
-      FLaunchCommand := LaunchCommand;
+      FLaunchCommand := GetLaunchCommand;
       commandPaintBox.Invalidate;
     end;
 
@@ -9046,6 +8988,36 @@ begin
   end;
 end;
 
+function Tgoverlayform.GetLaunchCommand: string;
+var
+  Cmd: string;
+begin
+  if FActiveGameName <> '' then
+  begin
+    if FActiveGameIsNonSteam then
+      Cmd := GetGameConfigDir(FActiveGameName) + 'bgmod '
+    else
+      Cmd := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
+  end
+  else
+    Cmd := '"' + GetGameConfigDir('') + 'bgmod" ';
+
+  // Check if gamemode should be added (performance checkbox 0)
+  if GetPerformanceCheckBox(0).Checked then
+    Cmd := Cmd + ENV_GAMEMODERUN + ' ';
+
+  // Suffix %command% for Steam launches
+  if not ((FActiveGameName <> '') and FActiveGameIsNonSteam) then
+    Cmd := Cmd + LAUNCH_COMMAND_SUFFIX;
+
+  // RE Engine RT workaround suffix
+  if Assigned(FReEngineRTCheckBox) and FReEngineRTCheckBox.Checked then
+    Cmd := Cmd + LAUNCH_SUFFIX_WINE_DETECTION;
+
+  Result := Cmd;
+  FLaunchCommand := Cmd;
+end;
+
 function Tgoverlayform.GetPasCubeUncappedParam: string;
 begin
   if (goverlayPageControl.ActivePage = losslessScalingTabSheet) or (GetLosslessScalingLaunchEnv <> '') then
@@ -9190,7 +9162,7 @@ procedure Tgoverlayform.commandPaintBoxClick(Sender: TObject);
 var
   T: TTimer;
 begin
-  Clipboard.AsText := FLaunchCommand;
+  Clipboard.AsText := GetLaunchCommand;
   FCommandCopiedTime := GetTickCount64;
   commandPaintBox.Invalidate;
   
@@ -9234,7 +9206,7 @@ begin
   PB.Canvas.Font.Size  := 9;
   PB.Canvas.Font.Style := [];
 
-  S := FLaunchCommand;
+  S := GetLaunchCommand;
   if S = '' then S := 'envvars %command%';
 
   // Shrink font until the command fits (reserve 40 px for copy icon + margins)

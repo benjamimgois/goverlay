@@ -1423,7 +1423,7 @@ begin
     if not ASilent then
     begin
       notificationLabel.Visible := False;
-      FLaunchCommand := LaunchCommand;
+      FLaunchCommand := GetLaunchCommand;
       commandPaintBox.Invalidate;
     end;
   end;
