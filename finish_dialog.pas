@@ -140,7 +140,7 @@ end;
 
 procedure TFinishDialogForm.BuildUI;
 const
-  DLG_W  = 540;
+  DLG_W  = 680;
   DLG_H  = 478;
   PAD    = 18;
   BTN_H  = 34;
@@ -486,7 +486,20 @@ begin
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(48, 190, 240);
       if Assigned(FCmdTextLbl) then
+      begin
         FCmdTextLbl.Caption := FLaunchCommand;
+        FCmdTextLbl.Font.Size := 9;
+        if Assigned(FCmdPanel) then
+        begin
+          FCmdPanel.Canvas.Font.Name := FCmdTextLbl.Font.Name;
+          FCmdPanel.Canvas.Font.Size := 9;
+          while (FCmdTextLbl.Font.Size > 7) and (FCmdPanel.Canvas.TextWidth(FCmdTextLbl.Caption) > FCmdTextLbl.Width) do
+          begin
+            FCmdTextLbl.Font.Size := FCmdTextLbl.Font.Size - 1;
+            FCmdPanel.Canvas.Font.Size := FCmdTextLbl.Font.Size;
+          end;
+        end;
+      end;
     end;
     fpHeroic:
     begin
@@ -501,7 +514,20 @@ begin
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(85, 235, 216);
       if Assigned(FCmdTextLbl) then
+      begin
         FCmdTextLbl.Caption := BuildHeroicCommand;
+        FCmdTextLbl.Font.Size := 9;
+        if Assigned(FCmdPanel) then
+        begin
+          FCmdPanel.Canvas.Font.Name := FCmdTextLbl.Font.Name;
+          FCmdPanel.Canvas.Font.Size := 9;
+          while (FCmdTextLbl.Font.Size > 7) and (FCmdPanel.Canvas.TextWidth(FCmdTextLbl.Caption) > FCmdTextLbl.Width) do
+          begin
+            FCmdTextLbl.Font.Size := FCmdTextLbl.Font.Size - 1;
+            FCmdPanel.Canvas.Font.Size := FCmdTextLbl.Font.Size;
+          end;
+        end;
+      end;
     end;
   end;
   if Assigned(FCmdPanel) then
@@ -738,8 +764,8 @@ begin
   CmdPreview := FLaunchCommand;
   if CmdPreview = '' then
     CmdPreview := '"/home/user/.local/share/goverlay/bgmod" %command%';
-  if Length(CmdPreview) > 40 then
-    CmdPreview := Copy(CmdPreview, 1, 37) + '...';
+  if Length(CmdPreview) > 52 then
+    CmdPreview := Copy(CmdPreview, 1, 49) + '...';
 
   ACanvas.Font.Name  := 'DejaVu Sans Mono';
   ACanvas.Font.Size  := 6;
@@ -941,8 +967,8 @@ begin
   CmdPreview := BuildHeroicCommand;
   if CmdPreview = '' then
     CmdPreview := '/home/user/.local/share/goverlay/bgmod';
-  if Length(CmdPreview) > 30 then
-    CmdPreview := Copy(CmdPreview, 1, 27) + '...';
+  if Length(CmdPreview) > 44 then
+    CmdPreview := Copy(CmdPreview, 1, 41) + '...';
 
   ACanvas.Font.Name  := 'DejaVu Sans Mono';
   ACanvas.Font.Size  := 6;
