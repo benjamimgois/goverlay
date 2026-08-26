@@ -54,6 +54,8 @@ type
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
     procedure TestOptiForceReflexAutoSave;
+    procedure TestOptiMethodRadioAutoSave;
+    procedure TestMangoFilterRadioGroupAutoSave;
     procedure TestCustomEditAutoSave;
     procedure TestOptiLatencyFlexSave;
     procedure TestOptiTraceLogSave;
@@ -890,6 +892,48 @@ begin
 
   Content := ReadFileText(FakeIniPath);
   AssertTrue('force_reflex removed via autosave when unchecked', Pos('force_reflex', Content) = 0);
+end;
+
+procedure TGoverlayGuiTests.TestOptiMethodRadioAutoSave;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  // Select None upscaler method
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(goverlayform.noneUpscalerRadioButton);
+  AssertTrue('autoSaveTimer enabled after noneUpscaler click', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+
+  // Select DLSS Enabler method
+  goverlayform.dlssenablerRadioButton.Checked := True;
+  goverlayform.dlssenablerRadioButtonClick(goverlayform.dlssenablerRadioButton);
+  AssertTrue('autoSaveTimer enabled after dlssenabler click', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+
+  // Select OptiScaler method
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertTrue('autoSaveTimer enabled after optiscaler click', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+end;
+
+procedure TGoverlayGuiTests.TestMangoFilterRadioGroupAutoSave;
+begin
+  goverlayform.WireAutoSaveEvents;
+  goverlayform.autoSaveTimer.Enabled := False;
+
+  // Change filter radio group
+  goverlayform.filterRadioGroup.ItemIndex := 1;
+  goverlayform.filterRadioGroupClick(goverlayform.filterRadioGroup);
+  AssertTrue('autoSaveTimer enabled after filterRadioGroup click', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+
+  // Change af trackbar
+  goverlayform.afTrackBar.Position := 8;
+  goverlayform.afTrackBarChange(goverlayform.afTrackBar);
+  AssertTrue('autoSaveTimer enabled after afTrackBar change', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
 end;
 
 procedure TGoverlayGuiTests.TestCustomEditAutoSave;

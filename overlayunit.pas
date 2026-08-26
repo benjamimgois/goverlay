@@ -538,6 +538,7 @@ type
     procedure forcereflexCheckBoxChange(Sender: TObject);
     procedure fpsavgBitBtnClick(Sender: TObject);
     procedure fpsonlyBitBtnClick(Sender: TObject);
+    procedure filterRadioGroupClick(Sender: TObject);
     procedure fullBitBtnClick(Sender: TObject);
     procedure fxaaTrackBarChange(Sender: TObject);
     procedure globalenableMenuItemClick(Sender: TObject);
@@ -574,6 +575,9 @@ type
     procedure optiscalerRadioButtonClick(Sender: TObject);
     procedure dlssenablerRadioButtonClick(Sender: TObject);
     procedure noneUpscalerRadioButtonClick(Sender: TObject);
+    procedure optiscalerLogoImageClick(Sender: TObject);
+    procedure dlssEnablerLogoImageClick(Sender: TObject);
+    procedure noneUpscalerLogoImageClick(Sender: TObject);
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
@@ -5020,6 +5024,7 @@ begin
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.dlssenablerRadioButtonClick(Sender: TObject);
@@ -5061,6 +5066,7 @@ begin
   begin
     optversionComboBox.Enabled := True;
   end;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.noneUpscalerRadioButtonClick(Sender: TObject);
@@ -5087,6 +5093,34 @@ begin
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+  StartAutoSaveTimer;
+end;
+
+procedure Tgoverlayform.optiscalerLogoImageClick(Sender: TObject);
+begin
+  if Assigned(optiscalerRadioButton) then
+  begin
+    optiscalerRadioButton.Checked := True;
+    optiscalerRadioButtonClick(optiscalerRadioButton);
+  end;
+end;
+
+procedure Tgoverlayform.dlssEnablerLogoImageClick(Sender: TObject);
+begin
+  if Assigned(dlssenablerRadioButton) then
+  begin
+    dlssenablerRadioButton.Checked := True;
+    dlssenablerRadioButtonClick(dlssenablerRadioButton);
+  end;
+end;
+
+procedure Tgoverlayform.noneUpscalerLogoImageClick(Sender: TObject);
+begin
+  if Assigned(noneUpscalerRadioButton) then
+  begin
+    noneUpscalerRadioButton.Checked := True;
+    noneUpscalerRadioButtonClick(noneUpscalerRadioButton);
+  end;
 end;
 
 procedure Tgoverlayform.UpdateUpscalerImageOpacity;
@@ -5392,6 +5426,13 @@ procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+  StartAutoSaveTimer;
+end;
+
+procedure Tgoverlayform.filterRadioGroupClick(Sender: TObject);
+begin
+  if FLoadingConfig then Exit;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.basicBitBtnClick(Sender: TObject);
@@ -5491,6 +5532,7 @@ procedure Tgoverlayform.delayTrackBarChange(Sender: TObject);
 begin
     //Display new values and trackbar changes
   delayvalueLabel.Caption:= FormatFloat('#0', delayTrackbar.Position)+ 's';
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
@@ -5536,6 +5578,7 @@ procedure Tgoverlayform.durationTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   durationvalueLabel.Caption:= FormatFloat('#0', durationTrackbar.Position) + 's' ;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.forcelatencyflexCheckBoxChange(Sender: TObject);
@@ -5918,6 +5961,7 @@ procedure Tgoverlayform.intervalTrackBarChange(Sender: TObject);
 begin
    //Display new values and trackbar changes
   intervalvalueLabel.Caption:= FormatFloat('#0', intervalTrackbar.Position) + 'ms';
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.logfolderBitBtnClick(Sender: TObject);
@@ -7376,6 +7420,13 @@ procedure Tgoverlayform.WireAutoSaveEvents;
         if not Assigned(TRadioButton(Ctrl).OnClick) then
           TRadioButton(Ctrl).OnClick := @GenericControlClick;
       end
+      else if Ctrl is TRadioGroup then
+      begin
+        if not Assigned(TRadioGroup(Ctrl).OnClick) then
+          TRadioGroup(Ctrl).OnClick := @GenericControlClick;
+        if not Assigned(TRadioGroup(Ctrl).OnSelectionChanged) then
+          TRadioGroup(Ctrl).OnSelectionChanged := @GenericControlClick;
+      end
       else if Ctrl is TComboBox then
       begin
         if not Assigned(TComboBox(Ctrl).OnChange) then
@@ -7395,6 +7446,11 @@ procedure Tgoverlayform.WireAutoSaveEvents;
       begin
         if not Assigned(TSpinEdit(Ctrl).OnChange) then
           TSpinEdit(Ctrl).OnChange := @GenericControlChange;
+      end
+      else if Ctrl is TTrackBar then
+      begin
+        if not Assigned(TTrackBar(Ctrl).OnChange) then
+          TTrackBar(Ctrl).OnChange := @GenericControlChange;
       end
       else if (Ctrl is TCustomEdit) and (Ctrl.Tag <> 9999) then
       begin

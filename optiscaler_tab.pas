@@ -259,6 +259,8 @@ begin
     optiscalerLogoImage.Center := True;
     optiscalerLogoImage.Proportional := True;
     optiscalerLogoImage.Stretch := True;
+    optiscalerLogoImage.Cursor := crHandPoint;
+    optiscalerLogoImage.OnClick := @optiscalerLogoImageClick;
 
     dlssEnablerLogoImage := TImage.Create(FForm);
     dlssEnablerLogoImage.AntialiasingMode := amOn;
@@ -269,6 +271,8 @@ begin
     dlssEnablerLogoImage.Center := True;
     dlssEnablerLogoImage.Proportional := True;
     dlssEnablerLogoImage.Stretch := True;
+    dlssEnablerLogoImage.Cursor := crHandPoint;
+    dlssEnablerLogoImage.OnClick := @dlssEnablerLogoImageClick;
 
     dlssEnablerVersionLabel := TLabel.Create(FForm);
     dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
@@ -294,6 +298,8 @@ begin
     noneUpscalerLogoImage.Center := True;
     noneUpscalerLogoImage.Proportional := True;
     noneUpscalerLogoImage.Stretch := True;
+    noneUpscalerLogoImage.Cursor := crHandPoint;
+    noneUpscalerLogoImage.OnClick := @noneUpscalerLogoImageClick;
 
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;

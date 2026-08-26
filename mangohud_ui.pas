@@ -1560,6 +1560,8 @@ begin
 
   SS := 'QGroupBox { border: none; }';
   QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
+  filterRadioGroup.OnClick := @FForm.filterRadioGroupClick;
+  filterRadioGroup.OnSelectionChanged := @FForm.filterRadioGroupClick;
 
   // VSYNC card — Vulkan in top half, OpenGL in bottom half
   MakeVsyncRow(0, 4, 44, vulkanImage, vsyncComboBox);
