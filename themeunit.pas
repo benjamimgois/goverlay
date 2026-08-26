@@ -162,6 +162,16 @@ procedure CenterFormOnScreen(AForm: TForm);
 /// <param name="AWinControl">The wincontrol to apply scrollbar QSS to</param>
 procedure ApplyModernScrollBarStylesheet(AWinControl: TWinControl);
 
+/// <summary>
+/// Returns the modern QSS stylesheet for QComboBox with custom sleek chevron arrow
+/// </summary>
+function GetComboBoxStyleSheet(AIsDark: Boolean): string;
+
+/// <summary>
+/// Returns the modern QSS stylesheet for QSpinBox/QDoubleSpinBox with custom sleek chevron stepper buttons
+/// </summary>
+function GetSpinBoxStyleSheet(AIsDark: Boolean): string;
+
 implementation
 
 uses
@@ -170,7 +180,65 @@ uses
   {$ELSE}
   qt5,
   {$ENDIF}
-  qtwidgets;
+  qtwidgets, bgmod_resources;
+
+function GetArrowIconPath(const AFileName: string): string;
+var
+  P: string;
+begin
+  P := GetAppBaseDir + 'assets/icons/' + AFileName;
+  if not FileExists(P) then
+    P := 'assets/icons/' + AFileName;
+  Result := StringReplace(P, '\', '/', [rfReplaceAll]);
+end;
+
+function GetComboBoxStyleSheet(AIsDark: Boolean): string;
+var
+  IconDown: string;
+begin
+  if AIsDark then
+  begin
+    IconDown := GetArrowIconPath('combo_arrow_down.png');
+    Result :=
+      'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
+      'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 24px 2px 8px; } ' +
+      'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
+      'QComboBox:focus { border: 1px solid rgb(48,190,240); } ' +
+      'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
+      'QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; } ' +
+      'QComboBox::down-arrow { image: url(''' + IconDown + '''); width: 12px; height: 12px; } ' +
+      'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); selection-background-color: rgb(50,90,175); border: 1px solid rgb(55,70,108); }';
+  end
+  else
+    Result := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
+end;
+
+function GetSpinBoxStyleSheet(AIsDark: Boolean): string;
+var
+  IconUp, IconDown: string;
+begin
+  if AIsDark then
+  begin
+    IconUp := GetArrowIconPath('spin_arrow_up.png');
+    IconDown := GetArrowIconPath('spin_arrow_down.png');
+    Result :=
+      'QSpinBox, QDoubleSpinBox, QAbstractSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
+      'border: 1px solid rgb(55,70,108); border-radius: 4px; padding-left: 6px; padding-right: 20px; padding-top: 2px; padding-bottom: 2px; } ' +
+      'QSpinBox:hover, QDoubleSpinBox:hover, QAbstractSpinBox:hover { border: 1px solid rgb(80,110,170); } ' +
+      'QSpinBox:focus, QDoubleSpinBox:focus, QAbstractSpinBox:focus { border: 1px solid rgb(48,190,240); } ' +
+      'QSpinBox:disabled, QDoubleSpinBox:disabled, QAbstractSpinBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
+      'QSpinBox::up-button, QDoubleSpinBox::up-button, QAbstractSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 18px; border-left: 1px solid rgb(55,70,108); border-bottom: 1px solid rgb(55,70,108); border-top-right-radius: 4px; background: transparent; } ' +
+      'QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover, QAbstractSpinBox::up-button:hover { background-color: rgb(50,62,96); } ' +
+      'QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed, QAbstractSpinBox::up-button:pressed { background-color: rgb(28,34,54); } ' +
+      'QSpinBox::down-button, QDoubleSpinBox::down-button, QAbstractSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 18px; border-left: 1px solid rgb(55,70,108); border-bottom-right-radius: 4px; background: transparent; } ' +
+      'QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover, QAbstractSpinBox::down-button:hover { background-color: rgb(50,62,96); } ' +
+      'QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed, QAbstractSpinBox::down-button:pressed { background-color: rgb(28,34,54); } ' +
+      'QSpinBox::up-arrow, QDoubleSpinBox::up-arrow, QAbstractSpinBox::up-arrow { image: url(''' + IconUp + '''); width: 9px; height: 9px; } ' +
+      'QSpinBox::down-arrow, QDoubleSpinBox::down-arrow, QAbstractSpinBox::down-arrow { image: url(''' + IconDown + '''); width: 9px; height: 9px; }';
+  end
+  else
+    Result := 'QSpinBox, QDoubleSpinBox, QAbstractSpinBox { border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
+end;
 
 function ColorToRGBString(AColor: TColor): string;
 var
@@ -733,10 +801,11 @@ begin
   if (AControl is TWinControl) and TWinControl(AControl).HandleAllocated then
   begin
     if CurrentTheme = tmDark then
-      SS := 'QComboBox, QLineEdit, QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
-            'QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 18px; border-left: none; }'
+      SS := GetComboBoxStyleSheet(True) + ' ' + GetSpinBoxStyleSheet(True) + ' ' +
+            'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }'
     else
-      SS := 'QComboBox, QLineEdit, QSpinBox { border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
+      SS := GetComboBoxStyleSheet(False) + ' ' + GetSpinBoxStyleSheet(False) + ' ' +
+            'QLineEdit { border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
     QWidget_setStyleSheet(TQtWidget(TWinControl(AControl).Handle).Widget, @SS);
   end;
 end;

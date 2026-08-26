@@ -4515,27 +4515,16 @@ begin
             'QTabWidget::pane { border: none; background: rgb(22,26,40); }';
   QWidget_setStyleSheet(TabWidget, @TabSS);
 
-  // Apply global slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox) that overrides KDE/Breeze theme
-  // This affects ALL input widgets across the entire application.
-  // Note: QComboBox ::drop-down is intentionally NOT overridden so Qt renders the native arrow.
+  // Apply global slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox, QPushButton, QSlider) that overrides KDE/Breeze theme
+  // This affects ALL input widgets across the entire application with custom sleek chevron arrows.
   GlobalSS :=
-    'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
-    'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
-    'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
-    'QComboBox:focus { border: 1px solid rgb(48,190,240); } ' +
-    'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
-    'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); ' +
-    'selection-background-color: rgb(50,90,175); border: 1px solid rgb(55,70,108); } ' +
+    GetComboBoxStyleSheet(True) + ' ' +
+    GetSpinBoxStyleSheet(True) + ' ' +
     'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
     'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
     'QLineEdit:hover { border: 1px solid rgb(80,110,170); } ' +
     'QLineEdit:focus { border: 1px solid rgb(48,190,240); } ' +
     'QLineEdit:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
-    'QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
-    'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
-    'QSpinBox:hover { border: 1px solid rgb(80,110,170); } ' +
-    'QSpinBox:focus { border: 1px solid rgb(48,190,240); } ' +
-    'QSpinBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
     'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
     'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
     'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
@@ -8070,16 +8059,10 @@ var
       begin
         TComboBox(Container.Controls[k]).Font.Color := TextColor;
         if CurrentTheme = tmLight then
-        begin
-          TComboBox(Container.Controls[k]).Color := LighterBackgroundColor;
-          SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; }';
-        end
+          TComboBox(Container.Controls[k]).Color := LighterBackgroundColor
         else
-        begin
           TComboBox(Container.Controls[k]).Color := RGBToColor(38, 46, 72);
-          SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
-                'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); selection-background-color: rgb(50,90,175); }';
-        end;
+        SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
         QWidget_setStyleSheet(TQtWidget(TComboBox(Container.Controls[k]).Handle).Widget, @SS);
       end
       else if Container.Controls[k] is TEdit then

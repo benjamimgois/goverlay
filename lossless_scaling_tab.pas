@@ -292,15 +292,7 @@ begin
   UpdateDllStatus;
 
   // QComboBoxes
-  if IsDark then
-    SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
-          'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
-          'QComboBox:focus { border: 1px solid rgb(48,190,240); } ' +
-          'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
-          'QComboBox QAbstractItemView { background-color: rgb(28,36,60); color: rgb(255,255,255); selection-background-color: rgb(50,90,175); border: 1px solid rgb(55,70,108); }'
-  else
-    SS := 'QComboBox { background-color: rgb(255,255,255); color: rgb(0,0,0); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
-
+  SS := GetComboBoxStyleSheet(IsDark);
   if Assigned(FLsPacingComboBox) and FLsPacingComboBox.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsPacingComboBox.Handle).Widget, @SS);
   if Assigned(FLsGpuComboBox) and FLsGpuComboBox.HandleAllocated then

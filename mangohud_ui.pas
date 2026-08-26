@@ -704,10 +704,7 @@ begin
   pcidevComboBox.Height  := 28;
   pcidevComboBox.Color       := BarBg;
   pcidevComboBox.Font.Color  := TextColor;
-  if CurrentTheme = tmLight then
-    SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); padding: 2px 6px; }'
-  else
-    SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
+  SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   gpudescEdit.Parent := FVisualGpuBar;
@@ -1103,10 +1100,7 @@ begin
     hudtitleEdit.Font.Color  := TextColor;
 
     // Force Qt stylesheets — KDE/Breeze ignores LCL Color/Font.Color
-    if CurrentTheme = tmLight then
-      SS := 'QComboBox { background-color: rgb(240,240,240); color: rgb(0,0,0); padding: 2px 6px; }'
-    else
-      SS := 'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
+    SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
     QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px 6px; }'
@@ -1883,12 +1877,7 @@ begin
   begin
     fpscolor2SpinEdit.Font.Color := TextColor;
     fpscolor2SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, RGBToColor(38, 46, 72));
-    if CurrentTheme = tmLight then
-      SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
-    else
-      SS := 'QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
-            'QSpinBox:hover { border: 1px solid rgb(80,110,170); }' +
-            'QSpinBox:focus { border: 1px solid rgb(48,190,240); }';
+    SS := GetSpinBoxStyleSheet(CurrentTheme = tmDark);
     QWidget_setStyleSheet(TQtWidget(fpscolor2SpinEdit.Handle).Widget, @SS);
   end;
 
@@ -1896,12 +1885,7 @@ begin
   begin
     fpscolor3SpinEdit.Font.Color := TextColor;
     fpscolor3SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, RGBToColor(38, 46, 72));
-    if CurrentTheme = tmLight then
-      SS := 'QSpinBox { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
-    else
-      SS := 'QSpinBox { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
-            'QSpinBox:hover { border: 1px solid rgb(80,110,170); }' +
-            'QSpinBox:focus { border: 1px solid rgb(48,190,240); }';
+    SS := GetSpinBoxStyleSheet(CurrentTheme = tmDark);
     QWidget_setStyleSheet(TQtWidget(fpscolor3SpinEdit.Handle).Widget, @SS);
   end;
   end;
