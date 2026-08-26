@@ -1598,7 +1598,7 @@ var
   ValorCampo: string;                   // Field value (Portuguese name kept)
 
   const
-  DarkBackgroundColor = $0045403A; // dark panel color BGR
+  DarkBackgroundColor = $00281A16; // dark navy background color BGR (#161A28)
   DarkerBackgroundColor = $00232323;  // darker panel color BGR for unselected item
   DarkTextColor = clwhite;  // set light color
 

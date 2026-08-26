@@ -20,8 +20,8 @@ const
   DARK_INPUT_BG      = $00482E26; // rgb(38, 46, 72)
   DARK_INPUT_BORDER  = $006C4637; // rgb(55, 70, 108)
 
-  // Dark theme legacy colors
-  DarkBackgroundColor = $0045403A;
+  // Dark theme colors
+  DarkBackgroundColor = $00281A16; // rgb(22, 26, 40)
   DarkerBackgroundColor = $00232323;
   DarkTextColor = clWhite;
 

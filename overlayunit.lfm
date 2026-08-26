@@ -3880,9 +3880,9 @@ object goverlayform: Tgoverlayform
     Top = 140
     Width = 147
     BorderSpacing.Top = 140
-    Brush.Color = 4538426
+    Brush.Color = 2628118
     ParentShowHint = False
-    Pen.Color = 4538426
+    Pen.Color = 2628118
     Shape = stRoundRect
     ShowHint = True
   end
@@ -3997,12 +3997,12 @@ object goverlayform: Tgoverlayform
     Width = 834
     Alignment = taRightJustify
     Anchors = [akTop, akLeft, akRight, akBottom]
-    BevelColor = 4538426
+    BevelColor = 2628118
     BevelOuter = bvNone
     BorderStyle = bsSingle
     ClientHeight = 683
     ClientWidth = 834
-    Color = 4538426
+    Color = 2628118
     Font.Quality = fqAntialiased
     ParentBackground = False
     ParentColor = False
@@ -6470,7 +6470,7 @@ object goverlayform: Tgoverlayform
           Caption = 'Limiters'
           ClientHeight = 360
           ClientWidth = 382
-          Color = 4538426
+          Color = 2628118
           DoubleBuffered = True
           Font.Color = clWhite
           Font.Height = -13
@@ -7748,7 +7748,7 @@ object goverlayform: Tgoverlayform
           Caption = 'VSYNC'
           ClientHeight = 151
           ClientWidth = 382
-          Color = 4538426
+          Color = 2628118
           Font.Height = -13
           Font.Name = 'Noto Sans'
           Font.Quality = fqAntialiased
@@ -7976,7 +7976,7 @@ object goverlayform: Tgoverlayform
           Caption = 'Filters'
           ClientHeight = 360
           ClientWidth = 382
-          Color = 4538426
+          Color = 2628118
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -8145,7 +8145,7 @@ object goverlayform: Tgoverlayform
           Caption = 'Information'
           ClientHeight = 151
           ClientWidth = 382
-          Color = 4538426
+          Color = 2628118
           Font.Color = clWhite
           Font.Height = -13
           Font.Name = 'Noto Sans'
@@ -8189,7 +8189,7 @@ object goverlayform: Tgoverlayform
             BorderWidth = 3
             ButtonColorSize = 16
             ButtonColor = clLime
-            Color = 4538426
+            Color = 2628118
             Flat = True
           end
           object framecountCheckBox: TCheckBox
@@ -9236,7 +9236,7 @@ object goverlayform: Tgoverlayform
             Hint = 'Fix for power draw on intel CPUs'
             Top = 135
             Width = 20
-            Color = 4538426
+            Color = 2628118
             Images = iconsImageList
             ImageIndex = 1
             ParentShowHint = False
@@ -13122,7 +13122,7 @@ object goverlayform: Tgoverlayform
             Top = 81
             Width = 81
             Caption = 'Auto Detected'
-            Color = 4538426
+            Color = 2628118
             Font.Color = clOlive
             Font.Height = -12
             Font.Name = 'Noto Sans'
@@ -14850,7 +14850,7 @@ object goverlayform: Tgoverlayform
             BorderSpacing.Left = 10
             BorderSpacing.Top = 5
             Caption = '--'
-            Color = 4538426
+            Color = 2628118
             Font.Color = clLime
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -16193,7 +16193,7 @@ object goverlayform: Tgoverlayform
       BorderSpacing.Left = 4
       BorderSpacing.Right = 4
       BorderSpacing.Bottom = 2
-      BevelColor = 4538426
+      BevelColor = 2628118
       ClientHeight = 40
       ClientWidth = 826
       ParentBackground = False

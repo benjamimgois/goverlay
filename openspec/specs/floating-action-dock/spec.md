@@ -6,11 +6,11 @@ Provides a unified, modern floating action dock (pill-style bar) anchored in the
 ## Requirements
 
 ### Requirement: Floating Action Dock Rendering and Positioning
-The system SHALL display a floating action pill dock anchored at the bottom-right corner of the main content area, rendered with rounded pill borders, subtle elevation, dark translucent background, and state-aware custom-rendered action buttons with vibrant illuminated hover and pressed styling without dark widgetset override.
+The system SHALL display a floating action pill dock anchored at the bottom-right corner of the main content area, rendered with 100% transparent corners outside the pill shape, exact semicircular pill curvature without hard black drop shadows or dark corner cutouts, seamless container background blending matching the active interface theme, an integrated solid blue primary Finish action section occupying the right side of the dock, and state-aware custom-rendered secondary action buttons with illuminated hover and pressed styling.
 
 #### Scenario: Displaying floating action dock
 - **WHEN** GOverlay main window is displayed
-- **THEN** the floating action dock SHALL be anchored at the bottom-right above tab content without being obscured by page elements.
+- **THEN** the floating action dock SHALL be anchored at the bottom-right above tab content, rendering completely clean semicircular rounded ends without black drop shadow artifacts, dark bounding boxes, or chamfered corners.
 
 #### Scenario: Hovering over Finish action button
 - **WHEN** user hovers the mouse over the primary Finish action button

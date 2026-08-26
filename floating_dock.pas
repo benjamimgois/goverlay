@@ -18,24 +18,17 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, Buttons,
-  LCLIntf, LCLType, Math;
+  LCLIntf, LCLType;
 
 type
+  TDockButton = (btnNone, btnMenu, btnPreview, btnAdd, btnFinish);
 
   { TFloatingActionDock }
   TFloatingActionDock = class(TObject)
   private
     FParent:         TWinControl;   // goverlayPanel
     FDockPanel:      TPanel;        // container
-
-    // Inner pill paint box (draws the pill background)
-    FPillBox:        TPaintBox;
-
-    // Buttons (custom state-aware controls, left-to-right layout)
-    FMenuBox:        TPaintBox;
-    FPreviewBox:     TPaintBox;
-    FAddBox:         TPaintBox;
-    FFinishBox:      TPaintBox;     // primary accent button
+    FPillBox:        TPaintBox;     // unified pill drawing surface
 
     FMenuHovered:    Boolean;
     FMenuPressed:    Boolean;
@@ -52,6 +45,12 @@ type
     FFinishVisible:  Boolean;
     FAddCaption:     string;
 
+    // Computed button hit-test rects
+    FMenuRect:       TRect;
+    FPreviewRect:    TRect;
+    FAddRect:        TRect;
+    FFinishRect:     TRect;
+
     FOnPreviewClick: TNotifyEvent;
     FOnMenuClick:    TNotifyEvent;
     FOnAddClick:     TNotifyEvent;
@@ -61,41 +60,15 @@ type
     procedure SetVisible(AValue: Boolean);
     function  GetFinishFillColor: TColor;
     function  GetFinishBorderColor: TColor;
+    function  GetButtonAt(AX, AY: Integer): TDockButton;
+
     procedure PillPaint(Sender: TObject);
-
-    // Painting handlers
-    procedure MenuPaint(Sender: TObject);
-    procedure PreviewPaint(Sender: TObject);
-    procedure AddPaint(Sender: TObject);
-    procedure FinishPaint(Sender: TObject);
-
-    // Mouse event handlers for Menu
-    procedure MenuMouseEnter(Sender: TObject);
-    procedure MenuMouseLeave(Sender: TObject);
-    procedure MenuMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure MenuMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure MenuClick(Sender: TObject);
-
-    // Mouse event handlers for Preview
-    procedure PreviewMouseEnter(Sender: TObject);
-    procedure PreviewMouseLeave(Sender: TObject);
-    procedure PreviewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure PreviewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure PreviewClick(Sender: TObject);
-
-    // Mouse event handlers for Add
-    procedure AddMouseEnter(Sender: TObject);
-    procedure AddMouseLeave(Sender: TObject);
-    procedure AddMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure AddMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure AddClick(Sender: TObject);
-
-    // Mouse event handlers for Finish
-    procedure FinishMouseEnter(Sender: TObject);
-    procedure FinishMouseLeave(Sender: TObject);
-    procedure FinishMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure FinishMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure FinishClick(Sender: TObject);
+    procedure PillMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure PillMouseEnter(Sender: TObject);
+    procedure PillMouseLeave(Sender: TObject);
+    procedure PillMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PillMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PillClick(Sender: TObject);
 
     procedure LayoutButtons;
 
@@ -152,6 +125,15 @@ type
 
 implementation
 
+uses
+  {$IFDEF LCLqt6}
+  qt6,
+  qtobjects,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets;
+
 // ---------------------------------------------------------------------------
 // Compact geometry constants
 // ---------------------------------------------------------------------------
@@ -168,55 +150,12 @@ const
   INNER_PAD_Y   = 4;    // vertical padding inside pill (Total height = 38px)
 
 // ---------------------------------------------------------------------------
-// Helper: Draw secondary button chip with custom state-aware styling
-// ---------------------------------------------------------------------------
-procedure DrawSecondaryButton(PB: TPaintBox; AHovered, APressed: Boolean;
-  const ACaption: string; AFontSize: Integer; AFontStyle: TFontStyles);
-var
-  R: TRect;
-  TextW, TextH, TextX, TextY: Integer;
-begin
-  R := Rect(0, 0, PB.Width, PB.Height);
-
-  if APressed then
-  begin
-    PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);    // #1E2634
-    PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);    // #2E3D55
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
-    PB.Canvas.Font.Color  := RGBToColor(220, 230, 240);
-  end
-  else if AHovered then
-  begin
-    PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);    // #2A3548 (sleek elevated slate)
-    PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);   // #3D4F6E (subtle clean outline)
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
-    PB.Canvas.Font.Color  := clWhite;
-  end
-  else
-  begin
-    PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.Font.Color  := RGBToColor(180, 190, 205); // #B4BECB
-  end;
-
-  PB.Canvas.Font.Name   := 'Noto Sans';
-  PB.Canvas.Font.Size   := AFontSize;
-  PB.Canvas.Font.Style  := AFontStyle;
-  PB.Canvas.Brush.Style := bsClear;
-
-  TextW := PB.Canvas.TextWidth(ACaption);
-  TextH := PB.Canvas.TextHeight(ACaption);
-  TextX := (PB.Width - TextW) div 2;
-  TextY := (PB.Height - TextH) div 2;
-  PB.Canvas.TextOut(TextX, TextY, ACaption);
-end;
-
-// ---------------------------------------------------------------------------
 // Constructor / Destructor
 // ---------------------------------------------------------------------------
 
 constructor TFloatingActionDock.Create(AParent: TWinControl);
 var
-  TotalPillW, TotalPillH: Integer;
+  SS: WideString;
 begin
   inherited Create;
   FParent         := AParent;
@@ -235,93 +174,47 @@ begin
   FFinishHovered  := False;
   FFinishPressed  := False;
 
-  TotalPillW := INNER_PAD_X * 2
-              + PREVIEW_W + BTN_GAP
-              + MENU_W    + BTN_GAP
-              + FINISH_W;
-  TotalPillH := BTN_H + INNER_PAD_Y * 2;
-
-  // Anchor panel matching container background seamlessly
+  // Container panel matching parent interface background (#161A28)
   FDockPanel                  := TPanel.Create(AParent);
   FDockPanel.Parent           := AParent;
   FDockPanel.BevelOuter       := bvNone;
   FDockPanel.BevelInner       := bvNone;
+  FDockPanel.BorderStyle      := bsNone;
   FDockPanel.Color            := RGBToColor(22, 26, 40);
   FDockPanel.ParentBackground := False;
-  FDockPanel.Width            := TotalPillW;
-  FDockPanel.Height           := TotalPillH;
   FDockPanel.Anchors          := [akRight, akBottom];
-  FDockPanel.Left             := AParent.ClientWidth - TotalPillW - DOCK_RIGHT;
-  FDockPanel.Top              := AParent.ClientHeight - TotalPillH - DOCK_BOTTOM;
 
-  // Pill background paint box
-  FPillBox             := TPaintBox.Create(FDockPanel);
-  FPillBox.Parent      := FDockPanel;
-  FPillBox.Left        := 0;
-  FPillBox.Top         := 0;
-  FPillBox.Width       := FDockPanel.Width;
-  FPillBox.Height      := FDockPanel.Height;
-  FPillBox.Anchors     := [akLeft, akRight, akTop, akBottom];
-  FPillBox.OnPaint     := @PillPaint;
+  {$IFDEF LCLqt6}
+  if not FDockPanel.HandleAllocated then
+    FDockPanel.HandleNeeded;
+  if FDockPanel.HandleAllocated then
+  begin
+    QWidget_setAttribute(TQtWidget(FDockPanel.Handle).Widget, QtWA_TranslucentBackground, True);
+    QFrame_setFrameStyle(QFrameH(TQtWidget(FDockPanel.Handle).Widget), 0);
+    SS := 'QFrame, QWidget { border: none; background: transparent; }';
+    QWidget_setStyleSheet(TQtWidget(FDockPanel.Handle).Widget, @SS);
+  end;
+  {$ENDIF}
 
-  // ---- Menu button (custom state-aware painting) ----
-  FMenuBox              := TPaintBox.Create(FDockPanel);
-  FMenuBox.Parent       := FDockPanel;
-  FMenuBox.Cursor       := crHandPoint;
-  FMenuBox.OnPaint      := @MenuPaint;
-  FMenuBox.OnMouseEnter := @MenuMouseEnter;
-  FMenuBox.OnMouseLeave := @MenuMouseLeave;
-  FMenuBox.OnMouseDown  := @MenuMouseDown;
-  FMenuBox.OnMouseUp    := @MenuMouseUp;
-  FMenuBox.OnClick      := @MenuClick;
-  FMenuBox.ShowHint     := True;
-  FMenuBox.Hint         := 'Options & presets menu';
-
-  // ---- Preview button (custom state-aware painting) ----
-  FPreviewBox              := TPaintBox.Create(FDockPanel);
-  FPreviewBox.Parent       := FDockPanel;
-  FPreviewBox.Cursor       := crHandPoint;
-  FPreviewBox.OnPaint      := @PreviewPaint;
-  FPreviewBox.OnMouseEnter := @PreviewMouseEnter;
-  FPreviewBox.OnMouseLeave := @PreviewMouseLeave;
-  FPreviewBox.OnMouseDown  := @PreviewMouseDown;
-  FPreviewBox.OnMouseUp    := @PreviewMouseUp;
-  FPreviewBox.OnClick      := @PreviewClick;
-  FPreviewBox.ShowHint     := True;
-  FPreviewBox.Hint         := 'Launch a quick 3D preview (pascube / vkcube)';
-
-  // ---- Add button (EnvVars / Games, custom state-aware painting) ----
-  FAddBox              := TPaintBox.Create(FDockPanel);
-  FAddBox.Parent       := FDockPanel;
-  FAddBox.Cursor       := crHandPoint;
-  FAddBox.OnPaint      := @AddPaint;
-  FAddBox.OnMouseEnter := @AddMouseEnter;
-  FAddBox.OnMouseLeave := @AddMouseLeave;
-  FAddBox.OnMouseDown  := @AddMouseDown;
-  FAddBox.OnMouseUp    := @AddMouseUp;
-  FAddBox.OnClick      := @AddClick;
-  FAddBox.ShowHint     := True;
-  FAddBox.Hint         := 'Add action';
-
-  // ---- Finish button (custom state-aware painting) ----
-  FFinishBox              := TPaintBox.Create(FDockPanel);
-  FFinishBox.Parent       := FDockPanel;
-  FFinishBox.Cursor       := crHandPoint;
-  FFinishBox.OnPaint      := @FinishPaint;
-  FFinishBox.OnMouseEnter := @FinishMouseEnter;
-  FFinishBox.OnMouseLeave := @FinishMouseLeave;
-  FFinishBox.OnMouseDown  := @FinishMouseDown;
-  FFinishBox.OnMouseUp    := @FinishMouseUp;
-  FFinishBox.OnClick      := @FinishClick;
-  FFinishBox.ShowHint     := True;
-  FFinishBox.Hint         := 'Get your Steam / Heroic launch command';
+  // Single unified pill paint box
+  FPillBox              := TPaintBox.Create(FDockPanel);
+  FPillBox.Parent       := FDockPanel;
+  FPillBox.Align        := alClient;
+  FPillBox.OnPaint      := @PillPaint;
+  FPillBox.OnMouseMove  := @PillMouseMove;
+  FPillBox.OnMouseEnter := @PillMouseEnter;
+  FPillBox.OnMouseLeave := @PillMouseLeave;
+  FPillBox.OnMouseDown  := @PillMouseDown;
+  FPillBox.OnMouseUp    := @PillMouseUp;
+  FPillBox.OnClick      := @PillClick;
 
   LayoutButtons;
 end;
 
 destructor TFloatingActionDock.Destroy;
 begin
-  FDockPanel.Visible := False;
+  if Assigned(FDockPanel) then
+    FDockPanel.Visible := False;
   inherited;
 end;
 
@@ -354,7 +247,7 @@ begin
 end;
 
 // ---------------------------------------------------------------------------
-// Layout
+// Layout & Hit-testing
 // ---------------------------------------------------------------------------
 
 procedure TFloatingActionDock.LayoutButtons;
@@ -396,57 +289,68 @@ begin
   if TotalPillW < INNER_PAD_X * 2 + 50 then
     TotalPillW := INNER_PAD_X * 2 + 50;
 
-  // Resize the dock panel and reposition to right edge
+  // Resize the dock panel and reposition to bottom right
   FDockPanel.Width  := TotalPillW;
   FDockPanel.Height := BTN_H + INNER_PAD_Y * 2;
   FDockPanel.Left   := FParent.ClientWidth - TotalPillW - DOCK_RIGHT;
   FDockPanel.Top    := FParent.ClientHeight - FDockPanel.Height - DOCK_BOTTOM;
 
-  // Resize pill box
-  FPillBox.Width  := TotalPillW;
-  FPillBox.Height := FDockPanel.Height;
+  FPillBox.SetBounds(0, 0, FDockPanel.Width, FDockPanel.Height);
 
-  // Place buttons left-to-right inside pill: [Menu] -> [Preview] -> [Add] -> [Finish]
+  // Compute button hit-test rects
   X := INNER_PAD_X;
 
   if FMenuVisible then
   begin
-    FMenuBox.SetBounds(X, INNER_PAD_Y, MENU_W, BTN_H);
-    FMenuBox.Visible := True;
+    FMenuRect := Rect(X, INNER_PAD_Y, X + MENU_W, INNER_PAD_Y + BTN_H);
     Inc(X, MENU_W + BTN_GAP);
   end
   else
-    FMenuBox.Visible := False;
+    FMenuRect := Rect(0, 0, 0, 0);
 
   if FPreviewVisible then
   begin
-    FPreviewBox.SetBounds(X, INNER_PAD_Y, PREVIEW_W, BTN_H);
-    FPreviewBox.Visible := True;
+    FPreviewRect := Rect(X, INNER_PAD_Y, X + PREVIEW_W, INNER_PAD_Y + BTN_H);
     Inc(X, PREVIEW_W + BTN_GAP);
   end
   else
-    FPreviewBox.Visible := False;
+    FPreviewRect := Rect(0, 0, 0, 0);
 
   if FAddVisible then
   begin
-    FAddBox.SetBounds(X, INNER_PAD_Y, AddW, BTN_H);
-    FAddBox.Visible := True;
+    FAddRect := Rect(X, INNER_PAD_Y, X + AddW, INNER_PAD_Y + BTN_H);
     Inc(X, AddW + BTN_GAP);
   end
   else
-    FAddBox.Visible := False;
+    FAddRect := Rect(0, 0, 0, 0);
 
   if FFinishVisible then
   begin
-    FFinishBox.SetBounds(X, INNER_PAD_Y, FINISH_W, BTN_H);
-    FFinishBox.Visible := True;
+    FFinishRect := Rect(X, 0, TotalPillW, FDockPanel.Height);
   end
   else
-    FFinishBox.Visible := False;
+    FFinishRect := Rect(0, 0, 0, 0);
+end;
+
+function TFloatingActionDock.GetButtonAt(AX, AY: Integer): TDockButton;
+var
+  Pt: TPoint;
+begin
+  Pt := Point(AX, AY);
+  if FMenuVisible and PtInRect(FMenuRect, Pt) then
+    Result := btnMenu
+  else if FPreviewVisible and PtInRect(FPreviewRect, Pt) then
+    Result := btnPreview
+  else if FAddVisible and PtInRect(FAddRect, Pt) then
+    Result := btnAdd
+  else if FFinishVisible and PtInRect(FFinishRect, Pt) then
+    Result := btnFinish
+  else
+    Result := btnNone;
 end;
 
 // ---------------------------------------------------------------------------
-// Pill & Button painting
+// Pill & Button painting (Unified single-surface rendering)
 // ---------------------------------------------------------------------------
 
 function TFloatingActionDock.GetFinishFillColor: TColor;
@@ -472,350 +376,351 @@ end;
 procedure TFloatingActionDock.PillPaint(Sender: TObject);
 var
   PB: TPaintBox;
-  R: TRect;
-  Rad, BX: Integer;
+  R, SubR: TRect;
+  CornerDiam, BX: Integer;
   IsSoloFinish: Boolean;
-  FinishFill: TColor;
+  FinishFill, FGColor: TColor;
+  TextW, TextH, TextX, TextY: Integer;
+  IconW, IconH, IconX, IconY, CX, CY, ContentX, Gap, TotalW: Integer;
+  PtsTop: array[0..4] of TPoint;
+  PtsBot: array[0..4] of TPoint;
 begin
-  PB  := Sender as TPaintBox;
-  R   := Rect(0, 0, PB.Width, PB.Height);
-  Rad := PB.Height div 2;
+  PB   := Sender as TPaintBox;
+  R    := Rect(0, 0, PB.Width, PB.Height);
+  CornerDiam := 12; // Slightly rounded corners (radius = 6px)
 
-  // 1. Clear full rect with container background to eliminate white edges
+  // 1. Fill entire bounding box with interface background color (#161A28)
   PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
   PB.Canvas.FillRect(R);
 
-  // 2. Drop shadow
-  PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
-  PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
+  {$IFDEF LCLqt6}
+  if PB.Canvas.Handle <> 0 then
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
 
   IsSoloFinish := FFinishVisible and not FPreviewVisible and not FMenuVisible and not FAddVisible;
   FinishFill   := GetFinishFillColor;
 
   if IsSoloFinish then
   begin
-    // Standalone Finish pill: entire pill has the state-aware cyan accent fill
+    // Standalone Finish pill: entire pill has the state-aware accent fill
     PB.Canvas.Brush.Color := FinishFill;
+    PB.Canvas.Brush.Style := bsSolid;
     PB.Canvas.Pen.Color   := GetFinishBorderColor;
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(0, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
+
+    // Draw ✓ Finish centered
+    PB.Canvas.Font.Name   := 'Noto Sans';
+    PB.Canvas.Font.Size   := 8;
+    PB.Canvas.Font.Style  := [fsBold];
+    PB.Canvas.Font.Color  := clWhite;
+    PB.Canvas.Brush.Style := bsClear;
+
+    TextW := PB.Canvas.TextWidth('✓ Finish');
+    TextH := PB.Canvas.TextHeight('✓ Finish');
+    TextX := (PB.Width - TextW) div 2;
+    TextY := (PB.Height - TextH) div 2;
+    PB.Canvas.TextOut(TextX, TextY, '✓ Finish');
   end
   else
   begin
-    // Multi-button pill: dark background
+    // Multi-button dock: dark slate-navy background (#181E2A) with subtle border (#2E3A50)
     PB.Canvas.Brush.Color := RGBToColor(24, 30, 42);
+    PB.Canvas.Brush.Style := bsSolid;
     PB.Canvas.Pen.Color   := RGBToColor(46, 58, 80);
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(0, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
 
+    // 1. Finish button accent background (right portion)
     if FFinishVisible then
     begin
-      // Finish button accent background (right portion)
-      BX := FFinishBox.Left;
+      BX := FFinishRect.Left;
       PB.Canvas.Brush.Color := FinishFill;
+      PB.Canvas.Brush.Style := bsSolid;
       PB.Canvas.Pen.Color   := FinishFill;
-      // Draw right-rounded accent area
-      PB.Canvas.RoundRect(BX, R.Top + 1, R.Right - 1, R.Bottom - 1, Rad - 1, Rad - 1);
-      // Square off the left side of the accent area
-      PB.Canvas.FillRect(Rect(BX, R.Top + 1, BX + Rad, R.Bottom - 1));
+      // Draw right-rounded accent area with matching slightly rounded right end
+      PB.Canvas.RoundRect(BX, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
+      // Square off the left side of the accent area so it meets the vertical separator cleanly
+      PB.Canvas.FillRect(Rect(BX, 0, BX + CornerDiam div 2, PB.Height));
 
       // Separator line before finish button
       PB.Canvas.Pen.Color := RGBToColor(46, 58, 80);
-      PB.Canvas.MoveTo(BX, R.Top + 4);
-      PB.Canvas.LineTo(BX, R.Bottom - 4);
+      PB.Canvas.MoveTo(BX, 0);
+      PB.Canvas.LineTo(BX, PB.Height);
+
+      // Finish button text
+      PB.Canvas.Font.Name   := 'Noto Sans';
+      PB.Canvas.Font.Size   := 8;
+      PB.Canvas.Font.Style  := [fsBold];
+      PB.Canvas.Font.Color  := clWhite;
+      PB.Canvas.Brush.Style := bsClear;
+
+      TextW := PB.Canvas.TextWidth('✓ Finish');
+      TextH := PB.Canvas.TextHeight('✓ Finish');
+      TextX := BX + (FFinishRect.Right - BX - TextW) div 2;
+      TextY := (PB.Height - TextH) div 2;
+      PB.Canvas.TextOut(TextX, TextY, '✓ Finish');
+    end;
+
+    // 2. Menu button (☰)
+    if FMenuVisible then
+    begin
+      SubR := FMenuRect;
+      if FMenuPressed then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := RGBToColor(220, 230, 240);
+      end
+      else if FMenuHovered then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := clWhite;
+      end
+      else
+        FGColor := RGBToColor(180, 190, 205);
+
+      PB.Canvas.Font.Name   := 'Noto Sans';
+      PB.Canvas.Font.Size   := 11;
+      PB.Canvas.Font.Style  := [];
+      PB.Canvas.Font.Color  := FGColor;
+      PB.Canvas.Brush.Style := bsClear;
+
+      TextW := PB.Canvas.TextWidth('☰');
+      TextH := PB.Canvas.TextHeight('☰');
+      TextX := SubR.Left + (SubR.Right - SubR.Left - TextW) div 2;
+      TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+      PB.Canvas.TextOut(TextX, TextY, '☰');
+    end;
+
+    // 3. Preview button (eye icon + "Preview")
+    if FPreviewVisible then
+    begin
+      SubR := FPreviewRect;
+      if FPreviewPressed then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := RGBToColor(220, 230, 240);
+      end
+      else if FPreviewHovered then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := clWhite;
+      end
+      else
+        FGColor := RGBToColor(180, 190, 205);
+
+      PB.Canvas.Font.Name   := 'Noto Sans';
+      PB.Canvas.Font.Size   := 8;
+      PB.Canvas.Font.Style  := [fsBold];
+      PB.Canvas.Font.Color  := FGColor;
+      PB.Canvas.Brush.Style := bsClear;
+
+      TextW := PB.Canvas.TextWidth('Preview');
+      TextH := PB.Canvas.TextHeight('Preview');
+
+      IconW := 14;
+      IconH := 8;
+      Gap   := 6;
+      TotalW := IconW + Gap + TextW;
+      ContentX := SubR.Left + (SubR.Right - SubR.Left - TotalW) div 2;
+
+      IconX := ContentX;
+      IconY := SubR.Top + (SubR.Bottom - SubR.Top - IconH) div 2;
+      CX    := IconX + IconW div 2;
+      CY    := IconY + IconH div 2;
+
+      // Draw eye outline
+      PB.Canvas.Pen.Color := FGColor;
+      PB.Canvas.Pen.Width := 1;
+
+      PtsTop[0] := Point(IconX, CY);
+      PtsTop[1] := Point(IconX + 3, IconY + 1);
+      PtsTop[2] := Point(CX, IconY);
+      PtsTop[3] := Point(IconX + IconW - 3, IconY + 1);
+      PtsTop[4] := Point(IconX + IconW, CY);
+
+      PtsBot[0] := Point(IconX, CY);
+      PtsBot[1] := Point(IconX + 3, IconY + IconH - 1);
+      PtsBot[2] := Point(CX, IconY + IconH);
+      PtsBot[3] := Point(IconX + IconW - 3, IconY + IconH - 1);
+      PtsBot[4] := Point(IconX + IconW, CY);
+
+      PB.Canvas.Polyline(PtsTop);
+      PB.Canvas.Polyline(PtsBot);
+
+      // Pupil center
+      PB.Canvas.Brush.Color := FGColor;
+      PB.Canvas.Brush.Style := bsSolid;
+      PB.Canvas.Ellipse(CX - 1, CY - 1, CX + 2, CY + 2);
+
+      // Draw text
+      PB.Canvas.Brush.Style := bsClear;
+      TextX := ContentX + IconW + Gap;
+      TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+      PB.Canvas.TextOut(TextX, TextY, 'Preview');
+    end;
+
+    // 4. Add button (e.g. "+ Add")
+    if FAddVisible then
+    begin
+      SubR := FAddRect;
+      if FAddPressed then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := RGBToColor(220, 230, 240);
+      end
+      else if FAddHovered then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := clWhite;
+      end
+      else
+        FGColor := RGBToColor(180, 190, 205);
+
+      PB.Canvas.Font.Name   := 'Noto Sans';
+      PB.Canvas.Font.Size   := 8;
+      PB.Canvas.Font.Style  := [fsBold];
+      PB.Canvas.Font.Color  := FGColor;
+      PB.Canvas.Brush.Style := bsClear;
+
+      TextW := PB.Canvas.TextWidth(FAddCaption);
+      TextH := PB.Canvas.TextHeight(FAddCaption);
+      TextX := SubR.Left + (SubR.Right - SubR.Left - TextW) div 2;
+      TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+      PB.Canvas.TextOut(TextX, TextY, FAddCaption);
     end;
   end;
 end;
 
-procedure TFloatingActionDock.MenuPaint(Sender: TObject);
-begin
-  DrawSecondaryButton(FMenuBox, FMenuHovered, FMenuPressed, ' ☰', 11, []);
-end;
+// ---------------------------------------------------------------------------
+// Mouse events
+// ---------------------------------------------------------------------------
 
-procedure TFloatingActionDock.PreviewPaint(Sender: TObject);
+procedure TFloatingActionDock.PillMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
-  PB: TPaintBox;
-  R: TRect;
-  FGColor: TColor;
-  TextW, TextH, TextX, TextY: Integer;
-  IconW, IconH, IconX, IconY, TotalW, ContentX, Gap, CX, CY: Integer;
-  PtsTop: array[0..4] of TPoint;
-  PtsBot: array[0..4] of TPoint;
+  Btn: TDockButton;
+  NewMenuHovered, NewPreviewHovered, NewAddHovered, NewFinishHovered: Boolean;
 begin
-  PB := FPreviewBox;
-  R := Rect(0, 0, PB.Width, PB.Height);
+  Btn := GetButtonAt(X, Y);
+  NewMenuHovered    := (Btn = btnMenu);
+  NewPreviewHovered := (Btn = btnPreview);
+  NewAddHovered     := (Btn = btnAdd);
+  NewFinishHovered  := (Btn = btnFinish);
 
-  if FPreviewPressed then
+  if (NewMenuHovered <> FMenuHovered) or
+     (NewPreviewHovered <> FPreviewHovered) or
+     (NewAddHovered <> FAddHovered) or
+     (NewFinishHovered <> FFinishHovered) then
   begin
-    PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);    // #1E2634
-    PB.Canvas.Pen.Color   := RGBToColor(46, 61, 85);    // #2E3D55
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
-    FGColor               := RGBToColor(220, 230, 240);
-  end
-  else if FPreviewHovered then
-  begin
-    PB.Canvas.Brush.Color := RGBToColor(42, 53, 72);    // #2A3548 (sleek elevated slate)
-    PB.Canvas.Pen.Color   := RGBToColor(61, 79, 110);   // #3D4F6E (subtle clean outline)
-    PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 6, 6);
-    FGColor               := clWhite;
-  end
-  else
-  begin
-    PB.Canvas.Brush.Style := bsClear;
-    FGColor               := RGBToColor(180, 190, 205); // #B4BECB
-  end;
+    FMenuHovered    := NewMenuHovered;
+    FPreviewHovered := NewPreviewHovered;
+    FAddHovered     := NewAddHovered;
+    FFinishHovered  := NewFinishHovered;
 
-  PB.Canvas.Font.Name   := 'Noto Sans';
-  PB.Canvas.Font.Size   := 8;
-  PB.Canvas.Font.Style  := [fsBold];
-  PB.Canvas.Font.Color  := FGColor;
-  PB.Canvas.Brush.Style := bsClear;
+    case Btn of
+      btnMenu:    FPillBox.Hint := 'Options & presets menu';
+      btnPreview: FPillBox.Hint := 'Launch a quick 3D preview (pascube / vkcube)';
+      btnAdd:     FPillBox.Hint := 'Add action';
+      btnFinish:  FPillBox.Hint := 'Get your Steam / Heroic launch command';
+      else        FPillBox.Hint := '';
+    end;
+    FPillBox.ShowHint := (Btn <> btnNone);
 
-  TextW := PB.Canvas.TextWidth('Preview');
-  TextH := PB.Canvas.TextHeight('Preview');
+    if Btn <> btnNone then
+      FPillBox.Cursor := crHandPoint
+    else
+      FPillBox.Cursor := crDefault;
 
-  IconW := 14;
-  IconH := 8;
-  Gap   := 6;
-  TotalW := IconW + Gap + TextW;
-  ContentX := (PB.Width - TotalW) div 2;
-
-  IconX := ContentX;
-  IconY := (PB.Height - IconH) div 2;
-  CX    := IconX + IconW div 2;
-  CY    := IconY + IconH div 2;
-
-  // Draw eye outline
-  PB.Canvas.Pen.Color := FGColor;
-  PB.Canvas.Pen.Width := 1;
-
-  PtsTop[0] := Point(IconX, CY);
-  PtsTop[1] := Point(IconX + 3, IconY + 1);
-  PtsTop[2] := Point(CX, IconY);
-  PtsTop[3] := Point(IconX + IconW - 3, IconY + 1);
-  PtsTop[4] := Point(IconX + IconW, CY);
-
-  PtsBot[0] := Point(IconX, CY);
-  PtsBot[1] := Point(IconX + 3, IconY + IconH - 1);
-  PtsBot[2] := Point(CX, IconY + IconH);
-  PtsBot[3] := Point(IconX + IconW - 3, IconY + IconH - 1);
-  PtsBot[4] := Point(IconX + IconW, CY);
-
-  PB.Canvas.Polyline(PtsTop);
-  PB.Canvas.Polyline(PtsBot);
-
-  // Pupil / iris center
-  PB.Canvas.Brush.Color := FGColor;
-  PB.Canvas.Brush.Style := bsSolid;
-  PB.Canvas.Ellipse(CX - 1, CY - 1, CX + 2, CY + 2);
-
-  // Draw text
-  PB.Canvas.Brush.Style := bsClear;
-  TextX := ContentX + IconW + Gap;
-  TextY := (PB.Height - TextH) div 2;
-  PB.Canvas.TextOut(TextX, TextY, 'Preview');
-end;
-
-procedure TFloatingActionDock.AddPaint(Sender: TObject);
-begin
-  DrawSecondaryButton(FAddBox, FAddHovered, FAddPressed, ' ' + FAddCaption, 8, [fsBold]);
-end;
-
-procedure TFloatingActionDock.FinishPaint(Sender: TObject);
-var
-  PB: TPaintBox;
-  TextW, TextH, TextX, TextY: Integer;
-begin
-  PB := Sender as TPaintBox;
-  PB.Canvas.Font.Name  := 'Noto Sans';
-  PB.Canvas.Font.Size  := 8;
-  PB.Canvas.Font.Style := [fsBold];
-  PB.Canvas.Font.Color := clWhite;
-  PB.Canvas.Brush.Style := bsClear;
-
-  TextW := PB.Canvas.TextWidth('✓ Finish');
-  TextH := PB.Canvas.TextHeight('✓ Finish');
-  TextX := (PB.Width - TextW) div 2;
-  TextY := (PB.Height - TextH) div 2;
-  PB.Canvas.TextOut(TextX, TextY, '✓ Finish');
-end;
-
-// ---------------------------------------------------------------------------
-// Mouse events: Menu
-// ---------------------------------------------------------------------------
-
-procedure TFloatingActionDock.MenuMouseEnter(Sender: TObject);
-begin
-  FMenuHovered := True;
-  FPillBox.Invalidate;
-  FMenuBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.MenuMouseLeave(Sender: TObject);
-begin
-  FMenuHovered := False;
-  FMenuPressed := False;
-  FPillBox.Invalidate;
-  FMenuBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.MenuMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
-    FMenuPressed := True;
-    FMenuBox.Invalidate;
+    FPillBox.Invalidate;
   end;
 end;
 
-procedure TFloatingActionDock.MenuMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
+procedure TFloatingActionDock.PillMouseEnter(Sender: TObject);
 begin
-  if Button = mbLeft then
+  // Mouse entered pill container
+end;
+
+procedure TFloatingActionDock.PillMouseLeave(Sender: TObject);
+begin
+  if FMenuHovered or FPreviewHovered or FAddHovered or FFinishHovered or
+     FMenuPressed or FPreviewPressed or FAddPressed or FFinishPressed then
   begin
-    FMenuPressed := False;
-    FMenuBox.Invalidate;
-  end;
-end;
-
-procedure TFloatingActionDock.MenuClick(Sender: TObject);
-begin
-  if Assigned(FOnMenuClick) then FOnMenuClick(Self);
-end;
-
-// ---------------------------------------------------------------------------
-// Mouse events: Preview
-// ---------------------------------------------------------------------------
-
-procedure TFloatingActionDock.PreviewMouseEnter(Sender: TObject);
-begin
-  FPreviewHovered := True;
-  FPillBox.Invalidate;
-  FPreviewBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.PreviewMouseLeave(Sender: TObject);
-begin
-  FPreviewHovered := False;
-  FPreviewPressed := False;
-  FPillBox.Invalidate;
-  FPreviewBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.PreviewMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
-    FPreviewPressed := True;
-    FPreviewBox.Invalidate;
-  end;
-end;
-
-procedure TFloatingActionDock.PreviewMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
+    FMenuHovered    := False;
+    FPreviewHovered := False;
+    FAddHovered     := False;
+    FFinishHovered  := False;
+    FMenuPressed    := False;
     FPreviewPressed := False;
-    FPreviewBox.Invalidate;
-  end;
-end;
-
-procedure TFloatingActionDock.PreviewClick(Sender: TObject);
-begin
-  if Assigned(FOnPreviewClick) then FOnPreviewClick(Self);
-end;
-
-// ---------------------------------------------------------------------------
-// Mouse events: Add
-// ---------------------------------------------------------------------------
-
-procedure TFloatingActionDock.AddMouseEnter(Sender: TObject);
-begin
-  FAddHovered := True;
-  FPillBox.Invalidate;
-  FAddBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.AddMouseLeave(Sender: TObject);
-begin
-  FAddHovered := False;
-  FAddPressed := False;
-  FPillBox.Invalidate;
-  FAddBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.AddMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
-    FAddPressed := True;
-    FAddBox.Invalidate;
-  end;
-end;
-
-procedure TFloatingActionDock.AddMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
-    FAddPressed := False;
-    FAddBox.Invalidate;
-  end;
-end;
-
-procedure TFloatingActionDock.AddClick(Sender: TObject);
-begin
-  if Assigned(FOnAddClick) then FOnAddClick(Self);
-end;
-
-// ---------------------------------------------------------------------------
-// Mouse events: Finish
-// ---------------------------------------------------------------------------
-
-procedure TFloatingActionDock.FinishMouseEnter(Sender: TObject);
-begin
-  FFinishHovered := True;
-  FPillBox.Invalidate;
-  FFinishBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.FinishMouseLeave(Sender: TObject);
-begin
-  FFinishHovered := False;
-  FFinishPressed := False;
-  FPillBox.Invalidate;
-  FFinishBox.Invalidate;
-end;
-
-procedure TFloatingActionDock.FinishMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbLeft then
-  begin
-    FFinishPressed := True;
+    FAddPressed     := False;
+    FFinishPressed  := False;
+    FPillBox.Cursor := crDefault;
     FPillBox.Invalidate;
-    FFinishBox.Invalidate;
   end;
 end;
 
-procedure TFloatingActionDock.FinishMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TFloatingActionDock.PillMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  Btn: TDockButton;
+begin
+  if Button = mbLeft then
+  begin
+    Btn := GetButtonAt(X, Y);
+    FMenuPressed    := (Btn = btnMenu);
+    FPreviewPressed := (Btn = btnPreview);
+    FAddPressed     := (Btn = btnAdd);
+    FFinishPressed  := (Btn = btnFinish);
+    FPillBox.Invalidate;
+  end;
+end;
+
+procedure TFloatingActionDock.PillMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbLeft then
   begin
-    FFinishPressed := False;
+    FMenuPressed    := False;
+    FPreviewPressed := False;
+    FAddPressed     := False;
+    FFinishPressed  := False;
     FPillBox.Invalidate;
-    FFinishBox.Invalidate;
   end;
 end;
 
-procedure TFloatingActionDock.FinishClick(Sender: TObject);
+procedure TFloatingActionDock.PillClick(Sender: TObject);
+var
+  P: TPoint;
+  Btn: TDockButton;
 begin
-  if Assigned(FOnFinishClick) then FOnFinishClick(Self);
+  P := FPillBox.ScreenToClient(Mouse.CursorPos);
+  Btn := GetButtonAt(P.X, P.Y);
+  case Btn of
+    btnMenu:    if Assigned(FOnMenuClick) then FOnMenuClick(Self);
+    btnPreview: if Assigned(FOnPreviewClick) then FOnPreviewClick(Self);
+    btnAdd:     if Assigned(FOnAddClick) then FOnAddClick(Self);
+    btnFinish:  if Assigned(FOnFinishClick) then FOnFinishClick(Self);
+  end;
 end;
 
 // ---------------------------------------------------------------------------
@@ -824,86 +729,70 @@ end;
 
 procedure TFloatingActionDock.SimulateMenuHover(AHover: Boolean);
 begin
-  if AHover then
-    MenuMouseEnter(FMenuBox)
-  else
-    MenuMouseLeave(FMenuBox);
+  FMenuHovered := AHover;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulateMenuPress(APressed: Boolean);
 begin
-  if APressed then
-    MenuMouseDown(FMenuBox, mbLeft, [], 0, 0)
-  else
-    MenuMouseUp(FMenuBox, mbLeft, [], 0, 0);
+  FMenuPressed := APressed;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulatePreviewHover(AHover: Boolean);
 begin
-  if AHover then
-    PreviewMouseEnter(FPreviewBox)
-  else
-    PreviewMouseLeave(FPreviewBox);
+  FPreviewHovered := AHover;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulatePreviewPress(APressed: Boolean);
 begin
-  if APressed then
-    PreviewMouseDown(FPreviewBox, mbLeft, [], 0, 0)
-  else
-    PreviewMouseUp(FPreviewBox, mbLeft, [], 0, 0);
+  FPreviewPressed := APressed;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulateAddHover(AHover: Boolean);
 begin
-  if AHover then
-    AddMouseEnter(FAddBox)
-  else
-    AddMouseLeave(FAddBox);
+  FAddHovered := AHover;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulateAddPress(APressed: Boolean);
 begin
-  if APressed then
-    AddMouseDown(FAddBox, mbLeft, [], 0, 0)
-  else
-    AddMouseUp(FAddBox, mbLeft, [], 0, 0);
+  FAddPressed := APressed;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulateFinishHover(AHover: Boolean);
 begin
-  if AHover then
-    FinishMouseEnter(FFinishBox)
-  else
-    FinishMouseLeave(FFinishBox);
+  FFinishHovered := AHover;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.SimulateFinishPress(APressed: Boolean);
 begin
-  if APressed then
-    FinishMouseDown(FFinishBox, mbLeft, [], 0, 0)
-  else
-    FinishMouseUp(FFinishBox, mbLeft, [], 0, 0);
+  FFinishPressed := APressed;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
 end;
 
 procedure TFloatingActionDock.PerformMenuClick;
 begin
-  MenuClick(FMenuBox);
+  if Assigned(FOnMenuClick) then FOnMenuClick(Self);
 end;
 
 procedure TFloatingActionDock.PerformPreviewClick;
 begin
-  PreviewClick(FPreviewBox);
+  if Assigned(FOnPreviewClick) then FOnPreviewClick(Self);
 end;
 
 procedure TFloatingActionDock.PerformAddClick;
 begin
-  AddClick(FAddBox);
+  if Assigned(FOnAddClick) then FOnAddClick(Self);
 end;
 
 procedure TFloatingActionDock.PerformFinishClick;
 begin
-  FinishClick(FFinishBox);
+  if Assigned(FOnFinishClick) then FOnFinishClick(Self);
 end;
 
 // ---------------------------------------------------------------------------
@@ -922,7 +811,7 @@ begin
   FFinishVisible  := AShowFinish;
   FAddCaption     := AAddCaption;
   LayoutButtons;
-  FPillBox.Invalidate;
+  if Assigned(FPillBox) then FPillBox.Invalidate;
   FDockPanel.BringToFront;
 end;
 
