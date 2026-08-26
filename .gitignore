@@ -109,6 +109,8 @@ lib/
 .agents/
 .rtk/
 .lazarus/
+openspec/
+.openspec/
 
 # Test binaries (built by make test)
 tests/gui/gui_tests
