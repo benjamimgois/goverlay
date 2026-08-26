@@ -1,5 +1,8 @@
 # UI Design System Capability
 
+## Purpose
+Defines typography scales, design tokens, styling procedures, and modern trackbar styling for the GOverlay user interface.
+
 ## Requirements
 
 ### Requirement: Centralized Design Tokens
@@ -27,11 +30,11 @@ The system SHALL provide unified helper procedures in `themeunit.pas` for stylin
 The system SHALL apply a unified Qt stylesheet (`QSlider`) across all `TTrackBar` controls in the application, supporting both horizontal and vertical orientations in dark and light theme modes.
 
 #### Scenario: Rendering horizontal trackbars in dark theme
-- **WHEN** any horizontal trackbar (e.g. `transpTrackBar`, `fontsizeTrackBar`, `casTrackBar`, `FVsTrackbars`) is rendered
+- **WHEN** any horizontal trackbar (e.g. `transpTrackBar`, `fontsizeTrackBar`, `afTrackBar`, `mipmapTrackBar`, `casTrackBar`, `FVsTrackbars`) is rendered
 - **THEN** it renders with a 6px height rounded groove in slate-navy (`rgb(38,46,72)`), a cyan progress fill (`rgb(48,190,240)`), and a circular thumb with cyan border and white hover effect.
 
 #### Scenario: Rendering vertical trackbars in dark theme
-- **WHEN** any vertical trackbar (e.g. `afTrackBar`, `mipmapTrackBar`, `durationTrackBar`, `delayTrackBar`, `intervalTrackBar`) is rendered
+- **WHEN** any vertical trackbar (e.g. `durationTrackBar`, `delayTrackBar`, `intervalTrackBar`) is rendered
 - **THEN** it renders with a 6px width rounded groove, a cyan progress fill, and a circular thumb with cyan border and white hover effect.
 
 #### Scenario: Rendering trackbars in light theme
@@ -45,7 +48,10 @@ The system SHALL highlight numeric value labels associated with trackbars using 
 - **WHEN** the user navigates to the MangoHud Visual tab
 - **THEN** `alphavalueLabel` and `fontsizevalueLabel` are positioned to the right of their respective trackbars, styled with `CLR_TEXT_ACCENT` and `[fsBold]`.
 
+#### Scenario: Displaying value labels in MangoHud Performance tab
+- **WHEN** the user navigates to the MangoHud Performance tab
+- **THEN** `afvalueLabel` and `mipmapvalueLabel` are positioned to the right of `afTrackBar` and `mipmapTrackBar` respectively, styled with `CLR_TEXT_ACCENT` and `[fsBold]`.
+
 #### Scenario: Reflowing MangoHud Visual tab on resize
 - **WHEN** `ReflowVisualTab` calculates control widths
 - **THEN** trackbar widths dynamically accommodate the right-aligned value labels with consistent horizontal padding.
-

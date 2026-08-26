@@ -1317,7 +1317,7 @@ begin
   fpscolor2SpinEdit.SetBounds(ContL + ContW div 2 - 35, ContT + 165, 70, 26);
   fpscolor3SpinEdit.SetBounds(ContL + ContW - 81,      ContT + 165, 70, 26);
 
-  // ── Method / Limit toggle key pinned to the bottom of the groupbox ────────
+  // ── Method / Limit toggle key pinned to the bottom of the card ───────────
   methodLabel.SetBounds(ContL + 6, ContT + ContH - 70, 60, 18);
   methodLabel.Font.Color := TextColor;
 
@@ -1328,10 +1328,6 @@ begin
     FLimitCaptureBtn.SetBounds(ContL + 140, ContT + ContH - 48, 160, 28);
   end;
 end;
-
-// ============================================================================
-// PERFORMANCE TAB — card redesign
-// ============================================================================
 
 
 procedure TMangoHudUiHelper.InitPerformanceTab;
@@ -1461,7 +1457,6 @@ const
   begin
     with FForm do
     begin
-      // Transparent container — inherits sub-panel background, no fill color
       Row := TPanel.Create(FPerfVsyncSec);
       Row.Parent      := FPerfVsyncSec;
       Row.BevelOuter  := bvNone;
@@ -1471,7 +1466,6 @@ const
       Row.Anchors     := [akLeft, akTop, akRight];
       FVsyncRows[AIndex] := Row;
 
-      // Logo — transparent, left-aligned, vertically centered
       Logo.Parent      := Row;
       Logo.Transparent := True;
       Logo.AnchorSideLeft.Control  := nil;
@@ -1481,7 +1475,6 @@ const
       Logo.Left    := 8;
       Logo.Top     := (AHeight - Logo.Height) div 2;
 
-      // Combo — placed immediately after the logo
       Combo.Parent := Row;
       Combo.AnchorSideLeft.Control   := nil;
       Combo.AnchorSideTop.Control    := nil;
@@ -1490,25 +1483,6 @@ const
       Combo.Anchors := [akLeft, akTop];
       Combo.Top     := (AHeight - Combo.Height) div 2;
       Combo.Left    := Logo.Left + Logo.Width + 8;
-    end;
-  end;
-
-  procedure AddVsyncSeparator;
-  var
-    Sep: TPanel;
-    IsLight: Boolean;
-  begin
-    with FForm do
-    begin
-      IsLight := CurrentTheme = tmLight;
-      Sep := TPanel.Create(FPerfVsyncSec);
-      Sep.Parent      := FPerfVsyncSec;
-      Sep.BevelOuter  := bvNone;
-      Sep.Caption     := '';
-      Sep.Color       := IfThen(IsLight, $00C8C0C0, $005A5050);
-      Sep.ParentColor := False;
-      Sep.SetBounds(8, 56, FPerfVsyncSec.ClientWidth - 16, 1);
-      Sep.Anchors     := [akLeft, akTop, akRight];
     end;
   end;
 
@@ -1523,8 +1497,8 @@ begin
   BgBox.Align   := alClient;
   BgBox.OnPaint := @FForm.PresetsBgBoxPaint;
 
-  MakeCard(0, 'Information', fpsGroupBox,         'VSYNC',    vsyncGroupBox,      ROW1_TOP, ROW1_H);
-  MakeCard(1, 'Limiters',   fpslimiterGroupBox,   'Filters',  filtersGroupBox,    ROW2_TOP, ROW2_H);
+  MakeCard(0, 'Information', fpsGroupBox,        'VSYNC',   vsyncGroupBox,   ROW1_TOP, ROW1_H);
+  MakeCard(1, 'Limiters',    fpslimiterGroupBox, 'Filters', filtersGroupBox, ROW2_TOP, ROW2_H);
   FPerfCards[2] := nil;
   FPerfCards[3] := nil;
 
@@ -1569,8 +1543,14 @@ begin
   mipmapTrackBar.AnchorSideLeft.Control := nil; mipmapTrackBar.AnchorSideTop.Control := nil; mipmapTrackBar.AnchorSideRight.Control := nil; mipmapTrackBar.AnchorSideBottom.Control := nil; mipmapTrackBar.Anchors := [akLeft, akTop];
   mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
 
-  afTrackBar.TickStyle := tsNone;
-  mipmapTrackBar.TickStyle := tsNone;
+  afTrackBar.Orientation := trHorizontal;
+  afTrackBar.Reversed    := False;
+  afTrackBar.TickStyle   := tsNone;
+  afTrackBar.Height      := 24;
+  mipmapTrackBar.Orientation := trHorizontal;
+  mipmapTrackBar.Reversed    := False;
+  mipmapTrackBar.TickStyle   := tsNone;
+  mipmapTrackBar.Height      := 24;
   afvalueLabel.Font.Color := CLR_TEXT_ACCENT;
   afvalueLabel.Font.Style := [fsBold];
   afvalueLabel.Transparent := True;
@@ -1581,7 +1561,7 @@ begin
   SS := 'QGroupBox { border: none; }';
   QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
 
-  // VSYNC card — Vulkan in top half, OpenGL in bottom half, no separator
+  // VSYNC card — Vulkan in top half, OpenGL in bottom half
   MakeVsyncRow(0, 4, 44, vulkanImage, vsyncComboBox);
   MakeVsyncRow(1, 50, 44, openglImage, glvsyncComboBox);
 
@@ -1603,22 +1583,19 @@ const
   GB_OFF     = 24;
   IMARGIN    = 6;
   IGAP       = 8;
-  // Offset from top of FPerfFiltersSec to where trackbars begin
-  TRACK_TOP_OFF = 68;
 var
-  CardW, SecW, InfoMargin, ContW, ContH, i: Integer;
+  CardW, SecW, ContW, ContH, i: Integer;
   LeftM, Col1W, Col2W, InnerGap: Integer;
   ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
-  TabH, ActiveRow2H, FilterSecH, TrackH: Integer;
-  Col1Center, Col2Center: Integer;
+  TabH, ActiveRow2H, FilterSecH: Integer;
+  FilterContentW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
 begin
   with FForm do
   begin
   CardW := AContentW - MARGIN * 2;
 
-  // Compute available tab height from form height — reliable during FormResize
   TabH        := Max(606, AContentH - TABBAR_H);
   ActiveRow2H := Max(BASE_ROW2_H, TabH - ROW1_H - GAP - 2 * MARGIN);
 
@@ -1643,40 +1620,42 @@ begin
       FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, FilterSecH);
 
       // Center filterRadioGroup horizontally at the top
-      filterRadioGroup.Width  := 349;
+      filterRadioGroup.Width  := Min(349, FPerfFiltersSec.ClientWidth - 24);
+      if filterRadioGroup.Width < 100 then filterRadioGroup.Width := 100;
       filterRadioGroup.Height := 41;
       filterRadioGroup.Left   := (FPerfFiltersSec.ClientWidth - filterRadioGroup.Width) div 2;
-      filterRadioGroup.Top    := 6;
+      if filterRadioGroup.Left < 12 then filterRadioGroup.Left := 12;
+      filterRadioGroup.Top    := 12;
 
-      // Two filter columns beneath filterRadioGroup:
-      // Col 1 (Anisotropic): Centered over the left half of filterRadioGroup
-      // Col 2 (Mip-map LOD): Centered over the right half of filterRadioGroup
-      Col1Center := filterRadioGroup.Left + filterRadioGroup.Width div 4;
-      Col2Center := filterRadioGroup.Left + (filterRadioGroup.Width * 3) div 4;
+      FilterContentW := filterRadioGroup.Width;
+      FilterLeft     := filterRadioGroup.Left;
+      FilterValW     := 32;
+      FilterGapW     := 8;
+      FilterTrackW   := Max(50, FilterContentW - FilterValW - FilterGapW);
 
-      // Position Labels above each trackbar
-      afLabel.Left := Col1Center - afLabel.Width div 2;
-      afLabel.Top  := filterRadioGroup.Top + filterRadioGroup.Height + 4;
+      // Row 1: Anisotropic filtering (Horizontal slider)
+      afLabel.Left := FilterLeft;
+      afLabel.Top  := filterRadioGroup.Top + filterRadioGroup.Height + 18;
 
-      mipmapLabel.Left := Col2Center - mipmapLabel.Width div 2;
-      mipmapLabel.Top  := afLabel.Top;
+      afTrackBar.Left   := FilterLeft;
+      afTrackBar.Top    := afLabel.Top + afLabel.Height + 6;
+      afTrackBar.Width  := FilterTrackW;
+      afTrackBar.Height := 24;
 
-      // Trackbars grow vertically to fill the section beneath the radiogroup + labels
-      TrackH := Max(80, FilterSecH - (afLabel.Top + afLabel.Height + 4) - 10);
-      afTrackBar.Left   := Col1Center - afTrackBar.Width div 2;
-      afTrackBar.Top    := afLabel.Top + afLabel.Height + 4;
-      afTrackBar.Height := TrackH;
+      afvalueLabel.Left := afTrackBar.Left + afTrackBar.Width + FilterGapW;
+      afvalueLabel.Top  := afTrackBar.Top + (afTrackBar.Height - afvalueLabel.Height) div 2;
 
-      mipmapTrackBar.Left   := Col2Center - mipmapTrackBar.Width div 2;
-      mipmapTrackBar.Top    := afTrackBar.Top;
-      mipmapTrackBar.Height := TrackH;
+      // Row 2: Mip-map LoD bias (Horizontal slider)
+      mipmapLabel.Left := FilterLeft;
+      mipmapLabel.Top  := afTrackBar.Top + afTrackBar.Height + 20;
 
-      // Position Value Labels to the left of each trackbar (vertically centered)
-      afvalueLabel.Left := afTrackBar.Left - afvalueLabel.Width - 5;
-      afvalueLabel.Top  := afTrackBar.Top + (TrackH - afvalueLabel.Height) div 2;
+      mipmapTrackBar.Left   := FilterLeft;
+      mipmapTrackBar.Top    := mipmapLabel.Top + mipmapLabel.Height + 6;
+      mipmapTrackBar.Width  := FilterTrackW;
+      mipmapTrackBar.Height := 24;
 
-      mipmapvalueLabel.Left := mipmapTrackBar.Left - mipmapvalueLabel.Width - 5;
-      mipmapvalueLabel.Top  := mipmapTrackBar.Top + (TrackH - mipmapvalueLabel.Height) div 2;
+      mipmapvalueLabel.Left := mipmapTrackBar.Left + mipmapTrackBar.Width + FilterGapW;
+      mipmapvalueLabel.Top  := mipmapTrackBar.Top + (mipmapTrackBar.Height - mipmapvalueLabel.Height) div 2;
     end;
 
     // Position section title labels
@@ -1746,12 +1725,11 @@ begin
       ContW := FPerfLimitSec.Width - 24;
       ContH := FPerfLimitSec.Height - 32;
 
-      // Center the FPS limit edit box and its titles/hints, raising them slightly
       if Assigned(FFpsLimitTitleLbl) then
       begin
         FFpsLimitTitleLbl.Left := 0;
         FFpsLimitTitleLbl.Width := FPerfLimitSec.ClientWidth;
-        FFpsLimitTitleLbl.Top := 4; // Raised further
+        FFpsLimitTitleLbl.Top := 4;
       end;
       if Assigned(FFpsLimitEdit) then
       begin
@@ -1759,21 +1737,20 @@ begin
         FFpsLimitEdit.Constraints.MinWidth := 232;
         FFpsLimitEdit.Constraints.MaxWidth := 232;
         FFpsLimitEdit.Left := (FPerfLimitSec.ClientWidth - FFpsLimitEdit.Width) div 2;
-        FFpsLimitEdit.Top := 24; // Raised further
+        FFpsLimitEdit.Top := 24;
       end;
       if Assigned(FFpsLimitHintLbl) then
       begin
         FFpsLimitHintLbl.Left := 0;
         FFpsLimitHintLbl.Width := FPerfLimitSec.ClientWidth;
-        FFpsLimitHintLbl.Top := 68; // Raised further
+        FFpsLimitHintLbl.Top := 68;
       end;
 
-      // Center the change colors checkbox and the colors/spin edits group
       fpscolorCheckBox.Left := (FPerfLimitSec.ClientWidth - fpscolorCheckBox.Width) div 2;
 
       ColW := 80;
       SpinW := 70;
-      ColorGap := -4; // Grudados um ao outro (visual original: overlap de -4px)
+      ColorGap := -4;
       ColorGroupW := 3 * ColW + 2 * ColorGap;
       ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
 
@@ -1784,18 +1761,9 @@ begin
       fpscolor2SpinEdit.Left := fpscolor2ColorButton.Left + (ColW - SpinW) div 2;
       fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
 
-
-      // Center vertically within available space [MiddleStart, MiddleEnd]
-      // Middle group vertical height:
-      // Checkbox height is 21 (starts at GroupTop)
-      // Space between Checkbox and Buttons: 8
-      // Buttons height: 18
-      // Space between Buttons and SpinEdits: 8
-      // SpinEdits height: 26
-      // Total height = 21 + 8 + 18 + 8 + 26 = 81
       GroupH := 81;
-      MiddleStart := FFpsLimitHintLbl.Top + 14 + 10; // Hint label top (68) + height (14) + gap (10) = 92
-      MiddleEnd := FPerfLimitSec.Height - 70; // MethodLabel.Top
+      MiddleStart := FFpsLimitHintLbl.Top + 14 + 10;
+      MiddleEnd := FPerfLimitSec.Height - 70;
       GroupTop := MiddleStart + (MiddleEnd - MiddleStart - GroupH) div 2;
 
       fpscolorCheckBox.Top := GroupTop;
@@ -1806,7 +1774,6 @@ begin
       fpscolor2SpinEdit.Top := fpscolor1ColorButton.Top + 18 + 8;
       fpscolor3SpinEdit.Top := fpscolor2SpinEdit.Top;
 
-      // Center "Method" and "Limit toggle key" side by side
       ComboW := 110;
       BtnW := 100;
       MiddleGap := 24;
@@ -1857,7 +1824,7 @@ begin
     TextColor := DarkTextColor;
   end;
 
-  for i := 0 to 3 do
+  for i := 0 to 1 do
   begin
     Card := FPerfCards[i];
     if not Assigned(Card) then Continue;
@@ -1874,6 +1841,11 @@ begin
       begin
         TGroupBox(Card.Controls[j]).Color      := CardBg;
         TGroupBox(Card.Controls[j]).Font.Color := TextColor;
+      end;
+      if Card.Controls[j] is TPanel then
+      begin
+        TPanel(Card.Controls[j]).Color := CardBg;
+        TPanel(Card.Controls[j]).Invalidate;
       end;
     end;
   end;
@@ -1893,9 +1865,8 @@ begin
   // FPS Limit edit: update colors for theme
   if Assigned(FFpsLimitEdit) then
   begin
-    FFpsLimitEdit.Color      := IfThen(CurrentTheme = tmLight, $00F5F5F5, $002E2E2E);
     FFpsLimitEdit.Font.Color := TextColor;
-    // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
+    FFpsLimitEdit.Color := IfThen(CurrentTheme = tmLight, clWhite, RGBToColor(38, 46, 72));
     if CurrentTheme = tmLight then
       SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
     else

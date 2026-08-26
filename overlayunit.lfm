@@ -7987,15 +7987,15 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           object mipmapvalueLabel: TLabel
+            AnchorSideLeft.Control = mipmapTrackBar
+            AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = mipmapTrackBar
             AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Control = mipmapTrackBar
-            Left = 271
+            Left = 325
             Height = 18
-            Top = 204
+            Top = 140
             Width = 9
-            Anchors = [akTop, akRight]
-            BorderSpacing.Right = 5
+            BorderSpacing.Left = 8
             Caption = 'X'
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8006,20 +8006,18 @@ object goverlayform: Tgoverlayform
           end
           object afTrackBar: TTrackBar
             AnchorSideLeft.Control = afLabel
-            AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = afLabel
             AnchorSideTop.Side = asrBottom
-            Left = 57
-            Height = 240
+            Left = 17
+            Height = 24
             Hint = 'Anisotropic filtering is a technique used to improve the quality of '#10'textures applied to the surfaces of 3D objects when drawn at a '#10'sharp angle.'
-            Top = 93
-            Width = 45
+            Top = 79
+            Width = 300
             Max = 16
-            Orientation = trVertical
             Position = 0
-            Reversed = True
+            TickStyle = tsNone
             OnChange = afTrackBarChange
-            BorderSpacing.Top = 18
+            BorderSpacing.Top = 4
             Color = clBtnFace
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8045,16 +8043,14 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object mipmapLabel: TLabel
-            AnchorSideTop.Control = filterRadioGroup
+            AnchorSideLeft.Control = filterRadioGroup
+            AnchorSideTop.Control = afTrackBar
             AnchorSideTop.Side = asrBottom
-            AnchorSideRight.Control = filterRadioGroup
-            AnchorSideRight.Side = asrBottom
-            Left = 248
+            Left = 17
             Height = 18
-            Top = 57
+            Top = 115
             Width = 118
-            Anchors = [akTop, akLeft, akRight]
-            BorderSpacing.Top = 11
+            BorderSpacing.Top = 12
             Caption = 'Mip-map LoD bias '
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8063,21 +8059,19 @@ object goverlayform: Tgoverlayform
           end
           object mipmapTrackBar: TTrackBar
             AnchorSideLeft.Control = mipmapLabel
-            AnchorSideLeft.Side = asrCenter
             AnchorSideTop.Control = mipmapLabel
             AnchorSideTop.Side = asrBottom
-            Left = 285
-            Height = 240
+            Left = 17
+            Height = 24
             Hint = 'The Mipmap LOD Bias is a graphics setting that determines how detailed a texture looks at different distances. '#10#10'Positive values simplify for better performance.'#10'Negative values enhance detail. '#10#10'It''s handy for optimizing visuals in games, adjusting texture quality based on viewing distance or object scale.'
-            Top = 93
-            Width = 45
+            Top = 137
+            Width = 300
             Max = 16
             Min = -16
-            Orientation = trVertical
             Position = 0
-            Reversed = True
+            TickStyle = tsNone
             OnChange = mipmapTrackBarChange
-            BorderSpacing.Top = 18
+            BorderSpacing.Top = 4
             Color = clBtnFace
             Font.Height = -13
             Font.Name = 'Noto Sans'
@@ -8088,15 +8082,15 @@ object goverlayform: Tgoverlayform
             TabOrder = 1
           end
           object afvalueLabel: TLabel
+            AnchorSideLeft.Control = afTrackBar
+            AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = afTrackBar
             AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Control = afTrackBar
-            Left = 43
+            Left = 325
             Height = 18
-            Top = 204
+            Top = 82
             Width = 9
-            Anchors = [akTop, akRight]
-            BorderSpacing.Right = 5
+            BorderSpacing.Left = 8
             Caption = 'X'
             Font.Height = -13
             Font.Name = 'Noto Sans'

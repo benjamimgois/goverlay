@@ -1,16 +1,4 @@
-# expanded-vertical-tab-cards Specification
-
-## Purpose
-Defines requirements for expanding tab sheets, layout cards, and scrollable content containers to occupy the full vertical window canvas following the removal of the legacy bottom panel.
-
-## Requirements
-
-### Requirement: Full-Height Tab Container
-The system SHALL configure the main tab container (`goverlayPageControl`) without bottom border spacing, allowing tab sheets to span to the bottom of the parent content container.
-
-#### Scenario: Rendering main tab container
-- **WHEN** GOverlay initializes or resizes
-- **THEN** `goverlayPageControl` SHALL anchor to the bottom of `goverlayPanel` with `BorderSpacing.Bottom` equal to 0.
+## MODIFIED Requirements
 
 ### Requirement: Vertical Card Expansion Across Tabs
 The system SHALL calculate card heights and layout offsets using the reclaimed vertical space, distributing extra height to primary configuration cards.

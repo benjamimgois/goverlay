@@ -104,7 +104,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2278,24 +2278,42 @@ begin
   goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
   goverlayform.performanceTabSheet.Show;
 
+  AssertTrue('afTrackBar is horizontal', goverlayform.afTrackBar.Orientation = trHorizontal);
+  AssertTrue('mipmapTrackBar is horizontal', goverlayform.mipmapTrackBar.Orientation = trHorizontal);
+
+  // Validate original 2-card 2-row structure
+  AssertTrue('FPerfCards[0] (Row 1: Information & VSYNC) is assigned', Assigned(goverlayform.FPerfCards[0]));
+  AssertTrue('FPerfCards[1] (Row 2: Limiters & Filters) is assigned', Assigned(goverlayform.FPerfCards[1]));
+
   // Test at normal width (960x650)
   goverlayform.ReflowPerformanceTab(960, 650);
-  AssertTrue('afLabel left of mipmapLabel at normal width',
-    goverlayform.afLabel.Left + goverlayform.afLabel.Width < goverlayform.mipmapLabel.Left);
-  AssertTrue('afTrackBar aligns with afLabel at normal width',
-    Abs((goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width div 2) -
-        (goverlayform.afLabel.Left + goverlayform.afLabel.Width div 2)) < 5);
+  AssertEquals('Row 1 Card Top is 0', 0, goverlayform.FPerfCards[0].Top);
+  AssertEquals('Row 1 Card Height is 180', 180, goverlayform.FPerfCards[0].Height);
+  AssertEquals('Row 2 Card Top is 185', 185, goverlayform.FPerfCards[1].Top);
+  AssertTrue('Row 2 Card Height >= 389', goverlayform.FPerfCards[1].Height >= 389);
+
+  AssertTrue('afTrackBar is above mipmapLabel at normal width',
+    goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
+  AssertEquals('afTrackBar aligns with afLabel at normal width',
+    goverlayform.afLabel.Left, goverlayform.afTrackBar.Left);
+  AssertTrue('afvalueLabel is right of afTrackBar at normal width',
+    goverlayform.afvalueLabel.Left >= goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width);
+  AssertTrue('mipmapvalueLabel is right of mipmapTrackBar at normal width',
+    goverlayform.mipmapvalueLabel.Left >= goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width);
 
   // Test at maximized width (1920x1080)
   goverlayform.ReflowPerformanceTab(1920, 1080);
-  AssertTrue('afLabel left of mipmapLabel at maximized width (no overlap)',
-    goverlayform.afLabel.Left + goverlayform.afLabel.Width < goverlayform.mipmapLabel.Left);
-  AssertTrue('afTrackBar aligns with afLabel at maximized width',
-    Abs((goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width div 2) -
-        (goverlayform.afLabel.Left + goverlayform.afLabel.Width div 2)) < 5);
-  AssertTrue('mipmapTrackBar aligns with mipmapLabel at maximized width',
-    Abs((goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width div 2) -
-        (goverlayform.mipmapLabel.Left + goverlayform.mipmapLabel.Width div 2)) < 5);
+  AssertTrue('Row 2 Card expands in maximized window', goverlayform.FPerfCards[1].Height > 700);
+  AssertTrue('afTrackBar is above mipmapLabel at maximized width',
+    goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
+  AssertEquals('afTrackBar aligns with afLabel at maximized width',
+    goverlayform.afLabel.Left, goverlayform.afTrackBar.Left);
+  AssertEquals('mipmapTrackBar aligns with mipmapLabel at maximized width',
+    goverlayform.mipmapLabel.Left, goverlayform.mipmapTrackBar.Left);
+  AssertTrue('afvalueLabel is right of afTrackBar at maximized width',
+    goverlayform.afvalueLabel.Left >= goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width);
+  AssertTrue('mipmapvalueLabel is right of mipmapTrackBar at maximized width',
+    goverlayform.mipmapvalueLabel.Left >= goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width);
 end;
 
 procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;
