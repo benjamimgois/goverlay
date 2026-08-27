@@ -638,7 +638,9 @@ type
     procedure performanceTabSheetShow(Sender: TObject);
     procedure visualTabSheetShow(Sender: TObject);
     procedure metricsTabSheetShow(Sender: TObject);
+    procedure extrasTabSheetShow(Sender: TObject);
     procedure tweaksTabSheetShow(Sender: TObject);
+    procedure SyncAllToggles;
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
     procedure SaveMangoHudPreset(PresetNumber: Integer);
@@ -1721,6 +1723,7 @@ begin
     if Components[i] is TCheckBox then
       (Components[i] as TCheckBox).Checked := False;
   end;
+  SyncAllToggles;
 end;
 
 
@@ -1766,6 +1769,7 @@ begin
       end;
     end;
   end;
+  SyncAllToggles;
 end;
 
 procedure Tgoverlayform.checkupdBitBtnClick(Sender: TObject);
@@ -2352,6 +2356,12 @@ begin
   TMangoHudUiHelper(FMangoHelper).SaveMangoHudConfig;
 end;
 
+procedure Tgoverlayform.SyncAllToggles;
+begin
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).SyncAllToggles;
+end;
+
 procedure Tgoverlayform.LoadVkBasaltConfig;
 var
   Settings: TVkBasaltSettings;
@@ -2490,17 +2500,29 @@ begin
   ContentW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
   ReflowPerformanceTab(ContentW, Self.ClientHeight);
   UpdatePerfCardTheme;
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).SyncPerformanceToggles;
 end;
 
 procedure Tgoverlayform.visualTabSheetShow(Sender: TObject);
 begin
   UpdateVisualCardTheme;
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).SyncVisualToggles;
 end;
 
 procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
 begin
   UpdateGenericCardTheme(FMtGpuCard);
   UpdateGenericCardTheme(FMtCpuCard);
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).SyncMetricsToggles;
+end;
+
+procedure Tgoverlayform.extrasTabSheetShow(Sender: TObject);
+begin
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).SyncExtrasToggles;
 end;
 
 procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
@@ -3561,6 +3583,7 @@ begin
    performanceTabSheet.OnShow := @performanceTabSheetShow;
    visualTabSheet.OnShow := @visualTabSheetShow;
    metricsTabSheet.OnShow := @metricsTabSheetShow;
+   extrasTabSheet.OnShow := @extrasTabSheetShow;
    tweaksTabSheet.OnShow := @tweaksTabSheetShow;
    goverlayPageControl.OnChange := @goverlayPageControlChange;
 
@@ -5486,6 +5509,7 @@ begin
 
   //Save button
   saveBitbtn.Click;
+  SyncAllToggles;
 end;
 
 procedure Tgoverlayform.basichorizontalBitBtnClick(Sender: TObject);
@@ -5517,6 +5541,7 @@ begin
 
   //Save button
   saveBitbtn.Click;
+  SyncAllToggles;
 end;
 
 procedure Tgoverlayform.blacklistBitBtnClick(Sender: TObject);
@@ -5657,7 +5682,7 @@ begin
 
   // Popup a notification
   // SendNotification('MangoHud', 'Configuration saved', GetIconFile);
-
+  SyncAllToggles;
 end;
 
 procedure Tgoverlayform.fullBitBtnClick(Sender: TObject);
@@ -5679,7 +5704,7 @@ begin
 
   //Save button
   saveBitbtn.Click;
-
+  SyncAllToggles;
 
 end;
 

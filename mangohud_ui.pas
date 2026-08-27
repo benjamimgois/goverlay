@@ -430,6 +430,7 @@ begin
         3: fpsonlyBitBtnClick(fpsonlyBitBtn);
         4: usercustomBitBtnClick(usercustomBitBtn);
       end;
+      SyncAllToggles;
       Exit;
     end;
   for i := 0 to 3 do

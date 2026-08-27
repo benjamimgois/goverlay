@@ -108,6 +108,7 @@ type
     procedure TestMangoHudPerformanceCompactToggles;
     procedure TestMangoHudExtrasCompactToggles;
     procedure TestLosslessScalingCompactToggles;
+    procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -3001,6 +3002,52 @@ begin
     Helper.HdrModeToggle.Left > Helper.PerfModeToggle.Left);
   AssertTrue('NoFp16Toggle is to the right of HdrModeToggle',
     Helper.NoFp16Toggle.Left > Helper.HdrModeToggle.Left);
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudPresetsToggleSynchronization;
+var
+  Helper: TMangoHudUiHelper;
+begin
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('MangoHud Helper is assigned', Assigned(Helper));
+
+  // 1. Click "Full" preset (layout card 0)
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[0]);
+  AssertTrue('Full preset: FhudcompactToggle is True', Helper.FhudcompactToggle.Checked);
+  AssertTrue('Full preset: FgpuavgloadToggle is True', Helper.FgpuavgloadToggle.Checked);
+  AssertTrue('Full preset: FfpsToggle is True', Helper.FfpsToggle.Checked);
+  AssertTrue('Full preset: FdistroinfoToggle is True', Helper.FdistroinfoToggle.Checked);
+  AssertFalse('Full preset: FhidehudToggle is False (excluded)', Helper.FhidehudToggle.Checked);
+  AssertFalse('Full preset: FengineshortToggle is False (excluded)', Helper.FengineshortToggle.Checked);
+
+  // 2. Click "Basic" preset (layout card 1)
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[1]);
+  AssertTrue('Basic preset: FfpsToggle is True', Helper.FfpsToggle.Checked);
+  AssertTrue('Basic preset: FframetimegraphToggle is True', Helper.FframetimegraphToggle.Checked);
+  AssertTrue('Basic preset: FgpuavgloadToggle is True', Helper.FgpuavgloadToggle.Checked);
+  AssertFalse('Basic preset: FhudcompactToggle is False', Helper.FhudcompactToggle.Checked);
+  AssertFalse('Basic preset: FdistroinfoToggle is False', Helper.FdistroinfoToggle.Checked);
+  AssertFalse('Basic preset: FwineToggle is False', Helper.FwineToggle.Checked);
+
+  // 3. Click "FPS Only" preset (layout card 3)
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[3]);
+  AssertFalse('FPS Only: FfpsToggle is False', Helper.FfpsToggle.Checked);
+  AssertFalse('FPS Only: FgpuavgloadToggle is False', Helper.FgpuavgloadToggle.Checked);
+  AssertFalse('FPS Only: FdistroinfoToggle is False', Helper.FdistroinfoToggle.Checked);
+
+  // 4. Click "Basic Horizontal" preset (layout card 2)
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[2]);
+  AssertTrue('Basic Horizontal: FfpsToggle is True', Helper.FfpsToggle.Checked);
+  AssertTrue('Basic Horizontal: FengineversionToggle is True', Helper.FengineversionToggle.Checked);
+  AssertFalse('Basic Horizontal: FdistroinfoToggle is False', Helper.FdistroinfoToggle.Checked);
+
+  // 5. Test sub-tab show synchronization
+  goverlayform.visualTabSheet.Show;
+  goverlayform.performanceTabSheet.Show;
+  goverlayform.metricsTabSheet.Show;
+  goverlayform.extrasTabSheet.Show;
+  AssertTrue('Toggles remain synced after sub-tab navigation', Helper.FfpsToggle.Checked);
 end;
 
 initialization
