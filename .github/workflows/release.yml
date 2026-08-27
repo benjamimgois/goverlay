@@ -37,6 +37,7 @@ jobs:
         run: |
           TAG_NAME="${{ github.ref_name }}"
           CLEAN_VERSION="${TAG_NAME#v}"
+          export TAG_NAME
           export VERSION="$CLEAN_VERSION"
 
           # Build AppImage
@@ -54,8 +55,8 @@ jobs:
           # Organize and rename artifacts according to the required convention
           mkdir ./dist
           
-          # Rename AppImage
-          mv GOverlay-*-x86_64.AppImage "./dist/goverlay-${CLEAN_VERSION}-x86_64.AppImage"
+          # Move AppImage and zsync
+          mv goverlay-*-x86_64.AppImage* "./dist/"
           
           # Rename Debian package
           mv goverlay_*_amd64.deb "./dist/goverlay-${CLEAN_VERSION}-x86_64.deb"
@@ -180,8 +181,8 @@ jobs:
           generate_release_notes: true
           make_latest: true
           files: |
-            *.AppImage
-            *.appimage
+            *.AppImage*
+            *.appimage*
             *.deb
             *.rpm
             *.flatpak

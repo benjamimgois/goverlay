@@ -2,18 +2,34 @@
 
 set -eu
 
-# make appimage
 ARCH="$(uname -m)"
-VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
+if [ -z "${VERSION:-}" ]; then
+  if [ -n "${GITHUB_SHA:-}" ]; then
+    VERSION="$(echo "$GITHUB_SHA" | cut -c 1-9)"
+  else
+    VERSION="nightly"
+  fi
+fi
 export VERSION
+
+REPO="${GITHUB_REPOSITORY:-benjamimgois/goverlay}"
+REPO_OWNER="${REPO%/*}"
+REPO_NAME="${REPO#*/}"
+
+if [ -n "${TAG_NAME:-}" ]; then
+  UP_TAG="latest"
+else
+  UP_TAG="nightly"
+fi
+
 SHARUN="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/quick-sharun.sh"
 
 export DESKTOP=/usr/share/applications/io.github.benjamimgois.goverlay.desktop
 export ICON=/usr/share/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 export DEPLOY_OPENGL=1
 export DEPLOY_VULKAN=1
-export UPINFO="gh-releases-zsync|$(echo "$GITHUB_REPOSITORY" | tr '/' '|')|latest-all|*$ARCH.AppImage.zsync"
-export OUTNAME=GOverlay-"$VERSION"-anylinux-"$ARCH".AppImage
+export UPINFO="gh-releases-zsync|${REPO_OWNER}|${REPO_NAME}|${UP_TAG}|goverlay-*-${ARCH}.AppImage.zsync"
+export OUTNAME="goverlay-${VERSION}-${ARCH}.AppImage"
 
 # ADD LIBRARIES
 wget --retry-connrefused --tries=30 "$SHARUN" -O ./quick-sharun
