@@ -460,7 +460,7 @@ begin
       repeat
         if (SR.Name <> '.') and (SR.Name <> '..') then
         begin
-          if (UpperCase(SR.Name) = 'BGMOD.CONF') or (UpperCase(SR.Name) = 'OPTISCALER.INI') then
+          if (UpperCase(SR.Name) = 'BGMOD.CONF') or (UpperCase(SR.Name) = 'OPTISCALER.INI') or (UpperCase(SR.Name) = 'FAKENVAPI.INI') then
             Continue;
             
           SrcFile := IncludeTrailingPathDelimiter(SrcDir) + SR.Name;
@@ -544,7 +544,20 @@ begin
   end;
 end;
 
-procedure SafeCopyFile(const Src, Dest: string);
+procedure PreserveFileTimestamp(const Src, Dest: string);
+var
+  sb: stat;
+  ub: utimbuf;
+begin
+  if (FpStat(PChar(Src), sb) = 0) then
+  begin
+    ub.actime := sb.st_atime;
+    ub.modtime := sb.st_mtime;
+    FpUtime(PChar(Dest), @ub);
+  end;
+end;
+
+procedure SafeCopyFile(const Src, Dest: string; APreserveTimestamp: Boolean = False);
 begin
   if not FileExists(Src) then
   begin
@@ -558,6 +571,8 @@ begin
     if CopyFile(Src, Dest) then
     begin
       fpChmod(Dest, &755);
+      if APreserveTimestamp then
+        PreserveFileTimestamp(Src, Dest);
       Log('Successfully copied: ' + Src + ' -> ' + Dest);
     end
     else
@@ -571,28 +586,99 @@ end;
 procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean);
 var
   ConfigIni, GameIni: string;
+  AgeConfig, AgeGame: TDateTime;
+  ConfigExists, GameExists: Boolean;
 begin
   ConfigIni := IncludeTrailingPathDelimiter(AConfigDir) + 'OptiScaler.ini';
   GameIni := IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.ini';
 
-  if FileExists(ConfigIni) then
+  ConfigExists := FileExists(ConfigIni);
+  GameExists := FileExists(GameIni);
+
+  if not ConfigExists and not GameExists then
+    Exit;
+
+  if not ConfigExists and GameExists then
   begin
-    Log('Syncing OptiScaler.ini from config directory to game directory...');
-    SafeCopyFile(ConfigIni, GameIni);
+    Log('OptiScaler.ini found only in game directory. Syncing to config directory...');
+    SafeCopyFile(GameIni, ConfigIni, True);
+    Exit;
+  end;
+
+  if ConfigExists and not GameExists then
+  begin
+    Log('OptiScaler.ini not found in game directory. Initializing from config directory...');
+    SafeCopyFile(ConfigIni, GameIni, True);
+    Exit;
+  end;
+
+  if not APreserveIni then
+  begin
+    Log('PreserveIni is false. Overwriting OptiScaler.ini in game directory...');
+    SafeCopyFile(ConfigIni, GameIni, True);
+    Exit;
+  end;
+
+  if FileAge(ConfigIni, AgeConfig) and FileAge(GameIni, AgeGame) then
+  begin
+    if AgeGame > AgeConfig then
+    begin
+      Log('Game directory OptiScaler.ini is newer (modified in-game). Syncing back to config directory...');
+      SafeCopyFile(GameIni, ConfigIni, True);
+    end
+    else if AgeConfig > AgeGame then
+    begin
+      Log('Config directory OptiScaler.ini is newer (modified in GOverlay). Syncing to game directory...');
+      SafeCopyFile(ConfigIni, GameIni, True);
+    end
+    else
+      Log('OptiScaler.ini is up to date.');
   end;
 end;
 
 procedure SyncFakeNvapiIni(const AConfigDir, AGameDir: string);
 var
   ConfigIni, GameIni: string;
+  AgeConfig, AgeGame: TDateTime;
+  ConfigExists, GameExists: Boolean;
 begin
   ConfigIni := IncludeTrailingPathDelimiter(AConfigDir) + 'fakenvapi.ini';
   GameIni := IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.ini';
 
-  if FileExists(ConfigIni) then
+  ConfigExists := FileExists(ConfigIni);
+  GameExists := FileExists(GameIni);
+
+  if not ConfigExists and not GameExists then
+    Exit;
+
+  if not ConfigExists and GameExists then
   begin
-    Log('Syncing fakenvapi.ini from config directory to game directory...');
-    SafeCopyFile(ConfigIni, GameIni);
+    Log('fakenvapi.ini found only in game directory. Syncing to config directory...');
+    SafeCopyFile(GameIni, ConfigIni, True);
+    Exit;
+  end;
+
+  if ConfigExists and not GameExists then
+  begin
+    Log('fakenvapi.ini not found in game directory. Initializing from config directory...');
+    SafeCopyFile(ConfigIni, GameIni, True);
+    Exit;
+  end;
+
+  if FileAge(ConfigIni, AgeConfig) and FileAge(GameIni, AgeGame) then
+  begin
+    if AgeGame > AgeConfig then
+    begin
+      Log('Game directory fakenvapi.ini is newer. Syncing back to config directory...');
+      SafeCopyFile(GameIni, ConfigIni, True);
+    end
+    else if AgeConfig > AgeGame then
+    begin
+      Log('Config directory fakenvapi.ini is newer. Syncing to game directory...');
+      SafeCopyFile(ConfigIni, GameIni, True);
+    end
+    else
+      Log('fakenvapi.ini is up to date.');
   end;
 end;
 
