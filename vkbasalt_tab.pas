@@ -258,8 +258,8 @@ procedure TVkBasaltTabHelper.ReflowVkBasaltTab(AContentW: Integer);
 const
   MARGIN   = 4;   // outer margin each side
   GAP      = 8;    // gap between cards
-  BTIN_H   = 170;  // built-in effects card height
-  TOGL_H   = 85;   // toggle key card height (increased for button breathing room)
+  BTIN_H   = 145;  // built-in effects card height
+  TOGL_H   = 75;   // toggle key card height
   PAD      = 12;   // inner horizontal padding
   NAME_W   = 52;   // effect name label width
   VAL_W    = 32;   // value label width
@@ -280,8 +280,13 @@ begin
 
   CW   := AContentW - 2 * MARGIN;
   TabH := vkbasaltTabSheet.ClientHeight;
-  if TabH < 150 then
-    TabH := FForm.ClientHeight - 130;
+  if (TabH < 150) or (goverlayPageControl.ShowTabs and (TabH >= goverlayPageControl.ClientHeight - 10)) then
+  begin
+    if Assigned(goverlayPageControl) and (goverlayPageControl.ClientHeight > 150) then
+      TabH := goverlayPageControl.ClientHeight - 38
+    else
+      TabH := FForm.ClientHeight - 170;
+  end;
 
   // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
   RSHD_H := TabH - 2 * MARGIN - BTIN_H - TOGL_H - 2 * GAP;
@@ -299,7 +304,7 @@ begin
   ColW  := (CW - 3 * PAD) div 2;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
-  Row0  := 52;              // Row 0 Y-coordinate (CAS / FXAA)
+  Row0  := 44;              // Row 0 Y-coordinate (CAS / FXAA)
 
   // CAS (Column 0, Row 0)
   if Assigned(FVkCasIcon) then FVkCasIcon.SetBounds(Col0, Row0 + 6, 16, 16);
@@ -313,7 +318,7 @@ begin
   fxaaTrackBar.SetBounds(Col1 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
-  Row1  := Row0 + 28 + 20;  // Row 1 Y-coordinate (SMAA / DLS)
+  Row1  := Row0 + 28 + 14;  // Row 1 Y-coordinate (SMAA / DLS)
 
   // SMAA (Column 0, Row 1)
   if Assigned(FVkSmaaIcon) then FVkSmaaIcon.SetBounds(Col0, Row1 + 6, 16, 16);
@@ -332,7 +337,7 @@ begin
 
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
-                                   FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 6, 120, 28);
+                                   FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 4, 120, 28);
 
   if Assigned(FVkRestoreBtn) and Assigned(FVkToggleCaptureBtn) then
     FVkRestoreBtn.SetBounds(FVkToggleCaptureBtn.Left + FVkToggleCaptureBtn.Width + 12,

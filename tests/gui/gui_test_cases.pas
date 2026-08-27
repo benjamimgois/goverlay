@@ -477,6 +477,19 @@ begin
     goverlayform.goverlayPageControl.ActivePage = goverlayform.vkbasaltTabSheet);
   AssertTrue('vksumi tab becomes visible alongside vkbasalt',
     goverlayform.vksumiTabSheet.TabVisible);
+  AssertTrue('FVkToggleCard assigned',
+    Assigned(goverlayform.FVkToggleCard));
+  AssertTrue('FVkToggleCard fully contained within vkbasaltTabSheet',
+    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.vkbasaltTabSheet.ClientHeight);
+  AssertTrue('FVkToggleCaptureBtn visible within toggle card',
+    Assigned(goverlayform.FVkToggleCaptureBtn) and
+    (goverlayform.FVkToggleCaptureBtn.Top + goverlayform.FVkToggleCaptureBtn.Height <= goverlayform.FVkToggleCard.Height));
+  AssertTrue('FVkRestoreBtn visible within toggle card',
+    Assigned(goverlayform.FVkRestoreBtn) and
+    (goverlayform.FVkRestoreBtn.Top + goverlayform.FVkRestoreBtn.Height <= goverlayform.FVkToggleCard.Height));
+  AssertTrue('FVkReshadeSyncBtn visible within toggle card',
+    Assigned(goverlayform.FVkReshadeSyncBtn) and
+    (goverlayform.FVkReshadeSyncBtn.Top + goverlayform.FVkReshadeSyncBtn.Height <= goverlayform.FVkToggleCard.Height));
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltCasToggleSave;

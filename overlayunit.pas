@@ -632,6 +632,7 @@ type
     procedure ShowSavedStatus;
     procedure LoadVkBasaltConfig;
     procedure vkbasaltTabSheetShow(Sender: TObject);
+    procedure VkBasaltTabSheetResize(Sender: TObject);
     procedure vkSumiTabSheetShow(Sender: TObject);
     procedure performanceTabSheetShow(Sender: TObject);
     procedure visualTabSheetShow(Sender: TObject);
@@ -1930,8 +1931,6 @@ begin
   LoadVkBasaltConfig;
   LoadVkSumiConfig;
 
-  SetNavActive(2);
-
   //Show only vkBasalt and vkSumi tabs
   goverlayPageControl.ShowTabs:=true;
   presetTabSheet.TabVisible:=false;
@@ -1948,6 +1947,8 @@ begin
   vkbasalttabsheet.TabVisible:=true;
   vksumiTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=vkbasaltTabsheet;
+
+  SetNavActive(2);
 
   // Stop any running cube instances when entering vkBasalt tab
   ExecuteGUICommand('killall vkcube 2>/dev/null; killall pascube 2>/dev/null; true');
@@ -2406,12 +2407,18 @@ end;
 procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
 var
   RepoDir: string;
+  ContentW: Integer;
 begin
   // Reload vkBasalt config whenever the tab becomes visible so that
   // changes saved from another context (or another tab switch) are reflected
   // in the UI. This fixes the issue where switching away and back to vkBasalt
   // would show stale/reset values even though the file was saved correctly.
   LoadVkBasaltConfig;
+
+  ContentW := vkbasaltTabSheet.ClientWidth;
+  if ContentW < 400 then
+    ContentW := Max(1, Self.ClientWidth - IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
+  ReflowVkBasaltTab(ContentW);
 
   if not FReshadeDownloadedOnFirstShow then
   begin
@@ -2427,6 +2434,12 @@ begin
       end;
     end;
   end;
+end;
+
+procedure Tgoverlayform.VkBasaltTabSheetResize(Sender: TObject);
+begin
+  if (goverlayPageControl.ActivePage = vkbasaltTabSheet) and (vkbasaltTabSheet.ClientWidth > 0) then
+    ReflowVkBasaltTab(vkbasaltTabSheet.ClientWidth);
 end;
 
 procedure Tgoverlayform.vkSumiTabSheetShow(Sender: TObject);
@@ -3527,6 +3540,7 @@ begin
   // Initialize vkBasalt tab modern UI
   InitVkBasaltTab;
    vkbasaltTabSheet.OnShow := @vkbasaltTabSheetShow;
+   vkbasaltTabSheet.OnResize := @VkBasaltTabSheetResize;
 
    // Initialize vkSumi tab
    vksumiTabSheet.OnShow := @vkSumiTabSheetShow;
