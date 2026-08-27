@@ -95,9 +95,9 @@ if [[ "$SKIP_DEPS" -eq 0 ]]; then
 
   # Required runtimes/SDKs
   REQUIRED_SDKS=(
-    "org.kde.Platform/x86_64/6.10"
-    "org.kde.Sdk/x86_64/6.10"
-    "io.qt.qtwebengine.BaseApp/x86_64/6.10"
+    "org.kde.Platform/x86_64/6.11"
+    "org.kde.Sdk/x86_64/6.11"
+    "io.qt.qtwebengine.BaseApp/x86_64/6.11"
     "org.freedesktop.Sdk.Extension.freepascal/x86_64/25.08"
   )
 
