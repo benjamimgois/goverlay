@@ -86,6 +86,7 @@ type
     procedure TestTweaksTabRoundTrip;
     procedure TestProtonLocalShaderCacheTweak;
     procedure TestProtonDiscordBridgeTweak;
+    procedure TestTweaksCardLayoutAndClick;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -2152,6 +2153,26 @@ begin
   goverlayform.FProtonDiscordBridgeCheckBox.Checked := False;
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   AssertEquals('PROTON_DISCORD_BRIDGE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_DISCORD_BRIDGE'));
+end;
+
+procedure TGoverlayGuiTests.TestTweaksCardLayoutAndClick;
+begin
+  NavigateTweaksTab;
+  AssertTrue('FTweaksPaintBox is created', Assigned(goverlayform.FTweaksPaintBox));
+
+  // Verify that toggling via simulated mouse click updates checkbox state
+  goverlayform.simdeckCheckBox.Checked := False;
+  // Click first item (General card -> Simulate Steam Deck hardware)
+  goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 30, 50);
+  AssertTrue('simdeckCheckBox is checked after clicking item', goverlayform.simdeckCheckBox.Checked);
+
+  // Click again to toggle off
+  goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 30, 50);
+  AssertFalse('simdeckCheckBox is unchecked after second click', goverlayform.simdeckCheckBox.Checked);
+
+  // Trigger hover and paint
+  goverlayform.TweaksMD3MouseMove(goverlayform.FTweaksPaintBox, [], 30, 50);
+  goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
 end;
 
 procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;

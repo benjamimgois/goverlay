@@ -5,7 +5,7 @@ unit tweaks_md3;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit, goverlay_strings;
+  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit, goverlay_strings, themeunit;
 
 type
   TTweakRow = record
@@ -88,6 +88,15 @@ function TweakCategoryName(ACategory: Integer): string;
 
 implementation
 
+uses
+  {$IFDEF LCLqt6}
+  qt6,
+  qtobjects,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets;
+
 function TweakCategoryName(ACategory: Integer): string;
 begin
   case ACategory of
@@ -147,19 +156,17 @@ end;
 
 function TTweaksMD3Helper.ItemHeight: Integer;
 begin
-  Result := 54;
+  Result := 50;
 end;
 
 function TTweaksMD3Helper.HeaderHeight: Integer;
 begin
-  Result := 36;
+  Result := 32;
 end;
 
 procedure TTweaksMD3Helper.InitTweaksMD3;
 var
   i: Integer;
-const
-  BG = $001A192E; // RGB(22, 25, 37) — dark blue-grey background
 begin
   // Default all categories expanded
   FForm.FTweaksCatExpanded[0] := True;
@@ -180,7 +187,7 @@ begin
   FForm.FTweaksPaintBox := TPaintBox.Create(FForm);
   FForm.FTweaksPaintBox.Parent      := FForm.tweaksTabSheet;
   FForm.FTweaksPaintBox.Align       := alClient;
-  FForm.FTweaksPaintBox.Color       := BG;
+  FForm.FTweaksPaintBox.Color       := DARK_TAB_BG;
   FForm.FTweaksPaintBox.OnPaint     := @FForm.TweaksMD3Paint;
   FForm.FTweaksPaintBox.OnMouseMove := @FForm.TweaksMD3MouseMove;
   FForm.FTweaksPaintBox.OnMouseDown := @FForm.TweaksMD3MouseDown;
@@ -194,6 +201,7 @@ begin
   FForm.FTweaksScrollBar.Width       := 6;
   FForm.FTweaksScrollBar.Visible     := False;
   FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
+  ApplyModernScrollBarStylesheet(FForm.FTweaksScrollBar);
 
   // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
   FForm.FAntilagCheckBox := TCheckBox.Create(FForm);
@@ -289,296 +297,354 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
 
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
-    TrackColor: TColor;
+    TrackColor, BorderColor, ThumbColor: TColor;
     ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
   const
-    TRACK_W = 44;
-    TRACK_H = 24;
-    THUMB_D = 18;
-    RADIUS  = 12;
-    Pad     = 3;
+    TRACK_W = 38;
+    TRACK_H = 20;
+    THUMB_D = 14;
+    RADIUS  = 10;
+    PAD     = 3;
   begin
-    // Track colour
     if AOn then
-      TrackColor := RGBToColor(60, 180, 80)   // green
+    begin
+      TrackColor  := RGBToColor(52, 175, 90);   // vibrant clean green
+      BorderColor := RGBToColor(42, 150, 75);
+      ThumbColor  := clWhite;
+    end
     else
-      TrackColor := RGBToColor(70, 70, 70);   // grey
+    begin
+      TrackColor  := RGBToColor(44, 50, 68);    // sleek dark slate track
+      BorderColor := RGBToColor(58, 66, 88);
+      ThumbColor  := RGBToColor(200, 205, 215);
+    end;
 
+    // Track pill (smooth stadium shape)
     ACanvas.Brush.Color := TrackColor;
-    ACanvas.Pen.Color   := TrackColor;
+    ACanvas.Pen.Color   := BorderColor;
     ACanvas.Pen.Width   := 1;
+    ACanvas.RoundRect(AX, AY, AX + TRACK_W, AY + TRACK_H, TRACK_H, TRACK_H);
 
-    // Central rectangle
-    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
-
-    // Left cap (semi-circle)
-    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
-
-    // Right cap (semi-circle)
-    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
-
-    // Thumb
+    // Thumb position
     if AOn then
-      ThumbLeft := AX + TRACK_W - THUMB_D - Pad
+      ThumbLeft := AX + TRACK_W - THUMB_D - PAD
     else
-      ThumbLeft := AX + Pad;
+      ThumbLeft := AX + PAD;
     ThumbTop    := AY + (TRACK_H - THUMB_D) div 2;
     ThumbRight  := ThumbLeft + THUMB_D;
     ThumbBottom := ThumbTop + THUMB_D;
 
-    // Subtle outer ring/shadow
-    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
-    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
+    // Subtle drop shadow under thumb for crisp contrast
+    ACanvas.Brush.Color := RGBToColor(16, 20, 30);
+    ACanvas.Pen.Color   := RGBToColor(16, 20, 30);
+    ACanvas.Ellipse(ThumbLeft, ThumbTop + 1, ThumbRight, ThumbBottom + 1);
 
-    // White thumb body
-    ACanvas.Brush.Color := clWhite;
-    ACanvas.Pen.Color   := clWhite;
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft + 2, ThumbTop + 2, ThumbRight - 2, ThumbBottom - 2);
+    // White thumb circle
+    ACanvas.Brush.Color := ThumbColor;
+    ACanvas.Pen.Color   := ThumbColor;
+    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
   end;
 
-  procedure DrawHeader(ACanvas: TCanvas; const ARect: TRect; const ACat: string; const AIcon: string; AExpanded: Boolean; AHover: Boolean);
+  procedure DrawBadge(ACanvas: TCanvas; AX, AY: Integer; const AText: string; ABgColor, ABorderColor, ATextColor: TColor; out ABadgeW: Integer);
   var
-    TxtH: Integer;
-    Arrow: string;
-    IconX, TextX: Integer;
+    TxtW, TxtH, PadH, PadV: Integer;
+    BadgeRect: TRect;
   begin
-    if AHover then
-      ACanvas.Brush.Color := RGBToColor(55, 95, 150)   // bright blue
-    else
-      ACanvas.Brush.Color := RGBToColor(40, 70, 115);  // dark blue
-    ACanvas.FillRect(ARect);
-
-    // Arrow (expand/collapse indicator)
-    if AExpanded then
-      Arrow := '▼'
-    else
-      Arrow := '▶';
-    ACanvas.Font.Color  := RGBToColor(200, 200, 200);
-    ACanvas.Font.Size   := 9;
-    ACanvas.Font.Style  := [];
-    ACanvas.Font.Name   := 'DejaVu Sans';
-    ACanvas.TextOut(ARect.Left + 12, ARect.Top + (ARect.Height - ACanvas.TextHeight(Arrow)) div 2, Arrow);
-
-    // Icon
-    IconX := ARect.Left + 32;
-    ACanvas.Font.Name   := 'Noto Color Emoji';
-    ACanvas.Font.Size   := 14;
-    ACanvas.Font.Style  := [];
-    ACanvas.TextOut(IconX, ARect.Top + (ARect.Height - ACanvas.TextHeight(AIcon)) div 2, AIcon);
-
-    // Category name
-    TextX := IconX + 22;
+    PadH := 5;
+    PadV := 2;
     ACanvas.Font.Name  := 'DejaVu Sans';
-    ACanvas.Font.Color := clWhite;
+    ACanvas.Font.Size  := 7;
     ACanvas.Font.Style := [fsBold];
-    ACanvas.Font.Size  := 9;
-    TxtH := ACanvas.TextHeight(ACat);
-    ACanvas.TextOut(TextX, ARect.Top + (ARect.Height - TxtH) div 2, ACat);
+    TxtW := ACanvas.TextWidth(AText);
+    TxtH := ACanvas.TextHeight(AText);
+    ABadgeW := TxtW + (PadH * 2);
+    BadgeRect := Rect(AX, AY, AX + ABadgeW, AY + TxtH + (PadV * 2));
+
+    ACanvas.Brush.Color := ABgColor;
+    ACanvas.Pen.Color   := ABorderColor;
+    ACanvas.Pen.Width   := 1;
+    ACanvas.RoundRect(BadgeRect.Left, BadgeRect.Top, BadgeRect.Right, BadgeRect.Bottom, 4, 4);
+
+    ACanvas.Font.Color  := ATextColor;
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.TextOut(AX + PadH, AY + PadV, AText);
   end;
 
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
                      AChecked, AHover: Boolean; AIsCustom: Boolean);
   var
-    ToggleX, ToggleY, DelX: Integer;
+    ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW: Integer;
+    CleanDesc, Prefix, BadgeText: string;
+    BadgeBg, BadgeBorder, BadgeTxtColor: TColor;
+    HasBadge: Boolean;
     VarRect, DescRect: TRect;
-    Prefix, PrefixMesa, PrefixCachy, RestDesc: string;
-    OldColor: TColor;
-    PrefixW: Integer;
   const
-    PAD = 16;
-    DEL_W = 24;
+    DEL_W = 22;
   begin
-    // Background
-    if AChecked then
+    // Item Background (hover or active feedback)
+    if AHover then
     begin
-      if AHover then
-        ACanvas.Brush.Color := RGBToColor(32, 44, 65)   // slightly lighter active slate-blue
-      else
-        ACanvas.Brush.Color := RGBToColor(25, 33, 48);  // subtle active slate-blue
+      ACanvas.Brush.Color := RGBToColor(36, 44, 68);
+      ACanvas.Pen.Color   := RGBToColor(55, 70, 108);
+      ACanvas.Pen.Width   := 1;
+      ACanvas.RoundRect(ARect.Left, ARect.Top + 1, ARect.Right, ARect.Bottom - 1, 6, 6);
     end
-    else if AHover then
-      ACanvas.Brush.Color := RGBToColor(50, 55, 70)   // grey-blue
-    else
-      ACanvas.Brush.Color := RGBToColor(22, 25, 37);  // dark background
-    ACanvas.FillRect(ARect);
-
-    // Bottom hairline separator
-    ACanvas.Pen.Color := RGBToColor(40, 45, 60);
-    ACanvas.Line(ARect.Left, ARect.Bottom - 1, ARect.Right, ARect.Bottom - 1);
-
-    // Delete "×" button for custom rows (left side)
-    if AIsCustom then
+    else if AChecked then
     begin
-      DelX := ARect.Left + PAD;
-      ACanvas.Font.Name  := 'DejaVu Sans';
-      ACanvas.Font.Size  := 12;
-      ACanvas.Font.Style := [fsBold];
-      ACanvas.Font.Color := RGBToColor(220, 80, 80);  // red
-      ACanvas.TextOut(DelX, ARect.Top + (ARect.Height - ACanvas.TextHeight('×')) div 2, '×');
+      ACanvas.Brush.Color := RGBToColor(28, 36, 54);
+      ACanvas.Pen.Color   := RGBToColor(38, 48, 70);
+      ACanvas.Pen.Width   := 1;
+      ACanvas.RoundRect(ARect.Left, ARect.Top + 1, ARect.Right, ARect.Bottom - 1, 6, 6);
     end;
 
-    // Toggle switch (right side)
-    ToggleX := ARect.Right - 60;
-    ToggleY := ARect.Top + (ARect.Height - 24) div 2;
+    // Delete button for custom items
+    if AIsCustom then
+    begin
+      DelX := ARect.Left + 8;
+      ACanvas.Font.Name   := 'DejaVu Sans';
+      ACanvas.Font.Size   := 12;
+      ACanvas.Font.Style  := [fsBold];
+      ACanvas.Font.Color  := RGBToColor(220, 80, 80);
+      ACanvas.Brush.Style := bsClear;
+      ACanvas.TextOut(DelX, ARect.Top + (ARect.Height - ACanvas.TextHeight('×')) div 2, '×');
+      TextX := ARect.Left + 8 + DEL_W;
+    end
+    else
+      TextX := ARect.Left + 10;
+
+    // Toggle switch (aligned right)
+    ToggleX := ARect.Right - 46;
+    ToggleY := ARect.Top + (ARect.Height - 20) div 2;
     DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
 
-    // Description (top line, prominent)
-    DescRect := ARect;
-    if AIsCustom then
-      DescRect.Left := ARect.Left + PAD + DEL_W + 4
+    // Prefix & Badge detection
+    HasBadge := False;
+    CleanDesc := ADesc;
+    BadgeText := '';
+    BadgeBg := 0; BadgeBorder := 0; BadgeTxtColor := 0;
+
+    Prefix := '[proton-cachyos]';
+    if Pos(Prefix, ADesc) = 1 then
+    begin
+      HasBadge := True;
+      BadgeText := 'CachyOS';
+      BadgeBg := RGBToColor(42, 34, 66);
+      BadgeBorder := RGBToColor(110, 80, 180);
+      BadgeTxtColor := RGBToColor(180, 140, 255);
+      CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+    end
     else
-      DescRect.Left := ARect.Left + PAD;
-    DescRect.Right := ToggleX - PAD;
-    DescRect.Bottom := DescRect.Top + DescRect.Height div 2 + 2;
+    begin
+      Prefix := '[MESA]';
+      if Pos(Prefix, ADesc) = 1 then
+      begin
+        HasBadge := True;
+        BadgeText := 'MESA';
+        BadgeBg := RGBToColor(22, 44, 64);
+        BadgeBorder := RGBToColor(45, 125, 180);
+        BadgeTxtColor := RGBToColor(70, 195, 255);
+        CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+      end
+      else
+      begin
+        Prefix := '[low_latency_layer]';
+        if Pos(Prefix, ADesc) = 1 then
+        begin
+          HasBadge := True;
+          BadgeText := 'LowLatency';
+          BadgeBg := RGBToColor(52, 42, 22);
+          BadgeBorder := RGBToColor(160, 120, 35);
+          BadgeTxtColor := RGBToColor(245, 185, 55);
+          CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+        end;
+      end;
+    end;
+
+    // Description text
+    DescTop := ARect.Top + 6;
     ACanvas.Font.Name  := 'DejaVu Sans';
     ACanvas.Font.Size  := 9;
     ACanvas.Font.Style := [];
     if AIsCustom then
-      ACanvas.Font.Color := RGBToColor(160, 160, 160)
+      ACanvas.Font.Color := RGBToColor(170, 180, 195)
     else
       ACanvas.Font.Color := clWhite;
+    ACanvas.Brush.Style := bsClear;
 
-    Prefix := '[low_latency_layer]';
-    PrefixMesa := '[MESA]';
-    PrefixCachy := '[proton-cachyos]';
-    if (Pos(Prefix, ADesc) = 1) then
+    DescRect := Rect(TextX, DescTop, ToggleX - 10, DescTop + 18);
+    ACanvas.TextRect(DescRect, TextX, DescTop, CleanDesc);
+
+    // Draw badge chip if present
+    if HasBadge then
     begin
-      OldColor := ACanvas.Font.Color;
-      ACanvas.Font.Color := RGBToColor(240, 180, 50); // golden yellow/orange
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, Prefix);
-      PrefixW := ACanvas.TextWidth(Prefix);
-      ACanvas.Font.Color := OldColor;
-      RestDesc := Copy(ADesc, Length(Prefix) + 1, MaxInt);
-      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
-    end
-    else if (Pos(PrefixMesa, ADesc) = 1) then
-    begin
-      OldColor := ACanvas.Font.Color;
-      ACanvas.Font.Color := RGBToColor(48, 190, 240); // Cyan
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, PrefixMesa);
-      PrefixW := ACanvas.TextWidth(PrefixMesa);
-      ACanvas.Font.Color := OldColor;
-      RestDesc := Copy(ADesc, Length(PrefixMesa) + 1, MaxInt);
-      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
-    end
-    else if (Pos(PrefixCachy, ADesc) = 1) then
-    begin
-      OldColor := ACanvas.Font.Color;
-      ACanvas.Font.Color := RGBToColor(160, 120, 240); // Purple/Violet
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, PrefixCachy);
-      PrefixW := ACanvas.TextWidth(PrefixCachy);
-      ACanvas.Font.Color := OldColor;
-      RestDesc := Copy(ADesc, Length(PrefixCachy) + 1, MaxInt);
-      ACanvas.TextRect(DescRect, DescRect.Left + PrefixW, DescRect.Top + 2, RestDesc);
-    end
-    else
-    begin
-      ACanvas.TextRect(DescRect, DescRect.Left, DescRect.Top + 2, ADesc);
+      BadgeW := 0;
+      DrawBadge(ACanvas, TextX + Min(ACanvas.TextWidth(CleanDesc) + 6, ToggleX - TextX - 65), DescTop + 1, BadgeText, BadgeBg, BadgeBorder, BadgeTxtColor, BadgeW);
     end;
 
-    // Variable name (below description, monospace, dimmed)
-    VarRect := ARect;
-    if AIsCustom then
-      VarRect.Left := ARect.Left + PAD + DEL_W + 4
-    else
-      VarRect.Left := ARect.Left + PAD;
-    VarRect.Right := ToggleX - PAD;
-    VarRect.Top := DescRect.Bottom;
+    // VarName (monospace, muted slate)
+    VarTop := ARect.Top + 27;
     ACanvas.Font.Name  := 'DejaVu Sans Mono';
     ACanvas.Font.Size  := 8;
-    ACanvas.Font.Color := RGBToColor(150, 150, 150);
-    ACanvas.TextRect(VarRect, VarRect.Left, VarRect.Top, AVar);
+    ACanvas.Font.Style := [];
+    ACanvas.Font.Color := RGBToColor(135, 145, 165);
+    ACanvas.Brush.Style := bsClear;
+    VarRect := Rect(TextX, VarTop, ToggleX - 8, VarTop + 16);
+    ACanvas.TextRect(VarRect, TextX, VarTop, AVar);
   end;
 
 var
   PB: TPaintBox;
-  Y, ItemH, HeadH: Integer;
-  i, CatIdx: Integer;
+  Y, RowIdx, i, CatIdx, ItemCount, ActiveCount, CustomCount, Rows, CardH, TotalContentH: Integer;
+  CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   CatNames: array[0..3] of string;
-  CatExpanded: array[0..3] of Boolean;
-  HoverIdx, RowIdx: Integer;
+  HoverIdx: Integer;
   R: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
-  ColWidth, Col, CatItemCount, CustomItemCount: Integer;
+  ActiveStr: string;
+const
+  CARD_MARGIN_X      = 8;
+  CARD_GAP           = 10;
+  CARD_HDR_H         = 32;
+  CARD_PAD_BOTTOM    = 8;
+  ITEM_H             = 50;
+  CARD_CORNER_RADIUS = 6;
 begin
   PB := Sender as TPaintBox;
-  PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+  PB.Canvas.Brush.Color := DARK_TAB_BG;
   PB.Canvas.FillRect(PB.ClientRect);
 
-  ItemH := ItemHeight;
-  HeadH := HeaderHeight;
+  {$IFDEF LCLqt6}
+  if PB.Canvas.Handle <> 0 then
+  begin
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterSmoothPixmapTransform, True);
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterTextAntialiasing, True);
+  end;
+  {$ENDIF}
+
   CatNames[0] := TweakCategoryName(TWEAK_CAT_GENERAL);
   CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
   CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
   CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
-  CatExpanded := FForm.FTweaksCatExpanded;
 
-  Y := -FForm.FTweaksScrollPos;
+  Y := -FForm.FTweaksScrollPos + CARD_GAP;
   RowIdx := 0;
   HoverIdx := FForm.FTweaksHoverIdx;
   Is2Col := PB.Width >= 700;
-  ColWidth := PB.Width div 2;
+  CardLeft := CARD_MARGIN_X;
+  CardRight := PB.Width - CARD_MARGIN_X;
+  InnerLeft := CardLeft + 8;
+  InnerRight := CardRight - 8;
+  InnerW := InnerRight - InnerLeft;
+  ColGap := 8;
+  ColW := (InnerW - ColGap) div 2;
 
   for CatIdx := 0 to 3 do
   begin
-    // Category header with icon
-    R := Rect(0, Y, PB.Width, Y + HeadH);
-    case CatIdx of
-      0: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚙', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      1: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '🎮', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      2: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⚡', CatExpanded[CatIdx], HoverIdx = RowIdx);
-      3: DrawHeader(PB.Canvas, R, CatNames[CatIdx], '⏱', CatExpanded[CatIdx], HoverIdx = RowIdx);
-    end;
-    Inc(Y, HeadH);
-    Inc(RowIdx);
-
-    if CatExpanded[CatIdx] then
+    // Count items and active tweaks in this category
+    ItemCount := 0;
+    ActiveCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      CatItemCount := 0;
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      if TWEAK_ROWS[i].Category = CatIdx then
       begin
-        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+        Inc(ItemCount);
         Chk := GetTweakRowCheckBox(FForm, i);
-        if Is2Col then
-        begin
-          Col := CatItemCount mod 2;
-          if Col = 0 then
-            R := Rect(0, Y, ColWidth, Y + ItemH)
-          else
-            R := Rect(ColWidth, Y, PB.Width, Y + ItemH);
-          DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
-                   Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
-          Inc(CatItemCount);
-          Inc(RowIdx);
-          if Col = 1 then
-            Inc(Y, ItemH);
-        end
-        else
-        begin
-          R := Rect(0, Y, PB.Width, Y + ItemH);
-          DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
-                   Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
-          Inc(Y, ItemH);
-          Inc(RowIdx);
-        end;
+        if Assigned(Chk) and Chk.Checked then
+          Inc(ActiveCount);
       end;
-      if Is2Col and (CatItemCount mod 2 = 1) then
-        Inc(Y, ItemH);
     end;
+
+    if Is2Col then
+      Rows := (ItemCount + 1) div 2
+    else
+      Rows := ItemCount;
+
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    // Draw Card Container
+    PB.Canvas.Brush.Color := DARK_CARD_BG;
+    PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+    // Draw Card Header
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 10;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.Font.Color := clWhite;
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(CardLeft + 12, Y + 8, CatNames[CatIdx]);
+
+    if ActiveCount > 0 then
+    begin
+      ActiveStr := IntToStr(ActiveCount) + ' active';
+      PB.Canvas.Font.Name  := 'DejaVu Sans';
+      PB.Canvas.Font.Size  := 8;
+      PB.Canvas.Font.Style := [];
+      PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
+      PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+    end;
+
+    // Draw Items
+    CatItemCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
+    begin
+      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      Chk := GetTweakRowCheckBox(FForm, i);
+      if Is2Col then
+      begin
+        Col := CatItemCount mod 2;
+        Row := CatItemCount div 2;
+        if Col = 0 then
+          R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
+        else
+          R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        R := Rect(InnerLeft, Y + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+
+      DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
+               Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
+      Inc(CatItemCount);
+      Inc(RowIdx);
+    end;
+
+    Inc(Y, CardH + CARD_GAP);
   end;
 
-  // Custom variables header
-  R := Rect(0, Y, PB.Width, Y + HeadH);
-  DrawHeader(PB.Canvas, R, TweakCategoryName(TWEAK_CAT_CUSTOM), '✎', True, HoverIdx = RowIdx);
-  Inc(Y, HeadH);
-  Inc(RowIdx);
-
-  // Custom rows from legacy grid (if any) or hidden listbox
+  // Custom Card
+  CustomCount := 0;
   if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
+
+  if CustomCount > 0 then
+  begin
+    if Is2Col then
+      Rows := (CustomCount + 1) div 2
+    else
+      Rows := CustomCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+  end
+  else
+    CardH := CARD_HDR_H + 36;
+
+  // Draw Custom Card Container
+  PB.Canvas.Brush.Color := DARK_CARD_BG;
+  PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+  // Draw Custom Card Header
+  PB.Canvas.Font.Name  := 'DejaVu Sans';
+  PB.Canvas.Font.Size  := 10;
+  PB.Canvas.Font.Style := [fsBold];
+  PB.Canvas.Font.Color := clWhite;
+  PB.Canvas.Brush.Style := bsClear;
+  PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_CUSTOM) + ' Variables');
+
+  if CustomCount > 0 then
   begin
     CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
@@ -586,34 +652,38 @@ begin
       if Is2Col then
       begin
         Col := CustomItemCount mod 2;
+        Row := CustomItemCount div 2;
         if Col = 0 then
-          R := Rect(0, Y, ColWidth, Y + ItemH)
+          R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
         else
-          R := Rect(ColWidth, Y, PB.Width, Y + ItemH);
-        DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
-                 FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
-        Inc(CustomItemCount);
-        Inc(RowIdx);
-        if Col = 1 then
-          Inc(Y, ItemH);
+          R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
       end
       else
-      begin
-        R := Rect(0, Y, PB.Width, Y + ItemH);
-        DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
-                 FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
-        Inc(Y, ItemH);
-        Inc(RowIdx);
-      end;
+        R := Rect(InnerLeft, Y + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
+
+      DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
+               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
+      Inc(CustomItemCount);
+      Inc(RowIdx);
     end;
-    if Is2Col and (CustomItemCount mod 2 = 1) then
-      Inc(Y, ItemH);
+  end
+  else
+  begin
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 8;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No custom variables. Use the + Add button below to create one.');
   end;
 
-  // Update scrollbar
-  if Y + FForm.FTweaksScrollPos > PB.Height then
+  Inc(Y, CardH + CARD_GAP);
+
+  // Update Scrollbar (with padding for floating dock)
+  TotalContentH := Y + FForm.FTweaksScrollPos + 80;
+  if TotalContentH > PB.Height then
   begin
-    FForm.FTweaksScrollBar.Max := Y + FForm.FTweaksScrollPos - PB.Height + 75;
+    FForm.FTweaksScrollBar.Max := TotalContentH - PB.Height;
     FForm.FTweaksScrollBar.PageSize := 1;
     FForm.FTweaksScrollBar.Visible := True;
   end
@@ -627,121 +697,107 @@ end;
 procedure TTweaksMD3Helper.MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
   PB: TPaintBox;
-  OldHover, ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
+  OldHover, RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
+  YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
+  ItemRect: TRect;
   TweakHint: string;
   Is2Col: Boolean;
+const
+  CARD_MARGIN_X   = 8;
+  CARD_GAP        = 10;
+  CARD_HDR_H      = 32;
+  CARD_PAD_BOTTOM = 8;
+  ITEM_H          = 50;
 begin
   PB := Sender as TPaintBox;
   OldHover := FForm.FTweaksHoverIdx;
   FForm.FTweaksHoverIdx := -1;
   TweakHint := '';
 
-  ItemH := ItemHeight;
-  HeadH := HeaderHeight;
-  YPos := -FForm.FTweaksScrollPos;
+  YPos := -FForm.FTweaksScrollPos + CARD_GAP;
   RowIdx := 0;
   Is2Col := PB.Width >= 700;
-  ColWidth := PB.Width div 2;
+  CardLeft := CARD_MARGIN_X;
+  CardRight := PB.Width - CARD_MARGIN_X;
+  InnerLeft := CardLeft + 8;
+  InnerRight := CardRight - 8;
+  InnerW := InnerRight - InnerLeft;
+  ColGap := 8;
+  ColW := (InnerW - ColGap) div 2;
 
   for CatIdx := 0 to 3 do
   begin
-    // Header
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-    begin
-      FForm.FTweaksHoverIdx := RowIdx;
-      Break;
-    end;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
+    ItemCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
+      if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
 
-    if FForm.FTweaksCatExpanded[CatIdx] then
+    if Is2Col then Rows := (ItemCount + 1) div 2 else Rows := ItemCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    CatItemCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      CatItemCount := 0;
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      if Is2Col then
       begin
-        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
-        if Is2Col then
-        begin
-          Col := CatItemCount mod 2;
-          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
-          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
-          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
-          begin
-            FForm.FTweaksHoverIdx := RowIdx;
-            if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
-              TweakHint := 'Works only with proton-cachyos'
-            else if CatIdx = TWEAK_CAT_LATENCY then
-              TweakHint := 'Needs Korthos low latency layer installed';
-            Break;
-          end;
-          Inc(CatItemCount);
-          Inc(RowIdx);
-          if Col = 1 then Inc(YPos, ItemH);
-        end
+        Col := CatItemCount mod 2;
+        Row := CatItemCount div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
         else
-        begin
-          if (Y >= YPos) and (Y < YPos + ItemH) then
-          begin
-            FForm.FTweaksHoverIdx := RowIdx;
-            if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
-               (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
-              TweakHint := 'Works only with proton-cachyos'
-            else if CatIdx = TWEAK_CAT_LATENCY then
-              TweakHint := 'Needs Korthos low latency layer installed';
-            Break;
-          end;
-          Inc(YPos, ItemH);
-          Inc(RowIdx);
-        end;
+          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        FForm.FTweaksHoverIdx := RowIdx;
+        if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
+           (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
+           (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
+          TweakHint := 'Works only with proton-cachyos'
+        else if CatIdx = TWEAK_CAT_LATENCY then
+          TweakHint := 'Needs Korthos low latency layer installed';
+        Break;
       end;
-      if FForm.FTweaksHoverIdx >= 0 then Break;
-      if Is2Col and (CatItemCount mod 2 = 1) then Inc(YPos, ItemH);
+      Inc(CatItemCount);
+      Inc(RowIdx);
     end;
+
+    if FForm.FTweaksHoverIdx >= 0 then Break;
+    Inc(YPos, CardH + CARD_GAP);
   end;
 
   // Custom section
-  if FForm.FTweaksHoverIdx < 0 then
+  if (FForm.FTweaksHoverIdx < 0) and Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
   begin
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-      FForm.FTweaksHoverIdx := RowIdx;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
+    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
+    if Is2Col then Rows := (CustomCount + 1) div 2 else Rows := CustomCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
-    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    CustomItemCount := 0;
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
-      CustomItemCount := 0;
-      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      if Is2Col then
       begin
-        if Is2Col then
-        begin
-          Col := CustomItemCount mod 2;
-          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
-          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
-          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
-          begin
-            FForm.FTweaksHoverIdx := RowIdx;
-            Break;
-          end;
-          Inc(CustomItemCount);
-          Inc(RowIdx);
-          if Col = 1 then Inc(YPos, ItemH);
-        end
+        Col := CustomItemCount mod 2;
+        Row := CustomItemCount div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
         else
-        begin
-          if (Y >= YPos) and (Y < YPos + ItemH) then
-          begin
-            FForm.FTweaksHoverIdx := RowIdx;
-            Break;
-          end;
-          Inc(YPos, ItemH);
-          Inc(RowIdx);
-        end;
+          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        FForm.FTweaksHoverIdx := RowIdx;
+        Break;
       end;
-      if Is2Col and (CustomItemCount mod 2 = 1) then Inc(YPos, ItemH);
+      Inc(CustomItemCount);
+      Inc(RowIdx);
     end;
   end;
 
@@ -770,202 +826,139 @@ end;
 procedure TTweaksMD3Helper.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   PB: TPaintBox;
-  ItemH, HeadH, RowIdx, i, CatIdx: Integer;
-  YPos, ColWidth, Col, CatItemCount, CustomItemCount, ItemX, ItemW: Integer;
-  ToggleX: Integer;
+  RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
+  YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
+  ItemRect: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
+const
+  CARD_MARGIN_X   = 8;
+  CARD_GAP        = 10;
+  CARD_HDR_H      = 32;
+  CARD_PAD_BOTTOM = 8;
+  ITEM_H          = 50;
 begin
   if Button <> mbLeft then Exit;
   PB := Sender as TPaintBox;
-  ItemH := ItemHeight;
-  HeadH := HeaderHeight;
-  YPos := -FForm.FTweaksScrollPos;
+
+  YPos := -FForm.FTweaksScrollPos + CARD_GAP;
   RowIdx := 0;
   Is2Col := PB.Width >= 700;
-  ColWidth := PB.Width div 2;
+  CardLeft := CARD_MARGIN_X;
+  CardRight := PB.Width - CARD_MARGIN_X;
+  InnerLeft := CardLeft + 8;
+  InnerRight := CardRight - 8;
+  InnerW := InnerRight - InnerLeft;
+  ColGap := 8;
+  ColW := (InnerW - ColGap) div 2;
 
   for CatIdx := 0 to 3 do
   begin
-    // Header click = toggle expand
-    if (Y >= YPos) and (Y < YPos + HeadH) then
-    begin
-      FForm.FTweaksCatExpanded[CatIdx] := not FForm.FTweaksCatExpanded[CatIdx];
-      PB.Invalidate;
-      Exit;
-    end;
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
+    ItemCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
+      if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
 
-    if FForm.FTweaksCatExpanded[CatIdx] then
+    if Is2Col then Rows := (ItemCount + 1) div 2 else Rows := ItemCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    CatItemCount := 0;
+    for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      CatItemCount := 0;
-      for i := 0 to TWEAK_ROW_COUNT - 1 do
+      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      if Is2Col then
       begin
-        if TWEAK_ROWS[i].Category <> CatIdx then Continue;
-        if Is2Col then
-        begin
-          Col := CatItemCount mod 2;
-          if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
-          else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
-
-          if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
-          begin
-            ToggleX := ItemX + ItemW - 66;
-            if X >= ToggleX then
-            begin
-              Chk := GetTweakRowCheckBox(FForm, i);
-              if Assigned(Chk) then
-              begin
-                if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
-                   (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
-                    FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
-                begin
-                  ShowMessage(rsAntiLagBlockedByKorthos);
-                end
-                else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
-                         (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
-                        (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
-                begin
-                  ShowMessage(rsKorthosBlockedByAntiLag);
-                end
-                else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
-                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
-                else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
-                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
-                else
-                begin
-                  Chk.Checked := not Chk.Checked;
-                  PB.Invalidate;
-                  FForm.TriggerAutoSave;
-                end;
-              end;
-            end;
-            Exit;
-          end;
-          Inc(CatItemCount);
-          Inc(RowIdx);
-          if Col = 1 then Inc(YPos, ItemH);
-        end
+        Col := CatItemCount mod 2;
+        Row := CatItemCount div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
         else
+          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        Chk := GetTweakRowCheckBox(FForm, i);
+        if Assigned(Chk) then
         begin
-          if (Y >= YPos) and (Y < YPos + ItemH) then
+          if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
+             (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
+              FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
           begin
-            ToggleX := PB.Width - 66;
-            if X >= ToggleX then
-            begin
-              Chk := GetTweakRowCheckBox(FForm, i);
-              if Assigned(Chk) then
-              begin
-                if (Chk = FForm.FAntilagCheckBox) and (not Chk.Checked) and
-                   (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
-                    FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
-                begin
-                  ShowMessage(rsAntiLagBlockedByKorthos);
-                end
-                else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
-                         (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
-                        (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
-                begin
-                  ShowMessage(rsKorthosBlockedByAntiLag);
-                end
-                else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
-                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
-                else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
-                  ShowMessage(rsSpoofBlockedByHideAmdGpu)
-                else
-                begin
-                  Chk.Checked := not Chk.Checked;
-                  PB.Invalidate;
-                  FForm.TriggerAutoSave;
-                end;
-              end;
-            end;
-            Exit;
+            ShowMessage(rsAntiLagBlockedByKorthos);
+          end
+          else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
+                   (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+                  (not Chk.Checked) and FForm.FAntilagCheckBox.Checked then
+          begin
+            ShowMessage(rsKorthosBlockedByAntiLag);
+          end
+          else if (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) and (not Chk.Checked) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
+            ShowMessage(rsSpoofBlockedByHideAmdGpu)
+          else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
+            ShowMessage(rsSpoofBlockedByHideAmdGpu)
+          else
+          begin
+            Chk.Checked := not Chk.Checked;
+            PB.Invalidate;
+            FForm.TriggerAutoSave;
           end;
-          Inc(YPos, ItemH);
-          Inc(RowIdx);
         end;
+        Exit;
       end;
-      if Is2Col and (CatItemCount mod 2 = 1) then Inc(YPos, ItemH);
+      Inc(CatItemCount);
+      Inc(RowIdx);
     end;
+
+    Inc(YPos, CardH + CARD_GAP);
   end;
 
-  // Custom section header (no toggle)
-  if (Y >= YPos) and (Y < YPos + HeadH) then
-  begin
-    Inc(YPos, HeadH);
-    Inc(RowIdx);
-  end
-  else
-    Inc(YPos, HeadH);
-
-  // Custom rows
+  // Custom section
   if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
   begin
+    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
+    if Is2Col then Rows := (CustomCount + 1) div 2 else Rows := CustomCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
     CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
       if Is2Col then
       begin
         Col := CustomItemCount mod 2;
-        if Col = 0 then begin ItemX := 0; ItemW := ColWidth; end
-        else begin ItemX := ColWidth; ItemW := PB.Width - ColWidth; end;
-
-        if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
-        begin
-          // Delete button hit area (left side of item column: ItemX + 16 .. ItemX + 40)
-          if (X >= ItemX + 16) and (X < ItemX + 40) then
-          begin
-            FForm.FTweaksGrid.DeleteRow(i);
-            PB.Invalidate;
-            FForm.TriggerAutoSave;
-            Exit;
-          end;
-          ToggleX := ItemX + ItemW - 66;
-          if X >= ToggleX then
-          begin
-            if FForm.FTweaksGrid.Cells[0, i] = '1' then
-              FForm.FTweaksGrid.Cells[0, i] := '0'
-            else
-              FForm.FTweaksGrid.Cells[0, i] := '1';
-            PB.Invalidate;
-            FForm.TriggerAutoSave;
-          end;
-          Exit;
-        end;
-        Inc(CustomItemCount);
-        Inc(RowIdx);
-        if Col = 1 then Inc(YPos, ItemH);
+        Row := CustomItemCount div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+        else
+          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
       end
       else
+        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
       begin
-        if (Y >= YPos) and (Y < YPos + ItemH) then
+        // Delete button hit (left 28px of the item)
+        if X < ItemRect.Left + 28 then
         begin
-          if (X >= 16) and (X < 40) then
-          begin
-            FForm.FTweaksGrid.DeleteRow(i);
-            PB.Invalidate;
-            FForm.TriggerAutoSave;
-            Exit;
-          end;
-          ToggleX := PB.Width - 66;
-          if X >= ToggleX then
-          begin
-            if FForm.FTweaksGrid.Cells[0, i] = '1' then
-              FForm.FTweaksGrid.Cells[0, i] := '0'
-            else
-              FForm.FTweaksGrid.Cells[0, i] := '1';
-            PB.Invalidate;
-            FForm.TriggerAutoSave;
-          end;
+          FForm.FTweaksGrid.DeleteRow(i);
+          PB.Invalidate;
+          FForm.TriggerAutoSave;
           Exit;
         end;
-        Inc(YPos, ItemH);
-        Inc(RowIdx);
+
+        // Otherwise toggle variable
+        if FForm.FTweaksGrid.Cells[0, i] = '1' then
+          FForm.FTweaksGrid.Cells[0, i] := '0'
+        else
+          FForm.FTweaksGrid.Cells[0, i] := '1';
+        PB.Invalidate;
+        FForm.TriggerAutoSave;
+        Exit;
       end;
+      Inc(CustomItemCount);
+      Inc(RowIdx);
     end;
-    if Is2Col and (CustomItemCount mod 2 = 1) then Inc(YPos, ItemH);
   end;
 end;
 
