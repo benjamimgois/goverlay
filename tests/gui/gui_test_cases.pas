@@ -102,6 +102,7 @@ type
     procedure TestVkBasaltPipelineInteractions;
     procedure TestVkBasaltPipelineScrollOnManyEffects;
     procedure TestPerformanceFiltersLayoutOnResize;
+    procedure TestMangoHudFrameTimingDetailed;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -2678,6 +2679,60 @@ begin
     TestPanel.Free;
     goverlayform.gamesLabelClick(nil);
   end;
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudFrameTimingDetailed;
+var
+  C: string;
+begin
+  AssertTrue('frametimedetailedCheckBox assigned', Assigned(goverlayform.frametimedetailedCheckBox));
+  AssertEquals('frametimedetailedCheckBox caption', 'Frame Time +', goverlayform.frametimedetailedCheckBox.Caption);
+
+  // 1. Initial state: frametimegraph unchecked -> detailed is disabled & unchecked
+  goverlayform.frametimegraphCheckBox.Checked := False;
+  AssertFalse('frametimedetailedCheckBox disabled when frametime is unchecked', goverlayform.frametimedetailedCheckBox.Enabled);
+  AssertFalse('frametimedetailedCheckBox unchecked when frametime is unchecked', goverlayform.frametimedetailedCheckBox.Checked);
+
+  // 2. Checking frametimegraphCheckBox enables frametimedetailedCheckBox
+  goverlayform.frametimegraphCheckBox.Checked := True;
+  AssertTrue('frametimedetailedCheckBox enabled when frametime is checked', goverlayform.frametimedetailedCheckBox.Enabled);
+
+  // 3. Check frametimedetailedCheckBox and save config
+  goverlayform.frametimedetailedCheckBox.Checked := True;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains frame_timing', Pos('frame_timing', C) > 0);
+  AssertTrue('MangoHud.conf contains frame_timing_detailed', Pos('frame_timing_detailed', C) > 0);
+
+  // 4. Reload config and verify both remain checked & enabled
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('frametimegraphCheckBox reloaded as True', goverlayform.frametimegraphCheckBox.Checked);
+  AssertTrue('frametimedetailedCheckBox reloaded as True', goverlayform.frametimedetailedCheckBox.Checked);
+  AssertTrue('frametimedetailedCheckBox remains enabled after reload', goverlayform.frametimedetailedCheckBox.Enabled);
+
+  // 5. Unchecking frametimegraph automatically unchecks and disables frametimedetailed
+  goverlayform.frametimegraphCheckBox.Checked := False;
+  AssertFalse('frametimedetailedCheckBox unchecked on disabling frametime', goverlayform.frametimedetailedCheckBox.Checked);
+  AssertFalse('frametimedetailedCheckBox disabled on disabling frametime', goverlayform.frametimedetailedCheckBox.Enabled);
+
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('MangoHud.conf does not contain frame_timing_detailed when unchecked', Pos('frame_timing_detailed', C) > 0);
+
+  // 6. Layout placement verification
+  goverlayform.ReflowPerformanceTab(935, 650);
+  AssertTrue('frametimedetailedCheckBox positioned to the right of frametimegraphCheckBox',
+    goverlayform.frametimedetailedCheckBox.Left > goverlayform.frametimegraphCheckBox.Left);
+  AssertEquals('frametimedetailedCheckBox vertically aligned on row with frametimegraphCheckBox',
+    goverlayform.frametimegraphCheckBox.Top, goverlayform.frametimedetailedCheckBox.Top);
+  AssertTrue('framecountCheckBox positioned below vpsCheckBox',
+    goverlayform.framecountCheckBox.Top > goverlayform.vpsCheckBox.Top);
+  AssertEquals('framecountCheckBox horizontally aligned in Column 3 with vpsCheckBox',
+    goverlayform.vpsCheckBox.Left, goverlayform.framecountCheckBox.Left);
+  AssertEquals('framecountCheckBox vertically aligned with ftraceCheckBox',
+    goverlayform.ftraceCheckBox.Top, goverlayform.framecountCheckBox.Top);
+  AssertTrue('frametimetypeBitBtn positioned below frametimegraphCheckBox',
+    goverlayform.frametimetypeBitBtn.Top > goverlayform.frametimegraphCheckBox.Top);
 end;
 
 initialization

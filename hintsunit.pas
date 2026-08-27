@@ -64,6 +64,8 @@ begin
     'Shows total number of rendered frames');
   SetHint('frametimegraphCheckBox', 'Frametime graph' + LineEnding +
     'Displays rendering time graph');
+  SetHint('frametimedetailedCheckBox', 'Detailed frametime' + LineEnding +
+    'Displays detailed frame timing breakdown');
   SetHint('showfpslimCheckBox', 'Show FPS limit' + LineEnding +
     'Displays FPS limiter value when active');
 

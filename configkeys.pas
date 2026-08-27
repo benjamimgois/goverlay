@@ -186,6 +186,7 @@ const
   MANGO_FLAG_HUD_COMPACT       = 'hud_compact';
   MANGO_FLAG_FPS               = 'fps';
   MANGO_FLAG_FRAME_TIMING      = 'frame_timing';
+  MANGO_FLAG_FRAME_TIMING_DETAILED = 'frame_timing_detailed';
   MANGO_FLAG_SHOW_FPS_LIMIT    = 'show_fps_limit';
   MANGO_FLAG_FRAME_COUNT       = 'frame_count';
   MANGO_FLAG_HISTOGRAM         = 'histogram';

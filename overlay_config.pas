@@ -160,6 +160,7 @@ type
     FpsAvg: Boolean;
     FpsAvgCaption: string;
     FrametimeGraph: Boolean;
+    FrametimeDetailed: Boolean;
     FrametimeGraphColor: TColor;
     FrametimeTypeCaption: string;
     FrameCount: Boolean;
@@ -1900,6 +1901,8 @@ begin
     if Settings.FrametimeGraph then
     begin
       ConfigLines.Add('frame_timing');
+      if Settings.FrametimeDetailed then
+        ConfigLines.Add('frame_timing_detailed');
       ConfigLines.Add('frametime_color=' + ColorToHTMLColor(Settings.FrametimeGraphColor));
     end;
 

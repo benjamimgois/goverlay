@@ -266,6 +266,7 @@ type
     fpstoggleImage: TImage;
     framecountCheckBox: TCheckBox;
     frametimegraphCheckBox: TCheckBox;
+    frametimedetailedCheckBox: TCheckBox;
     frametimegraphColorButton: TColorButton;
     frametimetypeBitBtn: TBitBtn;
     fsrCheckBox: TCheckBox;

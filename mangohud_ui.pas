@@ -34,6 +34,7 @@ type
     procedure BuildFpsLimitEdit;
     procedure InitPerformanceTab;
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
+    procedure FrametimegraphCheckBoxChange(Sender: TObject);
     procedure UpdatePerfCardTheme;
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
@@ -1499,6 +1500,15 @@ begin
   // Reparent Information controls to FPerfInfoSec
   fpsCheckBox.Parent                := FPerfInfoSec;
   frametimegraphCheckBox.Parent     := FPerfInfoSec;
+  if not Assigned(frametimedetailedCheckBox) then
+  begin
+    frametimedetailedCheckBox := TCheckBox.Create(FForm);
+    frametimedetailedCheckBox.Name := 'frametimedetailedCheckBox';
+    frametimedetailedCheckBox.Caption := 'Frame Time +';
+    frametimedetailedCheckBox.Hint := 'Show detailed frame timing breakdown';
+    frametimedetailedCheckBox.ShowHint := True;
+  end;
+  frametimedetailedCheckBox.Parent  := FPerfInfoSec;
   frametimegraphColorButton.Parent  := FPerfInfoSec;
   frametimetypeBitBtn.Parent        := FPerfInfoSec;
   fpsavgCheckBox.Parent             := FPerfInfoSec;
@@ -1511,6 +1521,7 @@ begin
   // Free all Information grid controls from anchor chains — Reflow will center them
   fpsCheckBox.AnchorSideLeft.Control           := nil; fpsCheckBox.AnchorSideTop.Control           := nil; fpsCheckBox.AnchorSideRight.Control           := nil; fpsCheckBox.AnchorSideBottom.Control           := nil; fpsCheckBox.Anchors           := [akLeft, akTop];
   frametimegraphCheckBox.AnchorSideLeft.Control := nil; frametimegraphCheckBox.AnchorSideTop.Control := nil; frametimegraphCheckBox.AnchorSideRight.Control := nil; frametimegraphCheckBox.AnchorSideBottom.Control := nil; frametimegraphCheckBox.Anchors := [akLeft, akTop];
+  frametimedetailedCheckBox.AnchorSideLeft.Control := nil; frametimedetailedCheckBox.AnchorSideTop.Control := nil; frametimedetailedCheckBox.AnchorSideRight.Control := nil; frametimedetailedCheckBox.AnchorSideBottom.Control := nil; frametimedetailedCheckBox.Anchors := [akLeft, akTop];
   frametimegraphColorButton.AnchorSideLeft.Control := nil; frametimegraphColorButton.AnchorSideTop.Control := nil; frametimegraphColorButton.AnchorSideRight.Control := nil; frametimegraphColorButton.AnchorSideBottom.Control := nil; frametimegraphColorButton.Anchors := [akLeft, akTop];
   frametimetypeBitBtn.AnchorSideLeft.Control    := nil; frametimetypeBitBtn.AnchorSideTop.Control    := nil; frametimetypeBitBtn.AnchorSideRight.Control    := nil; frametimetypeBitBtn.AnchorSideBottom.Control    := nil; frametimetypeBitBtn.Anchors    := [akLeft, akTop];
   fpsavgCheckBox.AnchorSideLeft.Control         := nil; fpsavgCheckBox.AnchorSideTop.Control         := nil; fpsavgCheckBox.AnchorSideRight.Control         := nil; fpsavgCheckBox.AnchorSideBottom.Control         := nil; fpsavgCheckBox.Anchors         := [akLeft, akTop];
@@ -1519,6 +1530,9 @@ begin
   ftraceCheckBox.AnchorSideLeft.Control         := nil; ftraceCheckBox.AnchorSideTop.Control         := nil; ftraceCheckBox.AnchorSideRight.Control         := nil; ftraceCheckBox.AnchorSideBottom.Control         := nil; ftraceCheckBox.Anchors         := [akLeft, akTop];
   showfpslimCheckBox.AnchorSideLeft.Control     := nil; showfpslimCheckBox.AnchorSideTop.Control     := nil; showfpslimCheckBox.AnchorSideRight.Control     := nil; showfpslimCheckBox.AnchorSideBottom.Control     := nil; showfpslimCheckBox.Anchors     := [akLeft, akTop];
   vpsCheckBox.AnchorSideLeft.Control            := nil; vpsCheckBox.AnchorSideTop.Control            := nil; vpsCheckBox.AnchorSideRight.Control            := nil; vpsCheckBox.AnchorSideBottom.Control            := nil; vpsCheckBox.Anchors            := [akLeft, akTop];
+
+  frametimedetailedCheckBox.Enabled := frametimegraphCheckBox.Checked;
+  frametimegraphCheckBox.OnChange   := @FrametimegraphCheckBoxChange;
 
   // Reparent Filters controls to FPerfFiltersSec and clear LCL anchors
   filterRadioGroup.Parent   := FPerfFiltersSec;
@@ -1567,6 +1581,16 @@ begin
 end;
 
 
+procedure TMangoHudUiHelper.FrametimegraphCheckBoxChange(Sender: TObject);
+begin
+  if Assigned(FForm.frametimedetailedCheckBox) then
+  begin
+    FForm.frametimedetailedCheckBox.Enabled := FForm.frametimegraphCheckBox.Checked;
+    if not FForm.frametimegraphCheckBox.Checked then
+      FForm.frametimedetailedCheckBox.Checked := False;
+  end;
+end;
+
 procedure TMangoHudUiHelper.ReflowPerformanceTab(AContentW, AContentH: Integer);
 const
   MARGIN     = 4;
@@ -1581,7 +1605,8 @@ const
   IGAP       = 8;
 var
   CardW, SecW, ContW, ContH, i: Integer;
-  LeftM, Col1W, Col2W, InnerGap: Integer;
+  LeftM, Col1W, Col2W, Col3W, InnerGap: Integer;
+  Col1Left, Col2Left, Col3Left: Integer;
   ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
@@ -1667,33 +1692,46 @@ begin
     if Assigned(FPerfInfoSec) then
     begin
       LeftM := 16;
-      Col1W := 105;
+      Col1W := 100;
       Col2W := 115;
-      InnerGap := (FPerfInfoSec.ClientWidth - 2 * LeftM - (Col1W + Col2W + 95)) div 2;
+      Col3W := 105;
+      InnerGap := (FPerfInfoSec.ClientWidth - 2 * LeftM - (Col1W + Col2W + Col3W)) div 2;
       if InnerGap < 8 then InnerGap := 8;
 
-      fpsCheckBox.Left                := LeftM;
+      Col1Left := LeftM;
+      Col2Left := Col1Left + Col1W + InnerGap;
+      Col3Left := Col2Left + Col2W + InnerGap;
+
+      // Column 1: Show FPS (Row 1), Frame Time (Row 2), Color (Row 2.5), Curve/Hist (Row 3, centered below Frame Time)
+      fpsCheckBox.Left                := Col1Left;
       fpsCheckBox.Top                 := 6;
-      frametimegraphCheckBox.Left     := LeftM;
+      frametimegraphCheckBox.Left     := Col1Left;
       frametimegraphCheckBox.Top      := 56;
-      frametimegraphColorButton.Left  := LeftM;
-      frametimegraphColorButton.Top   := 72;
-      frametimetypeBitBtn.Left        := LeftM;
-      frametimetypeBitBtn.Top         := 86;
+      frametimegraphColorButton.Left  := Col1Left + (Col1W - frametimegraphColorButton.Width) div 2;
+      frametimegraphColorButton.Top   := 78;
+      frametimetypeBitBtn.Left        := Col1Left + (Col1W - frametimetypeBitBtn.Width) div 2;
+      frametimetypeBitBtn.Top         := 94;
 
-      fpsavgCheckBox.Left             := LeftM + Col1W + InnerGap;
+      // Column 2: FPS Average (Row 1), 1% low button (Row 1.5), Frame Time + (Row 2, right of Frame Time), ftrace debug (Row 3)
+      fpsavgCheckBox.Left             := Col2Left;
       fpsavgCheckBox.Top              := 6;
-      fpsavgBitBtn.Left               := fpsavgCheckBox.Left;
+      fpsavgBitBtn.Left               := Col2Left;
       fpsavgBitBtn.Top                := 28;
-      framecountCheckBox.Left         := fpsavgCheckBox.Left;
-      framecountCheckBox.Top          := 56;
-      ftraceCheckBox.Left             := fpsavgCheckBox.Left;
-      ftraceCheckBox.Top              := 106;
+      if Assigned(frametimedetailedCheckBox) then
+      begin
+        frametimedetailedCheckBox.Left := Col2Left;
+        frametimedetailedCheckBox.Top  := 56;
+      end;
+      ftraceCheckBox.Left             := Col2Left;
+      ftraceCheckBox.Top              := 94;
 
-      showfpslimCheckBox.Left         := fpsavgCheckBox.Left + Col2W + InnerGap;
+      // Column 3: FPS limit (Row 1), VPS (Row 2), Count Frames (Row 3, vertically aligned with ftrace debug)
+      showfpslimCheckBox.Left         := Col3Left;
       showfpslimCheckBox.Top          := 6;
-      vpsCheckBox.Left                := showfpslimCheckBox.Left;
+      vpsCheckBox.Left                := Col3Left;
       vpsCheckBox.Top                 := 56;
+      framecountCheckBox.Left         := Col3Left;
+      framecountCheckBox.Top          := 94;
     end;
 
     // Center logo+combo block (101+8+109=218px) within each VSYNC row
@@ -2780,6 +2818,12 @@ begin
       end;
     end;
 
+    if Assigned(frametimedetailedCheckBox) then
+    begin
+      frametimedetailedCheckBox.Checked := False;
+      frametimedetailedCheckBox.Enabled := False;
+    end;
+
     // 2. Reset other specific MangoHud controls
     hudtitleEdit.Text := '';
     gpunameEdit.Text := '';
@@ -2962,6 +3006,13 @@ begin
       ConfigLines.Free;
     end;
 
+    if Assigned(FForm.frametimedetailedCheckBox) then
+    begin
+      FForm.frametimedetailedCheckBox.Enabled := FForm.frametimegraphCheckBox.Checked;
+      if not FForm.frametimegraphCheckBox.Checked then
+        FForm.frametimedetailedCheckBox.Checked := False;
+    end;
+
     // Sync FPS chip visuals and preset card selection highlighting with the newly loaded state
     UpdatePerfCardTheme;
     UpdatePresetCardVisuals;
@@ -2984,6 +3035,11 @@ begin
       fpsCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_TIMING) then
       frametimegraphCheckBox.Checked := True
+    else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_TIMING_DETAILED) then
+    begin
+      if Assigned(frametimedetailedCheckBox) then
+        frametimedetailedCheckBox.Checked := True;
+    end
     else if SameText(ATrimmedLine, MANGO_FLAG_SHOW_FPS_LIMIT) then
       showfpslimCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_COUNT) then
@@ -3642,6 +3698,10 @@ begin
     else
       Settings.FpsAvgCaption := MANGO_CAPTION_FPS_01PCT_LOW;
     Settings.FrametimeGraph := frametimegraphCheckBox.Checked;
+    if Assigned(frametimedetailedCheckBox) then
+      Settings.FrametimeDetailed := frametimedetailedCheckBox.Checked and frametimegraphCheckBox.Checked
+    else
+      Settings.FrametimeDetailed := False;
     Settings.FrametimeGraphColor := frametimegraphColorButton.ButtonColor;
     if frametimetypeBitBtn.ImageIndex = 7 then
       Settings.FrametimeTypeCaption := MANGO_CAPTION_FRAMETIME_HIST
