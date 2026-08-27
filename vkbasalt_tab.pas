@@ -58,6 +58,15 @@ type
 
 implementation
 
+uses
+  {$IFDEF LCLqt6}
+  qt6,
+  qtobjects,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets;
+
 constructor TVkBasaltTabHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
@@ -1214,54 +1223,51 @@ end;
 procedure TVkBasaltTabHelper.VkReshadeMD3Paint(Sender: TObject);
   procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
   var
-    TrackColor: TColor;
+    TrackColor, BorderColor, ThumbColor: TColor;
     ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
   const
-    TRACK_W = 44;
-    TRACK_H = 24;
-    THUMB_D = 18;
-    RADIUS  = 12;
-    Pad     = 3;
+    TRACK_W = 38;
+    TRACK_H = 20;
+    THUMB_D = 14;
+    PAD     = 3;
   begin
-    // Track colour
     if AOn then
-      TrackColor := RGBToColor(60, 180, 80)   // green
+    begin
+      TrackColor  := RGBToColor(52, 175, 90);   // vibrant clean green
+      BorderColor := RGBToColor(42, 150, 75);
+      ThumbColor  := clWhite;
+    end
     else
-      TrackColor := RGBToColor(70, 70, 70);   // grey
+    begin
+      TrackColor  := RGBToColor(44, 50, 68);    // sleek dark slate track
+      BorderColor := RGBToColor(58, 66, 88);
+      ThumbColor  := RGBToColor(200, 205, 215);
+    end;
 
+    // Track pill (smooth stadium shape)
     ACanvas.Brush.Color := TrackColor;
-    ACanvas.Pen.Color   := TrackColor;
+    ACanvas.Pen.Color   := BorderColor;
     ACanvas.Pen.Width   := 1;
+    ACanvas.RoundRect(AX, AY, AX + TRACK_W, AY + TRACK_H, TRACK_H, TRACK_H);
 
-    // Central rectangle
-    ACanvas.FillRect(AX + RADIUS, AY, AX + TRACK_W - RADIUS, AY + TRACK_H);
-
-    // Left cap (semi-circle)
-    ACanvas.Ellipse(AX, AY, AX + RADIUS * 2, AY + TRACK_H);
-
-    // Right cap (semi-circle)
-    ACanvas.Ellipse(AX + TRACK_W - RADIUS * 2, AY, AX + TRACK_W, AY + TRACK_H);
-
-    // Thumb
+    // Thumb position
     if AOn then
-      ThumbLeft := AX + TRACK_W - THUMB_D - Pad
+      ThumbLeft := AX + TRACK_W - THUMB_D - PAD
     else
-      ThumbLeft := AX + Pad;
+      ThumbLeft := AX + PAD;
     ThumbTop    := AY + (TRACK_H - THUMB_D) div 2;
     ThumbRight  := ThumbLeft + THUMB_D;
     ThumbBottom := ThumbTop + THUMB_D;
 
-    // Subtle outer ring/shadow
-    ACanvas.Brush.Color := RGBToColor(200, 200, 200);
-    ACanvas.Pen.Color   := RGBToColor(160, 160, 160);
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
+    // Subtle drop shadow under thumb for crisp contrast
+    ACanvas.Brush.Color := RGBToColor(16, 20, 30);
+    ACanvas.Pen.Color   := RGBToColor(16, 20, 30);
+    ACanvas.Ellipse(ThumbLeft, ThumbTop + 1, ThumbRight, ThumbBottom + 1);
 
-    // White thumb body
-    ACanvas.Brush.Color := clWhite;
-    ACanvas.Pen.Color   := clWhite;
-    ACanvas.Pen.Width   := 1;
-    ACanvas.Ellipse(ThumbLeft + 2, ThumbTop + 2, ThumbRight - 2, ThumbBottom - 2);
+    // White thumb circle
+    ACanvas.Brush.Color := ThumbColor;
+    ACanvas.Pen.Color   := ThumbColor;
+    ACanvas.Ellipse(ThumbLeft, ThumbTop, ThumbRight, ThumbBottom);
   end;
 
 var
@@ -1277,6 +1283,15 @@ begin
     PB := Sender as TPaintBox;
     PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
     PB.Canvas.FillRect(PB.ClientRect);
+
+    {$IFDEF LCLqt6}
+    if PB.Canvas.Handle <> 0 then
+    begin
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterSmoothPixmapTransform, True);
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterTextAntialiasing, True);
+    end;
+    {$ENDIF}
 
     ItemH := 44;
     Y := -FVkReshadeScrollPos;
@@ -1325,7 +1340,7 @@ begin
         PB.Canvas.Line(R.Right - 1, R.Top, R.Right - 1, R.Bottom - 1);
 
       // Toggle (right side)
-      DrawToggle(PB.Canvas, R.Right - 60, R.Top + (R.Height - 24) div 2, IsActive);
+      DrawToggle(PB.Canvas, R.Right - 50, R.Top + (R.Height - 20) div 2, IsActive);
 
       // Effect name (friendly basename without extension)
       EffectName := ChangeFileExt(ExtractFileName(aveffectsListBox.Items[i]), '');
@@ -1442,23 +1457,19 @@ begin
 
         if (X >= ItemX) and (X < ItemX + ItemW) and (Y >= YPos) and (Y < YPos + ItemH) then
         begin
-          ToggleX := ItemX + ItemW - 60;
-          if X >= ToggleX then
+          EffectPath := aveffectsListBox.Items[i];
+          if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
           begin
-            EffectPath := aveffectsListBox.Items[i];
-            if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
-            begin
-              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
-              RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
-            end
-            else
-            begin
-              acteffectsListBox.Items.Add(EffectPath);
-              AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
-            end;
-            PB.Invalidate;
-            TriggerAutoSave;
+            acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
+            RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+          end
+          else
+          begin
+            acteffectsListBox.Items.Add(EffectPath);
+            AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
           end;
+          PB.Invalidate;
+          TriggerAutoSave;
           Exit;
         end;
         if Col = 1 then Inc(YPos, ItemH);
@@ -1467,24 +1478,19 @@ begin
       begin
         if (Y >= YPos) and (Y < YPos + ItemH) then
         begin
-          // Check if click is on toggle (right side)
-          ToggleX := PB.Width - 60;
-          if X >= ToggleX then
+          EffectPath := aveffectsListBox.Items[i];
+          if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
           begin
-            EffectPath := aveffectsListBox.Items[i];
-            if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
-            begin
-              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
-              RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
-            end
-            else
-            begin
-              acteffectsListBox.Items.Add(EffectPath);
-              AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
-            end;
-            PB.Invalidate;
-            TriggerAutoSave;
+            acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
+            RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+          end
+          else
+          begin
+            acteffectsListBox.Items.Add(EffectPath);
+            AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
           end;
+          PB.Invalidate;
+          TriggerAutoSave;
           Exit;
         end;
         Inc(YPos, ItemH);
@@ -1541,6 +1547,15 @@ begin
 
     PB.Canvas.Brush.Color := FVkPipelineCard.Color;
     PB.Canvas.FillRect(0, 0, PB.Width, PB.Height);
+
+    {$IFDEF LCLqt6}
+    if PB.Canvas.Handle <> 0 then
+    begin
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterSmoothPixmapTransform, True);
+      TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterTextAntialiasing, True);
+    end;
+    {$ENDIF}
 
     TotalChips := FPipelineEffects.Count;
     if TotalChips = 0 then
