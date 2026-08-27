@@ -52,9 +52,9 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU (breaks FSR4 upgrade path)'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
@@ -245,19 +245,22 @@ begin
   FForm.FLowLatencyReflexCheckBox.Parent  := FForm;
   FForm.FLowLatencyReflexCheckBox.Visible := False;
   FForm.FLowLatencyReflexCheckBox.Name    := 'lowLatencyReflexCheckBox';
-  FForm.FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2';
+  FForm.FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support';
+  FForm.FLowLatencyReflexCheckBox.Hint    := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2';
 
   FForm.FLowLatencySpoofNvidiaCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencySpoofNvidiaCheckBox.Parent  := FForm;
   FForm.FLowLatencySpoofNvidiaCheckBox.Visible := False;
   FForm.FLowLatencySpoofNvidiaCheckBox.Name    := 'lowLatencySpoofNvidiaCheckBox';
-  FForm.FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)';
+  FForm.FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU';
+  FForm.FLowLatencySpoofNvidiaCheckBox.Hint    := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)';
 
   FForm.FLowLatencyHideAmdGpuCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyHideAmdGpuCheckBox.Parent  := FForm;
   FForm.FLowLatencyHideAmdGpuCheckBox.Visible := False;
   FForm.FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
-  FForm.FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
+  FForm.FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU';
+  FForm.FLowLatencyHideAmdGpuCheckBox.Hint    := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
 
   FForm.FProtonVkd3dLowLatencyCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonVkd3dLowLatencyCheckBox.Parent  := FForm;
@@ -471,7 +474,10 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       ACanvas.Font.Color := clWhite;
     ACanvas.Brush.Style := bsClear;
 
-    DescRect := Rect(TextX, DescTop, ToggleX - 10, DescTop + 18);
+    if HasBadge then
+      DescRect := Rect(TextX, DescTop, ToggleX - 68, DescTop + 18)
+    else
+      DescRect := Rect(TextX, DescTop, ToggleX - 10, DescTop + 18);
     ACanvas.TextRect(DescRect, TextX, DescTop, CleanDesc);
 
     // Draw badge chip if present
@@ -753,7 +759,13 @@ begin
       if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
       begin
         FForm.FTweaksHoverIdx := RowIdx;
-        if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
+        if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1' then
+          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'
+        else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1' then
+          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)'
+        else if TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"' then
+          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'
+        else if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
           TweakHint := 'Works only with proton-cachyos'
