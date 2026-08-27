@@ -35,6 +35,13 @@ type
     procedure TestSaveVkSumiConfigCustomizedFlag;
   end;
 
+  TVkBasaltLogicTests = class(TTestCase)
+  published
+    procedure TestPipelineEffectsSerializationOrder;
+    procedure TestPipelineEffectsLoadOrder;
+    procedure TestFallbackWhenPipelineEffectsNil;
+  end;
+
 implementation
 
 uses
@@ -308,10 +315,145 @@ begin
   end;
 end;
 
+procedure TVkBasaltLogicTests.TestPipelineEffectsSerializationOrder;
+var
+  Settings: TVkBasaltSettings;
+  ErrMsg: string;
+  Lines: TStringList;
+  EffectsLine: string;
+  i: Integer;
+begin
+  Settings.BasaltFolder := IsolatedHome + '/.config/vkBasalt';
+  Settings.BasaltCfgFile := Settings.BasaltFolder + '/vkBasalt.conf';
+  Settings.Version := '1.2.3';
+  Settings.Channel := 'stable';
+  Settings.ToggleKey := 'Home';
+  Settings.CasPosition := 5;
+  Settings.FxaaPosition := 0;
+  Settings.SmaaPosition := 4;
+  Settings.DlsPosition := 0;
+  Settings.ReshadeEffects := TStringList.Create;
+  Settings.ReshadeEffects.Add('Shaders/Bloom.fx');
+
+  Settings.PipelineEffects := TStringList.Create;
+  try
+    // User configured order: SMAA -> Bloom -> CAS
+    Settings.PipelineEffects.Add('smaa');
+    Settings.PipelineEffects.Add('Bloom');
+    Settings.PipelineEffects.Add('cas');
+
+    AssertTrue('SaveVkBasaltConfig succeeds', SaveVkBasaltConfig(Settings, ErrMsg));
+
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(Settings.BasaltCfgFile);
+      EffectsLine := '';
+      for i := 0 to Lines.Count - 1 do
+      begin
+        if Pos('effects =', Lines[i]) = 1 then
+        begin
+          EffectsLine := Lines[i];
+          Break;
+        end;
+      end;
+      AssertEquals('effects line serialized in exact pipeline order', 'effects = smaa:Bloom:cas', EffectsLine);
+      AssertTrue('Bloom path mapped', Pos('Bloom = ' + Settings.BasaltFolder + '/reshade-shaders/Shaders/Bloom.fx', Lines.Text) > 0);
+    finally
+      Lines.Free;
+    end;
+  finally
+    Settings.PipelineEffects.Free;
+    Settings.ReshadeEffects.Free;
+  end;
+end;
+
+procedure TVkBasaltLogicTests.TestPipelineEffectsLoadOrder;
+var
+  CfgFile: string;
+  Lines, AvEffects, ActEffects, PipelineList: TStringList;
+  Settings: TVkBasaltSettings;
+begin
+  CfgFile := IsolatedHome + '/.config/vkBasalt/custom_load.conf';
+  ForceDirectories(ExtractFileDir(CfgFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('effects = dls:Colourfulness:smaa:cas');
+    Lines.Add('casSharpness = 0.8');
+    Lines.Add('smaaCornerRounding = 25.0');
+    Lines.SaveToFile(CfgFile);
+  finally
+    Lines.Free;
+  end;
+
+  AvEffects := TStringList.Create;
+  ActEffects := TStringList.Create;
+  PipelineList := TStringList.Create;
+  try
+    AvEffects.Add('Shaders/Colourfulness.fx');
+    AssertTrue('LoadVkBasaltConfig succeeds', LoadVkBasaltConfig(CfgFile, AvEffects, ActEffects, Settings, PipelineList));
+
+    AssertEquals('Pipeline has 4 effects', 4, PipelineList.Count);
+    AssertEquals('Effect 0 is dls', 'dls', PipelineList[0]);
+    AssertEquals('Effect 1 is Colourfulness', 'Colourfulness', PipelineList[1]);
+    AssertEquals('Effect 2 is smaa', 'smaa', PipelineList[2]);
+    AssertEquals('Effect 3 is cas', 'cas', PipelineList[3]);
+
+    AssertEquals('ActEffects contains Colourfulness.fx', 1, ActEffects.Count);
+    AssertEquals('CasPosition is 8', 8, Settings.CasPosition);
+    AssertEquals('SmaaPosition is 10', 10, Settings.SmaaPosition);
+  finally
+    AvEffects.Free;
+    ActEffects.Free;
+    PipelineList.Free;
+  end;
+end;
+
+procedure TVkBasaltLogicTests.TestFallbackWhenPipelineEffectsNil;
+var
+  Settings: TVkBasaltSettings;
+  ErrMsg: string;
+  Lines: TStringList;
+  EffectsLine: string;
+  i: Integer;
+begin
+  Settings.BasaltFolder := IsolatedHome + '/.config/vkBasalt';
+  Settings.BasaltCfgFile := Settings.BasaltFolder + '/vkBasalt_fallback.conf';
+  Settings.Version := '1.2.3';
+  Settings.Channel := 'stable';
+  Settings.ToggleKey := 'Home';
+  Settings.CasPosition := 5;
+  Settings.FxaaPosition := 0;
+  Settings.SmaaPosition := 4;
+  Settings.DlsPosition := 6;
+  Settings.ReshadeEffects := nil;
+  Settings.PipelineEffects := nil; // nil to test fallback
+
+  AssertTrue('SaveVkBasaltConfig succeeds with nil pipeline', SaveVkBasaltConfig(Settings, ErrMsg));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(Settings.BasaltCfgFile);
+    EffectsLine := '';
+    for i := 0 to Lines.Count - 1 do
+    begin
+      if Pos('effects =', Lines[i]) = 1 then
+      begin
+        EffectsLine := Lines[i];
+        Break;
+      end;
+    end;
+    AssertEquals('Fallback serializes in default order cas:smaa:dls', 'effects = cas:smaa:dls', EffectsLine);
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
   RegisterTest(TSandboxIsolationTests);
   RegisterTest(TVkSumiLogicTests);
+  RegisterTest(TVkBasaltLogicTests);
 
 end.

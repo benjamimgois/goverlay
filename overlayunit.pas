@@ -656,9 +656,6 @@ type
     FReshadeDownloadedOnFirstShow: Boolean;
     FAutoDownloadingReshade: Boolean; }
     FStatusTimer: TTimer;
-    FGamesHelper:     TObject;  // cached badge icon for OptiScaler
-    FBasaltHelper:    TObject;
-    FMangoHelper:     TObject;
 
     FSplashForm:             TForm;
     FSplashBrandingImage:    TImage;
@@ -1176,6 +1173,11 @@ type
     // vkBasalt tab redesign
     FVkReshadeCard:  TPanel;
     FVkBuiltinCard:  TPanel;
+    FVkPipelineCard: TPanel;
+    FVkPipelinePB:   TPaintBox;
+    FVkPipelineSB:   TScrollBar;
+    FVkPipelineScrollPos: Integer;
+    FPipelineEffects: TStringList;
     FVkToggleCard:   TPanel;
     FVkAvHdrLbl:     TLabel;
     FVkActHdrLbl:    TLabel;
@@ -1240,6 +1242,9 @@ type
     FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1
     FProtonLocalShaderCacheCheckBox: TCheckBox; // PROTON_LOCAL_SHADER_CACHE=1
     FProtonDiscordBridgeCheckBox: TCheckBox;   // PROTON_DISCORD_BRIDGE=1
+    FGamesHelper:     TObject;
+    FBasaltHelper:    TObject;
+    FMangoHelper:     TObject;
 
     // Navigation rail fields (moved from private)
     FNavItems:       array of TPanel;    // item panels
@@ -2368,10 +2373,17 @@ begin
     if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
     if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
 
-    if not FileExists(VKBASALTCFGFILE) then
-      Exit;
+    if not Assigned(FPipelineEffects) then
+      FPipelineEffects := TStringList.Create;
+    FPipelineEffects.Clear;
 
-    if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings) then
+    if not FileExists(VKBASALTCFGFILE) then
+    begin
+      if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
+      Exit;
+    end;
+
+    if not overlay_config.LoadVkBasaltConfig(VKBASALTCFGFILE, aveffectsListbox.Items, acteffectsListBox.Items, Settings, FPipelineEffects) then
       Exit;
 
     // Map settings back to controls
@@ -2399,6 +2411,7 @@ begin
     end;
 
     if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+    if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
   finally
     FLoadingConfig := False;
   end;
@@ -4664,6 +4677,7 @@ begin
   // Update vkBasalt tab cards
   UpdateGenericCardTheme(FVkReshadeCard);
   UpdateGenericCardTheme(FVkBuiltinCard);
+  UpdateGenericCardTheme(FVkPipelineCard);
   UpdateGenericCardTheme(FVkToggleCard);
 
   // Update vkSumi tab cards
@@ -5518,6 +5532,13 @@ procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
 begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
   if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvaluelabel.Caption;
+  if not FLoadingConfig and Assigned(FBasaltHelper) then
+  begin
+    if casTrackBar.Position > 0 then
+      TVkBasaltTabHelper(FBasaltHelper).AddEffectToPipeline('cas')
+    else
+      TVkBasaltTabHelper(FBasaltHelper).RemoveEffectFromPipeline('cas');
+  end;
   StartAutoSaveTimer;
 end;
 
@@ -5532,6 +5553,13 @@ procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
 begin
   dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
   if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvaluelabel.Caption;
+  if not FLoadingConfig and Assigned(FBasaltHelper) then
+  begin
+    if dlsTrackBar.Position > 0 then
+      TVkBasaltTabHelper(FBasaltHelper).AddEffectToPipeline('dls')
+    else
+      TVkBasaltTabHelper(FBasaltHelper).RemoveEffectFromPipeline('dls');
+  end;
   StartAutoSaveTimer;
 end;
 
@@ -5658,6 +5686,13 @@ procedure Tgoverlayform.fxaaTrackBarChange(Sender: TObject);
 begin
   fxaavaluelabel.Caption := inttostr(fxaaTrackbar.Position);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavaluelabel.Caption;
+  if not FLoadingConfig and Assigned(FBasaltHelper) then
+  begin
+    if fxaaTrackBar.Position > 0 then
+      TVkBasaltTabHelper(FBasaltHelper).AddEffectToPipeline('fxaa')
+    else
+      TVkBasaltTabHelper(FBasaltHelper).RemoveEffectFromPipeline('fxaa');
+  end;
   StartAutoSaveTimer;
 end;
 
@@ -6269,6 +6304,7 @@ begin
   Settings.SmaaPosition := smaatrackbar.Position;
   Settings.DlsPosition := dlstrackbar.Position;
   Settings.ReshadeEffects := acteffectsListbox.Items;
+  Settings.PipelineEffects := FPipelineEffects;
   Settings.ActiveGameName := FActiveGameName;
 
   if not overlay_config.SaveVkBasaltConfig(Settings, ErrMsg) then
@@ -6619,6 +6655,13 @@ procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
 begin
   smaavaluelabel.Caption := inttostr(smaaTrackbar.Position);
   if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavaluelabel.Caption;
+  if not FLoadingConfig and Assigned(FBasaltHelper) then
+  begin
+    if smaaTrackBar.Position > 0 then
+      TVkBasaltTabHelper(FBasaltHelper).AddEffectToPipeline('smaa')
+    else
+      TVkBasaltTabHelper(FBasaltHelper).RemoveEffectFromPipeline('smaa');
+  end;
   StartAutoSaveTimer;
 end;
 

@@ -33,6 +33,7 @@ type
     SmaaPosition: Integer;
     DlsPosition: Integer;
     ReshadeEffects: TStrings;
+    PipelineEffects: TStrings;
     ActiveGameName: string;
   end;
 
@@ -240,7 +241,7 @@ function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: strin
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
 function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
 
-function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings): Boolean;
+function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings; const PipelineList: TStrings = nil): Boolean;
 function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings): Boolean;
 function LoadOptiScalerConfig(const ActiveGameName: string; out Settings: TOptiScalerSettings): Boolean;
 
@@ -317,7 +318,7 @@ var
   SmaaCorner: Double;
   DlsSharp: Double;
   FS: TFormatSettings;
-  i: Integer;
+  i, j: Integer;
   Ini: TIniFile;
   FGModFilePath: string;
 begin
@@ -338,44 +339,58 @@ begin
     Lines.Add('enableOnLaunch = True');
     Lines.Add('');
     
-    // --- create effects list" ---
+    // --- create effects list ---
     EffectsLine := '';
-    // 1) CAS (if active)
-    if Settings.CasPosition >= 1 then
-      EffectsLine := EffectsLine + 'cas';
-    // 2) FXAA (if active)
-    if Settings.FxaaPosition >= 1 then
+    if Assigned(Settings.PipelineEffects) and (Settings.PipelineEffects.Count > 0) then
     begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'fxaa';
-    end;
-    // 3) SMAA (if active)
-    if Settings.SmaaPosition >= 1 then
-    begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'smaa';
-    end;
-    // 4) DLS (if active)
-    if Settings.DlsPosition >= 1 then
-    begin
-      if EffectsLine <> '' then
-        EffectsLine := EffectsLine + ':';
-      EffectsLine := EffectsLine + 'dls';
-    end;
-    // 5) reshade effects on the list
-    if Assigned(Settings.ReshadeEffects) then
-    begin
-      for i := 0 to Settings.ReshadeEffects.Count - 1 do
+      for i := 0 to Settings.PipelineEffects.Count - 1 do
       begin
-        RelPath := Settings.ReshadeEffects[i];
-        EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
-        if IsVkBasaltBuiltInEffect(EffectName) then
-          Continue;
+        EffectName := Settings.PipelineEffects[i];
+        if EffectName = '' then Continue;
         if EffectsLine <> '' then
           EffectsLine := EffectsLine + ':';
         EffectsLine := EffectsLine + EffectName;
+      end;
+    end
+    else
+    begin
+      // 1) CAS (if active)
+      if Settings.CasPosition >= 1 then
+        EffectsLine := EffectsLine + 'cas';
+      // 2) FXAA (if active)
+      if Settings.FxaaPosition >= 1 then
+      begin
+        if EffectsLine <> '' then
+          EffectsLine := EffectsLine + ':';
+        EffectsLine := EffectsLine + 'fxaa';
+      end;
+      // 3) SMAA (if active)
+      if Settings.SmaaPosition >= 1 then
+      begin
+        if EffectsLine <> '' then
+          EffectsLine := EffectsLine + ':';
+        EffectsLine := EffectsLine + 'smaa';
+      end;
+      // 4) DLS (if active)
+      if Settings.DlsPosition >= 1 then
+      begin
+        if EffectsLine <> '' then
+          EffectsLine := EffectsLine + ':';
+        EffectsLine := EffectsLine + 'dls';
+      end;
+      // 5) reshade effects on the list
+      if Assigned(Settings.ReshadeEffects) then
+      begin
+        for i := 0 to Settings.ReshadeEffects.Count - 1 do
+        begin
+          RelPath := Settings.ReshadeEffects[i];
+          EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
+          if IsVkBasaltBuiltInEffect(EffectName) then
+            Continue;
+          if EffectsLine <> '' then
+            EffectsLine := EffectsLine + ':';
+          EffectsLine := EffectsLine + EffectName;
+        end;
       end;
     end;
     if EffectsLine <> '' then
@@ -418,7 +433,33 @@ begin
       Lines.Add('dlsSharpness = ' + FloatToStrF(DlsSharp, ffFixed, 3, 1, FS));
     end;
     // --- Map reshade effects ---
-    if Assigned(Settings.ReshadeEffects) then
+    if Assigned(Settings.PipelineEffects) and (Settings.PipelineEffects.Count > 0) then
+    begin
+      for i := 0 to Settings.PipelineEffects.Count - 1 do
+      begin
+        EffectName := Settings.PipelineEffects[i];
+        if IsVkBasaltBuiltInEffect(EffectName) then
+          Continue;
+        RelPath := '';
+        if Assigned(Settings.ReshadeEffects) then
+        begin
+          for j := 0 to Settings.ReshadeEffects.Count - 1 do
+          begin
+            if SameText(ChangeFileExt(ExtractFileName(Settings.ReshadeEffects[j]), ''), EffectName) then
+            begin
+              RelPath := Settings.ReshadeEffects[j];
+              Break;
+            end;
+          end;
+        end;
+        if RelPath = '' then
+          RelPath := EffectName + '.fx';
+        EffectKey := EffectName;
+        FullPath := IncludeTrailingPathDelimiter(RepoDir) + RelPath;
+        Lines.Add(EffectKey + ' = ' + FullPath);
+      end;
+    end
+    else if Assigned(Settings.ReshadeEffects) then
     begin
       for i := 0 to Settings.ReshadeEffects.Count - 1 do
       begin
@@ -1048,7 +1089,7 @@ begin
   Result := True;
 end;
 
-function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings): Boolean;
+function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings; const PipelineList: TStrings = nil): Boolean;
 var
   Value, EffectsStr, FullEffectPath: string;
   EffectsList: TStringArray;
@@ -1072,6 +1113,9 @@ begin
 
     Settings.BasaltCfgFile := CfgFile;
     ActEffectsList.Clear;
+    if Assigned(PipelineList) then
+      PipelineList.Clear;
+    Settings.PipelineEffects := PipelineList;
 
     EffectsStr := Cfg.GetValue('effects =', '');
     if EffectsStr <> '' then
@@ -1080,6 +1124,9 @@ begin
       for j := Low(EffectsList) to High(EffectsList) do
       begin
         EffectsList[j] := Trim(EffectsList[j]);
+        if EffectsList[j] = '' then Continue;
+        if Assigned(PipelineList) then
+          PipelineList.Add(EffectsList[j]);
         if SameText(EffectsList[j], 'cas') then
         begin
           if Settings.CasPosition = 0 then

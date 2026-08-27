@@ -97,6 +97,9 @@ type
     procedure TestMissingConfigResetsControlsAllTabs;
     procedure TestGameCardClickSynchronizesAllToolPaths;
     procedure TestVkBasaltRestoreDefaults;
+    procedure TestVkBasaltPipelineCardVisibleAndBounds;
+    procedure TestVkBasaltPipelineInteractions;
+    procedure TestVkBasaltPipelineScrollOnManyEffects;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
@@ -106,7 +109,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2050,9 +2053,9 @@ begin
   ConfPath := IsolatedHome + '/.config/vkBasalt/vkBasalt.conf';
 
   goverlayform.casTrackBar.Position := 8;
-  goverlayform.dlsTrackBar.Position := 6;
   goverlayform.fxaaTrackBar.Position := 4;
   goverlayform.smaaTrackBar.Position := 2;
+  goverlayform.dlsTrackBar.Position := 6;
   goverlayform.vkbtogglekeyCombobox.Text := 'Home';
 
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
@@ -2344,6 +2347,97 @@ begin
   AssertEquals('acteffectsListBox cleared by restore defaults', 0, goverlayform.acteffectsListBox.Items.Count);
   AssertEquals('casTrackBar reset to 0 by restore defaults', 0, goverlayform.casTrackBar.Position);
   AssertEquals('fxaaTrackBar reset to 0 by restore defaults', 0, goverlayform.fxaaTrackBar.Position);
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltPipelineCardVisibleAndBounds;
+begin
+  NavigateVkBasaltTab;
+  AssertTrue('FVkPipelineCard is assigned', Assigned(goverlayform.FVkPipelineCard));
+  AssertTrue('FVkPipelineCard is visible', goverlayform.FVkPipelineCard.Visible);
+  AssertTrue('FVkPipelinePB is assigned', Assigned(goverlayform.FVkPipelinePB));
+
+  // Assert pipeline card is positioned between built-in card and toggle card
+  AssertTrue('PipelineCard is below BuiltinCard',
+    goverlayform.FVkPipelineCard.Top >= goverlayform.FVkBuiltinCard.Top + goverlayform.FVkBuiltinCard.Height);
+  AssertTrue('ToggleCard is below PipelineCard',
+    goverlayform.FVkToggleCard.Top >= goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height);
+  AssertTrue('ToggleCard is fully contained inside vkbasaltTabSheet',
+    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.vkbasaltTabSheet.ClientHeight);
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltPipelineInteractions;
+var
+  Helper: TVkBasaltTabHelper;
+begin
+  NavigateVkBasaltTab;
+  Helper := TVkBasaltTabHelper(goverlayform.FBasaltHelper);
+  AssertTrue('FBasaltHelper assigned', Assigned(Helper));
+
+  // Start fresh
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+  AssertEquals('Pipeline empty after restore', 0, goverlayform.FPipelineEffects.Count);
+
+  // Enable CAS then FXAA then SMAA
+  goverlayform.casTrackBar.Position := 5;
+  goverlayform.fxaaTrackBar.Position := 7;
+  goverlayform.smaaTrackBar.Position := 3;
+
+  AssertEquals('Pipeline has 3 effects', 3, goverlayform.FPipelineEffects.Count);
+  AssertEquals('Effect 0 is cas', 'cas', goverlayform.FPipelineEffects[0]);
+  AssertEquals('Effect 1 is fxaa', 'fxaa', goverlayform.FPipelineEffects[1]);
+  AssertEquals('Effect 2 is smaa', 'smaa', goverlayform.FPipelineEffects[2]);
+
+  // Move smaa to index 0 (execution order: smaa -> cas -> fxaa)
+  Helper.MovePipelineEffect(2, 0);
+  AssertEquals('Effect 0 moved to smaa', 'smaa', goverlayform.FPipelineEffects[0]);
+  AssertEquals('Effect 1 is now cas', 'cas', goverlayform.FPipelineEffects[1]);
+  AssertEquals('Effect 2 is now fxaa', 'fxaa', goverlayform.FPipelineEffects[2]);
+
+  // Disable cas via pipeline remove button / DisablePipelineEffect
+  Helper.DisablePipelineEffect('cas');
+  AssertEquals('Pipeline now has 2 effects', 2, goverlayform.FPipelineEffects.Count);
+  AssertEquals('Effect 0 is smaa', 'smaa', goverlayform.FPipelineEffects[0]);
+  AssertEquals('Effect 1 is fxaa', 'fxaa', goverlayform.FPipelineEffects[1]);
+  AssertEquals('casTrackBar reset to 0 after disable', 0, goverlayform.casTrackBar.Position);
+
+  // Restore defaults
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+  AssertEquals('Pipeline cleared on restore defaults', 0, goverlayform.FPipelineEffects.Count);
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltPipelineScrollOnManyEffects;
+var
+  Helper: TVkBasaltTabHelper;
+  i: Integer;
+  Handled: Boolean;
+begin
+  NavigateVkBasaltTab;
+  Helper := TVkBasaltTabHelper(goverlayform.FBasaltHelper);
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+
+  // Add 10 effects so content overflows card width
+  for i := 1 to 10 do
+    Helper.AddEffectToPipeline('ShaderEffect' + IntToStr(i));
+
+  // Trigger painting to compute dimensions and scrollbar status
+  Helper.VkPipelineCardPaint(goverlayform.FVkPipelinePB);
+
+  AssertTrue('FVkPipelineSB is assigned', Assigned(goverlayform.FVkPipelineSB));
+  AssertTrue('FVkPipelineSB is visible when many effects overflow', goverlayform.FVkPipelineSB.Visible);
+  AssertTrue('FVkPipelineSB.Max > 0', goverlayform.FVkPipelineSB.Max > 0);
+
+  // Test mouse wheel horizontal scrolling
+  Handled := False;
+  goverlayform.FVkPipelineScrollPos := 0;
+  Helper.VkPipelineCardMouseWheel(goverlayform.FVkPipelinePB, [], -120, Point(100, 10), Handled);
+
+  AssertTrue('Wheel scrolling was handled', Handled);
+  AssertTrue('Scroll position increased after wheel event', goverlayform.FVkPipelineScrollPos > 0);
+
+  // Restore defaults cleans up scrollbar and list
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+  AssertEquals('Pipeline scroll pos reset to 0', 0, goverlayform.FVkPipelineScrollPos);
+  AssertFalse('FVkPipelineSB hidden after restore defaults', goverlayform.FVkPipelineSB.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestPerformanceFiltersLayoutOnResize;

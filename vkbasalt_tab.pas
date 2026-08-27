@@ -10,11 +10,27 @@ uses
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings;
 
 type
+  TPipelineChipHit = record
+    Rect: TRect;
+    LeftBtnRect: TRect;
+    RightBtnRect: TRect;
+    CloseBtnRect: TRect;
+  end;
+
+  TPipelineHoverBtn = (phbNone, phbLeft, phbRight, phbClose, phbChip);
+
   TVkBasaltTabHelper = class
   private
     FForm: Tgoverlayform;
+    FChipHits: array of TPipelineChipHit;
+    FDragIdx: Integer;
+    FDragStartX: Integer;
+    FDragCurrentX: Integer;
+    FHoverChipIdx: Integer;
+    FHoverBtn: TPipelineHoverBtn;
   public
     constructor Create(AForm: Tgoverlayform);
+    destructor Destroy; override;
     procedure InitVkBasaltTab;
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure BuildVkSumiTab;
@@ -28,6 +44,16 @@ type
     procedure VkReshadeMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure VkReshadeMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure VkReshadeMD3ScrollChange(Sender: TObject);
+    procedure VkPipelineCardPaint(Sender: TObject);
+    procedure VkPipelineCardMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure VkPipelineCardMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure VkPipelineCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure VkPipelineCardMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure VkPipelineScrollChange(Sender: TObject);
+    procedure AddEffectToPipeline(const AEffectName: string);
+    procedure RemoveEffectFromPipeline(const AEffectName: string);
+    procedure DisablePipelineEffect(const AEffectName: string);
+    procedure MovePipelineEffect(FromIdx, ToIdx: Integer);
   end;
 
 implementation
@@ -35,6 +61,15 @@ implementation
 constructor TVkBasaltTabHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
+  FDragIdx := -1;
+  FHoverChipIdx := -1;
+  FHoverBtn := phbNone;
+end;
+
+destructor TVkBasaltTabHelper.Destroy;
+begin
+  FreeAndNil(FForm.FPipelineEffects);
+  inherited Destroy;
 end;
 
 procedure TVkBasaltTabHelper.InitVkBasaltTab;
@@ -202,7 +237,41 @@ begin
     FVkDlsIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_dls.png');
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CARD 3 — Toggle Key
+  // CARD 3 — Effect Pipeline
+  // ══════════════════════════════════════════════════════════════════════════
+  FVkPipelineCard := TPanel.Create(FForm);
+  FVkPipelineCard.Parent     := vkbasaltTabSheet;
+  FVkPipelineCard.BevelOuter := bvNone;
+  FVkPipelineCard.Color      := BG;
+  FVkPipelineCard.Caption    := '';
+  FVkPipelineCard.OnPaint    := @SubCardPaint;
+
+  TitleLbl := TLabel.Create(FVkPipelineCard);
+  TitleLbl.Parent      := FVkPipelineCard;
+  StyleLabel(TitleLbl, lrCardTitle);
+  TitleLbl.Caption     := 'Effect Pipeline';
+  TitleLbl.SetBounds(12, 8, 280, 20);
+
+  FVkPipelinePB := TPaintBox.Create(FForm);
+  FVkPipelinePB.Parent      := FVkPipelineCard;
+  FVkPipelinePB.Color       := BG;
+  FVkPipelinePB.OnPaint     := @VkPipelineCardPaint;
+  FVkPipelinePB.OnMouseDown := @VkPipelineCardMouseDown;
+  FVkPipelinePB.OnMouseMove := @VkPipelineCardMouseMove;
+  FVkPipelinePB.OnMouseUp   := @VkPipelineCardMouseUp;
+  FVkPipelinePB.OnMouseWheel:= @VkPipelineCardMouseWheel;
+
+  FVkPipelineSB := TScrollBar.Create(FForm);
+  FVkPipelineSB.Parent      := FVkPipelineCard;
+  FVkPipelineSB.Kind        := sbHorizontal;
+  FVkPipelineSB.Visible     := False;
+  FVkPipelineSB.OnChange    := @VkPipelineScrollChange;
+
+  if not Assigned(FPipelineEffects) then
+    FPipelineEffects := TStringList.Create;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CARD 4 — Toggle Key
   // ══════════════════════════════════════════════════════════════════════════
   FVkToggleCard := TPanel.Create(FForm);
   FVkToggleCard.Parent     := vkbasaltTabSheet;
@@ -259,6 +328,7 @@ const
   MARGIN   = 4;   // outer margin each side
   GAP      = 8;    // gap between cards
   BTIN_H   = 145;  // built-in effects card height
+  PIPE_H   = 72;   // effect pipeline card height
   TOGL_H   = 75;   // toggle key card height
   PAD      = 12;   // inner horizontal padding
   NAME_W   = 52;   // effect name label width
@@ -289,7 +359,7 @@ begin
   end;
 
   // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
-  RSHD_H := TabH - 2 * MARGIN - BTIN_H - TOGL_H - 2 * GAP;
+  RSHD_H := TabH - 2 * MARGIN - BTIN_H - PIPE_H - TOGL_H - 3 * GAP;
   if RSHD_H < 120 then RSHD_H := 120;  // minimum sensible height
   FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
 
@@ -332,8 +402,18 @@ begin
   dlsTrackBar.SetBounds(Col1 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
   if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
-  // ── Card 3: Toggle Key (bottom area, right) ────────────────────────────
-  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, TOGL_H);
+  // ── Card 3: Effect Pipeline (Execution Order) ──────────────────────────
+  if Assigned(FVkPipelineCard) then
+  begin
+    FVkPipelineCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, PIPE_H);
+    if Assigned(FVkPipelinePB) then
+      FVkPipelinePB.SetBounds(PAD, 24, CW - 2 * PAD, 34);
+    if Assigned(FVkPipelineSB) then
+      FVkPipelineSB.SetBounds(PAD, 60, CW - 2 * PAD, 8);
+  end;
+
+  // ── Card 4: Toggle Key (bottom area, right) ────────────────────────────
+  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP + PIPE_H + GAP, CW, TOGL_H);
 
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
@@ -814,6 +894,14 @@ begin
     if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
     if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
     if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+    FVkPipelineScrollPos := 0;
+    if Assigned(FVkPipelineSB) then
+    begin
+      FVkPipelineSB.Position := 0;
+      FVkPipelineSB.Visible := False;
+    end;
+    if Assigned(FPipelineEffects) then FPipelineEffects.Clear;
+    if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
     if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
     TriggerAutoSave;
@@ -1359,9 +1447,15 @@ begin
           begin
             EffectPath := aveffectsListBox.Items[i];
             if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
-              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
+            begin
+              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
+              RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+            end
             else
+            begin
               acteffectsListBox.Items.Add(EffectPath);
+              AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+            end;
             PB.Invalidate;
             TriggerAutoSave;
           end;
@@ -1379,9 +1473,15 @@ begin
           begin
             EffectPath := aveffectsListBox.Items[i];
             if acteffectsListBox.Items.IndexOf(EffectPath) >= 0 then
-              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath))
+            begin
+              acteffectsListBox.Items.Delete(acteffectsListBox.Items.IndexOf(EffectPath));
+              RemoveEffectFromPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+            end
             else
+            begin
               acteffectsListBox.Items.Add(EffectPath);
+              AddEffectToPipeline(ChangeFileExt(ExtractFileName(EffectPath), ''));
+            end;
             PB.Invalidate;
             TriggerAutoSave;
           end;
@@ -1415,10 +1515,496 @@ begin
   with FForm do
   begin
     FVkReshadeScrollPos := FVkReshadeSB.Position;
-  if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+  end;
 end;
 
-  end;
 // ============================================================================
+// EFFECT PIPELINE CARD RENDERING & INTERACTIONS
+// ============================================================================
+
+procedure TVkBasaltTabHelper.VkPipelineCardPaint(Sender: TObject);
+var
+  PB: TPaintBox;
+  i, CurX, ChipW, ChipH, TotalChips, TotalW: Integer;
+  LeftPad, TextW, TextH: Integer;
+  EffName, DispName: string;
+  ChipBg, ChipBorder, DotColor: TColor;
+  R: TRect;
+  HasLeft, HasRight: Boolean;
+  BtnW: Integer;
+begin
+  with FForm do
+  begin
+    PB := Sender as TPaintBox;
+    if not Assigned(FPipelineEffects) then Exit;
+
+    PB.Canvas.Brush.Color := FVkPipelineCard.Color;
+    PB.Canvas.FillRect(0, 0, PB.Width, PB.Height);
+
+    TotalChips := FPipelineEffects.Count;
+    if TotalChips = 0 then
+    begin
+      PB.Canvas.Font.Name := 'DejaVu Sans';
+      PB.Canvas.Font.Size := 9;
+      PB.Canvas.Font.Style := [fsItalic];
+      PB.Canvas.Font.Color := RGBToColor(110, 115, 130);
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(6, (PB.Height - PB.Canvas.TextHeight('A')) div 2,
+        'No active effects. Enable built-in sliders or ReShade shaders above to build the pipeline.');
+      SetLength(FChipHits, 0);
+      if Assigned(FVkPipelineSB) then
+      begin
+        FVkPipelineSB.Visible := False;
+        FVkPipelineScrollPos := 0;
+      end;
+      Exit;
+    end;
+
+    SetLength(FChipHits, TotalChips);
+    ChipH := 26;
+    BtnW := 14;
+
+    // Calculate total required width
+    TotalW := 4;
+    for i := 0 to TotalChips - 1 do
+    begin
+      EffName := FPipelineEffects[i];
+      if SameText(EffName, 'smaa') or SameText(EffName, 'fxaa') or SameText(EffName, 'cas') or SameText(EffName, 'dls') then
+        DispName := UpperCase(EffName)
+      else
+        DispName := EffName;
+
+      PB.Canvas.Font.Name := 'DejaVu Sans';
+      PB.Canvas.Font.Size := 9;
+      PB.Canvas.Font.Style := [fsBold];
+      TextW := PB.Canvas.TextWidth(DispName);
+
+      ChipW := 6 + 8 + 5 + TextW + 6 + BtnW + 6;
+      if i > 0 then Inc(ChipW, BtnW + 2);
+      if i < TotalChips - 1 then Inc(ChipW, BtnW + 2);
+
+      Inc(TotalW, ChipW + 6);
+      if i < TotalChips - 1 then
+        Inc(TotalW, 22);
+    end;
+
+    // Update horizontal scrollbar
+    if Assigned(FVkPipelineSB) then
+    begin
+      if TotalW > PB.Width then
+      begin
+        FVkPipelineSB.Max := TotalW - PB.Width + 10;
+        FVkPipelineSB.PageSize := 1;
+        FVkPipelineSB.Visible := True;
+        if FVkPipelineScrollPos > FVkPipelineSB.Max then
+          FVkPipelineScrollPos := FVkPipelineSB.Max;
+      end
+      else
+      begin
+        FVkPipelineSB.Visible := False;
+        FVkPipelineScrollPos := 0;
+      end;
+      if FVkPipelineScrollPos < 0 then
+        FVkPipelineScrollPos := 0;
+      FVkPipelineSB.Position := FVkPipelineScrollPos;
+    end;
+
+    CurX := 4 - FVkPipelineScrollPos;
+
+    for i := 0 to TotalChips - 1 do
+    begin
+      EffName := FPipelineEffects[i];
+      HasLeft := (i > 0);
+      HasRight := (i < TotalChips - 1);
+
+      // Determine category colors
+      if SameText(EffName, 'smaa') or SameText(EffName, 'fxaa') then
+      begin
+        ChipBg     := RGBToColor(18, 42, 32);
+        ChipBorder := RGBToColor(25, 120, 85);
+        DotColor   := RGBToColor(16, 185, 129); // emerald green
+        DispName   := UpperCase(EffName);
+      end
+      else if SameText(EffName, 'cas') or SameText(EffName, 'dls') then
+      begin
+        ChipBg     := RGBToColor(16, 36, 48);
+        ChipBorder := RGBToColor(14, 110, 135);
+        DotColor   := RGBToColor(6, 182, 212);  // cyan/blue
+        DispName   := UpperCase(EffName);
+      end
+      else
+      begin
+        ChipBg     := RGBToColor(36, 20, 48);
+        ChipBorder := RGBToColor(115, 55, 165);
+        DotColor   := RGBToColor(168, 85, 247); // purple
+        DispName   := EffName;
+      end;
+
+      PB.Canvas.Font.Name := 'DejaVu Sans';
+      PB.Canvas.Font.Size := 9;
+      PB.Canvas.Font.Style := [fsBold];
+      TextW := PB.Canvas.TextWidth(DispName);
+      TextH := PB.Canvas.TextHeight(DispName);
+
+      ChipW := 6 + 8 + 5 + TextW + 6 + BtnW + 6;
+      if HasLeft then Inc(ChipW, BtnW + 2);
+      if HasRight then Inc(ChipW, BtnW + 2);
+
+      R := Rect(CurX, (PB.Height - ChipH) div 2, CurX + ChipW, (PB.Height - ChipH) div 2 + ChipH);
+      FChipHits[i].Rect := R;
+
+      // Draw Chip Background & Rounded Outline
+      PB.Canvas.Brush.Color := ChipBg;
+      PB.Canvas.Pen.Color   := ChipBorder;
+      PB.Canvas.Pen.Width   := 1;
+      PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 8, 8);
+
+      LeftPad := R.Left + 6;
+
+      // Left move button
+      if HasLeft then
+      begin
+        FChipHits[i].LeftBtnRect := Rect(LeftPad, R.Top + 3, LeftPad + BtnW, R.Bottom - 3);
+        PB.Canvas.Font.Size := 6;
+        PB.Canvas.Font.Style := [fsBold];
+        if (FHoverChipIdx = i) and (FHoverBtn = phbLeft) then
+          PB.Canvas.Font.Color := clWhite
+        else
+          PB.Canvas.Font.Color := RGBToColor(140, 150, 170);
+        PB.Canvas.Brush.Style := bsClear;
+        PB.Canvas.TextOut(LeftPad + 2, R.Top + (ChipH - PB.Canvas.TextHeight('❮')) div 2, '❮');
+        Inc(LeftPad, BtnW + 2);
+      end
+      else
+        FChipHits[i].LeftBtnRect := Rect(0, 0, 0, 0);
+
+      // Category Dot
+      PB.Canvas.Brush.Color := DotColor;
+      PB.Canvas.Pen.Color   := DotColor;
+      PB.Canvas.Ellipse(LeftPad, R.Top + (ChipH - 6) div 2, LeftPad + 6, R.Top + (ChipH - 6) div 2 + 6);
+      Inc(LeftPad, 6 + 5);
+
+      // Name
+      PB.Canvas.Font.Size := 9;
+      PB.Canvas.Font.Style := [fsBold];
+      PB.Canvas.Font.Color := clWhite;
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(LeftPad, R.Top + (ChipH - TextH) div 2, DispName);
+      Inc(LeftPad, TextW + 6);
+
+      // Right move button
+      if HasRight then
+      begin
+        FChipHits[i].RightBtnRect := Rect(LeftPad, R.Top + 3, LeftPad + BtnW, R.Bottom - 3);
+        PB.Canvas.Font.Size := 6;
+        PB.Canvas.Font.Style := [fsBold];
+        if (FHoverChipIdx = i) and (FHoverBtn = phbRight) then
+          PB.Canvas.Font.Color := clWhite
+        else
+          PB.Canvas.Font.Color := RGBToColor(140, 150, 170);
+        PB.Canvas.Brush.Style := bsClear;
+        PB.Canvas.TextOut(LeftPad + 2, R.Top + (ChipH - PB.Canvas.TextHeight('❯')) div 2, '❯');
+        Inc(LeftPad, BtnW + 2);
+      end
+      else
+        FChipHits[i].RightBtnRect := Rect(0, 0, 0, 0);
+
+      // Close button (✕)
+      FChipHits[i].CloseBtnRect := Rect(LeftPad, R.Top + 3, LeftPad + BtnW, R.Bottom - 3);
+      PB.Canvas.Font.Size := 8;
+      PB.Canvas.Font.Style := [fsBold];
+      if (FHoverChipIdx = i) and (FHoverBtn = phbClose) then
+        PB.Canvas.Font.Color := RGBToColor(255, 80, 80)
+      else
+        PB.Canvas.Font.Color := RGBToColor(200, 90, 90);
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(LeftPad + 2, R.Top + (ChipH - PB.Canvas.TextHeight('✕')) div 2, '✕');
+
+      // Advance X
+      CurX := R.Right + 6;
+
+      // Draw Larger Connector Arrow to Next Chip
+      if i < TotalChips - 1 then
+      begin
+        PB.Canvas.Font.Size := 13;
+        PB.Canvas.Font.Style := [fsBold];
+        PB.Canvas.Font.Color := RGBToColor(130, 145, 175);
+        PB.Canvas.Brush.Style := bsClear;
+        PB.Canvas.TextOut(CurX + 2, R.Top + (ChipH - PB.Canvas.TextHeight('→')) div 2, '→');
+        Inc(CurX, 22);
+      end;
+    end;
+
+    // If dragging, draw insertion indicator line
+    if (FDragIdx >= 0) and (FDragIdx < Length(FChipHits)) then
+    begin
+      PB.Canvas.Pen.Color := RGBToColor(59, 130, 246); // bright blue
+      PB.Canvas.Pen.Width := 2;
+      PB.Canvas.Line(FDragCurrentX, (PB.Height - ChipH) div 2 - 2, FDragCurrentX, (PB.Height - ChipH) div 2 + ChipH + 2);
+    end;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkPipelineCardMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  i: Integer;
+begin
+  if Button <> mbLeft then Exit;
+  for i := 0 to High(FChipHits) do
+  begin
+    if PtInRect(FChipHits[i].CloseBtnRect, Point(X, Y)) then
+    begin
+      DisablePipelineEffect(FForm.FPipelineEffects[i]);
+      Exit;
+    end;
+    if PtInRect(FChipHits[i].LeftBtnRect, Point(X, Y)) then
+    begin
+      MovePipelineEffect(i, i - 1);
+      Exit;
+    end;
+    if PtInRect(FChipHits[i].RightBtnRect, Point(X, Y)) then
+    begin
+      MovePipelineEffect(i, i + 1);
+      Exit;
+    end;
+    if PtInRect(FChipHits[i].Rect, Point(X, Y)) then
+    begin
+      FDragIdx := i;
+      FDragStartX := X;
+      FDragCurrentX := X;
+      Exit;
+    end;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkPipelineCardMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  i: Integer;
+  OldHoverIdx, NewHoverIdx: Integer;
+  OldHoverBtn, NewHoverBtn: TPipelineHoverBtn;
+begin
+  with FForm do
+  begin
+    PB := Sender as TPaintBox;
+
+    if FDragIdx >= 0 then
+    begin
+      FDragCurrentX := X;
+
+      // Auto-scroll when dragging near left or right borders
+      if Assigned(FVkPipelineSB) and FVkPipelineSB.Visible then
+      begin
+        if (X < 30) and (FVkPipelineScrollPos > 0) then
+        begin
+          Dec(FVkPipelineScrollPos, 15);
+          if FVkPipelineScrollPos < 0 then FVkPipelineScrollPos := 0;
+          FVkPipelineSB.Position := FVkPipelineScrollPos;
+        end
+        else if (X > PB.Width - 30) and (FVkPipelineScrollPos < FVkPipelineSB.Max) then
+        begin
+          Inc(FVkPipelineScrollPos, 15);
+          if FVkPipelineScrollPos > FVkPipelineSB.Max then FVkPipelineScrollPos := FVkPipelineSB.Max;
+          FVkPipelineSB.Position := FVkPipelineScrollPos;
+        end;
+      end;
+
+      PB.Cursor := crSizeWE;
+      PB.Invalidate;
+      Exit;
+    end;
+
+    // Detect hover over buttons
+    OldHoverIdx := FHoverChipIdx;
+    OldHoverBtn := FHoverBtn;
+    NewHoverIdx := -1;
+    NewHoverBtn := phbNone;
+
+    for i := 0 to High(FChipHits) do
+    begin
+      if PtInRect(FChipHits[i].CloseBtnRect, Point(X, Y)) then
+      begin
+        NewHoverIdx := i;
+        NewHoverBtn := phbClose;
+        Break;
+      end
+      else if PtInRect(FChipHits[i].LeftBtnRect, Point(X, Y)) then
+      begin
+        NewHoverIdx := i;
+        NewHoverBtn := phbLeft;
+        Break;
+      end
+      else if PtInRect(FChipHits[i].RightBtnRect, Point(X, Y)) then
+      begin
+        NewHoverIdx := i;
+        NewHoverBtn := phbRight;
+        Break;
+      end
+      else if PtInRect(FChipHits[i].Rect, Point(X, Y)) then
+      begin
+        NewHoverIdx := i;
+        NewHoverBtn := phbChip;
+        Break;
+      end;
+    end;
+
+    if (NewHoverIdx <> OldHoverIdx) or (NewHoverBtn <> OldHoverBtn) then
+    begin
+      FHoverChipIdx := NewHoverIdx;
+      FHoverBtn := NewHoverBtn;
+      if NewHoverBtn in [phbLeft, phbRight, phbClose] then
+        PB.Cursor := crHandPoint
+      else
+        PB.Cursor := crDefault;
+
+      PB.Invalidate;
+    end;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkPipelineCardMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  PB: TPaintBox;
+  i, TargetIdx, MidX: Integer;
+begin
+  if Button <> mbLeft then Exit;
+  PB := Sender as TPaintBox;
+
+  if FDragIdx >= 0 then
+  begin
+    TargetIdx := FDragIdx;
+    for i := 0 to High(FChipHits) do
+    begin
+      MidX := (FChipHits[i].Rect.Left + FChipHits[i].Rect.Right) div 2;
+      if (i < FDragIdx) and (X < MidX) then
+      begin
+        TargetIdx := i;
+        Break;
+      end
+      else if (i > FDragIdx) and (X > MidX) then
+        TargetIdx := i;
+    end;
+
+    if (TargetIdx >= 0) and (TargetIdx < FForm.FPipelineEffects.Count) and (TargetIdx <> FDragIdx) then
+      MovePipelineEffect(FDragIdx, TargetIdx);
+
+    FDragIdx := -1;
+    PB.Cursor := crDefault;
+    PB.Invalidate;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkPipelineCardMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var
+  MaxScroll: Integer;
+begin
+  with FForm do
+  begin
+    if not Assigned(FVkPipelineSB) or not FVkPipelineSB.Visible then Exit;
+    MaxScroll := FVkPipelineSB.Max;
+    FVkPipelineScrollPos := FVkPipelineScrollPos - WheelDelta div 3;
+    if FVkPipelineScrollPos < 0 then FVkPipelineScrollPos := 0;
+    if FVkPipelineScrollPos > MaxScroll then FVkPipelineScrollPos := MaxScroll;
+    FVkPipelineSB.Position := FVkPipelineScrollPos;
+    if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
+    Handled := True;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkPipelineScrollChange(Sender: TObject);
+begin
+  with FForm do
+  begin
+    FVkPipelineScrollPos := FVkPipelineSB.Position;
+    if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.AddEffectToPipeline(const AEffectName: string);
+begin
+  if not Assigned(FForm.FPipelineEffects) then
+    FForm.FPipelineEffects := TStringList.Create;
+  if FForm.FPipelineEffects.IndexOf(AEffectName) = -1 then
+  begin
+    FForm.FPipelineEffects.Add(AEffectName);
+    if Assigned(FForm.FVkPipelineSB) and FForm.FVkPipelineSB.Visible then
+      FForm.FVkPipelineScrollPos := FForm.FVkPipelineSB.Max;
+    if Assigned(FForm.FVkPipelinePB) then
+      FForm.FVkPipelinePB.Invalidate;
+    FForm.StartAutoSaveTimer;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.RemoveEffectFromPipeline(const AEffectName: string);
+var
+  Idx: Integer;
+begin
+  if not Assigned(FForm.FPipelineEffects) then Exit;
+  Idx := FForm.FPipelineEffects.IndexOf(AEffectName);
+  if Idx >= 0 then
+  begin
+    FForm.FPipelineEffects.Delete(Idx);
+    if Assigned(FForm.FVkPipelinePB) then
+      FForm.FVkPipelinePB.Invalidate;
+    FForm.StartAutoSaveTimer;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.DisablePipelineEffect(const AEffectName: string);
+var
+  i: Integer;
+begin
+  with FForm do
+  begin
+    if SameText(AEffectName, 'cas') then
+    begin
+      casTrackBar.Position := 0;
+      casvaluelabel.Caption := '0';
+      if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := '0';
+    end
+    else if SameText(AEffectName, 'fxaa') then
+    begin
+      fxaaTrackBar.Position := 0;
+      fxaavaluelabel.Caption := '0';
+      if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
+    end
+    else if SameText(AEffectName, 'smaa') then
+    begin
+      smaaTrackBar.Position := 0;
+      smaavaluelabel.Caption := '0';
+      if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
+    end
+    else if SameText(AEffectName, 'dls') then
+    begin
+      dlsTrackBar.Position := 0;
+      dlsvaluelabel.Caption := '0';
+      if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+    end
+    else
+    begin
+      for i := acteffectsListBox.Items.Count - 1 downto 0 do
+      begin
+        if SameText(ChangeFileExt(ExtractFileName(acteffectsListBox.Items[i]), ''), AEffectName) then
+          acteffectsListBox.Items.Delete(i);
+      end;
+      if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
+    end;
+  end;
+  RemoveEffectFromPipeline(AEffectName);
+end;
+
+procedure TVkBasaltTabHelper.MovePipelineEffect(FromIdx, ToIdx: Integer);
+begin
+  if not Assigned(FForm.FPipelineEffects) then Exit;
+  if (FromIdx >= 0) and (FromIdx < FForm.FPipelineEffects.Count) and
+     (ToIdx >= 0) and (ToIdx < FForm.FPipelineEffects.Count) and (FromIdx <> ToIdx) then
+  begin
+    FForm.FPipelineEffects.Move(FromIdx, ToIdx);
+    if Assigned(FForm.FVkPipelinePB) then
+      FForm.FVkPipelinePB.Invalidate;
+    FForm.StartAutoSaveTimer;
+  end;
+end;
 
 end.
