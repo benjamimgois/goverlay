@@ -13,14 +13,45 @@ uses
   {$ELSE}
   qt5,
   {$ENDIF}
-  qtwidgets, configkeys;
+  qtwidgets, configkeys, toggle_switch;
 
 type
   TMangoHudUiHelper = class
   private
     FForm: Tgoverlayform;
+    FVisualToggles: TFPList;
+    FPerfToggles: TFPList;
+    FMetricsToggles: TFPList;
+    FExtrasToggles: TFPList;
   public
+    // Visual Tab Toggles
+    FhudcompactToggle, FhorizontalstrechToggle, FhidehudToggle: TToggleSwitch;
+
+    // Performance Tab Toggles
+    FfpsToggle, FfpsavgToggle, FshowfpslimToggle: TToggleSwitch;
+    FframetimegraphToggle, FframetimedetailedToggle: TToggleSwitch;
+    FvpsToggle, FftraceToggle, FframecountToggle, FfpscolorToggle: TToggleSwitch;
+
+    // GPU Metric Toggles
+    FgpuavgloadToggle, FgpuloadcolorToggle, FvramusageToggle, FgpufreqToggle, FgpumemfreqToggle: TToggleSwitch;
+    FgputempToggle, FgpumemtempToggle, FgpujunctempToggle, FgpufanToggle: TToggleSwitch;
+    FgpupowerToggle, FgpuvoltageToggle, FgputhrottlingToggle, FgputhrottlinggraphToggle, FgpuefficiencyToggle, FgpupowerlimitToggle: TToggleSwitch;
+    FgpumodelToggle, FvulkandriverToggle, FprocvramToggle: TToggleSwitch;
+
+    // CPU Metric Toggles
+    FcpuavgloadToggle, FcpuloadcolorToggle, FcpuloadcoreToggle, FcpufreqToggle, FcpucoretypeToggle: TToggleSwitch;
+    FcputempToggle, FcpupowerToggle, FcpuefficiencyToggle, FramtempToggle: TToggleSwitch;
+    FramusageToggle, FdiskioToggle, FprocmemToggle, FswapusageToggle: TToggleSwitch;
+
+    // Extras Tab Toggles
+    FdistroinfoToggle, FrefreshrateToggle, FresolutionToggle, FdisplayserverToggle, FtimeToggle, FarchToggle: TToggleSwitch;
+    FwineToggle, FengineversionToggle, FengineshortToggle, FwinesyncToggle, FdxapiToggle, FfexstatsToggle: TToggleSwitch;
+    FhudversionToggle, FgamemodestatusToggle, FvkbasaltstatusToggle, FfcatToggle, FfsrToggle, FhdrToggle: TToggleSwitch;
+    FbatteryToggle, FbatterywattToggle, FbatterytimeToggle, FdeviceToggle: TToggleSwitch;
+    FmediaToggle, FnetworkToggle, FfahrenheitToggle: TToggleSwitch;
+
     constructor Create(AForm: Tgoverlayform);
+    destructor Destroy; override;
     procedure BuildPresetsWrapper;
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
@@ -30,16 +61,21 @@ type
     procedure PresetCardMouseLeave(Sender: TObject);
     procedure InitVisualTab;
     procedure ReflowVisualTab(AContentW, AContentH: Integer);
+    procedure SyncVisualToggles;
     procedure UpdateVisualCardTheme;
     procedure BuildFpsLimitEdit;
     procedure InitPerformanceTab;
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
+    procedure SyncPerformanceToggles;
     procedure FrametimegraphCheckBoxChange(Sender: TObject);
     procedure UpdatePerfCardTheme;
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
+    procedure SyncMetricsToggles;
     procedure InitExtrasTab;
     procedure ReflowExtrasTab(AContentW: Integer);
+    procedure SyncExtrasToggles;
+    procedure SyncAllToggles;
     procedure UpdateExtrasCardTheme;
     procedure LoadMangoHudConfig;
     procedure ResetMangoHudControls;
@@ -53,6 +89,19 @@ implementation
 constructor TMangoHudUiHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
+  FVisualToggles  := TFPList.Create;
+  FPerfToggles    := TFPList.Create;
+  FMetricsToggles := TFPList.Create;
+  FExtrasToggles  := TFPList.Create;
+end;
+
+destructor TMangoHudUiHelper.Destroy;
+begin
+  FreeAndNil(FVisualToggles);
+  FreeAndNil(FPerfToggles);
+  FreeAndNil(FMetricsToggles);
+  FreeAndNil(FExtrasToggles);
+  inherited Destroy;
 end;
 
 procedure TMangoHudUiHelper.BuildPresetsWrapper;
@@ -782,53 +831,36 @@ begin
   else
     FVisualCaptureBtn.Caption := '⌨ Capture';
 
-  // Reparent Compact HUD checkbox (Left set in Reflow)
-  hudcompactCheckBox.Parent := FVisualHudBar;
-  hudcompactCheckBox.AnchorSideLeft.Control   := nil;
-  hudcompactCheckBox.AnchorSideTop.Control    := nil;
-  hudcompactCheckBox.AnchorSideRight.Control  := nil;
-  hudcompactCheckBox.AnchorSideBottom.Control := nil;
-  hudcompactCheckBox.Anchors     := [akLeft, akTop];
-  hudcompactCheckBox.Font.Color  := TextColor;
-  hudcompactCheckBox.ParentColor := True;
-  hudcompactCheckBox.Width       := 115;
-  hudcompactCheckBox.Height      := 22;
-  hudcompactCheckBox.Top         := 28;
+  // Create and link Compact HUD toggle switch
+  FhudcompactToggle := TToggleSwitch.Create(FForm);
+  FhudcompactToggle.Parent := FVisualHudBar;
+  FhudcompactToggle.LinkToCheckBox(hudcompactCheckBox);
+  FhudcompactToggle.Height := 20;
+  FhudcompactToggle.Width  := FhudcompactToggle.GetOptimalWidth;
+  FVisualToggles.Add(FhudcompactToggle);
 
-  // Create and reparent Horizontal Strech checkbox (Left set in Reflow)
-  horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
-  horizontalstrechCheckBox.Parent := FVisualHudBar;
-  horizontalstrechCheckBox.Caption := 'Horizontal Strech';
-  horizontalstrechCheckBox.AnchorSideLeft.Control   := nil;
-  horizontalstrechCheckBox.AnchorSideTop.Control    := nil;
-  horizontalstrechCheckBox.AnchorSideRight.Control  := nil;
-  horizontalstrechCheckBox.AnchorSideBottom.Control := nil;
-  horizontalstrechCheckBox.Anchors     := [akLeft, akTop];
-  horizontalstrechCheckBox.Font.Color  := TextColor;
-  horizontalstrechCheckBox.ParentColor := True;
-  horizontalstrechCheckBox.Width       := 135;
-  horizontalstrechCheckBox.Height      := 22;
-  horizontalstrechCheckBox.Top         := 28;
+  // Create and link Horizontal Strech toggle switch
+  if not Assigned(horizontalstrechCheckBox) then
+  begin
+    horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
+    horizontalstrechCheckBox.Parent := FVisualHudBar;
+    horizontalstrechCheckBox.Caption := 'Horizontal Strech';
+    horizontalstrechCheckBox.Visible := False;
+  end;
+  FhorizontalstrechToggle := TToggleSwitch.Create(FForm);
+  FhorizontalstrechToggle.Parent := FVisualHudBar;
+  FhorizontalstrechToggle.LinkToCheckBox(horizontalstrechCheckBox);
+  FhorizontalstrechToggle.Height := 20;
+  FhorizontalstrechToggle.Width  := FhorizontalstrechToggle.GetOptimalWidth;
+  FVisualToggles.Add(FhorizontalstrechToggle);
 
-  // Reparent Hide by default checkbox (Left set in Reflow)
-  hidehudCheckBox.Parent := FVisualHudBar;
-  hidehudCheckBox.AnchorSideLeft.Control   := nil;
-  hidehudCheckBox.AnchorSideTop.Control    := nil;
-  hidehudCheckBox.AnchorSideRight.Control  := nil;
-  hidehudCheckBox.AnchorSideBottom.Control := nil;
-  hidehudCheckBox.Anchors     := [akLeft, akTop];
-  hidehudCheckBox.Font.Color  := TextColor;
-  hidehudCheckBox.ParentColor := True;
-  hidehudCheckBox.Width       := 120;
-  hidehudCheckBox.Height      := 22;
-  hidehudCheckBox.Top         := 28;
-
-  if CurrentTheme = tmLight then
-    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
-  else
-    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
-  QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
-
+  // Create and link Hide by default toggle switch
+  FhidehudToggle := TToggleSwitch.Create(FForm);
+  FhidehudToggle.Parent := FVisualHudBar;
+  FhidehudToggle.LinkToCheckBox(hidehudCheckBox);
+  FhidehudToggle.Height := 20;
+  FhidehudToggle.Width  := FhidehudToggle.GetOptimalWidth;
+  FVisualToggles.Add(FhidehudToggle);
   end;
 end;
 
@@ -1006,19 +1038,39 @@ begin
   begin
     FVisualHudBar.SetBounds(0, ActiveHUD_TOP, W, HUD_H);
 
-    // Vertically align checkboxes with FVisualCaptureBtn (Top 24, Height 28 -> center 38)
-    CY := FVisualCaptureBtn.Top + (FVisualCaptureBtn.Height - 22) div 2;
-    hudcompactCheckBox.Top := CY;
-    horizontalstrechCheckBox.Top := CY;
-    hidehudCheckBox.Top := CY;
+    // Vertically align toggles with FVisualCaptureBtn (Top 24, Height 28 -> center 28)
+    CY := FVisualCaptureBtn.Top + (FVisualCaptureBtn.Height - 20) div 2;
+    if Assigned(FhudcompactToggle) then FhudcompactToggle.Top := CY;
+    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.Top := CY;
+    if Assigned(FhidehudToggle) then FhidehudToggle.Top := CY;
 
-    // Position checkboxes sequentially to the right of FVisualCaptureBtn
+    // Position toggles sequentially to the right of FVisualCaptureBtn
     ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 24;
-    hudcompactCheckBox.Left := ToggleRight;
-    horizontalstrechCheckBox.Left := hudcompactCheckBox.Left + hudcompactCheckBox.Width + 18;
-    hidehudCheckBox.Left := horizontalstrechCheckBox.Left + horizontalstrechCheckBox.Width + 18;
+    if Assigned(FhudcompactToggle) then
+    begin
+      FhudcompactToggle.Left := ToggleRight;
+      ToggleRight := FhudcompactToggle.Left + FhudcompactToggle.Width + 18;
+    end;
+    if Assigned(FhorizontalstrechToggle) then
+    begin
+      FhorizontalstrechToggle.Left := ToggleRight;
+      ToggleRight := FhorizontalstrechToggle.Left + FhorizontalstrechToggle.Width + 18;
+    end;
+    if Assigned(FhidehudToggle) then
+    begin
+      FhidehudToggle.Left := ToggleRight;
+    end;
   end;
   end;
+end;
+
+procedure TMangoHudUiHelper.SyncVisualToggles;
+var
+  i: Integer;
+begin
+  if Assigned(FVisualToggles) then
+    for i := 0 to FVisualToggles.Count - 1 do
+      TToggleSwitch(FVisualToggles[i]).SyncFromLinked;
 end;
 
 // ============================================================================
@@ -1481,6 +1533,16 @@ const
     end;
   end;
 
+  function PlacePerfToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
+  begin
+    Result := TToggleSwitch.Create(FForm);
+    Result.Parent := AParent;
+    Result.LinkToCheckBox(ACheckBox);
+    Result.Height := 20;
+    Result.Width  := Result.GetOptimalWidth;
+    FPerfToggles.Add(Result);
+  end;
+
 var
   BgBox: TPaintBox;
   SS: WideString;
@@ -1518,20 +1580,23 @@ begin
   showfpslimCheckBox.Parent         := FPerfInfoSec;
   vpsCheckBox.Parent                := FPerfInfoSec;
 
+  // Create and link Performance Information toggles
+  FfpsToggle               := PlacePerfToggle(fpsCheckBox, FPerfInfoSec);
+  FframetimegraphToggle    := PlacePerfToggle(frametimegraphCheckBox, FPerfInfoSec);
+  FframetimedetailedToggle := PlacePerfToggle(frametimedetailedCheckBox, FPerfInfoSec);
+  FfpsavgToggle            := PlacePerfToggle(fpsavgCheckBox, FPerfInfoSec);
+  FframecountToggle        := PlacePerfToggle(framecountCheckBox, FPerfInfoSec);
+  FftraceToggle            := PlacePerfToggle(ftraceCheckBox, FPerfInfoSec);
+  FshowfpslimToggle        := PlacePerfToggle(showfpslimCheckBox, FPerfInfoSec);
+  FvpsToggle               := PlacePerfToggle(vpsCheckBox, FPerfInfoSec);
+
   // Free all Information grid controls from anchor chains — Reflow will center them
-  fpsCheckBox.AnchorSideLeft.Control           := nil; fpsCheckBox.AnchorSideTop.Control           := nil; fpsCheckBox.AnchorSideRight.Control           := nil; fpsCheckBox.AnchorSideBottom.Control           := nil; fpsCheckBox.Anchors           := [akLeft, akTop];
-  frametimegraphCheckBox.AnchorSideLeft.Control := nil; frametimegraphCheckBox.AnchorSideTop.Control := nil; frametimegraphCheckBox.AnchorSideRight.Control := nil; frametimegraphCheckBox.AnchorSideBottom.Control := nil; frametimegraphCheckBox.Anchors := [akLeft, akTop];
-  frametimedetailedCheckBox.AnchorSideLeft.Control := nil; frametimedetailedCheckBox.AnchorSideTop.Control := nil; frametimedetailedCheckBox.AnchorSideRight.Control := nil; frametimedetailedCheckBox.AnchorSideBottom.Control := nil; frametimedetailedCheckBox.Anchors := [akLeft, akTop];
   frametimegraphColorButton.AnchorSideLeft.Control := nil; frametimegraphColorButton.AnchorSideTop.Control := nil; frametimegraphColorButton.AnchorSideRight.Control := nil; frametimegraphColorButton.AnchorSideBottom.Control := nil; frametimegraphColorButton.Anchors := [akLeft, akTop];
   frametimetypeBitBtn.AnchorSideLeft.Control    := nil; frametimetypeBitBtn.AnchorSideTop.Control    := nil; frametimetypeBitBtn.AnchorSideRight.Control    := nil; frametimetypeBitBtn.AnchorSideBottom.Control    := nil; frametimetypeBitBtn.Anchors    := [akLeft, akTop];
-  fpsavgCheckBox.AnchorSideLeft.Control         := nil; fpsavgCheckBox.AnchorSideTop.Control         := nil; fpsavgCheckBox.AnchorSideRight.Control         := nil; fpsavgCheckBox.AnchorSideBottom.Control         := nil; fpsavgCheckBox.Anchors         := [akLeft, akTop];
   fpsavgBitBtn.AnchorSideLeft.Control           := nil; fpsavgBitBtn.AnchorSideTop.Control           := nil; fpsavgBitBtn.AnchorSideRight.Control           := nil; fpsavgBitBtn.AnchorSideBottom.Control           := nil; fpsavgBitBtn.Anchors           := [akLeft, akTop];
-  framecountCheckBox.AnchorSideLeft.Control     := nil; framecountCheckBox.AnchorSideTop.Control     := nil; framecountCheckBox.AnchorSideRight.Control     := nil; framecountCheckBox.AnchorSideBottom.Control     := nil; framecountCheckBox.Anchors     := [akLeft, akTop];
-  ftraceCheckBox.AnchorSideLeft.Control         := nil; ftraceCheckBox.AnchorSideTop.Control         := nil; ftraceCheckBox.AnchorSideRight.Control         := nil; ftraceCheckBox.AnchorSideBottom.Control         := nil; ftraceCheckBox.Anchors         := [akLeft, akTop];
-  showfpslimCheckBox.AnchorSideLeft.Control     := nil; showfpslimCheckBox.AnchorSideTop.Control     := nil; showfpslimCheckBox.AnchorSideRight.Control     := nil; showfpslimCheckBox.AnchorSideBottom.Control     := nil; showfpslimCheckBox.Anchors     := [akLeft, akTop];
-  vpsCheckBox.AnchorSideLeft.Control            := nil; vpsCheckBox.AnchorSideTop.Control            := nil; vpsCheckBox.AnchorSideRight.Control            := nil; vpsCheckBox.AnchorSideBottom.Control            := nil; vpsCheckBox.Anchors            := [akLeft, akTop];
 
   frametimedetailedCheckBox.Enabled := frametimegraphCheckBox.Checked;
+  FframetimedetailedToggle.Enabled  := frametimegraphCheckBox.Checked;
   frametimegraphCheckBox.OnChange   := @FrametimegraphCheckBoxChange;
 
   // Reparent Filters controls to FPerfFiltersSec and clear LCL anchors
@@ -1546,10 +1611,7 @@ begin
   filterRadioGroup.AnchorSideLeft.Control := nil; filterRadioGroup.AnchorSideTop.Control := nil; filterRadioGroup.AnchorSideRight.Control := nil; filterRadioGroup.AnchorSideBottom.Control := nil; filterRadioGroup.Anchors := [akLeft, akTop];
   afLabel.AnchorSideLeft.Control := nil; afLabel.AnchorSideTop.Control := nil; afLabel.AnchorSideRight.Control := nil; afLabel.AnchorSideBottom.Control := nil; afLabel.Anchors := [akLeft, akTop];
   afTrackBar.AnchorSideLeft.Control := nil; afTrackBar.AnchorSideTop.Control := nil; afTrackBar.AnchorSideRight.Control := nil; afTrackBar.AnchorSideBottom.Control := nil; afTrackBar.Anchors := [akLeft, akTop];
-  afvalueLabel.AnchorSideLeft.Control := nil; afvalueLabel.AnchorSideTop.Control := nil; afvalueLabel.AnchorSideRight.Control := nil; afvalueLabel.AnchorSideBottom.Control := nil; afvalueLabel.Anchors := [akLeft, akTop];
-  mipmapLabel.AnchorSideLeft.Control := nil; mipmapLabel.AnchorSideTop.Control := nil; mipmapLabel.AnchorSideRight.Control := nil; mipmapLabel.AnchorSideBottom.Control := nil; mipmapLabel.Anchors := [akLeft, akTop];
-  mipmapTrackBar.AnchorSideLeft.Control := nil; mipmapTrackBar.AnchorSideTop.Control := nil; mipmapTrackBar.AnchorSideRight.Control := nil; mipmapTrackBar.AnchorSideBottom.Control := nil; mipmapTrackBar.Anchors := [akLeft, akTop];
-  mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
+      mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
 
   afTrackBar.Orientation := trHorizontal;
   afTrackBar.Reversed    := False;
@@ -1577,17 +1639,7 @@ begin
 
   // FPS Limit — single comma-separated input field
   BuildFpsLimitEdit;
-  end;
-end;
-
-
-procedure TMangoHudUiHelper.FrametimegraphCheckBoxChange(Sender: TObject);
-begin
-  if Assigned(FForm.frametimedetailedCheckBox) then
-  begin
-    FForm.frametimedetailedCheckBox.Enabled := FForm.frametimegraphCheckBox.Checked;
-    if not FForm.frametimegraphCheckBox.Checked then
-      FForm.frametimedetailedCheckBox.Checked := False;
+  FfpscolorToggle := PlacePerfToggle(fpscolorCheckBox, FPerfLimitSec);
   end;
 end;
 
@@ -1635,43 +1687,36 @@ begin
 
     if Assigned(FPerfLimitSec) then
       FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ActiveRow2H - GB_OFF - IMARGIN);
+
+    // Reposition Filter controls within FPerfFiltersSec
     if Assigned(FPerfFiltersSec) then
     begin
       FilterSecH := ActiveRow2H - GB_OFF - IMARGIN;
       FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, FilterSecH);
 
-      // Center filterRadioGroup horizontally at the top
-      filterRadioGroup.Width  := Min(349, FPerfFiltersSec.ClientWidth - 24);
-      if filterRadioGroup.Width < 100 then filterRadioGroup.Width := 100;
-      filterRadioGroup.Height := 41;
       filterRadioGroup.Left   := (FPerfFiltersSec.ClientWidth - filterRadioGroup.Width) div 2;
-      if filterRadioGroup.Left < 12 then filterRadioGroup.Left := 12;
-      filterRadioGroup.Top    := 12;
+      filterRadioGroup.Top    := 20;
 
-      FilterContentW := filterRadioGroup.Width;
-      FilterLeft     := filterRadioGroup.Left;
-      FilterValW     := 32;
-      FilterGapW     := 8;
-      FilterTrackW   := Max(50, FilterContentW - FilterValW - FilterGapW);
+      FilterValW   := 35;
+      FilterGapW   := 8;
+      FilterLeft   := 20;
+      FilterTrackW := FPerfFiltersSec.ClientWidth - FilterLeft - FilterGapW - FilterValW - 16;
+      if FilterTrackW < 80 then FilterTrackW := 80;
 
-      // Row 1: Anisotropic filtering (Horizontal slider)
-      afLabel.Left := FilterLeft;
-      afLabel.Top  := filterRadioGroup.Top + filterRadioGroup.Height + 18;
+      afLabel.Left          := FilterLeft;
+      afLabel.Top           := 130;
+      afTrackBar.Left       := FilterLeft;
+      afTrackBar.Top        := 150;
+      afTrackBar.Width      := FilterTrackW;
+      afTrackBar.Height     := 24;
 
-      afTrackBar.Left   := FilterLeft;
-      afTrackBar.Top    := afLabel.Top + afLabel.Height + 6;
-      afTrackBar.Width  := FilterTrackW;
-      afTrackBar.Height := 24;
+      afvalueLabel.Left     := afTrackBar.Left + afTrackBar.Width + FilterGapW;
+      afvalueLabel.Top      := afTrackBar.Top + (afTrackBar.Height - afvalueLabel.Height) div 2;
 
-      afvalueLabel.Left := afTrackBar.Left + afTrackBar.Width + FilterGapW;
-      afvalueLabel.Top  := afTrackBar.Top + (afTrackBar.Height - afvalueLabel.Height) div 2;
-
-      // Row 2: Mip-map LoD bias (Horizontal slider)
-      mipmapLabel.Left := FilterLeft;
-      mipmapLabel.Top  := afTrackBar.Top + afTrackBar.Height + 20;
-
+      mipmapLabel.Left      := FilterLeft;
+      mipmapLabel.Top       := 190;
       mipmapTrackBar.Left   := FilterLeft;
-      mipmapTrackBar.Top    := mipmapLabel.Top + mipmapLabel.Height + 6;
+      mipmapTrackBar.Top    := 210;
       mipmapTrackBar.Width  := FilterTrackW;
       mipmapTrackBar.Height := 24;
 
@@ -1707,6 +1752,8 @@ begin
       fpsCheckBox.Top                 := 6;
       frametimegraphCheckBox.Left     := Col1Left;
       frametimegraphCheckBox.Top      := 56;
+      if Assigned(FfpsToggle) then begin FfpsToggle.Left := Col1Left; FfpsToggle.Top := 6; end;
+      if Assigned(FframetimegraphToggle) then begin FframetimegraphToggle.Left := Col1Left; FframetimegraphToggle.Top := 56; end;
       frametimegraphColorButton.Left  := Col1Left + (Col1W - frametimegraphColorButton.Width) div 2;
       frametimegraphColorButton.Top   := 78;
       frametimetypeBitBtn.Left        := Col1Left + (Col1W - frametimetypeBitBtn.Width) div 2;
@@ -1724,6 +1771,13 @@ begin
       end;
       ftraceCheckBox.Left             := Col2Left;
       ftraceCheckBox.Top              := 94;
+      if Assigned(FfpsavgToggle) then begin FfpsavgToggle.Left := Col2Left; FfpsavgToggle.Top := 6; end;
+      if Assigned(FframetimedetailedToggle) then
+      begin
+        FframetimedetailedToggle.Left := Col2Left;
+        FframetimedetailedToggle.Top  := 56;
+      end;
+      if Assigned(FftraceToggle) then begin FftraceToggle.Left := Col2Left; FftraceToggle.Top := 94; end;
 
       // Column 3: FPS limit (Row 1), VPS (Row 2), Count Frames (Row 3, vertically aligned with ftrace debug)
       showfpslimCheckBox.Left         := Col3Left;
@@ -1732,6 +1786,9 @@ begin
       vpsCheckBox.Top                 := 56;
       framecountCheckBox.Left         := Col3Left;
       framecountCheckBox.Top          := 94;
+      if Assigned(FshowfpslimToggle) then begin FshowfpslimToggle.Left := Col3Left; FshowfpslimToggle.Top := 6; end;
+      if Assigned(FvpsToggle) then begin FvpsToggle.Left := Col3Left; FvpsToggle.Top := 56; end;
+      if Assigned(FframecountToggle) then begin FframecountToggle.Left := Col3Left; FframecountToggle.Top := 94; end;
     end;
 
     // Center logo+combo block (101+8+109=218px) within each VSYNC row
@@ -1780,7 +1837,10 @@ begin
         FFpsLimitHintLbl.Top := 68;
       end;
 
-      fpscolorCheckBox.Left := (FPerfLimitSec.ClientWidth - fpscolorCheckBox.Width) div 2;
+      if Assigned(FfpscolorToggle) then
+      begin
+        FfpscolorToggle.Left := (FPerfLimitSec.ClientWidth - FfpscolorToggle.Width) div 2;
+      end;
 
       ColW := 80;
       SpinW := 70;
@@ -1800,7 +1860,8 @@ begin
       MiddleEnd := FPerfLimitSec.Height - 70;
       GroupTop := MiddleStart + (MiddleEnd - MiddleStart - GroupH) div 2;
 
-      fpscolorCheckBox.Top := GroupTop;
+      if Assigned(FfpscolorToggle) then
+        FfpscolorToggle.Top := GroupTop;
       fpscolor1ColorButton.Top := GroupTop + 21 + 8;
       fpscolor2ColorButton.Top := fpscolor1ColorButton.Top;
       fpscolor3ColorButton.Top := fpscolor1ColorButton.Top;
@@ -1829,6 +1890,32 @@ begin
       end;
     end;
   end;
+  end;
+end;
+
+procedure TMangoHudUiHelper.SyncPerformanceToggles;
+var
+  i: Integer;
+begin
+  if Assigned(FPerfToggles) then
+    for i := 0 to FPerfToggles.Count - 1 do
+      TToggleSwitch(FPerfToggles[i]).SyncFromLinked;
+  if Assigned(FframetimedetailedToggle) and Assigned(FForm.frametimegraphCheckBox) then
+    FframetimedetailedToggle.Enabled := FForm.frametimegraphCheckBox.Checked;
+end;
+
+procedure TMangoHudUiHelper.FrametimegraphCheckBoxChange(Sender: TObject);
+begin
+  if Assigned(FForm.frametimedetailedCheckBox) then
+  begin
+    FForm.frametimedetailedCheckBox.Enabled := FForm.frametimegraphCheckBox.Checked;
+    if not FForm.frametimegraphCheckBox.Checked then
+      FForm.frametimedetailedCheckBox.Checked := False;
+  end;
+  if Assigned(FframetimedetailedToggle) then
+  begin
+    FframetimedetailedToggle.Enabled := FForm.frametimegraphCheckBox.Checked;
+    FframetimedetailedToggle.SyncFromLinked;
   end;
 end;
 
@@ -1973,6 +2060,18 @@ const
     C.Top      := ATop;
   end;
 
+  function PlaceToggle(ACheckBox: TCheckBox; Card: TPanel; ALeft, ATop: Integer): TToggleSwitch;
+  begin
+    Result := TToggleSwitch.Create(FForm);
+    Result.Parent := Card;
+    Result.LinkToCheckBox(ACheckBox);
+    Result.Left   := ALeft;
+    Result.Top    := ATop;
+    Result.Height := 20;
+    Result.Width  := Result.GetOptimalWidth;
+    FMetricsToggles.Add(Result);
+  end;
+
   procedure DarkCheck(C: TCheckBox);
   begin
     C.ParentColor := True;
@@ -2032,22 +2131,17 @@ begin
   gpuColorButton.Color := CARD_BG;
 
   // Section: Main metrics (label Top=56, controls Top=77/99)
-  Place(mainmetricLabel,    FMtGpuCard, 11,  56 + HDR);
-  Place(gpuavgloadCheckBox, FMtGpuCard, 11,  77 + HDR);
-  Place(gpuloadcolorCheckBox,FMtGpuCard,120, 77 + HDR);
-  Place(gpuload1ColorButton, FMtGpuCard,120, 99 + HDR);
-  Place(gpuload2ColorButton, FMtGpuCard,150, 99 + HDR);
-  Place(gpuload3ColorButton, FMtGpuCard,181, 99 + HDR);
-  Place(vramusageCheckBox,  FMtGpuCard, 266, 77 + HDR);
-  Place(vramColorButton,    FMtGpuCard, 264, 99 + HDR);
-  Place(gpufreqCheckBox,    FMtGpuCard, 381, 77 + HDR);
-  Place(gpumemfreqCheckBox, FMtGpuCard, 519, 77 + HDR);
+  Place(mainmetricLabel,     FMtGpuCard, 11,  56 + HDR);
+  FgpuavgloadToggle   := PlaceToggle(gpuavgloadCheckBox, FMtGpuCard, 11, 77 + HDR);
+  FgpuloadcolorToggle := PlaceToggle(gpuloadcolorCheckBox, FMtGpuCard, 120, 77 + HDR);
+  Place(gpuload1ColorButton, FMtGpuCard, 120, 99 + HDR);
+  Place(gpuload2ColorButton, FMtGpuCard, 150, 99 + HDR);
+  Place(gpuload3ColorButton, FMtGpuCard, 181, 99 + HDR);
+  FvramusageToggle    := PlaceToggle(vramusageCheckBox, FMtGpuCard, 266, 77 + HDR);
+  Place(vramColorButton,     FMtGpuCard, 264, 99 + HDR);
+  FgpufreqToggle      := PlaceToggle(gpufreqCheckBox, FMtGpuCard, 381, 77 + HDR);
+  FgpumemfreqToggle   := PlaceToggle(gpumemfreqCheckBox, FMtGpuCard, 519, 77 + HDR);
   DarkSectLbl(mainmetricLabel, SECT_GPU);
-  DarkCheck(gpuavgloadCheckBox);
-  DarkCheck(gpuloadcolorCheckBox);
-  DarkCheck(vramusageCheckBox);
-  DarkCheck(gpufreqCheckBox);
-  DarkCheck(gpumemfreqCheckBox);
   gpuload1ColorButton.Color := CARD_BG;
   gpuload2ColorButton.Color := CARD_BG;
   gpuload3ColorButton.Color := CARD_BG;
@@ -2055,43 +2149,30 @@ begin
 
   // Section: Temperature (label Top=113, controls Top=134)
   Place(gputempLabel,        FMtGpuCard, 11,  113 + HDR);
-  Place(gputempCheckBox,     FMtGpuCard, 11,  134 + HDR);
-  Place(gpumemtempCheckBox,  FMtGpuCard, 120, 134 + HDR);
-  Place(gpujunctempCheckBox, FMtGpuCard, 266, 134 + HDR);
-  Place(gpufanCheckBox,      FMtGpuCard, 381, 134 + HDR);
+  FgputempToggle     := PlaceToggle(gputempCheckBox, FMtGpuCard, 11, 134 + HDR);
+  FgpumemtempToggle  := PlaceToggle(gpumemtempCheckBox, FMtGpuCard, 120, 134 + HDR);
+  FgpujunctempToggle := PlaceToggle(gpujunctempCheckBox, FMtGpuCard, 266, 134 + HDR);
+  FgpufanToggle      := PlaceToggle(gpufanCheckBox, FMtGpuCard, 381, 134 + HDR);
   DarkSectLbl(gputempLabel, SECT_GPU);
-  DarkCheck(gputempCheckBox);
-  DarkCheck(gpumemtempCheckBox);
-  DarkCheck(gpujunctempCheckBox);
-  DarkCheck(gpufanCheckBox);
 
   // Section: Power (label Top=170, controls Top=191/213)
   Place(gpupowerLabel,           FMtGpuCard, 11,  170 + HDR);
-  Place(gpupowerCheckBox,        FMtGpuCard, 11,  191 + HDR);
-  Place(gpuvoltageCheckBox,      FMtGpuCard, 120, 191 + HDR);
-  Place(gputhrottlingCheckBox,   FMtGpuCard, 266, 191 + HDR);
-  Place(gputhrottlinggraphCheckBox,FMtGpuCard,381,191 + HDR);
-  Place(gpuefficiencyCheckBox,   FMtGpuCard, 519, 191 + HDR);
-  Place(gpupowerlimitCheckBox,   FMtGpuCard, 611, 191 + HDR);
+  FgpupowerToggle           := PlaceToggle(gpupowerCheckBox, FMtGpuCard, 11, 191 + HDR);
+  FgpuvoltageToggle         := PlaceToggle(gpuvoltageCheckBox, FMtGpuCard, 120, 191 + HDR);
+  FgputhrottlingToggle      := PlaceToggle(gputhrottlingCheckBox, FMtGpuCard, 266, 191 + HDR);
+  FgputhrottlinggraphToggle := PlaceToggle(gputhrottlinggraphCheckBox, FMtGpuCard, 381, 191 + HDR);
+  FgpuefficiencyToggle      := PlaceToggle(gpuefficiencyCheckBox, FMtGpuCard, 519, 191 + HDR);
+  FgpupowerlimitToggle      := PlaceToggle(gpupowerlimitCheckBox, FMtGpuCard, 611, 191 + HDR);
   Place(gpuframesjouleBitBtn,    FMtGpuCard, 516, 213 + HDR);
   DarkSectLbl(gpupowerLabel, SECT_GPU);
-  DarkCheck(gpupowerCheckBox);
-  DarkCheck(gpuvoltageCheckBox);
-  DarkCheck(gputhrottlingCheckBox);
-  DarkCheck(gputhrottlinggraphCheckBox);
-  DarkCheck(gpuefficiencyCheckBox);
-  DarkCheck(gpupowerlimitCheckBox);
   gpuframesjouleBitBtn.Font.Color := WHITE;
 
   // Section: Information (label Top=227, controls Top=248)
   Place(gpuinfoLabel,      FMtGpuCard, 11,  227 + HDR);
-  Place(gpumodelCheckBox,  FMtGpuCard, 11,  248 + HDR);
-  Place(vulkandriverCheckBox,FMtGpuCard,120, 248 + HDR);
-  Place(procvramCheckBox,  FMtGpuCard, 266, 248 + HDR);
+  FgpumodelToggle     := PlaceToggle(gpumodelCheckBox, FMtGpuCard, 11, 248 + HDR);
+  FvulkandriverToggle := PlaceToggle(vulkandriverCheckBox, FMtGpuCard, 120, 248 + HDR);
+  FprocvramToggle     := PlaceToggle(procvramCheckBox, FMtGpuCard, 266, 248 + HDR);
   DarkSectLbl(gpuinfoLabel, SECT_GPU);
-  DarkCheck(gpumodelCheckBox);
-  DarkCheck(vulkandriverCheckBox);
-  DarkCheck(procvramCheckBox);
 
   // GPU image — right-anchored, positioned in ReflowMetricsTab
   gpuImage.AnchorSideLeft.Control   := nil;
@@ -2117,21 +2198,16 @@ begin
 
   // Section: Main metrics (label Top=45, controls Top=66/88)
   Place(cpumainmetricsLabel, FMtCpuCard, 11,  45 + HDR);
-  Place(cpuavgloadCheckBox,  FMtCpuCard, 11,  66 + HDR);
-  Place(cpuloadcolorCheckBox,FMtCpuCard, 120, 66 + HDR);
+  FcpuavgloadToggle   := PlaceToggle(cpuavgloadCheckBox, FMtCpuCard, 11, 66 + HDR);
+  FcpuloadcolorToggle := PlaceToggle(cpuloadcolorCheckBox, FMtCpuCard, 120, 66 + HDR);
   Place(cpuload1ColorButton, FMtCpuCard, 120, 88 + HDR);
   Place(cpuload2ColorButton, FMtCpuCard, 150, 88 + HDR);
   Place(cpuload3ColorButton, FMtCpuCard, 181, 88 + HDR);
-  Place(cpuloadcoreCheckBox, FMtCpuCard, 266, 66 + HDR);
+  FcpuloadcoreToggle  := PlaceToggle(cpuloadcoreCheckBox, FMtCpuCard, 266, 66 + HDR);
   Place(coreloadtypeBitBtn,  FMtCpuCard, 264, 88 + HDR);
-  Place(cpufreqCheckBox,     FMtCpuCard, 382, 66 + HDR);
-  Place(cpucoretypeCheckBox, FMtCpuCard, 516, 66 + HDR);
+  FcpufreqToggle      := PlaceToggle(cpufreqCheckBox, FMtCpuCard, 382, 66 + HDR);
+  FcpucoretypeToggle  := PlaceToggle(cpucoretypeCheckBox, FMtCpuCard, 516, 66 + HDR);
   DarkSectLbl(cpumainmetricsLabel, SECT_CPU);
-  DarkCheck(cpuavgloadCheckBox);
-  DarkCheck(cpuloadcolorCheckBox);
-  DarkCheck(cpuloadcoreCheckBox);
-  DarkCheck(cpufreqCheckBox);
-  DarkCheck(cpucoretypeCheckBox);
   cpuload1ColorButton.Color := CARD_BG;
   cpuload2ColorButton.Color := CARD_BG;
   cpuload3ColorButton.Color := CARD_BG;
@@ -2139,33 +2215,25 @@ begin
 
   // Section: Temperature / Power (label Top=113, controls Top=134/156)
   Place(cputempLabel,      FMtCpuCard, 11,  113 + HDR);
-  Place(cputempCheckBox,   FMtCpuCard, 11,  134 + HDR);
-  Place(cpupowerCheckBox,  FMtCpuCard, 120, 134 + HDR);
+  FcputempToggle      := PlaceToggle(cputempCheckBox, FMtCpuCard, 11, 134 + HDR);
+  FcpupowerToggle     := PlaceToggle(cpupowerCheckBox, FMtCpuCard, 120, 134 + HDR);
   Place(intelpowerfixBitBtn,FMtCpuCard,213, 135 + HDR);
-  Place(cpuefficiencyCheckBox,FMtCpuCard,266,134 + HDR);
-  Place(ramtempCheckBox,   FMtCpuCard, 382, 134 + HDR);
+  FcpuefficiencyToggle:= PlaceToggle(cpuefficiencyCheckBox, FMtCpuCard, 266, 134 + HDR);
+  FramtempToggle      := PlaceToggle(ramtempCheckBox, FMtCpuCard, 382, 134 + HDR);
   Place(cpuframesjouleBitBtn,FMtCpuCard,263,156 + HDR);
   DarkSectLbl(cputempLabel, SECT_CPU);
-  DarkCheck(cputempCheckBox);
-  DarkCheck(cpupowerCheckBox);
-  DarkCheck(cpuefficiencyCheckBox);
-  DarkCheck(ramtempCheckBox);
   cpuframesjouleBitBtn.Font.Color := WHITE;
   intelpowerfixBitBtn.Font.Color  := WHITE;
 
   // Section: Memory / IO (label Top=181, controls Top=202/224)
   Place(memLabel,          FMtCpuCard, 11,  181 + HDR);
-  Place(ramusageCheckBox,  FMtCpuCard, 11,  202 + HDR);
-  Place(diskioCheckBox,    FMtCpuCard, 120, 202 + HDR);
-  Place(procmemCheckBox,   FMtCpuCard, 266, 202 + HDR);
-  Place(swapusageCheckBox, FMtCpuCard, 382, 202 + HDR);
+  FramusageToggle  := PlaceToggle(ramusageCheckBox, FMtCpuCard, 11, 202 + HDR);
+  FdiskioToggle    := PlaceToggle(diskioCheckBox, FMtCpuCard, 120, 202 + HDR);
+  FprocmemToggle   := PlaceToggle(procmemCheckBox, FMtCpuCard, 266, 202 + HDR);
+  FswapusageToggle := PlaceToggle(swapusageCheckBox, FMtCpuCard, 382, 202 + HDR);
   Place(ramColorButton,    FMtCpuCard, 5,   224 + HDR);
   Place(iordrwColorButton, FMtCpuCard, 114, 224 + HDR);
   DarkSectLbl(memLabel, SECT_CPU);
-  DarkCheck(ramusageCheckBox);
-  DarkCheck(diskioCheckBox);
-  DarkCheck(procmemCheckBox);
-  DarkCheck(swapusageCheckBox);
   ramColorButton.Color    := CARD_BG;
   iordrwColorButton.Color := CARD_BG;
 
@@ -2254,108 +2322,86 @@ begin
 
   // Reposition GPU Metrics controls dynamically across X0..X5 and Y offsets
   mainmetricLabel.Top            := 56 + HDR;
-  gpuavgloadCheckBox.Left        := X0;
-  gpuavgloadCheckBox.Top         := 77 + HDR;
-  gpuloadcolorCheckBox.Left      := X1;
-  gpuloadcolorCheckBox.Top       := 77 + HDR;
+  if Assigned(FgpuavgloadToggle) then begin FgpuavgloadToggle.Left := X0; FgpuavgloadToggle.Top := 77 + HDR; end;
+  if Assigned(FgpuloadcolorToggle) then begin FgpuloadcolorToggle.Left := X1; FgpuloadcolorToggle.Top := 77 + HDR; end;
   gpuload1ColorButton.Left       := X1;
   gpuload1ColorButton.Top        := 99 + HDR;
   gpuload2ColorButton.Left       := X1 + 30;
   gpuload2ColorButton.Top        := 99 + HDR;
   gpuload3ColorButton.Left       := X1 + 61;
   gpuload3ColorButton.Top        := 99 + HDR;
-  vramusageCheckBox.Left         := X2;
-  vramusageCheckBox.Top          := 77 + HDR;
+  if Assigned(FvramusageToggle) then begin FvramusageToggle.Left := X2; FvramusageToggle.Top := 77 + HDR; end;
   vramColorButton.Left           := X2 - 2;
   vramColorButton.Top            := 99 + HDR;
-  gpufreqCheckBox.Left           := X3;
-  gpufreqCheckBox.Top            := 77 + HDR;
-  gpumemfreqCheckBox.Left        := X4;
-  gpumemfreqCheckBox.Top         := 77 + HDR;
+  if Assigned(FgpufreqToggle) then begin FgpufreqToggle.Left := X3; FgpufreqToggle.Top := 77 + HDR; end;
+  if Assigned(FgpumemfreqToggle) then begin FgpumemfreqToggle.Left := X4; FgpumemfreqToggle.Top := 77 + HDR; end;
 
   gputempLabel.Top               := 113 + HDR + YOff1;
-  gputempCheckBox.Left           := X0;
-  gputempCheckBox.Top            := 134 + HDR + YOff1;
-  gpumemtempCheckBox.Left        := X1;
-  gpumemtempCheckBox.Top         := 134 + HDR + YOff1;
-  gpujunctempCheckBox.Left       := X2;
-  gpujunctempCheckBox.Top        := 134 + HDR + YOff1;
-  gpufanCheckBox.Left            := X3;
-  gpufanCheckBox.Top             := 134 + HDR + YOff1;
+  if Assigned(FgputempToggle) then begin FgputempToggle.Left := X0; FgputempToggle.Top := 134 + HDR + YOff1; end;
+  if Assigned(FgpumemtempToggle) then begin FgpumemtempToggle.Left := X1; FgpumemtempToggle.Top := 134 + HDR + YOff1; end;
+  if Assigned(FgpujunctempToggle) then begin FgpujunctempToggle.Left := X2; FgpujunctempToggle.Top := 134 + HDR + YOff1; end;
+  if Assigned(FgpufanToggle) then begin FgpufanToggle.Left := X3; FgpufanToggle.Top := 134 + HDR + YOff1; end;
 
   gpupowerLabel.Top              := 170 + HDR + YOff2;
-  gpupowerCheckBox.Left          := X0;
-  gpupowerCheckBox.Top           := 191 + HDR + YOff2;
-  gpuvoltageCheckBox.Left        := X1;
-  gpuvoltageCheckBox.Top         := 191 + HDR + YOff2;
-  gputhrottlingCheckBox.Left     := X2;
-  gputhrottlingCheckBox.Top      := 191 + HDR + YOff2;
-  gputhrottlinggraphCheckBox.Left:= X3;
-  gputhrottlinggraphCheckBox.Top := 191 + HDR + YOff2;
-  gpuefficiencyCheckBox.Left     := X4;
-  gpuefficiencyCheckBox.Top      := 191 + HDR + YOff2;
-  gpupowerlimitCheckBox.Left     := X5;
-  gpupowerlimitCheckBox.Top      := 191 + HDR + YOff2;
+  if Assigned(FgpupowerToggle) then begin FgpupowerToggle.Left := X0; FgpupowerToggle.Top := 191 + HDR + YOff2; end;
+  if Assigned(FgpuvoltageToggle) then begin FgpuvoltageToggle.Left := X1; FgpuvoltageToggle.Top := 191 + HDR + YOff2; end;
+  if Assigned(FgputhrottlingToggle) then begin FgputhrottlingToggle.Left := X2; FgputhrottlingToggle.Top := 191 + HDR + YOff2; end;
+  if Assigned(FgputhrottlinggraphToggle) then begin FgputhrottlinggraphToggle.Left := X3; FgputhrottlinggraphToggle.Top := 191 + HDR + YOff2; end;
+  if Assigned(FgpuefficiencyToggle) then begin FgpuefficiencyToggle.Left := X4; FgpuefficiencyToggle.Top := 191 + HDR + YOff2; end;
+  if Assigned(FgpupowerlimitToggle) then begin FgpupowerlimitToggle.Left := X5; FgpupowerlimitToggle.Top := 191 + HDR + YOff2; end;
   gpuframesjouleBitBtn.Left      := X4 - 3;
   gpuframesjouleBitBtn.Top       := 213 + HDR + YOff2;
 
   gpuinfoLabel.Top               := 227 + HDR + YOff3;
-  gpumodelCheckBox.Left          := X0;
-  gpumodelCheckBox.Top           := 248 + HDR + YOff3;
-  vulkandriverCheckBox.Left      := X1;
-  vulkandriverCheckBox.Top       := 248 + HDR + YOff3;
-  procvramCheckBox.Left          := X2;
-  procvramCheckBox.Top           := 248 + HDR + YOff3;
+  if Assigned(FgpumodelToggle) then begin FgpumodelToggle.Left := X0; FgpumodelToggle.Top := 248 + HDR + YOff3; end;
+  if Assigned(FvulkandriverToggle) then begin FvulkandriverToggle.Left := X1; FvulkandriverToggle.Top := 248 + HDR + YOff3; end;
+  if Assigned(FprocvramToggle) then begin FprocvramToggle.Left := X2; FprocvramToggle.Top := 248 + HDR + YOff3; end;
 
   // Reposition CPU Metrics controls dynamically across X0..X5 and CpuYOffs
   cpumainmetricsLabel.Top        := 45 + HDR;
-  cpuavgloadCheckBox.Left        := X0;
-  cpuavgloadCheckBox.Top         := 66 + HDR;
-  cpuloadcolorCheckBox.Left      := X1;
-  cpuloadcolorCheckBox.Top       := 66 + HDR;
+  if Assigned(FcpuavgloadToggle) then begin FcpuavgloadToggle.Left := X0; FcpuavgloadToggle.Top := 66 + HDR; end;
+  if Assigned(FcpuloadcolorToggle) then begin FcpuloadcolorToggle.Left := X1; FcpuloadcolorToggle.Top := 66 + HDR; end;
   cpuload1ColorButton.Left       := X1;
   cpuload1ColorButton.Top        := 88 + HDR;
   cpuload2ColorButton.Left       := X1 + 30;
   cpuload2ColorButton.Top        := 88 + HDR;
   cpuload3ColorButton.Left       := X1 + 61;
   cpuload3ColorButton.Top        := 88 + HDR;
-  cpuloadcoreCheckBox.Left       := X2;
-  cpuloadcoreCheckBox.Top        := 66 + HDR;
+  if Assigned(FcpuloadcoreToggle) then begin FcpuloadcoreToggle.Left := X2; FcpuloadcoreToggle.Top := 66 + HDR; end;
   coreloadtypeBitBtn.Left        := X2 - 2;
   coreloadtypeBitBtn.Top         := 88 + HDR;
-  cpufreqCheckBox.Left           := X3;
-  cpufreqCheckBox.Top            := 66 + HDR;
-  cpucoretypeCheckBox.Left       := X4;
-  cpucoretypeCheckBox.Top        := 66 + HDR;
+  if Assigned(FcpufreqToggle) then begin FcpufreqToggle.Left := X3; FcpufreqToggle.Top := 66 + HDR; end;
+  if Assigned(FcpucoretypeToggle) then begin FcpucoretypeToggle.Left := X4; FcpucoretypeToggle.Top := 66 + HDR; end;
 
   cputempLabel.Top               := 113 + HDR + CpuYOff1;
-  cputempCheckBox.Left           := X0;
-  cputempCheckBox.Top            := 134 + HDR + CpuYOff1;
-  cpupowerCheckBox.Left          := X1;
-  cpupowerCheckBox.Top           := 134 + HDR + CpuYOff1;
-  intelpowerfixBitBtn.Left       := X1 + cpupowerCheckBox.Width + 4;
+  if Assigned(FcputempToggle) then begin FcputempToggle.Left := X0; FcputempToggle.Top := 134 + HDR + CpuYOff1; end;
+  if Assigned(FcpupowerToggle) then begin FcpupowerToggle.Left := X1; FcpupowerToggle.Top := 134 + HDR + CpuYOff1; end;
+  intelpowerfixBitBtn.Left       := X1 + 105;
   intelpowerfixBitBtn.Top        := 135 + HDR + CpuYOff1;
-  cpuefficiencyCheckBox.Left     := X2;
-  cpuefficiencyCheckBox.Top      := 134 + HDR + CpuYOff1;
+  if Assigned(FcpuefficiencyToggle) then begin FcpuefficiencyToggle.Left := X2; FcpuefficiencyToggle.Top := 134 + HDR + CpuYOff1; end;
   cpuframesjouleBitBtn.Left      := X2 - 3;
   cpuframesjouleBitBtn.Top       := 156 + HDR + CpuYOff1;
-  ramtempCheckBox.Left           := X3;
-  ramtempCheckBox.Top            := 134 + HDR + CpuYOff1;
+  if Assigned(FramtempToggle) then begin FramtempToggle.Left := X3; FramtempToggle.Top := 134 + HDR + CpuYOff1; end;
 
   memLabel.Top                   := 181 + HDR + CpuYOff2;
-  ramusageCheckBox.Left          := X0;
-  ramusageCheckBox.Top           := 202 + HDR + CpuYOff2;
+  if Assigned(FramusageToggle) then begin FramusageToggle.Left := X0; FramusageToggle.Top := 202 + HDR + CpuYOff2; end;
   ramColorButton.Left            := X0 - 6;
   ramColorButton.Top             := 224 + HDR + CpuYOff2;
-  diskioCheckBox.Left            := X1;
-  diskioCheckBox.Top             := 202 + HDR + CpuYOff2;
+  if Assigned(FdiskioToggle) then begin FdiskioToggle.Left := X1; FdiskioToggle.Top := 202 + HDR + CpuYOff2; end;
   iordrwColorButton.Left         := X1 - 6;
   iordrwColorButton.Top          := 224 + HDR + CpuYOff2;
-  procmemCheckBox.Left           := X2;
-  procmemCheckBox.Top            := 202 + HDR + CpuYOff2;
-  swapusageCheckBox.Left         := X3;
-  swapusageCheckBox.Top          := 202 + HDR + CpuYOff2;
+  if Assigned(FprocmemToggle) then begin FprocmemToggle.Left := X2; FprocmemToggle.Top := 202 + HDR + CpuYOff2; end;
+  if Assigned(FswapusageToggle) then begin FswapusageToggle.Left := X3; FswapusageToggle.Top := 202 + HDR + CpuYOff2; end;
   end;
+end;
+
+procedure TMangoHudUiHelper.SyncMetricsToggles;
+var
+  i: Integer;
+begin
+  if Assigned(FMetricsToggles) then
+    for i := 0 to FMetricsToggles.Count - 1 do
+      TToggleSwitch(FMetricsToggles[i]).SyncFromLinked;
 end;
 
 
@@ -2395,6 +2441,18 @@ const
     C.Top     := ATop;
   end;
 
+  function PlaceExtToggle(ACheckBox: TCheckBox; Card: TPanel; ALeft, ATop: Integer): TToggleSwitch;
+  begin
+    Result := TToggleSwitch.Create(FForm);
+    Result.Parent := Card;
+    Result.LinkToCheckBox(ACheckBox);
+    Result.Left   := ALeft;
+    Result.Top    := ATop;
+    Result.Height := 20;
+    Result.Width  := Result.GetOptimalWidth;
+    FExtrasToggles.Add(Result);
+  end;
+
   procedure DarkCheck(C: TCheckBox);
   begin
     C.ParentColor := True;
@@ -2430,42 +2488,42 @@ begin
   MakeCard(FExtSysCard, 'System info');
 
   Place(systemLabel,           FExtSysCard, 11,  11 + HDR);  DarkLabel(systemLabel);
-  Place(distroinfoCheckBox,    FExtSysCard, 11,  32 + HDR);  DarkCheck(distroinfoCheckBox);
-  Place(refreshrateCheckBox,   FExtSysCard, 128, 32 + HDR);  DarkCheck(refreshrateCheckBox);
-  Place(resolutionCheckBox,    FExtSysCard, 254, 32 + HDR);  DarkCheck(resolutionCheckBox);
-  Place(displayserverCheckBox, FExtSysCard, 372, 32 + HDR);  DarkCheck(displayserverCheckBox);
-  Place(timeCheckBox,          FExtSysCard, 513, 32 + HDR);  DarkCheck(timeCheckBox);
-  Place(archCheckBox,          FExtSysCard, 597, 32 + HDR);  DarkCheck(archCheckBox);
+  FdistroinfoToggle    := PlaceExtToggle(distroinfoCheckBox,    FExtSysCard, 11,  32 + HDR);
+  FrefreshrateToggle   := PlaceExtToggle(refreshrateCheckBox,   FExtSysCard, 128, 32 + HDR);
+  FresolutionToggle    := PlaceExtToggle(resolutionCheckBox,    FExtSysCard, 254, 32 + HDR);
+  FdisplayserverToggle := PlaceExtToggle(displayserverCheckBox, FExtSysCard, 372, 32 + HDR);
+  FtimeToggle          := PlaceExtToggle(timeCheckBox,          FExtSysCard, 513, 32 + HDR);
+  FarchToggle          := PlaceExtToggle(archCheckBox,          FExtSysCard, 597, 32 + HDR);
 
   Place(wineLabel,             FExtSysCard, 11,  68 + HDR);  DarkLabel(wineLabel);
-  Place(wineCheckBox,          FExtSysCard, 11,  89 + HDR);  DarkCheck(wineCheckBox);
-  Place(engineversionCheckBox, FExtSysCard, 128, 89 + HDR);  DarkCheck(engineversionCheckBox);
-  Place(engineshortCheckBox,   FExtSysCard, 254, 89 + HDR);  DarkCheck(engineshortCheckBox);
-  Place(winesyncCheckBox,      FExtSysCard, 372, 89 + HDR);  DarkCheck(winesyncCheckBox);
-  Place(dxapiCheckBox,         FExtSysCard, 513, 89 + HDR);  DarkCheck(dxapiCheckBox);
-  Place(fexstatsCheckBox,      FExtSysCard, 597, 89 + HDR);  DarkCheck(fexstatsCheckBox);
+  FwineToggle          := PlaceExtToggle(wineCheckBox,          FExtSysCard, 11,  89 + HDR);
+  FengineversionToggle := PlaceExtToggle(engineversionCheckBox, FExtSysCard, 128, 89 + HDR);
+  FengineshortToggle   := PlaceExtToggle(engineshortCheckBox,   FExtSysCard, 254, 89 + HDR);
+  FwinesyncToggle      := PlaceExtToggle(winesyncCheckBox,      FExtSysCard, 372, 89 + HDR);
+  FdxapiToggle         := PlaceExtToggle(dxapiCheckBox,         FExtSysCard, 513, 89 + HDR);
+  FfexstatsToggle      := PlaceExtToggle(fexstatsCheckBox,      FExtSysCard, 597, 89 + HDR);
   Place(wineColorButton,       FExtSysCard, 7,   111 + HDR);
   Place(engineColorButton,     FExtSysCard, 122, 111 + HDR);
 
   Place(optionsLabel,           FExtSysCard, 11,  131 + HDR); DarkLabel(optionsLabel);
-  Place(hudversionCheckBox,     FExtSysCard, 11,  152 + HDR); DarkCheck(hudversionCheckBox);
-  Place(gamemodestatusCheckBox, FExtSysCard, 128, 152 + HDR); DarkCheck(gamemodestatusCheckBox);
-  Place(vkbasaltstatusCheckBox, FExtSysCard, 254, 152 + HDR); DarkCheck(vkbasaltstatusCheckBox);
-  Place(fcatCheckBox,           FExtSysCard, 372, 152 + HDR); DarkCheck(fcatCheckBox);
-  Place(fsrCheckBox,            FExtSysCard, 513, 152 + HDR); DarkCheck(fsrCheckBox);
-  Place(hdrCheckBox,            FExtSysCard, 597, 152 + HDR); DarkCheck(hdrCheckBox);
+  FhudversionToggle    := PlaceExtToggle(hudversionCheckBox,     FExtSysCard, 11,  152 + HDR);
+  FgamemodestatusToggle:= PlaceExtToggle(gamemodestatusCheckBox, FExtSysCard, 128, 152 + HDR);
+  FvkbasaltstatusToggle:= PlaceExtToggle(vkbasaltstatusCheckBox, FExtSysCard, 254, 152 + HDR);
+  FfcatToggle          := PlaceExtToggle(fcatCheckBox,           FExtSysCard, 372, 152 + HDR);
+  FfsrToggle           := PlaceExtToggle(fsrCheckBox,            FExtSysCard, 513, 152 + HDR);
+  FhdrToggle           := PlaceExtToggle(hdrCheckBox,            FExtSysCard, 597, 152 + HDR);
 
   Place(batteryLabel,        FExtSysCard, 8,   190 + HDR); DarkLabel(batteryLabel);
-  Place(batteryCheckBox,     FExtSysCard, 11,  211 + HDR); DarkCheck(batteryCheckBox);
-  Place(batterywattCheckBox, FExtSysCard, 128, 211 + HDR); DarkCheck(batterywattCheckBox);
-  Place(batterytimeCheckBox, FExtSysCard, 254, 211 + HDR); DarkCheck(batterytimeCheckBox);
-  Place(deviceCheckBox,      FExtSysCard, 372, 211 + HDR); DarkCheck(deviceCheckBox);
+  FbatteryToggle     := PlaceExtToggle(batteryCheckBox,     FExtSysCard, 11,  211 + HDR);
+  FbatterywattToggle := PlaceExtToggle(batterywattCheckBox, FExtSysCard, 128, 211 + HDR);
+  FbatterytimeToggle := PlaceExtToggle(batterytimeCheckBox, FExtSysCard, 254, 211 + HDR);
+  FdeviceToggle      := PlaceExtToggle(deviceCheckBox,      FExtSysCard, 372, 211 + HDR);
   Place(batteryColorButton,  FExtSysCard, 6,   233 + HDR);
 
   Place(othersLabel,         FExtSysCard, 11,  262 + HDR); DarkLabel(othersLabel);
-  Place(mediaCheckBox,       FExtSysCard, 11,  283 + HDR); DarkCheck(mediaCheckBox);
-  Place(networkCheckBox,     FExtSysCard, 128, 283 + HDR); DarkCheck(networkCheckBox);
-  Place(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR); DarkCheck(fahrenheitCheckBox);
+  FmediaToggle       := PlaceExtToggle(mediaCheckBox,       FExtSysCard, 11,  283 + HDR);
+  FnetworkToggle     := PlaceExtToggle(networkCheckBox,     FExtSysCard, 128, 283 + HDR);
+  FfahrenheitToggle  := PlaceExtToggle(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR);
   Place(customcommandEdit,   FExtSysCard, 11,  315 + HDR); // keeps black/lime colors
   customcommandEdit.Font.Name := 'DejaVu Sans Mono';
   Place(mediaColorButton,    FExtSysCard, 6,   305 + HDR);
@@ -2607,77 +2665,52 @@ begin
 
   // Reposition System Info controls
   systemLabel.Top            := 11 + HDR;
-  distroinfoCheckBox.Left    := X0;
-  distroinfoCheckBox.Top     := 32 + HDR;
-  refreshrateCheckBox.Left   := X1;
-  refreshrateCheckBox.Top    := 32 + HDR;
-  resolutionCheckBox.Left    := X2;
-  resolutionCheckBox.Top     := 32 + HDR;
-  displayserverCheckBox.Left := X3;
-  displayserverCheckBox.Top  := 32 + HDR;
-  timeCheckBox.Left          := X4;
-  timeCheckBox.Top           := 32 + HDR;
-  archCheckBox.Left          := X5;
-  archCheckBox.Top           := 32 + HDR;
+  if Assigned(FdistroinfoToggle) then begin FdistroinfoToggle.Left := X0; FdistroinfoToggle.Top := 32 + HDR; end;
+  if Assigned(FrefreshrateToggle) then begin FrefreshrateToggle.Left := X1; FrefreshrateToggle.Top := 32 + HDR; end;
+  if Assigned(FresolutionToggle) then begin FresolutionToggle.Left := X2; FresolutionToggle.Top := 32 + HDR; end;
+  if Assigned(FdisplayserverToggle) then begin FdisplayserverToggle.Left := X3; FdisplayserverToggle.Top := 32 + HDR; end;
+  if Assigned(FtimeToggle) then begin FtimeToggle.Left := X4; FtimeToggle.Top := 32 + HDR; end;
+  if Assigned(FarchToggle) then begin FarchToggle.Left := X5; FarchToggle.Top := 32 + HDR; end;
 
   wineLabel.Top              := 60 + HDR + SysYOff1;
-  wineCheckBox.Left          := X0;
-  wineCheckBox.Top           := 81 + HDR + SysYOff1;
-  engineversionCheckBox.Left := X1;
-  engineversionCheckBox.Top  := 81 + HDR + SysYOff1;
-  engineshortCheckBox.Left   := X2;
-  engineshortCheckBox.Top    := 81 + HDR + SysYOff1;
-  winesyncCheckBox.Left      := X3;
-  winesyncCheckBox.Top       := 81 + HDR + SysYOff1;
-  dxapiCheckBox.Left         := X4;
-  dxapiCheckBox.Top          := 81 + HDR + SysYOff1;
-  fexstatsCheckBox.Left      := X5;
-  fexstatsCheckBox.Top       := 81 + HDR + SysYOff1;
+  if Assigned(FwineToggle) then begin FwineToggle.Left := X0; FwineToggle.Top := 81 + HDR + SysYOff1; end;
+  if Assigned(FengineversionToggle) then begin FengineversionToggle.Left := X1; FengineversionToggle.Top := 81 + HDR + SysYOff1; end;
+  if Assigned(FengineshortToggle) then begin FengineshortToggle.Left := X2; FengineshortToggle.Top := 81 + HDR + SysYOff1; end;
+  if Assigned(FwinesyncToggle) then begin FwinesyncToggle.Left := X3; FwinesyncToggle.Top := 81 + HDR + SysYOff1; end;
+  if Assigned(FdxapiToggle) then begin FdxapiToggle.Left := X4; FdxapiToggle.Top := 81 + HDR + SysYOff1; end;
+  if Assigned(FfexstatsToggle) then begin FfexstatsToggle.Left := X5; FfexstatsToggle.Top := 81 + HDR + SysYOff1; end;
   wineColorButton.Left       := X0 - 4;
   wineColorButton.Top        := 103 + HDR + SysYOff1;
   engineColorButton.Left     := X1 - 6;
   engineColorButton.Top      := 103 + HDR + SysYOff1;
 
   optionsLabel.Top           := 120 + HDR + SysYOff2;
-  hudversionCheckBox.Left    := X0;
-  hudversionCheckBox.Top     := 141 + HDR + SysYOff2;
-  gamemodestatusCheckBox.Left:= X1;
-  gamemodestatusCheckBox.Top := 141 + HDR + SysYOff2;
-  vkbasaltstatusCheckBox.Left:= X2;
-  vkbasaltstatusCheckBox.Top := 141 + HDR + SysYOff2;
-  fcatCheckBox.Left          := X3;
-  fcatCheckBox.Top           := 141 + HDR + SysYOff2;
-  fsrCheckBox.Left           := X4;
-  fsrCheckBox.Top            := 141 + HDR + SysYOff2;
-  hdrCheckBox.Left           := X5;
-  hdrCheckBox.Top            := 141 + HDR + SysYOff2;
+  if Assigned(FhudversionToggle) then begin FhudversionToggle.Left := X0; FhudversionToggle.Top := 141 + HDR + SysYOff2; end;
+  if Assigned(FgamemodestatusToggle) then begin FgamemodestatusToggle.Left := X1; FgamemodestatusToggle.Top := 141 + HDR + SysYOff2; end;
+  if Assigned(FvkbasaltstatusToggle) then begin FvkbasaltstatusToggle.Left := X2; FvkbasaltstatusToggle.Top := 141 + HDR + SysYOff2; end;
+  if Assigned(FfcatToggle) then begin FfcatToggle.Left := X3; FfcatToggle.Top := 141 + HDR + SysYOff2; end;
+  if Assigned(FfsrToggle) then begin FfsrToggle.Left := X4; FfsrToggle.Top := 141 + HDR + SysYOff2; end;
+  if Assigned(FhdrToggle) then begin FhdrToggle.Left := X5; FhdrToggle.Top := 141 + HDR + SysYOff2; end;
 
   batteryLabel.Top           := 170 + HDR + SysYOff3;
-  batteryCheckBox.Left       := X0;
-  batteryCheckBox.Top        := 191 + HDR + SysYOff3;
-  batterywattCheckBox.Left   := X1;
-  batterywattCheckBox.Top    := 191 + HDR + SysYOff3;
-  batterytimeCheckBox.Left   := X2;
-  batterytimeCheckBox.Top    := 191 + HDR + SysYOff3;
-  deviceCheckBox.Left        := X3;
-  deviceCheckBox.Top         := 191 + HDR + SysYOff3;
+  if Assigned(FbatteryToggle) then begin FbatteryToggle.Left := X0; FbatteryToggle.Top := 191 + HDR + SysYOff3; end;
+  if Assigned(FbatterywattToggle) then begin FbatterywattToggle.Left := X1; FbatterywattToggle.Top := 191 + HDR + SysYOff3; end;
+  if Assigned(FbatterytimeToggle) then begin FbatterytimeToggle.Left := X2; FbatterytimeToggle.Top := 191 + HDR + SysYOff3; end;
+  if Assigned(FdeviceToggle) then begin FdeviceToggle.Left := X3; FdeviceToggle.Top := 191 + HDR + SysYOff3; end;
   batteryColorButton.Left    := X0 - 5;
   batteryColorButton.Top     := 213 + HDR + SysYOff3;
 
   othersLabel.Top            := 238 + HDR + SysYOff4;
-  mediaCheckBox.Left         := X0;
-  mediaCheckBox.Top          := 259 + HDR + SysYOff4;
+  if Assigned(FmediaToggle) then begin FmediaToggle.Left := X0; FmediaToggle.Top := 259 + HDR + SysYOff4; end;
   mediaColorButton.Left      := X0 - 5;
   mediaColorButton.Top       := 281 + HDR + SysYOff4;
-  networkCheckBox.Left       := X1;
-  networkCheckBox.Top        := 259 + HDR + SysYOff4;
+  if Assigned(FnetworkToggle) then begin FnetworkToggle.Left := X1; FnetworkToggle.Top := 259 + HDR + SysYOff4; end;
   networkComboBox.Left       := X1;
   networkComboBox.Top        := 281 + HDR + SysYOff4;
-  fahrenheitCheckBox.Left    := X2;
-  fahrenheitCheckBox.Top     := 259 + HDR + SysYOff4;
+  if Assigned(FfahrenheitToggle) then begin FfahrenheitToggle.Left := X2; FfahrenheitToggle.Top := 259 + HDR + SysYOff4; end;
   customcommandEdit.Left     := X0;
   customcommandEdit.Top      := 315 + HDR + SysYOff4;
-  customcommandEdit.Width    := (fahrenheitCheckBox.Left + fahrenheitCheckBox.Width) - X0;
+  customcommandEdit.Width    := (X2 + IfThen(Assigned(FfahrenheitToggle), FfahrenheitToggle.Width, 120)) - X0;
 
   // Reposition Logging controls
   logdurationLabel.Left      := X0;
@@ -2724,6 +2757,23 @@ begin
   autouploadCheckBox.Visible := False;
   versioningCheckBox.Visible := False;
   end;
+end;
+
+procedure TMangoHudUiHelper.SyncExtrasToggles;
+var
+  i: Integer;
+begin
+  if Assigned(FExtrasToggles) then
+    for i := 0 to FExtrasToggles.Count - 1 do
+      TToggleSwitch(FExtrasToggles[i]).SyncFromLinked;
+end;
+
+procedure TMangoHudUiHelper.SyncAllToggles;
+begin
+  SyncVisualToggles;
+  SyncPerformanceToggles;
+  SyncMetricsToggles;
+  SyncExtrasToggles;
 end;
 
 // ============================================================================
@@ -2934,6 +2984,8 @@ begin
     offsetSpinedit.Value := 0;
     offsetxSpinEdit.Value := 0;
     offsetySpinEdit.Value := 0;
+
+    SyncAllToggles;
     end;
   finally
     FForm.FLoadingConfig := False;
@@ -3013,7 +3065,8 @@ begin
         FForm.frametimedetailedCheckBox.Checked := False;
     end;
 
-    // Sync FPS chip visuals and preset card selection highlighting with the newly loaded state
+    // Sync all toggles, FPS chip visuals, and preset card selection
+    SyncAllToggles;
     UpdatePerfCardTheme;
     UpdatePresetCardVisuals;
   finally

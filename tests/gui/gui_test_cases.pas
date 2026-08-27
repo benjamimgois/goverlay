@@ -103,6 +103,11 @@ type
     procedure TestVkBasaltPipelineScrollOnManyEffects;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestMangoHudFrameTimingDetailed;
+    procedure TestMangoHudMetricsCompactToggles;
+    procedure TestMangoHudVisualCompactToggles;
+    procedure TestMangoHudPerformanceCompactToggles;
+    procedure TestMangoHudExtrasCompactToggles;
+    procedure TestLosslessScalingCompactToggles;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -111,7 +116,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2733,6 +2738,269 @@ begin
     goverlayform.ftraceCheckBox.Top, goverlayform.framecountCheckBox.Top);
   AssertTrue('frametimetypeBitBtn positioned below frametimegraphCheckBox',
     goverlayform.frametimetypeBitBtn.Top > goverlayform.frametimegraphCheckBox.Top);
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudMetricsCompactToggles;
+var
+  Helper: TMangoHudUiHelper;
+  C: string;
+begin
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('Helper is assigned', Assigned(Helper));
+  AssertTrue('FgpuavgloadToggle is assigned', Assigned(Helper.FgpuavgloadToggle));
+  AssertTrue('FcpuavgloadToggle is assigned', Assigned(Helper.FcpuavgloadToggle));
+
+  // 1. Toggling GPU toggle sets underlying CheckBox and persists in config
+  Helper.FgpuavgloadToggle.Checked := True;
+  AssertTrue('gpuavgloadCheckBox is synced as True', goverlayform.gpuavgloadCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains gpu_stats', Pos('gpu_stats', C) > 0);
+
+  // 2. Unchecking GPU toggle sets underlying CheckBox and updates config
+  Helper.FgpuavgloadToggle.Checked := False;
+  AssertFalse('gpuavgloadCheckBox is synced as False', goverlayform.gpuavgloadCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('MangoHud.conf does not contain gpu_stats when unchecked', Pos('gpu_stats', C) > 0);
+
+  // 3. Toggling CPU toggle sets underlying CheckBox and persists
+  Helper.FcpuavgloadToggle.Checked := True;
+  AssertTrue('cpuavgloadCheckBox is synced as True', goverlayform.cpuavgloadCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains cpu_stats', Pos('cpu_stats', C) > 0);
+
+  // 4. Reload config and verify toggles reflect loaded state
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('FcpuavgloadToggle remains True after reload', Helper.FcpuavgloadToggle.Checked);
+  AssertFalse('FgpuavgloadToggle remains False after reload', Helper.FgpuavgloadToggle.Checked);
+
+  // 5. Reset to defaults resets toggles
+  Helper.ResetMangoHudControls;
+  AssertFalse('FcpuavgloadToggle is False after reset', Helper.FcpuavgloadToggle.Checked);
+  AssertFalse('FgpuavgloadToggle is False after reset', Helper.FgpuavgloadToggle.Checked);
+
+  // 6. Verify Reflow positioning
+  goverlayform.ReflowMetricsTab(935);
+  AssertTrue('FgpuavgloadToggle is positioned with positive coordinates',
+    (Helper.FgpuavgloadToggle.Left > 0) and (Helper.FgpuavgloadToggle.Top > 0));
+  AssertTrue('FcpuavgloadToggle is positioned with positive coordinates',
+    (Helper.FcpuavgloadToggle.Left > 0) and (Helper.FcpuavgloadToggle.Top > 0));
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudVisualCompactToggles;
+var
+  Helper: TMangoHudUiHelper;
+  C: string;
+begin
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('Helper is assigned', Assigned(Helper));
+  AssertTrue('FhudcompactToggle is assigned', Assigned(Helper.FhudcompactToggle));
+  AssertTrue('FhorizontalstrechToggle is assigned', Assigned(Helper.FhorizontalstrechToggle));
+  AssertTrue('FhidehudToggle is assigned', Assigned(Helper.FhidehudToggle));
+
+  // 1. Check hudcompactToggle and verify checkbox and config
+  Helper.FhudcompactToggle.Checked := True;
+  AssertTrue('hudcompactCheckBox synced True', goverlayform.hudcompactCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains compact', Pos('compact', C) > 0);
+
+  // 2. Uncheck and verify
+  Helper.FhudcompactToggle.Checked := False;
+  AssertFalse('hudcompactCheckBox synced False', goverlayform.hudcompactCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('MangoHud.conf does not contain compact', Pos('compact', C) > 0);
+
+  // 3. Check hidehudToggle and verify no_display
+  Helper.FhidehudToggle.Checked := True;
+  AssertTrue('hidehudCheckBox synced True', goverlayform.hidehudCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains no_display', Pos('no_display', C) > 0);
+
+  // 4. Reload config and verify sync
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('FhidehudToggle is True after reload', Helper.FhidehudToggle.Checked);
+  AssertFalse('FhudcompactToggle is False after reload', Helper.FhudcompactToggle.Checked);
+
+  // 5. Reset MangoHud controls
+  Helper.ResetMangoHudControls;
+  AssertFalse('FhidehudToggle is False after reset', Helper.FhidehudToggle.Checked);
+  AssertFalse('FhudcompactToggle is False after reset', Helper.FhudcompactToggle.Checked);
+
+  // 6. Reflow positioning
+  goverlayform.ReflowVisualTab(935, 650);
+  AssertTrue('FhudcompactToggle has positive coordinates',
+    (Helper.FhudcompactToggle.Left > 0) and (Helper.FhudcompactToggle.Top > 0));
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudPerformanceCompactToggles;
+var
+  Helper: TMangoHudUiHelper;
+  C: string;
+begin
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('Helper is assigned', Assigned(Helper));
+  AssertTrue('FfpsToggle is assigned', Assigned(Helper.FfpsToggle));
+  AssertTrue('FframetimegraphToggle is assigned', Assigned(Helper.FframetimegraphToggle));
+  AssertTrue('FframetimedetailedToggle is assigned', Assigned(Helper.FframetimedetailedToggle));
+  AssertTrue('FfpsavgToggle is assigned', Assigned(Helper.FfpsavgToggle));
+  AssertTrue('FframecountToggle is assigned', Assigned(Helper.FframecountToggle));
+  AssertTrue('FftraceToggle is assigned', Assigned(Helper.FftraceToggle));
+  AssertTrue('FshowfpslimToggle is assigned', Assigned(Helper.FshowfpslimToggle));
+  AssertTrue('FvpsToggle is assigned', Assigned(Helper.FvpsToggle));
+  AssertTrue('FfpscolorToggle is assigned', Assigned(Helper.FfpscolorToggle));
+
+  // 1. Toggling FfpsToggle sets fpsCheckBox and saves fps to config
+  Helper.FfpsToggle.Checked := True;
+  AssertTrue('fpsCheckBox synced True', goverlayform.fpsCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains fps', Pos('fps', C) > 0);
+
+  // 2. Toggling FframetimegraphToggle enables FframetimedetailedToggle
+  Helper.FframetimegraphToggle.Checked := True;
+  AssertTrue('frametimedetailedCheckBox enabled', goverlayform.frametimedetailedCheckBox.Enabled);
+  AssertTrue('FframetimedetailedToggle enabled', Helper.FframetimedetailedToggle.Enabled);
+
+  Helper.FframetimedetailedToggle.Checked := True;
+  AssertTrue('frametimedetailedCheckBox synced True', goverlayform.frametimedetailedCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains frame_timing_detailed', Pos('frame_timing_detailed', C) > 0);
+
+  // 3. Disabling FframetimegraphToggle disables and unchecks detailed toggle
+  Helper.FframetimegraphToggle.Checked := False;
+  AssertFalse('frametimedetailedCheckBox unchecked', goverlayform.frametimedetailedCheckBox.Checked);
+  AssertFalse('FframetimedetailedToggle unchecked', Helper.FframetimedetailedToggle.Checked);
+  AssertFalse('FframetimedetailedToggle disabled', Helper.FframetimedetailedToggle.Enabled);
+
+  // 4. Test FfpscolorToggle
+  Helper.FfpscolorToggle.Checked := True;
+  AssertTrue('fpscolorCheckBox synced True', goverlayform.fpscolorCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains fps_color_change', Pos('fps_color_change', C) > 0);
+
+  // 5. Reload config and verify
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('FfpscolorToggle is True after reload', Helper.FfpscolorToggle.Checked);
+
+  // 6. Reset controls
+  Helper.ResetMangoHudControls;
+  AssertFalse('FfpscolorToggle is False after reset', Helper.FfpscolorToggle.Checked);
+
+  // 7. Reflow positioning
+  goverlayform.ReflowPerformanceTab(935, 650);
+  AssertTrue('FfpsToggle has positive coordinates',
+    (Helper.FfpsToggle.Left > 0) and (Helper.FfpsToggle.Top > 0));
+  AssertTrue('FfpscolorToggle has positive coordinates',
+    (Helper.FfpscolorToggle.Left > 0) and (Helper.FfpscolorToggle.Top > 0));
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudExtrasCompactToggles;
+var
+  Helper: TMangoHudUiHelper;
+  C: string;
+begin
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('Helper is assigned', Assigned(Helper));
+  AssertTrue('FdistroinfoToggle is assigned', Assigned(Helper.FdistroinfoToggle));
+  AssertTrue('FwineToggle is assigned', Assigned(Helper.FwineToggle));
+  AssertTrue('FhudversionToggle is assigned', Assigned(Helper.FhudversionToggle));
+  AssertTrue('FbatteryToggle is assigned', Assigned(Helper.FbatteryToggle));
+  AssertTrue('FmediaToggle is assigned', Assigned(Helper.FmediaToggle));
+
+  // 1. Toggling distro info toggle
+  Helper.FdistroinfoToggle.Checked := True;
+  AssertTrue('distroinfoCheckBox synced True', goverlayform.distroinfoCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains distro', Pos('distro', C) > 0);
+
+  // 2. Toggling wine toggle
+  Helper.FwineToggle.Checked := True;
+  AssertTrue('wineCheckBox synced True', goverlayform.wineCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains wine', Pos('wine', C) > 0);
+
+  // 3. Toggling media toggle
+  Helper.FmediaToggle.Checked := True;
+  AssertTrue('mediaCheckBox synced True', goverlayform.mediaCheckBox.Checked);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains media_player', Pos('media_player', C) > 0);
+
+  // 4. Reload config and verify
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('FdistroinfoToggle is True after reload', Helper.FdistroinfoToggle.Checked);
+  AssertTrue('FwineToggle is True after reload', Helper.FwineToggle.Checked);
+  AssertTrue('FmediaToggle is True after reload', Helper.FmediaToggle.Checked);
+
+  // 5. Reset controls
+  Helper.ResetMangoHudControls;
+  AssertFalse('FdistroinfoToggle is False after reset', Helper.FdistroinfoToggle.Checked);
+  AssertFalse('FwineToggle is False after reset', Helper.FwineToggle.Checked);
+  AssertFalse('FmediaToggle is False after reset', Helper.FmediaToggle.Checked);
+
+  // 6. Reflow positioning
+  goverlayform.ReflowExtrasTab(935);
+  AssertTrue('FdistroinfoToggle has positive coordinates',
+    (Helper.FdistroinfoToggle.Left > 0) and (Helper.FdistroinfoToggle.Top > 0));
+  AssertTrue('FmediaToggle has positive coordinates',
+    (Helper.FmediaToggle.Left > 0) and (Helper.FmediaToggle.Top > 0));
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingCompactToggles;
+var
+  Helper: TLosslessScalingTabHelper;
+begin
+  goverlayform.optiscalerLabelClick(nil);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless Scaling Helper is assigned', Assigned(Helper));
+  AssertTrue('PerfModeToggle is assigned', Assigned(Helper.PerfModeToggle));
+  AssertTrue('HdrModeToggle is assigned', Assigned(Helper.HdrModeToggle));
+  AssertTrue('NoFp16Toggle is assigned', Assigned(Helper.NoFp16Toggle));
+
+  // 1. When Multiplier is 1 (inactive frame gen), toggles are disabled
+  Helper.MultiplierTrackBar.Position := 1;
+  Helper.UpdateControlsEnabled;
+  AssertFalse('PerfModeToggle is disabled when multiplier is 1', Helper.PerfModeToggle.Enabled);
+  AssertFalse('HdrModeToggle is disabled when multiplier is 1', Helper.HdrModeToggle.Enabled);
+  AssertFalse('NoFp16Toggle is disabled when multiplier is 1', Helper.NoFp16Toggle.Enabled);
+
+  // 2. When Multiplier > 1 (active frame gen), toggles are enabled
+  Helper.MultiplierTrackBar.Position := 2;
+  Helper.UpdateControlsEnabled;
+  AssertTrue('PerfModeToggle is enabled when multiplier is 2', Helper.PerfModeToggle.Enabled);
+  AssertTrue('HdrModeToggle is enabled when multiplier is 2', Helper.HdrModeToggle.Enabled);
+  AssertTrue('NoFp16Toggle is enabled when multiplier is 2', Helper.NoFp16Toggle.Enabled);
+
+  // 3. Toggling PerfModeToggle updates linked CheckBox
+  Helper.PerfModeToggle.Checked := True;
+  AssertTrue('PerfModeCheckBox is synced as True', Helper.PerfModeCheckBox.Checked);
+
+  Helper.HdrModeToggle.Checked := True;
+  AssertTrue('HdrModeCheckBox is synced as True', Helper.HdrModeCheckBox.Checked);
+
+  Helper.NoFp16Toggle.Checked := True;
+  AssertTrue('NoFp16CheckBox is synced as True', Helper.NoFp16CheckBox.Checked);
+
+  // 4. Reflow positioning
+  Helper.ReflowLosslessScalingTab(935);
+  AssertTrue('PerfModeToggle has positive bounds',
+    (Helper.PerfModeToggle.Left > 0) and (Helper.PerfModeToggle.Top > 0) and (Helper.PerfModeToggle.Width > 0));
+  AssertTrue('HdrModeToggle is to the right of PerfModeToggle',
+    Helper.HdrModeToggle.Left > Helper.PerfModeToggle.Left);
+  AssertTrue('NoFp16Toggle is to the right of HdrModeToggle',
+    Helper.NoFp16Toggle.Left > Helper.HdrModeToggle.Left);
 end;
 
 initialization

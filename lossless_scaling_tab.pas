@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
-  Clipbrd, IniFiles, Math, themeunit, constants, hintsunit, apputils, configkeys, configmanager, systemdetector;
+  Clipbrd, IniFiles, Math, themeunit, constants, hintsunit, apputils, configkeys, configmanager, systemdetector, toggle_switch;
 
 type
   { TLosslessScalingTabHelper }
@@ -41,6 +41,9 @@ type
     FLsPerfModeCheckBox: TCheckBox;
     FLsHdrModeCheckBox: TCheckBox;
     FLsNoFp16CheckBox: TCheckBox;
+    FLsPerfModeToggle: TToggleSwitch;
+    FLsHdrModeToggle: TToggleSwitch;
+    FLsNoFp16Toggle: TToggleSwitch;
     
     FLsPacingTitleLbl: TLabel;
     FLsPacingComboBox: TComboBox;
@@ -83,6 +86,9 @@ type
     property PerfModeCheckBox: TCheckBox read FLsPerfModeCheckBox;
     property HdrModeCheckBox: TCheckBox read FLsHdrModeCheckBox;
     property NoFp16CheckBox: TCheckBox read FLsNoFp16CheckBox;
+    property PerfModeToggle: TToggleSwitch read FLsPerfModeToggle;
+    property HdrModeToggle: TToggleSwitch read FLsHdrModeToggle;
+    property NoFp16Toggle: TToggleSwitch read FLsNoFp16Toggle;
     property PacingComboBox: TComboBox read FLsPacingComboBox;
     property GpuComboBox: TComboBox read FLsGpuComboBox;
   end;
@@ -481,8 +487,14 @@ begin
   FLsPerfModeCheckBox.Hint := 'Massively improve generation performance at a slight cost of image quality';
   FLsPerfModeCheckBox.ShowHint := True;
   FLsPerfModeCheckBox.OnChange := @ControlStateChange;
-  StyleToggleControl(FLsPerfModeCheckBox);
+  FLsPerfModeCheckBox.Visible := False;
   
+  FLsPerfModeToggle := TToggleSwitch.Create(FForm);
+  FLsPerfModeToggle.Parent := FLsFrameGenCard;
+  FLsPerfModeToggle.LinkToCheckBox(FLsPerfModeCheckBox);
+  FLsPerfModeToggle.Height := 20;
+  FLsPerfModeToggle.Width  := FLsPerfModeToggle.GetOptimalWidth;
+
   FLsHdrModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsHdrModeCheckBox.Parent := FLsFrameGenCard;
   FLsHdrModeCheckBox.ParentColor := True;
@@ -490,8 +502,14 @@ begin
   FLsHdrModeCheckBox.Hint := 'Switches shaders to HDR mode (only enable if game runs in HDR)';
   FLsHdrModeCheckBox.ShowHint := True;
   FLsHdrModeCheckBox.OnChange := @ControlStateChange;
-  StyleToggleControl(FLsHdrModeCheckBox);
-  
+  FLsHdrModeCheckBox.Visible := False;
+
+  FLsHdrModeToggle := TToggleSwitch.Create(FForm);
+  FLsHdrModeToggle.Parent := FLsFrameGenCard;
+  FLsHdrModeToggle.LinkToCheckBox(FLsHdrModeCheckBox);
+  FLsHdrModeToggle.Height := 20;
+  FLsHdrModeToggle.Width  := FLsHdrModeToggle.GetOptimalWidth;
+
   FLsNoFp16CheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsNoFp16CheckBox.Parent := FLsFrameGenCard;
   FLsNoFp16CheckBox.ParentColor := True;
@@ -500,8 +518,14 @@ begin
     'Does not affect NVIDIA GPUs (GTX 1000-series or older cards will actually see a big performance decrease)';
   FLsNoFp16CheckBox.ShowHint := True;
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
-  StyleToggleControl(FLsNoFp16CheckBox);
-  
+  FLsNoFp16CheckBox.Visible := False;
+
+  FLsNoFp16Toggle := TToggleSwitch.Create(FForm);
+  FLsNoFp16Toggle.Parent := FLsFrameGenCard;
+  FLsNoFp16Toggle.LinkToCheckBox(FLsNoFp16CheckBox);
+  FLsNoFp16Toggle.Height := 20;
+  FLsNoFp16Toggle.Width  := FLsNoFp16Toggle.GetOptimalWidth;
+
   // Row 3: Dropdowns (2 Columns)
   FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsPacingTitleLbl.Parent := FLsFrameGenCard;
@@ -604,9 +628,9 @@ begin
   FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 50, 62, 50, 20);
   
   // Row 2: 3 Inline Toggles
-  FLsPerfModeCheckBox.SetBounds(PAD, 106, Col3W, 24);
-  FLsHdrModeCheckBox.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
-  FLsNoFp16CheckBox.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
+  if Assigned(FLsPerfModeToggle) then FLsPerfModeToggle.SetBounds(PAD, 106, Col3W, 24);
+  if Assigned(FLsHdrModeToggle) then FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
+  if Assigned(FLsNoFp16Toggle) then FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
   
   // Row 3: 2 Dropdowns
   FLsPacingTitleLbl.SetBounds(PAD, 148, Col2W, 18);
@@ -678,6 +702,21 @@ begin
   if Assigned(FLsPerfModeCheckBox) then FLsPerfModeCheckBox.Enabled := FgActive;
   if Assigned(FLsHdrModeCheckBox) then FLsHdrModeCheckBox.Enabled := FgActive;
   if Assigned(FLsNoFp16CheckBox) then FLsNoFp16CheckBox.Enabled := FgActive;
+  if Assigned(FLsPerfModeToggle) then
+  begin
+    FLsPerfModeToggle.Enabled := FgActive;
+    FLsPerfModeToggle.SyncFromLinked;
+  end;
+  if Assigned(FLsHdrModeToggle) then
+  begin
+    FLsHdrModeToggle.Enabled := FgActive;
+    FLsHdrModeToggle.SyncFromLinked;
+  end;
+  if Assigned(FLsNoFp16Toggle) then
+  begin
+    FLsNoFp16Toggle.Enabled := FgActive;
+    FLsNoFp16Toggle.SyncFromLinked;
+  end;
   if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Enabled := FgActive;
   if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Enabled := FgActive;
   if Assigned(FLsGpuTitleLbl) then FLsGpuTitleLbl.Enabled := FgActive;
