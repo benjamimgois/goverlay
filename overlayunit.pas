@@ -5504,16 +5504,6 @@ procedure Tgoverlayform.casTrackBarChange(Sender: TObject);
 begin
   casvaluelabel.Caption := inttostr(casTrackbar.Position);
   if Assigned(FVkCasValLbl) then FVkCasValLbl.Caption := casvaluelabel.Caption;
-  if casTrackbar.Position > 0 then
-  begin
-    if acteffectsListbox.Items.IndexOf('cas') = -1 then
-      acteffectsListbox.Items.Add('cas');
-  end
-  else
-  begin
-    if acteffectsListbox.Items.IndexOf('cas') <> -1 then
-      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('cas'));
-  end;
   StartAutoSaveTimer;
 end;
 
@@ -5528,16 +5518,6 @@ procedure Tgoverlayform.dlsTrackBarChange(Sender: TObject);
 begin
   dlsvaluelabel.Caption := inttostr(dlsTrackbar.Position);
   if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvaluelabel.Caption;
-  if dlsTrackbar.Position > 0 then
-  begin
-    if acteffectsListbox.Items.IndexOf('dls') = -1 then
-      acteffectsListbox.Items.Add('dls');
-  end
-  else
-  begin
-    if acteffectsListbox.Items.IndexOf('dls') <> -1 then
-      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('dls'));
-  end;
   StartAutoSaveTimer;
 end;
 
@@ -5664,16 +5644,6 @@ procedure Tgoverlayform.fxaaTrackBarChange(Sender: TObject);
 begin
   fxaavaluelabel.Caption := inttostr(fxaaTrackbar.Position);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := fxaavaluelabel.Caption;
-  if fxaaTrackbar.Position > 0 then
-  begin
-    if acteffectsListbox.Items.IndexOf('fxaa') = -1 then
-      acteffectsListbox.Items.Add('fxaa');
-  end
-  else
-  begin
-    if acteffectsListbox.Items.IndexOf('fxaa') <> -1 then
-      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('fxaa'));
-  end;
   StartAutoSaveTimer;
 end;
 
@@ -6579,9 +6549,6 @@ procedure Tgoverlayform.saveasMenuItemClick(Sender: TObject);
 var
   SelectedDirectory: string;
   DestinationFile: string;
-  ConfigLines: TStringList;
-  i: Integer;
-  FS: TFormatSettings;
 begin
   // Show directory selection dialog
   with TSelectDirectoryDialog.Create(Self) do
@@ -6594,131 +6561,17 @@ begin
         SelectedDirectory := FileName;
         
         // Check if we're on MangoHud tab or vkBasalt tab
-        if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
-           (goverlayPageControl.ActivePage = vksumiTabSheet) then
+        if (goverlayPageControl.ActivePage = vkbasaltTabSheet) then
         begin
-          // Export vkBasalt.conf
           DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'vkBasalt.conf';
-          
-          // Generate vkBasalt configuration
-          ConfigLines := TStringList.Create;
-          FS := DefaultFormatSettings;
-          FS.DecimalSeparator := '.';
-          
-          try
-            ConfigLines.Add('#effects is a colon separated list of effect to use');
-            ConfigLines.Add('#e.g.: effects = fxaa:cas');
-            ConfigLines.Add('#effects will be run in order from left to right');
-            ConfigLines.Add('#one effect can be run multiple times e.g. smaa:smaa:cas');
-            ConfigLines.Add('#cas    - Contrast Adaptive Sharpening');
-            ConfigLines.Add('#dls    - Denoised Luma Sharpening');
-            ConfigLines.Add('#fxaa   - Fast Approximate Anti-Aliasing');
-            ConfigLines.Add('#smaa   - Enhanced Subpixel Morphological Anti-Aliasing');
-            ConfigLines.Add('#');
-            ConfigLines.Add('#reshade shaders should be defined like:');
-            ConfigLines.Add('#effects = <shadername>:<shadername>:....');
-            ConfigLines.Add('');
-            
-            // Build effects list
-            if acteffectsListBox.Items.Count > 0 then
-            begin
-              ConfigLines.Add('effects = ' + acteffectsListBox.Items[0]);
-              for i := 1 to acteffectsListBox.Items.Count - 1 do
-                ConfigLines[ConfigLines.Count - 1] := ConfigLines[ConfigLines.Count - 1] + ':' + acteffectsListBox.Items[i];
-            end
-            else
-              ConfigLines.Add('effects = ');
-            
-            ConfigLines.Add('');
-            
-            // Toggle key
-            if Trim(vkbtogglekeyCombobox.Text) <> '' then
-              ConfigLines.Add('toggleKey = ' + Trim(vkbtogglekeyCombobox.Text));
-            
-            ConfigLines.Add('');
-            ConfigLines.Add('#casSharpness specifies the amount of sharpening in the CAS filter.');
-            ConfigLines.Add('#0.0 less sharp, less artefacts, but not off');
-            ConfigLines.Add('#1.0 maximum sharp, more artefacts');
-            ConfigLines.Add('#Everything in between is possible');
-            ConfigLines.Add('#negative values sharpen even less, up to -1.0');
-            ConfigLines.Add('casSharpness = ' + StringReplace(Format('%.2f', [casTrackbar.Position / 10], FS), ',', '.', [rfReplaceAll]));
-            ConfigLines.Add('');
-            
-            ConfigLines.Add('#dlsSharpness specified the amount of sharpening in the Denoised Luma Sharpening filter.');
-            ConfigLines.Add('#0.0 less sharp');
-            ConfigLines.Add('#1.0 maximum sharp');
-            ConfigLines.Add('dlsSharpness = ' + StringReplace(Format('%.2f', [dlsTrackbar.Position / 10], FS), ',', '.', [rfReplaceAll]));
-            ConfigLines.Add('');
-            ConfigLines.Add('#dlsDenoise specifies the amount of denoising in the Denoised Luma Sharpening filter.');
-            ConfigLines.Add('#0.0 less denoising');
-            ConfigLines.Add('#1.0 maximum denoising');
-            ConfigLines.Add('dlsDenoise = 0.17');
-            ConfigLines.Add('');
-            
-            ConfigLines.Add('#fxaaQualitySubpix can effect sharpness.');
-            ConfigLines.Add('#1.00 - upper limit (softer)');
-            ConfigLines.Add('#0.75 - default amount of filtering');
-            ConfigLines.Add('#0.50 - lower limit (sharper, less sub-pixel aliasing removal)');
-            ConfigLines.Add('#0.25 - almost off');
-            ConfigLines.Add('#0.00 - completely off');
-            ConfigLines.Add('fxaaQualitySubpix = ' + StringReplace(Format('%.2f', [fxaaTrackbar.Position / 100], FS), ',', '.', [rfReplaceAll]));
-            ConfigLines.Add('');
-            
-            ConfigLines.Add('#smaaEdgeDetection changes the type of edge detection');
-            ConfigLines.Add('#luma  - default and faster');
-            ConfigLines.Add('#color - might catch more edges but is slower');
-            case filterRadioGroup.ItemIndex of
-              0: ConfigLines.Add('smaaEdgeDetection = luma');
-              1: ConfigLines.Add('smaaEdgeDetection = color');
-            end;
-            
-            // SMAA parameters — only written when trackbar > 0
-            if smaaTrackBar.Position >= 1 then
-            begin
-              ConfigLines.Add('');
-              ConfigLines.Add('#smaaThreshold specifies the threshold for edge detection');
-              ConfigLines.Add('smaaThreshold = ' + StringReplace(Format('%.2f', [0.1 - 0.05 * (smaaTrackbar.Position - 1) / 9.0], FS), ',', '.', [rfReplaceAll]));
-              ConfigLines.Add('');
-              ConfigLines.Add('#smaaMaxSearchSteps specifies the maximum steps in edge pattern search');
-              ConfigLines.Add('smaaMaxSearchSteps = ' + IntToStr(Round(16 + 16 * (smaaTrackbar.Position - 1) / 9.0)));
-              ConfigLines.Add('');
-              ConfigLines.Add('#smaaMaxSearchStepsDiag specifies the maximum steps in diagonal pattern search');
-              ConfigLines.Add('smaaMaxSearchStepsDiag = ' + IntToStr(Round(8 + 8 * (smaaTrackbar.Position - 1) / 9.0)));
-              ConfigLines.Add('');
-              ConfigLines.Add('#smaaCornerRounding specifies how much to round sharp corners');
-              ConfigLines.Add('smaaCornerRounding = ' + StringReplace(Format('%.1f', [25.0 * (smaaTrackbar.Position - 1) / 9.0], FS), ',', '.', [rfReplaceAll]));
-              ConfigLines.Add('');
-            end;
-            
-            ConfigLines.Add('#AF Anisotropic filtering');
-            ConfigLines.Add('#0  - game choice');  
-            ConfigLines.Add('#1  - off');
-            ConfigLines.Add('#2  - 2x');
-            ConfigLines.Add('#4  - 4x');
-            ConfigLines.Add('#8  - 8x');
-            ConfigLines.Add('#16 - 16x');
-            case afTrackbar.Position of
-              0: ConfigLines.Add('anisotropicFiltering = 0');
-              1: ConfigLines.Add('anisotropicFiltering = 1');
-              2: ConfigLines.Add('anisotropicFiltering = 2');
-              3: ConfigLines.Add('anisotropicFiltering = 4');
-              4: ConfigLines.Add('anisotropicFiltering = 8');
-              5: ConfigLines.Add('anisotropicFiltering = 16');
-            end;
-            ConfigLines.Add('');
-            
-            ConfigLines.Add('#trilinearFiltering = true');
-            ConfigLines.Add('');
-            ConfigLines.Add('#forceBorderlessFullscreen = true');
-            
-            // Save to destination file
-            ConfigLines.SaveToFile(DestinationFile);
-            
-            // Show notification
+          SaveVkBasaltConfig;
+          if FileExists(VKBASALTCFGFILE) then
+          begin
+            ExecuteShellCommand('cp ' + VKBASALTCFGFILE + ' ' + DestinationFile);
             SendNotification('vkBasalt', 'Configuration exported to: ' + DestinationFile, GetIconFile);
-          finally
-            ConfigLines.Free;
-          end;
+          end
+          else
+            ShowMessage(rsVkBasaltDirMissing);
         end
         else
         begin
@@ -6752,16 +6605,6 @@ procedure Tgoverlayform.smaaTrackBarChange(Sender: TObject);
 begin
   smaavaluelabel.Caption := inttostr(smaaTrackbar.Position);
   if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := smaavaluelabel.Caption;
-  if smaaTrackbar.Position > 0 then
-  begin
-    if acteffectsListbox.Items.IndexOf('smaa') = -1 then
-      acteffectsListbox.Items.Add('smaa');
-  end
-  else
-  begin
-    if acteffectsListbox.Items.IndexOf('smaa') <> -1 then
-      acteffectsListbox.Items.Delete(acteffectsListbox.Items.IndexOf('smaa'));
-  end;
   StartAutoSaveTimer;
 end;
 

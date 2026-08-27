@@ -492,11 +492,14 @@ begin
   Content := ReadFileText(ConfPath);
   AssertFalse('cas absent from effects at position 0', Pos('effects = cas', Content) > 0);
 
-  // CAS on -> save -> conf lists cas in effects
+  // CAS on -> save -> conf lists cas in effects exactly once, without path mapping
   goverlayform.casTrackBar.Position := 5;
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   Content := ReadFileText(ConfPath);
-  AssertTrue('cas present in effects at position 5', Pos('effects = cas', Content) > 0);
+  AssertTrue('cas present in effects at position 5', Pos('effects = cas' + LineEnding, Content) > 0);
+  AssertFalse('cas not duplicated as cas:cas', Pos('cas:cas', Content) > 0);
+  AssertFalse('cas not mapped as reshade shader file', Pos('cas =', Content) > 0);
+  AssertEquals('acteffectsListBox not populated with cas', 0, goverlayform.acteffectsListBox.Items.Count);
 end;
 
 procedure TGoverlayGuiTests.TestNavigateVkSumiTab;
@@ -2027,8 +2030,12 @@ begin
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltRoundTrip;
+var
+  ConfPath, Content: string;
 begin
   NavigateVkBasaltTab;
+  ConfPath := IsolatedHome + '/.config/vkBasalt/vkBasalt.conf';
+
   goverlayform.casTrackBar.Position := 8;
   goverlayform.dlsTrackBar.Position := 6;
   goverlayform.fxaaTrackBar.Position := 4;
@@ -2036,6 +2043,15 @@ begin
   goverlayform.vkbtogglekeyCombobox.Text := 'Home';
 
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  Content := ReadFileText(ConfPath);
+
+  // Assert single-instance effects line and absence of bogus path mappings
+  AssertTrue('effects line contains all 4 built-in effects exactly once',
+    Pos('effects = cas:fxaa:smaa:dls' + LineEnding, Content) > 0);
+  AssertFalse('no cas path mapping', Pos('cas =', Content) > 0);
+  AssertFalse('no dls path mapping', Pos('dls =', Content) > 0);
+  AssertFalse('no fxaa path mapping', Pos('fxaa =', Content) > 0);
+  AssertFalse('no smaa path mapping', Pos('smaa =', Content) > 0);
 
   // Reload config into UI and assert controls retain state
   goverlayform.LoadVkBasaltConfig;
@@ -2304,7 +2320,7 @@ procedure TGoverlayGuiTests.TestVkBasaltRestoreDefaults;
 begin
   goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
   goverlayform.acteffectsListBox.Items.Clear;
-  goverlayform.casTrackBar.Position := 0;
+  goverlayform.acteffectsListBox.Items.Add('Shaders/ColorMatrix.fx');
   goverlayform.casTrackBar.Position := 8;
 
   AssertEquals('acteffectsListBox has item before restore', 1, goverlayform.acteffectsListBox.Items.Count);

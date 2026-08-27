@@ -301,6 +301,12 @@ begin
             'goverlay/gameconfig/' + GameDirName + '/';
 end;
 
+function IsVkBasaltBuiltInEffect(const AName: string): Boolean;
+begin
+  Result := SameText(AName, 'cas') or SameText(AName, 'fxaa') or
+            SameText(AName, 'smaa') or SameText(AName, 'dls');
+end;
+
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
 var
   RepoDir, RelPath, EffectName, EffectKey, FullPath, EffectsLine: string;
@@ -365,6 +371,8 @@ begin
       begin
         RelPath := Settings.ReshadeEffects[i];
         EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
+        if IsVkBasaltBuiltInEffect(EffectName) then
+          Continue;
         if EffectsLine <> '' then
           EffectsLine := EffectsLine + ':';
         EffectsLine := EffectsLine + EffectName;
@@ -416,6 +424,8 @@ begin
       begin
         RelPath := Settings.ReshadeEffects[i];
         EffectName := ChangeFileExt(ExtractFileName(RelPath), '');
+        if IsVkBasaltBuiltInEffect(EffectName) then
+          Continue;
         EffectKey := EffectName;
         FullPath := IncludeTrailingPathDelimiter(RepoDir) + RelPath;
         Lines.Add(EffectKey + ' = ' + FullPath);
