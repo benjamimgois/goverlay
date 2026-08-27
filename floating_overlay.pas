@@ -66,6 +66,15 @@ type
 
 implementation
 
+uses
+  {$IFDEF LCLqt6}
+  qt6,
+  qtobjects,
+  {$ELSE}
+  qt5,
+  {$ENDIF}
+  qtwidgets;
+
 const
   CLR_TOAST_BG      = $241C16;  // #161C24 dark navy/slate
   CLR_TOAST_BORDER  = $4C3B2E;  // #2E3B4C
@@ -86,6 +95,10 @@ const
   TOAST_W = 136;
   TOAST_H = 28;
   TOAST_MARGIN = 16;
+{$IFDEF LCLqt6}
+var
+  SS: WideString;
+{$ENDIF}
 begin
   inherited Create;
   FParent  := AParent;
@@ -95,6 +108,7 @@ begin
   FToastPanel.Parent := AParent;
   FToastPanel.BevelOuter := bvNone;
   FToastPanel.BevelInner := bvNone;
+  FToastPanel.BorderStyle := bsNone;
   FToastPanel.Color := RGBToColor(22, 26, 40);
   FToastPanel.ParentBackground := False;
   FToastPanel.Width := TOAST_W;
@@ -103,6 +117,18 @@ begin
   FToastPanel.Left := TOAST_MARGIN;
   FToastPanel.Top := Max(10, AParent.ClientHeight - TOAST_H - 14);
   FToastPanel.Visible := False;
+
+  {$IFDEF LCLqt6}
+  if not FToastPanel.HandleAllocated then
+    FToastPanel.HandleNeeded;
+  if FToastPanel.HandleAllocated then
+  begin
+    QWidget_setAttribute(TQtWidget(FToastPanel.Handle).Widget, QtWA_TranslucentBackground, True);
+    QFrame_setFrameStyle(QFrameH(TQtWidget(FToastPanel.Handle).Widget), 0);
+    SS := 'QFrame, QWidget { border: none; background: transparent; }';
+    QWidget_setStyleSheet(TQtWidget(FToastPanel.Handle).Widget, @SS);
+  end;
+  {$ENDIF}
 
   FPaintBox := TPaintBox.Create(FToastPanel);
   FPaintBox.Parent := FToastPanel;
@@ -123,31 +149,34 @@ begin
 end;
 
 procedure TFloatingToast.PaintBoxPaint(Sender: TObject);
+const
+  CornerDiam = 12; // Slightly rounded corners (radius = 6px)
 var
   PB: TPaintBox;
   R: TRect;
-  Rad: Integer;
 begin
   PB := Sender as TPaintBox;
   R := Rect(0, 0, PB.Width, PB.Height);
-  Rad := PB.Height div 2;
 
-  // Clear bounding rect with container background to eliminate white edges
+  // 1. Fill bounding rect with container background to eliminate white edges
   PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
   PB.Canvas.FillRect(R);
 
-  // Drop shadow
-  PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
-  PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
+  {$IFDEF LCLqt6}
+  if PB.Canvas.Handle <> 0 then
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
 
-  // Background pill
-  PB.Canvas.Brush.Color := RGBToColor(22, 28, 36);
+  // 2. Background card with slightly rounded corners and subtle border
+  PB.Canvas.Brush.Color := RGBToColor(22, 28, 38);
+  PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Pen.Color   := RGBToColor(46, 59, 76);
-  PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(0, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
 
-  // Checkmark icon
+  // 3. Checkmark icon (✓)
   PB.Canvas.Font.Name  := 'Noto Sans';
   PB.Canvas.Font.Size  := 9;
   PB.Canvas.Font.Style := [fsBold];
@@ -155,7 +184,7 @@ begin
   PB.Canvas.Brush.Style := bsClear;
   PB.Canvas.TextOut(10, (PB.Height - PB.Canvas.TextHeight('✓')) div 2, '✓');
 
-  // Text
+  // 4. Message text
   PB.Canvas.Font.Size  := 8;
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := clWhite;
@@ -214,6 +243,10 @@ constructor TFloatingProgressBanner.Create(AParent: TWinControl);
 const
   BANNER_W = 340;
   BANNER_H = 46;
+{$IFDEF LCLqt6}
+var
+  SS: WideString;
+{$ENDIF}
 begin
   inherited Create;
   FParent  := AParent;
@@ -224,6 +257,7 @@ begin
   FBannerPanel.Parent := AParent;
   FBannerPanel.BevelOuter := bvNone;
   FBannerPanel.BevelInner := bvNone;
+  FBannerPanel.BorderStyle := bsNone;
   FBannerPanel.Color := RGBToColor(22, 26, 40);
   FBannerPanel.ParentBackground := False;
   FBannerPanel.Width := BANNER_W;
@@ -232,6 +266,18 @@ begin
   FBannerPanel.Top := 14;
   FBannerPanel.Left := Max(10, (AParent.ClientWidth - BANNER_W) div 2);
   FBannerPanel.Visible := False;
+
+  {$IFDEF LCLqt6}
+  if not FBannerPanel.HandleAllocated then
+    FBannerPanel.HandleNeeded;
+  if FBannerPanel.HandleAllocated then
+  begin
+    QWidget_setAttribute(TQtWidget(FBannerPanel.Handle).Widget, QtWA_TranslucentBackground, True);
+    QFrame_setFrameStyle(QFrameH(TQtWidget(FBannerPanel.Handle).Widget), 0);
+    SS := 'QFrame, QWidget { border: none; background: transparent; }';
+    QWidget_setStyleSheet(TQtWidget(FBannerPanel.Handle).Widget, @SS);
+  end;
+  {$ENDIF}
 
   FPaintBox := TPaintBox.Create(FBannerPanel);
   FPaintBox.Parent := FBannerPanel;
@@ -246,30 +292,34 @@ begin
 end;
 
 procedure TFloatingProgressBanner.PaintBoxPaint(Sender: TObject);
+const
+  CornerDiam = 12; // Slightly rounded corners (radius = 6px)
 var
   PB: TPaintBox;
   R, BarR, FillR: TRect;
-  Rad, TrackW, FillW: Integer;
+  TrackW, FillW: Integer;
   PctStr: string;
 begin
   PB := Sender as TPaintBox;
   R := Rect(0, 0, PB.Width, PB.Height);
-  Rad := 10;
 
   // Clear bounding rect with container background to eliminate white edges
   PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+  PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Pen.Color   := RGBToColor(22, 26, 40);
   PB.Canvas.FillRect(R);
 
-  // Drop shadow
-  PB.Canvas.Brush.Color := RGBToColor(0, 0, 0);
-  PB.Canvas.Pen.Color   := RGBToColor(0, 0, 0);
-  PB.Canvas.RoundRect(R.Left + 2, R.Top + 2, R.Right + 2, R.Bottom + 2, Rad, Rad);
+  {$IFDEF LCLqt6}
+  if PB.Canvas.Handle <> 0 then
+    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
 
   // Background card
   PB.Canvas.Brush.Color := RGBToColor(24, 30, 40);
+  PB.Canvas.Brush.Style := bsSolid;
   PB.Canvas.Pen.Color   := RGBToColor(40, 74, 106);
-  PB.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, Rad, Rad);
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(0, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
 
   // Status Message text
   PB.Canvas.Font.Name  := 'Noto Sans';

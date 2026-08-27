@@ -664,21 +664,30 @@ begin
   Place(bottomleftRadioButton,   FVisualSections[4], 10, 130);
   Place(bottomcenterRadioButton, FVisualSections[4], 50, 130);
   Place(bottomrightRadioButton,  FVisualSections[4], 90, 130);
-  // SpinEdits use the monitor-screen blue so they blend into the position image
+  // SpinEdits: modern dark pill input controls centered on the monitor screen
   offsetxSpinEdit.Parent := FVisualSections[4];
   offsetxSpinEdit.AnchorSideLeft.Control := nil; offsetxSpinEdit.AnchorSideTop.Control := nil;
   offsetxSpinEdit.Anchors     := [akLeft, akTop];
-  offsetxSpinEdit.Color       := $00D9904A;   // monitor-screen blue (BGR)
+  offsetxSpinEdit.Font.Name   := 'Noto Sans';
+  offsetxSpinEdit.Font.Size   := 7;
+  offsetxSpinEdit.Font.Height := 0;
+  offsetxSpinEdit.Font.Style  := [fsBold];
   offsetxSpinEdit.Font.Color  := clWhite;
-  offsetxSpinEdit.ParentColor := False;
-  offsetxSpinEdit.Left := 10; offsetxSpinEdit.Top := 60;
+  offsetxSpinEdit.Width       := 60;
+  offsetxSpinEdit.Height      := 22;
+  offsetxSpinEdit.Left        := 10; offsetxSpinEdit.Top := 60;
+
   offsetySpinEdit.Parent := FVisualSections[4];
   offsetySpinEdit.AnchorSideLeft.Control := nil; offsetySpinEdit.AnchorSideTop.Control := nil;
   offsetySpinEdit.Anchors     := [akLeft, akTop];
-  offsetySpinEdit.Color       := $00D9904A;
+  offsetySpinEdit.Font.Name   := 'Noto Sans';
+  offsetySpinEdit.Font.Size   := 7;
+  offsetySpinEdit.Font.Height := 0;
+  offsetySpinEdit.Font.Style  := [fsBold];
   offsetySpinEdit.Font.Color  := clWhite;
-  offsetySpinEdit.ParentColor := False;
-  offsetySpinEdit.Left := 10; offsetySpinEdit.Top := 90;
+  offsetySpinEdit.Width       := 60;
+  offsetySpinEdit.Height      := 22;
+  offsetySpinEdit.Left        := 10; offsetySpinEdit.Top := 90;
 
   // ·· [5] Columns ··························································
   Place(columShape,      FVisualSections[5], 10, 50);
@@ -1012,9 +1021,13 @@ begin
   bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
   bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
   // offsetxSpinEdit: right of middleleftRadioButton
+  offsetxSpinEdit.Width := 60;
+  offsetxSpinEdit.Height := 22;
   offsetxSpinEdit.Left := CL + RW + 4;
   offsetxSpinEdit.Top  := RM + (RH - offsetxSpinEdit.Height) div 2;
   // offsetySpinEdit: below topcenterRadioButton
+  offsetySpinEdit.Width := 60;
+  offsetySpinEdit.Height := 22;
   offsetySpinEdit.Left := CC + (RW - offsetySpinEdit.Width) div 2;
   offsetySpinEdit.Top  := RT + RH + 4;
 
@@ -1183,6 +1196,53 @@ begin
   if Assigned(FColumnsPlusBtn) and FColumnsPlusBtn.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FColumnsPlusBtn.Handle).Widget, @SS);
 
+  // Style Position offset spin edits
+  if Assigned(offsetxSpinEdit) and offsetxSpinEdit.HandleAllocated then
+  begin
+    offsetxSpinEdit.Font.Size   := 7;
+    offsetxSpinEdit.Font.Height := 0;
+    offsetxSpinEdit.Font.Style  := [fsBold];
+    offsetxSpinEdit.Font.Color  := clWhite;
+    offsetxSpinEdit.Width       := 60;
+    offsetxSpinEdit.Height      := 22;
+    if CurrentTheme = tmLight then
+      SS := 'QSpinBox { background-color: rgb(240, 240, 240); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding-left: 2px; padding-right: 15px; font-size: 8px; font-weight: bold; } ' +
+            'QSpinBox QLineEdit { background: transparent; color: rgb(0, 0, 0); font-size: 8px; font-weight: bold; padding: 0px; margin: 0px; border: none; } ' +
+            'QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 13px; background-color: rgb(225, 225, 225); border-left: 1px solid rgb(200, 200, 200); border-bottom: 1px solid rgb(200, 200, 200); } ' +
+            'QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 13px; background-color: rgb(225, 225, 225); border-left: 1px solid rgb(200, 200, 200); }'
+    else
+      SS := 'QSpinBox { background-color: rgb(34, 42, 64); color: rgb(255, 255, 255); border: 1px solid rgb(64, 82, 126); border-radius: 4px; padding-left: 2px; padding-right: 15px; font-size: 8px; font-weight: bold; } ' +
+            'QSpinBox QLineEdit { background: transparent; color: rgb(255, 255, 255); font-size: 8px; font-weight: bold; padding: 0px; margin: 0px; border: none; } ' +
+            'QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 13px; background-color: rgb(44, 54, 82); border-left: 1px solid rgb(64, 82, 126); border-bottom: 1px solid rgb(64, 82, 126); } ' +
+            'QSpinBox::up-button:hover { background-color: rgb(64, 78, 116); } ' +
+            'QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 13px; background-color: rgb(44, 54, 82); border-left: 1px solid rgb(64, 82, 126); } ' +
+            'QSpinBox::down-button:hover { background-color: rgb(64, 78, 116); }';
+    QWidget_setStyleSheet(TQtWidget(offsetxSpinEdit.Handle).Widget, @SS);
+  end;
+
+  if Assigned(offsetySpinEdit) and offsetySpinEdit.HandleAllocated then
+  begin
+    offsetySpinEdit.Font.Size   := 7;
+    offsetySpinEdit.Font.Height := 0;
+    offsetySpinEdit.Font.Style  := [fsBold];
+    offsetySpinEdit.Font.Color  := clWhite;
+    offsetySpinEdit.Width       := 60;
+    offsetySpinEdit.Height      := 22;
+    if CurrentTheme = tmLight then
+      SS := 'QSpinBox { background-color: rgb(240, 240, 240); color: rgb(0, 0, 0); border: 1px solid rgb(200, 200, 200); border-radius: 4px; padding-left: 2px; padding-right: 15px; font-size: 8px; font-weight: bold; } ' +
+            'QSpinBox QLineEdit { background: transparent; color: rgb(0, 0, 0); font-size: 8px; font-weight: bold; padding: 0px; margin: 0px; border: none; } ' +
+            'QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 13px; background-color: rgb(225, 225, 225); border-left: 1px solid rgb(200, 200, 200); border-bottom: 1px solid rgb(200, 200, 200); } ' +
+            'QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 13px; background-color: rgb(225, 225, 225); border-left: 1px solid rgb(200, 200, 200); }'
+    else
+      SS := 'QSpinBox { background-color: rgb(34, 42, 64); color: rgb(255, 255, 255); border: 1px solid rgb(64, 82, 126); border-radius: 4px; padding-left: 2px; padding-right: 15px; font-size: 8px; font-weight: bold; } ' +
+            'QSpinBox QLineEdit { background: transparent; color: rgb(255, 255, 255); font-size: 8px; font-weight: bold; padding: 0px; margin: 0px; border: none; } ' +
+            'QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 13px; background-color: rgb(44, 54, 82); border-left: 1px solid rgb(64, 82, 126); border-bottom: 1px solid rgb(64, 82, 126); } ' +
+            'QSpinBox::up-button:hover { background-color: rgb(64, 78, 116); } ' +
+            'QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 13px; background-color: rgb(44, 54, 82); border-left: 1px solid rgb(64, 82, 126); } ' +
+            'QSpinBox::down-button:hover { background-color: rgb(64, 78, 116); }';
+    QWidget_setStyleSheet(TQtWidget(offsetySpinEdit.Handle).Widget, @SS);
+  end;
+
   // Update HUD settings bar
   if Assigned(FVisualHudBar) then
   begin
@@ -1346,12 +1406,12 @@ begin
   FFpsLimitHintLbl.Parent := FPerfLimitSec;
   FFpsLimitHintLbl.Caption := 'e.g. 30,60,120,0 — 0 to unlimited';
   FFpsLimitHintLbl.Font.Name := 'Noto Sans';
-  FFpsLimitHintLbl.Font.Color := IfThen(IsLight, $00999999, $00666666);
-  FFpsLimitHintLbl.Font.Size := 7;
+  FFpsLimitHintLbl.Font.Color := IfThen(IsLight, $00777777, $009E9E9E);
+  FFpsLimitHintLbl.Font.Size := 8;
   FFpsLimitHintLbl.Transparent := True;
   FFpsLimitHintLbl.Alignment := taCenter;
   FFpsLimitHintLbl.AutoSize := False;
-  FFpsLimitHintLbl.SetBounds(ContL + 6, ContT + 80, ContW - 12, 14);
+  FFpsLimitHintLbl.SetBounds(ContL + 6, ContT + 84, ContW - 12, 18);
   FFpsLimitHintLbl.Anchors := [akLeft, akTop];
 
   // ── Spread controls vertically: edit top, colours middle, method bottom ───
@@ -1829,13 +1889,17 @@ begin
         FFpsLimitEdit.Constraints.MinWidth := 232;
         FFpsLimitEdit.Constraints.MaxWidth := 232;
         FFpsLimitEdit.Left := (FPerfLimitSec.ClientWidth - FFpsLimitEdit.Width) div 2;
-        FFpsLimitEdit.Top := 24;
+        FFpsLimitEdit.Top := 22;
       end;
       if Assigned(FFpsLimitHintLbl) then
       begin
         FFpsLimitHintLbl.Left := 0;
         FFpsLimitHintLbl.Width := FPerfLimitSec.ClientWidth;
-        FFpsLimitHintLbl.Top := 68;
+        if Assigned(FFpsLimitEdit) then
+          FFpsLimitHintLbl.Top := FFpsLimitEdit.Top + FFpsLimitEdit.Height + 6
+        else
+          FFpsLimitHintLbl.Top := 72;
+        FFpsLimitHintLbl.Height := 18;
       end;
 
       if Assigned(FfpscolorToggle) then
@@ -1857,7 +1921,7 @@ begin
       fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
 
       GroupH := 81;
-      MiddleStart := FFpsLimitHintLbl.Top + 14 + 10;
+      MiddleStart := FFpsLimitHintLbl.Top + FFpsLimitHintLbl.Height + 6;
       MiddleEnd := FPerfLimitSec.Height - 70;
       GroupTop := MiddleStart + (MiddleEnd - MiddleStart - GroupH) div 2;
 
