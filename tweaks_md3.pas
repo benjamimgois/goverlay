@@ -240,27 +240,28 @@ begin
   FForm.FLowLatencyCheckBox.Visible := False;
   FForm.FLowLatencyCheckBox.Name    := 'lowLatencyCheckBox';
   FForm.FLowLatencyCheckBox.Caption := 'Expose to enable the layer';
+  FForm.FLowLatencyCheckBox.Hint    := 'Needs Korthos low latency';
 
   FForm.FLowLatencyReflexCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyReflexCheckBox.Parent  := FForm;
   FForm.FLowLatencyReflexCheckBox.Visible := False;
   FForm.FLowLatencyReflexCheckBox.Name    := 'lowLatencyReflexCheckBox';
   FForm.FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support';
-  FForm.FLowLatencyReflexCheckBox.Hint    := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2';
+  FForm.FLowLatencyReflexCheckBox.Hint    := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)';
 
   FForm.FLowLatencySpoofNvidiaCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencySpoofNvidiaCheckBox.Parent  := FForm;
   FForm.FLowLatencySpoofNvidiaCheckBox.Visible := False;
   FForm.FLowLatencySpoofNvidiaCheckBox.Name    := 'lowLatencySpoofNvidiaCheckBox';
   FForm.FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU';
-  FForm.FLowLatencySpoofNvidiaCheckBox.Hint    := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)';
+  FForm.FLowLatencySpoofNvidiaCheckBox.Hint    := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)';
 
   FForm.FLowLatencyHideAmdGpuCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyHideAmdGpuCheckBox.Parent  := FForm;
   FForm.FLowLatencyHideAmdGpuCheckBox.Visible := False;
   FForm.FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
   FForm.FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU';
-  FForm.FLowLatencyHideAmdGpuCheckBox.Hint    := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA';
+  FForm.FLowLatencyHideAmdGpuCheckBox.Hint    := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)';
 
   FForm.FProtonVkd3dLowLatencyCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonVkd3dLowLatencyCheckBox.Parent  := FForm;
@@ -759,18 +760,20 @@ begin
       if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
       begin
         FForm.FTweaksHoverIdx := RowIdx;
-        if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1' then
-          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2'
+        if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1' then
+          TweakHint := 'Needs Korthos low latency'
+        else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1' then
+          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)'
         else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1' then
-          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path)'
+          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)'
         else if TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"' then
-          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA'
+          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)'
+        else if TWEAK_ROWS[i].VarName = 'ENABLE_LAYER_MESA_ANTI_LAG=1' then
+          TweakHint := ''
         else if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
-          TweakHint := 'Works only with proton-cachyos'
-        else if CatIdx = TWEAK_CAT_LATENCY then
-          TweakHint := 'Needs Korthos low latency layer installed';
+          TweakHint := 'Works only with proton-cachyos';
         Break;
       end;
       Inc(CatItemCount);
