@@ -82,6 +82,7 @@ type
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
     procedure SaveMangoHudConfig;
+    procedure MetricGraphClick(Sender: TObject);
   end;
 
 implementation
@@ -2198,14 +2199,22 @@ begin
   // Section: Main metrics (label Top=56, controls Top=77/99)
   Place(mainmetricLabel,     FMtGpuCard, 11,  56 + HDR);
   FgpuavgloadToggle   := PlaceToggle(gpuavgloadCheckBox, FMtGpuCard, 11, 77 + HDR);
+  FgpuavgloadToggle.HasGraphButton := True;
+  FgpuavgloadToggle.OnGraphClick   := @MetricGraphClick;
   FgpuloadcolorToggle := PlaceToggle(gpuloadcolorCheckBox, FMtGpuCard, 120, 77 + HDR);
   Place(gpuload1ColorButton, FMtGpuCard, 120, 99 + HDR);
   Place(gpuload2ColorButton, FMtGpuCard, 150, 99 + HDR);
   Place(gpuload3ColorButton, FMtGpuCard, 181, 99 + HDR);
   FvramusageToggle    := PlaceToggle(vramusageCheckBox, FMtGpuCard, 266, 77 + HDR);
+  FvramusageToggle.HasGraphButton := True;
+  FvramusageToggle.OnGraphClick   := @MetricGraphClick;
   Place(vramColorButton,     FMtGpuCard, 264, 99 + HDR);
   FgpufreqToggle      := PlaceToggle(gpufreqCheckBox, FMtGpuCard, 381, 77 + HDR);
+  FgpufreqToggle.HasGraphButton := True;
+  FgpufreqToggle.OnGraphClick   := @MetricGraphClick;
   FgpumemfreqToggle   := PlaceToggle(gpumemfreqCheckBox, FMtGpuCard, 519, 77 + HDR);
+  FgpumemfreqToggle.HasGraphButton := True;
+  FgpumemfreqToggle.OnGraphClick   := @MetricGraphClick;
   DarkSectLbl(mainmetricLabel, SECT_GPU);
   gpuload1ColorButton.Color := CARD_BG;
   gpuload2ColorButton.Color := CARD_BG;
@@ -2215,6 +2224,8 @@ begin
   // Section: Temperature (label Top=113, controls Top=134)
   Place(gputempLabel,        FMtGpuCard, 11,  113 + HDR);
   FgputempToggle     := PlaceToggle(gputempCheckBox, FMtGpuCard, 11, 134 + HDR);
+  FgputempToggle.HasGraphButton := True;
+  FgputempToggle.OnGraphClick   := @MetricGraphClick;
   FgpumemtempToggle  := PlaceToggle(gpumemtempCheckBox, FMtGpuCard, 120, 134 + HDR);
   FgpujunctempToggle := PlaceToggle(gpujunctempCheckBox, FMtGpuCard, 266, 134 + HDR);
   FgpufanToggle      := PlaceToggle(gpufanCheckBox, FMtGpuCard, 381, 134 + HDR);
@@ -2264,6 +2275,8 @@ begin
   // Section: Main metrics (label Top=45, controls Top=66/88)
   Place(cpumainmetricsLabel, FMtCpuCard, 11,  45 + HDR);
   FcpuavgloadToggle   := PlaceToggle(cpuavgloadCheckBox, FMtCpuCard, 11, 66 + HDR);
+  FcpuavgloadToggle.HasGraphButton := True;
+  FcpuavgloadToggle.OnGraphClick   := @MetricGraphClick;
   FcpuloadcolorToggle := PlaceToggle(cpuloadcolorCheckBox, FMtCpuCard, 120, 66 + HDR);
   Place(cpuload1ColorButton, FMtCpuCard, 120, 88 + HDR);
   Place(cpuload2ColorButton, FMtCpuCard, 150, 88 + HDR);
@@ -2281,6 +2294,8 @@ begin
   // Section: Temperature / Power (label Top=113, controls Top=134/156)
   Place(cputempLabel,      FMtCpuCard, 11,  113 + HDR);
   FcputempToggle      := PlaceToggle(cputempCheckBox, FMtCpuCard, 11, 134 + HDR);
+  FcputempToggle.HasGraphButton := True;
+  FcputempToggle.OnGraphClick   := @MetricGraphClick;
   FcpupowerToggle     := PlaceToggle(cpupowerCheckBox, FMtCpuCard, 120, 134 + HDR);
   Place(intelpowerfixBitBtn,FMtCpuCard,213, 135 + HDR);
   FcpuefficiencyToggle:= PlaceToggle(cpuefficiencyCheckBox, FMtCpuCard, 266, 134 + HDR);
@@ -2293,6 +2308,8 @@ begin
   // Section: Memory / IO (label Top=181, controls Top=202/224)
   Place(memLabel,          FMtCpuCard, 11,  181 + HDR);
   FramusageToggle  := PlaceToggle(ramusageCheckBox, FMtCpuCard, 11, 202 + HDR);
+  FramusageToggle.HasGraphButton := True;
+  FramusageToggle.OnGraphClick   := @MetricGraphClick;
   FdiskioToggle    := PlaceToggle(diskioCheckBox, FMtCpuCard, 120, 202 + HDR);
   FprocmemToggle   := PlaceToggle(procmemCheckBox, FMtCpuCard, 266, 202 + HDR);
   FswapusageToggle := PlaceToggle(swapusageCheckBox, FMtCpuCard, 382, 202 + HDR);
@@ -2469,6 +2486,12 @@ begin
       TToggleSwitch(FMetricsToggles[i]).SyncFromLinked;
 end;
 
+procedure TMangoHudUiHelper.MetricGraphClick(Sender: TObject);
+begin
+  SaveMangoHudConfig;
+  if Assigned(FForm.FFloatingToast) then
+    FForm.FFloatingToast.ShowToast('Settings saved');
+end;
 
 procedure TMangoHudUiHelper.InitExtrasTab;
 // Fully code-driven layout matching the Metrics tab pattern.
@@ -2939,6 +2962,16 @@ begin
       frametimedetailedCheckBox.Enabled := False;
     end;
 
+    // Reset metric graph toggles
+    if Assigned(FgpuavgloadToggle) then FgpuavgloadToggle.GraphActive := False;
+    if Assigned(FvramusageToggle) then FvramusageToggle.GraphActive := False;
+    if Assigned(FgpufreqToggle) then FgpufreqToggle.GraphActive := False;
+    if Assigned(FgpumemfreqToggle) then FgpumemfreqToggle.GraphActive := False;
+    if Assigned(FgputempToggle) then FgputempToggle.GraphActive := False;
+    if Assigned(FcpuavgloadToggle) then FcpuavgloadToggle.GraphActive := False;
+    if Assigned(FcputempToggle) then FcputempToggle.GraphActive := False;
+    if Assigned(FramusageToggle) then FramusageToggle.GraphActive := False;
+
     // 2. Reset other specific MangoHud controls
     hudtitleEdit.Text := '';
     gpunameEdit.Text := '';
@@ -3310,6 +3343,8 @@ var
   FloatValue: Double;
   j: Integer;
   ColorList: TStringList;
+  GraphTokens: TStringList;
+  Token: string;
 begin
   with FForm do
   begin
@@ -3653,6 +3688,37 @@ begin
     begin
       if (Pos('uname -r', AValue) > 0) or (Pos('goverlay/distro', AValue) > 0) then
         distroinfoCheckBox.Checked := True;
+    end
+    else if SameText(AKey, MANGO_KEY_GRAPHS) then
+    begin
+      GraphTokens := TStringList.Create;
+      try
+        GraphTokens.Delimiter := ',';
+        GraphTokens.StrictDelimiter := True;
+        GraphTokens.DelimitedText := AValue;
+        for j := 0 to GraphTokens.Count - 1 do
+        begin
+          Token := Trim(GraphTokens[j]);
+          if SameText(Token, 'gpu_load') and Assigned(FgpuavgloadToggle) then
+            FgpuavgloadToggle.GraphActive := True
+          else if SameText(Token, 'vram') and Assigned(FvramusageToggle) then
+            FvramusageToggle.GraphActive := True
+          else if SameText(Token, 'gpu_core_clock') and Assigned(FgpufreqToggle) then
+            FgpufreqToggle.GraphActive := True
+          else if SameText(Token, 'gpu_mem_clock') and Assigned(FgpumemfreqToggle) then
+            FgpumemfreqToggle.GraphActive := True
+          else if SameText(Token, 'gpu_temp') and Assigned(FgputempToggle) then
+            FgputempToggle.GraphActive := True
+          else if SameText(Token, 'cpu_load') and Assigned(FcpuavgloadToggle) then
+            FcpuavgloadToggle.GraphActive := True
+          else if SameText(Token, 'cpu_temp') and Assigned(FcputempToggle) then
+            FcputempToggle.GraphActive := True
+          else if SameText(Token, 'ram') and Assigned(FramusageToggle) then
+            FramusageToggle.GraphActive := True;
+        end;
+      finally
+        GraphTokens.Free;
+      end;
     end;
   end;
 end;
@@ -3802,6 +3868,24 @@ begin
     Settings.RamTemp := ramtempCheckBox.Checked;
     Settings.ProcMem := procmemCheckBox.Checked;
     Settings.ProcVram := procvramCheckBox.Checked;
+
+    // Metrics Tab - Graphs
+    if Assigned(FgpuavgloadToggle) then
+      Settings.GraphGpuLoad := FgpuavgloadToggle.GraphActive;
+    if Assigned(FvramusageToggle) then
+      Settings.GraphVram := FvramusageToggle.GraphActive;
+    if Assigned(FgpufreqToggle) then
+      Settings.GraphGpuCoreClock := FgpufreqToggle.GraphActive;
+    if Assigned(FgpumemfreqToggle) then
+      Settings.GraphGpuMemClock := FgpumemfreqToggle.GraphActive;
+    if Assigned(FgputempToggle) then
+      Settings.GraphGpuTemp := FgputempToggle.GraphActive;
+    if Assigned(FcpuavgloadToggle) then
+      Settings.GraphCpuLoad := FcpuavgloadToggle.GraphActive;
+    if Assigned(FcputempToggle) then
+      Settings.GraphCpuTemp := FcputempToggle.GraphActive;
+    if Assigned(FramusageToggle) then
+      Settings.GraphRam := FramusageToggle.GraphActive;
 
     // Metrics Tab - Other
     Settings.Battery := batteryCheckBox.Checked;

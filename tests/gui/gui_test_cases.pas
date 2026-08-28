@@ -109,6 +109,7 @@ type
     procedure TestMangoHudExtrasCompactToggles;
     procedure TestLosslessScalingCompactToggles;
     procedure TestMangoHudPresetsToggleSynchronization;
+    procedure TestMangoHudMetricGraphs;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -3048,6 +3049,74 @@ begin
   goverlayform.metricsTabSheet.Show;
   goverlayform.extrasTabSheet.Show;
   AssertTrue('Toggles remain synced after sub-tab navigation', Helper.FfpsToggle.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudMetricGraphs;
+var
+  Helper: TMangoHudUiHelper;
+  C: string;
+begin
+  NavigateMangoHud;
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.metricsTabSheet;
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('MangoHud Helper assigned', Assigned(Helper));
+
+  // 1. Verify the 8 metric toggles have HasGraphButton = True
+  AssertTrue('FgpuavgloadToggle has graph button', Helper.FgpuavgloadToggle.HasGraphButton);
+  AssertTrue('FvramusageToggle has graph button', Helper.FvramusageToggle.HasGraphButton);
+  AssertTrue('FgpufreqToggle has graph button', Helper.FgpufreqToggle.HasGraphButton);
+  AssertTrue('FgpumemfreqToggle has graph button', Helper.FgpumemfreqToggle.HasGraphButton);
+  AssertTrue('FgputempToggle has graph button', Helper.FgputempToggle.HasGraphButton);
+  AssertTrue('FcpuavgloadToggle has graph button', Helper.FcpuavgloadToggle.HasGraphButton);
+  AssertTrue('FcputempToggle has graph button', Helper.FcputempToggle.HasGraphButton);
+  AssertTrue('FramusageToggle has graph button', Helper.FramusageToggle.HasGraphButton);
+
+  // 2. Turn on some metrics and activate graphs
+  goverlayform.gpuavgloadCheckBox.Checked := True;
+  Helper.FgpuavgloadToggle.GraphActive    := True;
+
+  goverlayform.vramusageCheckBox.Checked  := True;
+  Helper.FvramusageToggle.GraphActive     := True;
+
+  goverlayform.cputempCheckBox.Checked    := True;
+  Helper.FcputempToggle.GraphActive       := True;
+
+  goverlayform.cpuavgloadCheckBox.Checked := True;
+  Helper.FcpuavgloadToggle.GraphActive    := False;
+
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('graphs= directive written', Pos('graphs=', C) > 0);
+  AssertTrue('graphs contains gpu_load', Pos('gpu_load', C) > 0);
+  AssertTrue('graphs contains vram', Pos('vram', C) > 0);
+  AssertTrue('graphs contains cpu_temp', Pos('cpu_temp', C) > 0);
+  AssertFalse('graphs does not contain cpu_load when graph not active', Pos('graphs=cpu_load', C) > 0);
+
+  // 3. Test reload roundtrip
+  goverlayform.LoadMangoHudConfig;
+  AssertTrue('gpuavgload reloaded checked', goverlayform.gpuavgloadCheckBox.Checked);
+  AssertTrue('FgpuavgloadToggle reloaded GraphActive', Helper.FgpuavgloadToggle.GraphActive);
+  AssertTrue('vramusage reloaded checked', goverlayform.vramusageCheckBox.Checked);
+  AssertTrue('FvramusageToggle reloaded GraphActive', Helper.FvramusageToggle.GraphActive);
+  AssertTrue('cputemp reloaded checked', goverlayform.cputempCheckBox.Checked);
+  AssertTrue('FcputempToggle reloaded GraphActive', Helper.FcputempToggle.GraphActive);
+  AssertFalse('FcpuavgloadToggle reloaded GraphActive is False', Helper.FcpuavgloadToggle.GraphActive);
+
+  // 4. Test disabling a metric disables its graph output
+  goverlayform.gpuloadcolorCheckBox.Checked := False;
+  goverlayform.gpuavgloadCheckBox.Checked := False;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('graphs= still present', Pos('graphs=', C) > 0);
+  AssertTrue('graphs contains vram,cpu_temp', (Pos('graphs=vram,cpu_temp', C) > 0) or (Pos('graphs=cpu_temp,vram', C) > 0));
+  AssertFalse('gpu_load omitted from graphs line', (Pos('graphs=gpu_load', C) > 0) or (Pos(',gpu_load', C) > 0) or (Pos('gpu_load,', C) > 0));
+
+  // 5. Test turning off all graphs removes graphs= line
+  Helper.FvramusageToggle.GraphActive := False;
+  Helper.FcputempToggle.GraphActive := False;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('graphs= omitted when no graphs active', Pos('graphs=', C) > 0);
 end;
 
 initialization

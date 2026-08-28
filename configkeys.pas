@@ -179,6 +179,7 @@ const
   MANGO_KEY_FPS_VALUE          = 'fps_value';
   MANGO_KEY_GPU_LOAD_VALUE     = 'gpu_load_value';
   MANGO_KEY_CPU_LOAD_VALUE     = 'cpu_load_value';
+  MANGO_KEY_GRAPHS             = 'graphs';
 
   // Boolean flags
   MANGO_FLAG_HORIZONTAL        = 'horizontal';

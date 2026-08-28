@@ -150,6 +150,16 @@ type
     ProcMem: Boolean;
     ProcVram: Boolean;
 
+    // Metrics Tab - Graphs
+    GraphGpuLoad: Boolean;
+    GraphVram: Boolean;
+    GraphGpuCoreClock: Boolean;
+    GraphGpuMemClock: Boolean;
+    GraphGpuTemp: Boolean;
+    GraphCpuLoad: Boolean;
+    GraphCpuTemp: Boolean;
+    GraphRam: Boolean;
+
     // Metrics Tab - Other
     Battery: Boolean;
     BatteryColor: TColor;
@@ -1594,6 +1604,7 @@ var
   BlacklistFile, BlacklistVar: string;
   BlacklistLines: TStringList;
   GlobalMangoHudFile: string;
+  GraphsList: TStringList;
 
   procedure AddIfTrue(ABool: Boolean; const ALine: string);
   begin
@@ -1866,6 +1877,36 @@ begin
 
     // Process VRAM
     AddIfTrue(Settings.ProcVram, 'proc_vram');
+
+    // ============= METRICS TAB - GRAPHS =============
+    GraphsList := TStringList.Create;
+    try
+      if Settings.GraphGpuLoad and Settings.GpuAvgLoad then
+        GraphsList.Add('gpu_load');
+      if Settings.GraphCpuLoad and Settings.CpuAvgLoad then
+        GraphsList.Add('cpu_load');
+      if Settings.GraphGpuTemp and Settings.GpuTemp then
+        GraphsList.Add('gpu_temp');
+      if Settings.GraphCpuTemp and Settings.CpuTemp then
+        GraphsList.Add('cpu_temp');
+      if Settings.GraphGpuCoreClock and Settings.GpuFreq then
+        GraphsList.Add('gpu_core_clock');
+      if Settings.GraphGpuMemClock and Settings.GpuMemFreq then
+        GraphsList.Add('gpu_mem_clock');
+      if Settings.GraphVram and Settings.VramUsage then
+        GraphsList.Add('vram');
+      if Settings.GraphRam and Settings.RamUsage then
+        GraphsList.Add('ram');
+
+      if GraphsList.Count > 0 then
+      begin
+        GraphsList.Delimiter := ',';
+        GraphsList.StrictDelimiter := True;
+        ConfigLines.Add('graphs=' + GraphsList.DelimitedText);
+      end;
+    finally
+      GraphsList.Free;
+    end;
 
     // ============= METRICS TAB - OTHER =============
 

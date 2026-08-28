@@ -20,26 +20,39 @@ type
     FSize: TToggleSwitchSize;
     FLinkedCheckBox: TCheckBox;
     FUpdatingFromLinked: Boolean;
+    FHasGraphButton: Boolean;
+    FGraphActive: Boolean;
+    FGraphHovered: Boolean;
+    FGraphRect: TRect;
+    FOnGraphClick: TNotifyEvent;
     procedure SetChecked(AValue: Boolean);
     procedure SetCaption(const AValue: string);
     procedure SetSize(AValue: TToggleSwitchSize);
+    procedure SetHasGraphButton(AValue: Boolean);
+    procedure SetGraphActive(AValue: Boolean);
     procedure LinkedCheckBoxChange(Sender: TObject);
   protected
     procedure Paint; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseEnter; override;
     procedure MouseLeave; override;
     procedure DoOnChange; virtual;
+    procedure DoOnGraphClick; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure LinkToCheckBox(ACheckBox: TCheckBox);
     procedure SyncFromLinked;
     function GetOptimalWidth: Integer;
+    property GraphRect: TRect read FGraphRect;
   published
     property Checked: Boolean read FChecked write SetChecked default False;
     property Caption: string read FCaption write SetCaption;
     property Size: TToggleSwitchSize read FSize write SetSize default tssCompact;
+    property HasGraphButton: Boolean read FHasGraphButton write SetHasGraphButton default False;
+    property GraphActive: Boolean read FGraphActive write SetGraphActive default False;
+    property OnGraphClick: TNotifyEvent read FOnGraphClick write FOnGraphClick;
     property LinkedCheckBox: TCheckBox read FLinkedCheckBox;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property Enabled;
@@ -384,10 +397,31 @@ begin
   Invalidate;
 end;
 
+procedure TToggleSwitch.SetHasGraphButton(AValue: Boolean);
+begin
+  if FHasGraphButton = AValue then Exit;
+  FHasGraphButton := AValue;
+  Width := GetOptimalWidth;
+  Invalidate;
+end;
+
+procedure TToggleSwitch.SetGraphActive(AValue: Boolean);
+begin
+  if FGraphActive = AValue then Exit;
+  FGraphActive := AValue;
+  Invalidate;
+end;
+
 procedure TToggleSwitch.DoOnChange;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+end;
+
+procedure TToggleSwitch.DoOnGraphClick;
+begin
+  if Assigned(FOnGraphClick) then
+    FOnGraphClick(Self);
 end;
 
 procedure TToggleSwitch.LinkedCheckBoxChange(Sender: TObject);
@@ -463,6 +497,9 @@ begin
     Result := TW + PadW + Canvas.TextWidth(FCaption) + 6
   else
     Result := TW;
+
+  if FHasGraphButton then
+    Result := Result + 26;
 end;
 
 procedure TToggleSwitch.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -471,7 +508,32 @@ begin
   if (Button = mbLeft) and Enabled then
   begin
     SetFocus;
-    Checked := not Checked;
+    if FHasGraphButton and PtInRect(FGraphRect, Point(X, Y)) then
+    begin
+      if FChecked then
+      begin
+        GraphActive := not GraphActive;
+        DoOnGraphClick;
+      end;
+    end
+    else
+    begin
+      Checked := not Checked;
+    end;
+  end;
+end;
+
+procedure TToggleSwitch.MouseMove(Shift: TShiftState; X, Y: Integer);
+var
+  WasHovered: Boolean;
+begin
+  inherited MouseMove(Shift, X, Y);
+  if FHasGraphButton then
+  begin
+    WasHovered := FGraphHovered;
+    FGraphHovered := PtInRect(FGraphRect, Point(X, Y));
+    if WasHovered <> FGraphHovered then
+      Invalidate;
   end;
 end;
 
@@ -485,12 +547,19 @@ procedure TToggleSwitch.MouseLeave;
 begin
   inherited MouseLeave;
   Cursor := crDefault;
+  if FGraphHovered then
+  begin
+    FGraphHovered := False;
+    Invalidate;
+  end;
 end;
 
 procedure TToggleSwitch.Paint;
 var
   Bmp: TBitmap;
   TrackX, TrackY, TextX, TextY: Integer;
+  GraphX, GraphY: Integer;
+  BtnBorder, BtnBg, BarColor: TColor;
 begin
   Bmp := GetToggleBitmap(FSize, FChecked, Enabled);
 
@@ -500,6 +569,7 @@ begin
   Canvas.Draw(TrackX, TrackY, Bmp);
 
   // Label text to the right of toggle
+  TextX := TrackX + Bmp.Width + 4;
   if FCaption <> '' then
   begin
     Canvas.Font.Assign(Font);
@@ -509,10 +579,77 @@ begin
       Canvas.Font.Color := RGBToColor(120, 125, 140);
 
     Canvas.Brush.Style := bsClear;
-    TextX := TrackX + Bmp.Width + 4;
     TextY := (ClientHeight - Canvas.TextHeight(FCaption)) div 2;
     Canvas.TextOut(TextX, TextY, FCaption);
+    TextX := TextX + Canvas.TextWidth(FCaption);
   end;
+
+  // Optional Graph Button
+  if FHasGraphButton then
+  begin
+    GraphX := TextX + 6;
+    GraphY := (ClientHeight - 16) div 2;
+    FGraphRect := Rect(GraphX, GraphY, GraphX + 20, GraphY + 16);
+
+    if (not Enabled) or (not FChecked) then
+    begin
+      // Disabled / dimmed
+      BtnBg     := RGBToColor(22, 26, 36);
+      BtnBorder := RGBToColor(36, 44, 60);
+      BarColor  := RGBToColor(55, 65, 82);
+    end
+    else if FGraphActive then
+    begin
+      // Active glowing state
+      BtnBg     := RGBToColor(18, 48, 70);
+      BtnBorder := RGBToColor(48, 190, 240); // Vivid Cyan
+      BarColor  := RGBToColor(56, 217, 169); // Mint green accent
+    end
+    else
+    begin
+      // Inactive state
+      if FGraphHovered then
+      begin
+        BtnBg     := RGBToColor(32, 40, 56);
+        BtnBorder := RGBToColor(70, 90, 125);
+        BarColor  := RGBToColor(180, 195, 220);
+      end
+      else
+      begin
+        BtnBg     := RGBToColor(22, 28, 40);
+        BtnBorder := RGBToColor(46, 58, 80);
+        BarColor  := RGBToColor(130, 145, 170);
+      end;
+    end;
+
+    // Draw graph button background card
+    Canvas.Brush.Style := bsSolid;
+    Canvas.Brush.Color := BtnBg;
+    Canvas.Pen.Color   := BtnBorder;
+    Canvas.Pen.Width   := 1;
+    Canvas.RoundRect(FGraphRect.Left, FGraphRect.Top, FGraphRect.Right, FGraphRect.Bottom, 4, 4);
+
+    // Draw 3 mini histogram bars inside graph button
+    Canvas.Brush.Color := BarColor;
+    Canvas.Pen.Color   := BarColor;
+    // Bar 1 (short)
+    Canvas.FillRect(Rect(GraphX + 4, GraphY + 10, GraphX + 6, GraphY + 13));
+    // Bar 2 (medium)
+    Canvas.FillRect(Rect(GraphX + 8, GraphY + 7, GraphX + 10, GraphY + 13));
+    // Bar 3 (tall)
+    Canvas.FillRect(Rect(GraphX + 12, GraphY + 4, GraphX + 14, GraphY + 13));
+
+    // Mini trend line / accent when active
+    if FChecked and FGraphActive then
+    begin
+      Canvas.Pen.Color := RGBToColor(48, 190, 240);
+      Canvas.MoveTo(GraphX + 5, GraphY + 9);
+      Canvas.LineTo(GraphX + 9, GraphY + 6);
+      Canvas.LineTo(GraphX + 13, GraphY + 3);
+    end;
+  end
+  else
+    FGraphRect := Rect(0, 0, 0, 0);
 end;
 
 initialization
