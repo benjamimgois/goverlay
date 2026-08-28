@@ -3269,13 +3269,6 @@ var
    saida, Output, FileLines, DefaultConfigContent: TStringList;
    i, FoundIndex: Integer;
    ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
-
-   FPSList: TStringList;
-   ConfigFile: TStringList;
-   Line, FPSValues, OffsetValue: string;
-   Offset, FPS, MaxFPS: Integer;
-   FPSNumbers: TStringList;
-   FoundFPSLimit: Boolean;
    Missing: TStringList;
    OSFile: TextFile;
 
@@ -3890,58 +3883,7 @@ begin
 
      //#################################################    Checkgroups
 
-     // FPS limits — read raw comma-separated value into the edit
-     MaxFPS := 0;
-     FoundFPSLimit := False;
-     FPSValues := '';
-
-     if FileExists(MANGOHUDCFGFILE) then
-     begin
-       ConfigFile := TStringList.Create;
-       try
-         ConfigFile.LoadFromFile(MANGOHUDCFGFILE);
-         for Line in ConfigFile do
-           if StartsText('fps_limit=', Line) then
-           begin
-             FPSValues := Copy(Line, Pos('=', Line) + 1, Length(Line));
-             FoundFPSLimit := True;
-             Break;
-           end;
-       finally
-         ConfigFile.Free;
-       end;
-     end;
-
-     if FoundFPSLimit then
-     begin
-       if Assigned(FFpsLimitEdit) then
-         FFpsLimitEdit.Text := FPSValues;
-       // Derive max FPS for colour thresholds
-       FPSNumbers := TStringList.Create;
-       try
-         FPSNumbers.Delimiter := ',';
-         FPSNumbers.DelimitedText := FPSValues;
-         for i := 0 to FPSNumbers.Count - 1 do
-         begin
-           FPS := StrToIntDef(FPSNumbers[i], 0);
-           if FPS > MaxFPS then
-             MaxFPS := FPS;
-         end;
-       finally
-         FPSNumbers.Free;
-       end;
-     end
-     else if Assigned(FFpsLimitEdit) then
-       FFpsLimitEdit.Text := '0';
-
-     if MaxFPS = 0 then
-       MaxFPS := 60;
-     fpscolor3spinedit.Value := MaxFPS;
-     fpscolor2spinedit.Value := Round(MaxFPS / 2);
-
-
-
-    //Read system GPUs
+     //Read system GPUs
       Process := TProcess.Create(nil);
       saida := TStringList.Create;
 

@@ -3735,35 +3735,9 @@ procedure TMangoHudUiHelper.SaveMangoHudConfig;
 var
   Settings: TMangoHudSettings;
   ErrMsg: string;
-  FPSNumbers: TStringList;
-  TempFPS, MaxFPS, FPS: Integer;
-  i: Integer;
 begin
   with FForm do
   begin
-    // Update FPS color thresholds first based on the text limits
-    if Assigned(FFpsLimitEdit) then
-    begin
-      FPSNumbers := TStringList.Create;
-      try
-        FPSNumbers.Delimiter := ',';
-        FPSNumbers.DelimitedText := Trim(FFpsLimitEdit.Text);
-        MaxFPS := 0;
-        for i := 0 to FPSNumbers.Count - 1 do
-        begin
-          FPS := StrToIntDef(FPSNumbers[i], 0);
-          if FPS > MaxFPS then
-            MaxFPS := FPS;
-        end;
-        if MaxFPS = 0 then
-          MaxFPS := 60;
-        fpscolor3SpinEdit.Value := MaxFPS;
-        fpscolor2SpinEdit.Value := Round(MaxFPS / 2);
-      finally
-        FPSNumbers.Free;
-      end;
-    end;
-
     // Initialize TMangoHudSettings record
     FillChar(Settings, SizeOf(Settings), 0);
     Settings.MangoHudCfgFile := MANGOHUDCFGFILE;

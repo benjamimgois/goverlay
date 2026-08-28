@@ -1827,6 +1827,8 @@ begin
   goverlayform.afTrackBar.Position := 4;
   goverlayform.mipmapTrackBar.Position := 2;
   goverlayform.fpscolorCheckBox.Checked := True;
+  goverlayform.fpscolor2SpinEdit.Value := 45;
+  goverlayform.fpscolor3SpinEdit.Value := 90;
   SaveMango;
   C := ReadFileText(MangoConfPath);
   AssertTrue('show_fps_limit', Pos('show_fps_limit', C) > 0);
@@ -1849,8 +1851,8 @@ begin
   AssertTrue('af=4', Pos('af=4', C) > 0);
   AssertTrue('picmip=2', Pos('picmip=2', C) > 0);
   AssertTrue('fps_color_change', Pos('fps_color_change', C) > 0);
-  // fps limit edit drives the two thresholds: 120 -> 60,120
-  AssertTrue('fps_value=60,120', Pos('fps_value=60,120', C) > 0);
+  // Custom FPS color thresholds are preserved independently from fps limit edit
+  AssertTrue('fps_value=45,90', Pos('fps_value=45,90', C) > 0);
 
   // Reload config into UI and assert controls retain state
   goverlayform.LoadMangoHudConfig;
@@ -1877,6 +1879,8 @@ begin
   AssertEquals('afTrackBar reloaded', 4, goverlayform.afTrackBar.Position);
   AssertEquals('mipmapTrackBar reloaded', 2, goverlayform.mipmapTrackBar.Position);
   AssertTrue('fpscolorCheckBox reloaded', goverlayform.fpscolorCheckBox.Checked);
+  AssertEquals('fpscolor2SpinEdit reloaded', 45, goverlayform.fpscolor2SpinEdit.Value);
+  AssertEquals('fpscolor3SpinEdit reloaded', 90, goverlayform.fpscolor3SpinEdit.Value);
 
   // Reverse
   goverlayform.fpslimmetComboBox.ItemIndex := 0; // late
@@ -2001,6 +2005,8 @@ begin
   goverlayform.fpscolor1ColorButton.ButtonColor := $000000FF; // Red
   goverlayform.fpscolor2ColorButton.ButtonColor := $0000FFFF; // Yellow
   goverlayform.fpscolor3ColorButton.ButtonColor := $0000FF00; // Green
+  goverlayform.fpscolor2SpinEdit.Value := 50;
+  goverlayform.fpscolor3SpinEdit.Value := 100;
 
   // 3. GPU Load Colors
   goverlayform.gpuloadcolorCheckBox.Checked := True;
@@ -2019,6 +2025,7 @@ begin
   AssertEquals('gl_vsync omitted when Unset', 0, Pos('gl_vsync=', C));
   AssertEquals('vsync omitted when Unset', 0, Pos('vsync=', C));
   AssertTrue('fps_color written', Pos('fps_color=', C) > 0);
+  AssertTrue('fps_value written', Pos('fps_value=50,100', C) > 0);
   AssertTrue('gpu_load_color written', Pos('gpu_load_color=', C) > 0);
   AssertTrue('cpu_load_color written', Pos('cpu_load_color=', C) > 0);
 
@@ -2026,6 +2033,8 @@ begin
   goverlayform.LoadMangoHudConfig;
   AssertEquals('glvsyncComboBox Unset index preserved', 4, goverlayform.glvsyncComboBox.ItemIndex);
   AssertEquals('fpscolor1 restored', TColor($000000FF), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
+  AssertEquals('fpscolor2SpinEdit restored', 50, goverlayform.fpscolor2SpinEdit.Value);
+  AssertEquals('fpscolor3SpinEdit restored', 100, goverlayform.fpscolor3SpinEdit.Value);
   AssertEquals('gpuload1 restored', TColor($0000FF00), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
   AssertEquals('cpuload1 restored', TColor($0000FF00), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
 end;
