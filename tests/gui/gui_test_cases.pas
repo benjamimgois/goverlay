@@ -3117,6 +3117,31 @@ begin
   SaveMango;
   C := ReadFileText(MangoConfPath);
   AssertFalse('graphs= omitted when no graphs active', Pos('graphs=', C) > 0);
+
+  // 6. Test preset activation always resets graphs
+  goverlayform.gpuavgloadCheckBox.Checked := True;
+  Helper.FgpuavgloadToggle.GraphActive := True;
+  goverlayform.cputempCheckBox.Checked := True;
+  Helper.FcputempToggle.GraphActive := True;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('graphs active before preset', Pos('graphs=', C) > 0);
+
+  // Click Full preset
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[0]);
+  AssertFalse('Full preset resets FgpuavgloadToggle graph', Helper.FgpuavgloadToggle.GraphActive);
+  AssertFalse('Full preset resets FcputempToggle graph', Helper.FcputempToggle.GraphActive);
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('Full preset writes no graphs=', Pos('graphs=', C) > 0);
+
+  // Click Basic preset
+  goverlayform.vramusageCheckBox.Checked := True;
+  Helper.FvramusageToggle.GraphActive := True;
+  SaveMango;
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[1]);
+  AssertFalse('Basic preset resets FvramusageToggle graph', Helper.FvramusageToggle.GraphActive);
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('Basic preset writes no graphs=', Pos('graphs=', C) > 0);
 end;
 
 initialization

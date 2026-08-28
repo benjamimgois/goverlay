@@ -79,6 +79,7 @@ type
     procedure UpdateExtrasCardTheme;
     procedure LoadMangoHudConfig;
     procedure ResetMangoHudControls;
+    procedure ResetMetricGraphs;
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
     procedure SaveMangoHudConfig;
@@ -424,6 +425,8 @@ begin
       end;
       FActiveLayoutCard := i;
       UpdatePresetCardVisuals;
+      if i in [0..3] then
+        ResetMetricGraphs;
       case i of
         0: fullBitBtnClick(fullBitBtn);
         1: basicBitBtnClick(basicBitBtn);
@@ -2922,6 +2925,18 @@ begin
                        StrToInt('$' + Copy(HexValue, 5, 2)));
 end;
 
+procedure TMangoHudUiHelper.ResetMetricGraphs;
+begin
+  if Assigned(FgpuavgloadToggle) then FgpuavgloadToggle.GraphActive := False;
+  if Assigned(FvramusageToggle) then FvramusageToggle.GraphActive := False;
+  if Assigned(FgpufreqToggle) then FgpufreqToggle.GraphActive := False;
+  if Assigned(FgpumemfreqToggle) then FgpumemfreqToggle.GraphActive := False;
+  if Assigned(FgputempToggle) then FgputempToggle.GraphActive := False;
+  if Assigned(FcpuavgloadToggle) then FcpuavgloadToggle.GraphActive := False;
+  if Assigned(FcputempToggle) then FcputempToggle.GraphActive := False;
+  if Assigned(FramusageToggle) then FramusageToggle.GraphActive := False;
+end;
+
 procedure TMangoHudUiHelper.ResetMangoHudControls;
 var
   i: Integer;
@@ -2963,14 +2978,7 @@ begin
     end;
 
     // Reset metric graph toggles
-    if Assigned(FgpuavgloadToggle) then FgpuavgloadToggle.GraphActive := False;
-    if Assigned(FvramusageToggle) then FvramusageToggle.GraphActive := False;
-    if Assigned(FgpufreqToggle) then FgpufreqToggle.GraphActive := False;
-    if Assigned(FgpumemfreqToggle) then FgpumemfreqToggle.GraphActive := False;
-    if Assigned(FgputempToggle) then FgputempToggle.GraphActive := False;
-    if Assigned(FcpuavgloadToggle) then FcpuavgloadToggle.GraphActive := False;
-    if Assigned(FcputempToggle) then FcputempToggle.GraphActive := False;
-    if Assigned(FramusageToggle) then FramusageToggle.GraphActive := False;
+    ResetMetricGraphs;
 
     // 2. Reset other specific MangoHud controls
     hudtitleEdit.Text := '';

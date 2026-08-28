@@ -1723,6 +1723,8 @@ begin
     if Components[i] is TCheckBox then
       (Components[i] as TCheckBox).Checked := False;
   end;
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).ResetMetricGraphs;
   SyncAllToggles;
 end;
 
@@ -1769,6 +1771,8 @@ begin
       end;
     end;
   end;
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).ResetMetricGraphs;
   SyncAllToggles;
 end;
 
