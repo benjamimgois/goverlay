@@ -1033,7 +1033,7 @@ begin
 
       LogoW_None := 48;
       LogoW_Opti := 84;
-      LogoW_De   := 62;
+      LogoW_De   := 88;
 
       GroupW_None := 22 + LogoW_None;
       GroupW_Opti := 22 + LogoW_Opti;
