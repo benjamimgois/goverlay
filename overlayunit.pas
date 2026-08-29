@@ -172,7 +172,7 @@ type
     advancedGroupBox: TGroupBox;
     simdeckCheckBox: TCheckBox;
     obs_vkcaptureCheckBox: TCheckBox;
-    highpriCheckBox: TCheckBox;
+    gameperfCheckBox: TCheckBox;
     tweaksImage: TImage;
     tweaksText: TStaticText;
     tweaksLabel: TLabel;
@@ -4061,7 +4061,7 @@ function Tgoverlayform.GetPerformanceCheckBox(Index: Integer): TCheckBox;
 begin
   case Index of
     0: Result := gamemodeCheckBox;       // Always use GameMode
-    1: Result := highpriCheckBox;        // Higher priority for games
+    1: Result := gameperfCheckBox;       // Sets CPU governor to performance (game-performance)
     2: Result := wow64CheckBox;          // Use WOW64
     3: Result := largeaddressCheckBox;   // Large Address Aware
     4: Result := stagememCheckBox;       // Staging shared memory

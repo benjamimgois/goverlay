@@ -86,6 +86,7 @@ type
     procedure TestTweaksTabRoundTrip;
     procedure TestProtonLocalShaderCacheTweak;
     procedure TestProtonDiscordBridgeTweak;
+    procedure TestGamePerformanceTweak;
     procedure TestTweaksCardLayoutAndClick;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
@@ -2383,6 +2384,59 @@ begin
   goverlayform.FProtonDiscordBridgeCheckBox.Checked := False;
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   AssertEquals('PROTON_DISCORD_BRIDGE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_DISCORD_BRIDGE'));
+end;
+
+procedure TGoverlayGuiTests.TestGamePerformanceTweak;
+var
+  ConfLines: TStringList;
+  FoundLine, FoundEq: Boolean;
+  i: Integer;
+begin
+  NavigateTweaksTab;
+  AssertTrue('gameperfCheckBox created', Assigned(goverlayform.gameperfCheckBox));
+
+  goverlayform.gameperfCheckBox.Checked := True;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  // Check that game-performance is written as a standalone line without '=1'
+  ConfLines := TStringList.Create;
+  try
+    ConfLines.LoadFromFile(BgmodConfPath);
+    FoundLine := False;
+    FoundEq := False;
+    for i := 0 to ConfLines.Count - 1 do
+    begin
+      if Trim(ConfLines[i]) = 'game-performance' then
+        FoundLine := True;
+      if Pos('game-performance=', Trim(ConfLines[i])) = 1 then
+        FoundEq := True;
+    end;
+    AssertTrue('game-performance standalone wrapper line found in bgmod.conf', FoundLine);
+    AssertFalse('game-performance=1 must not be present in bgmod.conf', FoundEq);
+  finally
+    ConfLines.Free;
+  end;
+
+  // Reload config from bgmod.conf into UI and assert state is loaded
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('gameperfCheckBox reloaded as true', goverlayform.gameperfCheckBox.Checked);
+
+  goverlayform.gameperfCheckBox.Checked := False;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  ConfLines := TStringList.Create;
+  try
+    ConfLines.LoadFromFile(BgmodConfPath);
+    FoundLine := False;
+    for i := 0 to ConfLines.Count - 1 do
+    begin
+      if Pos('game-performance', Trim(ConfLines[i])) > 0 then
+        FoundLine := True;
+    end;
+    AssertFalse('game-performance removed when unchecked', FoundLine);
+  finally
+    ConfLines.Free;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestTweaksCardLayoutAndClick;

@@ -44,8 +44,8 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_PRIORITY_HIGH=1';           Description: 'Higher priority for games'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'game-performance';                 Description: '[cachyos] Sets CPU governor to performance'),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
@@ -129,7 +129,7 @@ begin
     13: Result := Form.FFSR4UpgradeCheckBox;
     14: Result := Form.FDLSSUpgradeCheckBox;
     15: Result := Form.FXeSSUpgradeCheckBox;
-    16: Result := Form.highpriCheckBox;
+    16: Result := Form.gameperfCheckBox;
     17: Result := Form.wow64CheckBox;
     18: Result := Form.largeaddressCheckBox;
     19: Result := Form.stagememCheckBox;
@@ -425,10 +425,13 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     HasBadge := False;
     CleanDesc := ADesc;
     BadgeText := '';
-    BadgeBg := 0; BadgeBorder := 0; BadgeTxtColor := 0;
+    Prefix := '';
+    if Pos('[proton-cachyos]', ADesc) = 1 then
+      Prefix := '[proton-cachyos]'
+    else if Pos('[cachyos]', ADesc) = 1 then
+      Prefix := '[cachyos]';
 
-    Prefix := '[proton-cachyos]';
-    if Pos(Prefix, ADesc) = 1 then
+    if Prefix <> '' then
     begin
       HasBadge := True;
       BadgeText := 'CachyOS';
@@ -772,8 +775,9 @@ begin
           TweakHint := ''
         else if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
-           (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') then
-          TweakHint := 'Works only with proton-cachyos';
+           (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
+           (TWEAK_ROWS[i].VarName = 'game-performance') then
+          TweakHint := 'Works only with CachyOS';
         Break;
       end;
       Inc(CatItemCount);
@@ -1152,7 +1156,7 @@ begin
   ReparentTo(FForm.gamemodeCheckBox,      PerfSec); DarkChk(FForm.gamemodeCheckBox);      FForm.gamemodeCheckBox.OnChange      := @FForm.TweaksCheckChange;
   FForm.gamemodeCheckBox.Left := 10;
   FForm.gamemodeCheckBox.Top  := 128;
-  ReparentTo(FForm.highpriCheckBox,       PerfSec); DarkChk(FForm.highpriCheckBox);       FForm.highpriCheckBox.OnChange       := @FForm.TweaksCheckChange;
+  ReparentTo(FForm.gameperfCheckBox,       PerfSec); DarkChk(FForm.gameperfCheckBox);       FForm.gameperfCheckBox.OnChange       := @FForm.TweaksCheckChange;
   ReparentTo(FForm.largeaddressCheckBox,  PerfSec); DarkChk(FForm.largeaddressCheckBox);  FForm.largeaddressCheckBox.OnChange  := @FForm.TweaksCheckChange;
   ReparentTo(FForm.wow64CheckBox,         PerfSec); DarkChk(FForm.wow64CheckBox);          FForm.wow64CheckBox.OnChange         := @FForm.TweaksCheckChange;
   ReparentTo(FForm.stagememCheckBox,      PerfSec); DarkChk(FForm.stagememCheckBox);       FForm.stagememCheckBox.OnChange      := @FForm.TweaksCheckChange;
@@ -1182,6 +1186,8 @@ var
   CustomLine: string;
   CustomKey, CustomVal: string;
   p: Integer;
+  FileLines: TStringList;
+  Modified: Boolean;
 begin
   // Check if any tweaks are active
   HasTweaks := FForm.GetGeneralCheckBox(0).Checked or FForm.GetGeneralCheckBox(1).Checked or
@@ -1291,7 +1297,7 @@ begin
       Ini.WriteString('Env', 'PROTON_XESS_UPGRADE', '1');
 
     if FForm.GetPerformanceCheckBox(1).Checked then
-      Ini.WriteString('Env', 'PROTON_PRIORITY_HIGH', '1');
+      Ini.WriteString('Env', 'game-performance', '1');
 
     if FForm.GetPerformanceCheckBox(2).Checked then
       Ini.WriteString('Env', 'PROTON_USE_WOW64', '1');
@@ -1362,6 +1368,28 @@ begin
 
   finally
     Ini.Free;
+  end;
+
+  // Post-process bgmod.conf to ensure 'game-performance' is written as a standalone wrapper line (not 'game-performance=1')
+  if FileExists(ConfigPath) then
+  begin
+    FileLines := TStringList.Create;
+    try
+      FileLines.LoadFromFile(ConfigPath);
+      Modified := False;
+      for i := 0 to FileLines.Count - 1 do
+      begin
+        if (Trim(FileLines[i]) = 'game-performance=1') or (Pos('game-performance=', Trim(FileLines[i])) = 1) then
+        begin
+          FileLines[i] := 'game-performance';
+          Modified := True;
+        end;
+      end;
+      if Modified then
+        FileLines.SaveToFile(ConfigPath);
+    finally
+      FileLines.Free;
+    end;
   end;
 
   FForm.notificationLabel.Visible := False;
@@ -1475,8 +1503,9 @@ begin
         FForm.FDLSSUpgradeCheckBox.Checked := Val = '1'
       else if SameText(Key, 'PROTON_XESS_UPGRADE') then
         FForm.FXeSSUpgradeCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'PROTON_PRIORITY_HIGH') then
-        FForm.GetPerformanceCheckBox(1).Checked := Val = '1'
+      else if SameText(Key, 'game-performance') or SameText(Key, 'game_performance') or
+              SameText(Trim(EnvList[i]), 'game-performance') or SameText(Trim(EnvList[i]), 'game-performance=1') then
+        FForm.GetPerformanceCheckBox(1).Checked := True
       else if SameText(Key, 'PROTON_USE_WOW64') then
         FForm.GetPerformanceCheckBox(2).Checked := Val = '1'
       else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
@@ -1505,7 +1534,7 @@ begin
         FForm.FProtonLocalShaderCacheCheckBox.Checked := Val = '1'
       else if SameText(Key, 'PROTON_DISCORD_BRIDGE') then
         FForm.FProtonDiscordBridgeCheckBox.Checked := Val = '1'
-      else if not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
+      else if (Key <> '') and not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
       begin
         // Treat as custom environment variable
         if Assigned(FForm.FCustomListBox) then
@@ -1524,6 +1553,26 @@ begin
   finally
     EnvList.Free;
     Ini.Free;
+  end;
+
+  // Also check raw lines for game-performance in case ReadSectionValues omitted non-key lines
+  if not FForm.GetPerformanceCheckBox(1).Checked and FileExists(ConfigPath) then
+  begin
+    EnvList := TStringList.Create;
+    try
+      EnvList.LoadFromFile(ConfigPath);
+      for i := 0 to EnvList.Count - 1 do
+      begin
+        if SameText(Trim(EnvList[i]), 'game-performance') or
+           SameText(Trim(EnvList[i]), 'game-performance=1') then
+        begin
+          FForm.GetPerformanceCheckBox(1).Checked := True;
+          Break;
+        end;
+      end;
+    finally
+      EnvList.Free;
+    end;
   end;
   FForm.SyncTweaksGridFromCheckBoxes;
 end;

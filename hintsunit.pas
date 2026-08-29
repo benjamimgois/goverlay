@@ -265,8 +265,8 @@ begin
   SetHint('nofastclearsCheckBox', 'Disable Fast Clears' + LineEnding +
     'RADV_DEBUG=nofastclears' + LineEnding +
     'Disables fast clear optimization (AMD)');
-  SetHint('highpriCheckBox', 'High priority' + LineEnding +
-    'Runs game with high system priority');
+  SetHint('gameperfCheckBox', 'game-performance' + LineEnding +
+    'Sets CPU governor to performance');
   SetHint('largeaddressCheckBox', 'Large Address Aware' + LineEnding +
     'Allows 32-bit games to use more than 2GB RAM');
   SetHint('emurtCheckBox', 'Emulate RT' + LineEnding +

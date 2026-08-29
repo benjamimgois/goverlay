@@ -73,6 +73,7 @@ var
   BgmodPath: string;
   ConfigDir: string;
   SourceDir: string;
+  HasGamePerformance: Boolean;
   OrigDlls: array[0..13] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
@@ -1507,14 +1508,26 @@ begin
   end;
   
   // Export environment variables read from bgmod.conf [Env] section
+  HasGamePerformance := False;
   for i := 0 to EnvList.Count - 1 do
   begin
     Line := EnvList[i];
+    if SameText(Trim(Line), 'game-performance') or SameText(Trim(Line), 'game-performance=1') or
+       SameText(Copy(Trim(Line), 1, 17), 'game-performance=') then
+    begin
+      HasGamePerformance := True;
+      Continue;
+    end;
     p := Pos('=', Line);
     if p > 0 then
     begin
       Key := Copy(Line, 1, p - 1);
       Val := Copy(Line, p + 1, MaxInt);
+      if SameText(Key, 'game-performance') then
+      begin
+        HasGamePerformance := True;
+        Continue;
+      end;
       // Always export DXIL_SPIRV_CONFIG and MANGOHUD_CONFIGFILE.
       // Export LSFG_* / LSFGVK_* environment variables if GOverlayLossless is enabled.
       // Other environment variables are exported if GOverlayTweaks is enabled.
@@ -1688,22 +1701,40 @@ begin
     Exit;
   end;
   
-  TempStr := ParamStr(StartArgIdx);
-  Log('Game Executable: ' + TempStr);
-  
-  SetLength(ArgsStrings, ParamCount - StartArgIdx + 1);
-  SetLength(Args, ParamCount - StartArgIdx + 2);
-  
-  ArgsStrings[0] := TempStr;
-  Args[0] := PChar(ArgsStrings[0]);
-  
-  for i := StartArgIdx + 1 to ParamCount do
+  if HasGamePerformance and GOverlayTweaks then
   begin
-    ArgsStrings[i - StartArgIdx] := ParamStr(i);
-    Args[i - StartArgIdx] := PChar(ArgsStrings[i - StartArgIdx]);
-    Log('Arg ' + IntToStr(i - StartArgIdx) + ': ' + ArgsStrings[i - StartArgIdx]);
+    Log('Using wrapper: game-performance');
+    SetLength(ArgsStrings, ParamCount - StartArgIdx + 2);
+    SetLength(Args, ParamCount - StartArgIdx + 3);
+    ArgsStrings[0] := 'game-performance';
+    Args[0] := PChar(ArgsStrings[0]);
+    for i := StartArgIdx to ParamCount do
+    begin
+      ArgsStrings[i - StartArgIdx + 1] := ParamStr(i);
+      Args[i - StartArgIdx + 1] := PChar(ArgsStrings[i - StartArgIdx + 1]);
+      Log('Arg ' + IntToStr(i - StartArgIdx + 1) + ': ' + ArgsStrings[i - StartArgIdx + 1]);
+    end;
+    Args[ParamCount - StartArgIdx + 2] := nil;
+  end
+  else
+  begin
+    TempStr := ParamStr(StartArgIdx);
+    Log('Game Executable: ' + TempStr);
+    
+    SetLength(ArgsStrings, ParamCount - StartArgIdx + 1);
+    SetLength(Args, ParamCount - StartArgIdx + 2);
+    
+    ArgsStrings[0] := TempStr;
+    Args[0] := PChar(ArgsStrings[0]);
+    
+    for i := StartArgIdx + 1 to ParamCount do
+    begin
+      ArgsStrings[i - StartArgIdx] := ParamStr(i);
+      Args[i - StartArgIdx] := PChar(ArgsStrings[i - StartArgIdx]);
+      Log('Arg ' + IntToStr(i - StartArgIdx) + ': ' + ArgsStrings[i - StartArgIdx]);
+    end;
+    Args[ParamCount - StartArgIdx + 1] := nil;
   end;
-  Args[ParamCount - StartArgIdx + 1] := nil;
   
   Log('------------------------------------------------------------------------');
   Log('Launching subprocess: ' + ArgsStrings[0]);

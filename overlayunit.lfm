@@ -15876,22 +15876,22 @@ object goverlayform: Tgoverlayform
             ClientWidth = 371
             ParentBackground = False
             TabOrder = 1
-            object highpriCheckBox: TCheckBox
+            object gameperfCheckBox: TCheckBox
               AnchorSideLeft.Control = performanceGroupBox
               AnchorSideTop.Control = performanceGroupBox
               Left = 10
               Height = 22
-              Hint = 'PROTON_PRIORITY_HIGH=1'#10'Sets high CPU priority for the game process.'
+              Hint = 'game-performance'#10'Sets CPU governor to performance.'
               Top = 10
               Width = 179
               BorderSpacing.Left = 10
               BorderSpacing.Top = 10
-              Caption = 'Higher priority for games'
+              Caption = 'Sets CPU governor to performance'
               TabOrder = 0
             end
             object largeaddressCheckBox: TCheckBox
               AnchorSideLeft.Control = performanceGroupBox
-              AnchorSideTop.Control = highpriCheckBox
+              AnchorSideTop.Control = gameperfCheckBox
               AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
@@ -15918,7 +15918,7 @@ object goverlayform: Tgoverlayform
               TabOrder = 2
             end
             object wow64CheckBox: TCheckBox
-              AnchorSideLeft.Control = highpriCheckBox
+              AnchorSideLeft.Control = gameperfCheckBox
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = performanceGroupBox
               Left = 209
@@ -15932,7 +15932,7 @@ object goverlayform: Tgoverlayform
               TabOrder = 3
             end
             object disablentsyncCheckBox: TCheckBox
-              AnchorSideLeft.Control = highpriCheckBox
+              AnchorSideLeft.Control = gameperfCheckBox
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = wow64CheckBox
               AnchorSideTop.Side = asrBottom
@@ -15947,7 +15947,7 @@ object goverlayform: Tgoverlayform
               TabOrder = 4
             end
             object heapdelayCheckBox: TCheckBox
-              AnchorSideLeft.Control = highpriCheckBox
+              AnchorSideLeft.Control = gameperfCheckBox
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = disablentsyncCheckBox
               AnchorSideTop.Side = asrBottom
