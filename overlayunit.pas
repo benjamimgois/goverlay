@@ -6010,16 +6010,16 @@ begin
   if Assigned(fsrversionComboBox) then
     fsrversionComboBox.Visible := False;
 
-  // emufp8CheckBox remains visible and enabled for all channels
-  emufp8CheckBox.Visible := True;
+  // emufp8CheckBox is linked to TToggleSwitch (keep underlying checkbox hidden)
+  emufp8CheckBox.Visible := False;
   emufp8CheckBox.Enabled := True;
 
   emufp8CheckBox.Caption := 'Force MLFG in RDNA3';
   emufp8CheckBox.Hint := 'Emulate FP8 to active MLFG';
 
-  // Display forceFsr4Int8CheckBox on all channels
+  // forceFsr4Int8CheckBox is linked to TToggleSwitch (keep underlying checkbox hidden)
   if Assigned(forceFsr4Int8CheckBox) then
-    forceFsr4Int8CheckBox.Visible := True;
+    forceFsr4Int8CheckBox.Visible := False;
 end;
 
 procedure Tgoverlayform.preferredUpscalerComboBoxChange(Sender: TObject);

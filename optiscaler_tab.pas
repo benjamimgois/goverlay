@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config,
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, toggle_switch,
   {$IFDEF LCLqt6}
   qt6,
   {$ELSE}
@@ -19,8 +19,17 @@ type
   TOptiScalerTabHelper = class
   private
     FForm: Tgoverlayform;
+    FOptiPatcherToggle: TToggleSwitch;
+    FSpoofToggle: TToggleSwitch;
+    FForceFsr4Toggle: TToggleSwitch;
+    FForceMlfgToggle: TToggleSwitch;
+    FForceReflexToggle: TToggleSwitch;
+    FForceLatencyFlexToggle: TToggleSwitch;
+    FOsToggles: TFPList;
+    function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
   public
     constructor Create(AForm: Tgoverlayform);
+    destructor Destroy; override;
     procedure InitOptiScalerTab;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure OsScrollBoxResize(Sender: TObject);
@@ -28,6 +37,14 @@ type
     procedure LoadOptiScalerConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure UpdateFrameGenOptionsUI;
+    procedure SyncAllToggles;
+
+    property OptiPatcherToggle: TToggleSwitch read FOptiPatcherToggle;
+    property SpoofToggle: TToggleSwitch read FSpoofToggle;
+    property ForceFsr4Toggle: TToggleSwitch read FForceFsr4Toggle;
+    property ForceMlfgToggle: TToggleSwitch read FForceMlfgToggle;
+    property ForceReflexToggle: TToggleSwitch read FForceReflexToggle;
+    property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
   end;
 
 function OsHexToKeyStr(const HexStr: string): string;
@@ -39,6 +56,42 @@ uses bgmod_resources;
 constructor TOptiScalerTabHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
+  FOsToggles := TFPList.Create;
+end;
+
+destructor TOptiScalerTabHelper.Destroy;
+begin
+  FOsToggles.Free;
+  inherited Destroy;
+end;
+
+function TOptiScalerTabHelper.PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
+begin
+  Result := TToggleSwitch.Create(FForm);
+  Result.Parent := AParent;
+  Result.LinkToCheckBox(ACheckBox);
+  Result.Height := 20;
+  Result.Width  := Result.GetOptimalWidth;
+  FOsToggles.Add(Result);
+end;
+
+procedure TOptiScalerTabHelper.SyncAllToggles;
+var
+  i: Integer;
+begin
+  if Assigned(FForm) then
+  begin
+    if Assigned(FForm.optipatcherCheckBox) then FForm.optipatcherCheckBox.Visible := False;
+    if Assigned(FForm.spoofCheckBox) then FForm.spoofCheckBox.Visible := False;
+    if Assigned(FForm.forceFsr4Int8CheckBox) then FForm.forceFsr4Int8CheckBox.Visible := False;
+    if Assigned(FForm.emufp8CheckBox) then FForm.emufp8CheckBox.Visible := False;
+    if Assigned(FForm.forcereflexCheckBox) then FForm.forcereflexCheckBox.Visible := False;
+    if Assigned(FForm.forcelatencyflexCheckBox) then FForm.forcelatencyflexCheckBox.Visible := False;
+  end;
+
+  if Assigned(FOsToggles) then
+    for i := 0 to FOsToggles.Count - 1 do
+      TToggleSwitch(FOsToggles[i]).SyncFromLinked;
 end;
 
 function OsHexToKeyStr(const HexStr: string): string;
@@ -500,6 +553,8 @@ begin
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
     optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Parent  := FOsMainSec;
+    if FOptiPatcherToggle = nil then
+      FOptiPatcherToggle := PlaceOsToggle(optipatcherCheckBox, FOsMainSec);
 
     patcherlistLabel.Visible := False;
 
@@ -579,13 +634,19 @@ begin
     spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
     spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
     spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Parent  := FOsSpatialSec;
+    if FSpoofToggle = nil then
+      FSpoofToggle := PlaceOsToggle(spoofCheckBox, FOsSpatialSec);
 
     forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
     forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
     forceFsr4Int8CheckBox.Caption := 'Force FSR4-i8';
+    forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
+    forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
     forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
     forceFsr4Int8CheckBox.Anchors := [akLeft, akTop]; forceFsr4Int8CheckBox.Parent  := FOsSpatialSec;
+    if FForceFsr4Toggle = nil then
+      FForceFsr4Toggle := PlaceOsToggle(forceFsr4Int8CheckBox, FOsSpatialSec);
 
     // --- Sub-card 3: Temporal Upscaler controls ---
     if fgInputLabel = nil then
@@ -635,6 +696,8 @@ begin
     emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
     emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
     emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Parent  := FOsTemporalSec;
+    if FForceMlfgToggle = nil then
+      FForceMlfgToggle := PlaceOsToggle(emufp8CheckBox, FOsTemporalSec);
 
     // Hide legacy FSR version controls
     fsrversionLabel.Visible := False;
@@ -650,6 +713,8 @@ begin
     forcereflexCheckBox.AnchorSideRight.Control  := nil; forcereflexCheckBox.AnchorSideBottom.Control := nil;
     forcereflexCheckBox.Anchors := [akLeft, akTop]; forcereflexCheckBox.Top := 45;
     forcereflexCheckBox.Parent  := FOsFakeSec;
+    if FForceReflexToggle = nil then
+      FForceReflexToggle := PlaceOsToggle(forcereflexCheckBox, FOsFakeSec);
 
     reflexComboBox.AnchorSideLeft.Control   := nil; reflexComboBox.AnchorSideTop.Control    := nil;
     reflexComboBox.AnchorSideRight.Control  := nil; reflexComboBox.AnchorSideBottom.Control := nil;
@@ -660,6 +725,8 @@ begin
     forcelatencyflexCheckBox.AnchorSideRight.Control  := nil; forcelatencyflexCheckBox.AnchorSideBottom.Control := nil;
     forcelatencyflexCheckBox.Anchors := [akLeft, akTop]; forcelatencyflexCheckBox.Top := 115;
     forcelatencyflexCheckBox.Parent  := FOsFakeSec;
+    if FForceLatencyFlexToggle = nil then
+      FForceLatencyFlexToggle := PlaceOsToggle(forcelatencyflexCheckBox, FOsFakeSec);
 
     latencyflexComboBox.AnchorSideLeft.Control   := nil; latencyflexComboBox.AnchorSideTop.Control    := nil;
     latencyflexComboBox.AnchorSideRight.Control  := nil; latencyflexComboBox.AnchorSideBottom.Control := nil;
@@ -1127,9 +1194,18 @@ begin
       if Assigned(menuscaleComboBox) then
         menuscaleComboBox.SetBounds(10, Y0 + 74, ComboW, 26);
 
-      optipatcherCheckBox.SetBounds(10, Y0 + 124, 95, 20);
-      if Assigned(FOsPatcherListBtn) then
-        FOsPatcherListBtn.SetBounds(108, Y0 + 122, 22, 22);
+      if Assigned(FOptiPatcherToggle) then
+      begin
+        FOptiPatcherToggle.SetBounds(10, Y0 + 124, FOptiPatcherToggle.GetOptimalWidth, 20);
+        if Assigned(FOsPatcherListBtn) then
+          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 122, 22, 22);
+      end
+      else
+      begin
+        optipatcherCheckBox.SetBounds(10, Y0 + 124, 95, 20);
+        if Assigned(FOsPatcherListBtn) then
+          FOsPatcherListBtn.SetBounds(108, Y0 + 122, 22, 22);
+      end;
 
       shortcutkeyLabel.SetBounds(10, Y0 + 166, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
@@ -1149,8 +1225,15 @@ begin
       preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
       preferredUpscalerComboBox.SetBounds(10, Y0 + 18, ComboW, 26);
 
-      spoofCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
-      forceFsr4Int8CheckBox.SetBounds(10, Y0 + 88, ColW - 20, 20);
+      if Assigned(FSpoofToggle) then
+        FSpoofToggle.SetBounds(10, Y0 + 56, ColW - 20, 20)
+      else
+        spoofCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
+
+      if Assigned(FForceFsr4Toggle) then
+        FForceFsr4Toggle.SetBounds(10, Y0 + 88, ColW - 20, 20)
+      else
+        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 88, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler
@@ -1164,7 +1247,10 @@ begin
       fgOutputLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
       fgOutputComboBox.SetBounds(10, Y0 + 74, ComboW, 26);
 
-      emufp8CheckBox.SetBounds(10, Y0 + 124, ColW - 20, 20);
+      if Assigned(FForceMlfgToggle) then
+        FForceMlfgToggle.SetBounds(10, Y0 + 124, ColW - 20, 20)
+      else
+        emufp8CheckBox.SetBounds(10, Y0 + 124, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 4: Reflex / Antilag
@@ -1172,15 +1258,23 @@ begin
     begin
       if Assigned(FOsFakeLbl) then FOsFakeLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      forcereflexCheckBox.SetBounds(10, Y0, ColW - 20, 20);
+      if Assigned(FForceReflexToggle) then
+        FForceReflexToggle.SetBounds(10, Y0, ColW - 20, 20)
+      else
+        forcereflexCheckBox.SetBounds(10, Y0, ColW - 20, 20);
       reflexComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
-      forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
+      if Assigned(FForceLatencyFlexToggle) then
+        FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, ColW - 20, 20)
+      else
+        forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
       latencyflexComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       overrideCheckBox.Visible := False;
       tracelogCheckBox.Visible := False;
     end;
+
+    SyncAllToggles;
 
     // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
     FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
@@ -1349,6 +1443,7 @@ begin
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
+    SyncAllToggles;
   end;
 end;
 
