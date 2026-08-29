@@ -1032,7 +1032,7 @@ begin
       InnerW := CardW - 2 * PAD;
 
       LogoW_None := 48;
-      LogoW_Opti := 114;
+      LogoW_Opti := 84;
       LogoW_De   := 62;
 
       GroupW_None := 22 + LogoW_None;
@@ -1057,11 +1057,11 @@ begin
       if Assigned(noneUpscalerLogoImage) then
         noneUpscalerLogoImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
 
-      // Column 2: OptiScaler (middle)
+      // Column 2: OptiScaler (middle, 2-lines stacked)
       if Assigned(optiscalerRadioButton) then
         optiscalerRadioButton.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(optiscalerLogoImage) then
-        optiscalerLogoImage.SetBounds(X2 + 22, HDR + (GPU_GH - 22) div 2, LogoW_Opti, 22);
+        optiscalerLogoImage.SetBounds(X2 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Opti, 36);
 
       // Column 3: DLSS Enabler (rightmost, 2-lines stacked)
       if Assigned(dlssenablerRadioButton) then
