@@ -116,6 +116,7 @@ type
     procedure TestToggleSwitchAutoSave;
     procedure TestOptiScalerTogglesLoadFromDisk;
     procedure TestGlobalToolTogglesPersistenceAcrossLaunches;
+    procedure TestGameCardFallbackCoverGeneration;
   end;
 
 implementation
@@ -1149,6 +1150,36 @@ begin
     AssertFalse(Format('Nav tool %d remains disabled on 3rd launch', [i]), goverlayform.FNavToolEnabled[i]);
     if Assigned(goverlayform.FNavToolBtns[i]) then
       AssertEquals(Format('Nav tool %d button image index is 0 (OFF) on 3rd launch', [i]), 0, goverlayform.FNavToolBtns[i].ImageIndex);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGameCardFallbackCoverGeneration;
+var
+  CoverPath: string;
+  Jpg: TJPEGImage;
+begin
+  CoverPath := GetTempDir + 'test_cover_fallback_' + IntToStr(GetProcessID) + '.jpg';
+  try
+    if FileExists(CoverPath) then DeleteFile(CoverPath);
+    if FileExists(CoverPath + '.fallback') then DeleteFile(CoverPath + '.fallback');
+
+    GenerateFallbackCover(CoverPath, goverlayform);
+
+    AssertTrue('Fallback cover JPEG was created', FileExists(CoverPath));
+    AssertTrue('Fallback marker file was created', FileExists(CoverPath + '.fallback'));
+    AssertTrue('Fallback cover file is not empty', FileSize(CoverPath) > 0);
+
+    Jpg := TJPEGImage.Create;
+    try
+      Jpg.LoadFromFile(CoverPath);
+      AssertEquals('Fallback cover width matches CARD_W (150)', 150, Jpg.Width);
+      AssertEquals('Fallback cover height matches CARD_H (215)', 215, Jpg.Height);
+    finally
+      Jpg.Free;
+    end;
+  finally
+    if FileExists(CoverPath) then DeleteFile(CoverPath);
+    if FileExists(CoverPath + '.fallback') then DeleteFile(CoverPath + '.fallback');
   end;
 end;
 

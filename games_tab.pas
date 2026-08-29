@@ -325,18 +325,24 @@ var
   IconSize: Integer;
 begin
   if not Assigned(AForm) then Exit;
-  IconPath := AForm.GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+  IconPath := AForm.GetAppBaseDir + 'assets/icons/goverlay.png';
   if not FileExists(IconPath) then
-    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
+    IconPath := AForm.GetAppBaseDir + 'data/icons/256x256/goverlay.png';
+  if not FileExists(IconPath) then
+    IconPath := AForm.GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+  if not FileExists(IconPath) then
+    IconPath := '/usr/share/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png';
   if not FileExists(IconPath) then
     IconPath := '/usr/share/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png';
+  if not FileExists(IconPath) then
+    IconPath := '/usr/share/icons/hicolor/128x128/apps/goverlay.png';
 
   WriteLn(StdErr, '[CoverThread] GenerateFallbackCover APath="', APath, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
 
   Bmp := TBitmap.Create;
   try
     Bmp.SetSize(CARD_W, CARD_H);
-    Bmp.Canvas.Brush.Color := $252525; // Dark background
+    Bmp.Canvas.Brush.Color := RGBToColor(32, 36, 44); // #20242C Dark background
     Bmp.Canvas.FillRect(Rect(0, 0, CARD_W, CARD_H));
 
     if FileExists(IconPath) then
@@ -344,12 +350,12 @@ begin
       Png := TPortableNetworkGraphic.Create;
       try
         Png.LoadFromFile(IconPath);
-        IconSize := 96; // 96x96 centered inside 150x215
+        IconSize := 84; // 84x84 centered with offset for title
         DestRect := Rect(
           (CARD_W - IconSize) div 2,
-          (CARD_H - IconSize) div 2,
+          (CARD_H - IconSize) div 2 - 10,
           (CARD_W - IconSize) div 2 + IconSize,
-          (CARD_H - IconSize) div 2 + IconSize
+          (CARD_H - IconSize) div 2 - 10 + IconSize
         );
         Bmp.Canvas.StretchDraw(DestRect, Png);
       finally
@@ -654,6 +660,8 @@ begin
     // Already cached?
     if FileExists(FItems[i].CachePath) then
     begin
+      if FileExists(FItems[i].CachePath + '.fallback') then
+        GenerateFallbackCover(FItems[i].CachePath, FForm);
       FCurrentCardIdx := FItems[i].CardIndex;
       FCurrentPath := FItems[i].CachePath;
       FCurrentIsFallback := FileExists(FItems[i].CachePath + '.fallback');
@@ -1139,6 +1147,8 @@ begin
           // Load local image or queue for CDN download
           if FileExists(ImagePath) and (FileSize(ImagePath) > 0) then
           begin
+            if FileExists(ImagePath + '.fallback') then
+              GenerateFallbackCover(ImagePath, FForm);
             try
               CardImage.Picture.LoadFromFile(ImagePath);
             except
@@ -1537,6 +1547,8 @@ begin
 
             if FileExists(CachePath) and (FileSize(CachePath) > 0) then
             begin
+              if FileExists(CachePath + '.fallback') then
+                GenerateFallbackCover(CachePath, FForm);
               try
                 CardImage.Picture.LoadFromFile(CachePath);
                 HasCover := True;
