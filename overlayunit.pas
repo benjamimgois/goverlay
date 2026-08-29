@@ -740,9 +740,6 @@ type
     FMtCpuCard:      TPanel; }
 
     // Custom env groupbox (Tweaks tab)
-    FTweaksHelper:    TObject;
-    FOptiScalerHelper: TObject;
-    FHomeHelper:       TObject;
 
     // Moved to public:
     {     FOsStatDots:     array[0..5] of TShape;   // 0=OptiScaler 1=FakeNVAPI 2=FSR 3=XeSS 4=DLSS 5=OptiPatcher
@@ -1245,9 +1242,12 @@ type
     FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1
     FProtonLocalShaderCacheCheckBox: TCheckBox; // PROTON_LOCAL_SHADER_CACHE=1
     FProtonDiscordBridgeCheckBox: TCheckBox;   // PROTON_DISCORD_BRIDGE=1
-    FGamesHelper:     TObject;
-    FBasaltHelper:    TObject;
-    FMangoHelper:     TObject;
+    FGamesHelper:      TObject;
+    FBasaltHelper:     TObject;
+    FMangoHelper:      TObject;
+    FTweaksHelper:     TObject;
+    FOptiScalerHelper: TObject;
+    FHomeHelper:       TObject;
 
     // Navigation rail fields (moved from private)
     FNavItems:       array of TPanel;    // item panels
@@ -1635,7 +1635,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, toggle_switch;
 
 function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
@@ -2364,6 +2364,8 @@ procedure Tgoverlayform.SyncAllToggles;
 begin
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).SyncAllToggles;
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).SyncAllToggles;
 end;
 
 procedure Tgoverlayform.LoadVkBasaltConfig;
@@ -7275,6 +7277,13 @@ procedure Tgoverlayform.WireAutoSaveEvents;
       begin
         if not Assigned(TCheckBox(Ctrl).OnClick) then
           TCheckBox(Ctrl).OnClick := @GenericControlClick;
+        if not Assigned(TCheckBox(Ctrl).OnChange) then
+          TCheckBox(Ctrl).OnChange := @GenericControlChange;
+      end
+      else if Ctrl is TToggleSwitch then
+      begin
+        if not Assigned(TToggleSwitch(Ctrl).OnChange) then
+          TToggleSwitch(Ctrl).OnChange := @GenericControlChange;
       end
       else if Ctrl is TRadioButton then
       begin

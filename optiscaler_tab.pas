@@ -45,6 +45,7 @@ type
     property ForceMlfgToggle: TToggleSwitch read FForceMlfgToggle;
     property ForceReflexToggle: TToggleSwitch read FForceReflexToggle;
     property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
+    property OsToggles: TFPList read FOsToggles;
   end;
 
 function OsHexToKeyStr(const HexStr: string): string;
@@ -637,14 +638,17 @@ begin
     if FSpoofToggle = nil then
       FSpoofToggle := PlaceOsToggle(spoofCheckBox, FOsSpatialSec);
 
-    forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
-    forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
-    forceFsr4Int8CheckBox.Caption := 'Force FSR4-i8';
-    forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
-    forceFsr4Int8CheckBox.ShowHint := True;
-    forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
-    forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
-    forceFsr4Int8CheckBox.Anchors := [akLeft, akTop]; forceFsr4Int8CheckBox.Parent  := FOsSpatialSec;
+    if forceFsr4Int8CheckBox = nil then
+    begin
+      forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
+      forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
+      forceFsr4Int8CheckBox.Caption := 'Force FSR4-i8';
+      forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
+      forceFsr4Int8CheckBox.ShowHint := True;
+      forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
+      forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
+      forceFsr4Int8CheckBox.Anchors := [akLeft, akTop]; forceFsr4Int8CheckBox.Parent  := FOsSpatialSec;
+    end;
     if FForceFsr4Toggle = nil then
       FForceFsr4Toggle := PlaceOsToggle(forceFsr4Int8CheckBox, FOsSpatialSec);
 
@@ -1274,7 +1278,7 @@ begin
       tracelogCheckBox.Visible := False;
     end;
 
-    SyncAllToggles;
+    Self.SyncAllToggles;
 
     // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
     FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
@@ -1443,7 +1447,7 @@ begin
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
-    SyncAllToggles;
+    Self.SyncAllToggles;
   end;
 end;
 

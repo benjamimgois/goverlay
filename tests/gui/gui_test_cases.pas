@@ -113,12 +113,14 @@ type
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
+    procedure TestToggleSwitchAutoSave;
+    procedure TestOptiScalerTogglesLoadFromDisk;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -970,6 +972,105 @@ begin
   AssertTrue('hudtitleEdit OnChange wired to autosave', Assigned(goverlayform.hudtitleEdit.OnChange));
   AssertTrue('cpunameEdit OnChange wired to autosave', Assigned(goverlayform.cpunameEdit.OnChange));
   AssertTrue('customenvEdit OnChange wired to autosave', Assigned(goverlayform.customenvEdit.OnChange));
+end;
+
+procedure TGoverlayGuiTests.TestToggleSwitchAutoSave;
+var
+  Helper: TOptiScalerTabHelper;
+  Content: string;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.mesaRadioButton.Checked := True;
+  goverlayform.WireAutoSaveEvents;
+
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+  AssertTrue('OptiScalerHelper assigned', Assigned(Helper));
+  AssertTrue('SpoofToggle assigned', Assigned(Helper.SpoofToggle));
+  AssertTrue('SpoofToggle OnChange wired to autosave', Assigned(Helper.SpoofToggle.OnChange));
+
+  // Toggle switch to True and verify auto-save wrote to disk
+  Helper.SpoofToggle.Checked := True;
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('Dxgi=auto persisted via toggle autosave', Pos('Dxgi=auto', Content) > 0);
+
+  // Toggle switch to False and verify auto-save wrote to disk
+  Helper.SpoofToggle.Checked := False;
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('Dxgi=false persisted via toggle autosave', Pos('Dxgi=false', Content) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestOptiScalerTogglesLoadFromDisk;
+var
+  Helper: TOptiScalerTabHelper;
+  OptiLines, FakeLines, BgLines: TStringList;
+begin
+  SeedOptiScalerFiles;
+  goverlayform.mesaRadioButton.Checked := True;
+
+  // Write all toggles as enabled into config files on disk
+  OptiLines := TStringList.Create;
+  try
+    OptiLines.Add('[Upscalers]');
+    OptiLines.Add('Dx12=auto');
+    OptiLines.Add('[FSR]');
+    OptiLines.Add('Fsr4ForceEnableInt8=true');
+    OptiLines.Add('[Plugins]');
+    OptiLines.Add('LoadAsiPlugins=true');
+    OptiLines.Add('[Spoofing]');
+    OptiLines.Add('Dxgi=auto');
+    OptiLines.SaveToFile(OptiIniPath);
+  finally
+    OptiLines.Free;
+  end;
+
+  FakeLines := TStringList.Create;
+  try
+    FakeLines.Add('[fakenvapi]');
+    FakeLines.Add('force_reflex=0');
+    FakeLines.Add('force_latencyflex=1');
+    FakeLines.Add('latencyflex_mode=1');
+    FakeLines.SaveToFile(FakeIniPath);
+  finally
+    FakeLines.Free;
+  end;
+
+  BgLines := TStringList.Create;
+  try
+    BgLines.Add('[Config]');
+    BgLines.Add('GOVERLAY_OPTISCALER=1');
+    BgLines.Add('DLL=dxgi.dll');
+    BgLines.Add('[Env]');
+    BgLines.Add('DXIL_SPIRV_CONFIG=wmma_rdna3_workaround');
+    BgLines.SaveToFile(BgmodConfPath);
+  finally
+    BgLines.Free;
+  end;
+
+  // Trigger loading of OptiScaler tab and config
+  NavigateOptiScalerTab;
+  goverlayform.optiscalerTabSheetShow(nil);
+
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+  AssertTrue('OptiScalerHelper assigned', Assigned(Helper));
+
+  AssertTrue('optipatcherCheckBox is Checked', goverlayform.optipatcherCheckBox.Checked);
+  AssertTrue('FOptiPatcherToggle is Checked', Helper.OptiPatcherToggle.Checked);
+
+  AssertTrue('spoofCheckBox is Checked', goverlayform.spoofCheckBox.Checked);
+  AssertTrue('FSpoofToggle is Checked', Helper.SpoofToggle.Checked);
+
+  AssertTrue('forceFsr4Int8CheckBox is Checked', goverlayform.forceFsr4Int8CheckBox.Checked);
+  AssertTrue('FForceFsr4Toggle is Checked', Helper.ForceFsr4Toggle.Checked);
+
+  AssertTrue('emufp8CheckBox is Checked', goverlayform.emufp8CheckBox.Checked);
+  AssertTrue('FForceMlfgToggle is Checked', Helper.ForceMlfgToggle.Checked);
+
+  AssertTrue('forcereflexCheckBox is Checked', goverlayform.forcereflexCheckBox.Checked);
+  AssertTrue('FForceReflexToggle is Checked', Helper.ForceReflexToggle.Checked);
+
+  AssertTrue('forcelatencyflexCheckBox is Checked', goverlayform.forcelatencyflexCheckBox.Checked);
+  AssertTrue('FForceLatencyFlexToggle is Checked', Helper.ForceLatencyFlexToggle.Checked);
 end;
 
 procedure TGoverlayGuiTests.TestOptiLatencyFlexSave;
