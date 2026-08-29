@@ -2092,6 +2092,8 @@ begin
   AssertTrue('fpscolorCheckBox reloaded', goverlayform.fpscolorCheckBox.Checked);
   AssertEquals('fpscolor2SpinEdit reloaded', 45, goverlayform.fpscolor2SpinEdit.Value);
   AssertEquals('fpscolor3SpinEdit reloaded', 90, goverlayform.fpscolor3SpinEdit.Value);
+  AssertEquals('fpscolor2SpinEdit Increment is 1', 1, goverlayform.fpscolor2SpinEdit.Increment);
+  AssertEquals('fpscolor3SpinEdit Increment is 1', 1, goverlayform.fpscolor3SpinEdit.Increment);
 
   // Reverse
   goverlayform.fpslimmetComboBox.ItemIndex := 0; // late

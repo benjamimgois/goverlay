@@ -6658,7 +6658,6 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
-            Increment = 0
             MaxValue = 999
             ParentColor = True
             ParentFont = False
@@ -6684,7 +6683,6 @@ object goverlayform: Tgoverlayform
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
             Font.Style = [fsBold]
-            Increment = 0
             MaxValue = 999
             ParentColor = True
             ParentFont = False
