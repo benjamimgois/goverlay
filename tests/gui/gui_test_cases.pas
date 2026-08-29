@@ -115,12 +115,13 @@ type
     procedure TestDynamicLaunchCommandGeneration;
     procedure TestToggleSwitchAutoSave;
     procedure TestOptiScalerTogglesLoadFromDisk;
+    procedure TestGlobalToolTogglesPersistenceAcrossLaunches;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -1071,6 +1072,84 @@ begin
 
   AssertTrue('forcelatencyflexCheckBox is Checked', goverlayform.forcelatencyflexCheckBox.Checked);
   AssertTrue('FForceLatencyFlexToggle is Checked', Helper.ForceLatencyFlexToggle.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestGlobalToolTogglesPersistenceAcrossLaunches;
+var
+  GlobalConfPath: string;
+  Ini: TIniFile;
+  i: Integer;
+begin
+  // Set Global mode
+  goverlayform.FActiveGameName := '';
+  GlobalConfPath := goverlayform.GetGameConfigDir('') + 'bgmod.conf';
+
+  // 1. Initial State: Toggle all tools ON first
+  for i := 0 to 3 do
+  begin
+    goverlayform.FNavToolEnabled[i] := True;
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+    begin
+      goverlayform.FNavToolBtns[i].Tag := i;
+      // Click to toggle OFF
+      goverlayform.NavToolToggleClick(goverlayform.FNavToolBtns[i]);
+    end;
+  end;
+
+  // Verify all tools are disabled in UI
+  for i := 0 to 3 do
+  begin
+    AssertFalse(Format('Nav tool %d disabled in FNavToolEnabled', [i]), goverlayform.FNavToolEnabled[i]);
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+      AssertEquals(Format('Nav tool %d button image index is 0 (OFF)', [i]), 0, goverlayform.FNavToolBtns[i].ImageIndex);
+  end;
+
+  // Verify written to disk in bgmod.conf
+  AssertTrue('Global bgmod.conf exists', FileExists(GlobalConfPath));
+  Ini := TIniFile.Create(GlobalConfPath);
+  try
+    AssertEquals('GOVERLAY_MANGOHUD is 0', '0', Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '1'));
+    AssertEquals('GOVERLAY_VKBASALT is 0', '0', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '1'));
+    AssertEquals('GOVERLAY_OPTISCALER is 0', '0', Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '1'));
+    AssertEquals('GOVERLAY_TWEAKS is 0', '0', Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '1'));
+  finally
+    Ini.Free;
+  end;
+
+  // 2. Simulate 2nd Launch (startup init and loading)
+  InitializeGlobalConfigDirectory;
+  goverlayform.LoadGameToggleStates;
+
+  // Verify all tools remain disabled after 2nd launch
+  for i := 0 to 3 do
+  begin
+    AssertFalse(Format('Nav tool %d remains disabled on 2nd launch', [i]), goverlayform.FNavToolEnabled[i]);
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+      AssertEquals(Format('Nav tool %d button image index is 0 (OFF) on 2nd launch', [i]), 0, goverlayform.FNavToolBtns[i].ImageIndex);
+  end;
+
+  // Verify bgmod.conf was not overwritten with defaults
+  Ini := TIniFile.Create(GlobalConfPath);
+  try
+    AssertEquals('GOVERLAY_MANGOHUD is still 0 on 2nd launch', '0', Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '1'));
+    AssertEquals('GOVERLAY_VKBASALT is still 0 on 2nd launch', '0', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '1'));
+    AssertEquals('GOVERLAY_OPTISCALER is still 0 on 2nd launch', '0', Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '1'));
+    AssertEquals('GOVERLAY_TWEAKS is still 0 on 2nd launch', '0', Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '1'));
+  finally
+    Ini.Free;
+  end;
+
+  // 3. Simulate 3rd Launch
+  InitializeGlobalConfigDirectory;
+  goverlayform.LoadGameToggleStates;
+
+  // Verify all tools remain disabled after 3rd launch
+  for i := 0 to 3 do
+  begin
+    AssertFalse(Format('Nav tool %d remains disabled on 3rd launch', [i]), goverlayform.FNavToolEnabled[i]);
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+      AssertEquals(Format('Nav tool %d button image index is 0 (OFF) on 3rd launch', [i]), 0, goverlayform.FNavToolBtns[i].ImageIndex);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestOptiLatencyFlexSave;
