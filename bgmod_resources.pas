@@ -498,6 +498,7 @@ begin
       Proc.Parameters.Add('rsync -a --no-owner --no-group' +
                           ' --exclude=bgmod.conf --exclude=goverlay.vars' +
                           ' --exclude=OptiScaler.ini --exclude=fakenvapi.ini' +
+                          ' --exclude="*.conf" --exclude="*.ini"' +
                           ' ' + QuotedStr(IncludeTrailingPathDelimiter(BGModPath)) +
                           ' ' + QuotedStr(GlobalCfgDir) +
                           ' 2>/dev/null');

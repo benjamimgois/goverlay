@@ -4813,6 +4813,9 @@ begin
     HideGameThumb;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
     SetSaveBtnEnabled(True);
+    FLaunchCommand := GetLaunchCommand;
+    if Assigned(commandPaintBox) then
+      commandPaintBox.Invalidate;
 
     // Re-point the OptiScaler tab at the global config dir and reload versions
     // so Software status reflects gameconfig/global/ instead of the last game.
@@ -7252,13 +7255,13 @@ end;
 
 procedure Tgoverlayform.GenericControlClick(Sender: TObject);
 begin
-  if FLoadingConfig then Exit;
+  if FLoadingConfig or FClosing then Exit;
   TriggerAutoSave;
 end;
 
 procedure Tgoverlayform.GenericControlChange(Sender: TObject);
 begin
-  if FLoadingConfig then Exit;
+  if FLoadingConfig or FClosing then Exit;
   TriggerAutoSave;
 end;
 
@@ -7338,7 +7341,7 @@ end;
 
 procedure Tgoverlayform.TriggerAutoSave;
 begin
-  if FLoadingConfig then Exit;
+  if FLoadingConfig or FClosing then Exit;
   saveBitBtnClick(nil);
   ShowSavedStatus;
 end;

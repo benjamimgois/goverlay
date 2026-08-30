@@ -2260,6 +2260,9 @@ begin
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   LoadMangoHudConfig;
+  FLaunchCommand := GetLaunchCommand;
+  if Assigned(commandPaintBox) then
+    commandPaintBox.Invalidate;
   end;
 end;
 
@@ -3099,6 +3102,9 @@ begin
     UpdateGameContextLabel;
     HideGameThumb;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
+    FLaunchCommand := GetLaunchCommand;
+    if Assigned(commandPaintBox) then
+      commandPaintBox.Invalidate;
   end;
   end;
 end;

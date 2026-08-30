@@ -2194,18 +2194,18 @@ begin
       FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
       FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
 
-      // Create Flatpak directory if it doesn't exist
-      if not DirectoryExists(FlatpakSteamConfigDir) and DirectoryExists(GetUserDir + '.var') then
-        ForceDirectories(FlatpakSteamConfigDir)
-      else
-        WriteLn('[WARN] SaveMangoHudConfigCore: ~/.var does not exist, skipping saving config for Steam Flatpak');
-
-      if DirectoryExists(FlatpakSteamConfigDir) then
+      if DirectoryExists(GetUserDir + '.var') then
       begin
-        // Save the same configuration to Flatpak location
-        ConfigLines.SaveToFile(FlatpakMangoHudFile);
-        WriteLn('[DEBUG] SaveMangoHudConfigCore: Configuration also saved to Steam Flatpak location: ', FlatpakMangoHudFile);
-      end
+        if not DirectoryExists(FlatpakSteamConfigDir) then
+          ForceDirectories(FlatpakSteamConfigDir);
+
+        if DirectoryExists(FlatpakSteamConfigDir) then
+        begin
+          // Save the same configuration to Flatpak location
+          ConfigLines.SaveToFile(FlatpakMangoHudFile);
+          WriteLn('[DEBUG] SaveMangoHudConfigCore: Configuration also saved to Steam Flatpak location: ', FlatpakMangoHudFile);
+        end;
+      end;
     except
       on E: Exception do
         WriteLn('[WARN] SaveMangoHudConfigCore: Could not save to Steam Flatpak location: ', E.Message);

@@ -517,20 +517,6 @@ begin
   begin
     SetGameToolEnabled(FForm.FActiveGameName, Idx, NewEnabled);
     GameCfgDir := FForm.GetGameConfigDir(FForm.FActiveGameName);
-    if not NewEnabled then
-    begin
-      // Delete the tool's config file when disabling (indices 0-2 only)
-      ConfigFiles[0] := GameCfgDir + 'MangoHud.conf';
-      ConfigFiles[1] := GameCfgDir + 'vkBasalt.conf';
-      ConfigFiles[2] := GameCfgDir + 'OptiScaler.ini';
-      if (Idx <= 2) and FileExists(ConfigFiles[Idx]) then
-        DeleteFile(ConfigFiles[Idx]);
-      if (Idx = 1) and FileExists(GameCfgDir + 'vkSumi.conf') then
-        DeleteFile(GameCfgDir + 'vkSumi.conf');
-      // Tweaks: remove all tweak export lines from the game's fgmod
-      if Idx = 3 then
-        RemoveTweaksFromGameFGMod(GameCfgDir + 'fgmod');
-    end;
     // Ensure conditional export lines exist in the fgmod for tools that need them.
     // The GOVERLAY_X flag (set above) controls whether each line actually runs.
     if Idx = 0 then
@@ -546,40 +532,19 @@ begin
         '[[ "$GOVERLAY_VKSUMI" == "1" ]] && export ENABLE_VKSUMI=1',
         'ENABLE_VKSUMI=1');
     end;
-    // OptiScaler toggle copies/removes all OptiScaler files and patches fgmod
+    // OptiScaler toggle updates wine DLL overrides and seeds template files if enabled
     if Idx = 2 then
     begin
       FForm.PatchGameFGModWineDllOverrides(GameCfgDir + 'fgmod', NewEnabled);
       if NewEnabled then
-        CopyOptiScalerGameFiles(GameCfgDir)
-      else
-        RemoveOptiScalerGameFiles(GameCfgDir);
+        CopyOptiScalerGameFiles(GameCfgDir);
     end;
   end
   else
   begin
     SetGameToolEnabled('', Idx, NewEnabled);
-    if NewEnabled then
-    begin
-      if Idx = 2 then
-        CopyOptiScalerGameFiles(FForm.GetGameConfigDir(''));
-    end
-    else
-    begin
-      if (Idx = 0) and FileExists(MANGOHUDCFGFILE) then
-        DeleteFile(MANGOHUDCFGFILE)
-      else if (Idx = 1) then
-      begin
-        if FileExists(VKBASALTCFGFILE) then
-          DeleteFile(VKBASALTCFGFILE);
-        if FileExists(VKSUMICFGFILE) then
-          DeleteFile(VKSUMICFGFILE);
-      end
-      else if (Idx = 2) then
-        RemoveOptiScalerGameFiles(FForm.GetGameConfigDir(''))
-      else if (Idx = 3) then
-        RemoveTweaksFromGameFGMod(FForm.GetGameConfigDir('') + 'fgmod');
-    end;
+    if NewEnabled and (Idx = 2) then
+      CopyOptiScalerGameFiles(FForm.GetGameConfigDir(''));
   end;
   ApplyToolEnabledState(Idx, NewEnabled);
 
@@ -679,9 +644,13 @@ begin
   if AGameName = '' then
   begin
     if AToolIdx = 0 then
-      DefaultVal := IfThen(FileExists(MANGOHUDCFGFILE), '1', '0')
+      DefaultVal := '1'
     else if AToolIdx = 1 then
-      DefaultVal := IfThen(FileExists(VKBASALTCFGFILE), '1', '0')
+      DefaultVal := '0'
+    else if AToolIdx = 2 then
+      DefaultVal := '0'
+    else if AToolIdx = 3 then
+      DefaultVal := '1'
     else
       DefaultVal := '0';
   end
@@ -838,28 +807,13 @@ procedure TSidebarNavHelper.RemoveTweaksFromGameFGMod(const AFGModFile: string);
 var
   ConfigPath: string;
   Ini: TIniFile;
-  EnvKeys: TStringList;
-  Key: string;
-  i: Integer;
 begin
   ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';
   if not FileExists(ConfigPath) then Exit;
   Ini := TIniFile.Create(ConfigPath);
-  EnvKeys := TStringList.Create;
   try
     Ini.WriteString('Config', 'GOVERLAY_TWEAKS', '0');
-    
-    // Read all keys in [Env] section and write them as '0'
-    Ini.ReadSection('Env', EnvKeys);
-    for i := 0 to EnvKeys.Count - 1 do
-    begin
-      Key := EnvKeys[i];
-      // Keep other tool configs intact, set everything else to '0'
-      if (Key <> 'DXIL_SPIRV_CONFIG') and (Key <> 'MANGOHUD_CONFIGFILE') then
-        Ini.WriteString('Env', Key, '0');
-    end;
   finally
-    EnvKeys.Free;
     Ini.Free;
   end;
 end;

@@ -118,6 +118,8 @@ type
     procedure TestOptiScalerTogglesLoadFromDisk;
     procedure TestGlobalToolTogglesPersistenceAcrossLaunches;
     procedure TestGameCardFallbackCoverGeneration;
+    procedure TestToolToggleOffPreservesConfigFiles;
+    procedure TestPerGameLaunchCommandImmediateUpdate;
   end;
 
 implementation
@@ -1181,6 +1183,114 @@ begin
   finally
     if FileExists(CoverPath) then DeleteFile(CoverPath);
     if FileExists(CoverPath + '.fallback') then DeleteFile(CoverPath + '.fallback');
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestToolToggleOffPreservesConfigFiles;
+var
+  GlobalConfDir, GlobalMangoPath, GlobalOptiPath, GlobalBgmodPath: string;
+  Lines: TStringList;
+  Ini: TIniFile;
+  i: Integer;
+begin
+  goverlayform.FActiveGameName := '';
+  GlobalConfDir := goverlayform.GetGameConfigDir('');
+  ForceDirectories(GlobalConfDir);
+  GlobalMangoPath := GlobalConfDir + 'MangoHud.conf';
+  GlobalOptiPath  := GlobalConfDir + 'OptiScaler.ini';
+  GlobalBgmodPath := GlobalConfDir + 'bgmod.conf';
+
+  // Seed custom MangoHud config
+  Lines := TStringList.Create;
+  try
+    Lines.Add('fps_limit=144');
+    Lines.Add('cpu_temp=1');
+    Lines.SaveToFile(GlobalMangoPath);
+  finally
+    Lines.Free;
+  end;
+
+  // Seed custom OptiScaler config
+  Lines := TStringList.Create;
+  try
+    Lines.Add('[Upscalers]');
+    Lines.Add('Dx12=xess');
+    Lines.SaveToFile(GlobalOptiPath);
+  finally
+    Lines.Free;
+  end;
+
+  // Seed custom bgmod.conf with custom [Env] variable
+  Lines := TStringList.Create;
+  try
+    Lines.Add('[Config]');
+    Lines.Add('GOVERLAY_MANGOHUD=1');
+    Lines.Add('GOVERLAY_OPTISCALER=1');
+    Lines.Add('GOVERLAY_TWEAKS=1');
+    Lines.Add('[Env]');
+    Lines.Add('CUSTOM_TEST_VAR=special_value');
+    Lines.SaveToFile(GlobalBgmodPath);
+  finally
+    Lines.Free;
+  end;
+
+  // Toggle OFF MangoHud, OptiScaler, and Tweaks
+  for i := 0 to 3 do
+  begin
+    goverlayform.FNavToolEnabled[i] := True;
+    if Assigned(goverlayform.FNavToolBtns[i]) then
+    begin
+      goverlayform.FNavToolBtns[i].Tag := i;
+      goverlayform.NavToolToggleClick(goverlayform.FNavToolBtns[i]);
+    end;
+  end;
+
+  // Verify bgmod.conf flags are 0
+  Ini := TIniFile.Create(GlobalBgmodPath);
+  try
+    AssertEquals('GOVERLAY_MANGOHUD is 0', '0', Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '1'));
+    AssertEquals('GOVERLAY_OPTISCALER is 0', '0', Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '1'));
+    AssertEquals('GOVERLAY_TWEAKS is 0', '0', Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '1'));
+    // Verify [Env] was NOT wiped
+    AssertEquals('CUSTOM_TEST_VAR is preserved', 'special_value', Ini.ReadString('Env', 'CUSTOM_TEST_VAR', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Verify MangoHud.conf and OptiScaler.ini were NOT deleted
+  AssertTrue('MangoHud.conf preserved on toggle off', FileExists(GlobalMangoPath));
+  AssertTrue('OptiScaler.ini preserved on toggle off', FileExists(GlobalOptiPath));
+  AssertTrue('MangoHud.conf content intact', Pos('fps_limit=144', ReadFileText(GlobalMangoPath)) > 0);
+  AssertTrue('OptiScaler.ini content intact', Pos('Dx12=xess', ReadFileText(GlobalOptiPath)) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestPerGameLaunchCommandImmediateUpdate;
+var
+  DummyCard: TPanel;
+  GlobalExpected, GameExpected: string;
+begin
+  goverlayform.FActiveGameName := '';
+  GlobalExpected := goverlayform.GetLaunchCommand;
+  AssertTrue('Global command references global dir', Pos('global', GlobalExpected) > 0);
+
+  // Simulate clicking a game card
+  DummyCard := TPanel.Create(goverlayform);
+  try
+    DummyCard.Parent := goverlayform;
+    DummyCard.Hint := '(99999) CyberTestGame' + LineEnding + '/games/CyberTestGame';
+    TGamesTabHelper(goverlayform.FGamesHelper).GameCardClick(DummyCard);
+
+    AssertEquals('FActiveGameName set to game', 'CyberTestGame', goverlayform.FActiveGameName);
+    GameExpected := goverlayform.GetLaunchCommand;
+    AssertTrue('FLaunchCommand updated immediately to CyberTestGame', Pos('CyberTestGame', goverlayform.FLaunchCommand) > 0);
+    AssertEquals('FLaunchCommand matches GetLaunchCommand', GameExpected, goverlayform.FLaunchCommand);
+
+    // Simulate clicking empty space on games tab to return to global
+    TGamesTabHelper(goverlayform.FGamesHelper).GamesEmptySpaceClick(nil);
+    AssertEquals('FActiveGameName cleared to global', '', goverlayform.FActiveGameName);
+    AssertTrue('FLaunchCommand reset immediately to global', Pos('global', goverlayform.FLaunchCommand) > 0);
+  finally
+    DummyCard.Free;
   end;
 end;
 
@@ -2968,16 +3078,21 @@ procedure TGoverlayGuiTests.TestMangoHudFrameTimingDetailed;
 var
   C: string;
 begin
+  NavigateMangoHud;
   AssertTrue('frametimedetailedCheckBox assigned', Assigned(goverlayform.frametimedetailedCheckBox));
   AssertEquals('frametimedetailedCheckBox caption', 'Frame Time +', goverlayform.frametimedetailedCheckBox.Caption);
 
   // 1. Initial state: frametimegraph unchecked -> detailed is disabled & unchecked
   goverlayform.frametimegraphCheckBox.Checked := False;
+  if Assigned(goverlayform.frametimegraphCheckBox.OnChange) then
+    goverlayform.frametimegraphCheckBox.OnChange(goverlayform.frametimegraphCheckBox);
   AssertFalse('frametimedetailedCheckBox disabled when frametime is unchecked', goverlayform.frametimedetailedCheckBox.Enabled);
   AssertFalse('frametimedetailedCheckBox unchecked when frametime is unchecked', goverlayform.frametimedetailedCheckBox.Checked);
 
   // 2. Checking frametimegraphCheckBox enables frametimedetailedCheckBox
   goverlayform.frametimegraphCheckBox.Checked := True;
+  if Assigned(goverlayform.frametimegraphCheckBox.OnChange) then
+    goverlayform.frametimegraphCheckBox.OnChange(goverlayform.frametimegraphCheckBox);
   AssertTrue('frametimedetailedCheckBox enabled when frametime is checked', goverlayform.frametimedetailedCheckBox.Enabled);
 
   // 3. Check frametimedetailedCheckBox and save config
@@ -2995,6 +3110,8 @@ begin
 
   // 5. Unchecking frametimegraph automatically unchecks and disables frametimedetailed
   goverlayform.frametimegraphCheckBox.Checked := False;
+  if Assigned(goverlayform.frametimegraphCheckBox.OnChange) then
+    goverlayform.frametimegraphCheckBox.OnChange(goverlayform.frametimegraphCheckBox);
   AssertFalse('frametimedetailedCheckBox unchecked on disabling frametime', goverlayform.frametimedetailedCheckBox.Checked);
   AssertFalse('frametimedetailedCheckBox disabled on disabling frametime', goverlayform.frametimedetailedCheckBox.Enabled);
 
