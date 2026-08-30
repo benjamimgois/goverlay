@@ -1676,7 +1676,10 @@ begin
   filterRadioGroup.AnchorSideLeft.Control := nil; filterRadioGroup.AnchorSideTop.Control := nil; filterRadioGroup.AnchorSideRight.Control := nil; filterRadioGroup.AnchorSideBottom.Control := nil; filterRadioGroup.Anchors := [akLeft, akTop];
   afLabel.AnchorSideLeft.Control := nil; afLabel.AnchorSideTop.Control := nil; afLabel.AnchorSideRight.Control := nil; afLabel.AnchorSideBottom.Control := nil; afLabel.Anchors := [akLeft, akTop];
   afTrackBar.AnchorSideLeft.Control := nil; afTrackBar.AnchorSideTop.Control := nil; afTrackBar.AnchorSideRight.Control := nil; afTrackBar.AnchorSideBottom.Control := nil; afTrackBar.Anchors := [akLeft, akTop];
-      mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
+  afvalueLabel.AnchorSideLeft.Control := nil; afvalueLabel.AnchorSideTop.Control := nil; afvalueLabel.AnchorSideRight.Control := nil; afvalueLabel.AnchorSideBottom.Control := nil; afvalueLabel.Anchors := [akLeft, akTop];
+  mipmapLabel.AnchorSideLeft.Control := nil; mipmapLabel.AnchorSideTop.Control := nil; mipmapLabel.AnchorSideRight.Control := nil; mipmapLabel.AnchorSideBottom.Control := nil; mipmapLabel.Anchors := [akLeft, akTop];
+  mipmapTrackBar.AnchorSideLeft.Control := nil; mipmapTrackBar.AnchorSideTop.Control := nil; mipmapTrackBar.AnchorSideRight.Control := nil; mipmapTrackBar.AnchorSideBottom.Control := nil; mipmapTrackBar.Anchors := [akLeft, akTop];
+  mipmapvalueLabel.AnchorSideLeft.Control := nil; mipmapvalueLabel.AnchorSideTop.Control := nil; mipmapvalueLabel.AnchorSideRight.Control := nil; mipmapvalueLabel.AnchorSideBottom.Control := nil; mipmapvalueLabel.Anchors := [akLeft, akTop];
 
   afTrackBar.Orientation := trHorizontal;
   afTrackBar.Reversed    := False;
@@ -1728,7 +1731,7 @@ var
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
   TabH, ActiveRow2H, FilterSecH: Integer;
-  FilterContentW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
+  FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
 begin
   with FForm do
   begin
@@ -1764,8 +1767,10 @@ begin
 
       FilterValW   := 35;
       FilterGapW   := 8;
-      FilterLeft   := 20;
-      FilterTrackW := FPerfFiltersSec.ClientWidth - FilterLeft - FilterGapW - FilterValW - 16;
+      FilterGroupW := Min(460, FPerfFiltersSec.ClientWidth - 40);
+      if FilterGroupW < 260 then FilterGroupW := 260;
+      FilterLeft   := (FPerfFiltersSec.ClientWidth - FilterGroupW) div 2;
+      FilterTrackW := FilterGroupW - FilterGapW - FilterValW;
       if FilterTrackW < 80 then FilterTrackW := 80;
 
       afLabel.Left          := FilterLeft;

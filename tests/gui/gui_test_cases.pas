@@ -2878,6 +2878,10 @@ begin
     goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
   AssertEquals('afTrackBar aligns with afLabel at normal width',
     goverlayform.afLabel.Left, goverlayform.afTrackBar.Left);
+  AssertEquals('afLabel and mipmapLabel align at normal width',
+    goverlayform.afLabel.Left, goverlayform.mipmapLabel.Left);
+  AssertEquals('afTrackBar and mipmapTrackBar align at normal width',
+    goverlayform.afTrackBar.Left, goverlayform.mipmapTrackBar.Left);
   AssertTrue('afvalueLabel is right of afTrackBar at normal width',
     goverlayform.afvalueLabel.Left >= goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width);
   AssertTrue('mipmapvalueLabel is right of mipmapTrackBar at normal width',
@@ -2890,6 +2894,10 @@ begin
     goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
   AssertEquals('afTrackBar aligns with afLabel at maximized width',
     goverlayform.afLabel.Left, goverlayform.afTrackBar.Left);
+  AssertEquals('afLabel and mipmapLabel align at maximized width',
+    goverlayform.afLabel.Left, goverlayform.mipmapLabel.Left);
+  AssertEquals('afTrackBar and mipmapTrackBar align at maximized width',
+    goverlayform.afTrackBar.Left, goverlayform.mipmapTrackBar.Left);
   AssertEquals('mipmapTrackBar aligns with mipmapLabel at maximized width',
     goverlayform.mipmapLabel.Left, goverlayform.mipmapTrackBar.Left);
   AssertTrue('afvalueLabel is right of afTrackBar at maximized width',
