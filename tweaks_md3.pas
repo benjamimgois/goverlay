@@ -377,7 +377,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
                      AChecked, AHover: Boolean; AIsCustom: Boolean);
   var
-    ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW: Integer;
+    ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW, p: Integer;
     CleanDesc, Prefix, BadgeText: string;
     BadgeBg, BadgeBorder, BadgeTxtColor: TColor;
     HasBadge: Boolean;
@@ -425,14 +425,22 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     HasBadge := False;
     CleanDesc := ADesc;
     BadgeText := '';
-    Prefix := '';
-    if Pos('[proton-cachyos]', ADesc) = 1 then
-      Prefix := '[proton-cachyos]'
-    else if Pos('[cachyos]', ADesc) = 1 then
-      Prefix := '[cachyos]';
-
-    if Prefix <> '' then
+    if Pos('[low_latency_layer]', ADesc) = 1 then
     begin
+      Prefix := '[low_latency_layer]';
+      HasBadge := True;
+      BadgeText := 'LowLatency';
+      BadgeBg := RGBToColor(52, 42, 22);
+      BadgeBorder := RGBToColor(160, 120, 35);
+      BadgeTxtColor := RGBToColor(245, 185, 55);
+      CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+    end
+    else if (Pos('[proton-cachyos]', ADesc) = 1) or (Pos('[cachyos]', ADesc) = 1) then
+    begin
+      if Pos('[proton-cachyos]', ADesc) = 1 then
+        Prefix := '[proton-cachyos]'
+      else
+        Prefix := '[cachyos]';
       HasBadge := True;
       BadgeText := 'CachyOS';
       BadgeBg := RGBToColor(42, 34, 66);
@@ -440,30 +448,42 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       BadgeTxtColor := RGBToColor(180, 140, 255);
       CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
     end
-    else
+    else if Pos('[MESA]', ADesc) = 1 then
     begin
       Prefix := '[MESA]';
-      if Pos(Prefix, ADesc) = 1 then
+      HasBadge := True;
+      BadgeText := 'MESA';
+      BadgeBg := RGBToColor(22, 44, 64);
+      BadgeBorder := RGBToColor(45, 125, 180);
+      BadgeTxtColor := RGBToColor(70, 195, 255);
+      CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+    end
+    else if (Pos('RADV', UpperCase(AVar)) > 0) or (Pos('RADV', UpperCase(ADesc)) > 0) then
+    begin
+      HasBadge := True;
+      BadgeText := 'RADEON';
+      BadgeBg := RGBToColor(55, 20, 20);
+      BadgeBorder := RGBToColor(210, 45, 45);
+      BadgeTxtColor := RGBToColor(255, 110, 110);
+      if Pos('[', CleanDesc) = 1 then
       begin
-        HasBadge := True;
-        BadgeText := 'MESA';
-        BadgeBg := RGBToColor(22, 44, 64);
-        BadgeBorder := RGBToColor(45, 125, 180);
-        BadgeTxtColor := RGBToColor(70, 195, 255);
-        CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
-      end
-      else
+        p := Pos(']', CleanDesc);
+        if p > 0 then
+          CleanDesc := Trim(Copy(CleanDesc, p + 1, MaxInt));
+      end;
+    end
+    else if (Pos('NVIDIA', UpperCase(AVar)) > 0) or (Pos('NVIDIA', UpperCase(ADesc)) > 0) then
+    begin
+      HasBadge := True;
+      BadgeText := 'NVIDIA';
+      BadgeBg := RGBToColor(18, 48, 24);
+      BadgeBorder := RGBToColor(60, 165, 75);
+      BadgeTxtColor := RGBToColor(115, 230, 125);
+      if Pos('[', CleanDesc) = 1 then
       begin
-        Prefix := '[low_latency_layer]';
-        if Pos(Prefix, ADesc) = 1 then
-        begin
-          HasBadge := True;
-          BadgeText := 'LowLatency';
-          BadgeBg := RGBToColor(52, 42, 22);
-          BadgeBorder := RGBToColor(160, 120, 35);
-          BadgeTxtColor := RGBToColor(245, 185, 55);
-          CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
-        end;
+        p := Pos(']', CleanDesc);
+        if p > 0 then
+          CleanDesc := Trim(Copy(CleanDesc, p + 1, MaxInt));
       end;
     end;
 
@@ -479,7 +499,18 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     ACanvas.Brush.Style := bsClear;
 
     if HasBadge then
-      DescRect := Rect(TextX, DescTop, ToggleX - 68, DescTop + 18)
+    begin
+      BadgeW := 0;
+      ACanvas.Font.Name  := 'DejaVu Sans';
+      ACanvas.Font.Size  := 7;
+      ACanvas.Font.Style := [fsBold];
+      BadgeW := ACanvas.TextWidth(BadgeText) + 10;
+
+      ACanvas.Font.Name  := 'DejaVu Sans';
+      ACanvas.Font.Size  := 9;
+      ACanvas.Font.Style := [];
+      DescRect := Rect(TextX, DescTop, ToggleX - BadgeW - 12, DescTop + 18);
+    end
     else
       DescRect := Rect(TextX, DescTop, ToggleX - 10, DescTop + 18);
     ACanvas.TextRect(DescRect, TextX, DescTop, CleanDesc);
@@ -487,8 +518,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     // Draw badge chip if present
     if HasBadge then
     begin
-      BadgeW := 0;
-      DrawBadge(ACanvas, TextX + Min(ACanvas.TextWidth(CleanDesc) + 6, ToggleX - TextX - 65), DescTop + 1, BadgeText, BadgeBg, BadgeBorder, BadgeTxtColor, BadgeW);
+      DrawBadge(ACanvas, TextX + Min(ACanvas.TextWidth(CleanDesc) + 6, ToggleX - TextX - BadgeW - 6), DescTop + 1, BadgeText, BadgeBg, BadgeBorder, BadgeTxtColor, BadgeW);
     end;
 
     // VarName (monospace, muted slate)
