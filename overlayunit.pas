@@ -6485,9 +6485,11 @@ begin
   end
   else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
   begin
+    if Assigned(FLosslessScalingHelper) then
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
     TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'lsfg.toml';
     if not FileExists(TargetFile) and Assigned(FLosslessScalingHelper) then
-      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+      TargetFile := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteDefaultLsfgToml(GetGameConfigDir(FActiveGameName));
   end
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
   begin

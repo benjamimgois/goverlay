@@ -293,7 +293,17 @@ begin
     TargetTomlPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'lsfg.toml';
     AssertTrue('bgmod.conf was created', FileExists(TargetConfPath));
     AssertTrue('lsfg.toml was created', FileExists(TargetTomlPath));
-    
+
+    with TStringList.Create do
+    try
+      LoadFromFile(TargetTomlPath);
+      AssertTrue('lsfg.toml contains pascube entry', Pos('exe = "pascube"', Text) > 0);
+      AssertTrue('lsfg.toml contains vkcube entry', Pos('exe = "vkcube"', Text) > 0);
+      AssertTrue('lsfg.toml contains multiplier 3', Pos('multiplier = 3', Text) > 0);
+    finally
+      Free;
+    end;
+
     Ini := TIniFile.Create(TargetConfPath);
     try
       AssertEquals('GOVERLAY_LOSSLESS is 1 in [Config]', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
@@ -341,6 +351,18 @@ begin
       Ini.Free;
     end;
     AssertFalse('lsfg.toml is removed when disabled', FileExists(TargetTomlPath));
+
+    // Test WriteDefaultLsfgToml creates complete template with pascube and vkcube
+    Helper.WriteDefaultLsfgToml(goverlayform.GetGameConfigDir(goverlayform.FActiveGameName));
+    AssertTrue('Default lsfg.toml created', FileExists(TargetTomlPath));
+    with TStringList.Create do
+    try
+      LoadFromFile(TargetTomlPath);
+      AssertTrue('Default lsfg.toml contains pascube entry', Pos('exe = "pascube"', Text) > 0);
+      AssertTrue('Default lsfg.toml contains vkcube entry', Pos('exe = "vkcube"', Text) > 0);
+    finally
+      Free;
+    end;
   finally
     if FileExists(DummyDll) then
       DeleteFile(DummyDll);

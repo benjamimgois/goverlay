@@ -74,6 +74,7 @@ type
     function GetActiveEnvVars: string;
     function BuildEnvLine: string;
     function WriteLsfgTomlConfig(const ATargetDir: string = ''): string;
+    function WriteDefaultLsfgToml(const ATargetDir: string = ''): string;
     function DetectSteamLosslessDll: string;
     
     property LogoImage: TImage read FLsLogoImage;
@@ -881,6 +882,83 @@ begin
       Lines.Add('experimental_present_mode = "' + PacingStr + '"');
     end;
     
+    Lines.SaveToFile(OutPath);
+    Result := OutPath;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function TLosslessScalingTabHelper.WriteDefaultLsfgToml(const ATargetDir: string): string;
+var
+  Lines: TStringList;
+  OutDir, OutPath, DllP, ExeName: string;
+begin
+  Result := '';
+  if ATargetDir <> '' then
+    OutDir := ATargetDir
+  else if Assigned(FForm) and (FForm is Tgoverlayform) then
+    OutDir := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName)
+  else
+    OutDir := TConfigManager.GetGoverlayFolder;
+
+  if not DirectoryExists(OutDir) then
+    ForceDirectories(OutDir);
+
+  OutPath := IncludeTrailingPathDelimiter(OutDir) + 'lsfg.toml';
+
+  DllP := Trim(FLsDllPathEdit.Text);
+  if DllP = '' then
+    DllP := DetectSteamLosslessDll;
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('version = 1');
+    Lines.Add('');
+    Lines.Add('[global]');
+    if (DllP <> '') and FileExists(DllP) then
+      Lines.Add('dll = "' + DllP + '"')
+    else
+      Lines.Add('# dll = "/path/to/Lossless.dll"');
+    Lines.Add('');
+    Lines.Add('[[game]]');
+    Lines.Add('exe = "pascube"');
+    if (DllP <> '') and FileExists(DllP) then
+      Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('multiplier = 2');
+    Lines.Add('flow_scale = 1.00');
+    Lines.Add('performance_mode = false');
+    Lines.Add('hdr_mode = false');
+    Lines.Add('legacy = true');
+    Lines.Add('experimental_present_mode = "fifo"');
+    Lines.Add('');
+    Lines.Add('[[game]]');
+    Lines.Add('exe = "vkcube"');
+    if (DllP <> '') and FileExists(DllP) then
+      Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('multiplier = 2');
+    Lines.Add('flow_scale = 1.00');
+    Lines.Add('performance_mode = false');
+    Lines.Add('hdr_mode = false');
+    Lines.Add('legacy = true');
+    Lines.Add('experimental_present_mode = "fifo"');
+
+    if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
+    begin
+      ExeName := Tgoverlayform(FForm).FActiveGameName;
+      Lines.Add('');
+      Lines.Add('[[game]]');
+      Lines.Add('exe = "' + ExeName + '"');
+      if (DllP <> '') and FileExists(DllP) then
+        Lines.Add('dll = "' + DllP + '"');
+      Lines.Add('multiplier = 2');
+      Lines.Add('flow_scale = 1.00');
+      Lines.Add('performance_mode = false');
+      Lines.Add('hdr_mode = false');
+      Lines.Add('legacy = true');
+      Lines.Add('experimental_present_mode = "fifo"');
+    end;
+
     Lines.SaveToFile(OutPath);
     Result := OutPath;
   finally
