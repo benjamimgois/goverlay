@@ -35,7 +35,7 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates Ray Tracing on GPUs without native support'),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates RT on older AMD GPUs'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),

@@ -270,7 +270,7 @@ begin
   SetHint('largeaddressCheckBox', 'Large Address Aware' + LineEnding +
     'Allows 32-bit games to use more than 2GB RAM');
   SetHint('emurtCheckBox', 'Emulate RT' + LineEnding +
-    'Emulates Ray Tracing on GPUs without native support');
+    'Emulates RT on older AMD GPUs');
   SetHint('enhdrCheckBox', 'Enable HDR' + LineEnding +
     'Activates High Dynamic Range when available');
   SetHint('stagememCheckBox', 'Stage Memory' + LineEnding +
