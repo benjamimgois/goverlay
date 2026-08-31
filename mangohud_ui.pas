@@ -2946,7 +2946,9 @@ procedure TMangoHudUiHelper.ResetMangoHudControls;
 var
   i: Integer;
   ParentControl: TWinControl;
+  WasLoading: Boolean;
 begin
+  WasLoading := FForm.FLoadingConfig;
   FForm.FLoadingConfig := True;
   try
     with FForm do
@@ -3099,7 +3101,7 @@ begin
     SyncAllToggles;
     end;
   finally
-    FForm.FLoadingConfig := False;
+    FForm.FLoadingConfig := WasLoading;
   end;
 end;
 

@@ -496,13 +496,14 @@ begin
       DeleteFile(Settings.BasaltCfgFile);
     Lines.SaveToFile(Settings.BasaltCfgFile);
 
-    // Update bgmod.conf with GOVERLAY_VKBASALT=1
+    // Update bgmod.conf with GOVERLAY_VKBASALT=1 (if not explicitly disabled)
     FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
     try
-      Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
+      if Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '') <> '0' then
+        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
     finally
       Ini.Free;
     end;
@@ -2161,25 +2162,16 @@ begin
     // Save to active config file (game-specific or global)
     ConfigLines.SaveToFile(Settings.MangoHudCfgFile);
 
-    // Update bgmod.conf with GOVERLAY_MANGOHUD=1
+    // Update bgmod.conf: inject MANGOHUD_CONFIGFILE and ensure GOVERLAY_MANGOHUD is set (if not explicitly disabled)
     FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
-
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
     try
-      Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '1');
+      if Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '') <> '0' then
+        Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '1');
+      Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', Settings.MangoHudCfgFile);
     finally
       Ini.Free;
-    end;
-
-    // Inject MANGOHUD_CONFIGFILE into bgmod.conf for both game and global profiles
-    FGModConfPath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
-    ForceDirectories(ExtractFilePath(FGModConfPath));
-    Ini2 := TIniFile.Create(FGModConfPath);
-    try
-      Ini2.WriteString('Env', 'MANGOHUD_CONFIGFILE', Settings.MangoHudCfgFile);
-    finally
-      Ini2.Free;
     end;
 
     // In global mode: also update system-wide ~/.config/MangoHud/MangoHud.conf

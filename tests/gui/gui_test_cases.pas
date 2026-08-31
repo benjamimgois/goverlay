@@ -1176,6 +1176,35 @@ begin
     if Assigned(goverlayform.FNavToolBtns[i]) then
       AssertEquals(Format('Nav tool %d button image index is 0 (OFF) on 3rd launch', [i]), 0, goverlayform.FNavToolBtns[i].ImageIndex);
   end;
+
+  // 4. Navigate to MangoHud tab and verify GOVERLAY_MANGOHUD is NOT reverted to 1
+  goverlayform.mangohudLabelClick(nil);
+
+  AssertFalse('MangoHud remains disabled in FNavToolEnabled after navigating to MangoHud tab', goverlayform.FNavToolEnabled[0]);
+  if Assigned(goverlayform.FNavToolBtns[0]) then
+    AssertEquals('MangoHud button image index is still 0 (OFF)', 0, goverlayform.FNavToolBtns[0].ImageIndex);
+
+  Ini := TIniFile.Create(GlobalConfPath);
+  try
+    AssertEquals('GOVERLAY_MANGOHUD is still 0 after visiting MangoHud tab', '0', Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '1'));
+  finally
+    Ini.Free;
+  end;
+
+  // 5. Navigate to other tool tabs and verify all flags remain 0
+  goverlayform.vkbasaltLabelClick(nil);
+  goverlayform.optiscalerLabelClick(nil);
+  goverlayform.tweaksLabelClick(nil);
+
+  Ini := TIniFile.Create(GlobalConfPath);
+  try
+    AssertEquals('GOVERLAY_MANGOHUD is still 0 after visiting all tabs', '0', Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '1'));
+    AssertEquals('GOVERLAY_VKBASALT is still 0 after visiting all tabs', '0', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '1'));
+    AssertEquals('GOVERLAY_OPTISCALER is still 0 after visiting all tabs', '0', Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '1'));
+    AssertEquals('GOVERLAY_TWEAKS is still 0 after visiting all tabs', '0', Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '1'));
+  finally
+    Ini.Free;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestGameCardFallbackCoverGeneration;
