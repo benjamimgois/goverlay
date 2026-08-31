@@ -28,4 +28,4 @@ if ! fc-list | grep -qi "Nerd Font\|Symbols Nerd Font\|NerdFont"; then
     fi
 fi
 
-mangohud @libexecdir@/goverlay $@
+exec @libexecdir@/goverlay "$@"

@@ -972,6 +972,7 @@ type
     function  GetVkBasaltLaunchEnv: string;
     function  GetVkSumiLaunchEnv: string;
     function  GetLosslessScalingLaunchEnv: string;
+    function  GetTweaksLaunchEnv: string;
     function  GetPasCubeUncappedParam: string;
     function  GetPasCubeLosslessParam: string;
     // Exposed: procedure UpdateGameContextLabel;
@@ -4416,14 +4417,14 @@ begin
   begin
       // FLATPAK MODE
       if IsPasCubeAvailable then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
+         ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
          SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
          if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
-            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube-wayland &')
+            ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube-wayland &')
          else
-            ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube &');
+            ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
       end
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
@@ -4432,14 +4433,14 @@ begin
   begin
       // NATIVE MODE
       if IsPasCubeAvailable then
-         ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ' + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
+         ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
         if USERSESSION = 'wayland' then
-          ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 vkcube --wsi wayland &')
+          ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube --wsi wayland &')
         else
-          ExecuteGUICommand(GetMangoHudConfigEnvPrefix + 'mangohud vkcube &');
+          ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
       end
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
@@ -8846,12 +8847,10 @@ begin
 end;
 
 // Returns MANGOHUD_CONFIGFILE + MANGOHUD=1 only when MangoHud is enabled.
-// In global mode MangoHud is always considered active.
-// In game mode, returns empty when the MangoHud toggle is OFF.
 function Tgoverlayform.GetMangoHudLaunchEnv: string;
 begin
-  if (FActiveGameName <> '') and not FNavToolEnabled[0] then
-    Result := ''  // MangoHud disabled for this game
+  if not FNavToolEnabled[0] then
+    Result := 'MANGOHUD=0 DISABLE_MANGOHUD=1 '  // Explicitly suppress MangoHud layer
   else
     Result := GetMangoHudConfigEnvPrefix + 'MANGOHUD=1 ';
 end;
@@ -8859,16 +8858,19 @@ end;
 // Returns VKBASALT_CONFIG_FILE + ENABLE_VKBASALT=1 only when vkBasalt is enabled.
 function Tgoverlayform.GetVkBasaltLaunchEnv: string;
 begin
-  if (FActiveGameName <> '') and not FNavToolEnabled[1] then
-    Result := ''  // vkBasalt disabled for this game
+  if not FNavToolEnabled[1] then
+    Result := 'ENABLE_VKBASALT=0 '
   else
     Result := GetVkBasaltConfigEnvPrefix + 'ENABLE_VKBASALT=1 ';
 end;
 
-// Returns VKSUMI_CONFIG_FILE + ENABLE_VKSUMI=1 (always, independent of vkBasalt state).
+// Returns VKSUMI_CONFIG_FILE + ENABLE_VKSUMI=1 only when Post processing is enabled.
 function Tgoverlayform.GetVkSumiLaunchEnv: string;
 begin
-  Result := GetVkSumiConfigEnvPrefix + 'ENABLE_VKSUMI=1 ';
+  if not FNavToolEnabled[1] then
+    Result := 'ENABLE_VKSUMI=0 '
+  else
+    Result := GetVkSumiConfigEnvPrefix + 'ENABLE_VKSUMI=1 ';
 end;
 
 function Tgoverlayform.GetVkBasaltConfigEnvPrefix: string;
@@ -8892,13 +8894,60 @@ var
   EnvStr: string;
 begin
   Result := '';
-  if (FActiveGameName <> '') and not FNavToolEnabled[2] then
+  if not FNavToolEnabled[2] then
     Exit;
   if Assigned(FLosslessScalingHelper) then
   begin
     EnvStr := TLosslessScalingTabHelper(FLosslessScalingHelper).BuildEnvLine;
     if EnvStr <> '' then
       Result := EnvStr + ' ';
+  end;
+end;
+
+function Tgoverlayform.GetTweaksLaunchEnv: string;
+var
+  ConfigPath: string;
+  Ini: TIniFile;
+  EnvList: TStringList;
+  i, p: Integer;
+  Key, Val, Line, EnvResult: string;
+begin
+  Result := '';
+  if not FNavToolEnabled[3] then Exit;
+
+  ConfigPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
+  if not FileExists(ConfigPath) then Exit;
+
+  EnvList := TStringList.Create;
+  try
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      Ini.ReadSectionValues('Env', EnvList);
+    finally
+      Ini.Free;
+    end;
+
+    EnvResult := '';
+    for i := 0 to EnvList.Count - 1 do
+    begin
+      Line := EnvList[i];
+      p := Pos('=', Line);
+      if p > 0 then
+      begin
+        Key := Trim(Copy(Line, 1, p - 1));
+        Val := Trim(Copy(Line, p + 1, MaxInt));
+        if (Key = 'MANGOHUD_CONFIGFILE') or (Key = 'DXIL_SPIRV_CONFIG') or
+           (Pos('LSFG_', Key) = 1) or (Pos('LSFGVK_', Key) = 1) or
+           SameText(Key, 'game-performance') then
+          Continue;
+
+        if (Key <> '') and (Val <> '') then
+          EnvResult := EnvResult + Key + '="' + Val + '" ';
+      end;
+    end;
+    Result := EnvResult;
+  finally
+    EnvList.Free;
   end;
 end;
 
@@ -8965,7 +9014,7 @@ begin
     if GetLosslessScalingLaunchEnv <> '' then
       DbgLog('[LosslessScaling] ' + Trim(GetLosslessScalingLaunchEnv));
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
@@ -8974,7 +9023,7 @@ begin
   else if IsCommandAvailable('vkcube') then
   begin
     RestoreIfMaximized;
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + 'vkcube &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
   end
   else
     SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);

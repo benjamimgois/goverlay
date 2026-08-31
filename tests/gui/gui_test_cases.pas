@@ -120,6 +120,7 @@ type
     procedure TestGameCardFallbackCoverGeneration;
     procedure TestToolToggleOffPreservesConfigFiles;
     procedure TestPerGameLaunchCommandImmediateUpdate;
+    procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
   end;
 
 implementation
@@ -3594,6 +3595,59 @@ begin
   AssertFalse('Basic preset resets FvramusageToggle graph', Helper.FvramusageToggle.GraphActive);
   C := ReadFileText(MangoConfPath);
   AssertFalse('Basic preset writes no graphs=', Pos('graphs=', C) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestPreviewLaunchEnvironmentHonorsToolToggles;
+var
+  GlobalConfPath: string;
+  Ini: TIniFile;
+begin
+  goverlayform.FActiveGameName := '';
+  GlobalConfPath := goverlayform.GetGameConfigDir('') + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(GlobalConfPath));
+
+  Ini := TIniFile.Create(GlobalConfPath);
+  try
+    Ini.WriteString('Env', 'CUSTOM_PREVIEW_TEST', 'active_tweak');
+  finally
+    Ini.Free;
+  end;
+
+  // 1. When all tools are enabled in global mode
+  goverlayform.FNavToolEnabled[0] := True;
+  goverlayform.FNavToolEnabled[1] := True;
+  goverlayform.FNavToolEnabled[2] := True;
+  goverlayform.FNavToolEnabled[3] := True;
+
+  AssertTrue('GetMangoHudLaunchEnv includes MANGOHUD=1 when enabled', Pos('MANGOHUD=1', goverlayform.GetMangoHudLaunchEnv) > 0);
+  AssertTrue('GetVkBasaltLaunchEnv includes ENABLE_VKBASALT=1 when enabled', Pos('ENABLE_VKBASALT=1', goverlayform.GetVkBasaltLaunchEnv) > 0);
+  AssertTrue('GetVkSumiLaunchEnv includes ENABLE_VKSUMI=1 when enabled', Pos('ENABLE_VKSUMI=1', goverlayform.GetVkSumiLaunchEnv) > 0);
+  AssertTrue('GetTweaksLaunchEnv includes CUSTOM_PREVIEW_TEST when enabled', Pos('CUSTOM_PREVIEW_TEST="active_tweak"', goverlayform.GetTweaksLaunchEnv) > 0);
+
+  // 2. When tools are disabled in global mode
+  goverlayform.FNavToolEnabled[0] := False;
+  goverlayform.FNavToolEnabled[1] := False;
+  goverlayform.FNavToolEnabled[2] := False;
+  goverlayform.FNavToolEnabled[3] := False;
+
+  AssertTrue('GetMangoHudLaunchEnv suppresses MangoHud when disabled globally', Pos('MANGOHUD=0', goverlayform.GetMangoHudLaunchEnv) > 0);
+  AssertTrue('GetMangoHudLaunchEnv sets DISABLE_MANGOHUD=1 when disabled globally', Pos('DISABLE_MANGOHUD=1', goverlayform.GetMangoHudLaunchEnv) > 0);
+  AssertTrue('GetVkBasaltLaunchEnv sets ENABLE_VKBASALT=0 when disabled globally', Pos('ENABLE_VKBASALT=0', goverlayform.GetVkBasaltLaunchEnv) > 0);
+  AssertTrue('GetVkSumiLaunchEnv sets ENABLE_VKSUMI=0 when disabled globally', Pos('ENABLE_VKSUMI=0', goverlayform.GetVkSumiLaunchEnv) > 0);
+  AssertEquals('GetLosslessScalingLaunchEnv is empty when disabled globally', '', goverlayform.GetLosslessScalingLaunchEnv);
+  AssertEquals('GetTweaksLaunchEnv is empty when disabled globally', '', goverlayform.GetTweaksLaunchEnv);
+
+  // 3. When in game-specific mode
+  goverlayform.FActiveGameName := 'TestGamePreview';
+  goverlayform.FNavToolEnabled[0] := False;
+  AssertTrue('GetMangoHudLaunchEnv suppresses MangoHud when disabled for game', Pos('MANGOHUD=0', goverlayform.GetMangoHudLaunchEnv) > 0);
+
+  goverlayform.FNavToolEnabled[0] := True;
+  AssertTrue('GetMangoHudLaunchEnv includes MANGOHUD=1 when enabled for game', Pos('MANGOHUD=1', goverlayform.GetMangoHudLaunchEnv) > 0);
+  AssertTrue('GetMangoHudLaunchEnv includes config file prefix for game', Pos('MANGOHUD_CONFIGFILE=', goverlayform.GetMangoHudLaunchEnv) > 0);
+
+  // Cleanup
+  goverlayform.FActiveGameName := '';
 end;
 
 initialization
