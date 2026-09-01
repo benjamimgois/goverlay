@@ -762,11 +762,11 @@ begin
   pcidevComboBox.AnchorSideLeft.Control  := nil;
   pcidevComboBox.AnchorSideTop.Control   := nil;
   pcidevComboBox.AnchorSideRight.Control := nil;
-  pcidevComboBox.Anchors := [akLeft, akTop, akRight];
+  pcidevComboBox.Anchors := [akLeft, akTop];
   pcidevComboBox.Left    := 11;
   pcidevComboBox.Top     := 26;
   pcidevComboBox.Height  := 28;
-  pcidevComboBox.Width   := FVisualGpuBar.ClientWidth - 22;
+  pcidevComboBox.Width   := (FVisualGpuBar.ClientWidth - 22) div 2;
   pcidevComboBox.Color       := BarBg;
   pcidevComboBox.Font.Color  := TextColor;
   SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
@@ -869,9 +869,9 @@ end;
 procedure TMangoHudUiHelper.ReflowVisualTab(AContentW, AContentH: Integer);
 const
   MARGIN     = 4;
-  GPU_TOP    = 52;
+  CARD_TOP   = 52;
   GPU_H      = 67;
-  CARD_TOP   = GPU_TOP + GPU_H + 10;  // = 129
+  GAP        = 10;
   TABBAR_H   = 35;   // TPageControl tab bar header
   HUD_H      = 56;
   HDR        = 34;
@@ -887,6 +887,7 @@ var
   HalfW, GrpW, GrpX, CY, ToggleRight, AvailW, ThirdW: Integer;
   TabH, ActiveCardH, ActiveHUD_TOP, ActiveHUD_SEP: Integer;
   RowsAvail, Extra, PerRow, ActiveR1_H, ActiveR2_H, ActiveR2_TOP: Integer;
+  GPU_TOP: Integer;
 begin
   with FForm do
   begin
@@ -900,17 +901,10 @@ begin
   SecW2 := S2 - S1 - 8;
   SecW3 := W - S2 - 8;
 
-  // GPU info bar — separate card above Visual Settings
-  if Assigned(FVisualGpuBar) then
-  begin
-    FVisualGpuBar.SetBounds(MARGIN, GPU_TOP, W, GPU_H);
-    pcidevComboBox.Width := FVisualGpuBar.ClientWidth - 22;
-  end;
-
   // Derive available tab height from form height (Self.ClientHeight — always up-to-date
   // during FormResize, unlike child ClientHeight which is stale at that point).
   TabH := Max(606, AContentH - TABBAR_H);
-  ActiveCardH := Max(BASE_CARD_H, TabH - CARD_TOP);
+  ActiveCardH := Max(BASE_CARD_H, TabH - CARD_TOP - GPU_H - GAP);
 
   // HUD bar anchors to card bottom; rows fill the space between header and HUD.
   ActiveHUD_TOP := ActiveCardH - HUD_H;
@@ -925,6 +919,14 @@ begin
   ActiveR2_TOP := R1_TOP + ActiveR1_H + 4;
 
   FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, ActiveCardH);
+
+  // GPU info bar — separate card below Visual Settings
+  GPU_TOP := CARD_TOP + ActiveCardH + GAP;
+  if Assigned(FVisualGpuBar) then
+  begin
+    FVisualGpuBar.SetBounds(MARGIN, GPU_TOP, W, GPU_H);
+    pcidevComboBox.Width := (FVisualGpuBar.ClientWidth - 22) div 2;
+  end;
 
   // ── Row 1 section panels ──────────────────────────────────────────────────
   if Assigned(FVisualSections[0]) then
