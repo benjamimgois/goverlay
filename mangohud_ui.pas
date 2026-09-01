@@ -762,30 +762,17 @@ begin
   pcidevComboBox.AnchorSideLeft.Control  := nil;
   pcidevComboBox.AnchorSideTop.Control   := nil;
   pcidevComboBox.AnchorSideRight.Control := nil;
-  pcidevComboBox.Anchors := [akLeft, akTop];
+  pcidevComboBox.Anchors := [akLeft, akTop, akRight];
   pcidevComboBox.Left    := 11;
   pcidevComboBox.Top     := 26;
   pcidevComboBox.Height  := 28;
+  pcidevComboBox.Width   := FVisualGpuBar.ClientWidth - 22;
   pcidevComboBox.Color       := BarBg;
   pcidevComboBox.Font.Color  := TextColor;
   SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
-  gpudescEdit.Parent := FVisualGpuBar;
-  gpudescEdit.AnchorSideLeft.Control  := nil;
-  gpudescEdit.AnchorSideTop.Control   := nil;
-  gpudescEdit.AnchorSideRight.Control := nil;
-  gpudescEdit.Anchors     := [akLeft, akTop, akRight];
-  gpudescEdit.Left        := pcidevComboBox.Left + pcidevComboBox.Width + 4;
-  gpudescEdit.Top         := 26;
-  gpudescEdit.Height      := 28;
-  gpudescEdit.Color       := BarBg;
-  gpudescEdit.Font.Color  := TextColor;
-  if CurrentTheme = tmLight then
-    SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px 6px; }'
-  else
-    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
-  QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
+  gpudescEdit.Visible := False;
 
   // ── HUD Title field — option C: style in place ───────────────────────────
   hudtitleEdit.Color       := BarBg;
@@ -917,7 +904,7 @@ begin
   if Assigned(FVisualGpuBar) then
   begin
     FVisualGpuBar.SetBounds(MARGIN, GPU_TOP, W, GPU_H);
-    gpudescEdit.Width := FVisualGpuBar.ClientWidth - gpudescEdit.Left - 5;
+    pcidevComboBox.Width := FVisualGpuBar.ClientWidth - 22;
   end;
 
   // Derive available tab height from form height (Self.ClientHeight — always up-to-date

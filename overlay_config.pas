@@ -246,6 +246,7 @@ const
 
 function SanitizeFileName(const AName: string): string;
 function GetGameConfigDir(const AGameName: string): string;
+function ExtractGpuMarketName(const ARawLspci: string): string;
 
 function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
@@ -260,6 +261,88 @@ function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts
 procedure EnsureDefaultConfigFiles(const GVersion, GChannel, VkbToggleKeyText: string);
 
 implementation
+
+function ExtractGpuMarketName(const ARawLspci: string): string;
+var
+  S, Vendor, Candidate: string;
+  P1, P2, ColonPos: Integer;
+  UpperS: string;
+begin
+  S := Trim(ARawLspci);
+  if S = '' then
+    Exit('');
+
+  // If input contains "controller:", strip everything up to and including it
+  ColonPos := Pos('controller:', LowerCase(S));
+  if ColonPos > 0 then
+    S := Trim(Copy(S, ColonPos + Length('controller:'), Length(S)))
+  else
+  begin
+    // Check if starts with PCI slot like "03:00.0 VGA compatible:"
+    ColonPos := Pos(':', S);
+    if (ColonPos > 0) and (ColonPos <= 10) then
+    begin
+      P1 := PosEx(':', S, ColonPos + 1);
+      if P1 > 0 then
+        S := Trim(Copy(S, P1 + 1, Length(S)))
+      else
+        S := Trim(Copy(S, ColonPos + 1, Length(S)));
+    end;
+  end;
+
+  // Remove (rev ...) tag at end
+  P1 := Pos('(rev ', LowerCase(S));
+  if P1 > 0 then
+    S := Trim(Copy(S, 1, P1 - 1));
+
+  UpperS := UpperCase(S);
+
+  // Identify Vendor
+  Vendor := '';
+  if (Pos('NVIDIA', UpperS) > 0) or (Pos('GEFORCE', UpperS) > 0) or (Pos('QUADRO', UpperS) > 0) then
+    Vendor := 'NVIDIA'
+  else if (Pos('INTEL', UpperS) > 0) or (Pos('ARC ', UpperS) > 0) or (Pos('IRIS ', UpperS) > 0) or (Pos('UHD GRAPHICS', UpperS) > 0) then
+    Vendor := 'Intel'
+  else if (Pos('ADVANCED MICRO DEVICES', UpperS) > 0) or (Pos('AMD', UpperS) > 0) or (Pos('RADEON', UpperS) > 0) or (Pos('[AMD/ATI]', UpperS) > 0) or (Pos(' ATI ', UpperS) > 0) then
+    Vendor := 'AMD';
+
+  // Check for innermost brackets [...]
+  P2 := RPos(']', S);
+  if P2 > 0 then
+  begin
+    P1 := RPos('[', Copy(S, 1, P2 - 1));
+    if P1 > 0 then
+    begin
+      Candidate := Trim(Copy(S, P1 + 1, P2 - P1 - 1));
+      // If the bracketed part is just a vendor string like [AMD/ATI]
+      if SameText(Candidate, 'AMD/ATI') or SameText(Candidate, 'AMD') or SameText(Candidate, 'ATI') or
+         SameText(Candidate, 'NVIDIA') or SameText(Candidate, 'INTEL') then
+      begin
+        Candidate := '';
+      end;
+
+      if Candidate <> '' then
+      begin
+        if (Vendor <> '') and (Pos(UpperCase(Vendor), UpperCase(Candidate)) = 0) then
+          Exit(Vendor + ' ' + Candidate)
+        else
+          Exit(Candidate);
+      end;
+    end;
+  end;
+
+  // Fallback: Strip redundant corporate prefixes
+  S := StringReplace(S, 'Advanced Micro Devices, Inc.', '', [rfIgnoreCase]);
+  S := StringReplace(S, 'NVIDIA Corporation', '', [rfIgnoreCase]);
+  S := StringReplace(S, 'Intel Corporation', '', [rfIgnoreCase]);
+  S := StringReplace(S, '[AMD/ATI]', '', [rfIgnoreCase]);
+  S := Trim(S);
+
+  if (Vendor <> '') and (Pos(UpperCase(Vendor), UpperCase(S)) = 0) then
+    S := Vendor + ' ' + S;
+
+  Result := S;
+end;
 
 function SanitizeFileName(const AName: string): string;
 var

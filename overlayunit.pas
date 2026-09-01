@@ -3272,6 +3272,7 @@ var
    saida, Output, FileLines, DefaultConfigContent: TStringList;
    i, FoundIndex: Integer;
    ConfigFilePath,ConfigFileBlacklistPath, ConfigDir,ConfigBlacklistDir: string;
+   MarketName: string;
    Missing: TStringList;
    OSFile: TextFile;
 
@@ -3787,43 +3788,34 @@ begin
 
     while i <= GPUNUMBER do
     begin
-      //Read GPU0 pcidev
+      // Read GPU description
       Process := TProcess.Create(nil);
       saida := TStringList.Create;
 
       Process.Executable := FindDefaultExecutablePath('sh');
       Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n "' + inttostr(i) + 'p" | cut -c 1-7');  //Pick just the "i" line
+      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n "' + inttostr(i) + 'p" | cut -d" " -f3- | cut -d ":" -f2-');
       Process.Options := [poUsePipes];
       Process.Execute;
       Process.WaitOnExit;
 
       saida.LoadFromStream(Process.output);
-      pcidevComboBox.Items.Insert(i-1, saida[0]); //First position of combobox is 0, so we need i-1
+      if saida.Count > 0 then
+      begin
+        MarketName := ExtractGpuMarketName(saida[0]);
+        if MarketName = '' then
+          MarketName := Trim(saida[0]);
+      end
+      else
+        MarketName := 'GPU ' + IntToStr(i - 1);
+
+      pcidevComboBox.Items.Add('GPU ' + IntToStr(i - 1) + ': ' + MarketName);
+      GPUDESC.Add(MarketName);
+
       Process.Free;
       saida.Free;
 
-
-      //Read GPU description
-      Process := TProcess.Create(nil);
-      saida := TStringList.Create;
-
-      Process.Executable := FindDefaultExecutablePath('sh');
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n "' + inttostr(i) + 'p" |cut -d" " -f3- | cut -d ":" -f2-'); //Pick just the first line
-      Process.Options := [poUsePipes];
-      Process.Execute;
-      Process.WaitOnExit;
-
-      saida.LoadFromStream(Process.output);
-      GPUDESC.Add(saida[0]);
-      Process.Free;
-      saida.Free;
-
-      i := i + 1; //increment "i"variable
-
-
-
+      i := i + 1; //increment "i" variable
     end; //while
 
 
@@ -3886,44 +3878,18 @@ begin
 
      //#################################################    Checkgroups
 
-     //Read system GPUs
-      Process := TProcess.Create(nil);
-      saida := TStringList.Create;
-
-      Process.Executable := FindDefaultExecutablePath('sh');
-      Process.Parameters.Add('-c');
-      Process.Parameters.Add('lspci | grep -i -e "VGA" -e "Display controller" -e "3D controller" -e "video" | sed -n 1p | cut -c 1-7');  //Pick just the "i" line
-      Process.Options := [poUsePipes];
-      Process.Execute;
-      Process.WaitOnExit;
-
-      saida.LoadFromStream(Process.output);
-      LSPCI0 := Trim(saida.text); // store output um variable
-      Writeln ('LSPCI0: ', LSPCI0);
-
-      if pcidevCombobox.Items.Count > 0 then
-      begin
-        GPU0 := pcidevCombobox.Items[0]; //store first value in variable
-        Writeln ('GPU0: ', GPU0);
-
-        FoundIndex := pcidevCombobox.Items.IndexOf(LSPCI0);
-        if FoundIndex <> -1 then
-          pcidevCombobox.ItemIndex := FoundIndex
-        else if pcidevCombobox.Items.Count > 1 then
-          pcidevCombobox.ItemIndex := 1
-        else
-          pcidevCombobox.ItemIndex := 0;
-
-        if (pcidevCombobox.ItemIndex >= 0) and (pcidevCombobox.ItemIndex < GPUDESC.Count) then
-          gpudescEdit.Text := GPUDESC[pcidevCombobox.ItemIndex]
-        else
-          gpudescEdit.Text := '';
-      end
-      else
-      begin
-        pcidevCombobox.ItemIndex := -1;
-        gpudescEdit.Text := '';
-      end;
+     // Default GPU selection
+     if pcidevCombobox.Items.Count > 0 then
+     begin
+       if pcidevCombobox.ItemIndex = -1 then
+         pcidevCombobox.ItemIndex := 0;
+     end
+     else
+     begin
+       pcidevCombobox.ItemIndex := -1;
+     end;
+     if Assigned(gpudescEdit) then
+       gpudescEdit.Text := '';
 
 
 
@@ -5985,11 +5951,8 @@ var
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
-  //gpudesclabel.Caption:=GPUDESC[pcidevCombobox.ItemIndex];
-  if (pcidevCombobox.ItemIndex >= 0) and (pcidevCombobox.ItemIndex < GPUDESC.Count) then
-    gpudescEdit.Text:=GPUDESC[pcidevCombobox.ItemIndex]
-  else
-    gpudescEdit.Text:='';
+  if Assigned(gpudescEdit) then
+    gpudescEdit.Text := '';
 end;
 
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);

@@ -42,6 +42,23 @@ type
     procedure TestFallbackWhenPipelineEffectsNil;
   end;
 
+  TGpuNameExtractionTests = class(TTestCase)
+  published
+    procedure TestAmdGpuExtraction;
+    procedure TestNvidiaGpuExtraction;
+    procedure TestIntelGpuExtraction;
+    procedure TestIntelArcExtraction;
+    procedure TestSteamDeckCustomGpuExtraction;
+    procedure TestFullLspciPrefixHandling;
+  end;
+
+  TMangoHudGpuListTests = class(TTestCase)
+  published
+    procedure TestGpuListSinglePrimary;
+    procedure TestGpuListSingleSecondary;
+    procedure TestGpuListBothGpus;
+  end;
+
 implementation
 
 uses
@@ -449,11 +466,145 @@ begin
   end;
 end;
 
+procedure TGpuNameExtractionTests.TestAmdGpuExtraction;
+var
+  InputStr: string;
+begin
+  InputStr := 'Advanced Micro Devices, Inc. [AMD/ATI] Navi 31 [Radeon RX 7900 XT/7900 XTX/7900 GRE/7900M] (rev c8)';
+  AssertEquals('Extract AMD 7900', 'AMD Radeon RX 7900 XT/7900 XTX/7900 GRE/7900M', ExtractGpuMarketName(InputStr));
+
+  InputStr := 'Advanced Micro Devices, Inc. [AMD/ATI] Cezanne [Radeon Vega Series / Radeon Vega Mobile Series] (rev c5)';
+  AssertEquals('Extract AMD Vega', 'AMD Radeon Vega Series / Radeon Vega Mobile Series', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TGpuNameExtractionTests.TestNvidiaGpuExtraction;
+var
+  InputStr: string;
+begin
+  InputStr := 'NVIDIA Corporation AD104 [GeForce RTX 4070] (rev a1)';
+  AssertEquals('Extract NVIDIA RTX 4070', 'NVIDIA GeForce RTX 4070', ExtractGpuMarketName(InputStr));
+
+  InputStr := 'NVIDIA Corporation GA106 [GeForce RTX 3060 Lite Hash Rate] (rev a1)';
+  AssertEquals('Extract NVIDIA RTX 3060', 'NVIDIA GeForce RTX 3060 Lite Hash Rate', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TGpuNameExtractionTests.TestIntelGpuExtraction;
+var
+  InputStr: string;
+begin
+  InputStr := 'Intel Corporation Raptor Lake-S GT1 [UHD Graphics 770] (rev 04)';
+  AssertEquals('Extract Intel UHD 770', 'Intel UHD Graphics 770', ExtractGpuMarketName(InputStr));
+
+  InputStr := 'Intel Corporation Iris Plus Graphics G7 (rev 07)';
+  AssertEquals('Extract Intel Iris', 'Intel Iris Plus Graphics G7', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TGpuNameExtractionTests.TestIntelArcExtraction;
+var
+  InputStr: string;
+begin
+  InputStr := 'Intel Corporation DG2 [Arc A770] (rev 08)';
+  AssertEquals('Extract Intel Arc A770', 'Intel Arc A770', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TGpuNameExtractionTests.TestSteamDeckCustomGpuExtraction;
+var
+  InputStr: string;
+begin
+  InputStr := 'Advanced Micro Devices, Inc. [AMD/ATI] VanGogh [AMD Custom GPU 0405] (rev c1)';
+  AssertEquals('Extract Steam Deck APU', 'AMD Custom GPU 0405', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TGpuNameExtractionTests.TestFullLspciPrefixHandling;
+var
+  InputStr: string;
+begin
+  InputStr := '03:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Navi 31 [Radeon RX 7900 XT/7900 XTX/7900 GRE/7900M] (rev c8)';
+  AssertEquals('Handle full lspci line', 'AMD Radeon RX 7900 XT/7900 XTX/7900 GRE/7900M', ExtractGpuMarketName(InputStr));
+end;
+
+procedure TMangoHudGpuListTests.TestGpuListSinglePrimary;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg: string;
+  Lines: TStringList;
+  CfgPath: string;
+begin
+  FillChar(Settings, SizeOf(Settings), 0);
+  Settings.Version := 'TEST';
+  Settings.Channel := 'stable';
+  Settings.PciDevIndex := 0;
+  Settings.PciDevText := 'GPU 0: AMD Radeon RX 7900 XTX';
+  CfgPath := IsolatedHome + '/.config/MangoHud/MangoHud_test0.conf';
+  Settings.MangoHudCfgFile := CfgPath;
+
+  AssertTrue('Save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(CfgPath);
+    AssertTrue('gpu_list=0 present', Lines.IndexOf('gpu_list=0') >= 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudGpuListTests.TestGpuListSingleSecondary;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg: string;
+  Lines: TStringList;
+  CfgPath: string;
+begin
+  FillChar(Settings, SizeOf(Settings), 0);
+  Settings.Version := 'TEST';
+  Settings.Channel := 'stable';
+  Settings.PciDevIndex := 1;
+  Settings.PciDevText := 'GPU 1: Intel UHD Graphics 770';
+  CfgPath := IsolatedHome + '/.config/MangoHud/MangoHud_test1.conf';
+  Settings.MangoHudCfgFile := CfgPath;
+
+  AssertTrue('Save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(CfgPath);
+    AssertTrue('gpu_list=1 present', Lines.IndexOf('gpu_list=1') >= 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudGpuListTests.TestGpuListBothGpus;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg: string;
+  Lines: TStringList;
+  CfgPath: string;
+begin
+  FillChar(Settings, SizeOf(Settings), 0);
+  Settings.Version := 'TEST';
+  Settings.Channel := 'stable';
+  Settings.PciDevIndex := 2;
+  Settings.PciDevText := MANGO_PCIDEV_BOTH_GPUS;
+  CfgPath := IsolatedHome + '/.config/MangoHud/MangoHud_testboth.conf';
+  Settings.MangoHudCfgFile := CfgPath;
+
+  AssertTrue('Save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(CfgPath);
+    AssertTrue('gpu_list=0,1 present', Lines.IndexOf('gpu_list=0,1') >= 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
   RegisterTest(TSandboxIsolationTests);
   RegisterTest(TVkSumiLogicTests);
   RegisterTest(TVkBasaltLogicTests);
+  RegisterTest(TGpuNameExtractionTests);
+  RegisterTest(TMangoHudGpuListTests);
 
 end.
