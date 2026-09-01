@@ -4,6 +4,7 @@ import sys
 import struct
 import binascii
 import subprocess
+import shutil
 
 def parse_vdf_bytes(data, offset=0):
     res = {}
@@ -85,14 +86,105 @@ def is_steam_running():
     except Exception:
         return False
 
+def find_grid_assets_dir(custom_path, exe_path):
+    if custom_path and os.path.isdir(custom_path):
+        return os.path.realpath(custom_path)
+    
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    parent_dir = os.path.dirname(script_dir)
+    exe_dir = os.path.dirname(exe_path) if exe_path else ""
+    
+    candidates = [
+        os.path.join(parent_dir, "data", "steam_grid"),
+        os.path.join(parent_dir, "steam_grid"),
+        os.path.join(script_dir, "steam_grid"),
+        os.path.join(exe_dir, "data", "steam_grid"),
+        os.path.join(exe_dir, "steam_grid"),
+        "/usr/share/goverlay/data/steam_grid",
+        "/usr/local/share/goverlay/data/steam_grid",
+        "/app/share/goverlay/data/steam_grid",
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return os.path.realpath(c)
+    return ""
+
+def install_grid_artwork(grid_dir, short_appid, long_grid_id, grid_assets_dir, icon_path):
+    if not os.path.isdir(grid_dir):
+        os.makedirs(grid_dir, exist_ok=True)
+    
+    asset_mappings = {
+        'cover.png': ['p.png'],
+        'banner.png': ['.png'],
+        'hero.png': ['_hero.png'],
+        'logo.png': ['_logo.png'],
+        'icon.png': ['_icon.png']
+    }
+    
+    if grid_assets_dir and os.path.isdir(grid_assets_dir):
+        for src_name, suffixes in asset_mappings.items():
+            src_file = os.path.join(grid_assets_dir, src_name)
+            if os.path.exists(src_file):
+                for suf in suffixes:
+                    for target_id in [str(long_grid_id), str(short_appid)]:
+                        dst_file = os.path.join(grid_dir, f"{target_id}{suf}")
+                        try:
+                            shutil.copyfile(src_file, dst_file)
+                        except Exception as e:
+                            sys.stderr.write(f"Warning: Failed to copy {src_name} to {dst_file}: {e}\n")
+    elif icon_path and os.path.exists(icon_path):
+        # Fallback: copy icon as _icon.png
+        for target_id in [str(long_grid_id), str(short_appid)]:
+            dst_file = os.path.join(grid_dir, f"{target_id}_icon.png")
+            try:
+                shutil.copyfile(icon_path, dst_file)
+            except Exception:
+                pass
+
+def remove_grid_artwork(grid_dir, ids):
+    if not os.path.isdir(grid_dir):
+        return
+    suffixes = [
+        'p.png', 'p.jpg',
+        '.png', '.jpg',
+        '_hero.png', '_hero.jpg',
+        '_logo.png', '_logo.jpg',
+        '_icon.png', '_icon.jpg'
+    ]
+    for id_val in ids:
+        for suf in suffixes:
+            fpath = os.path.join(grid_dir, f"{id_val}{suf}")
+            if os.path.exists(fpath):
+                try:
+                    os.remove(fpath)
+                except Exception as e:
+                    sys.stderr.write(f"Warning: Failed to remove {fpath}: {e}\n")
+
 def main():
     if len(sys.argv) < 3:
-        print("Usage: goverlay-steam-shortcut.py <action: add|remove> <exe_path> [icon_path]")
+        print("Usage: goverlay-steam-shortcut.py <action: add|remove> <exe_path> [icon_path] [grid_assets_dir]")
         sys.exit(1)
         
     action = sys.argv[1]
     exe_path = sys.argv[2]
-    icon_path = sys.argv[3] if len(sys.argv) > 3 else ""
+    icon_path = ""
+    custom_grid_dir = ""
+    
+    if len(sys.argv) > 4:
+        icon_path = sys.argv[3]
+        custom_grid_dir = sys.argv[4]
+    elif len(sys.argv) == 4:
+        arg3 = sys.argv[3]
+        if os.path.isdir(arg3):
+            custom_grid_dir = arg3
+        else:
+            icon_path = arg3
+            
+    grid_assets_dir = find_grid_assets_dir(custom_grid_dir, exe_path)
+    if not icon_path and grid_assets_dir:
+        icon_cand = os.path.join(grid_assets_dir, "icon.png")
+        if os.path.exists(icon_cand):
+            icon_path = icon_cand
     
     # 1. Find all possible userdata userdata/*/config/shortcuts.vdf paths
     home = os.path.expanduser("~")
@@ -120,8 +212,18 @@ def main():
     success_count = 0
     fail_count = 0
     
+    # AppID generation (matching Steam behavior)
+    # Concatenate Exe + AppName
+    s = (exe_path + "GOverlay").encode('utf-8')
+    crc = binascii.crc32(s) & 0xffffffff
+    appid = crc | 0x80000000
+    long_grid_id = (appid << 32) | 0x02000000
+    
     for vdf_path in shortcut_files:
         try:
+            config_parent = os.path.dirname(vdf_path)
+            grid_dir = os.path.join(config_parent, "grid")
+            
             # Check if writeable/readable
             if os.path.exists(vdf_path):
                 if not os.access(vdf_path, os.W_OK):
@@ -129,7 +231,6 @@ def main():
                     fail_count += 1
                     continue
             else:
-                config_parent = os.path.dirname(vdf_path)
                 if not os.access(config_parent, os.W_OK):
                     print(f"Skipping (no write permission): {vdf_path}")
                     fail_count += 1
@@ -137,22 +238,24 @@ def main():
                 
             shortcuts = parse_shortcuts(vdf_path)
             
-            # Find and remove any existing GOverlay shortcuts
+            # Find and remove any existing GOverlay shortcuts & collect IDs for artwork cleanup
             goverlay_keys = []
+            goverlay_ids = {str(appid), str(long_grid_id)}
             for k, v in shortcuts.items():
                 if v.get('AppName') == 'GOverlay':
                     goverlay_keys.append(k)
+                    old_id = v.get('appid')
+                    if old_id:
+                        goverlay_ids.add(str(old_id))
+                        goverlay_ids.add(str((old_id << 32) | 0x02000000))
             
             for k in goverlay_keys:
                 del shortcuts[k]
                 
-            if action == 'add':
-                # AppID generation (matching Steam behavior)
-                # Concatenate Exe + AppName
-                s = (exe_path + "GOverlay").encode('utf-8')
-                crc = binascii.crc32(s) & 0xffffffff
-                appid = crc | 0x80000000
+            # Clean up old artwork
+            remove_grid_artwork(grid_dir, goverlay_ids)
                 
+            if action == 'add':
                 # Exe dir
                 start_dir = os.path.dirname(exe_path)
                 
@@ -202,6 +305,10 @@ def main():
                     'last_play_time': 0,
                     'tags': {}
                 }
+                
+                # Install Steam Grid artwork files into config/grid/
+                install_grid_artwork(grid_dir, appid, long_grid_id, grid_assets_dir, icon_path)
+                
             elif action == 'remove':
                 pass
                 

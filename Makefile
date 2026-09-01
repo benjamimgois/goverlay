@@ -60,6 +60,8 @@ install: goverlay pascube bgmod bgmod-uninstaller data/goverlay.sh
 	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-launch.sh
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons
 	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
+	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/steam_grid
+	cp -r data/steam_grid/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/steam_grid/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/languages
 	cp -r languages/* $(DESTDIR)$(prefix)$(datadir)/goverlay/languages/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod

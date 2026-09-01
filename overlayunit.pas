@@ -7139,6 +7139,7 @@ var
   ShortcutProc: TProcess;
   PythonScript: string;
   IconPath: string;
+  GridDir: string;
   OutputList: TStringList;
   Msg: string;
   IsSteamRunning: Boolean;
@@ -7174,6 +7175,20 @@ begin
   begin
     IconPath := ExtractFilePath(Application.ExeName) + 'data/icons/512x512/goverlay.png';
   end;
+  if not FileExists(IconPath) then
+  begin
+    IconPath := ExtractFilePath(Application.ExeName) + 'icons/512x512/goverlay.png';
+  end;
+
+  GridDir := GetAppBaseDir + 'data/steam_grid';
+  if not DirectoryExists(GridDir) then
+  begin
+    GridDir := ExtractFilePath(Application.ExeName) + 'data/steam_grid';
+  end;
+  if not DirectoryExists(GridDir) then
+  begin
+    GridDir := ExtractFilePath(Application.ExeName) + 'steam_grid';
+  end;
 
   ShortcutProc := TProcess.Create(nil);
   OutputList := TStringList.Create;
@@ -7189,7 +7204,11 @@ begin
     ShortcutProc.Parameters.Add('add');
     ShortcutProc.Parameters.Add(Application.ExeName);
     if FileExists(IconPath) then
-      ShortcutProc.Parameters.Add(IconPath);
+      ShortcutProc.Parameters.Add(IconPath)
+    else
+      ShortcutProc.Parameters.Add('');
+    if DirectoryExists(GridDir) then
+      ShortcutProc.Parameters.Add(GridDir);
 
     ShortcutProc.Options := [poUsePipes, poStderrToOutPut];
     ShortcutProc.Execute;
