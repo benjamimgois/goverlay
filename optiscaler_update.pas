@@ -26,6 +26,13 @@ function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean
 // Check and automatically install vkSumi Vulkan layer if not present
 function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Check and automatically install MAKO Renderer Vulkan layer if not present
+function IsMakoInstalled: Boolean;
+function GetMakoInstalledVersion: string;
+function GetMakoLatestRemoteVersion(out AUrl: string): string;
+function CheckAndInstallMako(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function InspectMakoLosslessDll(const ADllPath: string; out ADetails: string): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -3852,6 +3859,409 @@ begin
   except
     on E: Exception do
       WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallVkSumi: ', E.Message);
+  end;
+end;
+
+function IsMakoInstalled: Boolean;
+var
+  LocalLayer: string;
+begin
+  LocalLayer := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json';
+  Result := FileExists(LocalLayer) or
+            FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+            FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+            (FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/bin/mako-launch') and
+             FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so'));
+end;
+
+function GetMakoInstalledVersion: string;
+var
+  StateFile, VersionFile, RawText: string;
+  SL: TStringList;
+  JsonData: TJSONData;
+  JsonObj: TJSONObject;
+begin
+  Result := '';
+  StateFile := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/mako-render/active-renderer.json';
+  if FileExists(StateFile) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(StateFile);
+      RawText := SL.Text;
+      if RawText <> '' then
+      begin
+        try
+          JsonData := GetJSON(RawText);
+          try
+            if Assigned(JsonData) and (JsonData is TJSONObject) then
+            begin
+              JsonObj := TJSONObject(JsonData);
+              if JsonObj.IndexOfName('version') >= 0 then
+                Result := Trim(JsonObj.Strings['version']);
+            end;
+          finally
+            JsonData.Free;
+          end;
+        except
+          // ignore parse errors
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+
+  if Result = '' then
+  begin
+    VersionFile := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/mako-render/MAKO-Renderer-version.txt';
+    if FileExists(VersionFile) then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.LoadFromFile(VersionFile);
+        if SL.Count > 0 then
+          Result := Trim(SL[0]);
+      finally
+        SL.Free;
+      end;
+    end;
+  end;
+
+  if (Result <> '') and (Result[1] <> 'v') and (Result[1] in ['0'..'9']) then
+    Result := 'v' + Result;
+end;
+
+function GetMakoLatestRemoteVersion(out AUrl: string): string;
+var
+  RespFile, RespText, TagName, DownloadUrl, AssetName: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  JsonData, AssetData: TJSONData;
+  ReleasesArray, AssetsArray: TJSONArray;
+  ReleaseObj, AssetObj: TJSONObject;
+  i, j: Integer;
+begin
+  Result := '';
+  AUrl := '';
+  DownloadUrl := '';
+  TagName := '';
+
+  RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'mako_api.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(RespFile);
+    Process.Parameters.Add(URL_MAKO_API_RELEASES);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+
+    if FileExists(RespFile) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(RespFile);
+        RespText := OutputList.Text;
+      finally
+        OutputList.Free;
+        DeleteFile(RespFile);
+      end;
+
+      if RespText <> '' then
+      begin
+        try
+          JsonData := GetJSON(RespText);
+          try
+            if Assigned(JsonData) and (JsonData is TJSONArray) then
+            begin
+              ReleasesArray := TJSONArray(JsonData);
+              for i := 0 to ReleasesArray.Count - 1 do
+              begin
+                if ReleasesArray.Types[i] = jtObject then
+                begin
+                  ReleaseObj := TJSONObject(ReleasesArray[i]);
+                  TagName := ReleaseObj.Get('tag_name', '');
+                  if Pos('render-v', TagName) = 1 then
+                  begin
+                    // Found matching release tag
+                    Result := Copy(TagName, 8, MaxInt);
+                    if (Result <> '') and (Result[1] <> 'v') then
+                      Result := 'v' + Result;
+
+                    // Locate Linux tarball asset
+                    AssetData := ReleaseObj.FindPath('assets');
+                    if Assigned(AssetData) and (AssetData is TJSONArray) then
+                    begin
+                      AssetsArray := TJSONArray(AssetData);
+                      for j := 0 to AssetsArray.Count - 1 do
+                      begin
+                        if AssetsArray.Types[j] = jtObject then
+                        begin
+                          AssetObj := TJSONObject(AssetsArray[j]);
+                          AssetName := AssetObj.Get('name', '');
+                          if (Pos('-linux.tar.xz', AssetName) > 0) or (Pos('.tar.xz', AssetName) > 0) then
+                          begin
+                            DownloadUrl := AssetObj.Get('browser_download_url', '');
+                            Break;
+                          end;
+                        end;
+                      end;
+                    end;
+                    Break;
+                  end;
+                end;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        except
+          // ignore parse errors
+        end;
+      end;
+    end;
+  finally
+    Process.Free;
+  end;
+
+  if DownloadUrl <> '' then
+    AUrl := DownloadUrl
+  else if Result <> '' then
+    AUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-' + Result + '/MAKO-Renderer-' + Result + '-linux.tar.xz'
+  else
+  begin
+    Result := 'v3.0.0';
+    AUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-v3.0.0/MAKO-Renderer-v3.0.0-linux.tar.xz';
+  end;
+end;
+
+function CheckAndInstallMako(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  ChanLabel: string;
+  StartPct, EndPct: Integer;
+  DownloadUrl, RemoteVer, TempTarFile, TempExtractDir, InstallerPath: string;
+  Process: TProcess;
+begin
+  Result := False;
+  ChanLabel := 'Checking MAKO runtime';
+  StartPct := 75;
+  EndPct := 95;
+
+  if not AForce and IsMakoInstalled then
+  begin
+    WriteLn('[AUTO-INSTALL] MAKO layer is already available');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'MAKO runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Downloading MAKO runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct + 2, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing MAKO Renderer in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    DownloadUrl := '';
+    RemoteVer := GetMakoLatestRemoteVersion(DownloadUrl);
+
+    if DownloadUrl = '' then
+      DownloadUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-v3.0.0/MAKO-Renderer-v3.0.0-linux.tar.xz';
+
+    WriteLn('[AUTO-INSTALL] MAKO Download URL: ', DownloadUrl);
+    TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'mako_download.tar.xz';
+    TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'mako_extract_' + IntToStr(fpgetpid) + PathDelim;
+
+    RunCurlWithProgress(DownloadUrl, TempTarFile, StartPct + 4, StartPct + 12, ChanLabel, AOnProgress);
+
+    if FileExists(TempTarFile) then
+    begin
+      ForceDirectories(TempExtractDir);
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 14, 'Extracting MAKO renderer...');
+
+      // Extract tar.xz
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := 'tar';
+        Process.Parameters.Add('-xJf');
+        Process.Parameters.Add(TempTarFile);
+        Process.Parameters.Add('-C');
+        Process.Parameters.Add(ExcludeTrailingPathDelimiter(TempExtractDir));
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      InstallerPath := TempExtractDir + 'Install MAKO Renderer';
+      if not FileExists(InstallerPath) then
+        InstallerPath := TempExtractDir + 'bin' + PathDelim + 'mako-installer';
+
+      if FileExists(InstallerPath) then
+      begin
+        if Assigned(AOnProgress) then
+          AOnProgress(StartPct + 16, 'Installing MAKO renderer...');
+
+        Process := TProcess.Create(nil);
+        try
+          Process.CurrentDirectory := ExcludeTrailingPathDelimiter(TempExtractDir);
+          Process.Executable := '/bin/sh';
+          Process.Parameters.Add('-c');
+          Process.Parameters.Add('chmod +x "' + InstallerPath + '" 2>/dev/null; ' +
+                                 'MAKO_INSTALLER_ASSUME_YES=1 MAKO_INSTALLER_NO_LAUNCH=1 "' + InstallerPath + '" --install');
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
+        end;
+
+        WriteLn('[AUTO-INSTALL] MAKO installer executed.');
+      end
+      else
+        WriteLn('[AUTO-INSTALL] ERROR: Could not find installer in extracted archive');
+
+      // Direct installation fallback if layer is not detected yet
+      if not IsMakoInstalled then
+      begin
+        WriteLn('[AUTO-INSTALL] Running direct extraction fallback for MAKO layer...');
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := '/bin/sh';
+          Process.Parameters.Add('-c');
+          Process.Parameters.Add(
+            'mkdir -p "$HOME/.local/bin" "$HOME/.local/lib" "$HOME/.local/lib32" "$HOME/.local/share/vulkan/implicit_layer.d" "$HOME/.local/share/mako-render"; ' +
+            'cp -rf "' + TempExtractDir + '"bin/* "$HOME/.local/bin/" 2>/dev/null; ' +
+            'chmod +x "$HOME/.local/bin/mako"* 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"lib/* "$HOME/.local/lib/" 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"lib32/* "$HOME/.local/lib32/" 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"share/vulkan/implicit_layer.d/* "$HOME/.local/share/vulkan/implicit_layer.d/" 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"*.txt "' + TempExtractDir + '"*.json "$HOME/.local/share/mako-render/" 2>/dev/null; ' +
+            'if [ ! -f "$HOME/.local/share/mako-render/active-renderer.json" ]; then ' +
+            '  echo "{\"schema_version\":1,\"owner\":\"standalone\",\"version\":\"' + RemoteVer + '\"}" > "$HOME/.local/share/mako-render/active-renderer.json"; ' +
+            'fi'
+          );
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
+        end;
+      end;
+
+      // Cleanup temp
+      DeleteFile(TempTarFile);
+      DeleteDirectory(TempExtractDir, False);
+    end;
+
+    if IsMakoInstalled then
+    begin
+      WriteLn('[AUTO-INSTALL] MAKO Renderer installed successfully');
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'MAKO runtime installed');
+      Result := True;
+    end
+    else
+      WriteLn('[AUTO-INSTALL] ERROR: MAKO layer not detected after installation');
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallMako: ', E.Message);
+  end;
+end;
+
+function InspectMakoLosslessDll(const ADllPath: string; out ADetails: string): Boolean;
+var
+  MakoCli: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  TmpOut: string;
+  i: Integer;
+  Line: string;
+  Fp16Ok, Fp32Ok, Ls1Ok: Boolean;
+begin
+  Result := False;
+  ADetails := '';
+  if (ADllPath = '') or not FileExists(ADllPath) then
+  begin
+    ADetails := 'DLL file not found';
+    Exit;
+  end;
+
+  MakoCli := IncludeTrailingPathDelimiter(GetUserDir) + '.local/bin/mako-cli';
+  if not FileExists(MakoCli) then
+  begin
+    if IsCommandAvailable('mako-cli') then
+      MakoCli := 'mako-cli'
+    else
+    begin
+      ADetails := 'DLL located (mako-cli not installed for deep inspection)';
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  TmpOut := IncludeTrailingPathDelimiter(GetTempDir) + 'mako_inspect_' + IntToStr(fpgetpid) + '.txt';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := '/bin/sh';
+    Process.Parameters.Add('-c');
+    Process.Parameters.Add('"' + MakoCli + '" inspect-dll -d "' + ADllPath + '" > "' + TmpOut + '" 2>&1');
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+
+    if FileExists(TmpOut) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(TmpOut);
+        Fp16Ok := False;
+        Fp32Ok := False;
+        Ls1Ok := False;
+
+        for i := 0 to OutputList.Count - 1 do
+        begin
+          Line := LowerCase(OutputList[i]);
+          if (Pos('lsfg fp16 quality', Line) > 0) and (Pos('compatible', Line) > 0) then
+            Fp16Ok := True;
+          if (Pos('lsfg fp32 quality', Line) > 0) and (Pos('compatible', Line) > 0) then
+            Fp32Ok := True;
+          if (Pos('ls1 quality resources', Line) > 0) and (Pos('compatible', Line) > 0) then
+            Ls1Ok := True;
+          if Pos('result:', Line) > 0 then
+            Result := (Pos('compatible', Line) > 0);
+        end;
+
+        ADetails := '● DLL inspected: ';
+        if Fp16Ok and Fp32Ok then
+          ADetails := ADetails + 'LSFG (FP16/FP32 OK)'
+        else if Fp32Ok then
+          ADetails := ADetails + 'LSFG (FP32 OK)'
+        else
+          ADetails := ADetails + 'LSFG compatible';
+
+        if Ls1Ok then
+          ADetails := ADetails + ' | LS1 Scaling OK'
+        else
+          ADetails := ADetails + ' | LS1 unavailable';
+      finally
+        OutputList.Free;
+        DeleteFile(TmpOut);
+      end;
+    end
+    else
+    begin
+      ADetails := 'DLL located';
+      Result := True;
+    end;
+  finally
+    Process.Free;
   end;
 end;
 

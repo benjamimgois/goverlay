@@ -75,7 +75,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..5] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk');
+  MOD_NAMES: array[0..5] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'Lossless Scaling');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -441,7 +441,7 @@ begin
       DlssOK  := Self.IsDlssEnablerInstalled;
       SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
                  (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
-      LsfgOK  := (Missing.IndexOf(DEP_LSFGVK) < 0);
+      LsfgOK  := IsMakoInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0) or (Missing.IndexOf(DEP_MAKO) < 0);
     finally
       Missing.Free;
     end;
@@ -859,7 +859,14 @@ function THomeTabHelper.GetLsfgVkVersion: string;
 var
   P: TProcess;
   S: TStringList;
+  MakoVer: string;
 begin
+  MakoVer := GetMakoInstalledVersion;
+  if MakoVer <> '' then
+    Exit(MakoVer);
+  if IsMakoInstalled then
+    Exit('installed');
+
   Result := '';
   if IsRunningInFlatpak then Exit;
   P := TProcess.Create(nil);

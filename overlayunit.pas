@@ -6451,9 +6451,11 @@ begin
   begin
     if Assigned(FLosslessScalingHelper) then
       TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
-    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'lsfg.toml';
+    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'conf.toml';
     if not FileExists(TargetFile) and Assigned(FLosslessScalingHelper) then
-      TargetFile := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteDefaultLsfgToml(GetGameConfigDir(FActiveGameName));
+      TargetFile := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteMakoTomlConfig(GetGameConfigDir(FActiveGameName));
+    if not FileExists(TargetFile) then
+      TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'lsfg.toml';
   end
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
   begin
@@ -8146,7 +8148,7 @@ begin
     UpdateGlobalEnableMenuItemVisibility;
     TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
     if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
-    ReflowLosslessScalingTab(0);
+    ReflowLosslessScalingTab(Max(1, Self.ClientWidth - goverlayPaintBox.Width));
   finally
     FLoadingConfig := False;
   end;
@@ -9348,9 +9350,10 @@ end;
 procedure TStartupDownloadThread.Execute;
 begin
   try
-    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 40%)
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (40% - 70%)
-    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (70% - 95%)
+    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 30%)
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (30% - 55%)
+    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 75%)
+    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (75% - 95%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

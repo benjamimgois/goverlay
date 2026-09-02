@@ -66,10 +66,16 @@ type
     procedure TestMultipleGamesMixed;
   end;
 
+  TMakoLogicTests = class(TTestCase)
+  published
+    procedure TestMakoInstalledCheck;
+    procedure TestMakoVersionParsing;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -729,6 +735,38 @@ begin
   AssertFalse('Game3 removed', DirectoryExists(GameNoBackup));
 end;
 
+procedure TMakoLogicTests.TestMakoInstalledCheck;
+var
+  LayerDir, LayerFile: string;
+begin
+  LayerDir := IsolatedHome + '/.local/share/vulkan/implicit_layer.d';
+  ForceDirectories(LayerDir);
+  LayerFile := LayerDir + '/VkLayer_MAKO_render.json';
+  FileClose(FileCreate(LayerFile));
+  AssertTrue('IsMakoInstalled returns True when layer JSON exists', IsMakoInstalled);
+  DeleteFile(LayerFile);
+end;
+
+procedure TMakoLogicTests.TestMakoVersionParsing;
+var
+  StateDir, StateFile: string;
+  SL: TStringList;
+begin
+  StateDir := IsolatedHome + '/.local/share/mako-render';
+  ForceDirectories(StateDir);
+  StateFile := StateDir + '/active-renderer.json';
+  SL := TStringList.Create;
+  try
+    SL.Add('{"version": "3.0.0", "prefix": "/home/test"}');
+    SL.SaveToFile(StateFile);
+  finally
+    SL.Free;
+  end;
+
+  AssertEquals('Parsed version includes leading v', 'v3.0.0', GetMakoInstalledVersion);
+  DeleteFile(StateFile);
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -738,5 +776,6 @@ initialization
   RegisterTest(TGpuNameExtractionTests);
   RegisterTest(TMangoHudGpuListTests);
   RegisterTest(TClearConfigTests);
+  RegisterTest(TMakoLogicTests);
 
 end.

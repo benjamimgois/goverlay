@@ -422,15 +422,21 @@ begin
        not IsLibraryAvailable('libVkLayer_KORTHOS_LowLatency') then
       Missing.Add(DEP_LOW_LATENCY_LAYER);
 
-    // lsfg-vk: check Vulkan layer JSON then fall back to library scan or binary
-    if not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
+    // MAKO / lsfg-vk: check Vulkan layer JSON then fall back to library scan or binary
+    if not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
+       not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
+       not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
+       not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') and
+       not IsLibraryAvailable('libVkLayer_MAKO_render') and
        not IsLibraryAvailable('liblsfg-vk') and
        not IsLibraryAvailable('libVkLayer_LSFGVK') and
+       not IsCommandAvailable('mako-cli') and
+       not IsCommandAvailable('mako-ui') and
        not IsCommandAvailable('lsfg-vk-ui') then
       Missing.Add(DEP_LSFGVK);
   end;

@@ -132,14 +132,15 @@ begin
    fVersion:=ParamStr(Index);
   end else if (Arg='--uncapped') or (Arg='--unlimited-fps') then begin
    fUncappedFPS:=true;
-  end else if (Arg='--lossless-scaling') or (Arg='--lossless') or (Arg='--lsfg-active') then begin
+  end else if (Arg='--lossless-scaling') or (Arg='--lossless') or (Arg='--lsfg-active') or (Arg='--mako-active') then begin
    fLosslessScalingActive:=true;
   end;
   Inc(Index);
  end;
 
  if not fLosslessScalingActive then begin
-  if (GetEnvironmentVariable('LSFG_CONFIG') <> '') or (GetEnvironmentVariable('ENABLE_LSFGVK') = '1') then
+  if (GetEnvironmentVariable('ENABLE_MAKO') = '1') or (GetEnvironmentVariable('MAKO_CONFIG') <> '') or
+     (GetEnvironmentVariable('LSFG_CONFIG') <> '') or (GetEnvironmentVariable('ENABLE_LSFGVK') = '1') then
    fLosslessScalingActive:=true;
  end;
 

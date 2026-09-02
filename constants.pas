@@ -37,6 +37,7 @@ const
   DEP_LIBQT5PAS         = 'libqt5pas';
   DEP_NERDFONTS         = 'nerdfonts';
   DEP_LSFGVK            = 'lsfg-vk';
+  DEP_MAKO              = 'mako-render';
 
   // ============================================================================
   // GITHUB URLS
@@ -54,8 +55,10 @@ const
   // vkBasalt Repository
   URL_VKBASALT_REPO = 'https://github.com/DadSchoorse/vkBasalt';
 
-  // LSFG-VK Repository
-  URL_LSFGVK_REPO = 'https://github.com/Pietruszka33/lsfg-vk';
+  // MAKO & LSFG-VK Repository
+  URL_MAKO_REPO = 'https://github.com/eugeniosegala/MAKO';
+  URL_MAKO_API_RELEASES = 'https://api.github.com/repos/eugeniosegala/MAKO/releases';
+  URL_LSFGVK_REPO = 'https://github.com/eugeniosegala/MAKO';
 
   // ReplaySorcery Repository
   URL_REPLAYSORCERY_REPO = 'https://github.com/matanui159/ReplaySorcery';

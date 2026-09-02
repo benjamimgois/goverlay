@@ -2843,7 +2843,7 @@ begin
                           245.0/255.0, 166.0/255.0, 35.0/255.0, 1.0);
 
   app.TextOverlay.AddText(cx, boxY + 2.9 * charHeight, 0.9, toaCenter,
-                          'Lossless Scaling (LSFG-VK) is currently active.',
+                          'Lossless Scaling (MAKO) is currently active.',
                           0.0, 0.0, 0.0, 0.0,
                           1.0, 1.0, 1.0, 1.0);
 
