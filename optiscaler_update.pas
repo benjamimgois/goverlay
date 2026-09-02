@@ -23,6 +23,9 @@ function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean =
 // Check and automatically install Streamline SDK if not present
 function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 
+// Check and automatically install vkSumi Vulkan layer if not present
+function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -2840,14 +2843,14 @@ begin
   if AIsStable then
   begin
     ChanLabel := 'Downloading DLSS-Enabler stable';
-    StartPct := 50;
-    EndPct := 95;
+    StartPct := 40;
+    EndPct := 70;
   end
   else
   begin
     ChanLabel := 'Downloading DLSS-Enabler edge';
-    StartPct := 50;
-    EndPct := 95;
+    StartPct := 40;
+    EndPct := 70;
   end;
 
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
@@ -3225,14 +3228,14 @@ begin
     TargetCacheDir := GetBGModOriginalPath;
     ChanLabel := 'Downloading Optiscaler stable';
     StartPct := 0;
-    EndPct := 50;
+    EndPct := 40;
   end
   else
   begin
     TargetCacheDir := GetBGModOriginalEdgePath;
     ChanLabel := 'Downloading Optiscaler edge';
     StartPct := 0;
-    EndPct := 50;
+    EndPct := 40;
   end;
 
   if Assigned(AOnProgress) then
@@ -3625,6 +3628,230 @@ begin
     begin
       WriteLn('[AUTO-INSTALL] ERROR: Exception during installation - ', E.Message);
     end;
+  end;
+end;
+
+function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  LayersDir, TargetSoFile, UserVulkanImplicitDir, TargetJsonFile: string;
+  ChanLabel: string;
+  StartPct, EndPct: Integer;
+  DownloadUrl, TempDebFile, TempExtractDir: string;
+  Process: TProcess;
+  JsonSL, OutputList: TStringList;
+  FoundFiles: TStringList;
+  RespFile, RespText: string;
+  TagPos, UrlPos, QuoteEnd: Integer;
+begin
+  Result := False;
+  ChanLabel := 'Checking vkSumi runtime';
+  StartPct := 70;
+  EndPct := 95;
+
+  LayersDir := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim;
+  TargetSoFile := LayersDir + 'libVkLayer_vksumi.so';
+
+  UserVulkanImplicitDir := GetEnvironmentVariable('XDG_DATA_HOME');
+  if UserVulkanImplicitDir = '' then
+    UserVulkanImplicitDir := IncludeTrailingPathDelimiter(GetUserDir + '.local/share')
+  else
+    UserVulkanImplicitDir := IncludeTrailingPathDelimiter(UserVulkanImplicitDir);
+  UserVulkanImplicitDir := UserVulkanImplicitDir + 'vulkan' + PathDelim + 'implicit_layer.d' + PathDelim;
+  TargetJsonFile := UserVulkanImplicitDir + 'vksumi.json';
+
+  // Check if system runtime exists or user-space runtime already exists
+  if not AForce then
+  begin
+    if (FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
+        FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') or
+        FileExists('/app/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
+        FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') or
+        FileExists('/etc/vulkan/implicit_layer.d/vksumi.json')) or
+       (FileExists(TargetSoFile) and FileExists(TargetJsonFile)) then
+    begin
+      WriteLn('[AUTO-INSTALL] vkSumi layer is already available');
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'vkSumi runtime ready');
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  ChanLabel := 'Downloading vkSumi runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct + 2, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing vkSumi Vulkan layer in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    ForceDirectories(LayersDir);
+    ForceDirectories(UserVulkanImplicitDir);
+
+    DownloadUrl := '';
+
+    // Fetch latest release asset from GitHub API
+    RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_api.json';
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(RespFile);
+      Process.Parameters.Add('https://api.github.com/repos/reakjra/vkSumi/releases/latest');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+
+      if FileExists(RespFile) then
+      begin
+        OutputList := TStringList.Create;
+        try
+          OutputList.LoadFromFile(RespFile);
+          RespText := OutputList.Text;
+        finally
+          OutputList.Free;
+          DeleteFile(RespFile);
+        end;
+
+        // Find .deb browser_download_url
+        UrlPos := Pos('browser_download_url', RespText);
+        while UrlPos > 0 do
+        begin
+          QuoteEnd := PosEx('.deb"', RespText, UrlPos);
+          if QuoteEnd > 0 then
+          begin
+            TagPos := PosEx('http', RespText, UrlPos);
+            if (TagPos > 0) and (TagPos < QuoteEnd) then
+            begin
+              DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 4 - TagPos);
+              Break;
+            end;
+          end;
+          UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+        end;
+      end;
+    finally
+      Process.Free;
+    end;
+
+    if DownloadUrl = '' then
+      DownloadUrl := 'https://github.com/reakjra/vkSumi/releases/download/v0.0.7/vksumi_0.0.7_amd64.deb';
+
+    WriteLn('[AUTO-INSTALL] vkSumi Download URL: ', DownloadUrl);
+    TempDebFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_download.deb';
+    TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_extract' + PathDelim;
+
+    RunCurlWithProgress(DownloadUrl, TempDebFile, StartPct + 4, StartPct + 15, ChanLabel, AOnProgress);
+
+    if FileExists(TempDebFile) then
+    begin
+      ForceDirectories(TempExtractDir);
+      // Unpack deb with 7z
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := '7z';
+        Process.Parameters.Add('x');
+        Process.Parameters.Add('-y');
+        Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtractDir));
+        Process.Parameters.Add(TempDebFile);
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      // Unpack data.tar.* if present
+      FoundFiles := FindAllFiles(TempExtractDir, 'data.tar*', False);
+      try
+        if FoundFiles.Count > 0 then
+        begin
+          Process := TProcess.Create(nil);
+          try
+            Process.Executable := '7z';
+            Process.Parameters.Add('x');
+            Process.Parameters.Add('-y');
+            Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtractDir));
+            Process.Parameters.Add(FoundFiles[0]);
+            Process.Options := [poWaitOnExit];
+            Process.Execute;
+          finally
+            Process.Free;
+          end;
+        end;
+      finally
+        FoundFiles.Free;
+      end;
+
+      // Find libVkLayer_vksumi.so in extracted tree
+      FoundFiles := FindAllFiles(TempExtractDir, 'libVkLayer_vksumi.so', True);
+      try
+        if FoundFiles.Count > 0 then
+        begin
+          CopyFile(FoundFiles[0], TargetSoFile);
+          WriteLn('[AUTO-INSTALL] Extracted libVkLayer_vksumi.so to: ', TargetSoFile);
+        end;
+      finally
+        FoundFiles.Free;
+      end;
+
+      // Cleanup temp
+      DeleteFile(TempDebFile);
+      DeleteDirectory(TempExtractDir, False);
+    end;
+
+    // Fallback: If extraction didn't yield the .so, try direct download fallback
+    if not FileExists(TargetSoFile) then
+    begin
+      WriteLn('[AUTO-INSTALL] Trying direct binary download for libVkLayer_vksumi.so...');
+      RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/vksumi/libVkLayer_vksumi.so', TargetSoFile, StartPct + 16, StartPct + 20, ChanLabel + ' (fallback)', AOnProgress);
+    end;
+
+    if FileExists(TargetSoFile) then
+    begin
+      // Create/Update vksumi.json
+      JsonSL := TStringList.Create;
+      try
+        JsonSL.Add('{');
+        JsonSL.Add('    "file_format_version": "1.0.0",');
+        JsonSL.Add('    "layer": {');
+        JsonSL.Add('        "name": "VK_LAYER_vksumi_color_grading",');
+        JsonSL.Add('        "type": "GLOBAL",');
+        JsonSL.Add('        "library_path": "' + TargetSoFile + '",');
+        JsonSL.Add('        "api_version": "1.4.0",');
+        JsonSL.Add('        "implementation_version": "1",');
+        JsonSL.Add('        "description": "vkSumi runtime color grading (brightness, contrast, saturation, hue, gamma)",');
+        JsonSL.Add('        "functions": {');
+        JsonSL.Add('            "vkGetInstanceProcAddr": "vksumi_GetInstanceProcAddr",');
+        JsonSL.Add('            "vkGetDeviceProcAddr": "vksumi_GetDeviceProcAddr"');
+        JsonSL.Add('        },');
+        JsonSL.Add('        "enable_environment": {');
+        JsonSL.Add('            "ENABLE_VKSUMI": "1"');
+        JsonSL.Add('        },');
+        JsonSL.Add('        "disable_environment": {');
+        JsonSL.Add('            "DISABLE_VKSUMI": "1"');
+        JsonSL.Add('        }');
+        JsonSL.Add('    }');
+        JsonSL.Add('}');
+        JsonSL.SaveToFile(TargetJsonFile);
+      finally
+        JsonSL.Free;
+      end;
+
+      WriteLn('[AUTO-INSTALL] Created Vulkan layer manifest at: ', TargetJsonFile);
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'vkSumi runtime installed');
+      Result := True;
+    end
+    else
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Failed to install vkSumi layer');
+    end;
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallVkSumi: ', E.Message);
   end;
 end;
 

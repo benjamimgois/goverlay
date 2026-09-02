@@ -462,7 +462,13 @@ begin
        not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') then
       Missing.Add(DEP_VKBASALT_RUNTIME);
     if not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') and
-       not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') then
+       not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') and
+       not FileExists('/app/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') and
+       not FileExists('/app/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') and
+       not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/vksumi.json') and
+       not ((GetEnvironmentVariable('XDG_DATA_HOME') <> '') and FileExists(IncludeTrailingPathDelimiter(GetEnvironmentVariable('XDG_DATA_HOME')) + 'vulkan/implicit_layer.d/vksumi.json')) and
+       not FileExists(GetUserDir + '.local/share/goverlay/layers/vksumi/libVkLayer_vksumi.so') and
+       not ((GetEnvironmentVariable('XDG_DATA_HOME') <> '') and FileExists(IncludeTrailingPathDelimiter(GetEnvironmentVariable('XDG_DATA_HOME')) + 'goverlay/layers/vksumi/libVkLayer_vksumi.so')) then
       Missing.Add(DEP_VKSUMI_RUNTIME);
   end
   else

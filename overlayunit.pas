@@ -9348,8 +9348,9 @@ end;
 procedure TStartupDownloadThread.Execute;
 begin
   try
-    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 50%)
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (50% - 95%)
+    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 40%)
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (40% - 70%)
+    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (70% - 95%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

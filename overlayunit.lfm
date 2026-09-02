@@ -7764,7 +7764,7 @@ object goverlayform: Tgoverlayform
             Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'MAILBOX - mailbox renders the game without a FPS limit but only sends the images '#10'to the monitor according to the refresh rate. It provides low latency with high power '#10'consumption, but provides low latency and tearing free.'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 26
-            Width = 109
+            Width = 140
             BorderSpacing.Left = 11
             Font.Height = -13
             Font.Name = 'Sans'
@@ -7794,7 +7794,7 @@ object goverlayform: Tgoverlayform
             Height = 32
             Hint = 'ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) '#10'for better stability and avoid tearing.'#10#10'ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur '#10'at that point.'#10#10'N - Sync to refresh rate (OpenGL only)'#10#10'OFF - Do not synchronize frame rate and refresh rate, gives better '#10'performance but produces tearing as consequence.'#10#10'UNSET - Let the game decide'
             Top = 85
-            Width = 109
+            Width = 140
             Font.Height = -13
             Font.Name = 'Sans'
             Font.Quality = fqAntialiased

@@ -8,6 +8,23 @@ base: io.qt.qtwebengine.BaseApp
 base-version: "6.11"
 command: goverlay
 
+add-extensions:
+  org.freedesktop.Platform.VulkanLayer.MangoHud:
+    directory: lib/extensions/vulkan/MangoHud
+    version: '25.08'
+    add-ld-path: lib
+    subdirectories: true
+    no-autodownload: false
+    autodownload: true
+
+  org.freedesktop.Platform.VulkanLayer.vkBasalt:
+    directory: lib/extensions/vulkan/vkBasalt
+    version: '25.08'
+    add-ld-path: lib
+    subdirectories: true
+    no-autodownload: false
+    autodownload: true
+
 finish-args:
   # GPU access for Vulkan/OpenGL overlays
   - --device=dri
@@ -16,6 +33,7 @@ finish-args:
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=xdg-config/vkSumi:rw
+  - --filesystem=xdg-data/vulkan:create
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam:ro

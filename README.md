@@ -147,23 +147,14 @@ An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and re
 
 ### Flatpak
 
-You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.benjamimgois.goverlay)
+You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.benjamimgois.goverlay) or install it via terminal:
 
 ```bash
 # Add Flathub repository
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-# Install Goverlay
+# Install Goverlay (required Vulkan layers like MangoHud and vkBasalt are installed automatically)
 flatpak install flathub io.github.benjamimgois.goverlay
-
-# Install required Vulkan layers for MangoHud and vkBasalt support
-flatpak install flathub org.freedesktop.Platform.VulkanLayer.MangoHud//25.08 \
-org.freedesktop.Platform.VulkanLayer.vkBasalt//25.08 -y
-
-# Download vksumi flatpak runtime from its github page and install
-https://github.com/reakjra/vkSumi
-flatpak install vkSumi-25.08.flatpak
-
 ```
 
 ### AppImage

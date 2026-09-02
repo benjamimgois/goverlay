@@ -1577,6 +1577,7 @@ const
       Logo.Top     := (AHeight - Logo.Height) div 2;
 
       Combo.Parent := Row;
+      Combo.Width  := 140;
       Combo.AnchorSideLeft.Control   := nil;
       Combo.AnchorSideTop.Control    := nil;
       Combo.AnchorSideRight.Control  := nil;
@@ -1850,21 +1851,21 @@ begin
       if Assigned(FframecountToggle) then begin FframecountToggle.Left := Col3Left; FframecountToggle.Top := 94; end;
     end;
 
-    // Center logo+combo block (101+8+109=218px) within each VSYNC row
+    // Center logo+combo block within each VSYNC row
     if Assigned(FPerfVsyncSec) then
     begin
       if Assigned(FVsyncRows[0]) then
       begin
         FVsyncRows[0].Top    := 20;
         FVsyncRows[0].Width  := FPerfVsyncSec.ClientWidth - 16;
-        vulkanImage.Left     := (FVsyncRows[0].Width - 218) div 2;
+        vulkanImage.Left     := (FVsyncRows[0].Width - (vulkanImage.Width + 8 + vsyncComboBox.Width)) div 2;
         vsyncComboBox.Left   := vulkanImage.Left + vulkanImage.Width + 8;
       end;
       if Assigned(FVsyncRows[1]) then
       begin
         FVsyncRows[1].Top    := 84;
         FVsyncRows[1].Width  := FPerfVsyncSec.ClientWidth - 16;
-        openglImage.Left     := (FVsyncRows[1].Width - 218) div 2;
+        openglImage.Left     := (FVsyncRows[1].Width - (openglImage.Width + 8 + glvsyncComboBox.Width)) div 2;
         glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
       end;
     end;
