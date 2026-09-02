@@ -38,7 +38,7 @@ resourcestring
   // Home tab: clearing the configuration
   rsClearConfigTitle = 'Clear Configuration';
   rsClearConfigPrompt = 'All files and settings will be removed and GOverlay '
-    + 'will return to its initial configuration.' + sLineBreak + sLineBreak
+    + 'will return to its initial configuration. Original game backup files will be preserved.' + sLineBreak + sLineBreak
     + 'Do you want to continue?';
   rsClearConfigDone = 'Configuration cleared successfully.' + sLineBreak
     + 'Please restart GOverlay.';

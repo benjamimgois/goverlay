@@ -59,6 +59,13 @@ type
     procedure TestGpuListBothGpus;
   end;
 
+  TClearConfigTests = class(TTestCase)
+  published
+    procedure TestPreserveNonEmptyBackups;
+    procedure TestPruneEmptyBackupsAndDirectories;
+    procedure TestMultipleGamesMixed;
+  end;
+
 implementation
 
 uses
@@ -598,6 +605,130 @@ begin
   end;
 end;
 
+procedure TClearConfigTests.TestPreserveNonEmptyBackups;
+var
+  BaseDir, GameDir, BackupDir: string;
+  F: TextFile;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay_test_preserve';
+  GameDir := BaseDir + '/gameconfig/Cyberpunk2077';
+  BackupDir := GameDir + '/backups';
+
+  ForceDirectories(BackupDir);
+  ForceDirectories(BaseDir + '/bgmod');
+  ForceDirectories(BaseDir + '/logs');
+
+  // Create backup dll file
+  AssignFile(F, BackupDir + '/amd_fidelityfx_dx12.dll');
+  Rewrite(F);
+  WriteLn(F, 'ORIGINAL_DLL_CONTENT');
+  CloseFile(F);
+
+  // Create config files inside game dir
+  AssignFile(F, GameDir + '/MangoHud.conf');
+  Rewrite(F);
+  WriteLn(F, 'fps=1');
+  CloseFile(F);
+
+  AssignFile(F, GameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, 'mod=1');
+  CloseFile(F);
+
+  // Create other root files
+  AssignFile(F, BaseDir + '/bgmod/bgmod');
+  Rewrite(F);
+  WriteLn(F, 'BINARY');
+  CloseFile(F);
+
+  AssignFile(F, BaseDir + '/logs/app.log');
+  Rewrite(F);
+  WriteLn(F, 'LOG');
+  CloseFile(F);
+
+  AssertTrue('CleanDirectoryPreservingBackups succeeds', CleanDirectoryPreservingBackups(BaseDir));
+
+  // Backup DLL and its path must still exist
+  AssertTrue('Backup DLL preserved', FileExists(BackupDir + '/amd_fidelityfx_dx12.dll'));
+  AssertTrue('Game directory preserved', DirectoryExists(GameDir));
+  AssertTrue('Base directory preserved', DirectoryExists(BaseDir));
+
+  // Config files and other non-backup folders must be deleted
+  AssertFalse('MangoHud.conf deleted', FileExists(GameDir + '/MangoHud.conf'));
+  AssertFalse('bgmod.conf deleted', FileExists(GameDir + '/bgmod.conf'));
+  AssertFalse('bgmod dir removed', DirectoryExists(BaseDir + '/bgmod'));
+  AssertFalse('logs dir removed', DirectoryExists(BaseDir + '/logs'));
+end;
+
+procedure TClearConfigTests.TestPruneEmptyBackupsAndDirectories;
+var
+  BaseDir, GameDir, BackupDir: string;
+  F: TextFile;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay_test_empty';
+  GameDir := BaseDir + '/gameconfig/DoomEternal';
+  BackupDir := GameDir + '/backups';
+
+  ForceDirectories(BackupDir); // Empty backups folder
+
+  AssignFile(F, GameDir + '/MangoHud.conf');
+  Rewrite(F);
+  WriteLn(F, 'fps=1');
+  CloseFile(F);
+
+  AssertTrue('CleanDirectoryPreservingBackups succeeds', CleanDirectoryPreservingBackups(BaseDir));
+
+  // Everything should be pruned since there are no non-empty backups
+  AssertFalse('Empty backups folder removed', DirectoryExists(BackupDir));
+  AssertFalse('Game folder removed', DirectoryExists(GameDir));
+  AssertFalse('Base folder removed', DirectoryExists(BaseDir));
+end;
+
+procedure TClearConfigTests.TestMultipleGamesMixed;
+var
+  BaseDir, GameWithBackup, GameEmptyBackup, GameNoBackup: string;
+  F: TextFile;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay_test_mixed';
+  GameWithBackup := BaseDir + '/gameconfig/Game1';
+  GameEmptyBackup := BaseDir + '/gameconfig/Game2';
+  GameNoBackup := BaseDir + '/gameconfig/Game3';
+
+  ForceDirectories(GameWithBackup + '/backups');
+  ForceDirectories(GameEmptyBackup + '/backups');
+  ForceDirectories(GameNoBackup);
+
+  AssignFile(F, GameWithBackup + '/backups/nvngx.dll');
+  Rewrite(F);
+  WriteLn(F, 'DLL');
+  CloseFile(F);
+
+  AssignFile(F, GameWithBackup + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, 'CFG');
+  CloseFile(F);
+
+  AssignFile(F, GameEmptyBackup + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, 'CFG');
+  CloseFile(F);
+
+  AssignFile(F, GameNoBackup + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, 'CFG');
+  CloseFile(F);
+
+  AssertTrue('CleanDirectoryPreservingBackups succeeds', CleanDirectoryPreservingBackups(BaseDir));
+
+  // Game1 backup is preserved, its config is deleted
+  AssertTrue('Game1 backup DLL preserved', FileExists(GameWithBackup + '/backups/nvngx.dll'));
+  AssertFalse('Game1 config deleted', FileExists(GameWithBackup + '/bgmod.conf'));
+
+  // Game2 and Game3 are completely removed
+  AssertFalse('Game2 removed', DirectoryExists(GameEmptyBackup));
+  AssertFalse('Game3 removed', DirectoryExists(GameNoBackup));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -606,5 +737,6 @@ initialization
   RegisterTest(TVkBasaltLogicTests);
   RegisterTest(TGpuNameExtractionTests);
   RegisterTest(TMangoHudGpuListTests);
+  RegisterTest(TClearConfigTests);
 
 end.

@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, Process, LCLIntf,
   themeunit, constants, hintsunit, apputils, overlayunit, systemdetector, optiscaler_update, bgmod_resources, StrUtils, FileUtil, Types,
-  ComCtrls, goverlay_system, Math, goverlay_strings;
+  ComCtrls, goverlay_system, Math, goverlay_strings, overlay_config;
 
 type
   THomeTabHelper = class
@@ -740,12 +740,13 @@ begin
     if DirectoryExists(Paths[i]) then
     begin
       try
-        DeleteDirectory(Paths[i], False);
-        WriteLn('[ClearConfig] Deleted: ', Paths[i]);
+        if not CleanDirectoryPreservingBackups(Paths[i]) then
+          AllDeleted := False;
+        WriteLn('[ClearConfig] Cleaned (preserving backups): ', Paths[i]);
       except
         on E: Exception do
         begin
-          WriteLn('[ClearConfig] ERROR deleting ', Paths[i], ': ', E.Message);
+          WriteLn('[ClearConfig] ERROR cleaning ', Paths[i], ': ', E.Message);
           AllDeleted := False;
         end;
       end;

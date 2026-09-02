@@ -247,6 +247,8 @@ const
 function SanitizeFileName(const AName: string): string;
 function GetGameConfigDir(const AGameName: string): string;
 function ExtractGpuMarketName(const ARawLspci: string): string;
+function IsDirectoryEmpty(const ADir: string): Boolean;
+function CleanDirectoryPreservingBackups(const ADir: string): Boolean;
 
 function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
@@ -394,6 +396,97 @@ begin
 
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + GameDirName + '/';
+end;
+
+function IsDirectoryEmpty(const ADir: string): Boolean;
+var
+  SearchRec: TSearchRec;
+begin
+  Result := True;
+  if not DirectoryExists(ADir) then Exit;
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faAnyFile, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
+        begin
+          Result := False;
+          Break;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
+end;
+
+function CleanDirectoryPreservingBackups(const ADir: string): Boolean;
+var
+  SearchRec: TSearchRec;
+  ItemPath, FolderName: string;
+begin
+  Result := True;
+  if not DirectoryExists(ADir) then Exit;
+
+  // If this directory itself is named 'backups' (case-insensitive):
+  // If it is empty, prune it. If not empty, preserve it and everything inside it!
+  FolderName := ExtractFileName(ExcludeTrailingPathDelimiter(ADir));
+  if SameText(FolderName, 'backups') then
+  begin
+    if IsDirectoryEmpty(ADir) then
+      RemoveDir(ADir);
+    Exit;
+  end;
+
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faAnyFile, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        if (SearchRec.Name = '.') or (SearchRec.Name = '..') then
+          Continue;
+
+        ItemPath := IncludeTrailingPathDelimiter(ADir) + SearchRec.Name;
+
+        if (SearchRec.Attr and faDirectory) <> 0 then
+        begin
+          if SameText(SearchRec.Name, 'backups') then
+          begin
+            if IsDirectoryEmpty(ItemPath) then
+            begin
+              if not RemoveDir(ItemPath) then
+                Result := False;
+            end;
+            // If non-empty, do nothing: preserve the backups folder and its contents intact!
+          end
+          else
+          begin
+            if not CleanDirectoryPreservingBackups(ItemPath) then
+              Result := False;
+            if DirectoryExists(ItemPath) and IsDirectoryEmpty(ItemPath) then
+            begin
+              if not RemoveDir(ItemPath) then
+                Result := False;
+            end;
+          end;
+        end
+        else
+        begin
+          // Ordinary file outside a backups folder: delete it
+          if not DeleteFile(ItemPath) then
+            Result := False;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
+
+  // After cleaning all children: if ADir itself is now empty, remove it
+  if DirectoryExists(ADir) and IsDirectoryEmpty(ADir) then
+  begin
+    if not RemoveDir(ADir) then
+      Result := False;
+  end;
 end;
 
 function IsVkBasaltBuiltInEffect(const AName: string): Boolean;
