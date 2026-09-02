@@ -7107,6 +7107,12 @@ var
   Msg: string;
   IsSteamRunning: Boolean;
 begin
+  if IsRunningInFlatpak then
+  begin
+    ShowMessage(rsSteamShortcutFlatpakInfo);
+    Exit;
+  end;
+
   IsSteamRunning := IsProcessRunningPure('steam');
   if IsSteamRunning then
   begin

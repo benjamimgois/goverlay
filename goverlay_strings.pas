@@ -107,6 +107,15 @@ resourcestring
     + 'Do you want to continue?';
 
   // Steam shortcut
+  rsSteamShortcutFlatpakInfo = 'To add GOverlay to your Steam Library in Desktop Mode:' + LineEnding + LineEnding
+    + 'Method 1 (Application Menu):' + LineEnding
+    + '1. Open the Application Launcher (bottom-left corner).' + LineEnding
+    + '2. Locate GOverlay under System, Utilities, or Games.' + LineEnding
+    + '3. Right-click on GOverlay and select "Add to Steam".' + LineEnding + LineEnding
+    + 'Method 2 (Steam Client):' + LineEnding
+    + '1. In Steam, click "Games" in the top menu.' + LineEnding
+    + '2. Select "Add a Non-Steam Game to My Library...".' + LineEnding
+    + '3. Choose GOverlay from the list and click "Add Selected Programs".';
   rsSteamRunning = 'Steam is currently running. Please close Steam completely '
     + '(Steam -> Exit) before creating the shortcut, as Steam will overwrite and '
     + 'discard any changes when it exits.';

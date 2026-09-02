@@ -16,9 +16,9 @@ finish-args:
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=xdg-config/vkSumi:rw
-  - --filesystem=~/.local/share/Steam:rw
-  - --filesystem=~/.steam:rw
-  - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
+  - --filesystem=~/.local/share/Steam:ro
+  - --filesystem=~/.steam:ro
+  - --filesystem=~/.var/app/com.valvesoftware.Steam:ro
   # Additional Steam libraries on secondary drives
   - --filesystem=/mnt:ro
   - --filesystem=/media:ro
