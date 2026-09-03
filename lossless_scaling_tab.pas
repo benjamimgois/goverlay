@@ -1023,7 +1023,7 @@ begin
   FLsBaseFpsCapTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsBaseFpsCapTitleLbl.Parent := FLsFrameGenCard;
   FLsBaseFpsCapTitleLbl.Caption := 'Base FPS Cap';
-  FLsBaseFpsCapTitleLbl.Hint := 'Hard cap on real input frame rate to ensure headroom for generated frames (0 = Disabled)';
+  FLsBaseFpsCapTitleLbl.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
   FLsBaseFpsCapTitleLbl.ShowHint := True;
   StyleLabel(FLsBaseFpsCapTitleLbl, lrControlLabel);
 
@@ -1033,7 +1033,7 @@ begin
   FLsBaseFpsCapTrackBar.Max := 240;
   FLsBaseFpsCapTrackBar.Position := 0;
   FLsBaseFpsCapTrackBar.TickStyle := tsNone;
-  FLsBaseFpsCapTrackBar.Hint := 'Base FPS Cap (0 = Disabled)';
+  FLsBaseFpsCapTrackBar.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
   FLsBaseFpsCapTrackBar.ShowHint := True;
   FLsBaseFpsCapTrackBar.OnChange := @BaseFpsCapChange;
 
@@ -1047,7 +1047,7 @@ begin
   FLsRefreshThresholdTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsRefreshThresholdTitleLbl.Parent := FLsFrameGenCard;
   FLsRefreshThresholdTitleLbl.Caption := 'Refresh Threshold';
-  FLsRefreshThresholdTitleLbl.Hint := 'Minimum display refresh rate required before engaging frame generation (0 = Disabled)';
+  FLsRefreshThresholdTitleLbl.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
   FLsRefreshThresholdTitleLbl.ShowHint := True;
   StyleLabel(FLsRefreshThresholdTitleLbl, lrControlLabel);
 
@@ -1057,7 +1057,7 @@ begin
   FLsRefreshThresholdTrackBar.Max := 240;
   FLsRefreshThresholdTrackBar.Position := 0;
   FLsRefreshThresholdTrackBar.TickStyle := tsNone;
-  FLsRefreshThresholdTrackBar.Hint := 'Refresh threshold (0 = Disabled)';
+  FLsRefreshThresholdTrackBar.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
   FLsRefreshThresholdTrackBar.ShowHint := True;
   FLsRefreshThresholdTrackBar.OnChange := @RefreshThresholdChange;
 
@@ -1168,17 +1168,17 @@ begin
   FLsPacingComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsPacingComboBox);
   
-  FLsGpuTitleLbl := TLabel.Create(FLsFrameGenCard);
-  FLsGpuTitleLbl.Parent := FLsFrameGenCard;
+  FLsGpuTitleLbl := TLabel.Create(FLsGeneralCard);
+  FLsGpuTitleLbl.Parent := FLsGeneralCard;
   FLsGpuTitleLbl.Caption := 'Target GPU Device';
-  FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation';
+  FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation and upscaling';
   FLsGpuTitleLbl.ShowHint := True;
   StyleLabel(FLsGpuTitleLbl, lrControlLabel);
   
-  FLsGpuComboBox := TComboBox.Create(FLsFrameGenCard);
-  FLsGpuComboBox.Parent := FLsFrameGenCard;
+  FLsGpuComboBox := TComboBox.Create(FLsGeneralCard);
+  FLsGpuComboBox.Parent := FLsGeneralCard;
   FLsGpuComboBox.Style := csDropDownList;
-  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation';
+  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation and upscaling';
   FLsGpuComboBox.ShowHint := True;
   FLsGpuComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsGpuComboBox);
@@ -1327,11 +1327,14 @@ begin
   CW := W - (MARGIN * 2);
   CurY := MARGIN;
   
+  Col2W := (CW - (PAD * 2) - 20) div 2;
+  RightColX := PAD + Col2W + 20;
+
   // ── Card 0 Layout: MAKO Engine & LossLess Scaling ──────────────────────────
   if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
-    Card0H := 162
+    Card0H := 216
   else
-    Card0H := 134;
+    Card0H := 184;
 
   FLsGeneralCard.SetBounds(MARGIN, CurY, CW, Card0H);
   if Assigned(FLsLogoImage) then
@@ -1362,23 +1365,27 @@ begin
       FLsEngineStatusLabel.SetBounds(PAD, 98, CW - PAD * 2, 22);
   end;
 
+  // Target GPU Device moved to Card 0, below MAKO Renderer status
+  if Assigned(FLsGpuTitleLbl) then
+    FLsGpuTitleLbl.SetBounds(PAD, 124, Col2W, 18);
+  if Assigned(FLsGpuComboBox) then
+    FLsGpuComboBox.SetBounds(PAD, 144, Col2W, ROW_H);
+
   if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
   begin
-    FLsProgressBar.SetBounds(PAD, 126, CW - PAD * 2, 12);
-    FLsProgressLabel.SetBounds(PAD, 140, CW - PAD * 2, 18);
+    FLsProgressBar.SetBounds(PAD, 178, CW - PAD * 2, 12);
+    FLsProgressLabel.SetBounds(PAD, 192, CW - PAD * 2, 18);
   end;
 
   CurY := CurY + FLsGeneralCard.Height + GAP;
   
   // ── Card 1 Layout: Frame Generation ────────────────────────────────────────
-  Col2W := (CW - (PAD * 2) - 20) div 2;
-  RightColX := PAD + Col2W + 20;
   Col3W := (CW - (PAD * 2) - 24) div 3;
   Col4W := (CW - (PAD * 2) - 36) div 4;
   
   IsAdaptive := Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
   
-  FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 338);
+  FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
   
   // Row 1: Mode Dropdowns
   FLsFgModeTitleLbl.SetBounds(PAD, 36, Col2W, 18);
@@ -1413,8 +1420,8 @@ begin
     FLsTargetFpsTrackBar.BringToFront;
 
   FLsFlowScaleTitleLbl.SetBounds(RightColX, 92, Col2W, 18);
-  FLsFlowScaleTrackBar.SetBounds(RightColX, 112, Col2W - 55, ROW_H);
-  FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 50, 116, 50, 20);
+  FLsFlowScaleTrackBar.SetBounds(RightColX, 112, Col2W - 85, ROW_H);
+  FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 80, 116, 80, 20);
 
   // Grid Row 2: Left = Base FPS Cap | Right = Refresh Threshold
   FLsBaseFpsCapTitleLbl.SetBounds(PAD, 148, Col2W, 18);
@@ -1451,12 +1458,9 @@ begin
   if IsAdaptive then
     FLsSmoothCadenceToggle.SetBounds(PAD + (Col3W + 12) * 2, 238, Col3W, 24);
 
-  // Dropdown Row: Target GPU Device (Pacing combobox hidden as MAKO only uses pacing = "none")
+  // Hidden obsolete pacing controls
   if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Visible := False;
   if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
-
-  FLsGpuTitleLbl.SetBounds(PAD, 270, Col2W, 18);
-  FLsGpuComboBox.SetBounds(PAD, 290, Col2W, ROW_H);
 
   CurY := CurY + FLsFrameGenCard.Height + GAP;
 
