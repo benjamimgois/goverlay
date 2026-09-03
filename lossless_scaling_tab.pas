@@ -1087,7 +1087,7 @@ begin
   FLsAllowFp16CheckBox.Parent := FLsFrameGenCard;
   FLsAllowFp16CheckBox.ParentColor := True;
   FLsAllowFp16CheckBox.Caption := 'FP16 Acceleration';
-  FLsAllowFp16CheckBox.Hint := 'Use 16-bit half-precision floating point math for frame generation';
+  FLsAllowFp16CheckBox.Hint := 'Uses 16-bit half-precision math for frame generation. Recommended ON for AMD GPUs (significant performance uplift), but recommended OFF for NVIDIA GPUs.';
   FLsAllowFp16CheckBox.ShowHint := True;
   FLsAllowFp16CheckBox.OnChange := @ControlStateChange;
   FLsAllowFp16CheckBox.Visible := False;
@@ -1102,7 +1102,7 @@ begin
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
   FLsPerfModeCheckBox.ParentColor := True;
   FLsPerfModeCheckBox.Caption := 'Performance Mode';
-  FLsPerfModeCheckBox.Hint := 'Enables performance mode for faster frame generation';
+  FLsPerfModeCheckBox.Hint := 'Switches to the lighter LSFG neural network model, reducing GPU render time by 30-40% with minimal image quality loss. Recommended if the game is GPU-bound.';
   FLsPerfModeCheckBox.ShowHint := True;
   FLsPerfModeCheckBox.OnChange := @ControlStateChange;
   FLsPerfModeCheckBox.Visible := False;
@@ -1117,7 +1117,7 @@ begin
   FLsUltraPerfCheckBox.Parent := FLsFrameGenCard;
   FLsUltraPerfCheckBox.ParentColor := True;
   FLsUltraPerfCheckBox.Caption := 'Ultra Performance';
-  FLsUltraPerfCheckBox.Hint := 'Enables ultra performance optimizations for maximum frame rate';
+  FLsUltraPerfCheckBox.Hint := 'Aggressive Vulkan compute optimizations (downsamples optical flow vectors and skips high-precision passes). Maximizes FPS on low-end GPUs or handhelds, but may introduce visual artifacts.';
   FLsUltraPerfCheckBox.ShowHint := True;
   FLsUltraPerfCheckBox.OnChange := @ControlStateChange;
   FLsUltraPerfCheckBox.Visible := False;
