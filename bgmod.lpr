@@ -156,7 +156,57 @@ begin
   end;
 end;
 
-procedure InitMakoLogFile(const APath, AGameDir, AProfile, ATomlPath: string);
+procedure AppendFileContent(const SrcPath, DestPath: string);
+var
+  SrcF, DestF: TextFile;
+  Line: string;
+begin
+  if not FileExists(SrcPath) or (DestPath = '') then Exit;
+  try
+    AssignFile(SrcF, SrcPath);
+    Reset(SrcF);
+    AssignFile(DestF, DestPath);
+    if FileExists(DestPath) then
+      Append(DestF)
+    else
+      Rewrite(DestF);
+    WriteLn(DestF, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - --- Content from ' + ExtractFileName(SrcPath) + ' ---');
+    while not Eof(SrcF) do
+    begin
+      ReadLn(SrcF, Line);
+      WriteLn(DestF, Line);
+    end;
+    CloseFile(SrcF);
+    CloseFile(DestF);
+  except
+    // ignore copy failures
+  end;
+end;
+
+procedure EnsureOptiScalerLogging(const AIniPath: string);
+var
+  Ini: TIniFile;
+begin
+  if not FileExists(AIniPath) then Exit;
+  try
+    Ini := TIniFile.Create(AIniPath);
+    try
+      if (Ini.ReadString('Log', 'LogToFile', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogToFile', 'false') = 'false') then
+        Ini.WriteString('Log', 'LogToFile', 'true');
+      if Ini.ReadString('Log', 'LogToConsole', 'auto') = 'auto' then
+        Ini.WriteString('Log', 'LogToConsole', 'true');
+      if Ini.ReadString('Log', 'LogLevel', 'auto') = 'auto' then
+        Ini.WriteString('Log', 'LogLevel', '2');
+      if Ini.ReadString('Log', 'LogFileName', 'auto') = 'auto' then
+        Ini.WriteString('Log', 'LogFileName', 'OptiScaler.log');
+    finally
+      Ini.Free;
+    end;
+  except
+  end;
+end;
+
+procedure InitToolLogFile(const APath, AToolName, AGameDir, AConfigPath: string);
 var
   F: TextFile;
 begin
@@ -169,42 +219,55 @@ begin
       Append(F)
     else
       Rewrite(F);
-    WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ========================= MAKO logging initialized =========================');
+    WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ========================= ' + AToolName + ' logging initialized =========================');
     if AGameDir <> '' then
       WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Game directory: ' + AGameDir);
-    if ATomlPath <> '' then
-      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Config file: ' + ATomlPath);
-    if AProfile <> '' then
-      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Profile: ' + AProfile);
+    if AConfigPath <> '' then
+      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Config: ' + AConfigPath);
     CloseFile(F);
   except
     // ignore logging failures
   end;
 end;
 
-procedure RunMakoLogger(ReadFd, OrigStderrFd: cint; const CentralLog, GameLog: string);
+procedure RunSubprocessLogger(ReadFd, OrigStderrFd: cint; 
+  const MakoCent, MakoGame, OptiCent, OptiGame, SumiCent, SumiGame, BasaltCent, BasaltGame, InternalOptiLog: string;
+  LogMako, LogOpti, LogSumi, LogBasalt: Boolean);
 var
-  CentralFd, GameFd: cint;
+  MakoCentFd, MakoGameFd: cint;
+  OptiCentFd, OptiGameFd: cint;
+  SumiCentFd, SumiGameFd: cint;
+  BasaltCentFd, BasaltGameFd: cint;
   Buf: array[0..4095] of char;
   N: TsSize;
   i: Integer;
   LineBuf, Line, OutLine, LowLine: string;
-  IsMakoLine: Boolean;
+  IsMako, IsOpti, IsSumi, IsBasalt: Boolean;
 begin
-  CentralFd := -1;
-  GameFd := -1;
-  if CentralLog <> '' then
-  begin
-    if not DirectoryExists(ExtractFilePath(CentralLog)) then
-      ForceDirectories(ExtractFilePath(CentralLog));
-    CentralFd := fpOpen(PChar(CentralLog), O_WRONLY or O_CREAT or O_APPEND, &644);
-  end;
-  if GameLog <> '' then
-  begin
-    if not DirectoryExists(ExtractFilePath(GameLog)) then
-      ForceDirectories(ExtractFilePath(GameLog));
-    GameFd := fpOpen(PChar(GameLog), O_WRONLY or O_CREAT or O_APPEND, &644);
-  end;
+  MakoCentFd := -1; MakoGameFd := -1;
+  OptiCentFd := -1; OptiGameFd := -1;
+  SumiCentFd := -1; SumiGameFd := -1;
+  BasaltCentFd := -1; BasaltGameFd := -1;
+
+  if LogMako and (MakoCent <> '') then
+    MakoCentFd := fpOpen(PChar(MakoCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+  if LogMako and (MakoGame <> '') then
+    MakoGameFd := fpOpen(PChar(MakoGame), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogOpti and (OptiCent <> '') then
+    OptiCentFd := fpOpen(PChar(OptiCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+  if LogOpti and (OptiGame <> '') then
+    OptiGameFd := fpOpen(PChar(OptiGame), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogSumi and (SumiCent <> '') then
+    SumiCentFd := fpOpen(PChar(SumiCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+  if LogSumi and (SumiGame <> '') then
+    SumiGameFd := fpOpen(PChar(SumiGame), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogBasalt and (BasaltCent <> '') then
+    BasaltCentFd := fpOpen(PChar(BasaltCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+  if LogBasalt and (BasaltGame <> '') then
+    BasaltGameFd := fpOpen(PChar(BasaltGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   LineBuf := '';
   while True do
@@ -225,16 +288,50 @@ begin
         if Line <> '' then
         begin
           LowLine := LowerCase(Line);
-          IsMakoLine := (Pos('mako', LowLine) > 0) or 
-                        (Pos('lsfg', LowLine) > 0) or 
-                        (Pos('lossless', LowLine) > 0);
-          if IsMakoLine then
+          OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
+
+          if LogMako then
           begin
-            OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
-            if CentralFd >= 0 then
-              fpWrite(CentralFd, PChar(OutLine), Length(OutLine));
-            if GameFd >= 0 then
-              fpWrite(GameFd, PChar(OutLine), Length(OutLine));
+            IsMako := (Pos('mako', LowLine) > 0) or 
+                      (Pos('lsfg', LowLine) > 0) or 
+                      (Pos('lossless', LowLine) > 0);
+            if IsMako then
+            begin
+              if MakoCentFd >= 0 then fpWrite(MakoCentFd, PChar(OutLine), Length(OutLine));
+              if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
+
+          if LogOpti then
+          begin
+            IsOpti := (Pos('optiscaler', LowLine) > 0) or 
+                      (Pos('nvngx', LowLine) > 0) or 
+                      (Pos('fakenvapi', LowLine) > 0);
+            if IsOpti then
+            begin
+              if OptiCentFd >= 0 then fpWrite(OptiCentFd, PChar(OutLine), Length(OutLine));
+              if OptiGameFd >= 0 then fpWrite(OptiGameFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
+
+          if LogSumi then
+          begin
+            IsSumi := (Pos('vksumi', LowLine) > 0);
+            if IsSumi then
+            begin
+              if SumiCentFd >= 0 then fpWrite(SumiCentFd, PChar(OutLine), Length(OutLine));
+              if SumiGameFd >= 0 then fpWrite(SumiGameFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
+
+          if LogBasalt then
+          begin
+            IsBasalt := (Pos('vkbasalt', LowLine) > 0);
+            if IsBasalt then
+            begin
+              if BasaltCentFd >= 0 then fpWrite(BasaltCentFd, PChar(OutLine), Length(OutLine));
+              if BasaltGameFd >= 0 then fpWrite(BasaltGameFd, PChar(OutLine), Length(OutLine));
+            end;
           end;
         end;
       end
@@ -247,23 +344,51 @@ begin
   begin
     Line := TrimRight(LineBuf);
     LowLine := LowerCase(Line);
-    IsMakoLine := (Pos('mako', LowLine) > 0) or 
-                  (Pos('lsfg', LowLine) > 0) or 
-                  (Pos('lossless', LowLine) > 0);
-    if IsMakoLine then
+    OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
+
+    if LogMako and ((Pos('mako', LowLine) > 0) or (Pos('lsfg', LowLine) > 0) or (Pos('lossless', LowLine) > 0)) then
     begin
-      OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
-      if CentralFd >= 0 then
-        fpWrite(CentralFd, PChar(OutLine), Length(OutLine));
-      if GameFd >= 0 then
-        fpWrite(GameFd, PChar(OutLine), Length(OutLine));
+      if MakoCentFd >= 0 then fpWrite(MakoCentFd, PChar(OutLine), Length(OutLine));
+      if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
+    end;
+
+    if LogOpti and ((Pos('optiscaler', LowLine) > 0) or (Pos('nvngx', LowLine) > 0) or (Pos('fakenvapi', LowLine) > 0)) then
+    begin
+      if OptiCentFd >= 0 then fpWrite(OptiCentFd, PChar(OutLine), Length(OutLine));
+      if OptiGameFd >= 0 then fpWrite(OptiGameFd, PChar(OutLine), Length(OutLine));
+    end;
+
+    if LogSumi and (Pos('vksumi', LowLine) > 0) then
+    begin
+      if SumiCentFd >= 0 then fpWrite(SumiCentFd, PChar(OutLine), Length(OutLine));
+      if SumiGameFd >= 0 then fpWrite(SumiGameFd, PChar(OutLine), Length(OutLine));
+    end;
+
+    if LogBasalt and (Pos('vkbasalt', LowLine) > 0) then
+    begin
+      if BasaltCentFd >= 0 then fpWrite(BasaltCentFd, PChar(OutLine), Length(OutLine));
+      if BasaltGameFd >= 0 then fpWrite(BasaltGameFd, PChar(OutLine), Length(OutLine));
     end;
   end;
 
-  if CentralFd >= 0 then fpClose(CentralFd);
-  if GameFd >= 0 then fpClose(GameFd);
+  if MakoCentFd >= 0 then fpClose(MakoCentFd);
+  if MakoGameFd >= 0 then fpClose(MakoGameFd);
+  if OptiCentFd >= 0 then fpClose(OptiCentFd);
+  if OptiGameFd >= 0 then fpClose(OptiGameFd);
+  if SumiCentFd >= 0 then fpClose(SumiCentFd);
+  if SumiGameFd >= 0 then fpClose(SumiGameFd);
+  if BasaltCentFd >= 0 then fpClose(BasaltCentFd);
+  if BasaltGameFd >= 0 then fpClose(BasaltGameFd);
   if ReadFd >= 0 then fpClose(ReadFd);
   if OrigStderrFd >= 0 then fpClose(OrigStderrFd);
+
+  // Sync internal OptiScaler.log if created by the game DLL
+  if LogOpti and (InternalOptiLog <> '') and FileExists(InternalOptiLog) then
+  begin
+    if OptiCent <> '' then
+      AppendFileContent(InternalOptiLog, OptiCent);
+  end;
+
   fpExit(0);
 end;
 
@@ -714,6 +839,7 @@ begin
   begin
     Log('OptiScaler.ini found only in game directory. Syncing to config directory...');
     SafeCopyFile(GameIni, ConfigIni, True);
+    EnsureOptiScalerLogging(GameIni);
     Exit;
   end;
 
@@ -721,6 +847,7 @@ begin
   begin
     Log('OptiScaler.ini not found in game directory. Initializing from config directory...');
     SafeCopyFile(ConfigIni, GameIni, True);
+    EnsureOptiScalerLogging(GameIni);
     Exit;
   end;
 
@@ -728,6 +855,7 @@ begin
   begin
     Log('PreserveIni is false. Overwriting OptiScaler.ini in game directory...');
     SafeCopyFile(ConfigIni, GameIni, True);
+    EnsureOptiScalerLogging(GameIni);
     Exit;
   end;
 
@@ -746,6 +874,7 @@ begin
     else
       Log('OptiScaler.ini is up to date.');
   end;
+  EnsureOptiScalerLogging(GameIni);
 end;
 
 procedure SyncFakeNvapiIni(const AConfigDir, AGameDir: string);
@@ -1221,6 +1350,10 @@ var
   Args: array of PChar;
   ArgsStrings: array of string;
   MakoCentralLogFile, MakoGameLogFile: string;
+  OptiCentralLogFile, OptiGameLogFile, InternalOptiLogPath: string;
+  SumiCentralLogFile, SumiGameLogFile: string;
+  BasaltCentralLogFile, BasaltGameLogFile: string;
+  HasAnyToolLogging: Boolean;
   PipeFds: array[0..1] of cint;
   ForkPid: TPid;
   OrigStderr: cint;
@@ -1670,11 +1803,20 @@ begin
   begin
     SetEnvVarInList(EnvStrings, 'ENABLE_VKBASALT', '1');
     Log('Export: ENABLE_VKBASALT=1');
+    SetEnvVarInList(EnvStrings, 'VKBASALT_LOG_LEVEL', 'info');
+    Log('Export: VKBASALT_LOG_LEVEL=info');
+    if CentralLogDir <> '' then
+    begin
+      SetEnvVarInList(EnvStrings, 'VKBASALT_LOG_FILE', IncludeTrailingPathDelimiter(CentralLogDir) + 'vkbasalt.log');
+      Log('Export: VKBASALT_LOG_FILE=' + IncludeTrailingPathDelimiter(CentralLogDir) + 'vkbasalt.log');
+    end;
   end;
   if GOverlayVkSumi then
   begin
     SetEnvVarInList(EnvStrings, 'ENABLE_VKSUMI', '1');
     Log('Export: ENABLE_VKSUMI=1');
+    SetEnvVarInList(EnvStrings, 'VKSUMI_DEBUG', '1');
+    Log('Export: VKSUMI_DEBUG=1');
   end;
   if GOverlayOptiscaler then
   begin
@@ -2009,9 +2151,17 @@ begin
   Log('Launching subprocess: ' + ArgsStrings[0]);
   Log('------------------------------------------------------------------------');
   
-  // Setup MAKO logging if Lossless Scaling is enabled
+  // Setup tool logging in CentralLogDir and GameDir
   MakoCentralLogFile := '';
   MakoGameLogFile := '';
+  OptiCentralLogFile := '';
+  OptiGameLogFile := '';
+  SumiCentralLogFile := '';
+  SumiGameLogFile := '';
+  BasaltCentralLogFile := '';
+  BasaltGameLogFile := '';
+  InternalOptiLogPath := '';
+
   if GOverlayLossless then
   begin
     if ProfileName = '' then
@@ -2020,19 +2170,77 @@ begin
     if CentralLogDir <> '' then
     begin
       MakoCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'mako.log';
-      InitMakoLogFile(MakoCentralLogFile, GameDir, ProfileName, TomlPath);
+      InitToolLogFile(MakoCentralLogFile, 'MAKO', GameDir, TomlPath);
       Log('MAKO central log: ' + MakoCentralLogFile);
     end;
     if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
     begin
       MakoGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'mako.log';
-      InitMakoLogFile(MakoGameLogFile, GameDir, ProfileName, TomlPath);
+      InitToolLogFile(MakoGameLogFile, 'MAKO', GameDir, TomlPath);
       Log('MAKO game log: ' + MakoGameLogFile);
     end;
   end;
 
-  // If MAKO logging is enabled, spawn background stderr filter process
-  if (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') then
+  if GOverlayOptiscaler then
+  begin
+    if GameDir <> '' then
+      InternalOptiLogPath := IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log';
+
+    if CentralLogDir <> '' then
+    begin
+      OptiCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'optiscaler.log';
+      InitToolLogFile(OptiCentralLogFile, 'OptiScaler', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini');
+      Log('OptiScaler central log: ' + OptiCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      OptiGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'optiscaler.log';
+      InitToolLogFile(OptiGameLogFile, 'OptiScaler', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini');
+      Log('OptiScaler game log: ' + OptiGameLogFile);
+    end;
+  end;
+
+  if GOverlayVkSumi then
+  begin
+    if CentralLogDir <> '' then
+    begin
+      SumiCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'vksumi.log';
+      InitToolLogFile(SumiCentralLogFile, 'vkSumi', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkSumi.conf');
+      Log('vkSumi central log: ' + SumiCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      SumiGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log';
+      InitToolLogFile(SumiGameLogFile, 'vkSumi', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkSumi.conf');
+      Log('vkSumi game log: ' + SumiGameLogFile);
+    end;
+  end;
+
+  if GOverlayVkBasalt then
+  begin
+    if CentralLogDir <> '' then
+    begin
+      BasaltCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'vkbasalt.log';
+      InitToolLogFile(BasaltCentralLogFile, 'vkBasalt', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkBasalt.conf');
+      Log('vkBasalt central log: ' + BasaltCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      BasaltGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log';
+      InitToolLogFile(BasaltGameLogFile, 'vkBasalt', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkBasalt.conf');
+      Log('vkBasalt game log: ' + BasaltGameLogFile);
+    end;
+  end;
+
+  HasAnyToolLogging := GOverlayLossless or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
+
+  // If any tool logging is enabled, spawn background stderr filter process
+  if HasAnyToolLogging and (
+     (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') or
+     (OptiCentralLogFile <> '') or (OptiGameLogFile <> '') or
+     (SumiCentralLogFile <> '') or (SumiGameLogFile <> '') or
+     (BasaltCentralLogFile <> '') or (BasaltGameLogFile <> '')
+  ) then
   begin
     if fpPipe(PipeFds) = 0 then
     begin
@@ -2042,7 +2250,14 @@ begin
       begin
         // Child: background logger process
         fpClose(PipeFds[1]);
-        RunMakoLogger(PipeFds[0], OrigStderr, MakoCentralLogFile, MakoGameLogFile);
+        RunSubprocessLogger(PipeFds[0], OrigStderr,
+          MakoCentralLogFile, MakoGameLogFile,
+          OptiCentralLogFile, OptiGameLogFile,
+          SumiCentralLogFile, SumiGameLogFile,
+          BasaltCentralLogFile, BasaltGameLogFile,
+          InternalOptiLogPath,
+          GOverlayLossless, GOverlayOptiscaler, GOverlayVkSumi, GOverlayVkBasalt
+        );
       end
       else if ForkPid > 0 then
       begin
