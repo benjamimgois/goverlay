@@ -1754,7 +1754,7 @@ begin
   if Assigned(FLsSteady2xCapCheckBox) then
   begin
     FLsSteady2xCapCheckBox.Enabled := AdaptiveActive;
-    FLsSteady2xCapCheckBox.Visible := AdaptiveActive;
+    FLsSteady2xCapCheckBox.Visible := False;
   end;
   if Assigned(FLsSteady2xCapToggle) then
   begin
@@ -1765,7 +1765,7 @@ begin
   if Assigned(FLsSmoothCadenceCheckBox) then
   begin
     FLsSmoothCadenceCheckBox.Enabled := AdaptiveActive;
-    FLsSmoothCadenceCheckBox.Visible := AdaptiveActive;
+    FLsSmoothCadenceCheckBox.Visible := False;
   end;
   if Assigned(FLsSmoothCadenceToggle) then
   begin
