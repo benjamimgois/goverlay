@@ -745,6 +745,7 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-remover.sh');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mako.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');

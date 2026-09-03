@@ -156,6 +156,117 @@ begin
   end;
 end;
 
+procedure InitMakoLogFile(const APath, AGameDir, AProfile, ATomlPath: string);
+var
+  F: TextFile;
+begin
+  if APath = '' then Exit;
+  try
+    if not DirectoryExists(ExtractFilePath(APath)) then
+      ForceDirectories(ExtractFilePath(APath));
+    AssignFile(F, APath);
+    if FileExists(APath) then
+      Append(F)
+    else
+      Rewrite(F);
+    WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ========================= MAKO logging initialized =========================');
+    if AGameDir <> '' then
+      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Game directory: ' + AGameDir);
+    if ATomlPath <> '' then
+      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Config file: ' + ATomlPath);
+    if AProfile <> '' then
+      WriteLn(F, FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Profile: ' + AProfile);
+    CloseFile(F);
+  except
+    // ignore logging failures
+  end;
+end;
+
+procedure RunMakoLogger(ReadFd, OrigStderrFd: cint; const CentralLog, GameLog: string);
+var
+  CentralFd, GameFd: cint;
+  Buf: array[0..4095] of char;
+  N: TsSize;
+  i: Integer;
+  LineBuf, Line, OutLine, LowLine: string;
+  IsMakoLine: Boolean;
+begin
+  CentralFd := -1;
+  GameFd := -1;
+  if CentralLog <> '' then
+  begin
+    if not DirectoryExists(ExtractFilePath(CentralLog)) then
+      ForceDirectories(ExtractFilePath(CentralLog));
+    CentralFd := fpOpen(PChar(CentralLog), O_WRONLY or O_CREAT or O_APPEND, &644);
+  end;
+  if GameLog <> '' then
+  begin
+    if not DirectoryExists(ExtractFilePath(GameLog)) then
+      ForceDirectories(ExtractFilePath(GameLog));
+    GameFd := fpOpen(PChar(GameLog), O_WRONLY or O_CREAT or O_APPEND, &644);
+  end;
+
+  LineBuf := '';
+  while True do
+  begin
+    N := fpRead(ReadFd, @Buf, SizeOf(Buf));
+    if N <= 0 then Break;
+
+    // Forward all raw stderr traffic to original stderr so console and Steam logs stay intact
+    if OrigStderrFd >= 0 then
+      fpWrite(OrigStderrFd, @Buf, N);
+
+    for i := 0 to N - 1 do
+    begin
+      if Buf[i] = #10 then
+      begin
+        Line := TrimRight(LineBuf);
+        LineBuf := '';
+        if Line <> '' then
+        begin
+          LowLine := LowerCase(Line);
+          IsMakoLine := (Pos('mako', LowLine) > 0) or 
+                        (Pos('lsfg', LowLine) > 0) or 
+                        (Pos('lossless', LowLine) > 0);
+          if IsMakoLine then
+          begin
+            OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
+            if CentralFd >= 0 then
+              fpWrite(CentralFd, PChar(OutLine), Length(OutLine));
+            if GameFd >= 0 then
+              fpWrite(GameFd, PChar(OutLine), Length(OutLine));
+          end;
+        end;
+      end
+      else if Buf[i] <> #13 then
+        LineBuf := LineBuf + Buf[i];
+    end;
+  end;
+
+  if LineBuf <> '' then
+  begin
+    Line := TrimRight(LineBuf);
+    LowLine := LowerCase(Line);
+    IsMakoLine := (Pos('mako', LowLine) > 0) or 
+                  (Pos('lsfg', LowLine) > 0) or 
+                  (Pos('lossless', LowLine) > 0);
+    if IsMakoLine then
+    begin
+      OutLine := FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - ' + Line + LineEnding;
+      if CentralFd >= 0 then
+        fpWrite(CentralFd, PChar(OutLine), Length(OutLine));
+      if GameFd >= 0 then
+        fpWrite(GameFd, PChar(OutLine), Length(OutLine));
+    end;
+  end;
+
+  if CentralFd >= 0 then fpClose(CentralFd);
+  if GameFd >= 0 then fpClose(GameFd);
+  if ReadFd >= 0 then fpClose(ReadFd);
+  if OrigStderrFd >= 0 then fpClose(OrigStderrFd);
+  fpExit(0);
+end;
+
 function GetCommandOutput(const Cmd: string): string;
 var
   Proc: TProcess;
@@ -1109,6 +1220,10 @@ var
   EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
+  MakoCentralLogFile, MakoGameLogFile: string;
+  PipeFds: array[0..1] of cint;
+  ForkPid: TPid;
+  OrigStderr: cint;
 
 
 {$if defined(CPUAARCH64) and defined(LINUX)}
@@ -1894,6 +2009,52 @@ begin
   Log('Launching subprocess: ' + ArgsStrings[0]);
   Log('------------------------------------------------------------------------');
   
+  // Setup MAKO logging if Lossless Scaling is enabled
+  MakoCentralLogFile := '';
+  MakoGameLogFile := '';
+  if GOverlayLossless then
+  begin
+    if ProfileName = '' then
+      ProfileName := ExtractFileName(ExcludeTrailingPathDelimiter(ConfigDir));
+
+    if CentralLogDir <> '' then
+    begin
+      MakoCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'mako.log';
+      InitMakoLogFile(MakoCentralLogFile, GameDir, ProfileName, TomlPath);
+      Log('MAKO central log: ' + MakoCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      MakoGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'mako.log';
+      InitMakoLogFile(MakoGameLogFile, GameDir, ProfileName, TomlPath);
+      Log('MAKO game log: ' + MakoGameLogFile);
+    end;
+  end;
+
+  // If MAKO logging is enabled, spawn background stderr filter process
+  if (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') then
+  begin
+    if fpPipe(PipeFds) = 0 then
+    begin
+      OrigStderr := fpDup(2);
+      ForkPid := fpFork;
+      if ForkPid = 0 then
+      begin
+        // Child: background logger process
+        fpClose(PipeFds[1]);
+        RunMakoLogger(PipeFds[0], OrigStderr, MakoCentralLogFile, MakoGameLogFile);
+      end
+      else if ForkPid > 0 then
+      begin
+        // Parent: redirect stderr to pipe write end and proceed to execvpe
+        fpClose(PipeFds[0]);
+        fpDup2(PipeFds[1], 2);
+        fpClose(PipeFds[1]);
+        if OrigStderr >= 0 then fpClose(OrigStderr);
+      end;
+    end;
+  end;
+
   execvpe(Args[0], @Args[0], @EnvArgs[0]);
   
   // If we reach here, execvpe failed
