@@ -22898,6 +22898,11 @@ object goverlayform: Tgoverlayform
       ImageIndex = 39
       OnClick = openConfigFileMenuItemClick
     end
+    object openLogFileMenuItem: TMenuItem
+      Caption = 'Open log file'
+      ImageIndex = 39
+      OnClick = openLogFileMenuItemClick
+    end
     object loadconfigMenuItem: TMenuItem
       Caption = 'Load config'
       ImageIndex = 24

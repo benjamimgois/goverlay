@@ -3025,33 +3025,39 @@ end;
 
 procedure TGoverlayGuiTests.TestDockOpenConfigFileAction;
 begin
-  // 1. Verify openConfigFileMenuItem exists and is configured in popsaveMenu
+  // 1. Verify openConfigFileMenuItem and openLogFileMenuItem exist and are configured in popsaveMenu
   AssertNotNull('openConfigFileMenuItem exists in goverlayform', goverlayform.openConfigFileMenuItem);
   AssertEquals('openConfigFileMenuItem caption', 'Open config file', goverlayform.openConfigFileMenuItem.Caption);
   AssertEquals('openConfigFileMenuItem ImageIndex', 39, goverlayform.openConfigFileMenuItem.ImageIndex);
+  AssertNotNull('openLogFileMenuItem exists in goverlayform', goverlayform.openLogFileMenuItem);
+  AssertEquals('openLogFileMenuItem caption', 'Open log file', goverlayform.openLogFileMenuItem.Caption);
+  AssertEquals('openLogFileMenuItem ImageIndex', 39, goverlayform.openLogFileMenuItem.ImageIndex);
 
-  // 2. MangoHud tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
+  // 2. MangoHud tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   NavigateMangoHud;
   AssertTrue('FFADock visible on MangoHud tab', Assigned(goverlayform.FFADock) and goverlayform.FFADock.Visible);
   AssertTrue('FFADock menu button visible on MangoHud tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on MangoHud', goverlayform.openConfigFileMenuItem.Visible);
+  AssertTrue('openLogFileMenuItem visible on MangoHud', goverlayform.openLogFileMenuItem.Visible);
 
-  // 3. vkBasalt tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
+  // 3. vkBasalt tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   NavigateVkBasaltTab;
   AssertTrue('FFADock visible on vkBasalt tab', Assigned(goverlayform.FFADock) and goverlayform.FFADock.Visible);
   AssertTrue('FFADock menu button visible on vkBasalt tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on vkBasalt', goverlayform.openConfigFileMenuItem.Visible);
+  AssertTrue('openLogFileMenuItem visible on vkBasalt', goverlayform.openLogFileMenuItem.Visible);
 
-  // 4. OptiScaler tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
+  // 4. OptiScaler tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   NavigateOptiScalerTab;
   AssertTrue('FFADock visible on OptiScaler tab', Assigned(goverlayform.FFADock) and goverlayform.FFADock.Visible);
   AssertTrue('FFADock menu button visible on OptiScaler tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on OptiScaler', goverlayform.openConfigFileMenuItem.Visible);
+  AssertTrue('openLogFileMenuItem visible on OptiScaler', goverlayform.openLogFileMenuItem.Visible);
 
-  // 5. Lossless Scaling tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
+  // 5. Lossless Scaling tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   goverlayform.optiscalerLabelClick(nil);
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
   goverlayform.losslessScalingTabSheetShow(nil);
@@ -3059,13 +3065,15 @@ begin
   AssertTrue('FFADock menu button visible on Lossless Scaling tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on Lossless Scaling', goverlayform.openConfigFileMenuItem.Visible);
+  AssertTrue('openLogFileMenuItem visible on Lossless Scaling', goverlayform.openLogFileMenuItem.Visible);
 
-  // 6. Tweaks tab: verify floating dock shows Menu and popupBitBtnClick sets openConfigFileMenuItem.Visible
+  // 6. Tweaks tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   NavigateTweaksTab;
   AssertTrue('FFADock visible on Tweaks tab', Assigned(goverlayform.FFADock) and goverlayform.FFADock.Visible);
   AssertTrue('FFADock menu button visible on Tweaks tab', goverlayform.FFADock.MenuVisible);
   goverlayform.popupBitBtnClick(nil);
   AssertTrue('openConfigFileMenuItem visible on Tweaks', goverlayform.openConfigFileMenuItem.Visible);
+  AssertTrue('openLogFileMenuItem visible on Tweaks', goverlayform.openLogFileMenuItem.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestDynamicLaunchCommandGeneration;

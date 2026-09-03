@@ -452,6 +452,7 @@ type
     ToggleSpeedButton: TSpeedButton;
     Timer: TTimer;
     openConfigFileMenuItem: TMenuItem;
+    openLogFileMenuItem: TMenuItem;
     loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
@@ -583,6 +584,7 @@ type
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure openConfigFileMenuItemClick(Sender: TObject);
+    procedure openLogFileMenuItemClick(Sender: TObject);
     procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
@@ -1378,6 +1380,7 @@ type
     procedure ApplyNavCollapsed;
     function  GetLaunchCommand: string;
     function  GetGameConfigDir(const AGameName: string): string;
+    function  GetGameLogDir(const AGameName: string): string;
     function  GetActiveCustomConfigFile: string;
     function  GetTargetCustomConfigFile: string;
     procedure LoadGameToggleStates;
@@ -6058,8 +6061,9 @@ end;
 
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
-  // "Open config file" is always available at the top for all configuration tabs
+  // "Open config file" and "Open log file" are always available at the top for all configuration tabs
   openConfigFileMenuItem.Visible := True;
+  openLogFileMenuItem.Visible := True;
 
   // Control menu item visibility based on active tab
   if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
@@ -6472,6 +6476,62 @@ begin
     begin
       with TStringList.Create do
       try
+        SaveToFile(TargetFile);
+      finally
+        Free;
+      end;
+    end;
+    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetFile) + ' &');
+  end;
+end;
+
+procedure Tgoverlayform.openLogFileMenuItemClick(Sender: TObject);
+var
+  LogDir, TargetFile: string;
+begin
+  LogDir := GetGameLogDir(FActiveGameName);
+  TargetFile := '';
+
+  if (goverlayPageControl.ActivePage = presetTabSheet) or
+     (goverlayPageControl.ActivePage = visualTabSheet) or
+     (goverlayPageControl.ActivePage = performanceTabSheet) or
+     (goverlayPageControl.ActivePage = metricsTabSheet) or
+     (goverlayPageControl.ActivePage = extrasTabSheet) then
+  begin
+    if FileExists(LogDir + 'mangohud.log') then
+      TargetFile := LogDir + 'mangohud.log'
+    else
+      TargetFile := LogDir + 'bgmod.log';
+  end
+  else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+    TargetFile := LogDir + 'vkbasalt.log'
+  else if goverlayPageControl.ActivePage = vksumiTabSheet then
+    TargetFile := LogDir + 'vksumi.log'
+  else if goverlayPageControl.ActivePage = optiscalerTabSheet then
+  begin
+    TargetFile := LogDir + 'optiscaler.log';
+    if not FileExists(TargetFile) and (FActiveGameName <> '') then
+    begin
+      if FileExists(IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.log') then
+        TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.log';
+    end;
+  end
+  else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+    TargetFile := LogDir + 'mako.log'
+  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+    TargetFile := LogDir + 'bgmod.log'
+  else
+    TargetFile := LogDir + 'bgmod.log';
+
+  if TargetFile <> '' then
+  begin
+    if not DirectoryExists(ExtractFilePath(TargetFile)) then
+      ForceDirectories(ExtractFilePath(TargetFile));
+    if not FileExists(TargetFile) then
+    begin
+      with TStringList.Create do
+      try
+        Add(FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Log file initialized. Logs will be recorded here when the game is launched.');
         SaveToFile(TargetFile);
       finally
         Free;
@@ -8777,6 +8837,25 @@ begin
   // the same location whether GOverlay is running natively or as Flatpak.
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + GameDirName + '/';
+end;
+
+function Tgoverlayform.GetGameLogDir(const AGameName: string): string;
+var
+  GameDirName, BaseLogs: string;
+begin
+  BaseLogs := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) + 'goverlay/logs/';
+  if AGameName = '' then
+  begin
+    if DirectoryExists(BaseLogs + 'global/') then
+      Result := BaseLogs + 'global/'
+    else
+      Result := BaseLogs;
+  end
+  else
+  begin
+    GameDirName := SanitizeFileName(AGameName);
+    Result := BaseLogs + GameDirName + '/';
+  end;
 end;
 
 function Tgoverlayform.GetTargetCustomConfigFile: string;
