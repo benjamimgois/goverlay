@@ -19,6 +19,7 @@ type
     procedure ShowHomeTab(Sender: TObject = nil);
     procedure RefreshHomeModuleStatus;
     procedure RefreshHomeOptiStatus;
+    procedure RefreshHomeMakoStatus;
     procedure RefreshHomeDeps;
     procedure HomeDiagramPaint(Sender: TObject);
     procedure HomeBtnRowResize(Sender: TObject);
@@ -44,6 +45,9 @@ type
   end;
 
 implementation
+
+uses
+  lossless_scaling_tab;
 
 constructor THomeTabHelper.Create(AForm: Tgoverlayform);
 begin
@@ -425,7 +429,7 @@ const
 var
   Missing: TStringList;
   MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK: Boolean;
-  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer: string;
+  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, RemoteVer: string;
 begin
   with FForm do
   begin
@@ -478,7 +482,30 @@ begin
 
     LsfgVer := Self.GetLsfgVkVersion;
     if LsfgVer = '' then LsfgVer := StrUtils.IfThen(LsfgOK, 'installed', 'not found');
-    FHomeModVerLbls[5].Caption := LsfgVer;
+    while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
+      Delete(LsfgVer, 1, 1);
+
+    if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable then
+    begin
+      RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
+      while (RemoteVer <> '') and (RemoteVer[1] in ['v', 'V']) do
+        Delete(RemoteVer, 1, 1);
+      if (RemoteVer <> '') and (LsfgVer <> '') and (RemoteVer <> LsfgVer) then
+      begin
+        FHomeModVerLbls[5].Caption := LsfgVer + ' → ' + RemoteVer;
+        FHomeModVerLbls[5].Font.Color := $0044AAFF;
+      end
+      else
+      begin
+        FHomeModVerLbls[5].Caption := LsfgVer;
+        FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
+      end;
+    end
+    else
+    begin
+      FHomeModVerLbls[5].Caption := LsfgVer;
+      FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
+    end;
   end;
 end;
 
@@ -527,6 +554,62 @@ begin
     SetLib(2, fsrlabel1);
     SetLib(3, xessLabel1);
     SetLib(4, dlssLabel1);
+  end;
+end;
+
+procedure THomeTabHelper.RefreshHomeMakoStatus;
+var
+  LocalVer, RemoteVer: string;
+  HasUpdate: Boolean;
+begin
+  with FForm do
+  begin
+    if not Assigned(FHomeModVerLbls[5]) then Exit;
+    LocalVer := '';
+    RemoteVer := '';
+    HasUpdate := False;
+
+    if Assigned(FLosslessScalingHelper) then
+    begin
+      RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
+      HasUpdate := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable;
+    end;
+
+    LocalVer := Self.GetLsfgVkVersion;
+    while (LocalVer <> '') and (LocalVer[1] in ['v', 'V']) do
+      Delete(LocalVer, 1, 1);
+
+    while (RemoteVer <> '') and (RemoteVer[1] in ['v', 'V']) do
+      Delete(RemoteVer, 1, 1);
+
+    if HasUpdate and (RemoteVer <> '') and (LocalVer <> '') and (RemoteVer <> LocalVer) then
+    begin
+      FHomeModVerLbls[5].Caption := LocalVer + ' → ' + RemoteVer;
+      FHomeModVerLbls[5].Font.Color := $0044AAFF;
+      if Assigned(FHomeModDots[5]) then
+        FHomeModDots[5].Brush.Color := $0044BB44;
+    end
+    else if LocalVer <> '' then
+    begin
+      FHomeModVerLbls[5].Caption := LocalVer;
+      FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
+      if Assigned(FHomeModDots[5]) then
+        FHomeModDots[5].Brush.Color := $0044BB44;
+    end
+    else if IsMakoInstalled then
+    begin
+      FHomeModVerLbls[5].Caption := 'installed';
+      FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
+      if Assigned(FHomeModDots[5]) then
+        FHomeModDots[5].Brush.Color := $0044BB44;
+    end
+    else
+    begin
+      FHomeModVerLbls[5].Caption := 'not found';
+      FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
+      if Assigned(FHomeModDots[5]) then
+        FHomeModDots[5].Brush.Color := $004444BB;
+    end;
   end;
 end;
 

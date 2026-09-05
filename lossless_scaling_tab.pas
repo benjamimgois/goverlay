@@ -163,6 +163,8 @@ type
     FLsScalingSupersamplingToggle: TToggleSwitch;
     FCheckingUpdate: Boolean;
     FUpdateCheckedThisSession: Boolean;
+    FMakoRemoteVer: string;
+    FMakoUpdateAvailable: Boolean;
     FLsfgVersionCached: string;
     FMakoVersionCached: string;
     FDetectedSteamDllCached: string;
@@ -215,6 +217,7 @@ type
     function GetLsfgVkInstalledVersion(const ALayerJsonPath: string): string;
     function GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
     function GetStatNameLabel(Index: Integer): TLabel;
+    procedure SetMakoUpdateState(const ARemoteVer: string; AAvailable: Boolean);
     
     property InterpolationMethod: TInterpolationMethod read GetInterpolationMethod write SetInterpolationMethod;
     property MethodCard: TPanel read FLsMethodCard;
@@ -232,6 +235,8 @@ type
     property MakoLogoImage: TImage read FLsMakoLogoImage;
     property MakoPathEdit: TEdit read FLsMakoPathEdit;
     property MakoStatusLabel: TLabel read FLsEngineStatusLabel;
+    property MakoRemoteVer: string read FMakoRemoteVer;
+    property MakoUpdateAvailable: Boolean read FMakoUpdateAvailable;
     property MultiplierTrackBar: TTrackBar read FLsMultiplierTrackBar;
     property MultiplierValueLabel: TLabel read FLsMultiplierValueLabel;
     property FlowScaleTrackBar: TTrackBar read FLsFlowScaleTrackBar;
@@ -496,7 +501,12 @@ begin
     FHelper.FLsInstallBtn.Enabled := True;
   if Assigned(FHelper.FLsCheckUpdatesBtn) then
     FHelper.FLsCheckUpdatesBtn.Enabled := True;
+  FHelper.FMakoVersionCached := '';
+  FHelper.FMakoUpdateAvailable := False;
+  FHelper.FMakoRemoteVer := '';
   FHelper.UpdateEngineStatus;
+  if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+    Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
   FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
 end;
 
@@ -536,18 +546,28 @@ begin
       Delete(CleanLocal, 1, 1);
     while (CleanRemote <> '') and (CleanRemote[1] in ['v', 'V']) do
       Delete(CleanRemote, 1, 1);
-    if Assigned(FHelper.FLsEngineStatusLabel) then
+
+    if (CleanRemote <> '') and (CleanRemote <> CleanLocal) then
     begin
-      FHelper.FLsEngineStatusLabel.Caption := CleanLocal + ' → ' + CleanRemote;
-      FHelper.FLsEngineStatusLabel.Font.Color := $0044AAFF;
+      FHelper.FMakoRemoteVer := CleanRemote;
+      FHelper.FMakoUpdateAvailable := True;
+
+      if Assigned(FHelper.FLsEngineStatusLabel) then
+      begin
+        FHelper.FLsEngineStatusLabel.Caption := CleanLocal + ' → ' + CleanRemote;
+        FHelper.FLsEngineStatusLabel.Font.Color := $0044AAFF;
+      end;
+      if Assigned(FHelper.FLsInstallBtn) then
+      begin
+        FHelper.FLsInstallBtn.Caption := 'Install update';
+        FHelper.FLsInstallBtn.Visible := True;
+        FHelper.FLsInstallBtn.Enabled := True;
+      end;
+      FHelper.UpdateStatusCard;
+      if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+        Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
+      FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
     end;
-    if Assigned(FHelper.FLsInstallBtn) then
-    begin
-      FHelper.FLsInstallBtn.Caption := 'Install update';
-      FHelper.FLsInstallBtn.Visible := True;
-      FHelper.FLsInstallBtn.Enabled := True;
-    end;
-    FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
   end;
 end;
 
@@ -559,10 +579,22 @@ begin
     Result := nil;
 end;
 
+procedure TLosslessScalingTabHelper.SetMakoUpdateState(const ARemoteVer: string; AAvailable: Boolean);
+begin
+  FMakoRemoteVer := ARemoteVer;
+  FMakoUpdateAvailable := AAvailable;
+  UpdateEngineStatus;
+  UpdateStatusCard;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+    Tgoverlayform(FForm).RefreshHomeMakoStatus;
+end;
+
 constructor TLosslessScalingTabHelper.Create(AForm: TForm);
 begin
   inherited Create;
   FForm := AForm;
+  FMakoRemoteVer := '';
+  FMakoUpdateAvailable := False;
 end;
 
 destructor TLosslessScalingTabHelper.Destroy;
@@ -847,8 +879,16 @@ begin
     FLsStatDots[1].Brush.Color := CLR_OK;
     if Assigned(FLsEngineStatusLabel) then
     begin
-      FLsEngineStatusLabel.Caption := MakoVer;
-      FLsEngineStatusLabel.Font.Color := PURPLE;
+      if FMakoUpdateAvailable and (FMakoRemoteVer <> '') and (FMakoRemoteVer <> MakoVer) then
+      begin
+        FLsEngineStatusLabel.Caption := MakoVer + ' → ' + FMakoRemoteVer;
+        FLsEngineStatusLabel.Font.Color := $0044AAFF;
+      end
+      else
+      begin
+        FLsEngineStatusLabel.Caption := MakoVer;
+        FLsEngineStatusLabel.Font.Color := PURPLE;
+      end;
       FLsEngineStatusLabel.Hint := MakoLib;
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
     end;
@@ -2393,11 +2433,29 @@ begin
 
   if InstalledVer <> '' then
   begin
-    FLsEngineStatusLabel.Caption := InstalledVer;
-    FLsEngineStatusLabel.Font.Color := $BB99FF;
-    FLsEngineStatusLabel.Hint := MakoLib;
-    FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
-    if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
+    if FMakoUpdateAvailable and (FMakoRemoteVer <> '') and (FMakoRemoteVer <> InstalledVer) then
+    begin
+      FLsEngineStatusLabel.Caption := InstalledVer + ' → ' + FMakoRemoteVer;
+      FLsEngineStatusLabel.Font.Color := $0044AAFF;
+      FLsEngineStatusLabel.Hint := MakoLib;
+      FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
+      if Assigned(FLsInstallBtn) then
+      begin
+        FLsInstallBtn.Caption := 'Install update';
+        FLsInstallBtn.Visible := True;
+        FLsInstallBtn.Enabled := True;
+      end;
+    end
+    else
+    begin
+      if FMakoUpdateAvailable and (FMakoRemoteVer = InstalledVer) then
+        FMakoUpdateAvailable := False;
+      FLsEngineStatusLabel.Caption := InstalledVer;
+      FLsEngineStatusLabel.Font.Color := $BB99FF;
+      FLsEngineStatusLabel.Hint := MakoLib;
+      FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
+      if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
+    end;
 
     // Check in background if an update is available so 'Install update' can appear
     if not FCheckingUpdate and not FUpdateCheckedThisSession then
@@ -2453,18 +2511,42 @@ begin
 
   if (LocalVer <> '') and (LocalVer = RemoteVer) then
   begin
+    FMakoUpdateAvailable := False;
+    FMakoRemoteVer := RemoteVer;
     FLsEngineStatusLabel.Caption := '● MAKO ' + LocalVer + ' is up to date';
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+    if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
+    UpdateStatusCard;
+    if Assigned(FForm) and (FForm is Tgoverlayform) then
+      Tgoverlayform(FForm).RefreshHomeMakoStatus;
   end
   else if (LocalVer <> '') then
   begin
-    FLsEngineStatusLabel.Caption := '▲ Update available: ' + RemoteVer + ' (Current: ' + LocalVer + ')';
-    FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+    FMakoUpdateAvailable := True;
+    FMakoRemoteVer := RemoteVer;
+    FLsEngineStatusLabel.Caption := LocalVer + ' → ' + RemoteVer;
+    FLsEngineStatusLabel.Font.Color := $0044AAFF;
+    if Assigned(FLsInstallBtn) then
+    begin
+      FLsInstallBtn.Caption := 'Install update';
+      FLsInstallBtn.Visible := True;
+      FLsInstallBtn.Enabled := True;
+    end;
+    UpdateStatusCard;
+    if Assigned(FForm) and (FForm is Tgoverlayform) then
+      Tgoverlayform(FForm).RefreshHomeMakoStatus;
+    ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
   end
   else
   begin
     FLsEngineStatusLabel.Caption := '● Latest release is ' + RemoteVer + ' (Click Install)';
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+    if Assigned(FLsInstallBtn) then
+    begin
+      FLsInstallBtn.Caption := 'Install MAKO';
+      FLsInstallBtn.Visible := True;
+      FLsInstallBtn.Enabled := True;
+    end;
   end;
 end;
 

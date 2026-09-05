@@ -4019,10 +4019,14 @@ begin
                         begin
                           AssetObj := TJSONObject(AssetsArray[j]);
                           AssetName := AssetObj.Get('name', '');
-                          if (Pos('-linux.tar.xz', AssetName) > 0) or (Pos('.tar.xz', AssetName) > 0) then
+                          if (Pos('-linux.tar.xz', AssetName) > 0) and (Pos('flatpak', LowerCase(AssetName)) = 0) then
                           begin
                             DownloadUrl := AssetObj.Get('browser_download_url', '');
                             Break;
+                          end
+                          else if (DownloadUrl = '') and (Pos('.tar.xz', AssetName) > 0) and (Pos('flatpak', LowerCase(AssetName)) = 0) then
+                          begin
+                            DownloadUrl := AssetObj.Get('browser_download_url', '');
                           end;
                         end;
                       end;

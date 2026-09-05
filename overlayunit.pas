@@ -1326,6 +1326,7 @@ type
     function GetActiveTabLogFile: string;
     procedure RefreshOsStatusDots;
     procedure RefreshHomeOptiStatus;
+    procedure RefreshHomeMakoStatus;
     procedure PerfCardPaint(Sender: TObject);
     procedure TweaksCheckChange(Sender: TObject);
     procedure SyncTweaksGridFromCheckBoxes;
@@ -8644,6 +8645,12 @@ end;
 procedure Tgoverlayform.RefreshHomeOptiStatus;
 begin
   THomeTabHelper(FHomeHelper).RefreshHomeOptiStatus;
+end;
+
+procedure Tgoverlayform.RefreshHomeMakoStatus;
+begin
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeMakoStatus;
 end;
 
 procedure Tgoverlayform.RefreshHomeDeps;

@@ -111,6 +111,7 @@ type
     procedure TestMangoHudExtrasCompactToggles;
     procedure TestLosslessScalingCompactToggles;
     procedure TestLosslessScalingMethodSwitching;
+    procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
     procedure TestFinishConfigurationDialogModernSteamUI;
@@ -3613,6 +3614,57 @@ begin
   finally
     if FileExists(DummyDll) then
       DeleteFile(DummyDll);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestMakoUpdateNotificationPersistenceAndHomeSync;
+var
+  Helper: TLosslessScalingTabHelper;
+  StateDir, StateFile: string;
+  SL: TStringList;
+begin
+  StateDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/mako-render';
+  ForceDirectories(StateDir);
+  StateFile := StateDir + '/active-renderer.json';
+  SL := TStringList.Create;
+  try
+    SL.Add('{"version": "3.0.0", "prefix": "/home/test"}');
+    SL.SaveToFile(StateFile);
+  finally
+    SL.Free;
+  end;
+
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Helper exists', Helper);
+
+  try
+    // Simulate detecting a newer version 3.1.0 (local is 3.0.0)
+    Helper.SetMakoUpdateState('3.1.0', True);
+
+    // 1. Check Lossless Scaling tab display
+    AssertTrue('MakoUpdateAvailable is True', Helper.MakoUpdateAvailable);
+    AssertEquals('MakoRemoteVer is 3.1.0', '3.1.0', Helper.MakoRemoteVer);
+    AssertTrue('Engine status shows arrow indicator', Pos('→ 3.1.0', Helper.MakoStatusLabel.Caption) > 0);
+    AssertEquals('Engine status has accent update color ($0044AAFF)', $0044AAFF, Helper.MakoStatusLabel.Font.Color);
+    AssertTrue('Install update button is visible', Helper.InstallBtn.Visible);
+    AssertEquals('Install button caption is Install update', 'Install update', Helper.InstallBtn.Caption);
+
+    // 2. Check Home tab synchronization
+    goverlayform.ShowHomeTab;
+    goverlayform.RefreshHomeMakoStatus;
+    AssertTrue('Home tab module 5 shows arrow indicator', Pos('→ 3.1.0', goverlayform.FHomeModVerLbls[5].Caption) > 0);
+    AssertEquals('Home tab module 5 has accent update color ($0044AAFF)', $0044AAFF, goverlayform.FHomeModVerLbls[5].Font.Color);
+
+    // 3. Switch back to Lossless Scaling tab and ensure update state is NOT wiped out
+    goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+    AssertTrue('After switching back, update state persists on label', Pos('→ 3.1.0', Helper.MakoStatusLabel.Caption) > 0);
+    AssertTrue('After switching back, install button remains visible', Helper.InstallBtn.Visible);
+  finally
+    // Reset state
+    Helper.SetMakoUpdateState('', False);
+    if FileExists(StateFile) then DeleteFile(StateFile);
   end;
 end;
 

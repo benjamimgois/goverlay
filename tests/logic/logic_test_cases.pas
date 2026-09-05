@@ -71,6 +71,7 @@ type
     procedure TestMakoInstalledCheck;
     procedure TestMakoVersionParsing;
     procedure TestMakoLibraryPathDetection;
+    procedure TestMakoRemoteVersionUrlResolution;
   end;
 
 implementation
@@ -778,6 +779,20 @@ begin
   FileClose(FileCreate(LibFile));
   AssertEquals('Detects user-space libmako-render.so', LibFile, GetMakoLibraryPath);
   DeleteFile(LibFile);
+end;
+
+procedure TMakoLogicTests.TestMakoRemoteVersionUrlResolution;
+var
+  Url, Ver: string;
+begin
+  Url := '';
+  Ver := GetMakoLatestRemoteVersion(Url);
+  if Ver <> '' then
+  begin
+    AssertTrue('Remote version is v3.x or higher', Pos('3.', Ver) > 0);
+    AssertTrue('Download URL targets native linux archive', Pos('-linux.tar.xz', Url) > 0);
+    AssertFalse('Download URL strictly excludes flatpaks', Pos('flatpak', LowerCase(Url)) > 0);
+  end;
 end;
 
 initialization
