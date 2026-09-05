@@ -1331,7 +1331,7 @@ end;
 
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
-  TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr: string;
+  TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr, InterpolationMethod, LsfgGpu: string;
   MakoScalingEnabled, MakoScalingMethod, MakoScalingFactor, MakoScalingSharpness, MakoScalingSs: string;
   MakoAdaptive, MakoTargetFps, MakoAdaptiveMaxMult, MakoSteady2xCap, MakoAllowFp16: string;
   MakoBaseFpsCap, MakoRefreshThreshold, MakoFgLive, MakoUltraPerf: string;
@@ -1451,6 +1451,17 @@ begin
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       GOverlayTweaks := Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '0') = '1';
       GOverlayLossless := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
+      InterpolationMethod := LowerCase(Trim(Ini.ReadString('Config', 'INTERPOLATION_METHOD', '')));
+      if InterpolationMethod = '' then
+      begin
+        if GOverlayLossless then
+          InterpolationMethod := 'mako'
+        else
+          InterpolationMethod := 'none';
+      end;
+      if InterpolationMethod = 'none' then
+        GOverlayLossless := False;
+
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
@@ -1462,6 +1473,7 @@ begin
       LsfgHdr := Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', '0'));
       LsfgLegacy := Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', '1'));
       LsfgPacing := Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', 'fifo'));
+      LsfgGpu := Ini.ReadString('Config', 'LS_GPU', Ini.ReadString('Env', 'LSFG_GPU', ''));
       
       Ini.ReadSectionValues('Env', EnvList);
     finally
@@ -1481,6 +1493,7 @@ begin
       ', OptiScaler=' + BoolToStr(GOverlayOptiscaler, '1', '0') + 
       ', Tweaks=' + BoolToStr(GOverlayTweaks, '1', '0') +
       ', Lossless=' + BoolToStr(GOverlayLossless, '1', '0') +
+      ', Method=' + InterpolationMethod +
       ', DLL=' + DllName +
       ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false'));
       
@@ -1832,211 +1845,229 @@ begin
   
   if GOverlayLossless then
   begin
-    TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'conf.toml';
-    TomlLines := TStringList.Create;
-    try
-      // If conf.toml or lsfg.toml already exists, load existing settings
-      if FileExists(TomlPath) then
-      begin
-        CurProfile := '';
-        TomlLines.LoadFromFile(TomlPath);
-        for i := 0 to TomlLines.Count - 1 do
+    if InterpolationMethod = 'lsfg' then
+    begin
+      TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml';
+      TomlLines := TStringList.Create;
+      try
+        // If lsfg.toml already exists, load existing settings from it
+        if FileExists(TomlPath) then
         begin
-          Line := Trim(TomlLines[i]);
-          if (Line = '') or (Line[1] = '#') then Continue;
-          if Pos('[[profile]]', Line) > 0 then
+          TomlLines.LoadFromFile(TomlPath);
+          for i := 0 to TomlLines.Count - 1 do
           begin
-            CurProfile := '';
-            Continue;
-          end;
-          p := Pos('=', Line);
-          if p > 0 then
-          begin
-            Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
-            Val := Trim(Copy(Line, p + 1, MaxInt));
-            if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
-              Val := Copy(Val, 2, Length(Val) - 2);
-            if Key = 'name' then
+            Line := Trim(TomlLines[i]);
+            if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
+            p := Pos('=', Line);
+            if p > 0 then
             begin
-              CurProfile := LowerCase(Val);
+              Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+              Val := Trim(Copy(Line, p + 1, MaxInt));
+              if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+                Val := Copy(Val, 2, Length(Val) - 2);
+              if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
+              else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
+              else if Key = 'flow_scale' then LsfgFlow := Val
+              else if Key = 'performance_mode' then LsfgPerfStr := Val
+              else if Key = 'hdr_mode' then LsfgHdrStr := Val
+              else if (Key = 'legacy') or (Key = 'no_fp16') then LsfgLegacyStr := Val
+              else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val;
+            end;
+          end;
+        end;
+        
+        if LsfgFlow = '' then LsfgFlow := '1.0';
+        if (LsfgPerfStr <> 'true') and (LsfgPerfStr <> 'false') then
+        begin
+          if LsfgPerf = '1' then LsfgPerfStr := 'true' else LsfgPerfStr := 'false';
+        end;
+        if (LsfgHdrStr <> 'true') and (LsfgHdrStr <> 'false') then
+        begin
+          if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
+        end;
+        if (LsfgLegacyStr <> 'true') and (LsfgLegacyStr <> 'false') then
+        begin
+          if LsfgLegacy = '1' then LsfgLegacyStr := 'true' else LsfgLegacyStr := 'false';
+        end;
+        
+        TomlLines.Clear;
+        TomlLines.Add('version = 1');
+        TomlLines.Add('');
+        TomlLines.Add('[global]');
+        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('');
+        TomlLines.Add('[[game]]');
+        TomlLines.Add('exe = "pascube"');
+        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+        TomlLines.Add('flow_scale = ' + LsfgFlow);
+        TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+        TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+        TomlLines.Add('legacy = ' + LsfgLegacyStr);
+        TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        TomlLines.Add('');
+        TomlLines.Add('[[game]]');
+        TomlLines.Add('exe = "vkcube"');
+        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+        TomlLines.Add('flow_scale = ' + LsfgFlow);
+        TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+        TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+        TomlLines.Add('legacy = ' + LsfgLegacyStr);
+        TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        
+        if TargetExeName <> '' then
+        begin
+          TomlLines.Add('');
+          TomlLines.Add('[[game]]');
+          TomlLines.Add('exe = "' + TargetExeName + '"');
+          TomlLines.Add('dll = "' + LsfgDllPath + '"');
+          TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+          TomlLines.Add('flow_scale = ' + LsfgFlow);
+          TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+          TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
+          TomlLines.Add('legacy = ' + LsfgLegacyStr);
+          TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        end;
+        
+        TomlLines.SaveToFile(TomlPath);
+        
+        SetEnvVarInList(EnvStrings, 'LSFG_CONFIG', TomlPath);
+        Log('Export: LSFG_CONFIG=' + TomlPath);
+        if LsfgGpu <> '' then
+        begin
+          SetEnvVarInList(EnvStrings, 'LSFG_GPU', LsfgGpu);
+          Log('Export: LSFG_GPU=' + LsfgGpu);
+        end;
+      finally
+        TomlLines.Free;
+      end;
+    end
+    else // mako
+    begin
+      TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'conf.toml';
+      TomlLines := TStringList.Create;
+      try
+        // If conf.toml or lsfg.toml already exists, load existing settings
+        if FileExists(TomlPath) then
+        begin
+          CurProfile := '';
+          TomlLines.LoadFromFile(TomlPath);
+          for i := 0 to TomlLines.Count - 1 do
+          begin
+            Line := Trim(TomlLines[i]);
+            if (Line = '') or (Line[1] = '#') then Continue;
+            if Pos('[[profile]]', Line) > 0 then
+            begin
+              CurProfile := '';
               Continue;
             end;
-            if (TargetExeName <> '') and ((CurProfile = 'pascube') or (CurProfile = 'vkcube')) then
-              Continue;
-            if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
-            else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
-            else if Key = 'flow_scale' then LsfgFlow := Val
-            else if Key = 'performance_mode' then LsfgPerfStr := Val
-            else if Key = 'ultra_performance' then MakoUltraPerf := Val
-            else if Key = 'allow_fp16' then MakoAllowFp16 := Val
-            else if (Key = 'legacy') or (Key = 'no_fp16') then
+            p := Pos('=', Line);
+            if p > 0 then
             begin
-              if (Val = 'true') or (Val = '1') then MakoAllowFp16 := 'false' else MakoAllowFp16 := 'true';
-            end
-            else if Key = 'frame_generation_enabled' then MakoFgLive := Val
-            else if Key = 'frame_generation_refresh_threshold' then MakoRefreshThreshold := Val
-            else if Key = 'base_fps_cap' then MakoBaseFpsCap := Val
-            else if Key = 'adaptive' then MakoAdaptive := Val
-            else if Key = 'target_fps' then MakoTargetFps := Val
-            else if Key = 'adaptive_max_multiplier' then MakoAdaptiveMaxMult := Val
-            else if Key = 'adaptive_auto_base_fps_cap' then MakoSteady2xCap := Val
-            else if Key = 'scaling_enabled' then MakoScalingEnabled := Val
-            else if Key = 'scaling_method' then MakoScalingMethod := Val
-            else if Key = 'scaling_factor' then MakoScalingFactor := Val
-            else if Key = 'scaling_sharpness' then MakoScalingSharpness := Val
-            else if Key = 'scaling_supersampling' then MakoScalingSs := Val
-            else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val;
+              Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+              Val := Trim(Copy(Line, p + 1, MaxInt));
+              if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+                Val := Copy(Val, 2, Length(Val) - 2);
+              if Key = 'name' then
+              begin
+                CurProfile := LowerCase(Val);
+                Continue;
+              end;
+              if (TargetExeName <> '') and ((CurProfile = 'pascube') or (CurProfile = 'vkcube')) then
+                Continue;
+              if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
+              else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
+              else if Key = 'flow_scale' then LsfgFlow := Val
+              else if Key = 'performance_mode' then LsfgPerfStr := Val
+              else if Key = 'ultra_performance' then MakoUltraPerf := Val
+              else if Key = 'allow_fp16' then MakoAllowFp16 := Val
+              else if (Key = 'legacy') or (Key = 'no_fp16') then
+              begin
+                if (Val = 'true') or (Val = '1') then MakoAllowFp16 := 'false' else MakoAllowFp16 := 'true';
+              end
+              else if Key = 'frame_generation_enabled' then MakoFgLive := Val
+              else if Key = 'frame_generation_refresh_threshold' then MakoRefreshThreshold := Val
+              else if Key = 'base_fps_cap' then MakoBaseFpsCap := Val
+              else if Key = 'adaptive' then MakoAdaptive := Val
+              else if Key = 'target_fps' then MakoTargetFps := Val
+              else if Key = 'adaptive_max_multiplier' then MakoAdaptiveMaxMult := Val
+              else if Key = 'adaptive_auto_base_fps_cap' then MakoSteady2xCap := Val
+              else if Key = 'scaling_enabled' then MakoScalingEnabled := Val
+              else if Key = 'scaling_method' then MakoScalingMethod := Val
+              else if Key = 'scaling_factor' then MakoScalingFactor := Val
+              else if Key = 'scaling_sharpness' then MakoScalingSharpness := Val
+              else if Key = 'scaling_supersampling' then MakoScalingSs := Val
+              else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val;
+            end;
           end;
-        end;
-      end
-      else if FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml') then
-      begin
-        TomlLines.LoadFromFile(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml');
-        for i := 0 to TomlLines.Count - 1 do
+        end
+        else if FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml') then
         begin
-          Line := Trim(TomlLines[i]);
-          if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
-          p := Pos('=', Line);
-          if p > 0 then
+          TomlLines.LoadFromFile(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml');
+          for i := 0 to TomlLines.Count - 1 do
           begin
-            Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
-            Val := Trim(Copy(Line, p + 1, MaxInt));
-            if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
-              Val := Copy(Val, 2, Length(Val) - 2);
-            if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
-            else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
-            else if Key = 'flow_scale' then LsfgFlow := Val
-            else if Key = 'performance_mode' then LsfgPerfStr := Val
-            else if (Key = 'legacy') or (Key = 'no_fp16') then
+            Line := Trim(TomlLines[i]);
+            if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
+            p := Pos('=', Line);
+            if p > 0 then
             begin
-              if (Val = 'true') or (Val = '1') then MakoAllowFp16 := 'false' else MakoAllowFp16 := 'true';
-            end
-            else if Key = 'experimental_present_mode' then LsfgPacing := Val;
+              Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+              Val := Trim(Copy(Line, p + 1, MaxInt));
+              if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+                Val := Copy(Val, 2, Length(Val) - 2);
+              if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
+              else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
+              else if Key = 'flow_scale' then LsfgFlow := Val
+              else if Key = 'performance_mode' then LsfgPerfStr := Val
+              else if (Key = 'legacy') or (Key = 'no_fp16') then
+              begin
+                if (Val = 'true') or (Val = '1') then MakoAllowFp16 := 'false' else MakoAllowFp16 := 'true';
+              end
+              else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val;
+            end;
           end;
         end;
-      end;
-      
-      if LsfgFlow = '' then LsfgFlow := '0.90';
-      if LsfgPerfStr = '' then LsfgPerfStr := 'false';
-      if MakoUltraPerf = '' then MakoUltraPerf := 'false';
-      if MakoAllowFp16 = '' then MakoAllowFp16 := 'true';
-      if MakoFgLive = '' then MakoFgLive := 'true';
-      if MakoRefreshThreshold = '' then MakoRefreshThreshold := '0';
-      if MakoBaseFpsCap = '' then MakoBaseFpsCap := '0';
-      if MakoAdaptive = '' then MakoAdaptive := 'false';
-      if MakoTargetFps = '' then MakoTargetFps := '90';
-      if MakoAdaptiveMaxMult = '' then MakoAdaptiveMaxMult := '3';
-      if MakoSteady2xCap = '' then MakoSteady2xCap := 'false';
-      if MakoScalingEnabled = '' then MakoScalingEnabled := 'false';
-      if MakoScalingMethod = '' then MakoScalingMethod := 'ls1';
-      if MakoScalingFactor = '' then MakoScalingFactor := '1.5';
-      if MakoScalingSharpness = '' then MakoScalingSharpness := '0.8';
-      if MakoScalingSs = '' then MakoScalingSs := 'false';
-      if LsfgPacing = '' then LsfgPacing := 'none';
-      
-      TomlLines.Clear;
-      TomlLines.Add('version = 2');
-      TomlLines.Add('');
-      if LsfgDllPath <> '' then
-      begin
+
+        if LsfgFlow = '' then LsfgFlow := '1.00';
+        if LsfgPerfStr = '' then LsfgPerfStr := 'false';
+        if MakoUltraPerf = '' then MakoUltraPerf := 'false';
+        if MakoAllowFp16 = '' then MakoAllowFp16 := 'true';
+        if MakoFgLive = '' then MakoFgLive := 'true';
+        if MakoRefreshThreshold = '' then MakoRefreshThreshold := '0';
+        if MakoBaseFpsCap = '' then MakoBaseFpsCap := '0';
+        if MakoAdaptive = '' then MakoAdaptive := 'false';
+        if MakoTargetFps = '' then MakoTargetFps := '90';
+        if MakoAdaptiveMaxMult = '' then MakoAdaptiveMaxMult := '3';
+        if MakoSteady2xCap = '' then MakoSteady2xCap := 'false';
+        if MakoScalingEnabled = '' then MakoScalingEnabled := 'false';
+        if MakoScalingMethod = '' then MakoScalingMethod := 'ls1';
+        if MakoScalingFactor = '' then MakoScalingFactor := '1.50';
+        if MakoScalingSharpness = '' then MakoScalingSharpness := '0.80';
+        if MakoScalingSs = '' then MakoScalingSs := 'false';
+
+        TomlLines.Clear;
+        TomlLines.Add('version = 2');
+        TomlLines.Add('');
         TomlLines.Add('dll = "' + LsfgDllPath + '"');
         TomlLines.Add('allow_fp16 = ' + MakoAllowFp16);
         TomlLines.Add('');
-      end;
-      
-      // pascube profile
-      TomlLines.Add('[[profile]]');
-      TomlLines.Add('name = "pascube"');
-      TomlLines.Add('active_in = ["pascube"]');
-      TomlLines.Add('scaling_enabled = ' + MakoScalingEnabled);
-      if MakoScalingEnabled = 'true' then
-      begin
-        TomlLines.Add('scaling_method = "' + MakoScalingMethod + '"');
-        TomlLines.Add('scaling_factor = ' + MakoScalingFactor);
-        TomlLines.Add('scaling_supersampling = ' + MakoScalingSs);
-        TomlLines.Add('scaling_sharpness = ' + MakoScalingSharpness);
-      end;
-      if MakoAdaptive = 'true' then
-      begin
-        TomlLines.Add('frame_generation_enabled = true');
-        TomlLines.Add('adaptive = true');
-        TomlLines.Add('target_fps = ' + MakoTargetFps);
-        TomlLines.Add('adaptive_max_multiplier = ' + MakoAdaptiveMaxMult);
-        TomlLines.Add('adaptive_auto_base_fps_cap = ' + MakoSteady2xCap);
-      end
-      else if LsfgMult >= 2 then
-      begin
-        TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
-        TomlLines.Add('frame_generation_enabled = ' + MakoFgLive);
-        TomlLines.Add('adaptive = false');
-      end
-      else
-      begin
-        TomlLines.Add('frame_generation_enabled = false');
-        TomlLines.Add('adaptive = false');
-      end;
-      TomlLines.Add('frame_generation_refresh_threshold = ' + MakoRefreshThreshold);
-      TomlLines.Add('base_fps_cap = ' + MakoBaseFpsCap);
-      TomlLines.Add('performance_mode = ' + LsfgPerfStr);
-      TomlLines.Add('ultra_performance = ' + MakoUltraPerf);
-      TomlLines.Add('flow_scale = ' + LsfgFlow);
-      TomlLines.Add('pacing = "none"');
-      TomlLines.Add('');
-      
-      // vkcube profile
-      TomlLines.Add('[[profile]]');
-      TomlLines.Add('name = "vkcube"');
-      TomlLines.Add('active_in = ["vkcube"]');
-      TomlLines.Add('scaling_enabled = ' + MakoScalingEnabled);
-      if MakoScalingEnabled = 'true' then
-      begin
-        TomlLines.Add('scaling_method = "' + MakoScalingMethod + '"');
-        TomlLines.Add('scaling_factor = ' + MakoScalingFactor);
-        TomlLines.Add('scaling_supersampling = ' + MakoScalingSs);
-        TomlLines.Add('scaling_sharpness = ' + MakoScalingSharpness);
-      end;
-      if MakoAdaptive = 'true' then
-      begin
-        TomlLines.Add('frame_generation_enabled = true');
-        TomlLines.Add('adaptive = true');
-        TomlLines.Add('target_fps = ' + MakoTargetFps);
-        TomlLines.Add('adaptive_max_multiplier = ' + MakoAdaptiveMaxMult);
-        TomlLines.Add('adaptive_auto_base_fps_cap = ' + MakoSteady2xCap);
-      end
-      else if LsfgMult >= 2 then
-      begin
-        TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
-        TomlLines.Add('frame_generation_enabled = ' + MakoFgLive);
-        TomlLines.Add('adaptive = false');
-      end
-      else
-      begin
-        TomlLines.Add('frame_generation_enabled = false');
-        TomlLines.Add('adaptive = false');
-      end;
-      TomlLines.Add('frame_generation_refresh_threshold = ' + MakoRefreshThreshold);
-      TomlLines.Add('base_fps_cap = ' + MakoBaseFpsCap);
-      TomlLines.Add('performance_mode = ' + LsfgPerfStr);
-      TomlLines.Add('ultra_performance = ' + MakoUltraPerf);
-      TomlLines.Add('flow_scale = ' + LsfgFlow);
-      TomlLines.Add('pacing = "none"');
-      
-      if TargetExeName <> '' then
-      begin
-        ProfileName := ChangeFileExt(ExtractFileName(TargetExeName), '');
-        if ProfileName = '' then ProfileName := TargetExeName;
-        TomlLines.Add('');
+
+        // Profile: pascube
         TomlLines.Add('[[profile]]');
-        TomlLines.Add('name = "' + ProfileName + '"');
-        TomlLines.Add('active_in = ["' + TargetExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
-        TomlLines.Add('scaling_enabled = ' + MakoScalingEnabled);
+        TomlLines.Add('name = "pascube"');
+        TomlLines.Add('active_in = ["pascube"]');
         if MakoScalingEnabled = 'true' then
         begin
+          TomlLines.Add('scaling_enabled = true');
           TomlLines.Add('scaling_method = "' + MakoScalingMethod + '"');
           TomlLines.Add('scaling_factor = ' + MakoScalingFactor);
           TomlLines.Add('scaling_supersampling = ' + MakoScalingSs);
           TomlLines.Add('scaling_sharpness = ' + MakoScalingSharpness);
-        end;
+        end
+        else
+          TomlLines.Add('scaling_enabled = false');
+
         if MakoAdaptive = 'true' then
         begin
           TomlLines.Add('frame_generation_enabled = true');
@@ -2062,33 +2093,127 @@ begin
         TomlLines.Add('ultra_performance = ' + MakoUltraPerf);
         TomlLines.Add('flow_scale = ' + LsfgFlow);
         TomlLines.Add('pacing = "none"');
+        TomlLines.Add('');
+
+        // Profile: vkcube
+        TomlLines.Add('[[profile]]');
+        TomlLines.Add('name = "vkcube"');
+        TomlLines.Add('active_in = ["vkcube"]');
+        if MakoScalingEnabled = 'true' then
+        begin
+          TomlLines.Add('scaling_enabled = true');
+          TomlLines.Add('scaling_method = "' + MakoScalingMethod + '"');
+          TomlLines.Add('scaling_factor = ' + MakoScalingFactor);
+          TomlLines.Add('scaling_supersampling = ' + MakoScalingSs);
+          TomlLines.Add('scaling_sharpness = ' + MakoScalingSharpness);
+        end
+        else
+          TomlLines.Add('scaling_enabled = false');
+
+        if MakoAdaptive = 'true' then
+        begin
+          TomlLines.Add('frame_generation_enabled = true');
+          TomlLines.Add('adaptive = true');
+          TomlLines.Add('target_fps = ' + MakoTargetFps);
+          TomlLines.Add('adaptive_max_multiplier = ' + MakoAdaptiveMaxMult);
+          TomlLines.Add('adaptive_auto_base_fps_cap = ' + MakoSteady2xCap);
+        end
+        else if LsfgMult >= 2 then
+        begin
+          TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+          TomlLines.Add('frame_generation_enabled = ' + MakoFgLive);
+          TomlLines.Add('adaptive = false');
+        end
+        else
+        begin
+          TomlLines.Add('frame_generation_enabled = false');
+          TomlLines.Add('adaptive = false');
+        end;
+        TomlLines.Add('frame_generation_refresh_threshold = ' + MakoRefreshThreshold);
+        TomlLines.Add('base_fps_cap = ' + MakoBaseFpsCap);
+        TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+        TomlLines.Add('ultra_performance = ' + MakoUltraPerf);
+        TomlLines.Add('flow_scale = ' + LsfgFlow);
+        TomlLines.Add('pacing = "none"');
+
+        if TargetExeName <> '' then
+        begin
+          ProfileName := ChangeFileExt(ExtractFileName(TargetExeName), '');
+          if ProfileName = '' then ProfileName := TargetExeName;
+          TomlLines.Add('');
+          TomlLines.Add('[[profile]]');
+          TomlLines.Add('name = "' + ProfileName + '"');
+          TomlLines.Add('active_in = ["' + TargetExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
+          if MakoScalingEnabled = 'true' then
+          begin
+            TomlLines.Add('scaling_enabled = true');
+            TomlLines.Add('scaling_method = "' + MakoScalingMethod + '"');
+            TomlLines.Add('scaling_factor = ' + MakoScalingFactor);
+            TomlLines.Add('scaling_supersampling = ' + MakoScalingSs);
+            TomlLines.Add('scaling_sharpness = ' + MakoScalingSharpness);
+          end
+          else
+            TomlLines.Add('scaling_enabled = false');
+
+          if MakoAdaptive = 'true' then
+          begin
+            TomlLines.Add('frame_generation_enabled = true');
+            TomlLines.Add('adaptive = true');
+            TomlLines.Add('target_fps = ' + MakoTargetFps);
+            TomlLines.Add('adaptive_max_multiplier = ' + MakoAdaptiveMaxMult);
+            TomlLines.Add('adaptive_auto_base_fps_cap = ' + MakoSteady2xCap);
+          end
+          else if LsfgMult >= 2 then
+          begin
+            TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
+            TomlLines.Add('frame_generation_enabled = ' + MakoFgLive);
+            TomlLines.Add('adaptive = false');
+          end
+          else
+          begin
+            TomlLines.Add('frame_generation_enabled = false');
+            TomlLines.Add('adaptive = false');
+          end;
+          TomlLines.Add('frame_generation_refresh_threshold = ' + MakoRefreshThreshold);
+          TomlLines.Add('base_fps_cap = ' + MakoBaseFpsCap);
+          TomlLines.Add('performance_mode = ' + LsfgPerfStr);
+          TomlLines.Add('ultra_performance = ' + MakoUltraPerf);
+          TomlLines.Add('flow_scale = ' + LsfgFlow);
+          TomlLines.Add('pacing = "none"');
+        end;
+        
+        TomlLines.SaveToFile(TomlPath);
+        TomlLines.SaveToFile(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml');
+        
+        SetEnvVarInList(EnvStrings, 'ENABLE_MAKO', '1');
+        SetEnvVarInList(EnvStrings, 'MAKO_CONFIG', TomlPath);
+        SetEnvVarInList(EnvStrings, 'MAKO_DISABLE_HDR_EXPOSURE', '1');
+        SetEnvVarInList(EnvStrings, 'DISABLE_GAMESCOPE_WSI', '1');
+        SetEnvVarInList(EnvStrings, 'DISABLE_LSFG', '1');
+        SetEnvVarInList(EnvStrings, 'DISABLE_LSFGVK', '1');
+        SetEnvVarInList(EnvStrings, 'LSFG_CONFIG', TomlPath);
+        if ProfileName <> '' then
+        begin
+          SetEnvVarInList(EnvStrings, 'MAKO_PROFILE', ProfileName);
+          Log('Export: MAKO_PROFILE=' + ProfileName);
+        end;
+        if MakoScalingEnabled = 'true' then
+        begin
+          SetEnvVarInList(EnvStrings, 'ENABLE_MAKO_SPATIAL_SCALING', '1');
+          Log('Export: ENABLE_MAKO_SPATIAL_SCALING=1');
+        end;
+        if LsfgGpu <> '' then
+        begin
+          SetEnvVarInList(EnvStrings, 'MAKO_GPU', LsfgGpu);
+          SetEnvVarInList(EnvStrings, 'LSFG_GPU', LsfgGpu);
+          Log('Export: MAKO_GPU=' + LsfgGpu);
+        end;
+        Log('Export: ENABLE_MAKO=1');
+        Log('Export: MAKO_CONFIG=' + TomlPath);
+        Log('Export: LSFG_CONFIG=' + TomlPath);
+      finally
+        TomlLines.Free;
       end;
-      
-      TomlLines.SaveToFile(TomlPath);
-      TomlLines.SaveToFile(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml');
-      
-      SetEnvVarInList(EnvStrings, 'ENABLE_MAKO', '1');
-      SetEnvVarInList(EnvStrings, 'MAKO_CONFIG', TomlPath);
-      SetEnvVarInList(EnvStrings, 'MAKO_DISABLE_HDR_EXPOSURE', '1');
-      SetEnvVarInList(EnvStrings, 'DISABLE_GAMESCOPE_WSI', '1');
-      SetEnvVarInList(EnvStrings, 'DISABLE_LSFG', '1');
-      SetEnvVarInList(EnvStrings, 'DISABLE_LSFGVK', '1');
-      SetEnvVarInList(EnvStrings, 'LSFG_CONFIG', TomlPath);
-      if ProfileName <> '' then
-      begin
-        SetEnvVarInList(EnvStrings, 'MAKO_PROFILE', ProfileName);
-        Log('Export: MAKO_PROFILE=' + ProfileName);
-      end;
-      if MakoScalingEnabled = 'true' then
-      begin
-        SetEnvVarInList(EnvStrings, 'ENABLE_MAKO_SPATIAL_SCALING', '1');
-        Log('Export: ENABLE_MAKO_SPATIAL_SCALING=1');
-      end;
-      Log('Export: ENABLE_MAKO=1');
-      Log('Export: MAKO_CONFIG=' + TomlPath);
-      Log('Export: LSFG_CONFIG=' + TomlPath);
-    finally
-      TomlLines.Free;
     end;
   end;
   
@@ -2162,7 +2287,7 @@ begin
   BasaltGameLogFile := '';
   InternalOptiLogPath := '';
 
-  if GOverlayLossless then
+  if GOverlayLossless and (InterpolationMethod = 'mako') then
   begin
     if ProfileName = '' then
       ProfileName := ExtractFileName(ExcludeTrailingPathDelimiter(ConfigDir));
@@ -2232,7 +2357,7 @@ begin
     end;
   end;
 
-  HasAnyToolLogging := GOverlayLossless or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
+  HasAnyToolLogging := (GOverlayLossless and (InterpolationMethod = 'mako')) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
 
   // If any tool logging is enabled, spawn background stderr filter process
   if HasAnyToolLogging and (
@@ -2256,7 +2381,7 @@ begin
           SumiCentralLogFile, SumiGameLogFile,
           BasaltCentralLogFile, BasaltGameLogFile,
           InternalOptiLogPath,
-          GOverlayLossless, GOverlayOptiscaler, GOverlayVkSumi, GOverlayVkBasalt
+          (GOverlayLossless and (InterpolationMethod = 'mako')), GOverlayOptiscaler, GOverlayVkSumi, GOverlayVkBasalt
         );
       end
       else if ForkPid > 0 then

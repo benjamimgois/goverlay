@@ -5,7 +5,7 @@ unit configfile;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils{$IFDEF UNIX}, BaseUnix{$ENDIF};
 
 type
   /// <summary>
@@ -141,7 +141,7 @@ end;
 
 function TConfigFile.Save: Boolean;
 var
-  Dir: string;
+  Dir, TempFile: string;
 begin
   Result := False;
   if not FModified then Exit;
@@ -151,9 +151,52 @@ begin
   if (Dir <> '') and not DirectoryExists(Dir) then
     ForceDirectories(Dir);
 
-  FLines.SaveToFile(FFilePath);
-  FModified := False;
-  Result := True;
+  // Write to a temporary file in the same directory first, then atomically rename to destination.
+  // This completely avoids file locking / flock collisions (e.g. FPC EAGAIN double-close EBADF)
+  // when background threads or external processes have the target file open.
+  TempFile := FFilePath + '.tmp.' + IntToStr(GetProcessID);
+  try
+    FLines.SaveToFile(TempFile);
+    {$IFDEF UNIX}
+    if fpRename(PChar(TempFile), PChar(FFilePath)) = 0 then
+      Result := True
+    else
+    begin
+      // Fallback if fpRename fails (e.g. cross-filesystem boundary)
+      DeleteFile(FFilePath);
+      Result := RenameFile(TempFile, FFilePath);
+      if not Result then
+      begin
+        // Final fallback: direct write
+        FLines.SaveToFile(FFilePath);
+        Result := True;
+      end;
+    end;
+    {$ELSE}
+    if RenameFile(TempFile, FFilePath) then
+      Result := True
+    else
+    begin
+      DeleteFile(FFilePath);
+      Result := RenameFile(TempFile, FFilePath);
+      if not Result then
+      begin
+        FLines.SaveToFile(FFilePath);
+        Result := True;
+      end;
+    end;
+    {$ENDIF}
+    if Result then
+      FModified := False;
+  except
+    on E: Exception do
+    begin
+      WriteLn('[CONFIGFILE] Failed to save "', FFilePath, '": ', E.Message);
+      Result := False;
+    end;
+  end;
+  if FileExists(TempFile) then
+    DeleteFile(TempFile);
 end;
 
 function TConfigFile.IsSectionHeader(const ALine: string; out ASectionName: string): Boolean;

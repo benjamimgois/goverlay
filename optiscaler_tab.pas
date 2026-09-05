@@ -1502,11 +1502,19 @@ begin
     else
       Settings.UpscalerTypeItemIndex := 0;
 
-    if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
-    begin
-      if ErrMsg <> '' then
-        ShowMessage(ErrMsg);
-      Exit;
+    try
+      if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then
+      begin
+        if ErrMsg <> '' then
+          ShowMessage(ErrMsg);
+        Exit;
+      end;
+    except
+      on E: Exception do
+      begin
+        WriteLn('[OPTISCALER] Error saving OptiScaler config: ', E.Message);
+        Exit;
+      end;
     end;
 
     // Immediately sync global profile assets (DLLs, plugins, configs) when saving global profile

@@ -70,6 +70,7 @@ type
   published
     procedure TestMakoInstalledCheck;
     procedure TestMakoVersionParsing;
+    procedure TestMakoLibraryPathDetection;
   end;
 
 implementation
@@ -765,6 +766,18 @@ begin
 
   AssertEquals('Parsed version includes leading v', 'v3.0.0', GetMakoInstalledVersion);
   DeleteFile(StateFile);
+end;
+
+procedure TMakoLogicTests.TestMakoLibraryPathDetection;
+var
+  LibDir, LibFile: string;
+begin
+  LibDir := IsolatedHome + '/.local/lib';
+  ForceDirectories(LibDir);
+  LibFile := LibDir + '/libmako-render.so';
+  FileClose(FileCreate(LibFile));
+  AssertEquals('Detects user-space libmako-render.so', LibFile, GetMakoLibraryPath);
+  DeleteFile(LibFile);
 end;
 
 initialization

@@ -109,6 +109,7 @@ type
     procedure TestMangoHudPerformanceCompactToggles;
     procedure TestMangoHudExtrasCompactToggles;
     procedure TestLosslessScalingCompactToggles;
+    procedure TestLosslessScalingMethodSwitching;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
     procedure TestFinishConfigurationDialogModernSteamUI;
@@ -3464,6 +3465,111 @@ begin
     Helper.HdrModeToggle.Left > Helper.PerfModeToggle.Left);
   AssertTrue('NoFp16Toggle is to the right of HdrModeToggle',
     Helper.NoFp16Toggle.Left > Helper.HdrModeToggle.Left);
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingMethodSwitching;
+var
+  Helper: TLosslessScalingTabHelper;
+  DummyDll, TargetConfPath: string;
+  Ini: TIniFile;
+  DummyFile: TFileStream;
+begin
+  goverlayform.optiscalerLabelClick(nil);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+  AssertTrue('Method card is assigned', Assigned(Helper.MethodCard));
+  AssertTrue('GPU card is assigned', Assigned(Helper.GpuCard));
+  AssertTrue('Status card is assigned', Assigned(Helper.StatusCard));
+
+  DummyDll := IsolatedHome + '/.local/share/goverlay/test_method_switching.dll';
+  ForceDirectories(ExtractFilePath(DummyDll));
+  DummyFile := TFileStream.Create(DummyDll, fmCreate);
+  DummyFile.Free;
+  try
+    Helper.DllPathEdit.Text := DummyDll;
+
+    // 1. None method
+    Helper.SetInterpolationMethod(imNone);
+    AssertEquals('Method is imNone', Ord(imNone), Ord(Helper.InterpolationMethod));
+    AssertTrue('DisabledNoticeLbl is visible for imNone', Helper.DisabledNoticeLbl.Visible);
+    AssertFalse('SpatialCard is hidden for imNone', Helper.SpatialCard.Visible);
+    AssertEquals('Multiplier is 1 for imNone', 1, Helper.MultiplierTrackBar.Position);
+    AssertEquals('Active env vars empty for imNone', '', Helper.GetActiveEnvVars);
+
+    // Save None and check bgmod.conf
+    Helper.SaveLosslessConfig;
+    TargetConfPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'bgmod.conf';
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('INTERPOLATION_METHOD is none in bgmod.conf', 'none', Ini.ReadString('Config', 'INTERPOLATION_METHOD', ''));
+      AssertEquals('GOVERLAY_LOSSLESS is 0 for imNone', '0', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
+    finally
+      Ini.Free;
+    end;
+
+    // 2. LSFG-VK method
+    Helper.SetInterpolationMethod(imLsfg);
+    AssertEquals('Method is imLsfg', Ord(imLsfg), Ord(Helper.InterpolationMethod));
+    AssertFalse('DisabledNoticeLbl is hidden for imLsfg', Helper.DisabledNoticeLbl.Visible);
+    AssertTrue('FrameGenCard is visible for imLsfg', Helper.FrameGenCard.Visible);
+    AssertFalse('SpatialCard is hidden for imLsfg', Helper.SpatialCard.Visible);
+    Helper.MultiplierTrackBar.Position := 2;
+    AssertTrue('Active env vars contain LSFG_CONFIG for imLsfg', Pos('LSFG_CONFIG', Helper.GetActiveEnvVars) > 0);
+    AssertEquals('Active env vars do not contain ENABLE_MAKO for imLsfg', 0, Pos('ENABLE_MAKO', Helper.GetActiveEnvVars));
+
+    // 3. MAKO method
+    Helper.SetInterpolationMethod(imMako);
+    AssertEquals('Method is imMako', Ord(imMako), Ord(Helper.InterpolationMethod));
+    AssertFalse('DisabledNoticeLbl is hidden for imMako', Helper.DisabledNoticeLbl.Visible);
+    AssertTrue('SpatialCard is visible for imMako', Helper.SpatialCard.Visible);
+    AssertTrue('Active env vars contain ENABLE_MAKO for imMako', Pos('ENABLE_MAKO=1', Helper.GetActiveEnvVars) > 0);
+
+    // Save MAKO and check bgmod.conf
+    Helper.SaveLosslessConfig;
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('INTERPOLATION_METHOD is mako in bgmod.conf', 'mako', Ini.ReadString('Config', 'INTERPOLATION_METHOD', ''));
+      AssertEquals('GOVERLAY_LOSSLESS is 1 for imMako', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
+    finally
+      Ini.Free;
+    end;
+
+    // 4. Test LoadLosslessConfig restores imMako
+    Helper.SetInterpolationMethod(imNone);
+    AssertEquals('Method set to imNone before load', Ord(imNone), Ord(Helper.InterpolationMethod));
+    Helper.LoadLosslessConfig;
+    AssertEquals('LoadLosslessConfig restored imMako', Ord(imMako), Ord(Helper.InterpolationMethod));
+    AssertTrue('SpatialCard restored visible after loading imMako', Helper.SpatialCard.Visible);
+
+    // 5. Test Method icon size and label positioning (to the right of icon)
+    AssertTrue('lsfg-vk image width is at least 30px', Helper.MethodLsfgImage.Width >= 30);
+    AssertTrue('lsfg-vk image height is at least 30px', Helper.MethodLsfgImage.Height >= 30);
+    AssertTrue('lsfg-vk label is to the right of icon', Helper.MethodLsfgLabel.Left > Helper.MethodLsfgImage.Left);
+    AssertTrue('mako image width is at least 30px', Helper.MethodMakoImage.Width >= 30);
+    AssertTrue('mako image height is at least 30px', Helper.MethodMakoImage.Height >= 30);
+    AssertTrue('mako label is to the right of icon', Helper.MethodMakoLabel.Left > Helper.MethodMakoImage.Left);
+
+    // 6. Test StatusCard labels formatting and color
+    if (Helper.EngineStatusLabel.Caption <> '') and (Helper.EngineStatusLabel.Caption <> 'Not installed') then
+    begin
+      AssertEquals('MAKO status label color is purple ($BB99FF)', $BB99FF, Helper.EngineStatusLabel.Font.Color);
+      AssertFalse('MAKO status label does not repeat name', Pos('MAKO Renderer:', Helper.EngineStatusLabel.Caption) > 0);
+      AssertFalse('MAKO status label does not contain (Found)', Pos('(Found)', Helper.EngineStatusLabel.Caption) > 0);
+      AssertFalse('MAKO status label does not contain (found)', Pos('(found)', Helper.EngineStatusLabel.Caption) > 0);
+    end;
+    if (Helper.LsfgStatusLabel.Caption <> '') and (Helper.LsfgStatusLabel.Caption <> 'Not installed') then
+    begin
+      AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
+      AssertFalse('lsfg-vk status label does not contain (Found)', Pos('(Found)', Helper.LsfgStatusLabel.Caption) > 0);
+      AssertFalse('lsfg-vk status label does not contain (found)', Pos('(found)', Helper.LsfgStatusLabel.Caption) > 0);
+    end;
+  finally
+    if FileExists(DummyDll) then
+      DeleteFile(DummyDll);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudPresetsToggleSynchronization;

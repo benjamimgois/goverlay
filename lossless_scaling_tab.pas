@@ -39,6 +39,9 @@ procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultipli
   out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string);
 
 type
+  TInterpolationMethod = (imNone, imLsfg, imMako);
+
+type
   { TLosslessScalingTabHelper }
 
   TLosslessScalingTabHelper = class
@@ -48,25 +51,54 @@ type
     FLsBgPanel: TPanel;
     
     // Cards
-    FLsGeneralCard: TPanel;
+    FLsMethodCard: TPanel;
+    FLsGpuCard: TPanel;
     FLsFrameGenCard: TPanel;
     FLsSpatialCard: TPanel;
+    FLsStatusCard: TPanel;
+    FLsGeneralCard: TPanel;
     
-    // Card 0: MAKO Engine & LossLess Scaling
+    // Card 0a: Method
+    FLsMethodTitleLbl: TLabel;
+    FLsNoneRadio: TRadioButton;
+    FLsLsfgRadio: TRadioButton;
+    FLsMakoRadio: TRadioButton;
+    FLsNoneImage: TImage;
+    FLsLsfgImage: TImage;
+    FLsMakoImage: TImage;
+    FLsNoneLbl: TLabel;
+    FLsLsfgLbl: TLabel;
+    FLsMakoLbl: TLabel;
+    FNonePngLogo: TPortableNetworkGraphic;
+    FLsfgPngLogo: TPortableNetworkGraphic;
+    FMakoPngLogo: TPortableNetworkGraphic;
+    FInterpolationMethod: TInterpolationMethod;
+
+    // Card 0b: Target GPU Device
+    FLsGpuTitleLbl: TLabel;
+    FLsGpuComboBox: TComboBox;
+
+    // Card 3: Software Status (Anchored to Bottom)
+    FLsStatusTitleLbl: TLabel;
     FLsDllTitleLbl: TLabel;
     FLsLogoImage: TImage;
     FLsDllPathEdit: TEdit;
     FLsBrowseDllBtn: TBitBtn;
-    FLsInspectDllBtn: TBitBtn;
     FLsDllStatusLabel: TLabel;
     
+    FLsMakoLogoImage: TImage;
+    FLsMakoPathEdit: TEdit;
     FLsEngineStatusLabel: TLabel;
     FLsCheckUpdatesBtn: TBitBtn;
     FLsInstallBtn: TBitBtn;
     FLsProgressBar: TProgressBar;
     FLsProgressLabel: TLabel;
+    FLsLsfgStatusLabel: TLabel;
+    FLsStatDots: array[0..2] of TShape;
+    FLsStatNameLbls: array[0..2] of TLabel;
     
     // Card 1: Frame Generation
+    FLsDisabledNoticeLbl: TLabel;
     FLsFgTitleLbl: TLabel;
     FLsFgModeTitleLbl: TLabel;
     FLsFgModeComboBox: TComboBox;
@@ -114,8 +146,6 @@ type
     
     FLsPacingTitleLbl: TLabel;
     FLsPacingComboBox: TComboBox;
-    FLsGpuTitleLbl: TLabel;
-    FLsGpuComboBox: TComboBox;
     
     // Card 2: Spatial Scaling
     FLsSpatialTitleLbl: TLabel;
@@ -133,9 +163,15 @@ type
     FLsScalingSupersamplingToggle: TToggleSwitch;
     FCheckingUpdate: Boolean;
     
+    procedure MethodNoneClick(Sender: TObject);
+    procedure MethodLsfgClick(Sender: TObject);
+    procedure MethodMakoClick(Sender: TObject);
+    procedure UpdateMethodImageOpacity;
+    function CheckLsfgVkLayerInstalled(out APath: string): Boolean;
+    procedure UpdateStatusCard;
+    
     procedure DllPathChange(Sender: TObject);
     procedure BrowseDllClick(Sender: TObject);
-    procedure InspectDllClick(Sender: TObject);
     procedure CheckUpdatesClick(Sender: TObject);
     procedure InstallMakoClick(Sender: TObject);
     procedure FgModeChange(Sender: TObject);
@@ -163,16 +199,33 @@ type
     procedure UpdateControlsEnabled;
     procedure LoadLosslessConfig;
     procedure SaveLosslessConfig;
+    procedure SetInterpolationMethod(AMethod: TInterpolationMethod);
+    function GetInterpolationMethod: TInterpolationMethod;
     function GetActiveEnvVars: string;
     function BuildEnvLine: string;
     function WriteMakoTomlConfig(const ATargetDir: string = ''): string;
     function WriteLsfgTomlConfig(const ATargetDir: string = ''): string;
     function WriteDefaultLsfgToml(const ATargetDir: string = ''): string;
     function DetectSteamLosslessDll: string;
+    function GetLsfgVkInstalledVersion(const ALayerJsonPath: string): string;
+    function GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
     
+    property InterpolationMethod: TInterpolationMethod read GetInterpolationMethod write SetInterpolationMethod;
+    property MethodCard: TPanel read FLsMethodCard;
+    property GpuCard: TPanel read FLsGpuCard;
+    property FrameGenCard: TPanel read FLsFrameGenCard;
+    property StatusCard: TPanel read FLsStatusCard;
+    property NoneRadio: TRadioButton read FLsNoneRadio;
+    property LsfgRadio: TRadioButton read FLsLsfgRadio;
+    property MakoRadio: TRadioButton read FLsMakoRadio;
+    property DisabledNoticeLbl: TLabel read FLsDisabledNoticeLbl;
+
     property LogoImage: TImage read FLsLogoImage;
     property DllPathEdit: TEdit read FLsDllPathEdit;
     property DllStatusLabel: TLabel read FLsDllStatusLabel;
+    property MakoLogoImage: TImage read FLsMakoLogoImage;
+    property MakoPathEdit: TEdit read FLsMakoPathEdit;
+    property MakoStatusLabel: TLabel read FLsEngineStatusLabel;
     property MultiplierTrackBar: TTrackBar read FLsMultiplierTrackBar;
     property MultiplierValueLabel: TLabel read FLsMultiplierValueLabel;
     property FlowScaleTrackBar: TTrackBar read FLsFlowScaleTrackBar;
@@ -219,7 +272,17 @@ type
     property EngineStatusLabel: TLabel read FLsEngineStatusLabel;
     property CheckUpdatesBtn: TBitBtn read FLsCheckUpdatesBtn;
     property InstallBtn: TBitBtn read FLsInstallBtn;
-    property InspectDllBtn: TBitBtn read FLsInspectDllBtn;
+    
+    property MethodNoneRadio: TRadioButton read FLsNoneRadio;
+    property MethodLsfgRadio: TRadioButton read FLsLsfgRadio;
+    property MethodMakoRadio: TRadioButton read FLsMakoRadio;
+    property MethodNoneImage: TImage read FLsNoneImage;
+    property MethodLsfgImage: TImage read FLsLsfgImage;
+    property MethodMakoImage: TImage read FLsMakoImage;
+    property MethodNoneLabel: TLabel read FLsNoneLbl;
+    property MethodLsfgLabel: TLabel read FLsLsfgLbl;
+    property MethodMakoLabel: TLabel read FLsMakoLbl;
+    property LsfgStatusLabel: TLabel read FLsLsfgStatusLabel;
   end;
 
 implementation
@@ -233,7 +296,8 @@ uses
   qtwidgets,
   overlayunit,
   overlay_config,
-  optiscaler_update;
+  optiscaler_update,
+  Process;
 
 const
   MARGIN   = 4;   // outer margin inside scroll box (standard across all tabs)
@@ -459,8 +523,8 @@ begin
   begin
     if Assigned(FHelper.FLsEngineStatusLabel) then
     begin
-      FHelper.FLsEngineStatusLabel.Caption := '▲ Update available: ' + FRemoteVer + ' (Current: ' + FLocalVer + ')';
-      FHelper.FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+      FHelper.FLsEngineStatusLabel.Caption := FLocalVer + ' → ' + FRemoteVer;
+      FHelper.FLsEngineStatusLabel.Font.Color := $0044AAFF;
     end;
     if Assigned(FHelper.FLsInstallBtn) then
     begin
@@ -480,7 +544,299 @@ end;
 
 destructor TLosslessScalingTabHelper.Destroy;
 begin
+  if Assigned(FNonePngLogo) then FNonePngLogo.Free;
+  if Assigned(FLsfgPngLogo) then FLsfgPngLogo.Free;
+  if Assigned(FMakoPngLogo) then FMakoPngLogo.Free;
   inherited Destroy;
+end;
+
+procedure TLosslessScalingTabHelper.MethodNoneClick(Sender: TObject);
+begin
+  SetInterpolationMethod(imNone);
+  ControlStateChange(Sender);
+end;
+
+procedure TLosslessScalingTabHelper.MethodLsfgClick(Sender: TObject);
+begin
+  SetInterpolationMethod(imLsfg);
+  ControlStateChange(Sender);
+end;
+
+procedure TLosslessScalingTabHelper.MethodMakoClick(Sender: TObject);
+begin
+  SetInterpolationMethod(imMako);
+  ControlStateChange(Sender);
+end;
+
+procedure TLosslessScalingTabHelper.SetInterpolationMethod(AMethod: TInterpolationMethod);
+begin
+  FInterpolationMethod := AMethod;
+  if Assigned(FLsNoneRadio) then FLsNoneRadio.Checked := (AMethod = imNone);
+  if Assigned(FLsLsfgRadio) then FLsLsfgRadio.Checked := (AMethod = imLsfg);
+  if Assigned(FLsMakoRadio) then FLsMakoRadio.Checked := (AMethod = imMako);
+
+  if (AMethod in [imLsfg, imMako]) and Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position <= 1) then
+  begin
+    FLsMultiplierTrackBar.Position := 2;
+    if Assigned(FLsMultiplierValueLabel) then
+      FLsMultiplierValueLabel.Caption := '2x';
+  end
+  else if (AMethod = imNone) and Assigned(FLsMultiplierTrackBar) then
+  begin
+    FLsMultiplierTrackBar.Position := 1;
+    if Assigned(FLsMultiplierValueLabel) then
+      FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+  end;
+
+  UpdateMethodImageOpacity;
+  UpdateControlsEnabled;
+  if Assigned(FLsScrollBox) then
+    ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
+end;
+
+function TLosslessScalingTabHelper.GetInterpolationMethod: TInterpolationMethod;
+begin
+  Result := FInterpolationMethod;
+end;
+
+procedure TLosslessScalingTabHelper.UpdateMethodImageOpacity;
+begin
+  if Assigned(FLsNoneImage) and Assigned(FLsNoneRadio) then
+    FLsNoneImage.Enabled := FLsNoneRadio.Checked;
+  if Assigned(FLsLsfgImage) and Assigned(FLsLsfgRadio) then
+    FLsLsfgImage.Enabled := FLsLsfgRadio.Checked;
+  if Assigned(FLsMakoImage) and Assigned(FLsMakoRadio) then
+    FLsMakoImage.Enabled := FLsMakoRadio.Checked;
+
+  if Assigned(FLsNoneLbl) then
+  begin
+    if Assigned(FLsNoneRadio) and FLsNoneRadio.Checked then
+      FLsNoneLbl.Font.Color := clWhite
+    else
+      FLsNoneLbl.Font.Color := $00888888;
+  end;
+  if Assigned(FLsLsfgLbl) then
+  begin
+    if Assigned(FLsLsfgRadio) and FLsLsfgRadio.Checked then
+      FLsLsfgLbl.Font.Color := clWhite
+    else
+      FLsLsfgLbl.Font.Color := $00888888;
+  end;
+  if Assigned(FLsMakoLbl) then
+  begin
+    if Assigned(FLsMakoRadio) and FLsMakoRadio.Checked then
+      FLsMakoLbl.Font.Color := clWhite
+    else
+      FLsMakoLbl.Font.Color := $00888888;
+  end;
+end;
+
+function TLosslessScalingTabHelper.CheckLsfgVkLayerInstalled(out APath: string): Boolean;
+var
+  HomeDir, UserLayerDir: string;
+begin
+  APath := '';
+  HomeDir := GetUserDir;
+  UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
+
+  if FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') then
+    APath := UserLayerDir + 'VkLayer_LS_frame_generation.json'
+  else if FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') then
+    APath := UserLayerDir + 'VkLayer_LSFGVK.json'
+  else if FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') then
+    APath := '/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json'
+  else if FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') then
+    APath := '/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json'
+  else if FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') then
+    APath := '/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json'
+  else if FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') then
+    APath := '/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json';
+
+  Result := APath <> '';
+end;
+
+function TLosslessScalingTabHelper.GetLsfgVkInstalledVersion(const ALayerJsonPath: string): string;
+var
+  P: TProcess;
+  S: TStringList;
+  RawVer, Line: string;
+  i, p1: Integer;
+begin
+  Result := '';
+  if not IsRunningInFlatpak then
+  begin
+    P := TProcess.Create(nil);
+    try
+      P.Executable := FindDefaultExecutablePath('sh');
+      P.Parameters.Add('-c');
+      P.Parameters.Add('pacman -Q lsfg-vk 2>/dev/null | awk ''{print $2}'' || ' +
+                       'pacman -Q lsfg-vk-git 2>/dev/null | awk ''{print $2}'' || ' +
+                       'dpkg-query -W -f=''${Version}'' lsfg-vk 2>/dev/null || ' +
+                       'rpm -q --qf ''%{VERSION}'' lsfg-vk 2>/dev/null || echo ""');
+      P.Options := [poUsePipes, poWaitOnExit];
+      try
+        P.Execute;
+        S := TStringList.Create;
+        try
+          S.LoadFromStream(P.Output);
+          if S.Count > 0 then RawVer := Trim(S[0]);
+        finally
+          S.Free;
+        end;
+      except
+      end;
+    finally
+      P.Free;
+    end;
+  end;
+
+  if RawVer <> '' then
+  begin
+    if Pos(':', RawVer) > 0 then
+      RawVer := Copy(RawVer, Pos(':', RawVer) + 1, Length(RawVer));
+    if (RawVer <> '') and (RawVer[1] in ['0'..'9']) then
+      RawVer := 'v' + RawVer;
+    Exit(RawVer);
+  end;
+
+  // Fallback: inspect layer JSON file
+  if (ALayerJsonPath <> '') and FileExists(ALayerJsonPath) then
+  begin
+    S := TStringList.Create;
+    try
+      S.LoadFromFile(ALayerJsonPath);
+      for i := 0 to S.Count - 1 do
+      begin
+        Line := Trim(S[i]);
+        if (Pos('"implementation_version"', Line) > 0) or (Pos('"file_format_version"', Line) > 0) then
+        begin
+          p1 := Pos(':', Line);
+          if p1 > 0 then
+          begin
+            RawVer := Trim(Copy(Line, p1 + 1, Length(Line)));
+            RawVer := StringReplace(RawVer, '"', '', [rfReplaceAll]);
+            RawVer := StringReplace(RawVer, ',', '', [rfReplaceAll]);
+            RawVer := Trim(RawVer);
+            if RawVer <> '' then
+            begin
+              if RawVer[1] in ['0'..'9'] then RawVer := 'v' + RawVer;
+              Exit(RawVer);
+            end;
+          end;
+        end;
+      end;
+    finally
+      S.Free;
+    end;
+  end;
+end;
+
+function TLosslessScalingTabHelper.GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
+var
+  HomeDir: string;
+begin
+  Result := '';
+  if FileExists('/usr/lib/liblsfg-vk.so') then Exit('/usr/lib/liblsfg-vk.so');
+  if FileExists('/usr/lib/x86_64-linux-gnu/liblsfg-vk.so') then Exit('/usr/lib/x86_64-linux-gnu/liblsfg-vk.so');
+  if FileExists('/usr/lib64/liblsfg-vk.so') then Exit('/usr/lib64/liblsfg-vk.so');
+  if FileExists('/usr/local/lib/liblsfg-vk.so') then Exit('/usr/local/lib/liblsfg-vk.so');
+  HomeDir := GetUserDir;
+  if FileExists(IncludeTrailingPathDelimiter(HomeDir) + '.local/lib/liblsfg-vk.so') then
+    Exit(IncludeTrailingPathDelimiter(HomeDir) + '.local/lib/liblsfg-vk.so');
+  Result := ALayerJsonPath;
+end;
+
+procedure TLosslessScalingTabHelper.UpdateStatusCard;
+var
+  DllP, MakoVer, MakoLib, LsfgPath, LsfgVer, LsfgLib: string;
+  HasLsfg: Boolean;
+const
+  CLR_OK   = $0044BB44;
+  CLR_NONE = $00666666;
+  PURPLE   = $BB99FF;
+begin
+  if not Assigned(FLsStatDots[0]) then Exit;
+
+  // 0: Lossless.dll
+  if Assigned(FLsDllPathEdit) then
+    DllP := Trim(FLsDllPathEdit.Text)
+  else
+    DllP := '';
+
+  if (DllP <> '') and FileExists(DllP) then
+    FLsStatDots[0].Brush.Color := CLR_OK
+  else
+    FLsStatDots[0].Brush.Color := CLR_NONE;
+
+  // 1: MAKO Renderer
+  MakoVer := GetMakoInstalledVersion;
+  MakoLib := GetMakoLibraryPath;
+  if (MakoVer <> '') and (MakoVer[1] in ['0'..'9']) then
+    MakoVer := 'v' + MakoVer;
+
+  if MakoVer <> '' then
+  begin
+    FLsStatDots[1].Brush.Color := CLR_OK;
+    if Assigned(FLsEngineStatusLabel) then
+    begin
+      FLsEngineStatusLabel.Caption := MakoVer;
+      FLsEngineStatusLabel.Font.Color := PURPLE;
+      FLsEngineStatusLabel.Hint := MakoLib;
+      FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
+    end;
+  end
+  else if IsMakoInstalled then
+  begin
+    FLsStatDots[1].Brush.Color := CLR_OK;
+    if Assigned(FLsEngineStatusLabel) then
+    begin
+      FLsEngineStatusLabel.Caption := 'Installed';
+      FLsEngineStatusLabel.Font.Color := PURPLE;
+      FLsEngineStatusLabel.Hint := MakoLib;
+      FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
+    end;
+  end
+  else
+  begin
+    FLsStatDots[1].Brush.Color := CLR_NONE;
+    if Assigned(FLsEngineStatusLabel) then
+    begin
+      FLsEngineStatusLabel.Caption := 'Not installed';
+      FLsEngineStatusLabel.Font.Color := RGBToColor(255, 90, 95);
+      FLsEngineStatusLabel.Hint := '';
+      FLsEngineStatusLabel.ShowHint := False;
+    end;
+  end;
+
+  // 2: lsfg-vk layer
+  HasLsfg := CheckLsfgVkLayerInstalled(LsfgPath);
+  if HasLsfg then
+  begin
+    LsfgVer := GetLsfgVkInstalledVersion(LsfgPath);
+    LsfgLib := GetLsfgVkLibraryPath(LsfgPath);
+    FLsStatDots[2].Brush.Color := CLR_OK;
+    if Assigned(FLsLsfgStatusLabel) then
+    begin
+      if LsfgVer <> '' then
+        FLsLsfgStatusLabel.Caption := LsfgVer
+      else
+        FLsLsfgStatusLabel.Caption := 'Installed';
+      FLsLsfgStatusLabel.Font.Color := PURPLE;
+      FLsLsfgStatusLabel.Hint := LsfgLib;
+      FLsLsfgStatusLabel.ShowHint := (LsfgLib <> '');
+    end;
+  end
+  else
+  begin
+    FLsStatDots[2].Brush.Color := CLR_NONE;
+    if Assigned(FLsLsfgStatusLabel) then
+    begin
+      FLsLsfgStatusLabel.Caption := 'Not installed';
+      FLsLsfgStatusLabel.Font.Color := RGBToColor(255, 90, 95);
+      FLsLsfgStatusLabel.Hint := '';
+      FLsLsfgStatusLabel.ShowHint := False;
+    end;
+  end;
 end;
 
 function TLosslessScalingTabHelper.GetConfigFile: string;
@@ -613,7 +969,7 @@ end;
 
 procedure TLosslessScalingTabHelper.ApplyThemeStyles;
 var
-  SS: WideString;
+  SS, GbSS: WideString;
   IsDark: Boolean;
   TextColor, HintColor, AccentColor: TColor;
 begin
@@ -650,12 +1006,27 @@ begin
   end;
 
   // Cards
-  if Assigned(FLsGeneralCard) then
+  if Assigned(FLsMethodCard) then
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsMethodCard);
+  if Assigned(FLsGpuCard) then
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsGpuCard);
+  if Assigned(FLsStatusCard) then
+    Tgoverlayform(FForm).UpdateGenericCardTheme(FLsStatusCard);
+  if Assigned(FLsGeneralCard) and (FLsGeneralCard <> FLsStatusCard) then
     Tgoverlayform(FForm).UpdateGenericCardTheme(FLsGeneralCard);
   if Assigned(FLsFrameGenCard) then
     Tgoverlayform(FForm).UpdateGenericCardTheme(FLsFrameGenCard);
   if Assigned(FLsSpatialCard) then
     Tgoverlayform(FForm).UpdateGenericCardTheme(FLsSpatialCard);
+
+  if Assigned(FLsMethodCard) and FLsMethodCard.HandleAllocated then
+  begin
+    GbSS := 'QRadioButton::indicator { width:14px; height:14px; background-color:rgb(26,30,46); border:1px solid rgb(130,140,170); border-radius:7px; } '
+          + 'QRadioButton::indicator:checked { background-color:rgb(48,190,240); border-color:rgb(48,190,240); }';
+    QWidget_setStyleSheet(TQtWidget(FLsMethodCard.Handle).Widget, @GbSS);
+  end;
+
+  UpdateMethodImageOpacity;
 
   // QLineEdit & DLL Status styling
   UpdateDllStatus;
@@ -733,8 +1104,6 @@ begin
 
   if Assigned(FLsBrowseDllBtn) and FLsBrowseDllBtn.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsBrowseDllBtn.Handle).Widget, @SS);
-  if Assigned(FLsInspectDllBtn) and FLsInspectDllBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsInspectDllBtn.Handle).Widget, @SS);
   if Assigned(FLsCheckUpdatesBtn) and FLsCheckUpdatesBtn.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsCheckUpdatesBtn.Handle).Widget, @SS);
   if Assigned(FLsInstallBtn) and FLsInstallBtn.HandleAllocated then
@@ -744,6 +1113,11 @@ end;
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;
 var
   Tab: TTabSheet;
+  IconPath: string;
+  GbSS: WideString;
+  i: Integer;
+  Dot: TShape;
+  NLbl: TLabel;
 begin
   Tab := Tgoverlayform(FForm).losslessScalingTabSheet;
   if not Assigned(Tab) then Exit;
@@ -773,98 +1147,152 @@ begin
   FLsBgPanel.Width := FLsScrollBox.ClientWidth;
   FLsBgPanel.Height := 620;
   
-  // ── Card 0: MAKO Engine & LossLess Scaling ────────────────────────────────
-  FLsGeneralCard := TPanel.Create(FForm);
-  FLsGeneralCard.Parent := FLsBgPanel;
-  FLsGeneralCard.Caption := '';
-  FLsGeneralCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
-  FLsDllTitleLbl := TLabel.Create(FLsGeneralCard);
-  FLsDllTitleLbl.Parent := FLsGeneralCard;
-  FLsDllTitleLbl.ShowAccelChar := False;
-  StyleMainCard(FLsGeneralCard, FLsDllTitleLbl, 'Lossless Scaling (MAKO)');
-  
-  FLsLogoImage := TImage.Create(FLsGeneralCard);
-  FLsLogoImage.Parent := FLsGeneralCard;
-  FLsLogoImage.AntialiasingMode := amOn;
-  FLsLogoImage.Transparent := True;
-  FLsLogoImage.Center := True;
-  FLsLogoImage.Proportional := True;
-  FLsLogoImage.Stretch := True;
-  if FileExists(Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png') then
-    FLsLogoImage.Picture.LoadFromFile(Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png');
-  
-  FLsDllPathEdit := TEdit.Create(FLsGeneralCard);
-  FLsDllPathEdit.Parent := FLsGeneralCard;
-  FLsDllPathEdit.Font.Name := 'DejaVu Sans Mono';
-  FLsDllPathEdit.Font.Height := -13;
-  FLsDllPathEdit.Font.Quality := fqAntialiased;
-  FLsDllPathEdit.ReadOnly := True;
-  FLsDllPathEdit.AutoSelect := False;
-  FLsDllPathEdit.TabStop := False;
-  FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
-  FLsDllPathEdit.OnChange := @DllPathChange;
-  StyleInputControl(FLsDllPathEdit);
-  
-  FLsBrowseDllBtn := TBitBtn.Create(FLsGeneralCard);
-  FLsBrowseDllBtn.Parent := FLsGeneralCard;
-  FLsBrowseDllBtn.Caption := '';
-  FLsBrowseDllBtn.Images := Tgoverlayform(FForm).iconsImageList;
-  FLsBrowseDllBtn.ImageIndex := 24;
-  FLsBrowseDllBtn.Cursor := crHandPoint;
-  FLsBrowseDllBtn.OnClick := @BrowseDllClick;
-  StyleActionButton(FLsBrowseDllBtn);
+  // ── Card 0a: Method (Top Left 50%) ────────────────────────────────────────
+  FLsMethodCard := TPanel.Create(FForm);
+  FLsMethodCard.Parent := FLsBgPanel;
+  FLsMethodCard.Caption := '';
+  FLsMethodCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
+  FLsMethodTitleLbl := TLabel.Create(FLsMethodCard);
+  FLsMethodTitleLbl.Parent := FLsMethodCard;
+  FLsMethodTitleLbl.ShowAccelChar := False;
+  StyleMainCard(FLsMethodCard, FLsMethodTitleLbl, 'Method');
 
-  FLsInspectDllBtn := TBitBtn.Create(FLsGeneralCard);
-  FLsInspectDllBtn.Parent := FLsGeneralCard;
-  FLsInspectDllBtn.Caption := 'Inspect';
-  FLsInspectDllBtn.Cursor := crHandPoint;
-  FLsInspectDllBtn.OnClick := @InspectDllClick;
-  StyleActionButton(FLsInspectDllBtn);
-  
-  FLsDllStatusLabel := TLabel.Create(FLsGeneralCard);
-  FLsDllStatusLabel.Parent := FLsGeneralCard;
-  FLsDllStatusLabel.Caption := '● DLL file located';
-  FLsDllStatusLabel.Font.Style := [fsBold];
-  FLsDllStatusLabel.Font.Size := 9;
-  FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+  GbSS := 'QRadioButton::indicator { width:14px; height:14px; background-color:rgb(26,30,46); border:1px solid rgb(130,140,170); border-radius:7px; } '
+        + 'QRadioButton::indicator:checked { background-color:rgb(48,190,240); border-color:rgb(48,190,240); }';
+  if FLsMethodCard.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FLsMethodCard.Handle).Widget, @GbSS);
 
-  FLsEngineStatusLabel := TLabel.Create(FLsGeneralCard);
-  FLsEngineStatusLabel.Parent := FLsGeneralCard;
-  FLsEngineStatusLabel.Caption := '● Checking MAKO Renderer...';
-  FLsEngineStatusLabel.Font.Style := [fsBold];
-  FLsEngineStatusLabel.Font.Size := 9;
-  FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+  // Method Option 1: None
+  FLsNoneRadio := TRadioButton.Create(FForm);
+  FLsNoneRadio.Parent := FLsMethodCard;
+  FLsNoneRadio.Caption := '';
+  FLsNoneRadio.Checked := False;
+  FLsNoneRadio.OnClick := @MethodNoneClick;
+  StyleToggleControl(FLsNoneRadio);
 
-  FLsCheckUpdatesBtn := TBitBtn.Create(FLsGeneralCard);
-  FLsCheckUpdatesBtn.Parent := FLsGeneralCard;
-  FLsCheckUpdatesBtn.Caption := 'Check Updates';
-  FLsCheckUpdatesBtn.Cursor := crHandPoint;
-  FLsCheckUpdatesBtn.OnClick := @CheckUpdatesClick;
-  FLsCheckUpdatesBtn.Visible := False;
-  StyleActionButton(FLsCheckUpdatesBtn);
+  FLsNoneImage := TImage.Create(FForm);
+  FLsNoneImage.Parent := FLsMethodCard;
+  FLsNoneImage.AntialiasingMode := amOn;
+  FLsNoneImage.StretchInEnabled := True;
+  FLsNoneImage.StretchOutEnabled := True;
+  FLsNoneImage.Transparent := True;
+  FLsNoneImage.Center := True;
+  FLsNoneImage.Proportional := True;
+  FLsNoneImage.Stretch := True;
+  FLsNoneImage.Cursor := crHandPoint;
+  FLsNoneImage.OnClick := @MethodNoneClick;
 
-  FLsInstallBtn := TBitBtn.Create(FLsGeneralCard);
-  FLsInstallBtn.Parent := FLsGeneralCard;
-  FLsInstallBtn.Caption := 'Install MAKO';
-  FLsInstallBtn.Cursor := crHandPoint;
-  FLsInstallBtn.OnClick := @InstallMakoClick;
-  FLsInstallBtn.Visible := False;
-  StyleActionButton(FLsInstallBtn);
+  FLsNoneLbl := TLabel.Create(FForm);
+  FLsNoneLbl.Parent := FLsMethodCard;
+  FLsNoneLbl.Caption := 'None';
+  FLsNoneLbl.Font.Style := [fsBold];
+  FLsNoneLbl.Font.Size := 9;
+  FLsNoneLbl.Cursor := crHandPoint;
+  FLsNoneLbl.OnClick := @MethodNoneClick;
+  FLsNoneLbl.Visible := False;
 
-  FLsProgressBar := TProgressBar.Create(FLsGeneralCard);
-  FLsProgressBar.Parent := FLsGeneralCard;
-  FLsProgressBar.Min := 0;
-  FLsProgressBar.Max := 100;
-  FLsProgressBar.Position := 0;
-  FLsProgressBar.Visible := False;
+  // Method Option 2: lsfg-vk
+  FLsLsfgRadio := TRadioButton.Create(FForm);
+  FLsLsfgRadio.Parent := FLsMethodCard;
+  FLsLsfgRadio.Caption := '';
+  FLsLsfgRadio.Checked := False;
+  FLsLsfgRadio.OnClick := @MethodLsfgClick;
+  StyleToggleControl(FLsLsfgRadio);
 
-  FLsProgressLabel := TLabel.Create(FLsGeneralCard);
-  FLsProgressLabel.Parent := FLsGeneralCard;
-  FLsProgressLabel.Caption := '';
-  FLsProgressLabel.Font.Size := 9;
-  FLsProgressLabel.Font.Color := CLR_TEXT_MUTED;
-  FLsProgressLabel.Visible := False;
-  
+  FLsLsfgImage := TImage.Create(FForm);
+  FLsLsfgImage.Parent := FLsMethodCard;
+  FLsLsfgImage.AntialiasingMode := amOn;
+  FLsLsfgImage.StretchInEnabled := True;
+  FLsLsfgImage.StretchOutEnabled := True;
+  FLsLsfgImage.Transparent := True;
+  FLsLsfgImage.Center := True;
+  FLsLsfgImage.Proportional := True;
+  FLsLsfgImage.Stretch := True;
+  FLsLsfgImage.Cursor := crHandPoint;
+  FLsLsfgImage.OnClick := @MethodLsfgClick;
+
+  FLsLsfgLbl := TLabel.Create(FForm);
+  FLsLsfgLbl.Parent := FLsMethodCard;
+  FLsLsfgLbl.Caption := 'lsfg-vk';
+  FLsLsfgLbl.Font.Style := [fsBold];
+  FLsLsfgLbl.Font.Size := 9;
+  FLsLsfgLbl.Alignment := taLeftJustify;
+  FLsLsfgLbl.AutoSize := True;
+  FLsLsfgLbl.Cursor := crHandPoint;
+  FLsLsfgLbl.OnClick := @MethodLsfgClick;
+
+  // Method Option 3: MAKO
+  FLsMakoRadio := TRadioButton.Create(FForm);
+  FLsMakoRadio.Parent := FLsMethodCard;
+  FLsMakoRadio.Caption := '';
+  FLsMakoRadio.Checked := False;
+  FLsMakoRadio.OnClick := @MethodMakoClick;
+  StyleToggleControl(FLsMakoRadio);
+
+  FLsMakoImage := TImage.Create(FForm);
+  FLsMakoImage.Parent := FLsMethodCard;
+  FLsMakoImage.AntialiasingMode := amOn;
+  FLsMakoImage.StretchInEnabled := True;
+  FLsMakoImage.StretchOutEnabled := True;
+  FLsMakoImage.Transparent := True;
+  FLsMakoImage.Center := True;
+  FLsMakoImage.Proportional := True;
+  FLsMakoImage.Stretch := True;
+  FLsMakoImage.Cursor := crHandPoint;
+  FLsMakoImage.OnClick := @MethodMakoClick;
+
+  FLsMakoLbl := TLabel.Create(FForm);
+  FLsMakoLbl.Parent := FLsMethodCard;
+  FLsMakoLbl.Caption := 'MAKO';
+  FLsMakoLbl.Font.Style := [fsBold];
+  FLsMakoLbl.Font.Size := 9;
+  FLsMakoLbl.Alignment := taLeftJustify;
+  FLsMakoLbl.AutoSize := True;
+  FLsMakoLbl.Cursor := crHandPoint;
+  FLsMakoLbl.OnClick := @MethodMakoClick;
+
+  FNonePngLogo := TPortableNetworkGraphic.Create;
+  FLsfgPngLogo := TPortableNetworkGraphic.Create;
+  FMakoPngLogo := TPortableNetworkGraphic.Create;
+
+  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/upscaler_none.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/upscaler_none.png';
+  if FileExists(IconPath) then FNonePngLogo.LoadFromFile(IconPath);
+
+  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/lossless_scaling.png';
+  if FileExists(IconPath) then FLsfgPngLogo.LoadFromFile(IconPath);
+
+  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/mako_renderer.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/mako_renderer.png';
+  if FileExists(IconPath) then FMakoPngLogo.LoadFromFile(IconPath);
+
+  FLsNoneImage.Picture.Assign(FNonePngLogo);
+  FLsLsfgImage.Picture.Assign(FLsfgPngLogo);
+  FLsMakoImage.Picture.Assign(FMakoPngLogo);
+
+  FLsLogoImage := FLsLsfgImage;
+  FLsMakoLogoImage := FLsMakoImage;
+
+  // ── Card 0b: Target GPU Device (Top Right 50%) ────────────────────────────
+  FLsGpuCard := TPanel.Create(FForm);
+  FLsGpuCard.Parent := FLsBgPanel;
+  FLsGpuCard.Caption := '';
+  FLsGpuCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
+  FLsGpuTitleLbl := TLabel.Create(FLsGpuCard);
+  FLsGpuTitleLbl.Parent := FLsGpuCard;
+  FLsGpuTitleLbl.ShowAccelChar := False;
+  StyleMainCard(FLsGpuCard, FLsGpuTitleLbl, 'Target GPU Device');
+
+  FLsGpuComboBox := TComboBox.Create(FLsGpuCard);
+  FLsGpuComboBox.Parent := FLsGpuCard;
+  FLsGpuComboBox.Style := csDropDownList;
+  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation and upscaling';
+  FLsGpuComboBox.ShowHint := True;
+  FLsGpuComboBox.OnChange := @ControlStateChange;
+  StyleInputControl(FLsGpuComboBox);
+  PopulateGpuList;
+
   // ── Card 1: Frame Generation ──────────────────────────────────────────────
   FLsFrameGenCard := TPanel.Create(FForm);
   FLsFrameGenCard.Parent := FLsBgPanel;
@@ -874,6 +1302,13 @@ begin
   FLsFgTitleLbl.Parent := FLsFrameGenCard;
   FLsFgTitleLbl.ShowAccelChar := False;
   StyleMainCard(FLsFrameGenCard, FLsFgTitleLbl, 'Frame Generation');
+
+  FLsDisabledNoticeLbl := TLabel.Create(FLsFrameGenCard);
+  FLsDisabledNoticeLbl.Parent := FLsFrameGenCard;
+  FLsDisabledNoticeLbl.Caption := 'Frame generation is disabled. Select an interpolation engine above (lsfg-vk or MAKO) to enable and configure settings.';
+  FLsDisabledNoticeLbl.Font.Color := CLR_TEXT_MUTED;
+  FLsDisabledNoticeLbl.Font.Size := 9;
+  FLsDisabledNoticeLbl.Visible := False;
 
   // Mode Selection
   FLsFgModeTitleLbl := TLabel.Create(FLsFrameGenCard);
@@ -1149,7 +1584,7 @@ begin
   FLsNoFp16Toggle.LinkToCheckBox(FLsNoFp16CheckBox);
   FLsNoFp16Toggle.Visible := False;
 
-  // Dropdowns (Pacing & GPU)
+  // Dropdowns (Pacing)
   FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsPacingTitleLbl.Parent := FLsFrameGenCard;
   FLsPacingTitleLbl.Caption := 'Pacing Mode';
@@ -1167,22 +1602,6 @@ begin
   FLsPacingComboBox.ItemIndex := 0;
   FLsPacingComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsPacingComboBox);
-  
-  FLsGpuTitleLbl := TLabel.Create(FLsGeneralCard);
-  FLsGpuTitleLbl.Parent := FLsGeneralCard;
-  FLsGpuTitleLbl.Caption := 'Target GPU Device';
-  FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation and upscaling';
-  FLsGpuTitleLbl.ShowHint := True;
-  StyleLabel(FLsGpuTitleLbl, lrControlLabel);
-  
-  FLsGpuComboBox := TComboBox.Create(FLsGeneralCard);
-  FLsGpuComboBox.Parent := FLsGeneralCard;
-  FLsGpuComboBox.Style := csDropDownList;
-  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation and upscaling';
-  FLsGpuComboBox.ShowHint := True;
-  FLsGpuComboBox.OnChange := @ControlStateChange;
-  StyleInputControl(FLsGpuComboBox);
-  PopulateGpuList;
 
   // ── Card 2: Spatial Scaling ───────────────────────────────────────────────
   FLsSpatialCard := TPanel.Create(FForm);
@@ -1289,6 +1708,128 @@ begin
   FLsScalingSupersamplingToggle.LinkToCheckBox(FLsScalingSupersamplingCheckBox);
   FLsScalingSupersamplingToggle.Height := 20;
   FLsScalingSupersamplingToggle.Width := FLsScalingSupersamplingToggle.GetOptimalWidth;
+
+  // ── Card 3: Software Status (Anchored to Bottom) ─────────────────────────
+  FLsStatusCard := TPanel.Create(FForm);
+  FLsStatusCard.Parent := FLsBgPanel;
+  FLsStatusCard.Caption := '';
+  FLsStatusCard.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
+  FLsStatusTitleLbl := TLabel.Create(FLsStatusCard);
+  FLsStatusTitleLbl.Parent := FLsStatusCard;
+  FLsStatusTitleLbl.ShowAccelChar := False;
+  StyleMainCard(FLsStatusCard, FLsStatusTitleLbl, 'Software Status');
+  FLsGeneralCard := FLsStatusCard;
+  FLsDllTitleLbl := FLsStatusTitleLbl;
+
+  for i := 0 to 2 do
+  begin
+    Dot := TShape.Create(FForm);
+    Dot.Parent := FLsStatusCard;
+    Dot.Shape := stEllipse;
+    Dot.Brush.Color := $00888888;
+    Dot.Pen.Style := psClear;
+    FLsStatDots[i] := Dot;
+
+    NLbl := TLabel.Create(FForm);
+    NLbl.Parent := FLsStatusCard;
+    case i of
+      0: NLbl.Caption := 'Lossless Scaling (DLL)';
+      1: NLbl.Caption := 'MAKO Renderer';
+      2: NLbl.Caption := 'lsfg-vk Vulkan Layer';
+    end;
+    NLbl.Font.Color := clWhite;
+    NLbl.Font.Style := [fsBold];
+    NLbl.Font.Size := 9;
+    NLbl.AutoSize := True;
+    FLsStatNameLbls[i] := NLbl;
+  end;
+
+  // Row 0: Lossless.dll
+  FLsDllPathEdit := TEdit.Create(FLsStatusCard);
+  FLsDllPathEdit.Parent := FLsStatusCard;
+  FLsDllPathEdit.Font.Name := 'DejaVu Sans Mono';
+  FLsDllPathEdit.Font.Height := -13;
+  FLsDllPathEdit.Font.Quality := fqAntialiased;
+  FLsDllPathEdit.ReadOnly := True;
+  FLsDllPathEdit.AutoSelect := False;
+  FLsDllPathEdit.TabStop := False;
+  FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
+  FLsDllPathEdit.OnChange := @DllPathChange;
+  StyleInputControl(FLsDllPathEdit);
+
+  FLsBrowseDllBtn := TBitBtn.Create(FLsStatusCard);
+  FLsBrowseDllBtn.Parent := FLsStatusCard;
+  FLsBrowseDllBtn.Caption := '';
+  FLsBrowseDllBtn.Images := Tgoverlayform(FForm).iconsImageList;
+  FLsBrowseDllBtn.ImageIndex := 24;
+  FLsBrowseDllBtn.Cursor := crHandPoint;
+  FLsBrowseDllBtn.OnClick := @BrowseDllClick;
+  StyleActionButton(FLsBrowseDllBtn);
+
+  FLsDllStatusLabel := TLabel.Create(FLsStatusCard);
+  FLsDllStatusLabel.Parent := FLsStatusCard;
+  FLsDllStatusLabel.Caption := '● DLL file located';
+  FLsDllStatusLabel.Font.Style := [fsBold];
+  FLsDllStatusLabel.Font.Size := 9;
+  FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+  FLsDllStatusLabel.Visible := False;
+
+  // Row 1: MAKO
+  FLsMakoPathEdit := TEdit.Create(FLsStatusCard);
+  FLsMakoPathEdit.Parent := FLsStatusCard;
+  FLsMakoPathEdit.Font.Name := 'DejaVu Sans Mono';
+  FLsMakoPathEdit.Font.Height := -13;
+  FLsMakoPathEdit.Font.Quality := fqAntialiased;
+  FLsMakoPathEdit.ReadOnly := True;
+  FLsMakoPathEdit.AutoSelect := False;
+  FLsMakoPathEdit.TabStop := False;
+  FLsMakoPathEdit.Visible := False;
+
+  FLsEngineStatusLabel := TLabel.Create(FLsStatusCard);
+  FLsEngineStatusLabel.Parent := FLsStatusCard;
+  FLsEngineStatusLabel.Caption := '● Checking MAKO Renderer...';
+  FLsEngineStatusLabel.Font.Style := [fsBold];
+  FLsEngineStatusLabel.Font.Size := 9;
+  FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+
+  FLsCheckUpdatesBtn := TBitBtn.Create(FLsStatusCard);
+  FLsCheckUpdatesBtn.Parent := FLsStatusCard;
+  FLsCheckUpdatesBtn.Caption := 'Check Updates';
+  FLsCheckUpdatesBtn.Cursor := crHandPoint;
+  FLsCheckUpdatesBtn.OnClick := @CheckUpdatesClick;
+  FLsCheckUpdatesBtn.Visible := False;
+  StyleActionButton(FLsCheckUpdatesBtn);
+
+  FLsInstallBtn := TBitBtn.Create(FLsStatusCard);
+  FLsInstallBtn.Parent := FLsStatusCard;
+  FLsInstallBtn.Caption := 'Install MAKO';
+  FLsInstallBtn.Cursor := crHandPoint;
+  FLsInstallBtn.OnClick := @InstallMakoClick;
+  FLsInstallBtn.Visible := False;
+  StyleActionButton(FLsInstallBtn);
+
+  // Row 2: lsfg-vk
+  FLsLsfgStatusLabel := TLabel.Create(FLsStatusCard);
+  FLsLsfgStatusLabel.Parent := FLsStatusCard;
+  FLsLsfgStatusLabel.Caption := '● Checking lsfg-vk layer...';
+  FLsLsfgStatusLabel.Font.Style := [fsBold];
+  FLsLsfgStatusLabel.Font.Size := 9;
+  FLsLsfgStatusLabel.Font.Color := CLR_TEXT_ACCENT;
+
+  // Progress Bar for installation
+  FLsProgressBar := TProgressBar.Create(FLsStatusCard);
+  FLsProgressBar.Parent := FLsStatusCard;
+  FLsProgressBar.Min := 0;
+  FLsProgressBar.Max := 100;
+  FLsProgressBar.Position := 0;
+  FLsProgressBar.Visible := False;
+
+  FLsProgressLabel := TLabel.Create(FLsStatusCard);
+  FLsProgressLabel.Parent := FLsStatusCard;
+  FLsProgressLabel.Caption := '';
+  FLsProgressLabel.Font.Size := 9;
+  FLsProgressLabel.Font.Color := CLR_TEXT_MUTED;
+  FLsProgressLabel.Visible := False;
   
   // Load configuration
   LoadLosslessConfig;
@@ -1313,10 +1854,16 @@ end;
 
 procedure TLosslessScalingTabHelper.ReflowLosslessScalingTab(AContentW: Integer);
 var
-  W, CW, CurY, Col2W, RightColX, Col3W, Col4W, EditLeft, EditW, Card0H: Integer;
+  W, CW, CurY, Col2W, RightColX, Col3W, Col4W: Integer;
+  CardW, InnerW, HDR, GPU_H, GPU_GH: Integer;
+  LogoW_None, IconSize, TextW_Lsfg, TextW_Mako: Integer;
+  GroupW_None, GroupW_Lsfg, GroupW_Mako, TotalGroupW, GapBetween: Integer;
+  X1, X2, X3: Integer;
+  EditLeft, EditW, BrowseW: Integer;
+  Y0, Y1, Y2, Y3, StatusCardH: Integer;
   IsAdaptive: Boolean;
 begin
-  if not Assigned(FLsScrollBox) or not Assigned(FLsGeneralCard) then Exit;
+  if not Assigned(FLsScrollBox) or not Assigned(FLsMethodCard) then Exit;
   
   W := FLsScrollBox.ClientWidth;
   if AContentW > 100 then
@@ -1329,164 +1876,365 @@ begin
   
   Col2W := (CW - (PAD * 2) - 20) div 2;
   RightColX := PAD + Col2W + 20;
+  Col3W := (CW - (PAD * 2) - 24) div 3;
+  Col4W := (CW - (PAD * 2) - 36) div 4;
 
-  // ── Card 0 Layout: MAKO Engine & LossLess Scaling ──────────────────────────
-  if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
-    Card0H := 216
+  GPU_H := 102;
+  HDR := 28;
+  GPU_GH := GPU_H - HDR;
+
+  CardW := (CW - GAP) div 2;
+
+  // ── Card 0a: Method (Left 50%) ──────────────────────────────────────────
+  FLsMethodCard.SetBounds(MARGIN, CurY, CardW, GPU_H);
+  InnerW := CardW - 2 * PAD;
+
+  LogoW_None := 48;
+  IconSize   := 34;
+  TextW_Lsfg := 54;
+  TextW_Mako := 48;
+
+  GroupW_None := 22 + LogoW_None;
+  GroupW_Lsfg := 22 + IconSize + 8 + TextW_Lsfg;
+  GroupW_Mako := 22 + IconSize + 8 + TextW_Mako;
+  TotalGroupW := GroupW_None + GroupW_Lsfg + GroupW_Mako;
+
+  if InnerW > TotalGroupW then
+    GapBetween := (InnerW - TotalGroupW) div 2
   else
-    Card0H := 184;
+    GapBetween := 4;
 
-  FLsGeneralCard.SetBounds(MARGIN, CurY, CW, Card0H);
-  if Assigned(FLsLogoImage) then
-    FLsLogoImage.SetBounds(PAD, 36, 52, 52);
-    
-  EditLeft := PAD + 52 + 14;
-  EditW := CW - EditLeft - PAD - 38 - 85;
-  if EditW < 120 then EditW := 120;
-  FLsDllPathEdit.SetBounds(EditLeft, 36, EditW, ROW_H);
-  FLsBrowseDllBtn.SetBounds(EditLeft + EditW + 6, 36, 32, ROW_H);
-  FLsInspectDllBtn.SetBounds(EditLeft + EditW + 44, 36, 75, ROW_H);
-  
-  if Assigned(FLsDllStatusLabel) then
-    FLsDllStatusLabel.SetBounds(EditLeft + 2, 68, CW - EditLeft - PAD, 20);
+  X1 := PAD;
+  X2 := X1 + GroupW_None + GapBetween;
+  X3 := CardW - PAD - GroupW_Mako;
+  if X3 < X2 + GroupW_Lsfg + 4 then
+    X3 := X2 + GroupW_Lsfg + 4;
 
-  if Assigned(FLsCheckUpdatesBtn) then
-    FLsCheckUpdatesBtn.Visible := False;
+  // Column 0: None (leftmost)
+  if Assigned(FLsNoneRadio) then
+    FLsNoneRadio.SetBounds(X1, HDR + (GPU_GH - 20) div 2, 20, 20);
+  if Assigned(FLsNoneImage) then
+    FLsNoneImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
+
+  // Column 1: lsfg-vk (middle)
+  if Assigned(FLsLsfgRadio) then
+    FLsLsfgRadio.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
+  if Assigned(FLsLsfgImage) then
+    FLsLsfgImage.SetBounds(X2 + 22, HDR + (GPU_GH - IconSize) div 2, IconSize, IconSize);
+  if Assigned(FLsLsfgLbl) then
+    FLsLsfgLbl.SetBounds(X2 + 22 + IconSize + 8, HDR + (GPU_GH - 18) div 2, TextW_Lsfg, 18);
+
+  // Column 2: MAKO (rightmost)
+  if Assigned(FLsMakoRadio) then
+    FLsMakoRadio.SetBounds(X3, HDR + (GPU_GH - 20) div 2, 20, 20);
+  if Assigned(FLsMakoImage) then
+    FLsMakoImage.SetBounds(X3 + 22, HDR + (GPU_GH - IconSize) div 2, IconSize, IconSize);
+  if Assigned(FLsMakoLbl) then
+    FLsMakoLbl.SetBounds(X3 + 22 + IconSize + 8, HDR + (GPU_GH - 18) div 2, TextW_Mako, 18);
+
+  // ── Card 0b: Target GPU Device (Right 50%) ──────────────────────────────
+  FLsGpuCard.SetBounds(MARGIN + CardW + GAP, CurY, CW - CardW - GAP, GPU_H);
+  if Assigned(FLsGpuComboBox) then
+    FLsGpuComboBox.SetBounds(PAD, HDR + (GPU_GH - ROW_H) div 2, (CW - CardW - GAP) - 2 * PAD, ROW_H);
+
+  CurY := CurY + GPU_H + GAP;
+
+  // ── Middle Area: Dynamic Configuration Cards ─────────────────────────────
+  if FInterpolationMethod = imNone then
+  begin
+    FLsFrameGenCard.Visible := True;
+    FLsSpatialCard.Visible := False;
+
+    // Hide other Frame Gen controls
+    FLsFgModeTitleLbl.Visible := False;
+    FLsFgModeComboBox.Visible := False;
+    FLsMultiplierTitleLbl.Visible := False;
+    FLsMultiplierTrackBar.Visible := False;
+    FLsMultiplierValueLabel.Visible := False;
+    FLsTargetFpsTitleLbl.Visible := False;
+    FLsTargetFpsTrackBar.Visible := False;
+    FLsTargetFpsValueLabel.Visible := False;
+    FLsAdaptiveMaxMultTitleLbl.Visible := False;
+    FLsAdaptiveMaxMultComboBox.Visible := False;
+    FLsSteady2xCapToggle.Visible := False;
+    FLsSmoothCadenceToggle.Visible := False;
+    FLsFlowScaleTitleLbl.Visible := False;
+    FLsFlowScaleTrackBar.Visible := False;
+    FLsFlowScaleValueLabel.Visible := False;
+    FLsBaseFpsCapTitleLbl.Visible := False;
+    FLsBaseFpsCapTrackBar.Visible := False;
+    FLsBaseFpsCapValueLabel.Visible := False;
+    FLsRefreshThresholdTitleLbl.Visible := False;
+    FLsRefreshThresholdTrackBar.Visible := False;
+    FLsRefreshThresholdValueLabel.Visible := False;
+    FLsFgLiveToggle.Visible := False;
+    FLsAllowFp16Toggle.Visible := False;
+    FLsPerfModeToggle.Visible := False;
+    FLsUltraPerfToggle.Visible := False;
+    FLsHdrModeToggle.Visible := False;
+    FLsNoFp16Toggle.Visible := False;
+    FLsPacingTitleLbl.Visible := False;
+    FLsPacingComboBox.Visible := False;
+
+    if Assigned(FLsPerfModeToggle) then FLsPerfModeToggle.SetBounds(PAD, 106, Col3W, 24);
+    if Assigned(FLsHdrModeToggle) then FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
+    if Assigned(FLsNoFp16Toggle) then FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
+
+    FLsDisabledNoticeLbl.Visible := True;
+    FLsDisabledNoticeLbl.SetBounds(PAD, HDR + 14, CW - 2 * PAD, 20);
+
+    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 84);
+    CurY := CurY + 84 + GAP;
+  end
+  else if FInterpolationMethod = imLsfg then
+  begin
+    FLsDisabledNoticeLbl.Visible := False;
+    FLsSpatialCard.Visible := False;
+    FLsFrameGenCard.Visible := True;
+
+    // Hide MAKO-only controls
+    FLsFgModeTitleLbl.Visible := False;
+    FLsFgModeComboBox.Visible := False;
+    FLsTargetFpsTitleLbl.Visible := False;
+    FLsTargetFpsTrackBar.Visible := False;
+    FLsTargetFpsValueLabel.Visible := False;
+    FLsAdaptiveMaxMultTitleLbl.Visible := False;
+    FLsAdaptiveMaxMultComboBox.Visible := False;
+    FLsSteady2xCapToggle.Visible := False;
+    FLsSmoothCadenceToggle.Visible := False;
+    FLsBaseFpsCapTitleLbl.Visible := False;
+    FLsBaseFpsCapTrackBar.Visible := False;
+    FLsBaseFpsCapValueLabel.Visible := False;
+    FLsRefreshThresholdTitleLbl.Visible := False;
+    FLsRefreshThresholdTrackBar.Visible := False;
+    FLsRefreshThresholdValueLabel.Visible := False;
+    FLsFgLiveToggle.Visible := False;
+    FLsAllowFp16Toggle.Visible := False;
+    FLsUltraPerfToggle.Visible := False;
+
+    // Row 1: Sliders
+    FLsMultiplierTitleLbl.Visible := True;
+    FLsMultiplierTitleLbl.SetBounds(PAD, 38, Col2W, 18);
+    FLsMultiplierTrackBar.Visible := True;
+    FLsMultiplierTrackBar.SetBounds(PAD, 58, Col2W - 85, ROW_H);
+    FLsMultiplierValueLabel.Visible := True;
+    FLsMultiplierValueLabel.SetBounds(PAD + Col2W - 80, 62, 80, 20);
+
+    FLsFlowScaleTitleLbl.Visible := True;
+    FLsFlowScaleTitleLbl.SetBounds(RightColX, 38, Col2W, 18);
+    FLsFlowScaleTrackBar.Visible := True;
+    FLsFlowScaleTrackBar.SetBounds(RightColX, 58, Col2W - 55, ROW_H);
+    FLsFlowScaleValueLabel.Visible := True;
+    FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 50, 62, 50, 20);
+
+    // Row 2: 3 Inline Toggles (main branch layout)
+    if Assigned(FLsPerfModeToggle) then
+    begin
+      FLsPerfModeToggle.Visible := True;
+      FLsPerfModeToggle.SetBounds(PAD, 106, Col3W, 24);
+    end;
+    if Assigned(FLsHdrModeToggle) then
+    begin
+      FLsHdrModeToggle.Visible := True;
+      FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
+    end;
+    if Assigned(FLsNoFp16Toggle) then
+    begin
+      FLsNoFp16Toggle.Visible := True;
+      FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
+    end;
+
+    // Row 3: Pacing dropdown
+    FLsPacingTitleLbl.Visible := True;
+    FLsPacingTitleLbl.SetBounds(PAD, 148, Col2W, 18);
+    FLsPacingComboBox.Visible := True;
+    FLsPacingComboBox.SetBounds(PAD, 168, Col2W, ROW_H);
+
+    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 216);
+    CurY := CurY + 216 + GAP;
+  end
+  else // imMako
+  begin
+    FLsDisabledNoticeLbl.Visible := False;
+    FLsSpatialCard.Visible := True;
+    FLsFrameGenCard.Visible := True;
+
+    IsAdaptive := Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
+
+    FLsFgModeTitleLbl.Visible := True;
+    FLsFgModeTitleLbl.SetBounds(PAD, 36, Col2W, 18);
+    FLsFgModeComboBox.Visible := True;
+    FLsFgModeComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
+
+    FLsAdaptiveMaxMultTitleLbl.Visible := IsAdaptive;
+    FLsAdaptiveMaxMultComboBox.Visible := IsAdaptive;
+    if IsAdaptive then
+    begin
+      FLsAdaptiveMaxMultTitleLbl.SetBounds(RightColX, 36, Col2W, 18);
+      FLsAdaptiveMaxMultComboBox.SetBounds(RightColX, 56, Col2W, ROW_H);
+    end;
+
+    FLsMultiplierTitleLbl.Visible := not IsAdaptive;
+    FLsMultiplierTrackBar.Visible := not IsAdaptive;
+    FLsMultiplierValueLabel.Visible := not IsAdaptive;
+    FLsMultiplierTitleLbl.SetBounds(PAD, 92, Col2W, 18);
+    FLsMultiplierTrackBar.SetBounds(PAD, 112, Col2W - 85, ROW_H);
+    FLsMultiplierValueLabel.SetBounds(PAD + Col2W - 80, 116, 80, 20);
+    if not IsAdaptive then FLsMultiplierTrackBar.BringToFront;
+
+    FLsTargetFpsTitleLbl.Visible := IsAdaptive;
+    FLsTargetFpsTrackBar.Visible := IsAdaptive;
+    FLsTargetFpsValueLabel.Visible := IsAdaptive;
+    FLsTargetFpsTitleLbl.SetBounds(PAD, 92, Col2W, 18);
+    FLsTargetFpsTrackBar.SetBounds(PAD, 112, Col2W - 85, ROW_H);
+    FLsTargetFpsValueLabel.SetBounds(PAD + Col2W - 80, 116, 80, 20);
+    if IsAdaptive then FLsTargetFpsTrackBar.BringToFront;
+
+    FLsFlowScaleTitleLbl.Visible := True;
+    FLsFlowScaleTitleLbl.SetBounds(RightColX, 92, Col2W, 18);
+    FLsFlowScaleTrackBar.Visible := True;
+    FLsFlowScaleTrackBar.SetBounds(RightColX, 112, Col2W - 85, ROW_H);
+    FLsFlowScaleValueLabel.Visible := True;
+    FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 80, 116, 80, 20);
+
+    FLsBaseFpsCapTitleLbl.Visible := True;
+    FLsBaseFpsCapTitleLbl.SetBounds(PAD, 148, Col2W, 18);
+    FLsBaseFpsCapTrackBar.Visible := True;
+    FLsBaseFpsCapTrackBar.SetBounds(PAD, 168, Col2W - 85, ROW_H);
+    FLsBaseFpsCapValueLabel.Visible := True;
+    FLsBaseFpsCapValueLabel.SetBounds(PAD + Col2W - 80, 172, 80, 20);
+
+    FLsRefreshThresholdTitleLbl.Visible := True;
+    FLsRefreshThresholdTitleLbl.SetBounds(RightColX, 148, Col2W, 18);
+    FLsRefreshThresholdTrackBar.Visible := True;
+    FLsRefreshThresholdTrackBar.SetBounds(RightColX, 168, Col2W - 85, ROW_H);
+    FLsRefreshThresholdValueLabel.Visible := True;
+    FLsRefreshThresholdValueLabel.SetBounds(RightColX + Col2W - 80, 172, 80, 20);
+
+    if Assigned(FLsPerfModeToggle) then
+    begin
+      FLsPerfModeToggle.Visible := True;
+      FLsPerfModeToggle.SetBounds(PAD, 206, Col3W, 24);
+    end;
+    if Assigned(FLsUltraPerfToggle) then
+    begin
+      FLsUltraPerfToggle.Visible := True;
+      FLsUltraPerfToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
+    end;
+    if Assigned(FLsAllowFp16Toggle) then
+    begin
+      FLsAllowFp16Toggle.Visible := True;
+      FLsAllowFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
+    end;
+
+    // Keep hidden compatibility toggles valid for test assertion compatibility
+    if Assigned(FLsHdrModeToggle) then
+    begin
+      FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
+      FLsHdrModeToggle.Visible := False;
+    end;
+    if Assigned(FLsNoFp16Toggle) then
+    begin
+      FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
+      FLsNoFp16Toggle.Visible := False;
+    end;
+
+    if Assigned(FLsFgLiveToggle) then
+    begin
+      FLsFgLiveToggle.Visible := True;
+      FLsFgLiveToggle.SetBounds(PAD, 238, Col3W, 24);
+    end;
+    FLsSteady2xCapToggle.Visible := IsAdaptive;
+    if IsAdaptive then
+      FLsSteady2xCapToggle.SetBounds(PAD + Col3W + 12, 238, Col3W, 24);
+    FLsSmoothCadenceToggle.Visible := IsAdaptive;
+    if IsAdaptive then
+      FLsSmoothCadenceToggle.SetBounds(PAD + (Col3W + 12) * 2, 238, Col3W, 24);
+
+    if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Visible := False;
+    if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
+
+    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
+    CurY := CurY + 276 + GAP;
+
+    // Spatial Scaling Card
+    FLsSpatialCard.SetBounds(MARGIN, CurY, CW, 154);
+    if Assigned(FLsScalingEnableToggle) then FLsScalingEnableToggle.Visible := False;
+    FLsScalingMethodTitleLbl.SetBounds(PAD, 36, Col2W, 18);
+    FLsScalingMethodComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
+    if Assigned(FLsScalingSupersamplingToggle) then
+      FLsScalingSupersamplingToggle.SetBounds(RightColX, 58, Col2W, 24);
+
+    FLsScalingFactorTitleLbl.SetBounds(PAD, 94, Col2W, 18);
+    FLsScalingFactorTrackBar.SetBounds(PAD, 114, Col2W - 65, ROW_H);
+    FLsScalingFactorValueLabel.SetBounds(PAD + Col2W - 60, 118, 60, 20);
+
+    FLsScalingSharpnessTitleLbl.SetBounds(RightColX, 94, Col2W, 18);
+    FLsScalingSharpnessTrackBar.SetBounds(RightColX, 114, Col2W - 65, ROW_H);
+    FLsScalingSharpnessValueLabel.SetBounds(RightColX + Col2W - 60, 118, 60, 20);
+
+    CurY := CurY + 154 + GAP;
+  end;
+
+  // ── Card 3: Software Status (Anchored to Bottom) ─────────────────────────
+  Y0 := 36;
+  EditLeft := PAD + 10 + 6 + 160;
+  BrowseW := 32;
+  EditW := CW - EditLeft - PAD - BrowseW - 6;
+  if EditW < 100 then EditW := 100;
+
+  // Row 0: Lossless Scaling (DLL)
+  if Assigned(FLsStatDots[0]) then
+    FLsStatDots[0].SetBounds(PAD, Y0 + (ROW_H - 10) div 2, 10, 10);
+  if Assigned(FLsStatNameLbls[0]) then
+    FLsStatNameLbls[0].SetBounds(PAD + 16, Y0 + (ROW_H - 16) div 2, 160, 16);
+  if Assigned(FLsDllPathEdit) then
+    FLsDllPathEdit.SetBounds(EditLeft, Y0, EditW, ROW_H);
+  if Assigned(FLsBrowseDllBtn) then
+    FLsBrowseDllBtn.SetBounds(EditLeft + EditW + 6, Y0, BrowseW, ROW_H);
+
+  // Row 1: MAKO Renderer
+  Y1 := Y0 + ROW_H + 8;
+  if Assigned(FLsStatDots[1]) then
+    FLsStatDots[1].SetBounds(PAD, Y1 + (ROW_H - 10) div 2, 10, 10);
+  if Assigned(FLsStatNameLbls[1]) then
+    FLsStatNameLbls[1].SetBounds(PAD + 16, Y1 + (ROW_H - 16) div 2, 160, 16);
 
   if Assigned(FLsInstallBtn) and FLsInstallBtn.Visible then
   begin
-    FLsInstallBtn.SetBounds(CW - PAD - 120, 94, 120, 26);
+    FLsInstallBtn.SetBounds(CW - PAD - 120, Y1, 120, ROW_H);
     if Assigned(FLsEngineStatusLabel) then
-      FLsEngineStatusLabel.SetBounds(PAD, 98, CW - PAD * 2 - 130, 22);
+      FLsEngineStatusLabel.SetBounds(EditLeft, Y1 + (ROW_H - 18) div 2, CW - EditLeft - PAD - 130, 18);
   end
   else
   begin
     if Assigned(FLsEngineStatusLabel) then
-      FLsEngineStatusLabel.SetBounds(PAD, 98, CW - PAD * 2, 22);
+      FLsEngineStatusLabel.SetBounds(EditLeft, Y1 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
   end;
 
-  // Target GPU Device moved to Card 0, below MAKO Renderer status
-  if Assigned(FLsGpuTitleLbl) then
-    FLsGpuTitleLbl.SetBounds(PAD, 124, Col2W, 18);
-  if Assigned(FLsGpuComboBox) then
-    FLsGpuComboBox.SetBounds(PAD, 144, Col2W, ROW_H);
+  // Row 2: lsfg-vk Vulkan Layer
+  Y2 := Y1 + ROW_H + 8;
+  if Assigned(FLsStatDots[2]) then
+    FLsStatDots[2].SetBounds(PAD, Y2 + (ROW_H - 10) div 2, 10, 10);
+  if Assigned(FLsStatNameLbls[2]) then
+    FLsStatNameLbls[2].SetBounds(PAD + 16, Y2 + (ROW_H - 16) div 2, 160, 16);
+  if Assigned(FLsLsfgStatusLabel) then
+    FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
 
+  // Row 3 (Optional): Progress bar during installation
   if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
   begin
-    FLsProgressBar.SetBounds(PAD, 178, CW - PAD * 2, 12);
-    FLsProgressLabel.SetBounds(PAD, 192, CW - PAD * 2, 18);
-  end;
+    Y3 := Y2 + ROW_H + 6;
+    FLsProgressBar.SetBounds(PAD, Y3, CW - 2 * PAD, 10);
+    FLsProgressLabel.SetBounds(PAD, Y3 + 14, CW - 2 * PAD, 18);
+    StatusCardH := Y3 + 36;
+  end
+  else
+    StatusCardH := Y2 + ROW_H + 12;
 
-  CurY := CurY + FLsGeneralCard.Height + GAP;
-  
-  // ── Card 1 Layout: Frame Generation ────────────────────────────────────────
-  Col3W := (CW - (PAD * 2) - 24) div 3;
-  Col4W := (CW - (PAD * 2) - 36) div 4;
-  
-  IsAdaptive := Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
-  
-  FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
-  
-  // Row 1: Mode Dropdowns
-  FLsFgModeTitleLbl.SetBounds(PAD, 36, Col2W, 18);
-  FLsFgModeComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
+  FLsStatusCard.SetBounds(MARGIN, CurY, CW, StatusCardH);
+  CurY := CurY + StatusCardH + MARGIN;
 
-  FLsAdaptiveMaxMultTitleLbl.Visible := IsAdaptive;
-  FLsAdaptiveMaxMultComboBox.Visible := IsAdaptive;
-  if IsAdaptive then
-  begin
-    FLsAdaptiveMaxMultTitleLbl.SetBounds(RightColX, 36, Col2W, 18);
-    FLsAdaptiveMaxMultComboBox.SetBounds(RightColX, 56, Col2W, ROW_H);
-  end;
-
-  // ── 2x2 Trackbar Grid ──
-  // Grid Row 1: Left = Multiplier (or Target FPS) | Right = Flow Scale
-  FLsMultiplierTitleLbl.Visible := not IsAdaptive;
-  FLsMultiplierTrackBar.Visible := not IsAdaptive;
-  FLsMultiplierValueLabel.Visible := not IsAdaptive;
-  FLsMultiplierTitleLbl.SetBounds(PAD, 92, Col2W, 18);
-  FLsMultiplierTrackBar.SetBounds(PAD, 112, Col2W - 85, ROW_H);
-  FLsMultiplierValueLabel.SetBounds(PAD + Col2W - 80, 116, 80, 20);
-  if not IsAdaptive then
-    FLsMultiplierTrackBar.BringToFront;
-
-  FLsTargetFpsTitleLbl.Visible := IsAdaptive;
-  FLsTargetFpsTrackBar.Visible := IsAdaptive;
-  FLsTargetFpsValueLabel.Visible := IsAdaptive;
-  FLsTargetFpsTitleLbl.SetBounds(PAD, 92, Col2W, 18);
-  FLsTargetFpsTrackBar.SetBounds(PAD, 112, Col2W - 85, ROW_H);
-  FLsTargetFpsValueLabel.SetBounds(PAD + Col2W - 80, 116, 80, 20);
-  if IsAdaptive then
-    FLsTargetFpsTrackBar.BringToFront;
-
-  FLsFlowScaleTitleLbl.SetBounds(RightColX, 92, Col2W, 18);
-  FLsFlowScaleTrackBar.SetBounds(RightColX, 112, Col2W - 85, ROW_H);
-  FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 80, 116, 80, 20);
-
-  // Grid Row 2: Left = Base FPS Cap | Right = Refresh Threshold
-  FLsBaseFpsCapTitleLbl.SetBounds(PAD, 148, Col2W, 18);
-  FLsBaseFpsCapTrackBar.SetBounds(PAD, 168, Col2W - 85, ROW_H);
-  FLsBaseFpsCapValueLabel.SetBounds(PAD + Col2W - 80, 172, 80, 20);
-
-  FLsRefreshThresholdTitleLbl.SetBounds(RightColX, 148, Col2W, 18);
-  FLsRefreshThresholdTrackBar.SetBounds(RightColX, 168, Col2W - 85, ROW_H);
-  FLsRefreshThresholdValueLabel.SetBounds(RightColX + Col2W - 80, 172, 80, 20);
-
-  // Toggles Row 1 (Y = 206): PerfMode, UltraPerf, FP16 Acceleration
-  if Assigned(FLsPerfModeToggle) then FLsPerfModeToggle.SetBounds(PAD, 206, Col3W, 24);
-  if Assigned(FLsUltraPerfToggle) then FLsUltraPerfToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
-  if Assigned(FLsAllowFp16Toggle) then FLsAllowFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
-
-  // Hidden compatibility toggles (placed with valid Left for test assertion compatibility)
-  if Assigned(FLsHdrModeToggle) then
-  begin
-    FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
-    FLsHdrModeToggle.Visible := False; // Obsolete in MAKO (handled automatically by swapchain)
-  end;
-  if Assigned(FLsNoFp16Toggle) then
-  begin
-    FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
-    FLsNoFp16Toggle.Visible := False; // Redundant toggle
-  end;
-
-  // Toggles Row 2 (Y = 238): Live FG Switch, Steady 2x Cap (Adaptive), Smooth Cadence (Adaptive)
-  if Assigned(FLsFgLiveToggle) then FLsFgLiveToggle.SetBounds(PAD, 238, Col3W, 24);
-  FLsSteady2xCapToggle.Visible := IsAdaptive;
-  if IsAdaptive then
-    FLsSteady2xCapToggle.SetBounds(PAD + Col3W + 12, 238, Col3W, 24);
-  FLsSmoothCadenceToggle.Visible := IsAdaptive;
-  if IsAdaptive then
-    FLsSmoothCadenceToggle.SetBounds(PAD + (Col3W + 12) * 2, 238, Col3W, 24);
-
-  // Hidden obsolete pacing controls
-  if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Visible := False;
-  if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
-
-  CurY := CurY + FLsFrameGenCard.Height + GAP;
-
-  // ── Card 2 Layout: Spatial Scaling ─────────────────────────────────────────
-  FLsSpatialCard.SetBounds(MARGIN, CurY, CW, 154);
-
-  // Row 1: Scaling Method + Supersampling Toggle
-  if Assigned(FLsScalingEnableToggle) then
-    FLsScalingEnableToggle.Visible := False;
-
-  FLsScalingMethodTitleLbl.SetBounds(PAD, 36, Col2W, 18);
-  FLsScalingMethodComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
-  if Assigned(FLsScalingSupersamplingToggle) then
-    FLsScalingSupersamplingToggle.SetBounds(RightColX, 58, Col2W, 24);
-
-  // Row 2: Scale Factor + Sharpness
-  FLsScalingFactorTitleLbl.SetBounds(PAD, 94, Col2W, 18);
-  FLsScalingFactorTrackBar.SetBounds(PAD, 114, Col2W - 65, ROW_H);
-  FLsScalingFactorValueLabel.SetBounds(PAD + Col2W - 60, 118, 60, 20);
-
-  FLsScalingSharpnessTitleLbl.SetBounds(RightColX, 94, Col2W, 18);
-  FLsScalingSharpnessTrackBar.SetBounds(RightColX, 114, Col2W - 65, ROW_H);
-  FLsScalingSharpnessValueLabel.SetBounds(RightColX + Col2W - 60, 118, 60, 20);
-
-  CurY := CurY + FLsSpatialCard.Height + MARGIN;
-  
   FLsBgPanel.SetBounds(0, 0, W, Max(FLsScrollBox.ClientHeight, CurY));
   ApplyThemeStyles;
 end;
@@ -1540,16 +2288,57 @@ end;
 
 procedure TLosslessScalingTabHelper.UpdateEngineStatus;
 var
-  InstalledVer: string;
+  InstalledVer, MakoLib, SS: string;
+  HasLib, IsDark: Boolean;
 begin
   if not Assigned(FLsEngineStatusLabel) then Exit;
   if Assigned(FLsCheckUpdatesBtn) then FLsCheckUpdatesBtn.Visible := False;
 
+  MakoLib := GetMakoLibraryPath;
+  HasLib := (MakoLib <> '') and FileExists(MakoLib);
+  IsDark := (CurrentTheme = tmDark);
+
+  if Assigned(FLsMakoPathEdit) then
+  begin
+    if HasLib then
+      FLsMakoPathEdit.Text := MakoLib
+    else
+      FLsMakoPathEdit.Text := '';
+
+    if FLsMakoPathEdit.HandleAllocated then
+    begin
+      if HasLib then
+      begin
+        if IsDark then
+          SS := 'QLineEdit { background-color: rgb(20, 36, 30); color: rgb(240, 250, 242); border: 1px solid rgb(42, 105, 66); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+                'QLineEdit:focus { border: 1px solid rgb(55, 140, 88); }'
+        else
+          SS := 'QLineEdit { background-color: rgb(240, 248, 242); color: rgb(0, 80, 20); border: 1px solid rgb(80, 150, 100); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      end
+      else
+      begin
+        if IsDark then
+          SS := 'QLineEdit { background-color: rgb(48, 20, 24); color: rgb(255, 210, 210); border: 1px solid rgb(160, 45, 55); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; selection-background-color: rgb(48, 190, 240); selection-color: rgb(0, 0, 0); } ' +
+                'QLineEdit:focus { border: 1px solid rgb(220, 60, 70); }'
+        else
+          SS := 'QLineEdit { background-color: rgb(255, 235, 235); color: rgb(180, 20, 20); border: 1px solid rgb(200, 60, 60); border-radius: 4px; padding: 2px 6px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(FLsMakoPathEdit.Handle).Widget, @SS);
+      FLsMakoPathEdit.SelStart := 0;
+      FLsMakoPathEdit.SelLength := 0;
+    end;
+  end;
+
   InstalledVer := GetMakoInstalledVersion;
+  if (InstalledVer <> '') and (InstalledVer[1] in ['0'..'9']) then
+    InstalledVer := 'v' + InstalledVer;
+
   if InstalledVer <> '' then
   begin
-    FLsEngineStatusLabel.Caption := '● MAKO Renderer: ' + InstalledVer + ' (Installed)';
-    FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+    FLsEngineStatusLabel.Caption := InstalledVer;
+    FLsEngineStatusLabel.Font.Color := $BB99FF;
+    FLsEngineStatusLabel.Hint := MakoLib;
+    FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
     if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
 
     // Check in background if an update is available so 'Install update' can appear
@@ -1561,14 +2350,18 @@ begin
   end
   else if IsMakoInstalled then
   begin
-    FLsEngineStatusLabel.Caption := '● MAKO Renderer (System Installed)';
-    FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
+    FLsEngineStatusLabel.Caption := 'Installed';
+    FLsEngineStatusLabel.Font.Color := $BB99FF;
+    FLsEngineStatusLabel.Hint := MakoLib;
+    FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
     if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
   end
   else
   begin
-    FLsEngineStatusLabel.Caption := '● MAKO Renderer: Not Installed';
+    FLsEngineStatusLabel.Caption := 'Not installed';
     FLsEngineStatusLabel.Font.Color := RGBToColor(255, 90, 95);
+    FLsEngineStatusLabel.Hint := '';
+    FLsEngineStatusLabel.ShowHint := False;
     if Assigned(FLsInstallBtn) then
     begin
       FLsInstallBtn.Caption := 'Install MAKO';
@@ -1576,30 +2369,8 @@ begin
       FLsInstallBtn.Enabled := True;
     end;
   end;
-end;
 
-procedure TLosslessScalingTabHelper.InspectDllClick(Sender: TObject);
-var
-  DllP, Details: string;
-begin
-  DllP := Trim(FLsDllPathEdit.Text);
-  if DllP = '' then
-  begin
-    FLsDllStatusLabel.Caption := '● No Lossless.dll selected';
-    FLsDllStatusLabel.Font.Color := RGBToColor(255, 90, 95);
-    Exit;
-  end;
-
-  if InspectMakoLosslessDll(DllP, Details) and (Details <> '') then
-  begin
-    FLsDllStatusLabel.Caption := '● DLL file located: ' + Details;
-    FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
-  end
-  else
-  begin
-    FLsDllStatusLabel.Caption := '● DLL file located';
-    FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
-  end;
+  UpdateStatusCard;
 end;
 
 procedure TLosslessScalingTabHelper.CheckUpdatesClick(Sender: TObject);
@@ -1871,6 +2642,8 @@ begin
     else
       FLsMultiplierValueLabel.Caption := IntToStr(PosVal) + 'x FPS';
   end;
+  if (PosVal > 1) and (FInterpolationMethod = imNone) then
+    SetInterpolationMethod(imLsfg);
   ControlStateChange(Sender);
 end;
 
@@ -2236,8 +3009,94 @@ begin
 end;
 
 function TLosslessScalingTabHelper.WriteLsfgTomlConfig(const ATargetDir: string): string;
+var
+  Lines: TStringList;
+  OutDir, OutPath, PacingStr, DllP, ExeName: string;
+  MultVal: Integer;
+  FlowStr: string;
+  PerfStr, HdrStr, LegacyStr: string;
 begin
-  Result := WriteMakoTomlConfig(ATargetDir);
+  Result := '';
+  if FLsMultiplierTrackBar.Position <= 1 then Exit;
+  
+  DllP := Trim(FLsDllPathEdit.Text);
+  if (DllP = '') or not FileExists(DllP) then Exit;
+  
+  if ATargetDir <> '' then
+    OutDir := ATargetDir
+  else if Assigned(FForm) and (FForm is Tgoverlayform) then
+    OutDir := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName)
+  else
+    OutDir := TConfigManager.GetGoverlayFolder;
+    
+  if not DirectoryExists(OutDir) then
+    ForceDirectories(OutDir);
+    
+  OutPath := IncludeTrailingPathDelimiter(OutDir) + 'lsfg.toml';
+  
+  MultVal := FLsMultiplierTrackBar.Position;
+  
+  FlowStr := StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
+  if FLsPerfModeCheckBox.Checked then PerfStr := 'true' else PerfStr := 'false';
+  if FLsHdrModeCheckBox.Checked then HdrStr := 'true' else HdrStr := 'false';
+  if FLsNoFp16CheckBox.Checked then LegacyStr := 'true' else LegacyStr := 'false';
+  
+  case FLsPacingComboBox.ItemIndex of
+    1: PacingStr := 'vsync';
+    2: PacingStr := 'mailbox';
+    3: PacingStr := 'immediate';
+    4: PacingStr := 'none';
+  else
+    PacingStr := 'fifo';
+  end;
+  
+  Lines := TStringList.Create;
+  try
+    Lines.Add('version = 1');
+    Lines.Add('');
+    Lines.Add('[global]');
+    Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('');
+    Lines.Add('[[game]]');
+    Lines.Add('exe = "pascube"');
+    Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('multiplier = ' + IntToStr(MultVal));
+    Lines.Add('flow_scale = ' + FlowStr);
+    Lines.Add('performance_mode = ' + PerfStr);
+    Lines.Add('hdr_mode = ' + HdrStr);
+    Lines.Add('legacy = ' + LegacyStr);
+    Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+    Lines.Add('');
+    Lines.Add('[[game]]');
+    Lines.Add('exe = "vkcube"');
+    Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('multiplier = ' + IntToStr(MultVal));
+    Lines.Add('flow_scale = ' + FlowStr);
+    Lines.Add('performance_mode = ' + PerfStr);
+    Lines.Add('hdr_mode = ' + HdrStr);
+    Lines.Add('legacy = ' + LegacyStr);
+    Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+    
+    if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
+    begin
+      ExeName := Tgoverlayform(FForm).FActiveGameName;
+      Lines.Add('');
+      Lines.Add('[[game]]');
+      Lines.Add('exe = "' + ExeName + '"');
+      Lines.Add('dll = "' + DllP + '"');
+      Lines.Add('multiplier = ' + IntToStr(MultVal));
+      Lines.Add('flow_scale = ' + FlowStr);
+      Lines.Add('performance_mode = ' + PerfStr);
+      Lines.Add('hdr_mode = ' + HdrStr);
+      Lines.Add('legacy = ' + LegacyStr);
+      Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+    end;
+    
+    Lines.SaveToFile(OutPath);
+    Result := OutPath;
+  finally
+    Lines.Free;
+  end;
 end;
 
 function TLosslessScalingTabHelper.WriteDefaultLsfgToml(const ATargetDir: string): string;
@@ -2353,37 +3212,58 @@ end;
 function TLosslessScalingTabHelper.GetActiveEnvVars: string;
 var
   TomlP, DllP: string;
-  IsActive: Boolean;
+  EffectiveMethod: TInterpolationMethod;
 begin
   Result := '';
-  IsActive := (FLsMultiplierTrackBar.Position > 1) or
-              (Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1)) or
-              (Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0));
-
-  if not IsActive then
-    Exit('');
+  EffectiveMethod := FInterpolationMethod;
+  if EffectiveMethod = imNone then
+  begin
+    if FLsMultiplierTrackBar.Position > 1 then
+      EffectiveMethod := imLsfg
+    else
+      Exit('');
+  end;
 
   DllP := Trim(FLsDllPathEdit.Text);
   if (DllP = '') or not FileExists(DllP) then
     Exit('');
 
-  TomlP := WriteMakoTomlConfig;
-  if (TomlP <> '') and FileExists(TomlP) then
+  if EffectiveMethod = imLsfg then
   begin
-    Result := 'ENABLE_MAKO=1 MAKO_CONFIG="' + TomlP + '" MAKO_DISABLE_HDR_EXPOSURE=1 DISABLE_GAMESCOPE_WSI=1 DISABLE_LSFG=1 DISABLE_LSFGVK=1 LSFG_CONFIG="' + TomlP + '"';
-    if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
-      Result := Result + ' MAKO_PROFILE="' + ChangeFileExt(ExtractFileName(Tgoverlayform(FForm).FActiveGameName), '') + '"';
-    if Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0) then
-      Result := Result + ' ENABLE_MAKO_SPATIAL_SCALING=1';
+    if FLsMultiplierTrackBar.Position <= 1 then
+      Exit('');
+    TomlP := WriteLsfgTomlConfig;
+    if (TomlP <> '') and FileExists(TomlP) then
+      Result := 'LSFG_CONFIG="' + TomlP + '"'
+    else
+      Result := '';
+  end
+  else if EffectiveMethod = imMako then
+  begin
+    if (FLsMultiplierTrackBar.Position <= 1) and
+       (not Assigned(FLsFgModeComboBox) or (FLsFgModeComboBox.ItemIndex <> 1)) and
+       (not Assigned(FLsScalingMethodComboBox) or (FLsScalingMethodComboBox.ItemIndex <= 0)) then
+      Exit('');
+
+    TomlP := WriteMakoTomlConfig;
+    if (TomlP <> '') and FileExists(TomlP) then
+    begin
+      Result := 'ENABLE_MAKO=1 MAKO_CONFIG="' + TomlP + '" MAKO_DISABLE_HDR_EXPOSURE=1 DISABLE_GAMESCOPE_WSI=1 DISABLE_LSFG=1 DISABLE_LSFGVK=1 LSFG_CONFIG="' + TomlP + '"';
+      if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
+        Result := Result + ' MAKO_PROFILE="' + ChangeFileExt(ExtractFileName(Tgoverlayform(FForm).FActiveGameName), '') + '"';
+      if Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0) then
+        Result := Result + ' ENABLE_MAKO_SPATIAL_SCALING=1';
+    end;
   end;
 end;
 
 procedure TLosslessScalingTabHelper.LoadLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath, CfgDir, TomlPath, LegacyTomlPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal: string;
+  CfgPath, CfgDir, TomlPath, LegacyTomlPath, DllVal, PacingVal, GpuVal, FlowVal, MultVal, MethodStr: string;
   FlowInt, MultInt, GpuIdx: Integer;
   IsLosslessOn, TomlFound: Boolean;
+  LoadedMethod: TInterpolationMethod;
   MakoCfg, LegacyCfg: TMakoConfig;
 begin
   if Assigned(FForm) and (FForm is Tgoverlayform) then
@@ -2437,16 +3317,46 @@ begin
     FLsPacingComboBox.ItemIndex := 0;
     FLsGpuComboBox.ItemIndex := 0;
 
-    // Check if GOVERLAY_LOSSLESS is enabled in bgmod.conf
+    // Check if GOVERLAY_LOSSLESS and INTERPOLATION_METHOD are enabled in bgmod.conf
     IsLosslessOn := False;
+    MethodStr := '';
     if FileExists(CfgPath) then
     begin
       Ini := TIniFile.Create(CfgPath);
       try
         IsLosslessOn := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
+        MethodStr := LowerCase(Trim(Ini.ReadString('Config', 'INTERPOLATION_METHOD', '')));
+        GpuVal := Trim(Ini.ReadString('Config', 'LS_GPU', Ini.ReadString('Env', 'LSFG_GPU', Ini.ReadString('Env', 'LSFGVK_GPU', ''))));
+        if GpuVal <> '' then
+        begin
+          GpuIdx := StrToIntDef(GpuVal, -1) + 1;
+          if (GpuIdx >= 0) and (GpuIdx < FLsGpuComboBox.Items.Count) then
+            FLsGpuComboBox.ItemIndex := GpuIdx;
+        end;
       finally
         Ini.Free;
       end;
+    end;
+
+    if MethodStr = 'lsfg' then
+      LoadedMethod := imLsfg
+    else if MethodStr = 'mako' then
+      LoadedMethod := imMako
+    else if MethodStr = 'none' then
+      LoadedMethod := imNone
+    else
+    begin
+      if IsLosslessOn then
+      begin
+        if FileExists(TomlPath) then
+          LoadedMethod := imMako
+        else if FileExists(LegacyTomlPath) then
+          LoadedMethod := imLsfg
+        else
+          LoadedMethod := imMako;
+      end
+      else
+        LoadedMethod := imNone;
     end;
 
     TomlFound := False;
@@ -2598,18 +3508,12 @@ begin
         else if PacingVal = 'mailbox' then FLsPacingComboBox.ItemIndex := 2
         else if PacingVal = 'immediate' then FLsPacingComboBox.ItemIndex := 3
         else FLsPacingComboBox.ItemIndex := 0;
-        
-        GpuVal := Trim(Ini.ReadString('Config', 'LS_GPU', Ini.ReadString('Env', 'LSFG_GPU', Ini.ReadString('Env', 'LSFGVK_GPU', ''))));
-        if GpuVal <> '' then
-        begin
-          GpuIdx := StrToIntDef(GpuVal, -1) + 1;
-          if (GpuIdx >= 0) and (GpuIdx < FLsGpuComboBox.Items.Count) then
-            FLsGpuComboBox.ItemIndex := GpuIdx;
-        end;
       finally
         Ini.Free;
       end;
     end;
+
+    SetInterpolationMethod(LoadedMethod);
   finally
     if Assigned(FForm) and (FForm is Tgoverlayform) then
       Tgoverlayform(FForm).FLoadingConfig := False;
@@ -2629,7 +3533,7 @@ end;
 procedure TLosslessScalingTabHelper.SaveLosslessConfig;
 var
   Ini: TIniFile;
-  CfgPath, CfgDir, DllPath: string;
+  CfgPath, CfgDir, DllPath, MethodStr: string;
   IsEnabled: Boolean;
 begin
   UpdateControlsEnabled;
@@ -2639,13 +3543,26 @@ begin
     ForceDirectories(CfgDir);
     
   DllPath := Trim(FLsDllPathEdit.Text);
-  IsEnabled := (DllPath <> '') and FileExists(DllPath) and
+  IsEnabled := (FInterpolationMethod <> imNone) and (DllPath <> '') and FileExists(DllPath) and
                ((FLsMultiplierTrackBar.Position > 1) or
                 (Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1)) or
                 (Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0)));
   
   Ini := TIniFile.Create(CfgPath);
   try
+    case FInterpolationMethod of
+      imLsfg: MethodStr := 'lsfg';
+      imMako: MethodStr := 'mako';
+    else
+      MethodStr := 'none';
+    end;
+    Ini.WriteString('Config', 'INTERPOLATION_METHOD', MethodStr);
+
+    if Assigned(FLsGpuComboBox) and (FLsGpuComboBox.ItemIndex > 0) then
+      Ini.WriteString('Config', 'LS_GPU', IntToStr(FLsGpuComboBox.ItemIndex - 1))
+    else
+      Ini.DeleteKey('Config', 'LS_GPU');
+
     if IsEnabled then
     begin
       Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '1');
@@ -2658,7 +3575,6 @@ begin
       Ini.DeleteKey('Config', 'LS_HDR_MODE');
       Ini.DeleteKey('Config', 'LS_NO_FP16');
       Ini.DeleteKey('Config', 'LS_PACING');
-      Ini.DeleteKey('Config', 'LS_GPU');
 
       // Prune legacy keys from [Env]
       Ini.DeleteKey('Env', 'LSFG_DLL_PATH');
@@ -2679,7 +3595,16 @@ begin
       Ini.DeleteKey('Env', 'LSFGVK_PACING');
       Ini.DeleteKey('Env', 'LSFGVK_GPU');
 
-      WriteMakoTomlConfig(CfgDir);
+      if FInterpolationMethod = imLsfg then
+      begin
+        WriteLsfgTomlConfig(CfgDir);
+        if FileExists(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml') then
+          DeleteFile(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml');
+      end
+      else if FInterpolationMethod = imMako then
+      begin
+        WriteMakoTomlConfig(CfgDir);
+      end;
     end
     else
     begin
@@ -2691,7 +3616,6 @@ begin
       Ini.DeleteKey('Config', 'LS_HDR_MODE');
       Ini.DeleteKey('Config', 'LS_NO_FP16');
       Ini.DeleteKey('Config', 'LS_PACING');
-      Ini.DeleteKey('Config', 'LS_GPU');
 
       Ini.DeleteKey('Env', 'LSFG_DLL_PATH');
       Ini.DeleteKey('Env', 'LSFG_MULTIPLIER');

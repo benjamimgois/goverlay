@@ -922,7 +922,12 @@ begin
     if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini') then
     begin
       ForceDirectories(ExtractFilePath(OptiScalerIniPath));
-      CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini', OptiScalerIniPath);
+      try
+        CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini', OptiScalerIniPath);
+      except
+        on E: Exception do
+          WriteLn('[OPTISCALER] Warning: Failed to copy template OptiScaler.ini: ', E.Message);
+      end;
     end;
   end;
 
@@ -1032,7 +1037,12 @@ begin
       else
         OptiCfg.SetValue('Enabled=', 'auto', OPTI_INI_SECTION_FRAMEGEN);
 
-      OptiCfg.Save;
+      try
+        OptiCfg.Save;
+      except
+        on E: Exception do
+          WriteLn('[OPTISCALER] Warning: Failed to save OptiScaler.ini: ', E.Message);
+      end;
     end;
   finally
     OptiCfg.Free;
@@ -1067,7 +1077,12 @@ begin
       if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'fakenvapi.ini') then
       begin
         ForceDirectories(ExtractFilePath(FakeNvapiIniPath));
-        CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'fakenvapi.ini', FakeNvapiIniPath);
+        try
+          CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'fakenvapi.ini', FakeNvapiIniPath);
+        except
+          on E: Exception do
+            WriteLn('[FAKENVAPI] Warning: Failed to copy template fakenvapi.ini: ', E.Message);
+        end;
       end;
     end;
 
@@ -1118,7 +1133,14 @@ begin
         
         if (not Settings.ForceReflexChecked or FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX)) and
            (not Settings.ForceLatencyFlexChecked or (FakeCfg.HasKey(FAKE_KEY_FORCE_LATENCY) and FakeCfg.HasKey(FAKE_KEY_LATENCY_MODE))) then
-          FakeCfg.Save
+        begin
+          try
+            FakeCfg.Save;
+          except
+            on E: Exception do
+              WriteLn('[FAKENVAPI] Warning: Failed to save fakenvapi.ini: ', E.Message);
+          end;
+        end
         else
         begin
           if Settings.ForceReflexChecked and not FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then

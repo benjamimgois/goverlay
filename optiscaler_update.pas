@@ -28,6 +28,7 @@ function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadPr
 
 // Check and automatically install MAKO Renderer Vulkan layer if not present
 function IsMakoInstalled: Boolean;
+function GetMakoLibraryPath: string;
 function GetMakoInstalledVersion: string;
 function GetMakoLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallMako(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
@@ -3873,6 +3874,20 @@ begin
             FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
             (FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/bin/mako-launch') and
              FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so'));
+end;
+
+function GetMakoLibraryPath: string;
+var
+  Candidate: string;
+begin
+  Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
+  if FileExists('/usr/lib/libmako-render.so') then Exit('/usr/lib/libmako-render.so');
+  if FileExists('/usr/lib/x86_64-linux-gnu/libmako-render.so') then Exit('/usr/lib/x86_64-linux-gnu/libmako-render.so');
+  if FileExists('/usr/local/lib/libmako-render.so') then Exit('/usr/local/lib/libmako-render.so');
+  if FileExists('/usr/lib64/libmako-render.so') then Exit('/usr/lib64/libmako-render.so');
 end;
 
 function GetMakoInstalledVersion: string;
