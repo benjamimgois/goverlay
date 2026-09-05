@@ -1069,6 +1069,8 @@ type
     procedure RestoreIfMaximized;
   public
     FLoadingConfig: Boolean;
+    FLastLosslessShowTick: QWord;
+    FLastLosslessGame: string;
     autoSaveTimer: TTimer;
     savedStatusTimer: TTimer;
     savedStatusLabel: TLabel;
@@ -1320,6 +1322,8 @@ type
     FOptiIconGfx:  TPortableNetworkGraphic;
   public
     FLosslessScalingHelper: TObject;
+    function GetActiveTabConfigFile: string;
+    function GetActiveTabLogFile: string;
     procedure RefreshOsStatusDots;
     procedure RefreshHomeOptiStatus;
     procedure PerfCardPaint(Sender: TObject);
@@ -4654,7 +4658,10 @@ begin
 
   // Update Lossless Scaling tab theme
   if Assigned(FLosslessScalingHelper) then
+  begin
     TLosslessScalingTabHelper(FLosslessScalingHelper).ApplyThemeStyles;
+    TLosslessScalingTabHelper(FLosslessScalingHelper).UpdateDllStatus;
+  end;
 
   // Apply modern scrollbar stylesheet to dynamic tab scrollboxes and standalone scrollbars
   if Assigned(FGamesScrollBox)  then ApplyModernScrollBarStylesheet(FGamesScrollBox);
@@ -6408,65 +6415,152 @@ begin
   SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
 end;
 
-procedure Tgoverlayform.openConfigFileMenuItemClick(Sender: TObject);
+function Tgoverlayform.GetActiveTabConfigFile: string;
 var
-  TargetFile: string;
+  ConfigDir: string;
+  IsLsfg: Boolean;
 begin
-  TargetFile := '';
-  
+  Result := '';
+  ConfigDir := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName));
+
   if (goverlayPageControl.ActivePage = presetTabSheet) or
      (goverlayPageControl.ActivePage = visualTabSheet) or
      (goverlayPageControl.ActivePage = performanceTabSheet) or
      (goverlayPageControl.ActivePage = metricsTabSheet) or
      (goverlayPageControl.ActivePage = extrasTabSheet) then
   begin
-    TargetFile := MANGOHUDCFGFILE;
-    if (TargetFile = '') or not FileExists(TargetFile) then
+    Result := MANGOHUDCFGFILE;
+    if (Result = '') or not FileExists(Result) then
     begin
       saveBitBtnClick(nil);
-      TargetFile := MANGOHUDCFGFILE;
+      Result := MANGOHUDCFGFILE;
     end;
   end
   else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
   begin
-    TargetFile := VKBASALTCFGFILE;
-    if (TargetFile = '') or not FileExists(TargetFile) then
+    Result := VKBASALTCFGFILE;
+    if (Result = '') or not FileExists(Result) then
     begin
       saveBitBtnClick(nil);
-      TargetFile := VKBASALTCFGFILE;
+      Result := VKBASALTCFGFILE;
     end;
   end
   else if goverlayPageControl.ActivePage = vksumiTabSheet then
   begin
-    TargetFile := VKSUMICFGFILE;
-    if (TargetFile = '') or not FileExists(TargetFile) then
+    Result := VKSUMICFGFILE;
+    if (Result = '') or not FileExists(Result) then
     begin
       SaveVkSumiConfig;
-      TargetFile := VKSUMICFGFILE;
+      Result := VKSUMICFGFILE;
     end;
   end
   else if goverlayPageControl.ActivePage = optiscalerTabSheet then
   begin
-    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.ini';
-    if not FileExists(TargetFile) then
+    Result := ConfigDir + 'OptiScaler.ini';
+    if not FileExists(Result) then
       SaveOptiScalerConfig(True);
   end
   else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
   begin
     if Assigned(FLosslessScalingHelper) then
       TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
-    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'conf.toml';
-    if not FileExists(TargetFile) and Assigned(FLosslessScalingHelper) then
-      TargetFile := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteMakoTomlConfig(GetGameConfigDir(FActiveGameName));
-    if not FileExists(TargetFile) then
-      TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'lsfg.toml';
+
+    IsLsfg := False;
+    if Assigned(FLosslessScalingHelper) then
+    begin
+      if TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imLsfg then
+        IsLsfg := True
+      else if (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imNone) and
+              FileExists(ConfigDir + 'lsfg.toml') and not FileExists(ConfigDir + 'conf.toml') then
+        IsLsfg := True;
+    end;
+
+    if IsLsfg then
+    begin
+      Result := ConfigDir + 'lsfg.toml';
+      if not FileExists(Result) and Assigned(FLosslessScalingHelper) then
+        Result := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteLsfgTomlConfig(GetGameConfigDir(FActiveGameName));
+      if (Result = '') or not FileExists(Result) then
+        Result := ConfigDir + 'lsfg.toml';
+    end
+    else
+    begin
+      Result := ConfigDir + 'conf.toml';
+      if not FileExists(Result) and Assigned(FLosslessScalingHelper) then
+        Result := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteMakoTomlConfig(GetGameConfigDir(FActiveGameName));
+      if (Result = '') or not FileExists(Result) then
+        Result := ConfigDir + 'conf.toml';
+    end;
   end
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
   begin
-    TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'bgmod.conf';
-    if not FileExists(TargetFile) then
+    Result := ConfigDir + 'bgmod.conf';
+    if not FileExists(Result) then
       SaveTweaksConfig;
   end;
+end;
+
+function Tgoverlayform.GetActiveTabLogFile: string;
+var
+  LogDir, ConfigDir: string;
+  IsLsfg: Boolean;
+begin
+  LogDir := GetGameLogDir(FActiveGameName);
+  ConfigDir := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName));
+  Result := '';
+
+  if (goverlayPageControl.ActivePage = presetTabSheet) or
+     (goverlayPageControl.ActivePage = visualTabSheet) or
+     (goverlayPageControl.ActivePage = performanceTabSheet) or
+     (goverlayPageControl.ActivePage = metricsTabSheet) or
+     (goverlayPageControl.ActivePage = extrasTabSheet) then
+  begin
+    if FileExists(LogDir + 'mangohud.log') then
+      Result := LogDir + 'mangohud.log'
+    else
+      Result := LogDir + 'bgmod.log';
+  end
+  else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+    Result := LogDir + 'vkbasalt.log'
+  else if goverlayPageControl.ActivePage = vksumiTabSheet then
+    Result := LogDir + 'vksumi.log'
+  else if goverlayPageControl.ActivePage = optiscalerTabSheet then
+  begin
+    Result := LogDir + 'optiscaler.log';
+    if not FileExists(Result) and (FActiveGameName <> '') then
+    begin
+      if FileExists(ConfigDir + 'OptiScaler.log') then
+        Result := ConfigDir + 'OptiScaler.log';
+    end;
+  end
+  else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+  begin
+    IsLsfg := False;
+    if Assigned(FLosslessScalingHelper) then
+    begin
+      if TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imLsfg then
+        IsLsfg := True
+      else if (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imNone) and
+              FileExists(LogDir + 'lsfg.log') and not FileExists(LogDir + 'mako.log') then
+        IsLsfg := True;
+    end;
+
+    if IsLsfg then
+      Result := LogDir + 'lsfg.log'
+    else
+      Result := LogDir + 'mako.log';
+  end
+  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+    Result := LogDir + 'bgmod.log'
+  else
+    Result := LogDir + 'bgmod.log';
+end;
+
+procedure Tgoverlayform.openConfigFileMenuItemClick(Sender: TObject);
+var
+  TargetFile: string;
+begin
+  TargetFile := GetActiveTabConfigFile;
 
   if TargetFile <> '' then
   begin
@@ -6487,41 +6581,9 @@ end;
 
 procedure Tgoverlayform.openLogFileMenuItemClick(Sender: TObject);
 var
-  LogDir, TargetFile: string;
+  TargetFile: string;
 begin
-  LogDir := GetGameLogDir(FActiveGameName);
-  TargetFile := '';
-
-  if (goverlayPageControl.ActivePage = presetTabSheet) or
-     (goverlayPageControl.ActivePage = visualTabSheet) or
-     (goverlayPageControl.ActivePage = performanceTabSheet) or
-     (goverlayPageControl.ActivePage = metricsTabSheet) or
-     (goverlayPageControl.ActivePage = extrasTabSheet) then
-  begin
-    if FileExists(LogDir + 'mangohud.log') then
-      TargetFile := LogDir + 'mangohud.log'
-    else
-      TargetFile := LogDir + 'bgmod.log';
-  end
-  else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
-    TargetFile := LogDir + 'vkbasalt.log'
-  else if goverlayPageControl.ActivePage = vksumiTabSheet then
-    TargetFile := LogDir + 'vksumi.log'
-  else if goverlayPageControl.ActivePage = optiscalerTabSheet then
-  begin
-    TargetFile := LogDir + 'optiscaler.log';
-    if not FileExists(TargetFile) and (FActiveGameName <> '') then
-    begin
-      if FileExists(IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.log') then
-        TargetFile := IncludeTrailingPathDelimiter(GetGameConfigDir(FActiveGameName)) + 'OptiScaler.log';
-    end;
-  end
-  else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
-    TargetFile := LogDir + 'mako.log'
-  else if goverlayPageControl.ActivePage = tweaksTabSheet then
-    TargetFile := LogDir + 'bgmod.log'
-  else
-    TargetFile := LogDir + 'bgmod.log';
+  TargetFile := GetActiveTabLogFile;
 
   if TargetFile <> '' then
   begin
@@ -8139,6 +8201,9 @@ end;
 
 procedure Tgoverlayform.goverlayPageControlChange(Sender: TObject);
 begin
+  if goverlayPageControl.ActivePage <> losslessScalingTabSheet then
+    FLastLosslessShowTick := 0;
+
   if goverlayPageControl.ActivePage = losslessScalingTabSheet then
     losslessScalingTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = optiscalerTabSheet then
@@ -8159,6 +8224,7 @@ end;
 
 procedure Tgoverlayform.optiscalerTabSheetShow(Sender: TObject);
 begin
+  FLastLosslessShowTick := 0;
   FLoadingConfig := True;
   try
     LoadOptiScalerConfig;
@@ -8190,6 +8256,11 @@ end;
 
 procedure Tgoverlayform.losslessScalingTabSheetShow(Sender: TObject);
 begin
+  if FLoadingConfig then Exit;
+  if (FActiveGameName = FLastLosslessGame) and (GetTickCount64 - FLastLosslessShowTick < 50) then Exit;
+  FLastLosslessShowTick := GetTickCount64;
+  FLastLosslessGame := FActiveGameName;
+
   FLoadingConfig := True;
   try
     if Assigned(FLosslessScalingHelper) then

@@ -746,6 +746,7 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mako.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'lsfg.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'optiscaler.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log');

@@ -231,10 +231,11 @@ begin
 end;
 
 procedure RunSubprocessLogger(ReadFd, OrigStderrFd: cint; 
-  const MakoCent, MakoGame, OptiCent, OptiGame, SumiCent, SumiGame, BasaltCent, BasaltGame, InternalOptiLog: string;
-  LogMako, LogOpti, LogSumi, LogBasalt: Boolean);
+  const MakoCent, MakoGame, LsfgCent, LsfgGame, OptiCent, OptiGame, SumiCent, SumiGame, BasaltCent, BasaltGame, InternalOptiLog: string;
+  LogMako, LogLsfg, LogOpti, LogSumi, LogBasalt: Boolean);
 var
   MakoCentFd, MakoGameFd: cint;
+  LsfgCentFd, LsfgGameFd: cint;
   OptiCentFd, OptiGameFd: cint;
   SumiCentFd, SumiGameFd: cint;
   BasaltCentFd, BasaltGameFd: cint;
@@ -242,9 +243,10 @@ var
   N: TsSize;
   i: Integer;
   LineBuf, Line, OutLine, LowLine: string;
-  IsMako, IsOpti, IsSumi, IsBasalt: Boolean;
+  IsMako, IsLsfg, IsOpti, IsSumi, IsBasalt: Boolean;
 begin
   MakoCentFd := -1; MakoGameFd := -1;
+  LsfgCentFd := -1; LsfgGameFd := -1;
   OptiCentFd := -1; OptiGameFd := -1;
   SumiCentFd := -1; SumiGameFd := -1;
   BasaltCentFd := -1; BasaltGameFd := -1;
@@ -253,6 +255,11 @@ begin
     MakoCentFd := fpOpen(PChar(MakoCent), O_WRONLY or O_CREAT or O_APPEND, &644);
   if LogMako and (MakoGame <> '') then
     MakoGameFd := fpOpen(PChar(MakoGame), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogLsfg and (LsfgCent <> '') then
+    LsfgCentFd := fpOpen(PChar(LsfgCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+  if LogLsfg and (LsfgGame <> '') then
+    LsfgGameFd := fpOpen(PChar(LsfgGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogOpti and (OptiCent <> '') then
     OptiCentFd := fpOpen(PChar(OptiCent), O_WRONLY or O_CREAT or O_APPEND, &644);
@@ -299,6 +306,17 @@ begin
             begin
               if MakoCentFd >= 0 then fpWrite(MakoCentFd, PChar(OutLine), Length(OutLine));
               if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
+
+          if LogLsfg then
+          begin
+            IsLsfg := (Pos('lsfg', LowLine) > 0) or 
+                      (Pos('lossless', LowLine) > 0);
+            if IsLsfg then
+            begin
+              if LsfgCentFd >= 0 then fpWrite(LsfgCentFd, PChar(OutLine), Length(OutLine));
+              if LsfgGameFd >= 0 then fpWrite(LsfgGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -352,6 +370,12 @@ begin
       if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
     end;
 
+    if LogLsfg and ((Pos('lsfg', LowLine) > 0) or (Pos('lossless', LowLine) > 0)) then
+    begin
+      if LsfgCentFd >= 0 then fpWrite(LsfgCentFd, PChar(OutLine), Length(OutLine));
+      if LsfgGameFd >= 0 then fpWrite(LsfgGameFd, PChar(OutLine), Length(OutLine));
+    end;
+
     if LogOpti and ((Pos('optiscaler', LowLine) > 0) or (Pos('nvngx', LowLine) > 0) or (Pos('fakenvapi', LowLine) > 0)) then
     begin
       if OptiCentFd >= 0 then fpWrite(OptiCentFd, PChar(OutLine), Length(OutLine));
@@ -373,6 +397,8 @@ begin
 
   if MakoCentFd >= 0 then fpClose(MakoCentFd);
   if MakoGameFd >= 0 then fpClose(MakoGameFd);
+  if LsfgCentFd >= 0 then fpClose(LsfgCentFd);
+  if LsfgGameFd >= 0 then fpClose(LsfgGameFd);
   if OptiCentFd >= 0 then fpClose(OptiCentFd);
   if OptiGameFd >= 0 then fpClose(OptiGameFd);
   if SumiCentFd >= 0 then fpClose(SumiCentFd);
@@ -1350,6 +1376,7 @@ var
   Args: array of PChar;
   ArgsStrings: array of string;
   MakoCentralLogFile, MakoGameLogFile: string;
+  LsfgCentralLogFile, LsfgGameLogFile: string;
   OptiCentralLogFile, OptiGameLogFile, InternalOptiLogPath: string;
   SumiCentralLogFile, SumiGameLogFile: string;
   BasaltCentralLogFile, BasaltGameLogFile: string;
@@ -2279,6 +2306,8 @@ begin
   // Setup tool logging in CentralLogDir and GameDir
   MakoCentralLogFile := '';
   MakoGameLogFile := '';
+  LsfgCentralLogFile := '';
+  LsfgGameLogFile := '';
   OptiCentralLogFile := '';
   OptiGameLogFile := '';
   SumiCentralLogFile := '';
@@ -2303,6 +2332,25 @@ begin
       MakoGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'mako.log';
       InitToolLogFile(MakoGameLogFile, 'MAKO', GameDir, TomlPath);
       Log('MAKO game log: ' + MakoGameLogFile);
+    end;
+  end;
+
+  if GOverlayLossless and (InterpolationMethod = 'lsfg') then
+  begin
+    if ProfileName = '' then
+      ProfileName := ExtractFileName(ExcludeTrailingPathDelimiter(ConfigDir));
+
+    if CentralLogDir <> '' then
+    begin
+      LsfgCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'lsfg.log';
+      InitToolLogFile(LsfgCentralLogFile, 'lsfg-vk', GameDir, TomlPath);
+      Log('lsfg-vk central log: ' + LsfgCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      LsfgGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'lsfg.log';
+      InitToolLogFile(LsfgGameLogFile, 'lsfg-vk', GameDir, TomlPath);
+      Log('lsfg-vk game log: ' + LsfgGameLogFile);
     end;
   end;
 
@@ -2357,11 +2405,12 @@ begin
     end;
   end;
 
-  HasAnyToolLogging := (GOverlayLossless and (InterpolationMethod = 'mako')) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
+  HasAnyToolLogging := (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
 
   // If any tool logging is enabled, spawn background stderr filter process
   if HasAnyToolLogging and (
      (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') or
+     (LsfgCentralLogFile <> '') or (LsfgGameLogFile <> '') or
      (OptiCentralLogFile <> '') or (OptiGameLogFile <> '') or
      (SumiCentralLogFile <> '') or (SumiGameLogFile <> '') or
      (BasaltCentralLogFile <> '') or (BasaltGameLogFile <> '')
@@ -2377,11 +2426,14 @@ begin
         fpClose(PipeFds[1]);
         RunSubprocessLogger(PipeFds[0], OrigStderr,
           MakoCentralLogFile, MakoGameLogFile,
+          LsfgCentralLogFile, LsfgGameLogFile,
           OptiCentralLogFile, OptiGameLogFile,
           SumiCentralLogFile, SumiGameLogFile,
           BasaltCentralLogFile, BasaltGameLogFile,
           InternalOptiLogPath,
-          (GOverlayLossless and (InterpolationMethod = 'mako')), GOverlayOptiscaler, GOverlayVkSumi, GOverlayVkBasalt
+          (GOverlayLossless and (InterpolationMethod = 'mako')),
+          (GOverlayLossless and (InterpolationMethod = 'lsfg')),
+          GOverlayOptiscaler, GOverlayVkSumi, GOverlayVkBasalt
         );
       end
       else if ForkPid > 0 then

@@ -35,6 +35,7 @@ type
     procedure TestLosslessScalingEnvVarsGeneration;
     procedure TestLosslessScalingBgmodConfRoundtrip;
     procedure TestLosslessScalingPerGameContextIsolation;
+    procedure TestLosslessScalingDynamicConfigFileAndLog;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -480,6 +481,31 @@ begin
     if FileExists(GameToml) then DeleteFile(GameToml);
     if DirectoryExists(GameDir) then DeleteDirectory(GameDir, False);
   end;
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingDynamicConfigFileAndLog;
+var
+  Helper: TLosslessScalingTabHelper;
+  ConfigFile, LogFile: string;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+
+  // 1. Test lsfg-vk method
+  Helper.InterpolationMethod := imLsfg;
+  ConfigFile := goverlayform.GetActiveTabConfigFile;
+  AssertEquals('lsfg-vk selected opens lsfg.toml', 'lsfg.toml', ExtractFileName(ConfigFile));
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('lsfg-vk selected opens lsfg.log', 'lsfg.log', ExtractFileName(LogFile));
+
+  // 2. Test MAKO method
+  Helper.InterpolationMethod := imMako;
+  ConfigFile := goverlayform.GetActiveTabConfigFile;
+  AssertEquals('MAKO selected opens conf.toml', 'conf.toml', ExtractFileName(ConfigFile));
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('MAKO selected opens mako.log', 'mako.log', ExtractFileName(LogFile));
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;
@@ -3516,6 +3542,16 @@ begin
     AssertFalse('DisabledNoticeLbl is hidden for imLsfg', Helper.DisabledNoticeLbl.Visible);
     AssertTrue('FrameGenCard is visible for imLsfg', Helper.FrameGenCard.Visible);
     AssertFalse('SpatialCard is hidden for imLsfg', Helper.SpatialCard.Visible);
+    AssertTrue('HdrModeToggle is visible for imLsfg', Helper.HdrModeToggle.Visible);
+    AssertTrue('NoFp16Toggle is visible for imLsfg', Helper.NoFp16Toggle.Visible);
+    AssertTrue('PacingComboBox is visible for imLsfg', Helper.PacingComboBox.Visible);
+
+    // Verify ControlStateChange preserves lsfg-vk toggle visibility
+    Helper.ControlStateChange(nil);
+    AssertTrue('HdrModeToggle remains visible after ControlStateChange', Helper.HdrModeToggle.Visible);
+    AssertTrue('NoFp16Toggle remains visible after ControlStateChange', Helper.NoFp16Toggle.Visible);
+    AssertTrue('PacingComboBox remains visible after ControlStateChange', Helper.PacingComboBox.Visible);
+
     Helper.MultiplierTrackBar.Position := 2;
     AssertTrue('Active env vars contain LSFG_CONFIG for imLsfg', Pos('LSFG_CONFIG', Helper.GetActiveEnvVars) > 0);
     AssertEquals('Active env vars do not contain ENABLE_MAKO for imLsfg', 0, Pos('ENABLE_MAKO', Helper.GetActiveEnvVars));
@@ -3553,18 +3589,26 @@ begin
     AssertTrue('mako label is to the right of icon', Helper.MethodMakoLabel.Left > Helper.MethodMakoImage.Left);
 
     // 6. Test StatusCard labels formatting and color
+    AssertEquals('Row 0 name is Lossless Scaling', 'Lossless Scaling', Helper.StatNameLabel[0].Caption);
+    AssertEquals('Row 1 name is MAKO', 'MAKO', Helper.StatNameLabel[1].Caption);
+    AssertEquals('Row 2 name is lsfg-vk', 'lsfg-vk', Helper.StatNameLabel[2].Caption);
+
     if (Helper.EngineStatusLabel.Caption <> '') and (Helper.EngineStatusLabel.Caption <> 'Not installed') then
     begin
       AssertEquals('MAKO status label color is purple ($BB99FF)', $BB99FF, Helper.EngineStatusLabel.Font.Color);
       AssertFalse('MAKO status label does not repeat name', Pos('MAKO Renderer:', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (Found)', Pos('(Found)', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (found)', Pos('(found)', Helper.EngineStatusLabel.Caption) > 0);
+      if (Helper.EngineStatusLabel.Caption <> 'Installed') then
+        AssertFalse('MAKO version does not start with v', (Helper.EngineStatusLabel.Caption[1] in ['v', 'V']));
     end;
     if (Helper.LsfgStatusLabel.Caption <> '') and (Helper.LsfgStatusLabel.Caption <> 'Not installed') then
     begin
       AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
       AssertFalse('lsfg-vk status label does not contain (Found)', Pos('(Found)', Helper.LsfgStatusLabel.Caption) > 0);
       AssertFalse('lsfg-vk status label does not contain (found)', Pos('(found)', Helper.LsfgStatusLabel.Caption) > 0);
+      if (Helper.LsfgStatusLabel.Caption <> 'Installed') then
+        AssertFalse('lsfg-vk version does not start with v', (Helper.LsfgStatusLabel.Caption[1] in ['v', 'V']));
     end;
   finally
     if FileExists(DummyDll) then
