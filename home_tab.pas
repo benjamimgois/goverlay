@@ -445,7 +445,7 @@ begin
       DlssOK  := Self.IsDlssEnablerInstalled;
       SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
                  (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
-      LsfgOK  := IsMakoInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0) or (Missing.IndexOf(DEP_MAKO) < 0);
+      LsfgOK  := IsMakoInstalled or IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0) or (Missing.IndexOf(DEP_MAKO) < 0);
     finally
       Missing.Free;
     end;
@@ -485,21 +485,22 @@ begin
     while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
       Delete(LsfgVer, 1, 1);
 
-    if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable then
+    RemoteVer := '';
+    if Assigned(FLosslessScalingHelper) then
     begin
-      RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
-      while (RemoteVer <> '') and (RemoteVer[1] in ['v', 'V']) do
-        Delete(RemoteVer, 1, 1);
-      if (RemoteVer <> '') and (LsfgVer <> '') and (RemoteVer <> LsfgVer) then
-      begin
-        FHomeModVerLbls[5].Caption := LsfgVer + ' → ' + RemoteVer;
-        FHomeModVerLbls[5].Font.Color := $0044AAFF;
-      end
-      else
-      begin
-        FHomeModVerLbls[5].Caption := LsfgVer;
-        FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
-      end;
+      if TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgUpdateAvailable then
+        RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgRemoteVer
+      else if TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable then
+        RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
+    end;
+
+    while (RemoteVer <> '') and (RemoteVer[1] in ['v', 'V']) do
+      Delete(RemoteVer, 1, 1);
+
+    if (RemoteVer <> '') and (LsfgVer <> '') and (RemoteVer <> LsfgVer) then
+    begin
+      FHomeModVerLbls[5].Caption := LsfgVer + ' → ' + RemoteVer;
+      FHomeModVerLbls[5].Font.Color := $0044AAFF;
     end
     else
     begin
@@ -571,8 +572,16 @@ begin
 
     if Assigned(FLosslessScalingHelper) then
     begin
-      RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
-      HasUpdate := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable;
+      if TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgUpdateAvailable then
+      begin
+        RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgRemoteVer;
+        HasUpdate := True;
+      end
+      else if TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable then
+      begin
+        RemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
+        HasUpdate := True;
+      end;
     end;
 
     LocalVer := Self.GetLsfgVkVersion;
@@ -940,36 +949,18 @@ end;
 
 function THomeTabHelper.GetLsfgVkVersion: string;
 var
-  P: TProcess;
-  S: TStringList;
-  MakoVer: string;
+  LsVer, MakoVer: string;
 begin
+  LsVer := GetLsfgVkInstalledVersion;
+  if LsVer <> '' then
+    Exit(LsVer);
   MakoVer := GetMakoInstalledVersion;
   if MakoVer <> '' then
     Exit(MakoVer);
-  if IsMakoInstalled then
+  if IsLsfgVkInstalled or IsMakoInstalled then
     Exit('installed');
 
   Result := '';
-  if IsRunningInFlatpak then Exit;
-  P := TProcess.Create(nil);
-  try
-    P.Executable := FindDefaultExecutablePath('sh');
-    P.Parameters.Add('-c');
-    P.Parameters.Add('pacman -Q lsfg-vk 2>/dev/null | awk ''{print $2}'' || ' +
-                     'pacman -Q lsfg-vk-git 2>/dev/null | awk ''{print $2}'' || ' +
-                     'dpkg-query -W -f=''${Version}'' lsfg-vk 2>/dev/null || ' +
-                     'rpm -q --qf ''%{VERSION}'' lsfg-vk 2>/dev/null || echo ""');
-    P.Options := [poUsePipes, poWaitOnExit];
-    try
-      P.Execute;
-      S := TStringList.Create;
-      try
-        S.LoadFromStream(P.Output);
-        if S.Count > 0 then Result := Trim(S[0]);
-      finally S.Free; end;
-    except end;
-  finally P.Free; end;
 end;
 
 function THomeTabHelper.FindBinPath(const BinName: string): string;

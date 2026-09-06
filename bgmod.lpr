@@ -1358,6 +1358,7 @@ end;
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
   TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr, InterpolationMethod, LsfgGpu: string;
+  LsfgOverridePresent, LsfgPreserveSwapchain, LsfgOverridePresentStr, LsfgPreserveSwapchainStr: string;
   MakoScalingEnabled, MakoScalingMethod, MakoScalingFactor, MakoScalingSharpness, MakoScalingSs: string;
   MakoAdaptive, MakoTargetFps, MakoAdaptiveMaxMult, MakoSteady2xCap, MakoAllowFp16: string;
   MakoBaseFpsCap, MakoRefreshThreshold, MakoFgLive, MakoUltraPerf: string;
@@ -1499,8 +1500,10 @@ begin
       LsfgPerf := Ini.ReadString('Config', 'LS_PERFORMANCE_MODE', Ini.ReadString('Env', 'LSFG_PERFORMANCE_MODE', '0'));
       LsfgHdr := Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', '0'));
       LsfgLegacy := Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', '1'));
-      LsfgPacing := Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', 'fifo'));
+      LsfgPacing := Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', 'vsync'));
       LsfgGpu := Ini.ReadString('Config', 'LS_GPU', Ini.ReadString('Env', 'LSFG_GPU', ''));
+      LsfgOverridePresent := Ini.ReadString('Config', 'LS_OVERRIDE_PRESENT_MODE', Ini.ReadString('Env', 'LSFG_OVERRIDE_PRESENT_MODE', '1'));
+      LsfgPreserveSwapchain := Ini.ReadString('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT', Ini.ReadString('Env', 'LSFG_PRESERVE_SWAPCHAIN_IMAGE_COUNT', '0'));
       
       Ini.ReadSectionValues('Env', EnvList);
     finally
@@ -1874,32 +1877,38 @@ begin
   begin
     if InterpolationMethod = 'lsfg' then
     begin
-      TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml';
+      TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'conf.toml';
       TomlLines := TStringList.Create;
       try
-        // If lsfg.toml already exists, load existing settings from it
+        // If conf.toml or lsfg.toml already exists, load existing settings from it
         if FileExists(TomlPath) then
+          TomlLines.LoadFromFile(TomlPath)
+        else if FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml') then
+          TomlLines.LoadFromFile(IncludeTrailingPathDelimiter(ConfigDir) + 'lsfg.toml');
+
+        for i := 0 to TomlLines.Count - 1 do
         begin
-          TomlLines.LoadFromFile(TomlPath);
-          for i := 0 to TomlLines.Count - 1 do
+          Line := Trim(TomlLines[i]);
+          if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
+          p := Pos('=', Line);
+          if p > 0 then
           begin
-            Line := Trim(TomlLines[i]);
-            if (Line = '') or (Line[1] = '#') or (Line[1] = '[') then Continue;
-            p := Pos('=', Line);
-            if p > 0 then
+            Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
+            Val := Trim(Copy(Line, p + 1, MaxInt));
+            if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
+              Val := Copy(Val, 2, Length(Val) - 2);
+            if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
+            else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
+            else if Key = 'flow_scale' then LsfgFlow := Val
+            else if Key = 'performance_mode' then LsfgPerfStr := Val
+            else if Key = 'allow_fp16' then
             begin
-              Key := LowerCase(Trim(Copy(Line, 1, p - 1)));
-              Val := Trim(Copy(Line, p + 1, MaxInt));
-              if (Length(Val) >= 2) and (Val[1] in ['"', '''']) and (Val[Length(Val)] in ['"', '''']) then
-                Val := Copy(Val, 2, Length(Val) - 2);
-              if (Key = 'dll') and (LsfgDllPath = '') then LsfgDllPath := Val
-              else if Key = 'multiplier' then LsfgMult := StrToIntDef(Val, LsfgMult)
-              else if Key = 'flow_scale' then LsfgFlow := Val
-              else if Key = 'performance_mode' then LsfgPerfStr := Val
-              else if Key = 'hdr_mode' then LsfgHdrStr := Val
-              else if (Key = 'legacy') or (Key = 'no_fp16') then LsfgLegacyStr := Val
-              else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val;
-            end;
+              if (LowerCase(Val) = 'true') or (Val = '1') then LsfgLegacyStr := 'false' else LsfgLegacyStr := 'true';
+            end
+            else if (Key = 'legacy') or (Key = 'no_fp16') then LsfgLegacyStr := Val
+            else if (Key = 'pacing') or (Key = 'experimental_present_mode') then LsfgPacing := Val
+            else if Key = 'override_present_mode' then LsfgOverridePresentStr := Val
+            else if Key = 'preserve_swapchain_image_count' then LsfgPreserveSwapchainStr := Val;
           end;
         end;
         
@@ -1908,59 +1917,77 @@ begin
         begin
           if LsfgPerf = '1' then LsfgPerfStr := 'true' else LsfgPerfStr := 'false';
         end;
-        if (LsfgHdrStr <> 'true') and (LsfgHdrStr <> 'false') then
-        begin
-          if LsfgHdr = '1' then LsfgHdrStr := 'true' else LsfgHdrStr := 'false';
-        end;
         if (LsfgLegacyStr <> 'true') and (LsfgLegacyStr <> 'false') then
         begin
           if LsfgLegacy = '1' then LsfgLegacyStr := 'true' else LsfgLegacyStr := 'false';
         end;
+        if (LsfgOverridePresentStr <> 'true') and (LsfgOverridePresentStr <> 'false') then
+        begin
+          if LsfgOverridePresent = '0' then LsfgOverridePresentStr := 'false' else LsfgOverridePresentStr := 'true';
+        end;
+        if (LsfgPreserveSwapchainStr <> 'true') and (LsfgPreserveSwapchainStr <> 'false') then
+        begin
+          if LsfgPreserveSwapchain = '1' then LsfgPreserveSwapchainStr := 'true' else LsfgPreserveSwapchainStr := 'false';
+        end;
         
+        LsfgPacing := LowerCase(Trim(LsfgPacing));
+        if (LsfgPacing <> 'vsync') and (LsfgPacing <> 'none') then
+          LsfgPacing := 'vsync';
+
         TomlLines.Clear;
-        TomlLines.Add('version = 1');
+        TomlLines.Add('version = 2');
         TomlLines.Add('');
         TomlLines.Add('[global]');
         TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        if LsfgLegacyStr = 'true' then
+          TomlLines.Add('allow_fp16 = false')
+        else
+          TomlLines.Add('allow_fp16 = true');
         TomlLines.Add('');
-        TomlLines.Add('[[game]]');
-        TomlLines.Add('exe = "pascube"');
-        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('[[profile]]');
+        TomlLines.Add('name = "pascube"');
+        TomlLines.Add('active_in = ["pascube"]');
         TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
         TomlLines.Add('flow_scale = ' + LsfgFlow);
         TomlLines.Add('performance_mode = ' + LsfgPerfStr);
-        TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
-        TomlLines.Add('legacy = ' + LsfgLegacyStr);
-        TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        TomlLines.Add('pacing = "' + LsfgPacing + '"');
+        TomlLines.Add('override_present_mode = ' + LsfgOverridePresentStr);
+        TomlLines.Add('preserve_swapchain_image_count = ' + LsfgPreserveSwapchainStr);
         TomlLines.Add('');
-        TomlLines.Add('[[game]]');
-        TomlLines.Add('exe = "vkcube"');
-        TomlLines.Add('dll = "' + LsfgDllPath + '"');
+        TomlLines.Add('[[profile]]');
+        TomlLines.Add('name = "vkcube"');
+        TomlLines.Add('active_in = ["vkcube"]');
         TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
         TomlLines.Add('flow_scale = ' + LsfgFlow);
         TomlLines.Add('performance_mode = ' + LsfgPerfStr);
-        TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
-        TomlLines.Add('legacy = ' + LsfgLegacyStr);
-        TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+        TomlLines.Add('pacing = "' + LsfgPacing + '"');
+        TomlLines.Add('override_present_mode = ' + LsfgOverridePresentStr);
+        TomlLines.Add('preserve_swapchain_image_count = ' + LsfgPreserveSwapchainStr);
         
         if TargetExeName <> '' then
         begin
+          ProfileName := ChangeFileExt(ExtractFileName(TargetExeName), '');
+          if ProfileName = '' then ProfileName := TargetExeName;
           TomlLines.Add('');
-          TomlLines.Add('[[game]]');
-          TomlLines.Add('exe = "' + TargetExeName + '"');
-          TomlLines.Add('dll = "' + LsfgDllPath + '"');
+          TomlLines.Add('[[profile]]');
+          TomlLines.Add('name = "' + ProfileName + '"');
+          TomlLines.Add('active_in = ["' + TargetExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
           TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
           TomlLines.Add('flow_scale = ' + LsfgFlow);
           TomlLines.Add('performance_mode = ' + LsfgPerfStr);
-          TomlLines.Add('hdr_mode = ' + LsfgHdrStr);
-          TomlLines.Add('legacy = ' + LsfgLegacyStr);
-          TomlLines.Add('experimental_present_mode = "' + LsfgPacing + '"');
+          TomlLines.Add('pacing = "' + LsfgPacing + '"');
+          TomlLines.Add('override_present_mode = ' + LsfgOverridePresentStr);
+          TomlLines.Add('preserve_swapchain_image_count = ' + LsfgPreserveSwapchainStr);
         end;
         
         TomlLines.SaveToFile(TomlPath);
         
+        SetEnvVarInList(EnvStrings, 'LSFGVK_CONFIG', TomlPath);
         SetEnvVarInList(EnvStrings, 'LSFG_CONFIG', TomlPath);
+        SetEnvVarInList(EnvStrings, 'LSFGVK_PACING_MODE', LsfgPacing);
+        Log('Export: LSFGVK_CONFIG=' + TomlPath);
         Log('Export: LSFG_CONFIG=' + TomlPath);
+        Log('Export: LSFGVK_PACING_MODE=' + LsfgPacing);
         if LsfgGpu <> '' then
         begin
           SetEnvVarInList(EnvStrings, 'LSFG_GPU', LsfgGpu);

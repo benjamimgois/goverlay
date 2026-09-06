@@ -112,6 +112,7 @@ type
     procedure TestLosslessScalingCompactToggles;
     procedure TestLosslessScalingMethodSwitching;
     procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
+    procedure TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
     procedure TestFinishConfigurationDialogModernSteamUI;
@@ -284,7 +285,7 @@ begin
     Helper.PerfModeCheckBox.Checked := True;
     Helper.HdrModeCheckBox.Checked := True;
     Helper.NoFp16CheckBox.Checked := True;
-    Helper.PacingComboBox.ItemIndex := 1; // vsync
+    Helper.PacingComboBox.ItemIndex := 0; // vsync
     
     // Verify controls enabled when multiplier > 1
     AssertTrue('FlowScale enabled at 3x', Helper.FlowScaleTrackBar.Enabled);
@@ -416,7 +417,7 @@ begin
       Helper.PerfModeCheckBox.Checked := True;
       Helper.HdrModeCheckBox.Checked := True;
       Helper.NoFp16CheckBox.Checked := True;
-      Helper.PacingComboBox.ItemIndex := 3; // immediate
+      Helper.PacingComboBox.ItemIndex := 1; // none
     finally
       goverlayform.FLoadingConfig := False;
     end;
@@ -445,7 +446,7 @@ begin
       Helper.PerfModeCheckBox.Checked := False;
       Helper.HdrModeCheckBox.Checked := False;
       Helper.NoFp16CheckBox.Checked := True;
-      Helper.PacingComboBox.ItemIndex := 1; // vsync
+      Helper.PacingComboBox.ItemIndex := 0; // vsync
     finally
       goverlayform.FLoadingConfig := False;
     end;
@@ -463,7 +464,7 @@ begin
     AssertEquals('Global restored FlowScale is 80%', 80, Helper.FlowScaleTrackBar.Position);
     AssertTrue('Global restored PerfMode is True', Helper.PerfModeCheckBox.Checked);
     AssertTrue('Global restored HdrMode is True', Helper.HdrModeCheckBox.Checked);
-    AssertEquals('Global restored Pacing is immediate (3)', 3, Helper.PacingComboBox.ItemIndex);
+    AssertEquals('Global restored Pacing is none (1)', 1, Helper.PacingComboBox.ItemIndex);
 
     // 5. Switch back to Game Profile and verify Game values remain intact
     goverlayform.FActiveGameName := 'TestGameIso';
@@ -473,7 +474,7 @@ begin
     AssertEquals('Game restored FlowScale is 60%', 60, Helper.FlowScaleTrackBar.Position);
     AssertFalse('Game restored PerfMode is False', Helper.PerfModeCheckBox.Checked);
     AssertFalse('Game restored HdrMode is False', Helper.HdrModeCheckBox.Checked);
-    AssertEquals('Game restored Pacing is vsync (1)', 1, Helper.PacingComboBox.ItemIndex);
+    AssertEquals('Game restored Pacing is vsync (0)', 0, Helper.PacingComboBox.ItemIndex);
 
   finally
     goverlayform.FActiveGameName := '';
@@ -497,7 +498,7 @@ begin
   // 1. Test lsfg-vk method
   Helper.InterpolationMethod := imLsfg;
   ConfigFile := goverlayform.GetActiveTabConfigFile;
-  AssertEquals('lsfg-vk selected opens lsfg.toml', 'lsfg.toml', ExtractFileName(ConfigFile));
+  AssertEquals('lsfg-vk selected opens conf.toml', 'conf.toml', ExtractFileName(ConfigFile));
   LogFile := goverlayform.GetActiveTabLogFile;
   AssertEquals('lsfg-vk selected opens lsfg.log', 'lsfg.log', ExtractFileName(LogFile));
 
@@ -3543,14 +3544,20 @@ begin
     AssertFalse('DisabledNoticeLbl is hidden for imLsfg', Helper.DisabledNoticeLbl.Visible);
     AssertTrue('FrameGenCard is visible for imLsfg', Helper.FrameGenCard.Visible);
     AssertFalse('SpatialCard is hidden for imLsfg', Helper.SpatialCard.Visible);
-    AssertTrue('HdrModeToggle is visible for imLsfg', Helper.HdrModeToggle.Visible);
-    AssertTrue('NoFp16Toggle is visible for imLsfg', Helper.NoFp16Toggle.Visible);
+    AssertFalse('HdrModeToggle is hidden for imLsfg', Helper.HdrModeToggle.Visible);
+    AssertFalse('NoFp16Toggle is hidden for imLsfg', Helper.NoFp16Toggle.Visible);
+    AssertTrue('OverridePresentModeToggle is visible for imLsfg', Helper.OverridePresentModeToggle.Visible);
+    AssertTrue('PreserveSwapchainToggle is visible for imLsfg', Helper.PreserveSwapchainToggle.Visible);
+    AssertTrue('AllowFp16Toggle is visible for imLsfg', Helper.AllowFp16Toggle.Visible);
     AssertTrue('PacingComboBox is visible for imLsfg', Helper.PacingComboBox.Visible);
 
     // Verify ControlStateChange preserves lsfg-vk toggle visibility
     Helper.ControlStateChange(nil);
-    AssertTrue('HdrModeToggle remains visible after ControlStateChange', Helper.HdrModeToggle.Visible);
-    AssertTrue('NoFp16Toggle remains visible after ControlStateChange', Helper.NoFp16Toggle.Visible);
+    AssertFalse('HdrModeToggle remains hidden after ControlStateChange', Helper.HdrModeToggle.Visible);
+    AssertFalse('NoFp16Toggle remains hidden after ControlStateChange', Helper.NoFp16Toggle.Visible);
+    AssertTrue('OverridePresentModeToggle remains visible after ControlStateChange', Helper.OverridePresentModeToggle.Visible);
+    AssertTrue('PreserveSwapchainToggle remains visible after ControlStateChange', Helper.PreserveSwapchainToggle.Visible);
+    AssertTrue('AllowFp16Toggle remains visible after ControlStateChange', Helper.AllowFp16Toggle.Visible);
     AssertTrue('PacingComboBox remains visible after ControlStateChange', Helper.PacingComboBox.Visible);
 
     Helper.MultiplierTrackBar.Position := 2;
@@ -3596,11 +3603,14 @@ begin
 
     if (Helper.EngineStatusLabel.Caption <> '') and (Helper.EngineStatusLabel.Caption <> 'Not installed') then
     begin
-      AssertEquals('MAKO status label color is purple ($BB99FF)', $BB99FF, Helper.EngineStatusLabel.Font.Color);
+      if Helper.MakoUpdateAvailable then
+        AssertEquals('MAKO status label color is blue ($0044AAFF)', $0044AAFF, Helper.EngineStatusLabel.Font.Color)
+      else
+        AssertEquals('MAKO status label color is purple ($BB99FF)', $BB99FF, Helper.EngineStatusLabel.Font.Color);
       AssertFalse('MAKO status label does not repeat name', Pos('MAKO Renderer:', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (Found)', Pos('(Found)', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (found)', Pos('(found)', Helper.EngineStatusLabel.Caption) > 0);
-      if (Helper.EngineStatusLabel.Caption <> 'Installed') then
+      if (Helper.EngineStatusLabel.Caption <> 'Installed') and not Helper.MakoUpdateAvailable then
         AssertFalse('MAKO version does not start with v', (Helper.EngineStatusLabel.Caption[1] in ['v', 'V']));
     end;
 
@@ -3613,10 +3623,13 @@ begin
 
     if (Helper.LsfgStatusLabel.Caption <> '') and (Helper.LsfgStatusLabel.Caption <> 'Not installed') then
     begin
-      AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
+      if Helper.LsfgUpdateAvailable then
+        AssertEquals('lsfg-vk status label color is blue ($0044AAFF)', $0044AAFF, Helper.LsfgStatusLabel.Font.Color)
+      else
+        AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
       AssertFalse('lsfg-vk status label does not contain (Found)', Pos('(Found)', Helper.LsfgStatusLabel.Caption) > 0);
       AssertFalse('lsfg-vk status label does not contain (found)', Pos('(found)', Helper.LsfgStatusLabel.Caption) > 0);
-      if (Helper.LsfgStatusLabel.Caption <> 'Installed') then
+      if (Helper.LsfgStatusLabel.Caption <> 'Installed') and not Helper.LsfgUpdateAvailable then
         AssertFalse('lsfg-vk version does not start with v', (Helper.LsfgStatusLabel.Caption[1] in ['v', 'V']));
     end;
   finally
@@ -3673,6 +3686,57 @@ begin
     // Reset state
     Helper.SetMakoUpdateState('', False);
     if FileExists(StateFile) then DeleteFile(StateFile);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
+var
+  Helper: TLosslessScalingTabHelper;
+  LayerDir, LayerFile: string;
+  SL: TStringList;
+begin
+  LayerDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d';
+  ForceDirectories(LayerDir);
+  LayerFile := LayerDir + '/VkLayer_LSFGVK_frame_generation.json';
+  SL := TStringList.Create;
+  try
+    SL.Add('{"file_format_version": "1.0.0", "layer": {"name": "VK_LAYER_LSFGVK_frame_generation", "type": "GLOBAL", "library_path": "liblsfg-vk.so", "api_version": "1.3.0", "implementation_version": "1.0.0", "description": "LSFG-VK"}}');
+    SL.SaveToFile(LayerFile);
+  finally
+    SL.Free;
+  end;
+
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Helper exists', Helper);
+
+  try
+    // Simulate detecting a newer version 2.0.0 (local is 1.0.0)
+    Helper.SetLsfgUpdateState('2.0.0', True);
+
+    // 1. Check Lossless Scaling tab display
+    AssertTrue('LsfgUpdateAvailable is True', Helper.LsfgUpdateAvailable);
+    AssertEquals('LsfgRemoteVer is 2.0.0', '2.0.0', Helper.LsfgRemoteVer);
+    AssertTrue('Lsfg status shows arrow indicator', Pos('→ 2.0.0', Helper.LsfgStatusLabel.Caption) > 0);
+    AssertEquals('Lsfg status has accent update color ($0044AAFF)', $0044AAFF, Helper.LsfgStatusLabel.Font.Color);
+    AssertTrue('Lsfg install update button is visible', Helper.LsfgInstallBtn.Visible);
+    AssertEquals('Lsfg install button caption is Install update', 'Install update', Helper.LsfgInstallBtn.Caption);
+
+    // 2. Check Home tab synchronization
+    goverlayform.ShowHomeTab;
+    goverlayform.RefreshHomeMakoStatus;
+    AssertTrue('Home tab module 5 shows arrow indicator', Pos('→ 2.0.0', goverlayform.FHomeModVerLbls[5].Caption) > 0);
+    AssertEquals('Home tab module 5 has accent update color ($0044AAFF)', $0044AAFF, goverlayform.FHomeModVerLbls[5].Font.Color);
+
+    // 3. Switch back to Lossless Scaling tab and ensure update state is NOT wiped out
+    goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+    AssertTrue('After switching back, update state persists on label', Pos('→ 2.0.0', Helper.LsfgStatusLabel.Caption) > 0);
+    AssertTrue('After switching back, install button remains visible', Helper.LsfgInstallBtn.Visible);
+  finally
+    // Reset state
+    Helper.SetLsfgUpdateState('', False);
+    if FileExists(LayerFile) then DeleteFile(LayerFile);
   end;
 end;
 

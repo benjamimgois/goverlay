@@ -34,6 +34,13 @@ function GetMakoLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallMako(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 function InspectMakoLosslessDll(const ADllPath: string; out ADetails: string): Boolean;
 
+// Check and automatically install lsfg-vk Vulkan layer if not present
+function IsLsfgVkInstalled: Boolean;
+function GetLsfgVkLibraryPath: string;
+function GetLsfgVkInstalledVersion: string;
+function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
+function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -4281,6 +4288,354 @@ begin
     end;
   finally
     Process.Free;
+  end;
+end;
+
+function IsLsfgVkInstalled: Boolean;
+var
+  HomeDir, UserLayerDir: string;
+begin
+  HomeDir := GetUserDir;
+  UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
+
+  Result := FileExists(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
+            FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+            FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+            FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+            FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') or
+            FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') or
+            FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') or
+            FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') or
+            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') or
+            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json');
+end;
+
+function GetLsfgVkLibraryPath: string;
+var
+  Candidate: string;
+begin
+  Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/liblsfg-vk-layer.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
+  if FileExists('/usr/lib/liblsfg-vk-layer.so') then Exit('/usr/lib/liblsfg-vk-layer.so');
+  if FileExists('/usr/lib/x86_64-linux-gnu/liblsfg-vk-layer.so') then Exit('/usr/lib/x86_64-linux-gnu/liblsfg-vk-layer.so');
+  if FileExists('/usr/local/lib/liblsfg-vk-layer.so') then Exit('/usr/local/lib/liblsfg-vk-layer.so');
+  if FileExists('/app/lib/extensions/vulkan/lsfgvk/lib/liblsfg-vk-layer.so') then Exit('/app/lib/extensions/vulkan/lsfgvk/lib/liblsfg-vk-layer.so');
+
+  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/liblsfg-vk.so';
+  if FileExists(Candidate) then Exit(Candidate);
+  if FileExists('/usr/lib/liblsfg-vk.so') then Exit('/usr/lib/liblsfg-vk.so');
+end;
+
+function GetLsfgVkInstalledVersion: string;
+var
+  CliPath, LayerPath: string;
+  Proc: TProcess;
+  S: TStringList;
+  Line, RawVer: string;
+  i, p: Integer;
+begin
+  Result := '';
+  RawVer := '';
+
+  // 1. Try lsfg-vk-cli healthcheck
+  CliPath := IncludeTrailingPathDelimiter(GetUserDir) + '.local/bin/lsfg-vk-cli';
+  if not FileExists(CliPath) then
+  begin
+    if FileExists('/usr/bin/lsfg-vk-cli') then
+      CliPath := '/usr/bin/lsfg-vk-cli'
+    else if FileExists('/usr/local/bin/lsfg-vk-cli') then
+      CliPath := '/usr/local/bin/lsfg-vk-cli'
+    else if FileExists('/app/lib/extensions/vulkan/lsfgvk/bin/lsfg-vk-cli') then
+      CliPath := '/app/lib/extensions/vulkan/lsfgvk/bin/lsfg-vk-cli'
+    else
+      CliPath := '';
+  end;
+
+  if (CliPath <> '') and FileExists(CliPath) then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := CliPath;
+      Proc.Parameters.Add('healthcheck');
+      Proc.Options := [poUsePipes, poWaitOnExit];
+      try
+        Proc.Execute;
+        S := TStringList.Create;
+        try
+          S.LoadFromStream(Proc.Output);
+          for i := 0 to S.Count - 1 do
+          begin
+            Line := Trim(S[i]);
+            if Pos('Installed lsfg-vk-cli version:', Line) > 0 then
+            begin
+              p := Pos(':', Line);
+              if p > 0 then
+              begin
+                RawVer := Trim(Copy(Line, p + 1, MaxInt));
+                Break;
+              end;
+            end;
+          end;
+        finally
+          S.Free;
+        end;
+      except
+      end;
+    finally
+      Proc.Free;
+    end;
+  end;
+
+  // 2. Direct inspect of Vulkan layer JSON file if healthcheck didn't yield version
+  if (RawVer = '') and IsLsfgVkInstalled then
+  begin
+    LayerPath := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json';
+    if not FileExists(LayerPath) then
+      LayerPath := '/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json';
+    if not FileExists(LayerPath) then
+      LayerPath := '/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json';
+
+    if FileExists(LayerPath) then
+    begin
+      S := TStringList.Create;
+      try
+        S.LoadFromFile(LayerPath);
+        for i := 0 to S.Count - 1 do
+        begin
+          Line := Trim(S[i]);
+          if Pos('"implementation_version"', Line) > 0 then
+          begin
+            p := Pos(':', Line);
+            if p > 0 then
+            begin
+              RawVer := Trim(Copy(Line, p + 1, MaxInt));
+              RawVer := StringReplace(RawVer, '"', '', [rfReplaceAll]);
+              RawVer := StringReplace(RawVer, ',', '', [rfReplaceAll]);
+              RawVer := Trim(RawVer);
+              if RawVer = '2' then RawVer := '2.0.0';
+              Break;
+            end;
+          end;
+        end;
+      finally
+        S.Free;
+      end;
+    end;
+  end;
+
+  // 3. Fallback: query package manager via TProcess
+  if (RawVer = '') and not IsRunningInFlatpak then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := FindDefaultExecutablePath('sh');
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('pacman -Q lsfg-vk 2>/dev/null | awk ''{print $2}'' || ' +
+                       'pacman -Q lsfg-vk-git 2>/dev/null | awk ''{print $2}'' || ' +
+                       'dpkg-query -W -f=''${Version}'' lsfg-vk 2>/dev/null || ' +
+                       'rpm -q --qf ''%{VERSION}'' lsfg-vk 2>/dev/null || echo ""');
+      Proc.Options := [poUsePipes, poWaitOnExit];
+      try
+        Proc.Execute;
+        S := TStringList.Create;
+        try
+          S.LoadFromStream(Proc.Output);
+          if S.Count > 0 then RawVer := Trim(S[0]);
+        finally
+          S.Free;
+        end;
+      except
+      end;
+    finally
+      Proc.Free;
+    end;
+  end;
+
+  if RawVer <> '' then
+  begin
+    if Pos(':', RawVer) > 0 then
+      RawVer := Copy(RawVer, Pos(':', RawVer) + 1, MaxInt);
+    while (RawVer <> '') and (RawVer[1] in ['v', 'V']) do
+      Delete(RawVer, 1, 1);
+  end;
+
+  Result := RawVer;
+end;
+
+function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
+var
+  RespFile, Line, TagVer, Href: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  i, p1, p2: Integer;
+begin
+  Result := '';
+  AUrl := '';
+
+  RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'lsfgvk_builds_' + IntToStr(fpgetpid) + '.html';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('10');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(RespFile);
+    Process.Parameters.Add(URL_LSFGVK_BUILDS);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+
+    if FileExists(RespFile) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(RespFile);
+        for i := 0 to OutputList.Count - 1 do
+        begin
+          Line := OutputList[i];
+          if (Pos('Latest release (', Line) > 0) or (Pos('Latest git version (', Line) > 0) then
+          begin
+            p1 := Pos('(', Line);
+            p2 := Pos(')', Line);
+            if (p1 > 0) and (p2 > p1) then
+            begin
+              TagVer := Copy(Line, p1 + 1, p2 - p1 - 1);
+              Result := Trim(TagVer);
+            end;
+
+            p1 := Pos('href="', Line);
+            if p1 > 0 then
+            begin
+              Href := Copy(Line, p1 + 6, MaxInt);
+              p2 := Pos('"', Href);
+              if p2 > 0 then
+                Href := Copy(Href, 1, p2 - 1);
+              if Pos('http', Href) = 1 then
+                AUrl := Href
+              else
+                AUrl := URL_LSFGVK_BUILDS + Href;
+            end;
+
+            if Result <> '' then Break;
+          end;
+        end;
+      finally
+        OutputList.Free;
+        DeleteFile(RespFile);
+      end;
+    end;
+  finally
+    Process.Free;
+  end;
+
+  if Result = '' then
+  begin
+    Result := '2.0.0';
+    AUrl := URL_LSFGVK_TARBALL;
+  end;
+  if AUrl = '' then
+    AUrl := URL_LSFGVK_TARBALL;
+end;
+
+function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  ChanLabel: string;
+  StartPct, EndPct: Integer;
+  DownloadUrl, RemoteVer, TempTarFile, LocalUserDir: string;
+  Process: TProcess;
+begin
+  Result := False;
+  StartPct := 85;
+  EndPct := 98;
+
+  // In Flatpak, skip downloading; layer is provided via Flathub extension
+  if IsRunningInFlatpak then
+  begin
+    WriteLn('[AUTO-INSTALL] Flatpak environment detected; lsfg-vk is managed via VulkanLayer extension');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'lsfg-vk Flatpak extension ready');
+    Result := True;
+    Exit;
+  end;
+
+  if not AForce and IsLsfgVkInstalled then
+  begin
+    WriteLn('[AUTO-INSTALL] lsfg-vk layer is already available');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'lsfg-vk runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Downloading lsfg-vk runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct + 2, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing lsfg-vk layer in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    DownloadUrl := '';
+    RemoteVer := GetLsfgVkLatestRemoteVersion(DownloadUrl);
+    if DownloadUrl = '' then
+      DownloadUrl := URL_LSFGVK_TARBALL;
+    TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'lsfg_vk_download.tar.xz';
+    LocalUserDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local';
+
+    RunCurlWithProgress(DownloadUrl, TempTarFile, StartPct + 3, StartPct + 9, ChanLabel, AOnProgress);
+
+    if FileExists(TempTarFile) then
+    begin
+      ForceDirectories(LocalUserDir);
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 10, 'Extracting lsfg-vk runtime...');
+
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := 'tar';
+        Process.Parameters.Add('-xf');
+        Process.Parameters.Add(TempTarFile);
+        Process.Parameters.Add('-C');
+        Process.Parameters.Add(LocalUserDir);
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      // Ensure binaries are executable
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := '/bin/sh';
+        Process.Parameters.Add('-c');
+        Process.Parameters.Add('chmod +x "$HOME/.local/bin/lsfg-vk-"* 2>/dev/null; true');
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      DeleteFile(TempTarFile);
+    end;
+
+    if IsLsfgVkInstalled then
+    begin
+      WriteLn('[AUTO-INSTALL] lsfg-vk runtime installed successfully');
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'lsfg-vk runtime ready');
+      Result := True;
+    end
+    else
+      WriteLn('[AUTO-INSTALL] ERROR: lsfg-vk layer not detected after installation');
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallLsfgVk: ', E.Message);
   end;
 end;
 

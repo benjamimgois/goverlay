@@ -426,6 +426,10 @@ begin
     if not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') and
+       not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') and
+       not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') and
+       not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') and
+       not FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') and
        not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') and
@@ -433,8 +437,10 @@ begin
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') and
        not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') and
        not IsLibraryAvailable('libVkLayer_MAKO_render') and
+       not IsLibraryAvailable('liblsfg-vk-layer') and
        not IsLibraryAvailable('liblsfg-vk') and
        not IsLibraryAvailable('libVkLayer_LSFGVK') and
+       not IsCommandAvailable('lsfg-vk-cli') and
        not IsCommandAvailable('mako-cli') and
        not IsCommandAvailable('mako-ui') and
        not IsCommandAvailable('lsfg-vk-ui') then

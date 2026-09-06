@@ -30,6 +30,8 @@ type
     ScalingSharpness: Double;
     ScalingSupersampling: Boolean;
     Pacing: string;
+    OverridePresentMode: Boolean;
+    PreserveSwapchainImageCount: Boolean;
     Gpu: string;
   end;
 
@@ -37,6 +39,9 @@ procedure InitDefaultMakoConfig(out ACfg: TMakoConfig);
 procedure ParseMakoToml(const AFilePath: string; out ACfg: TMakoConfig);
 procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
   out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string);
+procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
+  out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string;
+  out AOverridePresentMode, APreserveSwapchain: Boolean);
 
 type
   TInterpolationMethod = (imNone, imLsfg, imMako);
@@ -144,6 +149,10 @@ type
     FLsHdrModeToggle: TToggleSwitch;
     FLsNoFp16CheckBox: TCheckBox;
     FLsNoFp16Toggle: TToggleSwitch;
+    FLsOverridePresentModeCheckBox: TCheckBox;
+    FLsOverridePresentModeToggle: TToggleSwitch;
+    FLsPreserveSwapchainCheckBox: TCheckBox;
+    FLsPreserveSwapchainToggle: TToggleSwitch;
     
     FLsPacingTitleLbl: TLabel;
     FLsPacingComboBox: TComboBox;
@@ -162,10 +171,15 @@ type
     FLsScalingSharpnessValueLabel: TLabel;
     FLsScalingSupersamplingCheckBox: TCheckBox;
     FLsScalingSupersamplingToggle: TToggleSwitch;
+    FLsLsfgInstallBtn: TBitBtn;
     FCheckingUpdate: Boolean;
     FUpdateCheckedThisSession: Boolean;
     FMakoRemoteVer: string;
     FMakoUpdateAvailable: Boolean;
+    FLsfgCheckingUpdate: Boolean;
+    FLsfgUpdateCheckedThisSession: Boolean;
+    FLsfgRemoteVer: string;
+    FLsfgUpdateAvailable: Boolean;
     FLsfgVersionCached: string;
     FMakoVersionCached: string;
     FDetectedSteamDllCached: string;
@@ -175,6 +189,7 @@ type
     procedure MethodLsfgClick(Sender: TObject);
     procedure MethodMakoClick(Sender: TObject);
     procedure UpdateMethodImageOpacity;
+    procedure InstallLsfgClick(Sender: TObject);
     function CheckLsfgVkLayerInstalled(out APath: string): Boolean;
     procedure UpdateStatusCard;
     
@@ -219,6 +234,7 @@ type
     function GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
     function GetStatNameLabel(Index: Integer): TLabel;
     procedure SetMakoUpdateState(const ARemoteVer: string; AAvailable: Boolean);
+    procedure SetLsfgUpdateState(const ARemoteVer: string; AAvailable: Boolean);
     
     property InterpolationMethod: TInterpolationMethod read GetInterpolationMethod write SetInterpolationMethod;
     property MethodCard: TPanel read FLsMethodCard;
@@ -239,6 +255,8 @@ type
     property MakoNoteLabel: TLabel read FLsMakoNoteLabel;
     property MakoRemoteVer: string read FMakoRemoteVer;
     property MakoUpdateAvailable: Boolean read FMakoUpdateAvailable;
+    property LsfgRemoteVer: string read FLsfgRemoteVer;
+    property LsfgUpdateAvailable: Boolean read FLsfgUpdateAvailable;
     property MultiplierTrackBar: TTrackBar read FLsMultiplierTrackBar;
     property MultiplierValueLabel: TLabel read FLsMultiplierValueLabel;
     property FlowScaleTrackBar: TTrackBar read FLsFlowScaleTrackBar;
@@ -285,6 +303,11 @@ type
     property EngineStatusLabel: TLabel read FLsEngineStatusLabel;
     property CheckUpdatesBtn: TBitBtn read FLsCheckUpdatesBtn;
     property InstallBtn: TBitBtn read FLsInstallBtn;
+    property LsfgInstallBtn: TBitBtn read FLsLsfgInstallBtn;
+    property OverridePresentModeCheckBox: TCheckBox read FLsOverridePresentModeCheckBox;
+    property OverridePresentModeToggle: TToggleSwitch read FLsOverridePresentModeToggle;
+    property PreserveSwapchainCheckBox: TCheckBox read FLsPreserveSwapchainCheckBox;
+    property PreserveSwapchainToggle: TToggleSwitch read FLsPreserveSwapchainToggle;
     
     property MethodNoneRadio: TRadioButton read FLsNoneRadio;
     property MethodLsfgRadio: TRadioButton read FLsLsfgRadio;
@@ -341,6 +364,8 @@ begin
   ACfg.ScalingSharpness := 0.80;
   ACfg.ScalingSupersampling := False;
   ACfg.Pacing := 'none';
+  ACfg.OverridePresentMode := True;
+  ACfg.PreserveSwapchainImageCount := False;
   ACfg.Gpu := '';
 end;
 
@@ -412,7 +437,11 @@ begin
         else if Key = 'scaling_supersampling' then
           ACfg.ScalingSupersampling := (LowerCase(Val) = 'true') or (Val = '1')
         else if (Key = 'pacing') or (Key = 'experimental_present_mode') then
-          ACfg.Pacing := LowerCase(Val);
+          ACfg.Pacing := LowerCase(Val)
+        else if Key = 'override_present_mode' then
+          ACfg.OverridePresentMode := (LowerCase(Val) = 'true') or (Val = '1')
+        else if Key = 'preserve_swapchain_image_count' then
+          ACfg.PreserveSwapchainImageCount := (LowerCase(Val) = 'true') or (Val = '1');
       end;
     end;
   finally
@@ -422,6 +451,16 @@ end;
 
 procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
   out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string);
+var
+  IgnoredOverride, IgnoredPreserve: Boolean;
+begin
+  ParseLsfgToml(AFilePath, ADll, AMultiplier, AFlowScale, APerfMode, AHdrMode, ANoFp16, APacing,
+    IgnoredOverride, IgnoredPreserve);
+end;
+
+procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
+  out AFlowScale: Double; out APerfMode, AHdrMode, ANoFp16: Boolean; out APacing: string;
+  out AOverridePresentMode, APreserveSwapchain: Boolean);
 var
   Cfg: TMakoConfig;
 begin
@@ -433,9 +472,26 @@ begin
   AHdrMode := Cfg.HdrMode;
   ANoFp16 := not Cfg.AllowFp16;
   APacing := Cfg.Pacing;
+  AOverridePresentMode := Cfg.OverridePresentMode;
+  APreserveSwapchain := Cfg.PreserveSwapchainImageCount;
 end;
 
 type
+  TLsfgVkInstallThread = class(TThread)
+  private
+    FHelper: TLosslessScalingTabHelper;
+    FProgressPct: Integer;
+    FProgressStatus: string;
+    FSuccess: Boolean;
+    procedure SyncProgress;
+    procedure SyncFinished;
+    procedure OnProgress(Percentage: Integer; const Status: string);
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AHelper: TLosslessScalingTabHelper);
+  end;
+
   TMakoInstallThread = class(TThread)
   private
     FHelper: TLosslessScalingTabHelper;
@@ -452,6 +508,18 @@ type
   end;
 
   TMakoCheckUpdateThread = class(TThread)
+  private
+    FHelper: TLosslessScalingTabHelper;
+    FRemoteVer: string;
+    FLocalVer: string;
+    procedure SyncResult;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AHelper: TLosslessScalingTabHelper);
+  end;
+
+  TLsfgVkCheckUpdateThread = class(TThread)
   private
     FHelper: TLosslessScalingTabHelper;
     FRemoteVer: string;
@@ -518,6 +586,60 @@ begin
   Synchronize(@SyncFinished);
 end;
 
+constructor TLsfgVkInstallThread.Create(AHelper: TLosslessScalingTabHelper);
+begin
+  inherited Create(True);
+  FHelper := AHelper;
+  FreeOnTerminate := True;
+end;
+
+procedure TLsfgVkInstallThread.OnProgress(Percentage: Integer; const Status: string);
+begin
+  FProgressPct := Percentage;
+  FProgressStatus := Status;
+  Synchronize(@SyncProgress);
+end;
+
+procedure TLsfgVkInstallThread.SyncProgress;
+begin
+  if not Assigned(FHelper) then Exit;
+  if Assigned(FHelper.FLsProgressBar) then
+  begin
+    FHelper.FLsProgressBar.Visible := True;
+    FHelper.FLsProgressBar.Position := FProgressPct;
+  end;
+  if Assigned(FHelper.FLsProgressLabel) then
+  begin
+    FHelper.FLsProgressLabel.Visible := True;
+    FHelper.FLsProgressLabel.Caption := FProgressStatus;
+  end;
+end;
+
+procedure TLsfgVkInstallThread.SyncFinished;
+begin
+  if not Assigned(FHelper) then Exit;
+  if Assigned(FHelper.FLsProgressBar) then
+    FHelper.FLsProgressBar.Visible := False;
+  if Assigned(FHelper.FLsProgressLabel) then
+    FHelper.FLsProgressLabel.Visible := False;
+  if Assigned(FHelper.FLsLsfgInstallBtn) then
+    FHelper.FLsLsfgInstallBtn.Enabled := True;
+  FHelper.FLsfgVersionCached := '';
+  FHelper.UpdateStatusCard;
+  if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+  begin
+    Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
+    Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
+  end;
+  FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
+end;
+
+procedure TLsfgVkInstallThread.Execute;
+begin
+  FSuccess := CheckAndInstallLsfgVk(True, @OnProgress);
+  Synchronize(@SyncFinished);
+end;
+
 constructor TMakoCheckUpdateThread.Create(AHelper: TLosslessScalingTabHelper);
 begin
   inherited Create(True);
@@ -573,6 +695,64 @@ begin
   end;
 end;
 
+constructor TLsfgVkCheckUpdateThread.Create(AHelper: TLosslessScalingTabHelper);
+begin
+  inherited Create(True);
+  FHelper := AHelper;
+  FreeOnTerminate := True;
+end;
+
+procedure TLsfgVkCheckUpdateThread.Execute;
+var
+  DummyUrl: string;
+begin
+  FLocalVer := GetLsfgVkInstalledVersion;
+  FRemoteVer := GetLsfgVkLatestRemoteVersion(DummyUrl);
+  Synchronize(@SyncResult);
+end;
+
+procedure TLsfgVkCheckUpdateThread.SyncResult;
+var
+  CleanLocal, CleanRemote: string;
+begin
+  if not Assigned(FHelper) then Exit;
+  FHelper.FLsfgCheckingUpdate := False;
+  if (FRemoteVer <> '') and (FLocalVer <> '') and (FRemoteVer <> FLocalVer) then
+  begin
+    CleanLocal := FLocalVer;
+    CleanRemote := FRemoteVer;
+    while (CleanLocal <> '') and (CleanLocal[1] in ['v', 'V']) do
+      Delete(CleanLocal, 1, 1);
+    while (CleanRemote <> '') and (CleanRemote[1] in ['v', 'V']) do
+      Delete(CleanRemote, 1, 1);
+
+    if (CleanRemote <> '') and (CleanRemote <> CleanLocal) then
+    begin
+      FHelper.FLsfgRemoteVer := CleanRemote;
+      FHelper.FLsfgUpdateAvailable := True;
+
+      if Assigned(FHelper.FLsLsfgStatusLabel) then
+      begin
+        FHelper.FLsLsfgStatusLabel.Caption := CleanLocal + ' → ' + CleanRemote;
+        FHelper.FLsLsfgStatusLabel.Font.Color := $0044AAFF;
+      end;
+      if Assigned(FHelper.FLsLsfgInstallBtn) then
+      begin
+        FHelper.FLsLsfgInstallBtn.Caption := 'Install update';
+        FHelper.FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
+        FHelper.FLsLsfgInstallBtn.Enabled := True;
+      end;
+      FHelper.UpdateStatusCard;
+      if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+      begin
+        Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
+        Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
+      end;
+      FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
+    end;
+  end;
+end;
+
 function TLosslessScalingTabHelper.GetStatNameLabel(Index: Integer): TLabel;
 begin
   if (Index >= 0) and (Index <= 2) then
@@ -585,10 +765,35 @@ procedure TLosslessScalingTabHelper.SetMakoUpdateState(const ARemoteVer: string;
 begin
   FMakoRemoteVer := ARemoteVer;
   FMakoUpdateAvailable := AAvailable;
+  if AAvailable then
+  begin
+    FLsfgUpdateAvailable := False;
+    FInterpolationMethod := imMako;
+  end;
   UpdateEngineStatus;
   UpdateStatusCard;
   if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
     Tgoverlayform(FForm).RefreshHomeMakoStatus;
+    Tgoverlayform(FForm).RefreshHomeModuleStatus;
+  end;
+end;
+
+procedure TLosslessScalingTabHelper.SetLsfgUpdateState(const ARemoteVer: string; AAvailable: Boolean);
+begin
+  FLsfgRemoteVer := ARemoteVer;
+  FLsfgUpdateAvailable := AAvailable;
+  if AAvailable then
+  begin
+    FMakoUpdateAvailable := False;
+    FInterpolationMethod := imLsfg;
+  end;
+  UpdateStatusCard;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
+    Tgoverlayform(FForm).RefreshHomeMakoStatus;
+    Tgoverlayform(FForm).RefreshHomeModuleStatus;
+  end;
 end;
 
 constructor TLosslessScalingTabHelper.Create(AForm: TForm);
@@ -597,6 +802,10 @@ begin
   FForm := AForm;
   FMakoRemoteVer := '';
   FMakoUpdateAvailable := False;
+  FLsfgRemoteVer := '';
+  FLsfgUpdateAvailable := False;
+  FLsfgCheckingUpdate := False;
+  FLsfgUpdateCheckedThisSession := False;
 end;
 
 destructor TLosslessScalingTabHelper.Destroy;
@@ -616,6 +825,12 @@ end;
 procedure TLosslessScalingTabHelper.MethodLsfgClick(Sender: TObject);
 begin
   SetInterpolationMethod(imLsfg);
+  if Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position <= 1) then
+  begin
+    FLsMultiplierTrackBar.Position := 2;
+    if Assigned(FLsMultiplierValueLabel) then
+      FLsMultiplierValueLabel.Caption := '2x';
+  end;
   ControlStateChange(Sender);
 end;
 
@@ -632,17 +847,30 @@ begin
   if Assigned(FLsLsfgRadio) then FLsLsfgRadio.Checked := (AMethod = imLsfg);
   if Assigned(FLsMakoRadio) then FLsMakoRadio.Checked := (AMethod = imMako);
 
-  if (AMethod in [imLsfg, imMako]) and Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position <= 1) then
+  if not (Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig) then
   begin
-    FLsMultiplierTrackBar.Position := 2;
-    if Assigned(FLsMultiplierValueLabel) then
-      FLsMultiplierValueLabel.Caption := '2x';
-  end
-  else if (AMethod = imNone) and Assigned(FLsMultiplierTrackBar) then
+    if (AMethod in [imLsfg, imMako]) and Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position < 1) then
+    begin
+      FLsMultiplierTrackBar.Position := 2;
+      if Assigned(FLsMultiplierValueLabel) then
+        FLsMultiplierValueLabel.Caption := '2x';
+    end
+    else if (AMethod = imNone) and Assigned(FLsMultiplierTrackBar) then
+    begin
+      FLsMultiplierTrackBar.Position := 1;
+      if Assigned(FLsMultiplierValueLabel) then
+        FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+    end;
+  end;
+
+  if Assigned(FLsMultiplierTrackBar) and Assigned(FLsMultiplierValueLabel) then
   begin
-    FLsMultiplierTrackBar.Position := 1;
-    if Assigned(FLsMultiplierValueLabel) then
-      FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+    if (FLsMultiplierTrackBar.Position <= 1) and (AMethod = imLsfg) then
+      FLsMultiplierValueLabel.Caption := '1x (Bypass)'
+    else if (FLsMultiplierTrackBar.Position <= 1) then
+      FLsMultiplierValueLabel.Caption := '1x (Disabled)'
+    else
+      FLsMultiplierValueLabel.Caption := IntToStr(FLsMultiplierTrackBar.Position) + 'x FPS';
   end;
 
   UpdateMethodImageOpacity;
@@ -696,7 +924,17 @@ begin
   HomeDir := GetUserDir;
   UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
 
-  if FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') then
+  if FileExists(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json') then
+    APath := UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json'
+  else if FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') then
+    APath := '/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json'
+  else if FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') then
+    APath := '/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json'
+  else if FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') then
+    APath := '/usr/local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json'
+  else if FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') then
+    APath := '/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json'
+  else if FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') then
     APath := UserLayerDir + 'VkLayer_LS_frame_generation.json'
   else if FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') then
     APath := UserLayerDir + 'VkLayer_LSFGVK.json'
@@ -714,111 +952,14 @@ end;
 
 function TLosslessScalingTabHelper.GetLsfgVkInstalledVersion(const ALayerJsonPath: string): string;
 var
-  P: TProcess;
-  S: TStringList;
-  RawVer, Line: string;
-  i, p1: Integer;
-  SR: TSearchRec;
+  RawVer: string;
 begin
   if FLsfgVersionCached <> '' then
     Exit(FLsfgVersionCached);
 
-  Result := '';
-  RawVer := '';
-
-  // 1. Fast native check: pacman local db folder (Arch Linux, instantaneous, no shell process)
-  if FindFirst('/var/lib/pacman/local/lsfg-vk*', faDirectory, SR) = 0 then
-  begin
-    repeat
-      if (SR.Name <> '.') and (SR.Name <> '..') then
-      begin
-        if Pos('lsfg-vk-git-', SR.Name) = 1 then
-          RawVer := Copy(SR.Name, Length('lsfg-vk-git-') + 1, MaxInt)
-        else if Pos('lsfg-vk-', SR.Name) = 1 then
-          RawVer := Copy(SR.Name, Length('lsfg-vk-') + 1, MaxInt);
-
-        if RawVer <> '' then
-        begin
-          if Pos(':', RawVer) > 0 then
-            RawVer := Copy(RawVer, Pos(':', RawVer) + 1, MaxInt);
-          while (RawVer <> '') and (RawVer[1] in ['v', 'V']) do
-            Delete(RawVer, 1, 1);
-          FindClose(SR);
-          FLsfgVersionCached := RawVer;
-          Exit(RawVer);
-        end;
-      end;
-    until FindNext(SR) <> 0;
-    FindClose(SR);
-  end;
-
-  // 2. Direct inspect of Vulkan layer JSON file (instantaneous text read, no process)
-  if (ALayerJsonPath <> '') and FileExists(ALayerJsonPath) then
-  begin
-    S := TStringList.Create;
-    try
-      S.LoadFromFile(ALayerJsonPath);
-      for i := 0 to S.Count - 1 do
-      begin
-        Line := Trim(S[i]);
-        if (Pos('"implementation_version"', Line) > 0) or (Pos('"file_format_version"', Line) > 0) then
-        begin
-          p1 := Pos(':', Line);
-          if p1 > 0 then
-          begin
-            RawVer := Trim(Copy(Line, p1 + 1, MaxInt));
-            RawVer := StringReplace(RawVer, '"', '', [rfReplaceAll]);
-            RawVer := StringReplace(RawVer, ',', '', [rfReplaceAll]);
-            RawVer := Trim(RawVer);
-            if (RawVer <> '') and (RawVer <> '1') then
-            begin
-              while (RawVer <> '') and (RawVer[1] in ['v', 'V']) do
-                Delete(RawVer, 1, 1);
-              FLsfgVersionCached := RawVer;
-              Exit(RawVer);
-            end;
-          end;
-        end;
-      end;
-    finally
-      S.Free;
-    end;
-  end;
-
-  // 3. Fallback: query package manager via TProcess (only if fast checks above yielded nothing)
-  if not IsRunningInFlatpak then
-  begin
-    P := TProcess.Create(nil);
-    try
-      P.Executable := FindDefaultExecutablePath('sh');
-      P.Parameters.Add('-c');
-      P.Parameters.Add('pacman -Q lsfg-vk 2>/dev/null | awk ''{print $2}'' || ' +
-                       'pacman -Q lsfg-vk-git 2>/dev/null | awk ''{print $2}'' || ' +
-                       'dpkg-query -W -f=''${Version}'' lsfg-vk 2>/dev/null || ' +
-                       'rpm -q --qf ''%{VERSION}'' lsfg-vk 2>/dev/null || echo ""');
-      P.Options := [poUsePipes, poWaitOnExit];
-      try
-        P.Execute;
-        S := TStringList.Create;
-        try
-          S.LoadFromStream(P.Output);
-          if S.Count > 0 then RawVer := Trim(S[0]);
-        finally
-          S.Free;
-        end;
-      except
-      end;
-    finally
-      P.Free;
-    end;
-  end;
-
+  RawVer := optiscaler_update.GetLsfgVkInstalledVersion;
   if RawVer <> '' then
   begin
-    if Pos(':', RawVer) > 0 then
-      RawVer := Copy(RawVer, Pos(':', RawVer) + 1, Length(RawVer));
-    while (RawVer <> '') and (RawVer[1] in ['v', 'V']) do
-      Delete(RawVer, 1, 1);
     FLsfgVersionCached := RawVer;
     Exit(RawVer);
   end;
@@ -829,16 +970,10 @@ end;
 
 function TLosslessScalingTabHelper.GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
 var
-  HomeDir: string;
+  Candidate: string;
 begin
-  Result := '';
-  if FileExists('/usr/lib/liblsfg-vk.so') then Exit('/usr/lib/liblsfg-vk.so');
-  if FileExists('/usr/lib/x86_64-linux-gnu/liblsfg-vk.so') then Exit('/usr/lib/x86_64-linux-gnu/liblsfg-vk.so');
-  if FileExists('/usr/lib64/liblsfg-vk.so') then Exit('/usr/lib64/liblsfg-vk.so');
-  if FileExists('/usr/local/lib/liblsfg-vk.so') then Exit('/usr/local/lib/liblsfg-vk.so');
-  HomeDir := GetUserDir;
-  if FileExists(IncludeTrailingPathDelimiter(HomeDir) + '.local/lib/liblsfg-vk.so') then
-    Exit(IncludeTrailingPathDelimiter(HomeDir) + '.local/lib/liblsfg-vk.so');
+  Candidate := optiscaler_update.GetLsfgVkLibraryPath;
+  if Candidate <> '' then Exit(Candidate);
   Result := ALayerJsonPath;
 end;
 
@@ -930,20 +1065,49 @@ begin
   HasLsfg := CheckLsfgVkLayerInstalled(LsfgPath);
   if HasLsfg then
   begin
-    LsfgVer := GetLsfgVkInstalledVersion(LsfgPath);
-    while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
-      Delete(LsfgVer, 1, 1);
+    if FLsfgVersionCached <> '' then
+      LsfgVer := FLsfgVersionCached
+    else
+    begin
+      LsfgVer := GetLsfgVkInstalledVersion(LsfgPath);
+      while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
+        Delete(LsfgVer, 1, 1);
+      FLsfgVersionCached := LsfgVer;
+    end;
     LsfgLib := GetLsfgVkLibraryPath(LsfgPath);
     FLsStatDots[2].Brush.Color := CLR_OK;
     if Assigned(FLsLsfgStatusLabel) then
     begin
-      if LsfgVer <> '' then
-        FLsLsfgStatusLabel.Caption := LsfgVer
+      if FLsfgUpdateAvailable and (FLsfgRemoteVer <> '') and (FLsfgRemoteVer <> LsfgVer) then
+      begin
+        FLsLsfgStatusLabel.Caption := LsfgVer + ' → ' + FLsfgRemoteVer;
+        FLsLsfgStatusLabel.Font.Color := $0044AAFF;
+      end
       else
-        FLsLsfgStatusLabel.Caption := 'Installed';
-      FLsLsfgStatusLabel.Font.Color := PURPLE;
+      begin
+        if LsfgVer <> '' then
+          FLsLsfgStatusLabel.Caption := LsfgVer
+        else
+          FLsLsfgStatusLabel.Caption := 'Installed';
+        FLsLsfgStatusLabel.Font.Color := PURPLE;
+      end;
       FLsLsfgStatusLabel.Hint := LsfgLib;
       FLsLsfgStatusLabel.ShowHint := (LsfgLib <> '');
+    end;
+
+    if FLsfgUpdateAvailable and (FLsfgRemoteVer <> '') and (FLsfgRemoteVer <> LsfgVer) then
+    begin
+      if Assigned(FLsLsfgInstallBtn) then
+      begin
+        FLsLsfgInstallBtn.Caption := 'Install update';
+        FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
+        FLsLsfgInstallBtn.Enabled := True;
+      end;
+    end
+    else
+    begin
+      if Assigned(FLsLsfgInstallBtn) then
+        FLsLsfgInstallBtn.Visible := False;
     end;
   end
   else
@@ -955,6 +1119,12 @@ begin
       FLsLsfgStatusLabel.Font.Color := RGBToColor(255, 90, 95);
       FLsLsfgStatusLabel.Hint := '';
       FLsLsfgStatusLabel.ShowHint := False;
+    end;
+    if Assigned(FLsLsfgInstallBtn) then
+    begin
+      FLsLsfgInstallBtn.Caption := 'Install runtime';
+      FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
+      FLsLsfgInstallBtn.Enabled := True;
     end;
   end;
 end;
@@ -1718,6 +1888,39 @@ begin
   FLsNoFp16Toggle.LinkToCheckBox(FLsNoFp16CheckBox);
   FLsNoFp16Toggle.Visible := False;
 
+  // Quirks for lsfg-vk 2.0
+  FLsOverridePresentModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
+  FLsOverridePresentModeCheckBox.Parent := FLsFrameGenCard;
+  FLsOverridePresentModeCheckBox.ParentColor := True;
+  FLsOverridePresentModeCheckBox.Caption := 'Override Present Mode';
+  FLsOverridePresentModeCheckBox.Hint := 'Forces the presentation engine to use the selected pacing mode. Recommended: On (upstream default).';
+  FLsOverridePresentModeCheckBox.ShowHint := True;
+  FLsOverridePresentModeCheckBox.Checked := True;
+  FLsOverridePresentModeCheckBox.OnChange := @ControlStateChange;
+  FLsOverridePresentModeCheckBox.Visible := False;
+
+  FLsOverridePresentModeToggle := TToggleSwitch.Create(FForm);
+  FLsOverridePresentModeToggle.Parent := FLsFrameGenCard;
+  FLsOverridePresentModeToggle.LinkToCheckBox(FLsOverridePresentModeCheckBox);
+  FLsOverridePresentModeToggle.Height := 20;
+  FLsOverridePresentModeToggle.Width := FLsOverridePresentModeToggle.GetOptimalWidth;
+
+  FLsPreserveSwapchainCheckBox := TCheckBox.Create(FLsFrameGenCard);
+  FLsPreserveSwapchainCheckBox.Parent := FLsFrameGenCard;
+  FLsPreserveSwapchainCheckBox.ParentColor := True;
+  FLsPreserveSwapchainCheckBox.Caption := 'Preserve Swapchain Count';
+  FLsPreserveSwapchainCheckBox.Hint := 'Preserves the application swapchain image count. May resolve issues with games sensitive to swapchain resizing. Recommended: Off (upstream default).';
+  FLsPreserveSwapchainCheckBox.ShowHint := True;
+  FLsPreserveSwapchainCheckBox.Checked := False;
+  FLsPreserveSwapchainCheckBox.OnChange := @ControlStateChange;
+  FLsPreserveSwapchainCheckBox.Visible := False;
+
+  FLsPreserveSwapchainToggle := TToggleSwitch.Create(FForm);
+  FLsPreserveSwapchainToggle.Parent := FLsFrameGenCard;
+  FLsPreserveSwapchainToggle.LinkToCheckBox(FLsPreserveSwapchainCheckBox);
+  FLsPreserveSwapchainToggle.Height := 20;
+  FLsPreserveSwapchainToggle.Width := FLsPreserveSwapchainToggle.GetOptimalWidth;
+
   // Dropdowns (Pacing)
   FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsPacingTitleLbl.Parent := FLsFrameGenCard;
@@ -1729,11 +1932,11 @@ begin
   FLsPacingComboBox := TComboBox.Create(FLsFrameGenCard);
   FLsPacingComboBox.Parent := FLsFrameGenCard;
   FLsPacingComboBox.Style := csDropDownList;
-  FLsPacingComboBox.Items.Add('none (Default / Recommended by MAKO)');
-  FLsPacingComboBox.Items.Add('vsync (Standard VSync)');
-  FLsPacingComboBox.Items.Add('mailbox (Fast VSync)');
-  FLsPacingComboBox.Items.Add('immediate (Uncapped)');
+  FLsPacingComboBox.Items.Add('vsync (Default / Recommended)');
+  FLsPacingComboBox.Items.Add('none (No Frame Pacing)');
   FLsPacingComboBox.ItemIndex := 0;
+  FLsPacingComboBox.Hint := 'Frame pacing synchronization mode (vsync or none)';
+  FLsPacingComboBox.ShowHint := True;
   FLsPacingComboBox.OnChange := @ControlStateChange;
   StyleInputControl(FLsPacingComboBox);
 
@@ -1959,6 +2162,14 @@ begin
   FLsLsfgStatusLabel.Font.Size := 9;
   FLsLsfgStatusLabel.Font.Color := CLR_TEXT_ACCENT;
 
+  FLsLsfgInstallBtn := TBitBtn.Create(FLsStatusCard);
+  FLsLsfgInstallBtn.Parent := FLsStatusCard;
+  FLsLsfgInstallBtn.Caption := 'Install runtime';
+  FLsLsfgInstallBtn.Cursor := crHandPoint;
+  FLsLsfgInstallBtn.OnClick := @InstallLsfgClick;
+  FLsLsfgInstallBtn.Visible := False;
+  StyleActionButton(FLsLsfgInstallBtn);
+
   // Progress Bar for installation
   FLsProgressBar := TProgressBar.Create(FLsStatusCard);
   FLsProgressBar.Parent := FLsStatusCard;
@@ -2102,6 +2313,8 @@ begin
     FLsRefreshThresholdValueLabel.Visible := False;
     FLsFgLiveToggle.Visible := False;
     FLsAllowFp16Toggle.Visible := False;
+    FLsOverridePresentModeToggle.Visible := False;
+    FLsPreserveSwapchainToggle.Visible := False;
     FLsPerfModeToggle.Visible := False;
     FLsUltraPerfToggle.Visible := False;
     FLsHdrModeToggle.Visible := False;
@@ -2142,7 +2355,6 @@ begin
     FLsRefreshThresholdTrackBar.Visible := False;
     FLsRefreshThresholdValueLabel.Visible := False;
     FLsFgLiveToggle.Visible := False;
-    FLsAllowFp16Toggle.Visible := False;
     FLsUltraPerfToggle.Visible := False;
 
     // Row 1: Sliders
@@ -2160,31 +2372,41 @@ begin
     FLsFlowScaleValueLabel.Visible := True;
     FLsFlowScaleValueLabel.SetBounds(RightColX + Col2W - 50, 62, 50, 20);
 
-    // Row 2: 3 Inline Toggles (main branch layout)
+    // Row 2: Frame Gen Toggles (2 columns)
     if Assigned(FLsPerfModeToggle) then
     begin
       FLsPerfModeToggle.Visible := True;
-      FLsPerfModeToggle.SetBounds(PAD, 106, Col3W, 24);
+      FLsPerfModeToggle.SetBounds(PAD, 102, Col2W, 24);
     end;
-    if Assigned(FLsHdrModeToggle) then
+    if Assigned(FLsAllowFp16Toggle) then
     begin
-      FLsHdrModeToggle.Visible := True;
-      FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
-    end;
-    if Assigned(FLsNoFp16Toggle) then
-    begin
-      FLsNoFp16Toggle.Visible := True;
-      FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 106, Col3W, 24);
+      FLsAllowFp16Toggle.Visible := True;
+      FLsAllowFp16Toggle.SetBounds(RightColX, 102, Col2W, 24);
     end;
 
-    // Row 3: Pacing dropdown
+    // Row 3: Quirks Toggles (2 columns)
+    if Assigned(FLsOverridePresentModeToggle) then
+    begin
+      FLsOverridePresentModeToggle.Visible := True;
+      FLsOverridePresentModeToggle.SetBounds(PAD, 136, Col2W, 24);
+    end;
+    if Assigned(FLsPreserveSwapchainToggle) then
+    begin
+      FLsPreserveSwapchainToggle.Visible := True;
+      FLsPreserveSwapchainToggle.SetBounds(RightColX, 136, Col2W, 24);
+    end;
+
+    if Assigned(FLsHdrModeToggle) then FLsHdrModeToggle.Visible := False;
+    if Assigned(FLsNoFp16Toggle) then FLsNoFp16Toggle.Visible := False;
+
+    // Row 4: Pacing dropdown
     FLsPacingTitleLbl.Visible := True;
-    FLsPacingTitleLbl.SetBounds(PAD, 148, Col2W, 18);
+    FLsPacingTitleLbl.SetBounds(PAD, 172, Col2W, 18);
     FLsPacingComboBox.Visible := True;
-    FLsPacingComboBox.SetBounds(PAD, 168, Col2W, ROW_H);
+    FLsPacingComboBox.SetBounds(PAD, 192, Col2W, ROW_H);
 
-    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 216);
-    CurY := CurY + 216 + GAP;
+    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 240);
+    CurY := CurY + 240 + GAP;
   end
   else // imMako
   begin
@@ -2284,6 +2506,8 @@ begin
     if IsAdaptive then
       FLsSmoothCadenceToggle.SetBounds(PAD + (Col3W + 12) * 2, 238, Col3W, 24);
 
+    if Assigned(FLsOverridePresentModeToggle) then FLsOverridePresentModeToggle.Visible := False;
+    if Assigned(FLsPreserveSwapchainToggle) then FLsPreserveSwapchainToggle.Visible := False;
     if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Visible := False;
     if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
 
@@ -2356,8 +2580,17 @@ begin
     FLsStatDots[2].SetBounds(PAD, Y2 + (ROW_H - 10) div 2, 10, 10);
   if Assigned(FLsStatNameLbls[2]) then
     FLsStatNameLbls[2].SetBounds(PAD + 16, Y2 + (ROW_H - 16) div 2, 160, 16);
+
+  if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.Visible then
+    FLsLsfgInstallBtn.SetBounds(CW - PAD - 120, Y2, 120, ROW_H);
+
   if Assigned(FLsLsfgStatusLabel) then
-    FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
+  begin
+    if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.Visible then
+      FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD - 128, 18)
+    else
+      FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
+  end;
 
   // Row 3 (Optional): Progress bar during installation
   if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
@@ -2512,6 +2745,13 @@ begin
     end;
   end;
 
+  if not FLsfgCheckingUpdate and not FLsfgUpdateCheckedThisSession and not IsRunningInFlatpak then
+  begin
+    FLsfgCheckingUpdate := True;
+    FLsfgUpdateCheckedThisSession := True;
+    TLsfgVkCheckUpdateThread.Create(Self).Start;
+  end;
+
   UpdateStatusCard;
 end;
 
@@ -2587,6 +2827,24 @@ begin
   TMakoInstallThread.Create(Self).Start;
 end;
 
+procedure TLosslessScalingTabHelper.InstallLsfgClick(Sender: TObject);
+begin
+  if Assigned(FLsLsfgInstallBtn) then
+    FLsLsfgInstallBtn.Enabled := False;
+  if Assigned(FLsProgressBar) then
+  begin
+    FLsProgressBar.Position := 0;
+    FLsProgressBar.Visible := True;
+  end;
+  if Assigned(FLsProgressLabel) then
+  begin
+    FLsProgressLabel.Caption := 'Starting lsfg-vk installation...';
+    FLsProgressLabel.Visible := True;
+  end;
+  ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
+  TLsfgVkInstallThread.Create(Self).Start;
+end;
+
 procedure TLosslessScalingTabHelper.FgModeChange(Sender: TObject);
 begin
   UpdateControlsEnabled;
@@ -2644,7 +2902,7 @@ var
   FgActive, ScalingActive, AdaptiveActive: Boolean;
 begin
   AdaptiveActive := (FInterpolationMethod = imMako) and Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
-  FgActive := (Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position > 1)) or AdaptiveActive;
+  FgActive := (FInterpolationMethod in [imLsfg, imMako]) and ((Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position > 1)) or AdaptiveActive);
   ScalingActive := Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0);
   if Assigned(FLsScalingEnableCheckBox) then
     FLsScalingEnableCheckBox.Checked := ScalingActive;
@@ -2666,19 +2924,19 @@ begin
   // Multiplier vs Target FPS
   if Assigned(FLsMultiplierTitleLbl) then
   begin
-    FLsMultiplierTitleLbl.Enabled := not AdaptiveActive;
+    FLsMultiplierTitleLbl.Enabled := FgActive and not AdaptiveActive;
     FLsMultiplierTitleLbl.Visible := (FInterpolationMethod = imLsfg) or ((FInterpolationMethod = imMako) and not AdaptiveActive);
   end;
   if Assigned(FLsMultiplierTrackBar) then
   begin
-    FLsMultiplierTrackBar.Enabled := not AdaptiveActive;
+    FLsMultiplierTrackBar.Enabled := FgActive and not AdaptiveActive;
     FLsMultiplierTrackBar.Visible := (FInterpolationMethod = imLsfg) or ((FInterpolationMethod = imMako) and not AdaptiveActive);
     if not AdaptiveActive then
       FLsMultiplierTrackBar.BringToFront;
   end;
   if Assigned(FLsMultiplierValueLabel) then
   begin
-    FLsMultiplierValueLabel.Enabled := not AdaptiveActive;
+    FLsMultiplierValueLabel.Enabled := FgActive and not AdaptiveActive;
     FLsMultiplierValueLabel.Visible := (FInterpolationMethod = imLsfg) or ((FInterpolationMethod = imMako) and not AdaptiveActive);
   end;
 
@@ -2792,7 +3050,7 @@ begin
   if Assigned(FLsAllowFp16Toggle) then
   begin
     FLsAllowFp16Toggle.Enabled := FgActive;
-    FLsAllowFp16Toggle.Visible := (FInterpolationMethod = imMako);
+    FLsAllowFp16Toggle.Visible := (FInterpolationMethod in [imLsfg, imMako]);
     FLsAllowFp16Toggle.SyncFromLinked;
   end;
   if Assigned(FLsPerfModeCheckBox) then FLsPerfModeCheckBox.Enabled := FgActive;
@@ -2810,21 +3068,38 @@ begin
     FLsUltraPerfToggle.SyncFromLinked;
   end;
 
-  // lsfg-vk only controls
+  // lsfg-vk Quirks
+  if Assigned(FLsOverridePresentModeCheckBox) then FLsOverridePresentModeCheckBox.Enabled := FgActive;
+  if Assigned(FLsOverridePresentModeToggle) then
+  begin
+    FLsOverridePresentModeToggle.Enabled := FgActive;
+    FLsOverridePresentModeToggle.Visible := (FInterpolationMethod = imLsfg);
+    FLsOverridePresentModeToggle.SyncFromLinked;
+  end;
+  if Assigned(FLsPreserveSwapchainCheckBox) then FLsPreserveSwapchainCheckBox.Enabled := FgActive;
+  if Assigned(FLsPreserveSwapchainToggle) then
+  begin
+    FLsPreserveSwapchainToggle.Enabled := FgActive;
+    FLsPreserveSwapchainToggle.Visible := (FInterpolationMethod = imLsfg);
+    FLsPreserveSwapchainToggle.SyncFromLinked;
+  end;
+
+  // Deprecated lsfg-vk controls (hidden in 2.0, state kept synced for compatibility)
   if Assigned(FLsHdrModeCheckBox) then FLsHdrModeCheckBox.Enabled := FgActive;
   if Assigned(FLsHdrModeToggle) then
   begin
     FLsHdrModeToggle.Enabled := FgActive;
-    FLsHdrModeToggle.Visible := (FInterpolationMethod = imLsfg);
+    FLsHdrModeToggle.Visible := False;
     FLsHdrModeToggle.SyncFromLinked;
   end;
   if Assigned(FLsNoFp16CheckBox) then FLsNoFp16CheckBox.Enabled := FgActive;
   if Assigned(FLsNoFp16Toggle) then
   begin
     FLsNoFp16Toggle.Enabled := FgActive;
-    FLsNoFp16Toggle.Visible := (FInterpolationMethod = imLsfg);
+    FLsNoFp16Toggle.Visible := False;
     FLsNoFp16Toggle.SyncFromLinked;
   end;
+
   if Assigned(FLsPacingTitleLbl) then
   begin
     FLsPacingTitleLbl.Enabled := FgActive;
@@ -2871,7 +3146,9 @@ begin
   PosVal := FLsMultiplierTrackBar.Position;
   if Assigned(FLsMultiplierValueLabel) then
   begin
-    if PosVal <= 1 then
+    if (PosVal <= 1) and (FInterpolationMethod = imLsfg) then
+      FLsMultiplierValueLabel.Caption := '1x (Bypass)'
+    else if PosVal <= 1 then
       FLsMultiplierValueLabel.Caption := '1x (Disabled)'
     else
       FLsMultiplierValueLabel.Caption := IntToStr(PosVal) + 'x FPS';
@@ -3033,12 +3310,9 @@ begin
   FgLiveVal := Assigned(FLsFgLiveCheckBox) and FLsFgLiveCheckBox.Checked;
 
   case FLsPacingComboBox.ItemIndex of
-    1: PacingStr := 'vsync';
-    2: PacingStr := 'mailbox';
-    3: PacingStr := 'immediate';
-    4: PacingStr := 'none';
+    1: PacingStr := 'none';
   else
-    PacingStr := 'none';
+    PacingStr := 'vsync';
   end;
 
   Lines := TStringList.Create;
@@ -3244,11 +3518,10 @@ end;
 
 function TLosslessScalingTabHelper.WriteLsfgTomlConfig(const ATargetDir: string): string;
 var
-  Lines: TStringList;
-  OutDir, OutPath, PacingStr, DllP, ExeName: string;
+  Lines, LegacyLines: TStringList;
+  OutDir, OutPath, LegacyOutPath, PacingStr, DllP, ExeName, ProfileName: string;
   MultVal: Integer;
-  FlowStr: string;
-  PerfStr, HdrStr, LegacyStr: string;
+  FlowStr, PerfStr, HdrStr, AllowFp16Str, OverridePresentStr, PreserveSwapchainStr: string;
 begin
   Result := '';
   if FLsMultiplierTrackBar.Position <= 1 then Exit;
@@ -3266,70 +3539,130 @@ begin
   if not DirectoryExists(OutDir) then
     ForceDirectories(OutDir);
     
-  OutPath := IncludeTrailingPathDelimiter(OutDir) + 'lsfg.toml';
+  OutPath := IncludeTrailingPathDelimiter(OutDir) + 'conf.toml';
+  LegacyOutPath := IncludeTrailingPathDelimiter(OutDir) + 'lsfg.toml';
   
   MultVal := FLsMultiplierTrackBar.Position;
-  
   FlowStr := StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
   if FLsPerfModeCheckBox.Checked then PerfStr := 'true' else PerfStr := 'false';
   if FLsHdrModeCheckBox.Checked then HdrStr := 'true' else HdrStr := 'false';
-  if FLsNoFp16CheckBox.Checked then LegacyStr := 'true' else LegacyStr := 'false';
-  
+  if Assigned(FLsAllowFp16CheckBox) and FLsAllowFp16CheckBox.Checked then AllowFp16Str := 'true' else AllowFp16Str := 'false';
+  if Assigned(FLsOverridePresentModeCheckBox) and FLsOverridePresentModeCheckBox.Checked then OverridePresentStr := 'true' else OverridePresentStr := 'false';
+  if Assigned(FLsPreserveSwapchainCheckBox) and FLsPreserveSwapchainCheckBox.Checked then PreserveSwapchainStr := 'true' else PreserveSwapchainStr := 'false';
+
   case FLsPacingComboBox.ItemIndex of
-    1: PacingStr := 'vsync';
-    2: PacingStr := 'mailbox';
-    3: PacingStr := 'immediate';
-    4: PacingStr := 'none';
+    1: PacingStr := 'none';
   else
-    PacingStr := 'fifo';
+    PacingStr := 'vsync';
   end;
   
+  // 1. Write canonical conf.toml adhering strictly to lsfg-vk 2.0 schema
   Lines := TStringList.Create;
   try
-    Lines.Add('version = 1');
+    Lines.Add('version = 2');
     Lines.Add('');
     Lines.Add('[global]');
     Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('allow_fp16 = ' + AllowFp16Str);
     Lines.Add('');
-    Lines.Add('[[game]]');
-    Lines.Add('exe = "pascube"');
-    Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('[[profile]]');
+    Lines.Add('name = "pascube"');
+    Lines.Add('active_in = ["pascube"]');
     Lines.Add('multiplier = ' + IntToStr(MultVal));
     Lines.Add('flow_scale = ' + FlowStr);
     Lines.Add('performance_mode = ' + PerfStr);
-    Lines.Add('hdr_mode = ' + HdrStr);
-    Lines.Add('legacy = ' + LegacyStr);
-    Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+    Lines.Add('pacing = "' + PacingStr + '"');
+    Lines.Add('override_present_mode = ' + OverridePresentStr);
+    Lines.Add('preserve_swapchain_image_count = ' + PreserveSwapchainStr);
     Lines.Add('');
-    Lines.Add('[[game]]');
-    Lines.Add('exe = "vkcube"');
-    Lines.Add('dll = "' + DllP + '"');
+    Lines.Add('[[profile]]');
+    Lines.Add('name = "vkcube"');
+    Lines.Add('active_in = ["vkcube"]');
     Lines.Add('multiplier = ' + IntToStr(MultVal));
     Lines.Add('flow_scale = ' + FlowStr);
     Lines.Add('performance_mode = ' + PerfStr);
-    Lines.Add('hdr_mode = ' + HdrStr);
-    Lines.Add('legacy = ' + LegacyStr);
-    Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+    Lines.Add('pacing = "' + PacingStr + '"');
+    Lines.Add('override_present_mode = ' + OverridePresentStr);
+    Lines.Add('preserve_swapchain_image_count = ' + PreserveSwapchainStr);
     
     if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
     begin
       ExeName := Tgoverlayform(FForm).FActiveGameName;
+      ProfileName := ChangeFileExt(ExtractFileName(ExeName), '');
+      if ProfileName = '' then ProfileName := ExeName;
       Lines.Add('');
-      Lines.Add('[[game]]');
-      Lines.Add('exe = "' + ExeName + '"');
-      Lines.Add('dll = "' + DllP + '"');
+      Lines.Add('[[profile]]');
+      Lines.Add('name = "' + ProfileName + '"');
+      Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
       Lines.Add('multiplier = ' + IntToStr(MultVal));
       Lines.Add('flow_scale = ' + FlowStr);
       Lines.Add('performance_mode = ' + PerfStr);
-      Lines.Add('hdr_mode = ' + HdrStr);
-      Lines.Add('legacy = ' + LegacyStr);
-      Lines.Add('experimental_present_mode = "' + PacingStr + '"');
+      Lines.Add('pacing = "' + PacingStr + '"');
+      Lines.Add('override_present_mode = ' + OverridePresentStr);
+      Lines.Add('preserve_swapchain_image_count = ' + PreserveSwapchainStr);
     end;
     
     Lines.SaveToFile(OutPath);
     Result := OutPath;
   finally
     Lines.Free;
+  end;
+
+  // 2. Write mirror to lsfg.toml with legacy v1 schema for backward compatibility with tools and tests
+  LegacyLines := TStringList.Create;
+  try
+    LegacyLines.Add('version = 1');
+    LegacyLines.Add('');
+    LegacyLines.Add('[global]');
+    LegacyLines.Add('dll = "' + DllP + '"');
+    LegacyLines.Add('');
+    LegacyLines.Add('[[game]]');
+    LegacyLines.Add('exe = "pascube"');
+    LegacyLines.Add('dll = "' + DllP + '"');
+    LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
+    LegacyLines.Add('flow_scale = ' + FlowStr);
+    LegacyLines.Add('performance_mode = ' + PerfStr);
+    LegacyLines.Add('hdr_mode = ' + HdrStr);
+    if AllowFp16Str = 'true' then
+      LegacyLines.Add('legacy = false')
+    else
+      LegacyLines.Add('legacy = true');
+    LegacyLines.Add('experimental_present_mode = "' + PacingStr + '"');
+    LegacyLines.Add('');
+    LegacyLines.Add('[[game]]');
+    LegacyLines.Add('exe = "vkcube"');
+    LegacyLines.Add('dll = "' + DllP + '"');
+    LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
+    LegacyLines.Add('flow_scale = ' + FlowStr);
+    LegacyLines.Add('performance_mode = ' + PerfStr);
+    LegacyLines.Add('hdr_mode = ' + HdrStr);
+    if AllowFp16Str = 'true' then
+      LegacyLines.Add('legacy = false')
+    else
+      LegacyLines.Add('legacy = true');
+    LegacyLines.Add('experimental_present_mode = "' + PacingStr + '"');
+    
+    if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
+    begin
+      ExeName := Tgoverlayform(FForm).FActiveGameName;
+      LegacyLines.Add('');
+      LegacyLines.Add('[[game]]');
+      LegacyLines.Add('exe = "' + ExeName + '"');
+      LegacyLines.Add('dll = "' + DllP + '"');
+      LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
+      LegacyLines.Add('flow_scale = ' + FlowStr);
+      LegacyLines.Add('performance_mode = ' + PerfStr);
+      LegacyLines.Add('hdr_mode = ' + HdrStr);
+      if AllowFp16Str = 'true' then
+        LegacyLines.Add('legacy = false')
+      else
+        LegacyLines.Add('legacy = true');
+      LegacyLines.Add('experimental_present_mode = "' + PacingStr + '"');
+    end;
+    
+    LegacyLines.SaveToFile(LegacyOutPath);
+  finally
+    LegacyLines.Free;
   end;
 end;
 
@@ -3373,7 +3706,9 @@ begin
     Lines.Add('multiplier = 2');
     Lines.Add('flow_scale = 1.00');
     Lines.Add('performance_mode = false');
-    Lines.Add('pacing = "none"');
+    Lines.Add('pacing = "vsync"');
+    Lines.Add('override_present_mode = true');
+    Lines.Add('preserve_swapchain_image_count = false');
     Lines.Add('');
     Lines.Add('[[profile]]');
     Lines.Add('name = "vkcube"');
@@ -3381,7 +3716,9 @@ begin
     Lines.Add('multiplier = 2');
     Lines.Add('flow_scale = 1.00');
     Lines.Add('performance_mode = false');
-    Lines.Add('pacing = "none"');
+    Lines.Add('pacing = "vsync"');
+    Lines.Add('override_present_mode = true');
+    Lines.Add('preserve_swapchain_image_count = false');
     Lines.SaveToFile(OutPath);
   finally
     Lines.Free;
@@ -3468,7 +3805,7 @@ begin
       Exit('');
     TomlP := WriteLsfgTomlConfig;
     if (TomlP <> '') and FileExists(TomlP) then
-      Result := 'LSFG_CONFIG="' + TomlP + '"'
+      Result := 'LSFGVK_CONFIG="' + TomlP + '" LSFG_CONFIG="' + TomlP + '"'
     else
       Result := '';
   end
@@ -3537,6 +3874,10 @@ begin
     FLsUltraPerfCheckBox.Checked := False;
     FLsHdrModeCheckBox.Checked := False;
     FLsNoFp16CheckBox.Checked := False;
+    if Assigned(FLsOverridePresentModeCheckBox) then
+      FLsOverridePresentModeCheckBox.Checked := True;
+    if Assigned(FLsPreserveSwapchainCheckBox) then
+      FLsPreserveSwapchainCheckBox.Checked := False;
 
     FLsScalingEnableCheckBox.Checked := False;
     FLsScalingMethodComboBox.ItemIndex := 0;
@@ -3603,6 +3944,8 @@ begin
         ParseMakoToml(LegacyTomlPath, LegacyCfg);
         if (LegacyCfg.Pacing <> '') and (LegacyCfg.Pacing <> 'none') then
           MakoCfg.Pacing := LegacyCfg.Pacing;
+        if LoadedMethod in [imLsfg, imNone] then
+          MakoCfg.HdrMode := LegacyCfg.HdrMode;
       end;
     end
     else if FileExists(LegacyTomlPath) then
@@ -3663,6 +4006,10 @@ begin
       FLsPerfModeCheckBox.Checked := MakoCfg.PerformanceMode;
       FLsUltraPerfCheckBox.Checked := MakoCfg.UltraPerformance;
       FLsHdrModeCheckBox.Checked := MakoCfg.HdrMode;
+      if Assigned(FLsOverridePresentModeCheckBox) then
+        FLsOverridePresentModeCheckBox.Checked := MakoCfg.OverridePresentMode;
+      if Assigned(FLsPreserveSwapchainCheckBox) then
+        FLsPreserveSwapchainCheckBox.Checked := MakoCfg.PreserveSwapchainImageCount;
 
       if not MakoCfg.ScalingEnabled then
         FLsScalingMethodComboBox.ItemIndex := 0
@@ -3687,10 +4034,7 @@ begin
       FLsScalingSupersamplingCheckBox.Checked := MakoCfg.ScalingSupersampling;
       
       PacingVal := LowerCase(Trim(MakoCfg.Pacing));
-      if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
-      else if PacingVal = 'mailbox' then FLsPacingComboBox.ItemIndex := 2
-      else if PacingVal = 'immediate' then FLsPacingComboBox.ItemIndex := 3
-      else if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 0
+      if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 1
       else FLsPacingComboBox.ItemIndex := 0;
     end;
 
@@ -3736,11 +4080,13 @@ begin
         FLsHdrModeCheckBox.Checked := (Ini.ReadString('Config', 'LS_HDR_MODE', Ini.ReadString('Env', 'LSFG_HDR_MODE', Ini.ReadString('Env', 'LSFGVK_HDR_MODE', '0'))) = '1');
         FLsNoFp16CheckBox.Checked := (Ini.ReadString('Config', 'LS_NO_FP16', Ini.ReadString('Env', 'LSFG_LEGACY', Ini.ReadString('Env', 'LSFGVK_NO_FP16', '0'))) = '1');
         FLsAllowFp16CheckBox.Checked := not FLsNoFp16CheckBox.Checked;
+        if Assigned(FLsOverridePresentModeCheckBox) then
+          FLsOverridePresentModeCheckBox.Checked := (Ini.ReadString('Config', 'LS_OVERRIDE_PRESENT_MODE', Ini.ReadString('Env', 'LS_OVERRIDE_PRESENT_MODE', '1')) = '1');
+        if Assigned(FLsPreserveSwapchainCheckBox) then
+          FLsPreserveSwapchainCheckBox.Checked := (Ini.ReadString('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT', Ini.ReadString('Env', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT', '0')) = '1');
         
-        PacingVal := LowerCase(Trim(Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', Ini.ReadString('Env', 'LSFGVK_PACING', 'none')))));
-        if PacingVal = 'vsync' then FLsPacingComboBox.ItemIndex := 1
-        else if PacingVal = 'mailbox' then FLsPacingComboBox.ItemIndex := 2
-        else if PacingVal = 'immediate' then FLsPacingComboBox.ItemIndex := 3
+        PacingVal := LowerCase(Trim(Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', Ini.ReadString('Env', 'LSFGVK_PACING', 'vsync')))));
+        if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 1
         else FLsPacingComboBox.ItemIndex := 0;
       finally
         Ini.Free;
@@ -3813,6 +4159,8 @@ begin
       Ini.DeleteKey('Config', 'LS_HDR_MODE');
       Ini.DeleteKey('Config', 'LS_NO_FP16');
       Ini.DeleteKey('Config', 'LS_PACING');
+      Ini.DeleteKey('Config', 'LS_OVERRIDE_PRESENT_MODE');
+      Ini.DeleteKey('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT');
 
       // Prune legacy keys from [Env]
       Ini.DeleteKey('Env', 'LSFG_DLL_PATH');
@@ -3832,12 +4180,12 @@ begin
       Ini.DeleteKey('Env', 'LSFGVK_NO_FP16');
       Ini.DeleteKey('Env', 'LSFGVK_PACING');
       Ini.DeleteKey('Env', 'LSFGVK_GPU');
+      Ini.DeleteKey('Env', 'LS_OVERRIDE_PRESENT_MODE');
+      Ini.DeleteKey('Env', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT');
 
       if FInterpolationMethod = imLsfg then
       begin
         WriteLsfgTomlConfig(CfgDir);
-        if FileExists(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml') then
-          DeleteFile(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml');
       end
       else if FInterpolationMethod = imMako then
       begin
@@ -3854,6 +4202,8 @@ begin
       Ini.DeleteKey('Config', 'LS_HDR_MODE');
       Ini.DeleteKey('Config', 'LS_NO_FP16');
       Ini.DeleteKey('Config', 'LS_PACING');
+      Ini.DeleteKey('Config', 'LS_OVERRIDE_PRESENT_MODE');
+      Ini.DeleteKey('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT');
 
       Ini.DeleteKey('Env', 'LSFG_DLL_PATH');
       Ini.DeleteKey('Env', 'LSFG_MULTIPLIER');
@@ -3872,6 +4222,8 @@ begin
       Ini.DeleteKey('Env', 'LSFGVK_NO_FP16');
       Ini.DeleteKey('Env', 'LSFGVK_PACING');
       Ini.DeleteKey('Env', 'LSFGVK_GPU');
+      Ini.DeleteKey('Env', 'LS_OVERRIDE_PRESENT_MODE');
+      Ini.DeleteKey('Env', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT');
 
       if FileExists(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml') then
         DeleteFile(IncludeTrailingPathDelimiter(CfgDir) + 'conf.toml');

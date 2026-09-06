@@ -6478,11 +6478,16 @@ begin
 
     if IsLsfg then
     begin
-      Result := ConfigDir + 'lsfg.toml';
+      Result := ConfigDir + 'conf.toml';
       if not FileExists(Result) and Assigned(FLosslessScalingHelper) then
         Result := TLosslessScalingTabHelper(FLosslessScalingHelper).WriteLsfgTomlConfig(GetGameConfigDir(FActiveGameName));
       if (Result = '') or not FileExists(Result) then
-        Result := ConfigDir + 'lsfg.toml';
+      begin
+        if FileExists(ConfigDir + 'lsfg.toml') then
+          Result := ConfigDir + 'lsfg.toml'
+        else
+          Result := ConfigDir + 'conf.toml';
+      end;
     end
     else
     begin
@@ -9508,9 +9513,10 @@ procedure TStartupDownloadThread.Execute;
 begin
   try
     CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 30%)
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (30% - 55%)
-    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 75%)
-    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (75% - 95%)
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (30% - 50%)
+    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (50% - 65%)
+    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (65% - 85%)
+    CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (85% - 98%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

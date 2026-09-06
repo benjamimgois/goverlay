@@ -25,6 +25,14 @@ add-extensions:
     no-autodownload: false
     autodownload: true
 
+  org.freedesktop.Platform.VulkanLayer.lsfgvk:
+    directory: lib/extensions/vulkan/lsfgvk
+    version: '25.08'
+    add-ld-path: lib
+    subdirectories: true
+    no-autodownload: false
+    autodownload: true
+
 finish-args:
   # GPU access for Vulkan/OpenGL overlays
   - --device=dri
@@ -33,6 +41,7 @@ finish-args:
   - --filesystem=xdg-config/MangoHud:rw
   - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=xdg-config/vkSumi:rw
+  - --filesystem=xdg-config/lsfg-vk:create
   - --filesystem=xdg-data/vulkan:create
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro

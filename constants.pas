@@ -58,7 +58,9 @@ const
   // MAKO & LSFG-VK Repository
   URL_MAKO_REPO = 'https://github.com/eugeniosegala/MAKO';
   URL_MAKO_API_RELEASES = 'https://api.github.com/repos/eugeniosegala/MAKO/releases';
-  URL_LSFGVK_REPO = 'https://github.com/eugeniosegala/MAKO';
+  URL_LSFGVK_REPO = 'https://git.lsfg-vk.dev/lsfg-vk/lsfg-vk';
+  URL_LSFGVK_BUILDS = 'https://builds.lsfg-vk.dev/';
+  URL_LSFGVK_TARBALL = 'https://builds.lsfg-vk.dev/lsfg-vk-2.0.0.tar.xz';
 
   // ReplaySorcery Repository
   URL_REPLAYSORCERY_REPO = 'https://github.com/matanui159/ReplaySorcery';
