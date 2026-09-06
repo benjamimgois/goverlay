@@ -89,6 +89,7 @@ type
     FLsMakoLogoImage: TImage;
     FLsMakoPathEdit: TEdit;
     FLsEngineStatusLabel: TLabel;
+    FLsMakoNoteLabel: TLabel;
     FLsCheckUpdatesBtn: TBitBtn;
     FLsInstallBtn: TBitBtn;
     FLsProgressBar: TProgressBar;
@@ -235,6 +236,7 @@ type
     property MakoLogoImage: TImage read FLsMakoLogoImage;
     property MakoPathEdit: TEdit read FLsMakoPathEdit;
     property MakoStatusLabel: TLabel read FLsEngineStatusLabel;
+    property MakoNoteLabel: TLabel read FLsMakoNoteLabel;
     property MakoRemoteVer: string read FMakoRemoteVer;
     property MakoUpdateAvailable: Boolean read FMakoUpdateAvailable;
     property MultiplierTrackBar: TTrackBar read FLsMultiplierTrackBar;
@@ -916,6 +918,14 @@ begin
     end;
   end;
 
+  if Assigned(FLsEngineStatusLabel) and Assigned(FLsMakoNoteLabel) then
+  begin
+    FLsEngineStatusLabel.AdjustSize;
+    FLsMakoNoteLabel.AdjustSize;
+    FLsMakoNoteLabel.Left := FLsEngineStatusLabel.Left + FLsEngineStatusLabel.Width + 8;
+    FLsMakoNoteLabel.Top := FLsEngineStatusLabel.Top;
+  end;
+
   // 2: lsfg-vk layer
   HasLsfg := CheckLsfgVkLayerInstalled(LsfgPath);
   if HasLsfg then
@@ -1194,6 +1204,7 @@ begin
   if Assigned(FLsRefreshThresholdValueLabel) then FLsRefreshThresholdValueLabel.Font.Color := AccentColor;
   if Assigned(FLsScalingFactorValueLabel) then FLsScalingFactorValueLabel.Font.Color := AccentColor;
   if Assigned(FLsScalingSharpnessValueLabel) then FLsScalingSharpnessValueLabel.Font.Color := AccentColor;
+  if Assigned(FLsMakoNoteLabel) then FLsMakoNoteLabel.Font.Color := HintColor;
 
   // Sliders (QSlider)
   if IsDark then
@@ -1915,6 +1926,15 @@ begin
   FLsEngineStatusLabel.Font.Size := 9;
   FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
 
+  FLsMakoNoteLabel := TLabel.Create(FLsStatusCard);
+  FLsMakoNoteLabel.Parent := FLsStatusCard;
+  FLsMakoNoteLabel.Caption := '(Incompatible with Wayland and HDR)';
+  FLsMakoNoteLabel.Font.Style := [];
+  FLsMakoNoteLabel.Font.Size := 9;
+  FLsMakoNoteLabel.Font.Color := CLR_TEXT_MUTED;
+  FLsMakoNoteLabel.ShowAccelChar := False;
+  FLsMakoNoteLabel.AutoSize := True;
+
   FLsCheckUpdatesBtn := TBitBtn.Create(FLsStatusCard);
   FLsCheckUpdatesBtn.Parent := FLsStatusCard;
   FLsCheckUpdatesBtn.Caption := 'Check Updates';
@@ -2314,15 +2334,20 @@ begin
     FLsStatNameLbls[1].SetBounds(PAD + 16, Y1 + (ROW_H - 16) div 2, 160, 16);
 
   if Assigned(FLsInstallBtn) and FLsInstallBtn.Visible then
-  begin
     FLsInstallBtn.SetBounds(CW - PAD - 120, Y1, 120, ROW_H);
-    if Assigned(FLsEngineStatusLabel) then
-      FLsEngineStatusLabel.SetBounds(EditLeft, Y1 + (ROW_H - 18) div 2, CW - EditLeft - PAD - 130, 18);
-  end
-  else
+
+  if Assigned(FLsEngineStatusLabel) then
   begin
-    if Assigned(FLsEngineStatusLabel) then
-      FLsEngineStatusLabel.SetBounds(EditLeft, Y1 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
+    FLsEngineStatusLabel.AutoSize := True;
+    FLsEngineStatusLabel.AdjustSize;
+    FLsEngineStatusLabel.SetBounds(EditLeft, Y1 + (ROW_H - 18) div 2, FLsEngineStatusLabel.Width, 18);
+  end;
+
+  if Assigned(FLsMakoNoteLabel) and Assigned(FLsEngineStatusLabel) then
+  begin
+    FLsMakoNoteLabel.AutoSize := True;
+    FLsMakoNoteLabel.AdjustSize;
+    FLsMakoNoteLabel.SetBounds(EditLeft + FLsEngineStatusLabel.Width + 8, Y1 + (ROW_H - 18) div 2, FLsMakoNoteLabel.Width, 18);
   end;
 
   // Row 2: lsfg-vk Vulkan Layer

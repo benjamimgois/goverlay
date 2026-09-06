@@ -3603,6 +3603,14 @@ begin
       if (Helper.EngineStatusLabel.Caption <> 'Installed') then
         AssertFalse('MAKO version does not start with v', (Helper.EngineStatusLabel.Caption[1] in ['v', 'V']));
     end;
+
+    AssertTrue('MakoNoteLabel is assigned', Assigned(Helper.MakoNoteLabel));
+    AssertEquals('MakoNoteLabel caption is (Incompatible with Wayland and HDR)',
+      '(Incompatible with Wayland and HDR)', Helper.MakoNoteLabel.Caption);
+    AssertTrue('MakoNoteLabel is visible', Helper.MakoNoteLabel.Visible);
+    AssertTrue('MakoNoteLabel is to the right of EngineStatusLabel',
+      Helper.MakoNoteLabel.Left > Helper.EngineStatusLabel.Left);
+
     if (Helper.LsfgStatusLabel.Caption <> '') and (Helper.LsfgStatusLabel.Caption <> 'Not installed') then
     begin
       AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
