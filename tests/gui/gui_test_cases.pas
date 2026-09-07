@@ -340,14 +340,14 @@ begin
     AssertTrue('NoFp16 hint contains AMD uplift description', Pos('giant performance uplift on AMD GPUs', Helper.NoFp16CheckBox.Hint) > 0);
     AssertTrue('Controls enabled after loading 3x', Helper.FlowScaleTrackBar.Enabled);
     
-    // Now test switching Multiplier to 1x (no framegen)
+    // Now test switching Multiplier to 1x (controls remain enabled under imLsfg)
     Helper.MultiplierTrackBar.Position := 1;
     Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
-    AssertFalse('FlowScale disabled at 1x', Helper.FlowScaleTrackBar.Enabled);
-    AssertFalse('PerfMode disabled at 1x', Helper.PerfModeCheckBox.Enabled);
-    AssertFalse('HdrMode disabled at 1x', Helper.HdrModeCheckBox.Enabled);
-    AssertFalse('Pacing disabled at 1x', Helper.PacingComboBox.Enabled);
-    AssertFalse('Gpu disabled at 1x', Helper.GpuComboBox.Enabled);
+    AssertTrue('FlowScale remains enabled at 1x under imLsfg', Helper.FlowScaleTrackBar.Enabled);
+    AssertTrue('PerfMode remains enabled at 1x under imLsfg', Helper.PerfModeCheckBox.Enabled);
+    AssertTrue('HdrMode remains enabled at 1x under imLsfg', Helper.HdrModeCheckBox.Enabled);
+    AssertTrue('Pacing remains enabled at 1x under imLsfg', Helper.PacingComboBox.Enabled);
+    AssertTrue('Gpu remains enabled at 1x under imLsfg', Helper.GpuComboBox.Enabled);
     
     Helper.SaveLosslessConfig;
     
@@ -3694,19 +3694,37 @@ begin
   AssertTrue('HdrModeToggle is assigned', Assigned(Helper.HdrModeToggle));
   AssertTrue('NoFp16Toggle is assigned', Assigned(Helper.NoFp16Toggle));
 
-  // 1. When Multiplier is 1 (inactive frame gen), toggles are disabled
+  // 1. When under LSFG method, controls remain enabled even at Multiplier 1
+  Helper.SetInterpolationMethod(imLsfg);
   Helper.MultiplierTrackBar.Position := 1;
   Helper.UpdateControlsEnabled;
-  AssertFalse('PerfModeToggle is disabled when multiplier is 1', Helper.PerfModeToggle.Enabled);
-  AssertFalse('HdrModeToggle is disabled when multiplier is 1', Helper.HdrModeToggle.Enabled);
-  AssertFalse('NoFp16Toggle is disabled when multiplier is 1', Helper.NoFp16Toggle.Enabled);
+  AssertTrue('MultiplierTrackBar is enabled when multiplier is 1 under imLsfg', Helper.MultiplierTrackBar.Enabled);
+  AssertTrue('FlowScaleTrackBar is enabled when multiplier is 1 under imLsfg', Helper.FlowScaleTrackBar.Enabled);
+  AssertTrue('PerfModeToggle is enabled when multiplier is 1 under imLsfg', Helper.PerfModeToggle.Enabled);
+  AssertTrue('HdrModeToggle is enabled when multiplier is 1 under imLsfg', Helper.HdrModeToggle.Enabled);
+  AssertTrue('NoFp16Toggle is enabled when multiplier is 1 under imLsfg', Helper.NoFp16Toggle.Enabled);
 
-  // 2. When Multiplier > 1 (active frame gen), toggles are enabled
+  // 2. When Multiplier > 1 (active frame gen), controls remain enabled
   Helper.MultiplierTrackBar.Position := 2;
   Helper.UpdateControlsEnabled;
+  AssertTrue('MultiplierTrackBar is enabled when multiplier is 2', Helper.MultiplierTrackBar.Enabled);
+  AssertTrue('FlowScaleTrackBar is enabled when multiplier is 2', Helper.FlowScaleTrackBar.Enabled);
   AssertTrue('PerfModeToggle is enabled when multiplier is 2', Helper.PerfModeToggle.Enabled);
   AssertTrue('HdrModeToggle is enabled when multiplier is 2', Helper.HdrModeToggle.Enabled);
   AssertTrue('NoFp16Toggle is enabled when multiplier is 2', Helper.NoFp16Toggle.Enabled);
+
+  // 3. When method is None, controls are disabled
+  Helper.SetInterpolationMethod(imNone);
+  Helper.UpdateControlsEnabled;
+  AssertFalse('MultiplierTrackBar is disabled under imNone', Helper.MultiplierTrackBar.Enabled);
+  AssertFalse('FlowScaleTrackBar is disabled under imNone', Helper.FlowScaleTrackBar.Enabled);
+  AssertFalse('PerfModeToggle is disabled under imNone', Helper.PerfModeToggle.Enabled);
+  AssertFalse('HdrModeToggle is disabled under imNone', Helper.HdrModeToggle.Enabled);
+  AssertFalse('NoFp16Toggle is disabled under imNone', Helper.NoFp16Toggle.Enabled);
+
+  // Restore LSFG for subsequent toggle sync tests
+  Helper.SetInterpolationMethod(imLsfg);
+  Helper.UpdateControlsEnabled;
 
   // 3. Toggling PerfModeToggle updates linked CheckBox
   Helper.PerfModeToggle.Checked := True;

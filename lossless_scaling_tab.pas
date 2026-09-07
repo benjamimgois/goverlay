@@ -3323,7 +3323,7 @@ var
   FgActive, ScalingActive, AdaptiveActive: Boolean;
 begin
   AdaptiveActive := (FInterpolationMethod = imMako) and Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
-  FgActive := (FInterpolationMethod in [imLsfg, imMako]) and ((Assigned(FLsMultiplierTrackBar) and (FLsMultiplierTrackBar.Position > 1)) or AdaptiveActive);
+  FgActive := (FInterpolationMethod in [imLsfg, imMako]);
   ScalingActive := Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0);
   if Assigned(FLsScalingEnableCheckBox) then
     FLsScalingEnableCheckBox.Checked := ScalingActive;
