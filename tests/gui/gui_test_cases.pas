@@ -3205,9 +3205,24 @@ begin
     try
       AssertEquals('Heroic command for custom game config strips quotes and %command%',
         '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildHeroicCommand);
+      AssertEquals('Lutris command for custom game config strips quotes and %command%',
+        '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildLutrisCommand);
     finally
       Dlg2.Free;
     end;
+
+    // Switch to Lutris and exercise Lutris painting and System options instructions
+    Dlg.LutrisBtnClick(nil);
+    AssertTrue('Lutris platform selected', Dlg.FPlatform = fpLutris);
+    Dlg.PaintAnimLutris(Bmp.Canvas, 540, 180);
+    AssertTrue('Lutris instructions direct to System options tab',
+      Pos('System options', Dlg.FStepsLabel.Caption) > 0);
+    AssertTrue('Lutris instructions direct to Command prefix field',
+      Pos('Command prefix', Dlg.FStepsLabel.Caption) > 0);
+
+    // Verify BuildLutrisCommand strips quotes and %command%
+    AssertEquals('Lutris command strips quotes and %command%',
+      'MANGOHUD=1', Dlg.BuildLutrisCommand);
 
     // Switch back to Steam
     Dlg.SteamBtnClick(nil);
@@ -3215,7 +3230,7 @@ begin
     AssertTrue('Steam instructions restored after switching back',
       Pos('Properties › General', Dlg.FStepsLabel.Caption) > 0);
 
-    AssertTrue('Modern Steam and Heroic finish dialogs painted successfully', True);
+    AssertTrue('Modern Steam, Heroic, and Lutris finish dialogs painted successfully', True);
   finally
     Bmp.Free;
     Dlg.Free;

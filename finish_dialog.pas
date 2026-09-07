@@ -10,7 +10,7 @@ uses
 
 type
 
-  TFinishPlatform = (fpSteam, fpHeroic);
+  TFinishPlatform = (fpSteam, fpHeroic, fpLutris);
 
   { TFinishDialogForm }
   TFinishDialogForm = class(TForm)
@@ -32,6 +32,7 @@ type
     // Platform switcher
     FSteamBtn:        TSpeedButton;
     FHeroicBtn:       TSpeedButton;
+    FLutrisBtn:       TSpeedButton;
 
     // Animation area
     FAnimBox:         TPaintBox;
@@ -68,10 +69,13 @@ type
     constructor Create(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False); reintroduce;
     destructor Destroy; override;
     function  BuildHeroicCommand: string;
+    function  BuildLutrisCommand: string;
     procedure PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
     procedure PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
+    procedure PaintAnimLutris(ACanvas: TCanvas; AW, AH: Integer);
     procedure SteamBtnClick(Sender: TObject);
     procedure HeroicBtnClick(Sender: TObject);
+    procedure LutrisBtnClick(Sender: TObject);
   end;
 
 procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False);
@@ -251,6 +255,22 @@ begin
   FHeroicBtn.GroupIndex := 1;
   FHeroicBtn.Down       := False;
   FHeroicBtn.OnClick    := @HeroicBtnClick;
+
+  FLutrisBtn            := TSpeedButton.Create(Self);
+  FLutrisBtn.Parent     := Self;
+  FLutrisBtn.Caption    := '  Lutris';
+  FLutrisBtn.Font.Name  := 'Noto Sans';
+  FLutrisBtn.Font.Size  := 10;
+  FLutrisBtn.Font.Style := [fsBold];
+  FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
+  FLutrisBtn.Left       := PAD + 232;
+  FLutrisBtn.Top        := Y;
+  FLutrisBtn.Width      := 110;
+  FLutrisBtn.Height     := BTN_H;
+  FLutrisBtn.Flat       := True;
+  FLutrisBtn.GroupIndex := 1;
+  FLutrisBtn.Down       := False;
+  FLutrisBtn.OnClick    := @LutrisBtnClick;
 
   Inc(Y, BTN_H + 12);
 
@@ -438,10 +458,11 @@ var
 begin
   FCmdPanel.Canvas.Brush.Color := RGBToColor(12, 16, 26);
   FCmdPanel.Canvas.Brush.Style := bsSolid;
-  if FPlatform = fpSteam then
-    BorderClr := RGBToColor(48, 140, 220)
-  else
-    BorderClr := RGBToColor(35, 180, 160);
+  case FPlatform of
+    fpSteam:  BorderClr := RGBToColor(48, 140, 220);
+    fpHeroic: BorderClr := RGBToColor(35, 180, 160);
+    fpLutris: BorderClr := RGBToColor(250, 124, 20);
+  end;
 
   FCmdPanel.Canvas.Pen.Color := BorderClr;
   FCmdPanel.Canvas.Pen.Width := 1;
@@ -470,6 +491,12 @@ begin
   Result := Trim(S);
 end;
 
+function TFinishDialogForm.BuildLutrisCommand: string;
+begin
+  // Lutris "Command prefix" field expects the executable path without %command% suffix and unquoted
+  Result := BuildHeroicCommand;
+end;
+
 procedure TFinishDialogForm.UpdateForPlatform;
 begin
   case FPlatform of
@@ -477,12 +504,14 @@ begin
     begin
       FSteamBtn.Down := True;
       FHeroicBtn.Down := False;
+      FLutrisBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the launch command.' + LineEnding +
         '2. In Steam, right-click your game › Properties › General.' + LineEnding +
         '3. Paste the command into the "Launch Options" field and close the dialog.';
       FSteamBtn.Font.Color := clWhite;
       FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
+      FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(48, 190, 240);
       if Assigned(FCmdTextLbl) then
@@ -505,17 +534,49 @@ begin
     begin
       FSteamBtn.Down := False;
       FHeroicBtn.Down := True;
+      FLutrisBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the wrapper command.' + LineEnding +
         '2. In Heroic, open game Settings › Advanced › scroll down to "Wrapper Command".' + LineEnding +
         '3. Paste into the "Wrapper" field, click "+", and save.';
       FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
       FHeroicBtn.Font.Color := clWhite;
+      FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(85, 235, 216);
       if Assigned(FCmdTextLbl) then
       begin
         FCmdTextLbl.Caption := BuildHeroicCommand;
+        FCmdTextLbl.Font.Size := 9;
+        if Assigned(FCmdPanel) then
+        begin
+          FCmdPanel.Canvas.Font.Name := FCmdTextLbl.Font.Name;
+          FCmdPanel.Canvas.Font.Size := 9;
+          while (FCmdTextLbl.Font.Size > 7) and (FCmdPanel.Canvas.TextWidth(FCmdTextLbl.Caption) > FCmdTextLbl.Width) do
+          begin
+            FCmdTextLbl.Font.Size := FCmdTextLbl.Font.Size - 1;
+            FCmdPanel.Canvas.Font.Size := FCmdTextLbl.Font.Size;
+          end;
+        end;
+      end;
+    end;
+    fpLutris:
+    begin
+      FSteamBtn.Down := False;
+      FHeroicBtn.Down := False;
+      FLutrisBtn.Down := True;
+      FStepsLabel.Caption :=
+        '1. Click "Copy" above to copy the command prefix.' + LineEnding +
+        '2. In Lutris, right-click your game › Configure › "System options" tab (enable "Advanced").' + LineEnding +
+        '3. Paste into the "Command prefix" field and click "Save".';
+      FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
+      FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
+      FLutrisBtn.Font.Color := clWhite;
+      if Assigned(FCmdPromptLbl) then
+        FCmdPromptLbl.Font.Color := RGBToColor(250, 124, 20);
+      if Assigned(FCmdTextLbl) then
+      begin
+        FCmdTextLbl.Caption := BuildLutrisCommand;
         FCmdTextLbl.Font.Size := 9;
         if Assigned(FCmdPanel) then
         begin
@@ -552,6 +613,12 @@ begin
   UpdateForPlatform;
 end;
 
+procedure TFinishDialogForm.LutrisBtnClick(Sender: TObject);
+begin
+  FPlatform := fpLutris;
+  UpdateForPlatform;
+end;
+
 procedure TFinishDialogForm.CloseBtnClick(Sender: TObject);
 begin
   FAnimTimer.Enabled := False;
@@ -565,6 +632,7 @@ begin
   case FPlatform of
     fpSteam:   CmdText := FLaunchCommand;
     fpHeroic:  CmdText := BuildHeroicCommand;
+    fpLutris:  CmdText := BuildLutrisCommand;
   end;
   Clipboard.AsText := CmdText;
   FCopiedTick := 90;  // show feedback for ~3 s at 30fps
@@ -607,6 +675,7 @@ begin
   case FPlatform of
     fpSteam:  PaintAnimSteam(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
     fpHeroic: PaintAnimHeroic(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
+    fpLutris: PaintAnimLutris(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
   end;
 end;
 
@@ -1028,6 +1097,254 @@ begin
   ACanvas.Font.Name  := 'DejaVu Sans';
   ACanvas.Font.Size  := 10;
   ACanvas.Font.Color := RGBToColor(85, 235, 216);
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(ArrowX, ArrowY, '>');
+end;
+
+// Draw modern Lutris Settings dialog walkthrough animation
+procedure TFinishDialogForm.PaintAnimLutris(ACanvas: TCanvas; AW, AH: Integer);
+var
+  Phase, FadeAlpha: Integer;
+  WW, WH, WL, WT, WR, WB: Integer;
+  SearchW, SearchL, SearchT, SearchH: Integer;
+  ToggleL, ToggleT, ToggleW, ToggleH: Integer;
+  SaveL, SaveT, SaveW, SaveH: Integer;
+  CardL, CardT, CardR, CardB: Integer;
+  CmdPreview: string;
+  InputR, CursorR: TRect;
+  BounceOff, ArrowX, ArrowY: Integer;
+begin
+  // Outer background
+  ACanvas.Brush.Color := RGBToColor(14, 16, 24);
+  ACanvas.Pen.Color   := RGBToColor(14, 16, 24);
+  ACanvas.FillRect(Rect(0, 0, AW, AH));
+
+  // --- Modern Lutris Window Frame (GTK4 / Libadwaita dark) ---
+  WW := AW - 24;
+  WH := AH - 14;
+  WL := (AW - WW) div 2;
+  WT := (AH - WH) div 2;
+  WR := WL + WW;
+  WB := WT + WH;
+
+  // Window Shadow
+  ACanvas.Brush.Color := RGBToColor(0, 0, 0);
+  ACanvas.Pen.Color   := RGBToColor(0, 0, 0);
+  ACanvas.FillRect(Rect(WL + 4, WT + 4, WR + 4, WB + 4));
+
+  // Window Background
+  ACanvas.Brush.Color := RGBToColor(36, 36, 36);
+  ACanvas.Pen.Color   := RGBToColor(55, 55, 55);
+  ACanvas.RoundRect(WL, WT, WR, WB, 6, 6);
+
+  // --- Header Bar ---
+  // "Cancel" button
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(220, 220, 220);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(WL + 10, WT + 7, 'Cancel');
+
+  // Search box ("🔍 Search Wine options")
+  SearchW := 150;
+  SearchL := WL + (WW - SearchW) div 2;
+  SearchT := WT + 5;
+  SearchH := 16;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(24, 24, 24);
+  ACanvas.Pen.Color   := RGBToColor(50, 50, 50);
+  ACanvas.RoundRect(SearchL, SearchT, SearchL + SearchW, SearchT + SearchH, 6, 6);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Color := RGBToColor(140, 140, 140);
+  ACanvas.TextOut(SearchL + 6, SearchT + 2, '🔍 Search Wine options');
+
+  // "Advanced" label
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Color := RGBToColor(220, 220, 220);
+  ACanvas.TextOut(WR - 110, WT + 7, 'Advanced');
+
+  // Toggle switch (ON: Blue pill #3584E4)
+  ToggleL := WR - 58;
+  ToggleT := WT + 7;
+  ToggleW := 22;
+  ToggleH := 12;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(53, 132, 228);
+  ACanvas.Pen.Color   := RGBToColor(53, 132, 228);
+  ACanvas.RoundRect(ToggleL, ToggleT, ToggleL + ToggleW, ToggleT + ToggleH, 8, 8);
+  // Switch knob (white circle on right)
+  ACanvas.Brush.Color := clWhite;
+  ACanvas.Pen.Color   := clWhite;
+  ACanvas.Ellipse(ToggleL + 11, ToggleT + 1, ToggleL + 21, ToggleT + 11);
+
+  // "Save" button
+  SaveL := WR - 30;
+  SaveT := WT + 5;
+  SaveW := 24;
+  SaveH := 16;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(26, 35, 46);
+  ACanvas.Pen.Color   := RGBToColor(53, 132, 228);
+  ACanvas.RoundRect(SaveL, SaveT, SaveL + SaveW, SaveT + SaveH, 4, 4);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := clWhite;
+  ACanvas.TextOut(SaveL + 4, SaveT + 2, 'Save');
+
+  // Header separator line
+  ACanvas.Pen.Color := RGBToColor(48, 48, 48);
+  ACanvas.MoveTo(WL, WT + 24);
+  ACanvas.LineTo(WR, WT + 24);
+
+  // --- Tabs Bar ---
+  // Inactive tab: "Runner options"
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(30, 30, 30);
+  ACanvas.Pen.Color   := RGBToColor(45, 45, 45);
+  ACanvas.RoundRect(WL + 8, WT + 27, WL + 88, WT + 41, 3, 3);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(150, 150, 150);
+  ACanvas.TextOut(WL + 12, WT + 30, 'Runner options');
+
+  // Active tab: "System options"
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(48, 48, 48);
+  ACanvas.Pen.Color   := RGBToColor(80, 80, 80);
+  ACanvas.RoundRect(WL + 92, WT + 27, WL + 180, WT + 41, 3, 3);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := clWhite;
+  ACanvas.TextOut(WL + 96, WT + 30, 'System options');
+
+  // --- Group Card: "Game execution" ---
+  CardL := WL + 8;
+  CardT := WT + 46;
+  CardR := WR - 8;
+  CardB := WB - 6;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(28, 28, 28);
+  ACanvas.Pen.Color   := RGBToColor(50, 50, 50);
+  ACanvas.RoundRect(CardL, CardT, CardR, CardB, 4, 4);
+
+  // Group title
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := RGBToColor(210, 210, 210);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(CardL + 10, CardT + 5, 'Game execution');
+
+  // Row: Locale
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(160, 160, 160);
+  ACanvas.TextOut(CardL + 12, CardT + 21, 'Locale');
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(20, 20, 20);
+  ACanvas.Pen.Color   := RGBToColor(45, 45, 45);
+  ACanvas.RoundRect(CardL + 140, CardT + 18, CardR - 12, CardT + 31, 3, 3);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Color := RGBToColor(130, 130, 130);
+  ACanvas.TextOut(CardL + 146, CardT + 19, 'System (default)');
+  ACanvas.TextOut(CardR - 24, CardT + 19, '⌵');
+
+  // Key Row: Command prefix
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 7;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := clWhite;
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(CardL + 12, CardT + 40, 'Command prefix');
+
+  // Input Box for Command prefix
+  InputR := Rect(CardL + 140, CardT + 36, CardR - 30, CardT + 54);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(20, 20, 20);
+  ACanvas.Pen.Color   := RGBToColor(55, 55, 55);
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 3, 3);
+
+  // Pulsing highlight border (Lutris Orange #FA7C14)
+  Phase := (FAnimTick mod 90);
+  if Phase < 45 then
+    FadeAlpha := Phase * 5
+  else
+    FadeAlpha := (90 - Phase) * 5;
+  FadeAlpha := Max(40, Min(220, FadeAlpha));
+
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Pen.Color := RGBToColor(
+    250,
+    124 + (FadeAlpha * (220 - 124)) div 255,
+    20 + (FadeAlpha * (100 - 20)) div 255);
+  ACanvas.Pen.Width := 2;
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 3, 3);
+  ACanvas.Pen.Width := 1;
+
+  // Command preview inside input box
+  CmdPreview := BuildLutrisCommand;
+  if CmdPreview = '' then
+    CmdPreview := '/home/user/.local/share/goverlay/bgmod';
+  if Length(CmdPreview) > 48 then
+    CmdPreview := Copy(CmdPreview, 1, 45) + '...';
+
+  ACanvas.Font.Name  := 'DejaVu Sans Mono';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(250, 160, 60);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(InputR.Left + 6, InputR.Top + 4, CmdPreview);
+
+  // Blinking cursor in input box
+  if (FAnimTick mod 30) < 18 then
+  begin
+    CursorR.Left   := InputR.Left + 6 + ACanvas.TextWidth(CmdPreview) + 2;
+    CursorR.Top    := InputR.Top + 3;
+    CursorR.Right  := CursorR.Left + 2;
+    CursorR.Bottom := InputR.Bottom - 3;
+    if CursorR.Right < InputR.Right - 4 then
+    begin
+      ACanvas.Brush.Style := bsSolid;
+      ACanvas.Brush.Color := RGBToColor(250, 124, 20);
+      ACanvas.Pen.Color   := RGBToColor(250, 124, 20);
+      ACanvas.FillRect(CursorR);
+    end;
+  end;
+
+  // Undo/Revert icon ↩
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 8;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(160, 160, 160);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(CardR - 22, CardT + 38, '↩');
+
+  // Next row: Manual script (context)
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 6;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := RGBToColor(150, 150, 150);
+  ACanvas.TextOut(CardL + 12, CardT + 62, 'Manual script');
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(20, 20, 20);
+  ACanvas.Pen.Color   := RGBToColor(45, 45, 45);
+  ACanvas.RoundRect(CardL + 140, CardT + 59, CardR - 50, CardT + 72, 3, 3);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(CardR - 44, CardT + 60, '••• 📁');
+
+  // Bouncing guide arrow pointing to Command prefix field
+  BounceOff := Round(3 * Sin(FAnimTick * 0.12));
+  ArrowX := InputR.Left - 10 + BounceOff;
+  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 5;
+  ACanvas.Font.Name  := 'DejaVu Sans';
+  ACanvas.Font.Size  := 10;
+  ACanvas.Font.Color := RGBToColor(250, 124, 20);
   ACanvas.Font.Style := [fsBold];
   ACanvas.Brush.Style := bsClear;
   ACanvas.TextOut(ArrowX, ArrowY, '>');
