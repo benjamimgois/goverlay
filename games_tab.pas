@@ -2244,22 +2244,7 @@ begin
   VKBASALTCFGFILE := GameCfgDir + 'vkBasalt.conf';
   VKSUMICFGFILE   := GameCfgDir + 'vkSumi.conf';
   UpdateGameContextLabel;
-  SetNavActive(1);
-  goverlayPageControl.ShowTabs := True;
-  vkbasalttabsheet.TabVisible  := False;
-  optiscalertabsheet.TabVisible := False;
-  losslessScalingTabSheet.TabVisible := False;
-  tweakstabsheet.TabVisible    := False;
-  gamesTabSheet.TabVisible     := False;
-  goverlayPageControl.ActivePage := presetTabsheet;
-  notificationLabel.Visible := False;
-  commandPanel.Visible      := False;
-
-  if Assigned(FFADock) then
-    FFADock.UpdateForTab(True, True, False);
-  UpdateGeSpeedButtonState;
-  UpdateGlobalEnableMenuItemVisibility;
-  LoadMangoHudConfig;
+  mangohudLabelClick(nil);
   FLaunchCommand := GetLaunchCommand;
   if Assigned(commandPaintBox) then
     commandPaintBox.Invalidate;

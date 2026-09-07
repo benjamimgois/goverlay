@@ -100,6 +100,7 @@ type
     procedure TestMangoPresetCardHighlightsResetOnProfileSwitch;
     procedure TestMissingConfigResetsControlsAllTabs;
     procedure TestGameCardClickSynchronizesAllToolPaths;
+    procedure TestGameCardClickRestoresMangoHudTabVisibility;
     procedure TestVkBasaltRestoreDefaults;
     procedure TestVkBasaltPipelineCardVisibleAndBounds;
     procedure TestVkBasaltPipelineInteractions;
@@ -2992,6 +2993,53 @@ begin
     AssertEquals('VKSUMICFGFILE set on game card click', ExpectedDir + 'vkSumi.conf', VKSUMICFGFILE);
     AssertFalse('goverlaybarPanel is hidden on game card click', goverlayform.goverlaybarPanel.Visible);
     AssertTrue('FFADock is visible on game card click', goverlayform.FFADock.Visible);
+  finally
+    Panel.Free;
+    goverlayform.gamesLabelClick(nil);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGameCardClickRestoresMangoHudTabVisibility;
+var
+  Panel: TPanel;
+begin
+  // 1. Visit OptiScaler, which hides MangoHud tabs
+  goverlayform.optiscalerLabelClick(nil);
+  AssertFalse('presetTabSheet hidden on OptiScaler', goverlayform.presetTabSheet.TabVisible);
+  AssertFalse('visualTabSheet hidden on OptiScaler', goverlayform.visualTabSheet.TabVisible);
+  AssertFalse('performanceTabSheet hidden on OptiScaler', goverlayform.performanceTabSheet.TabVisible);
+  AssertFalse('metricsTabSheet hidden on OptiScaler', goverlayform.metricsTabSheet.TabVisible);
+  AssertFalse('extrasTabSheet hidden on OptiScaler', goverlayform.extrasTabSheet.TabVisible);
+
+  // 2. Return to Games tab
+  goverlayform.gamesLabelClick(nil);
+  AssertFalse('presetTabSheet remains hidden on Games tab', goverlayform.presetTabSheet.TabVisible);
+
+  // 3. Click a game card
+  Panel := TPanel.Create(nil);
+  try
+    Panel.Hint := 'TabVisGameTest';
+    goverlayform.GameCardClick(Panel);
+
+    // Verify all 5 MangoHud tabs are restored
+    AssertTrue('goverlayPageControl.ShowTabs is True after game card click', goverlayform.goverlayPageControl.ShowTabs);
+    AssertTrue('presetTabSheet is visible after game card click', goverlayform.presetTabSheet.TabVisible);
+    AssertTrue('visualTabSheet is visible after game card click', goverlayform.visualTabSheet.TabVisible);
+    AssertTrue('performanceTabSheet is visible after game card click', goverlayform.performanceTabSheet.TabVisible);
+    AssertTrue('metricsTabSheet is visible after game card click', goverlayform.metricsTabSheet.TabVisible);
+    AssertTrue('extrasTabSheet is visible after game card click', goverlayform.extrasTabSheet.TabVisible);
+
+    // Verify non-MangoHud tabs are hidden
+    AssertFalse('gamesTabSheet is hidden after game card click', goverlayform.gamesTabSheet.TabVisible);
+    AssertFalse('vkbasaltTabSheet is hidden after game card click', goverlayform.vkbasalttabsheet.TabVisible);
+    AssertFalse('vksumiTabSheet is hidden after game card click', goverlayform.vksumiTabSheet.TabVisible);
+    AssertFalse('optiscalertabsheet is hidden after game card click', goverlayform.optiscalertabsheet.TabVisible);
+    AssertFalse('losslessScalingTabSheet is hidden after game card click', goverlayform.losslessScalingTabSheet.TabVisible);
+    AssertFalse('tweakstabsheet is hidden after game card click', goverlayform.tweakstabsheet.TabVisible);
+    AssertFalse('FHomeTabSheet is hidden after game card click', goverlayform.FHomeTabSheet.TabVisible);
+
+    // Verify active page is presetTabSheet
+    AssertTrue('presetTabSheet is active page after game card click', goverlayform.goverlayPageControl.ActivePage = goverlayform.presetTabSheet);
   finally
     Panel.Free;
     goverlayform.gamesLabelClick(nil);
