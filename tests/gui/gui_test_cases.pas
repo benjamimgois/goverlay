@@ -36,6 +36,7 @@ type
     procedure TestLosslessScalingBgmodConfRoundtrip;
     procedure TestLosslessScalingPerGameContextIsolation;
     procedure TestLosslessScalingDynamicConfigFileAndLog;
+    procedure TestLosslessScalingDynamicDllAndMigrationAssistant;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -130,7 +131,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -267,7 +268,9 @@ begin
   
   // Test invalid DLL path status label
   Helper.DllPathEdit.Text := '/nonexistent/path/Lossless.dll';
-  AssertTrue('Status label warns when DLL is missing', Pos('Install Lossless scaling on steam', Helper.DllStatusLabel.Caption) > 0);
+  AssertTrue('Status label warns when DLL is missing',
+    (Pos('Switch Lossless Scaling to lsfg-vk beta branch', Helper.DllStatusLabel.Caption) > 0) or
+    (Pos('Install Lossless scaling on steam', Helper.DllStatusLabel.Caption) > 0));
   
   // Create a temporary dummy DLL file to simulate valid Lossless.dll
   DummyDll := IsolatedHome + '/.local/share/goverlay/test_Lossless.dll';
@@ -508,6 +511,170 @@ begin
   AssertEquals('MAKO selected opens conf.toml', 'conf.toml', ExtractFileName(ConfigFile));
   LogFile := goverlayform.GetActiveTabLogFile;
   AssertEquals('MAKO selected opens mako.log', 'mako.log', ExtractFileName(LogFile));
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingDynamicDllAndMigrationAssistant;
+var
+  Helper: TLosslessScalingTabHelper;
+  DummyDir, DummyLosslessDll, DummyLsfgDll: string;
+  UserConfigFile, BackupFile: string;
+  ConfigSL: TStringList;
+  CfgPath: string;
+  OrigUserConfig: string;
+  HadOrigUserConfig: Boolean;
+  Dialog: TLSFGVkMigrationDialog;
+begin
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless helper is assigned', Assigned(Helper));
+
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+
+  DummyDir := IsolatedHome + '/.local/share/goverlay/test_steam_ls';
+  ForceDirectories(DummyDir);
+  DummyLosslessDll := IncludeTrailingPathDelimiter(DummyDir) + 'Lossless.dll';
+  DummyLsfgDll := IncludeTrailingPathDelimiter(DummyDir) + 'lsfg-vk.dll';
+
+  // 1. Dynamic DLL swapping between lsfg-vk and MAKO
+  Helper.DllPathEdit.Text := DummyLosslessDll;
+  Helper.InterpolationMethod := imLsfg;
+  AssertEquals('Switching to lsfg-vk updates DLL path to lsfg-vk.dll',
+    DummyLsfgDll, Helper.DllPathEdit.Text);
+  AssertTrue('TextHint reflects lsfg-vk.dll',
+    Pos('lsfg-vk.dll', Helper.DllPathEdit.TextHint) > 0);
+  AssertTrue('Browse button hint reflects lsfg-vk.dll',
+    Pos('lsfg-vk.dll', Helper.BrowseDllBtn.Hint) > 0);
+
+  Helper.InterpolationMethod := imMako;
+  AssertEquals('Switching to MAKO updates DLL path to Lossless.dll',
+    DummyLosslessDll, Helper.DllPathEdit.Text);
+  AssertTrue('TextHint reflects Lossless.dll',
+    Pos('Lossless.dll', Helper.DllPathEdit.TextHint) > 0);
+  AssertTrue('Browse button hint reflects Lossless.dll',
+    Pos('Lossless.dll', Helper.BrowseDllBtn.Hint) > 0);
+
+  // 2. Status label adaptation
+  Helper.InterpolationMethod := imLsfg;
+  Helper.DllPathEdit.Text := '/nonexistent/dir/lsfg-vk.dll';
+  Helper.UpdateDllStatus;
+  AssertTrue('Missing lsfg-vk.dll status warns to switch to lsfg-vk beta branch',
+    Pos('Switch Lossless Scaling to lsfg-vk beta branch', Helper.DllStatusLabel.Caption) > 0);
+
+  Helper.InterpolationMethod := imMako;
+  Helper.DllPathEdit.Text := '/nonexistent/dir/Lossless.dll';
+  Helper.UpdateDllStatus;
+  AssertTrue('Missing Lossless.dll status warns to install Lossless scaling',
+    Pos('Install Lossless scaling on steam', Helper.DllStatusLabel.Caption) > 0);
+
+  // 3. User configuration health check and modernization
+  UserConfigFile := IncludeTrailingPathDelimiter(GetUserDir) + '.config/lsfg-vk/conf.toml';
+  ForceDirectories(ExtractFilePath(UserConfigFile));
+  HadOrigUserConfig := FileExists(UserConfigFile);
+  OrigUserConfig := '';
+  if HadOrigUserConfig then
+  begin
+    ConfigSL := TStringList.Create;
+    try
+      ConfigSL.LoadFromFile(UserConfigFile);
+      OrigUserConfig := ConfigSL.Text;
+    finally
+      ConfigSL.Free;
+    end;
+  end;
+
+  BackupFile := '';
+  try
+    ConfigSL := TStringList.Create;
+    try
+      ConfigSL.Add('# Legacy v1 configuration test');
+      ConfigSL.Add('version = 1');
+      ConfigSL.Add('pacing = "immediate"');
+      ConfigSL.Add('multiplier = 2');
+      ConfigSL.SaveToFile(UserConfigFile);
+
+      AssertTrue('CheckUserConfigHealth flags legacy config hazard',
+        Helper.CheckUserConfigHealth(CfgPath));
+
+      AssertTrue('ModernizeUserConfig succeeds',
+        Helper.ModernizeUserConfig(BackupFile));
+      AssertTrue('Backup file was created', FileExists(BackupFile));
+
+      ConfigSL.Clear;
+      ConfigSL.LoadFromFile(BackupFile);
+      AssertTrue('Backup contains original legacy pacing', Pos('pacing = "immediate"', ConfigSL.Text) > 0);
+
+      ConfigSL.Clear;
+      ConfigSL.LoadFromFile(UserConfigFile);
+      AssertTrue('Modernized config uses version = 2', Pos('version = 2', ConfigSL.Text) > 0);
+      AssertTrue('Modernized config uses pacing = "vsync"', Pos('pacing = "vsync"', ConfigSL.Text) > 0);
+
+      AssertFalse('CheckUserConfigHealth passes on modernized config',
+        Helper.CheckUserConfigHealth(CfgPath));
+    finally
+      ConfigSL.Free;
+    end;
+  finally
+    if (BackupFile <> '') and FileExists(BackupFile) then
+      DeleteFile(BackupFile);
+    if HadOrigUserConfig then
+    begin
+      ConfigSL := TStringList.Create;
+      try
+        ConfigSL.Text := OrigUserConfig;
+        ConfigSL.SaveToFile(UserConfigFile);
+      finally
+        ConfigSL.Free;
+      end;
+    end
+    else if FileExists(UserConfigFile) then
+      DeleteFile(UserConfigFile);
+  end;
+
+  // 4. Migration Alert Card visibility
+  Helper.InterpolationMethod := imMako;
+  Helper.UpdateMigrationAlertState;
+  AssertFalse('Migration alert card is hidden when MAKO is active', Helper.MigrationAlertCard.Visible);
+
+  // 5. TLSFGVkMigrationDialog instantiation, checks refresh, and lifecycle
+  Dialog := TLSFGVkMigrationDialog.Create(nil, Helper);
+  try
+    AssertNotNull('Dialog created successfully', Dialog);
+    Dialog.RefreshAllChecks;
+    AssertNotNull('Step1Dot is initialized', Dialog.Step1Dot);
+    AssertNotNull('Step2CleanBtn is initialized', Dialog.Step2CleanBtn);
+    AssertNotNull('Step4UpdateBtn is initialized', Dialog.Step4UpdateBtn);
+  finally
+    Dialog.Free;
+  end;
+
+  // 6. Test Hamburger Menu integration in popsaveMenu (lsfgMigrationMenuItem)
+  AssertNotNull('Hamburger migration menu item is allocated', goverlayform.lsfgMigrationMenuItem);
+  AssertEquals('lsfgMigrationMenuItem caption is correct', 'lsfg-vk Migration Assistant', goverlayform.lsfgMigrationMenuItem.Caption);
+
+  // When on Lossless Scaling tab and lsfg-vk is selected -> visible below Open log file
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper.InterpolationMethod := imLsfg;
+  goverlayform.popupBitBtnClick(nil);
+  AssertTrue('Migration menu item is visible in hamburger menu when on Lossless tab and lsfg-vk selected',
+    goverlayform.lsfgMigrationMenuItem.Visible);
+
+  // When on Lossless Scaling tab and MAKO is selected -> hidden
+  Helper.InterpolationMethod := imMako;
+  goverlayform.popupBitBtnClick(nil);
+  AssertFalse('Migration menu item is hidden in hamburger menu when MAKO selected',
+    goverlayform.lsfgMigrationMenuItem.Visible);
+
+  // When on Lossless Scaling tab and None is selected -> hidden
+  Helper.InterpolationMethod := imNone;
+  goverlayform.popupBitBtnClick(nil);
+  AssertFalse('Migration menu item is hidden in hamburger menu when None selected',
+    goverlayform.lsfgMigrationMenuItem.Visible);
+
+  // When on another tab (e.g. OptiScaler tab) even if lsfg-vk selected -> hidden
+  Helper.InterpolationMethod := imLsfg;
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+  goverlayform.popupBitBtnClick(nil);
+  AssertFalse('Migration menu item is hidden in hamburger menu when on another tab',
+    goverlayform.lsfgMigrationMenuItem.Visible);
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;

@@ -453,6 +453,7 @@ type
     Timer: TTimer;
     openConfigFileMenuItem: TMenuItem;
     openLogFileMenuItem: TMenuItem;
+    lsfgMigrationMenuItem: TMenuItem;
     loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
@@ -585,6 +586,7 @@ type
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure openConfigFileMenuItemClick(Sender: TObject);
     procedure openLogFileMenuItemClick(Sender: TObject);
+    procedure lsfgMigrationMenuItemClick(Sender: TObject);
     procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
@@ -1644,7 +1646,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, toggle_switch;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch;
 
 function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
@@ -6073,6 +6075,11 @@ begin
   openConfigFileMenuItem.Visible := True;
   openLogFileMenuItem.Visible := True;
 
+  // "lsfg-vk Migration Assistant" is visible directly below "Open log file" when on the Lossless Scaling tab and lsfg-vk is selected
+  lsfgMigrationMenuItem.Visible := (goverlayPageControl.ActivePage = losslessScalingTabSheet) and
+    Assigned(FLosslessScalingHelper) and
+    (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imLsfg);
+
   // Control menu item visibility based on active tab
   if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
      (goverlayPageControl.ActivePage = vksumiTabSheet) then
@@ -6607,6 +6614,11 @@ begin
     end;
     ExecuteShellCommand('xdg-open ' + QuotedStr(TargetFile) + ' &');
   end;
+end;
+
+procedure Tgoverlayform.lsfgMigrationMenuItemClick(Sender: TObject);
+begin
+  ShowLsfgMigrationDialog(Self, FLosslessScalingHelper);
 end;
 
 procedure Tgoverlayform.loadconfigMenuItemClick(Sender: TObject);

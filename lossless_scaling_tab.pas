@@ -103,6 +103,13 @@ type
     FLsStatDots: array[0..2] of TShape;
     FLsStatNameLbls: array[0..2] of TLabel;
     
+    // Migration Alert Card
+    FLsMigrationAlertCard: TPanel;
+    FLsMigrationAlertIconLbl: TLabel;
+    FLsMigrationAlertTitleLbl: TLabel;
+    FLsMigrationAlertDescLbl: TLabel;
+    FLsMigrationAlertBtn: TBitBtn;
+
     // Card 1: Frame Generation
     FLsDisabledNoticeLbl: TLabel;
     FLsFgTitleLbl: TLabel;
@@ -114,7 +121,7 @@ type
     FLsMultiplierTrackBar: TTrackBar;
     FLsMultiplierValueLabel: TLabel;
     
-    // Mode: Adaptive Frame Generation
+    // Mode: Adaptive Multiplier
     FLsTargetFpsTitleLbl: TLabel;
     FLsTargetFpsTrackBar: TTrackBar;
     FLsTargetFpsValueLabel: TLabel;
@@ -125,7 +132,7 @@ type
     FLsSmoothCadenceCheckBox: TCheckBox;
     FLsSmoothCadenceToggle: TToggleSwitch;
     
-    // Shared FG Controls
+    // Mode: Advanced Tuning
     FLsFlowScaleTitleLbl: TLabel;
     FLsFlowScaleTrackBar: TTrackBar;
     FLsFlowScaleValueLabel: TLabel;
@@ -135,12 +142,14 @@ type
     FLsRefreshThresholdTitleLbl: TLabel;
     FLsRefreshThresholdTrackBar: TTrackBar;
     FLsRefreshThresholdValueLabel: TLabel;
-    
-    // Toggles
     FLsFgLiveCheckBox: TCheckBox;
     FLsFgLiveToggle: TToggleSwitch;
     FLsAllowFp16CheckBox: TCheckBox;
     FLsAllowFp16Toggle: TToggleSwitch;
+    FLsOverridePresentModeCheckBox: TCheckBox;
+    FLsOverridePresentModeToggle: TToggleSwitch;
+    FLsPreserveSwapchainCheckBox: TCheckBox;
+    FLsPreserveSwapchainToggle: TToggleSwitch;
     FLsPerfModeCheckBox: TCheckBox;
     FLsPerfModeToggle: TToggleSwitch;
     FLsUltraPerfCheckBox: TCheckBox;
@@ -149,13 +158,6 @@ type
     FLsHdrModeToggle: TToggleSwitch;
     FLsNoFp16CheckBox: TCheckBox;
     FLsNoFp16Toggle: TToggleSwitch;
-    FLsOverridePresentModeCheckBox: TCheckBox;
-    FLsOverridePresentModeToggle: TToggleSwitch;
-    FLsPreserveSwapchainCheckBox: TCheckBox;
-    FLsPreserveSwapchainToggle: TToggleSwitch;
-    
-    FLsPacingTitleLbl: TLabel;
-    FLsPacingComboBox: TComboBox;
     
     // Card 2: Spatial Scaling
     FLsSpatialTitleLbl: TLabel;
@@ -172,6 +174,11 @@ type
     FLsScalingSupersamplingCheckBox: TCheckBox;
     FLsScalingSupersamplingToggle: TToggleSwitch;
     FLsLsfgInstallBtn: TBitBtn;
+    
+    // Controls
+    FLsPacingTitleLbl: TLabel;
+    FLsPacingComboBox: TComboBox;
+    
     FCheckingUpdate: Boolean;
     FUpdateCheckedThisSession: Boolean;
     FMakoRemoteVer: string;
@@ -183,7 +190,9 @@ type
     FLsfgVersionCached: string;
     FMakoVersionCached: string;
     FDetectedSteamDllCached: string;
+    FDetectedSteamLsfgDllCached: string;
     FSteamDllDetectedThisSession: Boolean;
+    FSteamLsfgDllDetectedThisSession: Boolean;
     
     procedure MethodNoneClick(Sender: TObject);
     procedure MethodLsfgClick(Sender: TObject);
@@ -191,7 +200,8 @@ type
     procedure UpdateMethodImageOpacity;
     procedure InstallLsfgClick(Sender: TObject);
     function CheckLsfgVkLayerInstalled(out APath: string): Boolean;
-    procedure UpdateStatusCard;
+    procedure MigrationAlertPaint(Sender: TObject);
+    procedure MigrationAlertBtnClick(Sender: TObject);
     
     procedure DllPathChange(Sender: TObject);
     procedure BrowseDllClick(Sender: TObject);
@@ -217,6 +227,7 @@ type
     procedure ReflowLosslessScalingTab(AContentW: Integer);
     procedure ApplyThemeStyles;
     procedure UpdateDllStatus;
+    procedure UpdateStatusCard;
     procedure UpdateEngineStatus;
     procedure UpdateControlsEnabled;
     procedure ControlStateChange(Sender: TObject);
@@ -229,7 +240,13 @@ type
     function WriteMakoTomlConfig(const ATargetDir: string = ''): string;
     function WriteLsfgTomlConfig(const ATargetDir: string = ''): string;
     function WriteDefaultLsfgToml(const ATargetDir: string = ''): string;
-    function DetectSteamLosslessDll: string;
+    function DetectSteamLosslessDll(ForLsfg: Boolean = False): string;
+    function CheckSteamBetaDllHealth(out ADllPath: string): Boolean;
+    function CheckLegacySystemLayersHealth(out AFoundFiles: TStringList): Boolean;
+    function CheckUserConfigHealth(out AConfigPath: string): Boolean;
+    function CheckMigrationHazards(out HasBetaIssue, HasLegacyFiles, HasConfigIssue: Boolean): Boolean;
+    function ModernizeUserConfig(out ABackupPath: string): Boolean;
+    procedure UpdateMigrationAlertState;
     function GetLsfgVkInstalledVersion(const ALayerJsonPath: string): string;
     function GetLsfgVkLibraryPath(const ALayerJsonPath: string): string;
     function GetStatNameLabel(Index: Integer): TLabel;
@@ -241,6 +258,9 @@ type
     property GpuCard: TPanel read FLsGpuCard;
     property FrameGenCard: TPanel read FLsFrameGenCard;
     property StatusCard: TPanel read FLsStatusCard;
+    property MigrationAlertCard: TPanel read FLsMigrationAlertCard;
+    property MigrationAlertBtn: TBitBtn read FLsMigrationAlertBtn;
+    property MigrationAlertDescLbl: TLabel read FLsMigrationAlertDescLbl;
     property NoneRadio: TRadioButton read FLsNoneRadio;
     property LsfgRadio: TRadioButton read FLsLsfgRadio;
     property MakoRadio: TRadioButton read FLsMakoRadio;
@@ -248,6 +268,7 @@ type
 
     property LogoImage: TImage read FLsLogoImage;
     property DllPathEdit: TEdit read FLsDllPathEdit;
+    property BrowseDllBtn: TBitBtn read FLsBrowseDllBtn;
     property DllStatusLabel: TLabel read FLsDllStatusLabel;
     property MakoLogoImage: TImage read FLsMakoLogoImage;
     property MakoPathEdit: TEdit read FLsMakoPathEdit;
@@ -334,6 +355,7 @@ uses
   overlayunit,
   overlay_config,
   optiscaler_update,
+  lsfg_migration_dialog,
   Process;
 
 const
@@ -841,11 +863,50 @@ begin
 end;
 
 procedure TLosslessScalingTabHelper.SetInterpolationMethod(AMethod: TInterpolationMethod);
+var
+  CurDll: string;
 begin
   FInterpolationMethod := AMethod;
   if Assigned(FLsNoneRadio) then FLsNoneRadio.Checked := (AMethod = imNone);
   if Assigned(FLsLsfgRadio) then FLsLsfgRadio.Checked := (AMethod = imLsfg);
   if Assigned(FLsMakoRadio) then FLsMakoRadio.Checked := (AMethod = imMako);
+
+  if Assigned(FLsDllPathEdit) then
+  begin
+    CurDll := Trim(FLsDllPathEdit.Text);
+    if AMethod = imLsfg then
+    begin
+      if CurDll <> '' then
+      begin
+        if SameText(ExtractFileName(CurDll), 'Lossless.dll') then
+          FLsDllPathEdit.Text := ExtractFilePath(CurDll) + 'lsfg-vk.dll';
+      end
+      else
+        FLsDllPathEdit.Text := DetectSteamLosslessDll(True);
+      FLsDllPathEdit.TextHint := 'Path to lsfg-vk.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/lsfg-vk.dll)';
+      if Assigned(FLsBrowseDllBtn) then
+      begin
+        FLsBrowseDllBtn.Hint := 'Browse for lsfg-vk.dll';
+        FLsBrowseDllBtn.ShowHint := True;
+      end;
+    end
+    else if AMethod = imMako then
+    begin
+      if CurDll <> '' then
+      begin
+        if SameText(ExtractFileName(CurDll), 'lsfg-vk.dll') then
+          FLsDllPathEdit.Text := ExtractFilePath(CurDll) + 'Lossless.dll';
+      end
+      else
+        FLsDllPathEdit.Text := DetectSteamLosslessDll(False);
+      FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
+      if Assigned(FLsBrowseDllBtn) then
+      begin
+        FLsBrowseDllBtn.Hint := 'Browse for Lossless.dll';
+        FLsBrowseDllBtn.ShowHint := True;
+      end;
+    end;
+  end;
 
   if not (Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig) then
   begin
@@ -875,6 +936,9 @@ begin
 
   UpdateMethodImageOpacity;
   UpdateControlsEnabled;
+  UpdateDllStatus;
+  UpdateStatusCard;
+  UpdateMigrationAlertState;
   if Assigned(FLsScrollBox) then
     ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
 end;
@@ -988,7 +1052,7 @@ const
 begin
   if not Assigned(FLsStatDots[0]) then Exit;
 
-  // 0: Lossless.dll
+  // 0: Lossless Scaling library
   if Assigned(FLsDllPathEdit) then
     DllP := Trim(FLsDllPathEdit.Text)
   else
@@ -998,6 +1062,9 @@ begin
     FLsStatDots[0].Brush.Color := CLR_OK
   else
     FLsStatDots[0].Brush.Color := CLR_NONE;
+
+  if Assigned(FLsStatNameLbls[0]) then
+    FLsStatNameLbls[0].Caption := 'Lossless Scaling';
 
   // 1: MAKO
   if FMakoVersionCached <> '' then
@@ -1139,30 +1206,44 @@ begin
   Result := GetGameConfigDir(GameName) + 'bgmod.conf';
 end;
 
-function TLosslessScalingTabHelper.DetectSteamLosslessDll: string;
+function TLosslessScalingTabHelper.DetectSteamLosslessDll(ForLsfg: Boolean): string;
 const
-  RelDll = 'common/Lossless Scaling/Lossless.dll';
+  RelDllMako = 'common/Lossless Scaling/Lossless.dll';
+  RelDllLsfg = 'common/Lossless Scaling/lsfg-vk.dll';
 var
   Libs: TStringList;
   i: Integer;
-  Candidate: string;
+  CandidateMako, CandidateLsfg, FallbackDir: string;
 begin
-  if FSteamDllDetectedThisSession then
+  if ForLsfg and FSteamLsfgDllDetectedThisSession then
+    Exit(FDetectedSteamLsfgDllCached);
+  if (not ForLsfg) and FSteamDllDetectedThisSession then
     Exit(FDetectedSteamDllCached);
 
   Result := '';
+  FallbackDir := '';
   Libs := TStringList.Create;
   try
     Tgoverlayform(FForm).GetSteamLibraries(Libs);
     for i := 0 to Libs.Count - 1 do
     begin
-      Candidate := IncludeTrailingPathDelimiter(Libs[i]) + RelDll;
-      if FileExists(Candidate) then
+      CandidateMako := IncludeTrailingPathDelimiter(Libs[i]) + RelDllMako;
+      CandidateLsfg := IncludeTrailingPathDelimiter(Libs[i]) + RelDllLsfg;
+      if FileExists(CandidateLsfg) and ForLsfg then
       begin
-        Result := Candidate;
-        FDetectedSteamDllCached := Result;
-        FSteamDllDetectedThisSession := True;
-        Exit;
+        FDetectedSteamLsfgDllCached := CandidateLsfg;
+        FSteamLsfgDllDetectedThisSession := True;
+        Exit(CandidateLsfg);
+      end;
+      if FileExists(CandidateMako) then
+      begin
+        if FallbackDir = '' then FallbackDir := ExtractFilePath(CandidateMako);
+        if not ForLsfg then
+        begin
+          FDetectedSteamDllCached := CandidateMako;
+          FSteamDllDetectedThisSession := True;
+          Exit(CandidateMako);
+        end;
       end;
     end;
   finally
@@ -1170,32 +1251,311 @@ begin
   end;
   
   // Direct fallback checks
-  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/Steam/steamapps/' + RelDll;
-  if FileExists(Candidate) then
+  CandidateMako := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/Steam/steamapps/' + RelDllMako;
+  CandidateLsfg := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/Steam/steamapps/' + RelDllLsfg;
+  if FileExists(CandidateLsfg) and ForLsfg then
   begin
-    FDetectedSteamDllCached := Candidate;
-    FSteamDllDetectedThisSession := True;
-    Exit(Candidate);
+    FDetectedSteamLsfgDllCached := CandidateLsfg;
+    FSteamLsfgDllDetectedThisSession := True;
+    Exit(CandidateLsfg);
+  end;
+  if FileExists(CandidateMako) then
+  begin
+    if FallbackDir = '' then FallbackDir := ExtractFilePath(CandidateMako);
+    if not ForLsfg then
+    begin
+      FDetectedSteamDllCached := CandidateMako;
+      FSteamDllDetectedThisSession := True;
+      Exit(CandidateMako);
+    end;
   end;
   
-  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.steam/steam/steamapps/' + RelDll;
-  if FileExists(Candidate) then
+  CandidateMako := IncludeTrailingPathDelimiter(GetUserDir) + '.steam/steam/steamapps/' + RelDllMako;
+  CandidateLsfg := IncludeTrailingPathDelimiter(GetUserDir) + '.steam/steam/steamapps/' + RelDllLsfg;
+  if FileExists(CandidateLsfg) and ForLsfg then
   begin
-    FDetectedSteamDllCached := Candidate;
-    FSteamDllDetectedThisSession := True;
-    Exit(Candidate);
+    FDetectedSteamLsfgDllCached := CandidateLsfg;
+    FSteamLsfgDllDetectedThisSession := True;
+    Exit(CandidateLsfg);
+  end;
+  if FileExists(CandidateMako) then
+  begin
+    if FallbackDir = '' then FallbackDir := ExtractFilePath(CandidateMako);
+    if not ForLsfg then
+    begin
+      FDetectedSteamDllCached := CandidateMako;
+      FSteamDllDetectedThisSession := True;
+      Exit(CandidateMako);
+    end;
   end;
   
-  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/' + RelDll;
-  if FileExists(Candidate) then
+  CandidateMako := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/' + RelDllMako;
+  CandidateLsfg := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/' + RelDllLsfg;
+  if FileExists(CandidateLsfg) and ForLsfg then
   begin
-    FDetectedSteamDllCached := Candidate;
-    FSteamDllDetectedThisSession := True;
-    Exit(Candidate);
+    FDetectedSteamLsfgDllCached := CandidateLsfg;
+    FSteamLsfgDllDetectedThisSession := True;
+    Exit(CandidateLsfg);
+  end;
+  if FileExists(CandidateMako) then
+  begin
+    if FallbackDir = '' then FallbackDir := ExtractFilePath(CandidateMako);
+    if not ForLsfg then
+    begin
+      FDetectedSteamDllCached := CandidateMako;
+      FSteamDllDetectedThisSession := True;
+      Exit(CandidateMako);
+    end;
   end;
 
-  FDetectedSteamDllCached := '';
-  FSteamDllDetectedThisSession := True;
+  if ForLsfg then
+  begin
+    if FallbackDir <> '' then
+      Result := FallbackDir + 'lsfg-vk.dll'
+    else
+      Result := '';
+    FDetectedSteamLsfgDllCached := Result;
+    FSteamLsfgDllDetectedThisSession := True;
+  end
+  else
+  begin
+    if FallbackDir <> '' then
+      Result := FallbackDir + 'Lossless.dll'
+    else
+      Result := '';
+    FDetectedSteamDllCached := Result;
+    FSteamDllDetectedThisSession := True;
+  end;
+end;
+
+function TLosslessScalingTabHelper.CheckSteamBetaDllHealth(out ADllPath: string): Boolean;
+var
+  TargetDll, AltDll, BaseDir: string;
+begin
+  Result := False;
+  ADllPath := '';
+  TargetDll := Trim(FLsDllPathEdit.Text);
+  if (TargetDll <> '') and SameText(ExtractFileName(TargetDll), 'lsfg-vk.dll') then
+    BaseDir := ExtractFilePath(TargetDll)
+  else
+  begin
+    AltDll := DetectSteamLosslessDll(False);
+    if AltDll <> '' then
+      BaseDir := ExtractFilePath(AltDll)
+    else
+      BaseDir := '';
+  end;
+
+  if BaseDir <> '' then
+  begin
+    ADllPath := BaseDir + 'lsfg-vk.dll';
+    if FileExists(BaseDir + 'Lossless.dll') and not FileExists(ADllPath) then
+      Result := True;
+  end;
+end;
+
+function TLosslessScalingTabHelper.CheckLegacySystemLayersHealth(out AFoundFiles: TStringList): Boolean;
+var
+  CandidatePaths: array[0..5] of string;
+  i: Integer;
+  P: string;
+begin
+  Result := False;
+  if not Assigned(AFoundFiles) then
+    AFoundFiles := TStringList.Create;
+  AFoundFiles.Clear;
+  CandidatePaths[0] := '/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json';
+  CandidatePaths[1] := '/usr/lib/liblsfg-vk.so';
+  CandidatePaths[2] := '/usr/lib64/liblsfg-vk.so';
+  CandidatePaths[3] := '/usr/bin/lsfg-vk-ui';
+  CandidatePaths[4] := '/usr/share/applications/lsfg-vk-ui.desktop';
+  CandidatePaths[5] := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json';
+
+  for i := 0 to High(CandidatePaths) do
+  begin
+    P := CandidatePaths[i];
+    if FileExists(P) then
+    begin
+      AFoundFiles.Add(P);
+      Result := True;
+    end;
+  end;
+end;
+
+function TLosslessScalingTabHelper.CheckUserConfigHealth(out AConfigPath: string): Boolean;
+var
+  UserCfg: string;
+  Lines: TStringList;
+  Content: string;
+begin
+  Result := False;
+  UserCfg := IncludeTrailingPathDelimiter(GetUserDir) + '.config/lsfg-vk/conf.toml';
+  AConfigPath := UserCfg;
+  if not FileExists(UserCfg) then Exit;
+
+  Lines := TStringList.Create;
+  try
+    try
+      Lines.LoadFromFile(UserCfg);
+      Content := Lines.Text;
+      if (Pos('version = 1', Content) > 0) or (Pos('[[game]]', Content) > 0) then
+        Result := True
+      else if (Pos('version = 2', Content) = 0) and (Pos('[[profile]]', Content) = 0) then
+        Result := True;
+    except
+      Result := False;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function TLosslessScalingTabHelper.CheckMigrationHazards(out HasBetaIssue, HasLegacyFiles, HasConfigIssue: Boolean): Boolean;
+var
+  DllP, CfgP: string;
+  FoundList: TStringList;
+begin
+  FoundList := TStringList.Create;
+  try
+    HasBetaIssue := CheckSteamBetaDllHealth(DllP);
+    HasLegacyFiles := CheckLegacySystemLayersHealth(FoundList);
+    HasConfigIssue := CheckUserConfigHealth(CfgP);
+    Result := HasBetaIssue or HasLegacyFiles or HasConfigIssue;
+  finally
+    FoundList.Free;
+  end;
+end;
+
+function TLosslessScalingTabHelper.ModernizeUserConfig(out ABackupPath: string): Boolean;
+var
+  UserCfg, BackupFile, DllP, CfgDir: string;
+  Lines: TStringList;
+begin
+  Result := False;
+  ABackupPath := '';
+  CfgDir := IncludeTrailingPathDelimiter(GetUserDir) + '.config/lsfg-vk';
+  if not DirectoryExists(CfgDir) then
+    ForceDirectories(CfgDir);
+  UserCfg := CfgDir + PathDelim + 'conf.toml';
+
+  if FileExists(UserCfg) then
+  begin
+    BackupFile := UserCfg + '.v1.bak';
+    if FileExists(BackupFile) then
+      DeleteFile(BackupFile);
+    if not RenameFile(UserCfg, BackupFile) then
+    begin
+      Lines := TStringList.Create;
+      try
+        Lines.LoadFromFile(UserCfg);
+        Lines.SaveToFile(BackupFile);
+        DeleteFile(UserCfg);
+      finally
+        Lines.Free;
+      end;
+    end;
+    ABackupPath := BackupFile;
+  end;
+
+  DllP := Trim(FLsDllPathEdit.Text);
+  if SameText(ExtractFileName(DllP), 'Lossless.dll') then
+    DllP := ExtractFilePath(DllP) + 'lsfg-vk.dll';
+  if (DllP = '') or not FileExists(DllP) then
+    DllP := DetectSteamLosslessDll(True);
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('version = 2');
+    Lines.Add('');
+    Lines.Add('[global]');
+    if (DllP <> '') and FileExists(DllP) then
+      Lines.Add('dll = "' + DllP + '"')
+    else
+      Lines.Add('# dll = "/path/to/lsfg-vk.dll"');
+    Lines.Add('allow_fp16 = true');
+    Lines.Add('');
+    Lines.Add('[[profile]]');
+    Lines.Add('name = "pascube"');
+    Lines.Add('active_in = ["pascube"]');
+    Lines.Add('multiplier = 2');
+    Lines.Add('flow_scale = 1.00');
+    Lines.Add('performance_mode = false');
+    Lines.Add('pacing = "vsync"');
+    Lines.Add('override_present_mode = true');
+    Lines.Add('preserve_swapchain_image_count = false');
+    Lines.Add('');
+    Lines.Add('[[profile]]');
+    Lines.Add('name = "vkcube"');
+    Lines.Add('active_in = ["vkcube"]');
+    Lines.Add('multiplier = 2');
+    Lines.Add('flow_scale = 1.00');
+    Lines.Add('performance_mode = false');
+    Lines.Add('pacing = "vsync"');
+    Lines.Add('override_present_mode = true');
+    Lines.Add('preserve_swapchain_image_count = false');
+    Lines.SaveToFile(UserCfg);
+    Result := True;
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TLosslessScalingTabHelper.UpdateMigrationAlertState;
+var
+  HasBeta, HasLegacy, HasCfg, AnyHazard: Boolean;
+  Reasons: string;
+begin
+  if not Assigned(FLsMigrationAlertCard) then Exit;
+
+  if FInterpolationMethod <> imLsfg then
+  begin
+    if FLsMigrationAlertCard.Visible then
+    begin
+      FLsMigrationAlertCard.Visible := False;
+      if Assigned(FLsScrollBox) then
+        ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
+    end;
+    Exit;
+  end;
+
+  AnyHazard := CheckMigrationHazards(HasBeta, HasLegacy, HasCfg);
+  if FLsMigrationAlertCard.Visible <> AnyHazard then
+  begin
+    FLsMigrationAlertCard.Visible := AnyHazard;
+    if Assigned(FLsScrollBox) then
+      ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
+  end;
+
+  if AnyHazard then
+  begin
+    Reasons := '';
+    if HasBeta then
+      Reasons := Reasons + 'Steam beta branch missing (lsfg-vk.dll). ';
+    if HasLegacy then
+      Reasons := Reasons + 'Conflicting 1.x layers detected. ';
+    if HasCfg then
+      Reasons := Reasons + 'Legacy user config detected.';
+
+    if Assigned(FLsMigrationAlertDescLbl) then
+      FLsMigrationAlertDescLbl.Caption := Trim(Reasons);
+  end;
+end;
+
+procedure TLosslessScalingTabHelper.MigrationAlertPaint(Sender: TObject);
+var
+  P: TPanel;
+begin
+  if not (Sender is TPanel) then Exit;
+  P := TPanel(Sender);
+  P.Canvas.Brush.Color := P.Color;
+  P.Canvas.Pen.Color := RGBToColor(245, 158, 11);
+  P.Canvas.Pen.Width := 1;
+  P.Canvas.RoundRect(0, 0, P.Width - 1, P.Height - 1, 8, 8);
+end;
+
+procedure TLosslessScalingTabHelper.MigrationAlertBtnClick(Sender: TObject);
+begin
+  ShowLsfgMigrationDialog(FForm, Self);
 end;
 
 procedure TLosslessScalingTabHelper.PopulateGpuList;
@@ -1456,6 +1816,45 @@ begin
   FLsBgPanel.Width := FLsScrollBox.ClientWidth;
   FLsBgPanel.Height := 620;
   
+  // ── Migration Alert Banner Card ──────────────────────────────────────────
+  FLsMigrationAlertCard := TPanel.Create(FForm);
+  FLsMigrationAlertCard.Parent := FLsBgPanel;
+  FLsMigrationAlertCard.Caption := '';
+  FLsMigrationAlertCard.BevelOuter := bvNone;
+  FLsMigrationAlertCard.Color := RGBToColor(42, 28, 14);
+  FLsMigrationAlertCard.Visible := False;
+  FLsMigrationAlertCard.OnPaint := @MigrationAlertPaint;
+
+  FLsMigrationAlertIconLbl := TLabel.Create(FLsMigrationAlertCard);
+  FLsMigrationAlertIconLbl.Parent := FLsMigrationAlertCard;
+  FLsMigrationAlertIconLbl.Caption := '⚠';
+  FLsMigrationAlertIconLbl.Font.Size := 14;
+  FLsMigrationAlertIconLbl.Font.Style := [fsBold];
+  FLsMigrationAlertIconLbl.Font.Color := RGBToColor(245, 158, 11);
+  FLsMigrationAlertIconLbl.AutoSize := True;
+
+  FLsMigrationAlertTitleLbl := TLabel.Create(FLsMigrationAlertCard);
+  FLsMigrationAlertTitleLbl.Parent := FLsMigrationAlertCard;
+  FLsMigrationAlertTitleLbl.Caption := 'lsfg-vk 2.0 Migration Hazards Detected';
+  FLsMigrationAlertTitleLbl.Font.Size := 9;
+  FLsMigrationAlertTitleLbl.Font.Style := [fsBold];
+  FLsMigrationAlertTitleLbl.Font.Color := clWhite;
+  FLsMigrationAlertTitleLbl.AutoSize := True;
+
+  FLsMigrationAlertDescLbl := TLabel.Create(FLsMigrationAlertCard);
+  FLsMigrationAlertDescLbl.Parent := FLsMigrationAlertCard;
+  FLsMigrationAlertDescLbl.Caption := 'Steam beta branch missing (lsfg-vk.dll) or legacy 1.x files found.';
+  FLsMigrationAlertDescLbl.Font.Size := 8;
+  FLsMigrationAlertDescLbl.Font.Color := RGBToColor(220, 205, 190);
+  FLsMigrationAlertDescLbl.AutoSize := True;
+
+  FLsMigrationAlertBtn := TBitBtn.Create(FLsMigrationAlertCard);
+  FLsMigrationAlertBtn.Parent := FLsMigrationAlertCard;
+  FLsMigrationAlertBtn.Caption := 'Migration Assistant';
+  FLsMigrationAlertBtn.Cursor := crHandPoint;
+  FLsMigrationAlertBtn.OnClick := @MigrationAlertBtnClick;
+  StyleActionButton(FLsMigrationAlertBtn);
+
   // ── Card 0a: Method (Top Left 50%) ────────────────────────────────────────
   FLsMethodCard := TPanel.Create(FForm);
   FLsMethodCard.Parent := FLsBgPanel;
@@ -2101,6 +2500,8 @@ begin
   FLsBrowseDllBtn.ImageIndex := 24;
   FLsBrowseDllBtn.Cursor := crHandPoint;
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
+  FLsBrowseDllBtn.Hint := 'Browse for Lossless.dll';
+  FLsBrowseDllBtn.ShowHint := True;
   StyleActionButton(FLsBrowseDllBtn);
 
   FLsDllStatusLabel := TLabel.Create(FLsStatusCard);
@@ -2282,6 +2683,22 @@ begin
     FLsGpuComboBox.SetBounds(PAD, HDR + (GPU_GH - ROW_H) div 2, (CW - CardW - GAP) - 2 * PAD, ROW_H);
 
   CurY := CurY + GPU_H + GAP;
+
+  // ── Migration Alert Card (if visible) ───────────────────────────────────
+  if Assigned(FLsMigrationAlertCard) and FLsMigrationAlertCard.Visible then
+  begin
+    FLsMigrationAlertCard.SetBounds(MARGIN, CurY, CW, 50);
+    if Assigned(FLsMigrationAlertIconLbl) then
+      FLsMigrationAlertIconLbl.SetBounds(PAD, 14, 20, 20);
+    if Assigned(FLsMigrationAlertBtn) then
+      FLsMigrationAlertBtn.SetBounds(CW - PAD - 160, (50 - 28) div 2, 160, 28);
+    if Assigned(FLsMigrationAlertTitleLbl) then
+      FLsMigrationAlertTitleLbl.SetBounds(PAD + 28, 8, CW - 2 * PAD - 200, 16);
+    if Assigned(FLsMigrationAlertDescLbl) then
+      FLsMigrationAlertDescLbl.SetBounds(PAD + 28, 26, CW - 2 * PAD - 200, 16);
+
+    CurY := CurY + 50 + GAP;
+  end;
 
   // ── Middle Area: Dynamic Configuration Cards ─────────────────────────────
   if FInterpolationMethod = imNone then
@@ -2646,13 +3063,17 @@ begin
       
     if Assigned(FLsDllStatusLabel) then
     begin
-      FLsDllStatusLabel.Caption := '● Install Lossless scaling on steam or point the correct file path';
+      if FInterpolationMethod = imLsfg then
+        FLsDllStatusLabel.Caption := '● Switch Lossless Scaling to lsfg-vk beta branch in Steam'
+      else
+        FLsDllStatusLabel.Caption := '● Install Lossless scaling on steam or point the correct file path';
       FLsDllStatusLabel.Font.Color := RGBToColor(255, 90, 95);
     end;
   end;
   QWidget_setStyleSheet(TQtWidget(FLsDllPathEdit.Handle).Widget, @SS);
   FLsDllPathEdit.SelStart := 0;
   FLsDllPathEdit.SelLength := 0;
+  UpdateStatusCard;
 end;
 
 procedure TLosslessScalingTabHelper.UpdateEngineStatus;
@@ -3161,6 +3582,7 @@ end;
 procedure TLosslessScalingTabHelper.DllPathChange(Sender: TObject);
 begin
   UpdateDllStatus;
+  UpdateMigrationAlertState;
   if Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig then Exit;
   if Assigned(FForm) and (FForm is Tgoverlayform) then
     Tgoverlayform(FForm).StartAutoSaveTimer
@@ -3174,8 +3596,16 @@ var
 begin
   OD := TOpenDialog.Create(FForm);
   try
-    OD.Title := 'Select Lossless.dll';
-    OD.Filter := 'Lossless Scaling DLL (Lossless.dll)|Lossless.dll|Dynamic Libraries (*.dll)|*.dll|All Files (*)|*';
+    if FInterpolationMethod = imLsfg then
+    begin
+      OD.Title := 'Select lsfg-vk.dll';
+      OD.Filter := 'Lossless Scaling Vulkan DLL (lsfg-vk.dll)|lsfg-vk.dll|Dynamic Libraries (*.dll)|*.dll|All Files (*)|*';
+    end
+    else
+    begin
+      OD.Title := 'Select Lossless.dll';
+      OD.Filter := 'Lossless Scaling DLL (Lossless.dll)|Lossless.dll|Dynamic Libraries (*.dll)|*.dll|All Files (*)|*';
+    end;
     if Trim(FLsDllPathEdit.Text) <> '' then
       OD.InitialDir := ExtractFilePath(FLsDllPathEdit.Text)
     else
@@ -3251,6 +3681,8 @@ var
 begin
   Result := '';
   DllP := Trim(FLsDllPathEdit.Text);
+  if SameText(ExtractFileName(DllP), 'lsfg-vk.dll') then
+    DllP := ExtractFilePath(DllP) + 'Lossless.dll';
   if (DllP = '') or not FileExists(DllP) then Exit;
 
   if ATargetDir <> '' then
@@ -3527,6 +3959,8 @@ begin
   if FLsMultiplierTrackBar.Position <= 1 then Exit;
   
   DllP := Trim(FLsDllPathEdit.Text);
+  if SameText(ExtractFileName(DllP), 'Lossless.dll') then
+    DllP := ExtractFilePath(DllP) + 'lsfg-vk.dll';
   if (DllP = '') or not FileExists(DllP) then Exit;
   
   if ATargetDir <> '' then
@@ -3796,6 +4230,16 @@ begin
   end;
 
   DllP := Trim(FLsDllPathEdit.Text);
+  if EffectiveMethod = imLsfg then
+  begin
+    if SameText(ExtractFileName(DllP), 'Lossless.dll') then
+      DllP := ExtractFilePath(DllP) + 'lsfg-vk.dll';
+  end
+  else if EffectiveMethod = imMako then
+  begin
+    if SameText(ExtractFileName(DllP), 'lsfg-vk.dll') then
+      DllP := ExtractFilePath(DllP) + 'Lossless.dll';
+  end;
   if (DllP = '') or not FileExists(DllP) then
     Exit('');
 
@@ -4093,9 +4537,16 @@ begin
       end;
     end;
 
-    // Fallback: detect Lossless.dll from Steam if not already configured
+    // Fallback: detect DLL from Steam if not already configured
     if Trim(FLsDllPathEdit.Text) = '' then
-      FLsDllPathEdit.Text := DetectSteamLosslessDll;
+      FLsDllPathEdit.Text := DetectSteamLosslessDll(LoadedMethod = imLsfg)
+    else
+    begin
+      if (LoadedMethod = imLsfg) and SameText(ExtractFileName(FLsDllPathEdit.Text), 'Lossless.dll') then
+        FLsDllPathEdit.Text := ExtractFilePath(FLsDllPathEdit.Text) + 'lsfg-vk.dll'
+      else if (LoadedMethod = imMako) and SameText(ExtractFileName(FLsDllPathEdit.Text), 'lsfg-vk.dll') then
+        FLsDllPathEdit.Text := ExtractFilePath(FLsDllPathEdit.Text) + 'Lossless.dll';
+    end;
 
     SetInterpolationMethod(LoadedMethod);
   finally
@@ -4106,6 +4557,7 @@ begin
   UpdateControlsEnabled;
   UpdateDllStatus;
   UpdateEngineStatus;
+  UpdateMigrationAlertState;
   if Assigned(FLsDllPathEdit) then
   begin
     FLsDllPathEdit.SelStart := 0;

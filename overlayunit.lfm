@@ -22903,6 +22903,12 @@ object goverlayform: Tgoverlayform
       ImageIndex = 39
       OnClick = openLogFileMenuItemClick
     end
+    object lsfgMigrationMenuItem: TMenuItem
+      Caption = 'lsfg-vk Migration Assistant'
+      ImageIndex = 19
+      Visible = False
+      OnClick = lsfgMigrationMenuItemClick
+    end
     object loadconfigMenuItem: TMenuItem
       Caption = 'Load config'
       ImageIndex = 24
