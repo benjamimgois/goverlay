@@ -2872,6 +2872,9 @@ begin
   AssertTrue('lsfg-vk status dot assigned', Assigned(goverlayform.FHomeModDots[5]));
   AssertTrue('lsfg-vk version label assigned', Assigned(goverlayform.FHomeModVerLbls[5]));
   AssertTrue('lsfg-vk version label text not empty', goverlayform.FHomeModVerLbls[5].Caption <> '');
+  AssertTrue('MAKO status dot assigned', Assigned(goverlayform.FHomeModDots[6]));
+  AssertTrue('MAKO version label assigned', Assigned(goverlayform.FHomeModVerLbls[6]));
+  AssertTrue('MAKO version label text not empty', goverlayform.FHomeModVerLbls[6].Caption <> '');
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
@@ -3842,8 +3845,8 @@ begin
     // 2. Check Home tab synchronization
     goverlayform.ShowHomeTab;
     goverlayform.RefreshHomeMakoStatus;
-    AssertTrue('Home tab module 5 shows arrow indicator', Pos('→ 3.1.0', goverlayform.FHomeModVerLbls[5].Caption) > 0);
-    AssertEquals('Home tab module 5 has accent update color ($0044AAFF)', $0044AAFF, goverlayform.FHomeModVerLbls[5].Font.Color);
+    AssertTrue('Home tab module 6 shows arrow indicator', Pos('→ 3.1.0', goverlayform.FHomeModVerLbls[6].Caption) > 0);
+    AssertEquals('Home tab module 6 has accent update color ($0044AAFF)', $0044AAFF, goverlayform.FHomeModVerLbls[6].Font.Color);
 
     // 3. Switch back to Lossless Scaling tab and ensure update state is NOT wiped out
     goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;

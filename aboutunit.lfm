@@ -302,7 +302,7 @@ object aboutForm: TaboutForm
         AnchorSideRight.Control = aboutTabSheet
         AnchorSideRight.Side = asrBottom
         Left = 24
-        Height = 120
+        Height = 140
         Top = 134
         Width = 565
         Anchors = [akTop, akLeft, akRight]
@@ -310,7 +310,7 @@ object aboutForm: TaboutForm
         BorderSpacing.Left = 24
         BorderSpacing.Top = 4
         BorderSpacing.Right = 24
-        Caption = 'FlightlessMango – MangoHud'#10'DadSchoorse – vkBasalt'#10'reakjra – vkSumi'#10'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10'THS – Lossless Scaling'#10'Pietruszka33 – lsfg-vk'
+        Caption = 'FlightlessMango – MangoHud'#10'DadSchoorse – vkBasalt'#10'reakjra – vkSumi'#10'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10'THS – Lossless Scaling'#10'PancakeTAS – lsfg-vk'#10'eugeniosegala – MAKO'
         Color = 1712666
         Font.Color = clWhite
         Font.Height = -13

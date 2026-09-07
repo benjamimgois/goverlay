@@ -209,7 +209,8 @@ begin
     'reakjra – vkSumi'#10 +
     'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10 +
     'THS – Lossless Scaling'#10 +
-    'Pietruszka33 – lsfg-vk';
+    'PancakeTAS – lsfg-vk'#10 +
+    'eugeniosegala – MAKO';
   linksHeaderLabel.Caption := 'Project links:';
   linksLabel.Caption := 'github.com/benjamimgois/goverlay';
 
