@@ -903,7 +903,7 @@ begin
   end;
 
   if UpscalerType = 1 then
-    CacheDir := GetDlssEnablerPath
+    CacheDir := GetDlssEnablerPath(IsStable)
   else if IsStable then
     CacheDir := GetBGModOriginalPath
   else
@@ -912,6 +912,9 @@ begin
   WriteLn('[BGMOD] Copying OptiScaler assets from ', CacheDir, ' to ', AGameCfgDir);
   ExecuteShellCommand('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + '.') + ' ' +
     QuotedStr(AGameCfgDir) + ' 2>/dev/null');
+  if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'goverlay.vars') then
+    ExecuteShellCommand('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'goverlay.vars') + ' ' +
+      QuotedStr(AGameCfgDir) + ' 2>/dev/null');
 
   // Copy the correct FSR DLL based on the saved version configuration for this game profile
   if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then

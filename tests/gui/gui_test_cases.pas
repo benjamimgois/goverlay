@@ -52,6 +52,7 @@ type
     procedure TestOptiForceFsr4Int8Save;
     procedure TestOptiFilenameDllSave;
     procedure TestOptiChannelSave;
+    procedure TestUpscalerChannelPersistence;
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
@@ -1131,6 +1132,172 @@ begin
   goverlayform.optversionComboBox.ItemIndex := 0; // stable
   SaveOpti;
   AssertEquals('OPT_CHANNEL=0 persisted', '0', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+end;
+
+procedure TGoverlayGuiTests.TestUpscalerChannelPersistence;
+var
+  StableVarsPath, EdgeVarsPath, GameCfgDir, GameConfPath, MarkerPath: string;
+  StableVars, EdgeVars: TStringList;
+  TestCard: TPanel;
+  TestCardImg: TImage;
+  Ini: TIniFile;
+begin
+  // 1. Seed stable and bleeding-edge goverlay.vars for DLSS Enabler
+  StableVarsPath := IsolatedHome + '/.local/share/goverlay/dlssenabler-stable/goverlay.vars';
+  EdgeVarsPath   := IsolatedHome + '/.local/share/goverlay/dlssenabler-edge/goverlay.vars';
+  ForceDirectories(ExtractFilePath(StableVarsPath));
+  ForceDirectories(ExtractFilePath(EdgeVarsPath));
+
+  StableVars := TStringList.Create;
+  try
+    StableVars.Add('dlssenablerversion=4.9.0');
+    StableVars.Add('optiScalerVersion=v0.9.4');
+    StableVars.Add('dlssenablertag=4.9.0');
+    StableVars.Add('upscalertype=1');
+    StableVars.SaveToFile(StableVarsPath);
+  finally
+    StableVars.Free;
+  end;
+
+  EdgeVars := TStringList.Create;
+  try
+    EdgeVars.Add('dlssenablerversion=4.9.0.7');
+    EdgeVars.Add('optiScalerVersion=v0.10.0-edge');
+    EdgeVars.Add('dlssenablertag=4.9.0.7');
+    EdgeVars.Add('upscalertype=1');
+    EdgeVars.SaveToFile(EdgeVarsPath);
+  finally
+    EdgeVars.Free;
+  end;
+
+  // Seed a marker file in dlssenabler-edge to verify asset deployment
+  MarkerPath := IsolatedHome + '/.local/share/goverlay/dlssenabler-edge/edge_marker.txt';
+  FileClose(FileCreate(MarkerPath));
+
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.dlssenablerRadioButton.Checked := True;
+  goverlayform.dlssenablerRadioButtonClick(goverlayform.dlssenablerRadioButton);
+
+  // 2. In Global mode, select Stable (index 0) and verify version display
+  goverlayform.optversionComboBox.ItemIndex := 0;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  AssertEquals('Stable DLSS Enabler version displayed', '4.9.0', goverlayform.FOsStatVerLbls[2].Caption);
+
+  // Switch to Bleeding-edge (index 1) and verify immediate version label update and auto-save trigger
+  AssertTrue('autoSaveTimer was triggered by optversionComboBoxChange', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+  AssertEquals('Global OPT_CHANNEL persisted as 0', '0', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+
+  goverlayform.optversionComboBox.ItemIndex := 1;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  AssertEquals('Bleeding-edge DLSS Enabler version displayed immediately', '4.9.0.7', goverlayform.FOsStatVerLbls[2].Caption);
+  AssertTrue('autoSaveTimer enabled after changing to bleeding-edge', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+  AssertEquals('Global OPT_CHANNEL persisted as 1', '1', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+
+  // Reset global back to Stable (0)
+  goverlayform.optversionComboBox.ItemIndex := 0;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+  AssertEquals('Global OPT_CHANNEL reset to 0', '0', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+
+  // 3. Test Per-Game Channel Persistence:
+  GameCfgDir := goverlayform.GetGameConfigDir('ChannelTestGame');
+  if DirectoryExists(GameCfgDir) then
+    DeleteDirectory(GameCfgDir, False);
+  ForceDirectories(GameCfgDir);
+
+  // Write pre-existing bgmod.conf with OPT_CHANNEL=1 for ChannelTestGame
+  GameConfPath := GameCfgDir + 'bgmod.conf';
+  Ini := TIniFile.Create(GameConfPath);
+  try
+    Ini.WriteInteger('Config', 'UPSCALER_TYPE', 1); // DLSS Enabler
+    Ini.WriteInteger('Config', 'OPT_CHANNEL', 1);   // Bleeding-edge
+  finally
+    Ini.Free;
+  end;
+
+  goverlayform.FGamesLoaded := True;
+  if not Assigned(goverlayform.FCardPanels) then
+    goverlayform.FCardPanels := TList.Create;
+
+  TestCard := TPanel.Create(goverlayform.FGamesScrollBox);
+  TestCard.Hint := '(888888) ChannelTestGame' + LineEnding + '/path/to/channelgame';
+  TestCard.Tag := 0;
+  TestCardImg := TImage.Create(TestCard);
+  TestCardImg.Tag := 9995;
+  TestCardImg.Parent := TestCard;
+  TestCardImg.Hint := TestCard.Hint;
+  goverlayform.FCardPanels.Add(TestCard);
+
+  try
+    // Click game card -> loads game profile
+    goverlayform.GameCardClick(TestCard);
+    AssertEquals('Active game is ChannelTestGame', 'ChannelTestGame', goverlayform.FActiveGameName);
+
+    // Verify InitializeTab restored Bleeding-edge channel (index 1) for this game
+    AssertEquals('Game profile restored optversionComboBox to 1 (Bleeding-edge)', 1, goverlayform.optversionComboBox.ItemIndex);
+    AssertEquals('In-card DLSS Enabler version displays 4.9.0.7 for game', '4.9.0.7', goverlayform.FOsStatVerLbls[2].Caption);
+
+    // Test asset deployment: CopyOptiScalerGameFiles with OPT_CHANNEL=1 must deploy from dlssenabler-edge
+    goverlayform.CopyOptiScalerGameFiles(GameCfgDir);
+    AssertTrue('Edge marker deployed to game directory from dlssenabler-edge', FileExists(GameCfgDir + 'edge_marker.txt'));
+
+    // Return to Games tab (Global context)
+    goverlayform.gamesLabelClick(nil);
+    AssertEquals('Active game cleared after returning to games', '', goverlayform.FActiveGameName);
+    AssertEquals('Global restored optversionComboBox to 0 (Stable)', 0, goverlayform.optversionComboBox.ItemIndex);
+    AssertEquals('Global DLSS Enabler version displays 4.9.0', '4.9.0', goverlayform.FOsStatVerLbls[2].Caption);
+
+    // Re-enter game card: must restore Bleeding-edge again
+    goverlayform.GameCardClick(TestCard);
+    AssertEquals('Re-entering game restores optversionComboBox to 1', 1, goverlayform.optversionComboBox.ItemIndex);
+    AssertEquals('Re-entering game displays 4.9.0.7', '4.9.0.7', goverlayform.FOsStatVerLbls[2].Caption);
+
+    // Navigate to OptiScaler tab for the game profile
+    goverlayform.optiscalerLabelClick(nil);
+
+    // In game context, switch to Stable (0) and verify auto-save updates game's bgmod.conf
+    goverlayform.optversionComboBox.ItemIndex := 0;
+    goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+    AssertTrue('autoSaveTimer enabled when changing game channel', goverlayform.autoSaveTimer.Enabled);
+    goverlayform.autoSaveTimer.Enabled := False;
+    goverlayform.TriggerAutoSave;
+
+    Ini := TIniFile.Create(GameConfPath);
+    try
+      AssertEquals('Game bgmod.conf updated with OPT_CHANNEL=0', '0', Ini.ReadString('Config', 'OPT_CHANNEL', ''));
+    finally
+      Ini.Free;
+    end;
+    AssertEquals('Game DLSS Enabler version displays 4.9.0 after switch', '4.9.0', goverlayform.FOsStatVerLbls[2].Caption);
+
+  finally
+    goverlayform.gamesLabelClick(nil);
+    goverlayform.FCardPanels.Remove(TestCard);
+    TestCard.Free;
+    if DirectoryExists(GameCfgDir) then
+      DeleteDirectory(GameCfgDir, False);
+    if FileExists(MarkerPath) then
+      DeleteFile(MarkerPath);
+    if FileExists(StableVarsPath) then
+      DeleteFile(StableVarsPath);
+    if FileExists(EdgeVarsPath) then
+      DeleteFile(EdgeVarsPath);
+
+    // Reset global upscaler state back to default OptiScaler stable
+    NavigateOptiScalerTab;
+    goverlayform.optiscalerRadioButton.Checked := True;
+    goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+    goverlayform.optversionComboBox.ItemIndex := 0;
+    goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+    goverlayform.autoSaveTimer.Enabled := False;
+    goverlayform.TriggerAutoSave;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestOptiEmuFp8Save;

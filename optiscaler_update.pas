@@ -1555,14 +1555,19 @@ begin
   // If the file does not exist in FFGModPath, fall back to the active channel's cache folder
   if not FileExists(VarsFilePath) then
   begin
-    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // stable cache
-    if not FileExists(VarsFilePath) then
+    if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
+    begin
       VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'; // edge cache
+      if not FileExists(VarsFilePath) then
+        VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // stable cache
+    end
+    else
+    begin
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // stable cache
+      if not FileExists(VarsFilePath) then
+        VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'; // edge cache
+    end;
   end;
-
-  // Check if file exists
-  if not FileExists(VarsFilePath) then
-    Exit;
 
   // Initialize version strings
   DeckyVer := '';
@@ -1576,45 +1581,48 @@ begin
   StreamlineVer := '';
 
   try
-    AssignFile(VarsFile, VarsFilePath);
-    Reset(VarsFile);
-    try
-      while not Eof(VarsFile) do
-      begin
-        ReadLn(VarsFile, Line);
-
-        // Skip header line (starts with #)
-        if (Length(Line) > 0) and (Line[1] = '#') then
-          Continue;
-
-        // Parse KEY=VALUE
-        SepPos := Pos('=', Line);
-        if SepPos > 0 then
+    if FileExists(VarsFilePath) then
+    begin
+      AssignFile(VarsFile, VarsFilePath);
+      Reset(VarsFile);
+      try
+        while not Eof(VarsFile) do
         begin
-          Key := Copy(Line, 1, SepPos - 1);
-          Value := Copy(Line, SepPos + 1, Length(Line));
+          ReadLn(VarsFile, Line);
 
-          // Store values - support both old and new key names (case-insensitive)
-          if SameText(Key, 'DeckyVersion') or SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
-            OptiVer := Value  // Support both optiScalerVersion and OptiScalerVersion
-          else if SameText(Key, 'FakeNvapiVersion') then
-            FakeNvapiVer := Value
-          else if SameText(Key, 'fsrversion') then
-            FsrVer := Value
-          else if SameText(Key, 'xessversion') then
-            XessVer := Value
-          else if SameText(Key, 'optipatcher') then
-            OptiPatcherVer := Value
-          else if SameText(Key, 'dlssversion') then
-            DlssVer := Value
-          else if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
-            DlssEnablerVer := Value
-          else if SameText(Key, 'streamlineversion') or SameText(Key, 'streamline') then
-            StreamlineVer := Value;
+          // Skip header line (starts with #)
+          if (Length(Line) > 0) and (Line[1] = '#') then
+            Continue;
+
+          // Parse KEY=VALUE
+          SepPos := Pos('=', Line);
+          if SepPos > 0 then
+          begin
+            Key := Copy(Line, 1, SepPos - 1);
+            Value := Copy(Line, SepPos + 1, Length(Line));
+
+            // Store values - support both old and new key names (case-insensitive)
+            if SameText(Key, 'DeckyVersion') or SameText(Key, 'optiScalerVersion') or SameText(Key, 'OptiScalerVersion') then
+              OptiVer := Value  // Support both optiScalerVersion and OptiScalerVersion
+            else if SameText(Key, 'FakeNvapiVersion') then
+              FakeNvapiVer := Value
+            else if SameText(Key, 'fsrversion') then
+              FsrVer := Value
+            else if SameText(Key, 'xessversion') then
+              XessVer := Value
+            else if SameText(Key, 'optipatcher') then
+              OptiPatcherVer := Value
+            else if SameText(Key, 'dlssversion') then
+              DlssVer := Value
+            else if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
+              DlssEnablerVer := Value
+            else if SameText(Key, 'streamlineversion') or SameText(Key, 'streamline') then
+              StreamlineVer := Value;
+          end;
         end;
+      finally
+        CloseFile(VarsFile);
       end;
-    finally
-      CloseFile(VarsFile);
     end;
 
     // Update labels with loaded versions
@@ -1728,9 +1736,9 @@ begin
             begin
               Key := Copy(Line, 1, SepPos - 1);
               Value := Copy(Line, SepPos + 1, MaxInt);
-              if (DlssEnablerVer = '') and (SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler')) then
+              if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
                 DlssEnablerVer := Value;
-              if (StreamlineVer = '') and (SameText(Key, 'streamlineversion') or SameText(Key, 'streamline')) then
+              if SameText(Key, 'streamlineversion') or SameText(Key, 'streamline') then
                 StreamlineVer := Value;
               if (OptiVer = '') then
               begin
@@ -1748,7 +1756,18 @@ begin
 
     if (OptiVer = '') then
     begin
-      DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+      if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
+      begin
+        DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars';
+        if not FileExists(DlssEdgeVars) then
+          DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+      end
+      else
+      begin
+        DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+        if not FileExists(DlssEdgeVars) then
+          DlssEdgeVars := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars';
+      end;
       if FileExists(DlssEdgeVars) then
       begin
         try
@@ -1955,6 +1974,7 @@ var
   CurrentVersion: string;
   SavedSettings: TOptiScalerSettings;
   SavedOnChange: TNotifyEvent;
+  ActiveGame: string;
 begin
   // Hide update labels initially
   if Assigned(FDeckyLabel2) then
@@ -1968,46 +1988,50 @@ begin
   begin
     WriteLn('[DEBUG] InitializeTab: fgmod directory found');
 
-    // Load current versions
-    LoadVersionsFromFile;
-
     // Restore saved channel selection from config (primary source)
     if Assigned(FOptVersionComboBox) then
     begin
       SavedOnChange := FOptVersionComboBox.OnChange;
       FOptVersionComboBox.OnChange := nil;
       try
-        SavedSettings := Default(TOptiScalerSettings);
-      if overlay_config.LoadOptiScalerConfig('', SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1]) then
-      begin
-        FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
-        WriteLn('[DEBUG] InitializeTab: Restored saved channel selection, ComboBox index = ', SavedSettings.OptVersionItemIndex);
-      end
-      else if not (FOptVersionComboBox.ItemIndex in [0, 1]) then
-      begin
-        // Fallback: combobox not yet set by game-specific config, derive from installed version tag
-        CurrentVersion := '';
-        if Assigned(FOptiLabel) then
-          CurrentVersion := FOptiLabel.Caption;
-        WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
+        ActiveGame := '';
+        if Assigned(goverlayform) then
+          ActiveGame := goverlayform.FActiveGameName;
 
-        if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+        SavedSettings := Default(TOptiScalerSettings);
+        if overlay_config.LoadOptiScalerConfig(ActiveGame, SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1]) then
         begin
-          FOptVersionComboBox.ItemIndex := 1;
-          WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
+          FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
+          WriteLn('[DEBUG] InitializeTab: Restored saved channel selection for "', ActiveGame, '", ComboBox index = ', SavedSettings.OptVersionItemIndex);
+        end
+        else if not (FOptVersionComboBox.ItemIndex in [0, 1]) then
+        begin
+          // Fallback: combobox not yet set by game-specific config, derive from installed version tag
+          CurrentVersion := '';
+          if Assigned(FOptiLabel) then
+            CurrentVersion := FOptiLabel.Caption;
+          WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
+
+          if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+          begin
+            FOptVersionComboBox.ItemIndex := 1;
+            WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
+          end
+          else
+          begin
+            FOptVersionComboBox.ItemIndex := 0;
+            WriteLn('[DEBUG] InitializeTab: Detected stable version, set ComboBox to index 0');
+          end;
         end
         else
-        begin
-          FOptVersionComboBox.ItemIndex := 0;
-          WriteLn('[DEBUG] InitializeTab: Detected stable version, set ComboBox to index 0');
-        end;
-      end
-      else
-        WriteLn('[DEBUG] InitializeTab: ComboBox already set by game config, index = ', FOptVersionComboBox.ItemIndex, '. Skipping fallback.');
+          WriteLn('[DEBUG] InitializeTab: ComboBox already set by game config, index = ', FOptVersionComboBox.ItemIndex, '. Skipping fallback.');
       finally
         FOptVersionComboBox.OnChange := SavedOnChange;
       end;
     end;
+
+    // Load current versions matching restored channel
+    LoadVersionsFromFile;
 
     // Set button to "Update" mode
     if Assigned(FUpdateBtn) then

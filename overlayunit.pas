@@ -5952,15 +5952,18 @@ end;
 
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
 begin
-  // When user changes the OptiScaler channel, automatically check for updates
-  // and refresh the status dots so any new version tag is shown immediately.
+  // Immediately refresh version labels in the Software Status card for the selected channel
+  // and check for remote updates
   if Assigned(FOptiscalerUpdate) then
   begin
+    FOptiscalerUpdate.LoadVersionsFromFile;
     FOptiscalerUpdate.CheckForUpdatesOnClick;
     RefreshOsStatusDots;
   end;
   // Sync emufp8CheckBox enabled state with the current optversionComboBox selection
   fsrversionComboBoxChange(nil);
+  // Persist channel selection (OPT_CHANNEL) to active profile's bgmod.conf
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
