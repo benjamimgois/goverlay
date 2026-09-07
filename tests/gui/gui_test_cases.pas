@@ -127,6 +127,7 @@ type
     procedure TestToolToggleOffPreservesConfigFiles;
     procedure TestPerGameLaunchCommandImmediateUpdate;
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
+    procedure TestFastGamesTabReturnAndInPlaceBadgeUpdate;
   end;
 
 implementation
@@ -4181,6 +4182,110 @@ begin
 
   // Cleanup
   goverlayform.FActiveGameName := '';
+end;
+
+procedure TGoverlayGuiTests.TestFastGamesTabReturnAndInPlaceBadgeUpdate;
+var
+  TestCard: TPanel;
+  TestCardImg: TImage;
+  SavedCardRef: TPanel;
+  CfgDir, BaseHintText: string;
+  i: Integer;
+  HasBadge2: Boolean;
+begin
+  goverlayform.FGamesLoaded := True;
+  if not Assigned(goverlayform.FCardPanels) then
+    goverlayform.FCardPanels := TList.Create;
+
+  // Create a mock game card
+  TestCard := TPanel.Create(goverlayform.FGamesScrollBox);
+  BaseHintText := '(777777) FastNavTestGame' + LineEnding + '/path/to/fastnav';
+  TestCard.Hint := BaseHintText;
+  TestCard.Tag := 0;
+  TestCardImg := TImage.Create(TestCard);
+  TestCardImg.Tag := 9995;
+  TestCardImg.Parent := TestCard;
+  TestCardImg.Hint := BaseHintText;
+
+  goverlayform.FCardPanels.Add(TestCard);
+  SavedCardRef := TestCard;
+
+  CfgDir := goverlayform.GetGameConfigDir('FastNavTestGame');
+  if DirectoryExists(CfgDir) then
+    DeleteDirectory(CfgDir, False);
+
+  try
+    // 1. Enter game configuration mode for the test game
+    goverlayform.GameCardClick(TestCard);
+    AssertEquals('Active game is FastNavTestGame', 'FastNavTestGame', goverlayform.FActiveGameName);
+
+    // 2. Configure a tool by creating MangoHud.conf
+    ForceDirectories(CfgDir);
+    FileClose(FileCreate(CfgDir + 'MangoHud.conf'));
+
+    // 3. Return to Games tab via gamesLabelClick
+    goverlayform.gamesLabelClick(nil);
+
+    // Verify mode is reset to global
+    AssertEquals('Active game cleared after return', '', goverlayform.FActiveGameName);
+
+    // Verify card panel reference is preserved in memory (instantaneous return, no rebuild)
+    AssertTrue('TestCard pointer remains intact in FCardPanels',
+      (goverlayform.FCardPanels.IndexOf(SavedCardRef) >= 0) and (SavedCardRef = TestCard));
+
+    // Verify badge bitmask and tooltip
+    AssertEquals('Card Tag updated with MangoHud bitmask (1)', 1, TestCard.Tag);
+    AssertTrue('Card Hint contains MangoHud enabled line',
+      Pos('• MangoHud: Enabled', TestCard.Hint) > 0);
+
+    // Verify badge image (Tag = 2) was added
+    HasBadge2 := False;
+    for i := 0 to TestCard.ControlCount - 1 do
+      if (TestCard.Controls[i] is TImage) and (TestCard.Controls[i].Tag = 2) then
+      begin
+        HasBadge2 := True;
+        AssertTrue('Badge image hint matches panel hint',
+          TImage(TestCard.Controls[i]).Hint = TestCard.Hint);
+        Break;
+      end;
+    AssertTrue('Badge image with Tag 2 exists on card', HasBadge2);
+
+    // 4. Update configuration: add OptiScaler
+    FileClose(FileCreate(CfgDir + 'OptiScaler.ini'));
+    goverlayform.GameCardClick(TestCard);
+    goverlayform.gamesLabelClick(nil);
+
+    AssertEquals('Card Tag updated with MangoHud + OptiScaler (1 + 4 = 5)', 5, TestCard.Tag);
+    AssertTrue('Card Hint contains OptiScaler enabled line',
+      Pos('• OptiScaler: Enabled', TestCard.Hint) > 0);
+
+    // 5. Remove all tools: delete config files
+    DeleteFile(CfgDir + 'MangoHud.conf');
+    DeleteFile(CfgDir + 'OptiScaler.ini');
+    goverlayform.GameCardClick(TestCard);
+    goverlayform.gamesLabelClick(nil);
+
+    // Verify badge bitmask is 0 and badge image is removed
+    AssertEquals('Card Tag reset to 0', 0, TestCard.Tag);
+    HasBadge2 := False;
+    for i := 0 to TestCard.ControlCount - 1 do
+      if (TestCard.Controls[i] is TImage) and (TestCard.Controls[i].Tag = 2) then
+      begin
+        HasBadge2 := True;
+        Break;
+      end;
+    AssertFalse('Badge image with Tag 2 removed when no tools enabled', HasBadge2);
+    AssertFalse('Badge header removed from hint',
+      Pos('Enabled GOverlay Tools:', TestCard.Hint) > 0);
+    AssertEquals('Card Hint restored to original base hint', BaseHintText, TestCard.Hint);
+
+  finally
+    goverlayform.FCardPanels.Remove(TestCard);
+    TestCard.Free;
+    if DirectoryExists(CfgDir) then
+      DeleteDirectory(CfgDir, False);
+    goverlayform.gamesLabelClick(nil);
+  end;
 end;
 
 initialization

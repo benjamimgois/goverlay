@@ -109,6 +109,7 @@ type
     procedure GamesEmptySpaceClick(Sender: TObject);
     procedure RefreshGameCards;
     procedure ReflowGamesGrid;
+    procedure UpdateGameCardBadge(const AGameName: string);
   end;
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
@@ -3299,6 +3300,190 @@ begin
   end;
 end;
 
+procedure TGamesTabHelper.UpdateGameCardBadge(const AGameName: string);
+var
+  i, j, k, p: Integer;
+  Panel, TargetPanel: TPanel;
+  FirstLine, CardGameName: string;
+  GameCfgDir, IconPath: string;
+  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
+  BadgeCount: Integer;
+  TweakLines: TStringList;
+  BdgHint, BaseHint, NewHint: string;
+  Ctrl: TControl;
+  BdgImg, CardImage: TImage;
+  BdgLbl: TLabel;
+begin
+  if (AGameName = '') or not Assigned(FForm) or not Assigned(FForm.FCardPanels) then
+    Exit;
 
+  with FForm do
+  begin
+    for i := 0 to FCardPanels.Count - 1 do
+    begin
+      Panel := TPanel(FCardPanels[i]);
+      if not Assigned(Panel) then Continue;
+
+      FirstLine := Panel.Hint;
+      p := Pos(#10, FirstLine);
+      if p > 0 then FirstLine := Copy(FirstLine, 1, p - 1);
+      p := Pos(#13, FirstLine);
+      if p > 0 then FirstLine := Copy(FirstLine, 1, p - 1);
+      FirstLine := Trim(FirstLine);
+
+      if (Length(FirstLine) > 0) and (FirstLine[1] = '(') then
+      begin
+        p := Pos(') ', FirstLine);
+        if p > 0 then
+          CardGameName := Copy(FirstLine, p + 2, Length(FirstLine))
+        else
+          CardGameName := FirstLine;
+      end
+      else
+        CardGameName := FirstLine;
+
+      if SameText(CardGameName, AGameName) then
+      begin
+        TargetPanel := Panel;
+
+        // Query game config directory
+        GameCfgDir := GetGameConfigDir(AGameName);
+        HasMango := FileExists(GameCfgDir + 'MangoHud.conf');
+        HasVkBasalt := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
+        HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
+        HasTweaks := False;
+        if FileExists(GameCfgDir + 'bgmod.conf') then
+        begin
+          TweakLines := TStringList.Create;
+          try
+            TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
+            for k := 0 to TweakLines.Count - 1 do
+              if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
+              begin
+                HasTweaks := True;
+                Break;
+              end;
+          finally
+            TweakLines.Free;
+          end;
+        end;
+
+        BadgeCount := 0;
+        if HasMango      then Inc(BadgeCount, 1);
+        if HasVkBasalt   then Inc(BadgeCount, 2);
+        if HasOptiScaler then Inc(BadgeCount, 4);
+        if HasTweaks     then Inc(BadgeCount, 8);
+
+        // Locate child controls
+        BdgImg := nil;
+        CardImage := nil;
+        BdgLbl := nil;
+        for j := 0 to TargetPanel.ControlCount - 1 do
+        begin
+          Ctrl := TargetPanel.Controls[j];
+          if (Ctrl is TImage) and (Ctrl.Tag = 2) then
+            BdgImg := TImage(Ctrl)
+          else if (Ctrl is TImage) and (Ctrl.Tag = 9995) then
+            CardImage := TImage(Ctrl)
+          else if (Ctrl is TLabel) and (Ctrl.Tag = 9991) then
+            BdgLbl := TLabel(Ctrl);
+        end;
+
+        // Strip existing badge hint if present
+        p := Pos('Enabled GOverlay Tools:', TargetPanel.Hint);
+        if p > 0 then
+          BaseHint := TrimRight(Copy(TargetPanel.Hint, 1, p - 1))
+        else
+          BaseHint := TargetPanel.Hint;
+
+        if BadgeCount > 0 then
+        begin
+          BdgHint := 'Enabled GOverlay Tools:';
+          if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
+          if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
+          if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
+          if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks: Enabled';
+          NewHint := BaseHint + LineEnding + LineEnding + BdgHint;
+
+          if not Assigned(BdgImg) then
+          begin
+            BdgImg := TImage.Create(TargetPanel);
+            BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall / zero tools
+            BdgImg.Parent      := TargetPanel;
+            BdgImg.AutoSize    := False;
+            BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
+            BdgImg.BorderSpacing.Right := 4;
+            BdgImg.BorderSpacing.Top   := 4;
+            BdgImg.AnchorSide[akRight].Control := TargetPanel;
+            BdgImg.AnchorSide[akRight].Side    := asrBottom;
+            BdgImg.AnchorSide[akTop].Control   := TargetPanel;
+            BdgImg.AnchorSide[akTop].Side      := asrTop;
+            BdgImg.Anchors                     := [akTop, akRight];
+            BdgImg.Stretch     := True;
+            BdgImg.Proportional := True;
+            BdgImg.Center      := True;
+            BdgImg.Transparent := True;
+
+            IconPath := GetAppBaseDir + 'assets/icons/goverlay.png';
+            if not FileExists(IconPath) then
+              IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+            if not FileExists(IconPath) then
+              IconPath := GetIconFile();
+
+            if FileExists(IconPath) then
+              try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
+
+            BdgImg.OnMouseEnter := @GameCardMouseEnter;
+            BdgImg.OnMouseLeave := @GameCardMouseLeave;
+            BdgImg.OnClick      := @GameCardClick;
+            BdgImg.OnMouseUp    := @GameCardMouseUp;
+          end
+          else
+          begin
+            if (BdgImg.Picture.Graphic = nil) or (BdgImg.Picture.Graphic.Width = 0) then
+            begin
+              IconPath := GetAppBaseDir + 'assets/icons/goverlay.png';
+              if not FileExists(IconPath) then
+                IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
+              if not FileExists(IconPath) then
+                IconPath := GetIconFile();
+              if FileExists(IconPath) then
+                try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
+            end;
+          end;
+
+          BdgImg.Hint := NewHint;
+          BdgImg.ShowHint := True;
+          BdgImg.BringToFront;
+          BdgImg.Visible := True;
+        end
+        else
+        begin
+          NewHint := BaseHint;
+          for j := TargetPanel.ControlCount - 1 downto 0 do
+          begin
+            Ctrl := TargetPanel.Controls[j];
+            if (Ctrl is TImage) and (Ctrl.Tag = 2) then
+              Ctrl.Free;
+          end;
+        end;
+
+        TargetPanel.Tag := BadgeCount;
+        TargetPanel.Hint := NewHint;
+        TargetPanel.ShowHint := True;
+        if Assigned(CardImage) then
+        begin
+          CardImage.Hint := NewHint;
+          CardImage.ShowHint := True;
+        end;
+        if Assigned(BdgLbl) then
+        begin
+          BdgLbl.Hint := NewHint;
+          BdgLbl.ShowHint := True;
+        end;
+      end;
+    end;
+  end;
+end;
 
 end.

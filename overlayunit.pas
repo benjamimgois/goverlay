@@ -938,6 +938,7 @@ type
     procedure InitGamesTab;
     procedure LoadSteamGames;
     procedure RefreshGameCards;
+    procedure UpdateGameCardBadge(const AGameName: string);
     // Exposed: procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GamesEmptySpaceClick(Sender: TObject);
@@ -4779,8 +4780,10 @@ end;
 procedure Tgoverlayform.gamesLabelClick(Sender: TObject);
 var
   WasInGameMode: Boolean;
+  LastGameName: string;
 begin
   WasInGameMode := FActiveGameName <> '';
+  LastGameName := FActiveGameName;
 
   // Clicking the logo always returns to global config mode
   if WasInGameMode then
@@ -4826,11 +4829,11 @@ begin
   gamesTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=gamesTabSheet;
 
-  // Only rebuild cards when returning from game config — badges may have changed.
+  // Only update card badge when returning from game config — avoids expensive full library rebuild.
   // Skipped on startup calls (FGamesLoaded=False) and when just re-entering the
   // games tab from global mode (no per-game config was touched).
-  if WasInGameMode and FGamesLoaded then
-    RefreshGameCards;
+  if WasInGameMode and FGamesLoaded and (LastGameName <> '') then
+    UpdateGameCardBadge(LastGameName);
 
   //Hide notification messages
   notificationLabel.Visible:=false;
@@ -8568,6 +8571,11 @@ end;
 procedure Tgoverlayform.RefreshGameCards;
 begin
   TGamesTabHelper(FGamesHelper).RefreshGameCards;
+end;
+procedure Tgoverlayform.UpdateGameCardBadge(const AGameName: string);
+begin
+  if Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).UpdateGameCardBadge(AGameName);
 end;
 function Tgoverlayform.GetMangoHudVersion: string;
 begin
