@@ -128,6 +128,7 @@ type
     procedure TestPerGameLaunchCommandImmediateUpdate;
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
     procedure TestFastGamesTabReturnAndInPlaceBadgeUpdate;
+    procedure TestDownloadProgressNoFloatingBanner;
   end;
 
 implementation
@@ -4347,6 +4348,25 @@ begin
       DeleteDirectory(CfgDir, False);
     goverlayform.gamesLabelClick(nil);
   end;
+end;
+
+procedure TGoverlayGuiTests.TestDownloadProgressNoFloatingBanner;
+begin
+  goverlayform.FFloatingProgress.HideProgress;
+  AssertFalse('FFloatingProgress initially hidden', goverlayform.FFloatingProgress.Visible);
+
+  // 1. OptiScaler / DLSS-Enabler update button does not show floating progress banner
+  goverlayform.updateBitBtnClick(nil);
+  AssertFalse('FFloatingProgress not visible after updateBitBtnClick', goverlayform.FFloatingProgress.Visible);
+
+  // 2. Navigate to vkBasalt tab to initialize its controls
+  goverlayform.vkbasaltLabelClick(nil);
+
+  // Reshade git progress updates in-card bar without showing floating banner
+  goverlayform.ReshadeGitProgress('Downloading shaders', 50);
+  AssertFalse('FFloatingProgress not visible during ReshadeGitProgress', goverlayform.FFloatingProgress.Visible);
+  if Assigned(goverlayform.FReshadeProgressBar) then
+    AssertEquals('FReshadeProgressBar updated in-card', 50, goverlayform.FReshadeProgressBar.Position);
 end;
 
 initialization

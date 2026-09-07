@@ -1858,13 +1858,9 @@ begin
   checkupdBitBtn.Visible := False;
   updateProgressBar.Visible := True;
   updatestatusLabel.Visible := True;
-  if Assigned(FFloatingProgress) then
-    FFloatingProgress.ShowProgress('Downloading OptiScaler components...', 0);
   try
     FOptiscalerUpdate.UpdateButtonClick(Sender);
   finally
-    if Assigned(FFloatingProgress) then
-      FFloatingProgress.HideProgress;
     updateProgressBar.Visible := False;
     updatestatusLabel.Visible := False;
     optversionComboBox.Visible := True;
@@ -5153,24 +5149,7 @@ begin
 end;
 
 procedure Tgoverlayform.ReshadeGitProgress(APhase: string; APercent: Integer);
-var
-  StatusMsg: string;
 begin
-  if FAutoDownloadingReshade then
-    StatusMsg := 'Downloading reshade shaders...'
-  else if APhase <> '' then
-    StatusMsg := APhase
-  else
-    StatusMsg := 'Downloading shaders...';
-
-  if Assigned(FFloatingProgress) then
-  begin
-    if (APercent >= 0) and (APercent < 100) then
-      FFloatingProgress.UpdateProgress(APercent, StatusMsg)
-    else if APercent >= 100 then
-      FFloatingProgress.HideProgress;
-  end;
-
   if Assigned(FReshadeProgressBar) then
   begin
     if FReshadeProgressBar.Min <> 0 then FReshadeProgressBar.Min := 0;
