@@ -26,6 +26,8 @@ function GetBGModOriginalEdgePath: string;
 
 function GetGOverlayDataPath: string;
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
+function GetFSR4BasePath: string;
+procedure EnsureFSR4Directories;
 
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
@@ -186,6 +188,21 @@ begin
     Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-stable'
   else
     Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlssenabler-edge';
+end;
+
+function GetFSR4BasePath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'FSR4';
+end;
+
+procedure EnsureFSR4Directories;
+var
+  Base: string;
+begin
+  Base := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+  ForceDirectories(Base + 'Latest');
+  ForceDirectories(Base + '4.1.1b');
+  ForceDirectories(Base + '4.0.2c');
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location
@@ -547,12 +564,6 @@ begin
           'fi; ' +
           'if [ -d "$Source"plugins ]; then ' +
           '  cp -rf "$Source"plugins "$Target"; ' +
-          'fi; ' +
-          'if [ -d "$Source"FSR4_LATEST ]; then ' +
-          '  cp -rf "$Source"FSR4_LATEST "$Target"; ' +
-          'fi; ' +
-          'if [ -d "$Source"FSR4_INT8 ]; then ' +
-          '  cp -rf "$Source"FSR4_INT8 "$Target"; ' +
           'fi 2>/dev/null');
         Proc.Options := [poWaitOnExit];
         Proc.Execute;

@@ -47,7 +47,7 @@ type
     procedure TestOptiSpoofToggleSave;
     procedure TestOptiOverrideNvapiSave;
     procedure TestOptiPatcherToggleSave;
-    procedure TestOptiFsrVersionPinned;
+    procedure TestOptiFsrVersionSelector;
     procedure TestOptiPreferredUpscalerSave;
     procedure TestOptiForceFsr4Int8Save;
     procedure TestOptiFilenameDllSave;
@@ -988,25 +988,86 @@ begin
   AssertTrue('LoadAsiPlugins=false persisted', Pos('LoadAsiPlugins=false', Content) > 0);
 end;
 
-procedure TGoverlayGuiTests.TestOptiFsrVersionPinned;
+procedure TGoverlayGuiTests.TestOptiFsrVersionSelector;
 var
-  Content: string;
+  VarsPath, Content, IniContent: string;
+  SL: TStringList;
 begin
   SeedOptiScalerFiles;
   NavigateOptiScalerTab;
-  // fsrversionComboBox has no OnChange binding; the pin happens via the
-  // channel selector (optversionComboBoxChange -> fsrversionComboBoxChange).
-  // TComboBox.ItemIndex does not fire OnChange programmatically, so invoke
-  // the bound handler exactly as a user dropdown selection would.
+
+  // 1. Controls existence, visibility, and items
+  AssertTrue('fsrversionComboBox assigned', Assigned(goverlayform.fsrversionComboBox));
+  AssertTrue('fsrversionLabel assigned', Assigned(goverlayform.fsrversionLabel));
+  AssertTrue('fsrversionComboBox visible', goverlayform.fsrversionComboBox.Visible);
+  AssertTrue('fsrversionLabel visible', goverlayform.fsrversionLabel.Visible);
+  AssertEquals('fsrversionComboBox item count is 3', 3, goverlayform.fsrversionComboBox.Items.Count);
+  AssertEquals('item 0 is Latest', 'Latest', goverlayform.fsrversionComboBox.Items[0]);
+  AssertEquals('item 1 is 4.1.1b', '4.1.1b', goverlayform.fsrversionComboBox.Items[1]);
+  AssertEquals('item 2 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[2]);
+  AssertEquals('default item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
+
+  // 2. Select 4.1.1b (index 1) and Save
   goverlayform.fsrversionComboBox.ItemIndex := 1;
-  AssertTrue('optversionComboBox.OnChange bound', Assigned(goverlayform.optversionComboBox.OnChange));
-  goverlayform.optversionComboBox.OnChange(goverlayform.optversionComboBox);
-  AssertEquals('fsr version pinned to Latest (0)', 0, goverlayform.fsrversionComboBox.ItemIndex);
+  // Trigger channel change handler to verify combobox stays at index 1 and visible
+  if Assigned(goverlayform.optversionComboBox.OnChange) then
+    goverlayform.optversionComboBox.OnChange(goverlayform.optversionComboBox);
+  AssertEquals('item index remains 1 after channel switch', 1, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertTrue('fsrversionComboBox remains visible after channel switch', goverlayform.fsrversionComboBox.Visible);
 
   SaveOpti;
-  Content := ReadFileText(OptiIniPath);
-  AssertTrue('Fsr4Update=auto persisted', Pos('Fsr4Update=auto', Content) > 0);
-  AssertTrue('FsrAgilitySDKUpgrade=true persisted', Pos('FsrAgilitySDKUpgrade=true', Content) > 0);
+  VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
+  if FileExists(VarsPath) then
+  begin
+    Content := ReadFileText(VarsPath);
+    AssertTrue('fsrversion=4.1.1b persisted in goverlay.vars', Pos('fsrversion=4.1.1b', Content) > 0);
+  end;
+
+  // Reload tab and verify index 1 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 1 (4.1.1b)', 1, goverlayform.fsrversionComboBox.ItemIndex);
+
+  // 3. Select 4.0.2c (index 2) and Save
+  goverlayform.fsrversionComboBox.ItemIndex := 2;
+  SaveOpti;
+  if FileExists(VarsPath) then
+  begin
+    Content := ReadFileText(VarsPath);
+    AssertTrue('fsrversion=4.0.2c persisted in goverlay.vars', Pos('fsrversion=4.0.2c', Content) > 0);
+  end;
+
+  // Reload tab and verify index 2 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 2 (4.0.2c)', 2, goverlayform.fsrversionComboBox.ItemIndex);
+
+  // 4. Select Latest (index 0) and Save
+  goverlayform.fsrversionComboBox.ItemIndex := 0;
+  SaveOpti;
+  if FileExists(VarsPath) then
+  begin
+    Content := ReadFileText(VarsPath);
+    AssertTrue('fsrversion=Latest persisted in goverlay.vars', Pos('fsrversion=Latest', Content) > 0);
+  end;
+  IniContent := ReadFileText(OptiIniPath);
+  AssertTrue('FsrAgilitySDKUpgrade=true persisted for Latest', Pos('FsrAgilitySDKUpgrade=true', IniContent) > 0);
+
+  // Reload tab and verify index 0 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
+
+  // 5. Test backwards compatibility with legacy "4.0.2c INT8"
+  if FileExists(VarsPath) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.Add('fsrversion=4.0.2c INT8');
+      SL.SaveToFile(VarsPath);
+    finally
+      SL.Free;
+    end;
+    NavigateOptiScalerTab;
+    AssertEquals('legacy 4.0.2c INT8 maps to index 2', 2, goverlayform.fsrversionComboBox.ItemIndex);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestOptiPreferredUpscalerSave;

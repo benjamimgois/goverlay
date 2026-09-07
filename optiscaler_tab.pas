@@ -632,6 +632,25 @@ begin
     preferredUpscalerComboBox.AnchorSideRight.Control  := nil; preferredUpscalerComboBox.AnchorSideBottom.Control := nil;
     preferredUpscalerComboBox.Anchors := [akLeft, akTop]; preferredUpscalerComboBox.Parent  := FOsSpatialSec;
 
+    fsrversionLabel.AnchorSideLeft.Control   := nil; fsrversionLabel.AnchorSideTop.Control    := nil;
+    fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
+    fsrversionLabel.Anchors := [akLeft, akTop];
+    fsrversionLabel.Parent  := FOsSpatialSec;
+    fsrversionLabel.Caption := 'FSR Version';
+    fsrversionLabel.Visible := True;
+
+    fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
+    fsrversionComboBox.AnchorSideRight.Control  := nil; fsrversionComboBox.AnchorSideBottom.Control := nil;
+    fsrversionComboBox.Anchors := [akLeft, akTop];
+    fsrversionComboBox.Parent  := FOsSpatialSec;
+    fsrversionComboBox.Visible := True;
+    fsrversionComboBox.Items.Clear;
+    fsrversionComboBox.Items.Add('Latest');
+    fsrversionComboBox.Items.Add('4.1.1b');
+    fsrversionComboBox.Items.Add('4.0.2c');
+    if (fsrversionComboBox.ItemIndex < 0) or (fsrversionComboBox.ItemIndex > 2) then
+      fsrversionComboBox.ItemIndex := 0;
+
     spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
     spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
     spoofCheckBox.Anchors := [akLeft, akTop]; spoofCheckBox.Parent  := FOsSpatialSec;
@@ -703,9 +722,7 @@ begin
     if FForceMlfgToggle = nil then
       FForceMlfgToggle := PlaceOsToggle(emufp8CheckBox, FOsTemporalSec);
 
-    // Hide legacy FSR version controls
-    fsrversionLabel.Visible := False;
-    fsrversionComboBox.Visible := False;
+    // Hide legacy controls
     menuscaleTrackBar.Visible := False;
     menuscalevalueLabel.Visible := False;
     mark1Label.Visible := False;
@@ -759,7 +776,7 @@ begin
     forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
-    DarkLbl(fsrversionLabel,  PURPLE); fsrversionLabel.Transparent := True;
+    DarkLbl(fsrversionLabel,  GRAY); fsrversionLabel.Transparent := True;
     DarkCombo(fsrversionComboBox);
     DarkLbl(preferredUpscalerLabel,   GRAY); preferredUpscalerLabel.Transparent := True;
     DarkCombo(preferredUpscalerComboBox);
@@ -1229,15 +1246,18 @@ begin
       preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
       preferredUpscalerComboBox.SetBounds(10, Y0 + 18, ComboW, 26);
 
+      fsrversionLabel.SetBounds(10, Y0 + 52, ColW - 20, 16);
+      fsrversionComboBox.SetBounds(10, Y0 + 70, ComboW, 26);
+
       if Assigned(FSpoofToggle) then
-        FSpoofToggle.SetBounds(10, Y0 + 56, ColW - 20, 20)
+        FSpoofToggle.SetBounds(10, Y0 + 106, ColW - 20, 20)
       else
-        spoofCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
+        spoofCheckBox.SetBounds(10, Y0 + 106, ColW - 20, 20);
 
       if Assigned(FForceFsr4Toggle) then
-        FForceFsr4Toggle.SetBounds(10, Y0 + 88, ColW - 20, 20)
+        FForceFsr4Toggle.SetBounds(10, Y0 + 138, ColW - 20, 20)
       else
-        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 88, ColW - 20, 20);
+        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 138, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler

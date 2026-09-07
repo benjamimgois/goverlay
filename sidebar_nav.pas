@@ -916,10 +916,19 @@ begin
   // Copy the correct FSR DLL based on the saved version configuration for this game profile
   if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then
   begin
-    if Settings.FsrversionItemIndex = 1 then
-      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
+    case Settings.FsrversionItemIndex of
+      1: FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+      2: FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
     else
-      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'FSR4_LATEST' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+      FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+    end;
+
+    // Fallback to Latest if selected alternative DLL is missing
+    if not FileExists(FsrDllSrc) then
+      FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+    // Fallback to cache root if Latest in central FSR4 is missing
+    if not FileExists(FsrDllSrc) then
+      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_upscaler_dx12.dll';
 
     if FileExists(FsrDllSrc) then
     begin

@@ -1502,7 +1502,7 @@ var
   SyncProc: TProcess;
 begin
   // Force-copy OptiScaler runtime assets from the pristine cache folder to
-  // ATargetDir. Only DLLs, plugins/, FSR4_LATEST/, FSR4_INT8/, and fakenvapi.ini
+  // ATargetDir. Only DLLs, plugins/, and fakenvapi.ini
   // are touched — user-editable files (bgmod.conf, OptiScaler.ini, MangoHud.conf,
   // etc.) are never overwritten by this routine, preserving per-game isolation.
   Source := IncludeTrailingPathDelimiter(ASourceDir);
@@ -1521,12 +1521,6 @@ begin
       'fi; ' +
       'if [ -d ' + QuotedStr(Source + 'plugins') + ' ]; then ' +
       '  cp -rf ' + QuotedStr(Source + 'plugins') + ' ' + QuotedStr(Target) + '; ' +
-      'fi; ' +
-      'if [ -d ' + QuotedStr(Source + 'FSR4_LATEST') + ' ]; then ' +
-      '  cp -rf ' + QuotedStr(Source + 'FSR4_LATEST') + ' ' + QuotedStr(Target) + '; ' +
-      'fi; ' +
-      'if [ -d ' + QuotedStr(Source + 'FSR4_INT8') + ' ]; then ' +
-      '  cp -rf ' + QuotedStr(Source + 'FSR4_INT8') + ' ' + QuotedStr(Target) + '; ' +
       'fi 2>/dev/null');
     SyncProc.Options := [poWaitOnExit];
     SyncProc.Execute;
@@ -1676,11 +1670,13 @@ begin
         FFsrLabel.Caption := FsrVer;
         FFsrLabel.Font.Color := clOlive;
 
-        // If the version is '4.0.2c (INT8)', set combobox to index 1 (Global mode only)
+        // Sync combobox index based on version string (Global mode only)
         if goverlayform.FActiveGameName = '' then
         begin
-          if Assigned(FFsrVersionComboBox) and ((FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8')) then
+          if Assigned(FFsrVersionComboBox) and (FsrVer = '4.1.1b') then
             FFsrVersionComboBox.ItemIndex := 1
+          else if Assigned(FFsrVersionComboBox) and ((FsrVer = '4.0.2c') or (FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8')) then
+            FFsrVersionComboBox.ItemIndex := 2
           else if Assigned(FFsrVersionComboBox) and ((FsrVer = 'Latest (FP8)') or (FsrVer = 'Latest')) then
             FFsrVersionComboBox.ItemIndex := 0;
         end;
@@ -2395,30 +2391,39 @@ begin
     DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini');
     DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll');
 
-    // STEP 5b: Setup FSR4 directories and download FSR INT8 DLL
-    WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up FSR4_LATEST and FSR4_INT8 directories...');
-    ForceDirectories(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST');
-    ForceDirectories(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8');
+    // STEP 5b: Setup central FSR4 directories and download alternative FSR DLLs
+    WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up central FSR4 directories...');
+    EnsureFSR4Directories;
 
-    // Copy current default upscaler dll to FSR4_LATEST
+    // Copy native upscaler dll to FSR4/Latest
     if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
       CopyFile(IncludeTrailingPathDelimiter(OrigPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
-      WriteLn('[DEBUG] UpdateButtonClick: Copied default upscaler from root to FSR4_LATEST');
+               IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[DEBUG] UpdateButtonClick: Copied native upscaler to FSR4/Latest');
     end;
 
-    // Download INT8 upscaler dll
-    UpdateStatus('Downloading FSR 4.0.2c (INT8)');
-    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-                    IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll') then
-    begin
-      WriteLn('[DEBUG] UpdateButtonClick: Downloaded INT8 upscaler to FSR4_INT8');
-    end
+    // Download 4.1.1b alternative upscaler dll
+    UpdateStatus('Downloading FSR 4.1.1b');
+    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
+                    IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      WriteLn('[DEBUG] UpdateButtonClick: Downloaded FSR 4.1.1b')
     else
-    begin
-      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR INT8 DLL');
-    end;
+      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR 4.1.1b DLL');
+
+    // Download 4.0.2c alternative upscaler dll
+    UpdateStatus('Downloading FSR 4.0.2c');
+    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
+                    IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      WriteLn('[DEBUG] UpdateButtonClick: Downloaded FSR 4.0.2c')
+    else
+      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR 4.0.2c DLL');
+
+    // Clean up legacy directories if present
+    if DirectoryExists(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST') then
+      DeleteDirectory(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST', False);
+    if DirectoryExists(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8') then
+      DeleteDirectory(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_INT8', False);
     end; // close `if not SkipDownloadExtract then begin`
 
     // Sync DLLs/assets from OrigPath directly to the active install
@@ -3451,21 +3456,30 @@ begin
       WriteLn('[AUTO-INSTALL] WARN: Failed to fetch FakeNVAPI latest release info');
 
     // Download and setup FSR upscaler DLLs
-    WriteLn('[AUTO-INSTALL] Setting up FSR4_LATEST and FSR4_INT8 directories...');
-    ForceDirectories(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST');
-    ForceDirectories(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8');
+    WriteLn('[AUTO-INSTALL] Setting up central FSR4 directories...');
+    EnsureFSR4Directories;
 
-    // Copy current default upscaler dll to FSR4_LATEST
+    // Copy native upscaler dll to FSR4/Latest
     if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll') then
     begin
       CopyFile(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST/amd_fidelityfx_upscaler_dx12.dll');
-      WriteLn('[AUTO-INSTALL] Copied default upscaler from root to FSR4_LATEST');
+               IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+      WriteLn('[AUTO-INSTALL] Copied native upscaler to FSR4/Latest');
     end;
 
-    // Download FSR INT8 DLL using curl with progress
+    // Download FSR 4.1.1b DLL using curl with progress
+    RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
+      IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll', StartPct + 23, StartPct + 24, ChanLabel + ' (fsr 4.1.1b)', AOnProgress);
+
+    // Download FSR 4.0.2c DLL using curl with progress
     RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-      IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8/amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ' (fsr)', AOnProgress);
+      IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ' (fsr 4.0.2c)', AOnProgress);
+
+    // Clean up legacy directories if present
+    if DirectoryExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST') then
+      DeleteDirectory(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST', False);
+    if DirectoryExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8') then
+      DeleteDirectory(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8', False);
 
     // Write/update DLSS download date in goverlay.vars
     VarsFilePath := IncludeTrailingPathDelimiter(TargetCacheDir) + 'goverlay.vars';

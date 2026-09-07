@@ -587,6 +587,27 @@ begin
   Result := IncludeTrailingPathDelimiter(Result);
 end;
 
+function GetFsr4BasePath(const LocalBgmodPath: string): string;
+var
+  DataHome, FlatpakBase: string;
+  PosFlatpak: Integer;
+begin
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + 'FSR4';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'FSR4';
+  end;
+  Result := IncludeTrailingPathDelimiter(Result);
+end;
+
 // Compare specific keys between two goverlay.vars files.
 // ignoreFsrVersion=True  -> only OptiScalerVersion/FakeNVAPI (cache sync check)
 // ignoreFsrVersion=False -> also includes fsrversion (GameDir freshness check)
@@ -789,22 +810,39 @@ end;
 // This ensures the subsequent copy to GameDir picks the right DLL.
 procedure RestoreFsrDllInConfigDir(const AConfigDir, ASourceDir: string);
 var
-  FsrVer, SrcDll, DestDll: string;
+  FsrVer, SrcDll, DestDll, FsrBase: string;
 begin
   FsrVer := ReadVarFromFile(IncludeTrailingPathDelimiter(AConfigDir) + 'goverlay.vars', 'fsrversion');
-  if (FsrVer = '4.0.2c INT8') or (FsrVer = '4.0.2c (INT8)') then
+  if FsrVer = '' then Exit;
+
+  FsrBase := GetFsr4BasePath(BgmodPath);
+  if not DirectoryExists(FsrBase) then
+    FsrBase := IncludeTrailingPathDelimiter(ExtractFilePath(ExcludeTrailingPathDelimiter(ASourceDir))) + 'FSR4';
+
+  if FsrVer = '4.1.1b' then
+    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
+  else if (FsrVer = '4.0.2c') or (FsrVer = '4.0.2c INT8') or (FsrVer = '4.0.2c (INT8)') then
+    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
+  else if (FsrVer = 'Latest') or (FsrVer = 'Latest (FP8)') then
+    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
+  else
+    Exit;
+
+  // Fallbacks if target version DLL is not present
+  if not FileExists(SrcDll) then
+    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+  if not FileExists(SrcDll) then
+    SrcDll := IncludeTrailingPathDelimiter(ASourceDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+
+  DestDll := IncludeTrailingPathDelimiter(AConfigDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+  if FileExists(SrcDll) then
   begin
-    SrcDll  := IncludeTrailingPathDelimiter(ASourceDir) + 'FSR4_INT8' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-    DestDll := IncludeTrailingPathDelimiter(AConfigDir) + 'amd_fidelityfx_upscaler_dx12.dll';
-    if FileExists(SrcDll) then
-    begin
-      Log('Restoring FSR4 INT8 DLL in config dir after sync.');
-      if FileExists(DestDll) then DeleteFile(DestDll);
-      CopyFile(SrcDll, DestDll);
-    end
-    else
-      Log('Warning: FSR4_INT8 DLL not found at: ' + SrcDll);
-  end;
+    Log('Restoring FSR4 ' + FsrVer + ' DLL in config dir after sync.');
+    if FileExists(DestDll) then DeleteFile(DestDll);
+    CopyFile(SrcDll, DestDll);
+  end
+  else
+    Log('Warning: FSR4 DLL not found at: ' + SrcDll);
 end;
 
 procedure PreserveFileTimestamp(const Src, Dest: string);

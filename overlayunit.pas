@@ -5986,15 +5986,6 @@ end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
 begin
-  // Force the FSR Version value to "Latest" (index 0) and hide its label/combobox on all channels.
-  if Assigned(fsrversionComboBox) then
-    fsrversionComboBox.ItemIndex := 0;
-
-  if Assigned(fsrversionLabel) then
-    fsrversionLabel.Visible := False;
-  if Assigned(fsrversionComboBox) then
-    fsrversionComboBox.Visible := False;
-
   // emufp8CheckBox is linked to TToggleSwitch (keep underlying checkbox hidden)
   emufp8CheckBox.Visible := False;
   emufp8CheckBox.Enabled := True;
