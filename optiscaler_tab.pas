@@ -551,6 +551,37 @@ begin
     menuscaleComboBox.AnchorSideRight.Control  := nil; menuscaleComboBox.AnchorSideBottom.Control := nil;
     menuscaleComboBox.Anchors := [akLeft, akTop]; menuscaleComboBox.Parent  := FOsMainSec;
 
+    if loglevelLabel = nil then
+    begin
+      loglevelLabel := TLabel.Create(FForm);
+      loglevelLabel.Name := 'loglevelLabel';
+      loglevelLabel.Caption := 'Log level';
+    end;
+    loglevelLabel.AnchorSideLeft.Control   := nil; loglevelLabel.AnchorSideTop.Control    := nil;
+    loglevelLabel.AnchorSideRight.Control  := nil; loglevelLabel.AnchorSideBottom.Control := nil;
+    loglevelLabel.Anchors := [akLeft, akTop];
+    loglevelLabel.Parent  := FOsMainSec;
+
+    if loglevelComboBox = nil then
+    begin
+      loglevelComboBox := TComboBox.Create(FForm);
+      loglevelComboBox.Name := 'loglevelComboBox';
+      loglevelComboBox.Style := csDropDownList;
+      loglevelComboBox.Items.Add('0 - Trace');
+      loglevelComboBox.Items.Add('1 - Debug');
+      loglevelComboBox.Items.Add('2 - Info (Default)');
+      loglevelComboBox.Items.Add('3 - Warning');
+      loglevelComboBox.Items.Add('4 - Error');
+      loglevelComboBox.ItemIndex := 2;
+      loglevelComboBox.Hint := 'Verbosity level of OptiScaler logs. Higher verbosity (Trace / Debug) may impact gameplay performance. Default is 2 (Info).';
+      loglevelComboBox.ShowHint := True;
+      loglevelComboBox.OnChange := @loglevelComboBoxChange;
+    end;
+    loglevelComboBox.AnchorSideLeft.Control   := nil; loglevelComboBox.AnchorSideTop.Control    := nil;
+    loglevelComboBox.AnchorSideRight.Control  := nil; loglevelComboBox.AnchorSideBottom.Control := nil;
+    loglevelComboBox.Anchors := [akLeft, akTop];
+    loglevelComboBox.Parent  := FOsMainSec;
+
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
     optipatcherCheckBox.Anchors := [akLeft, akTop]; optipatcherCheckBox.Parent  := FOsMainSec;
@@ -1096,7 +1127,7 @@ begin
     TotalH := FOsScrollBox.ClientHeight;
     if TotalH < 100 then TotalH := 600;
 
-    MinOptH := 315;
+    MinOptH := 410;
     CardTop := TotalH - MARGIN - STAT_H;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -1215,27 +1246,35 @@ begin
       if Assigned(menuscaleComboBox) then
         menuscaleComboBox.SetBounds(10, Y0 + 74, ComboW, 26);
 
+      if Assigned(loglevelLabel) then
+      begin
+        loglevelLabel.Caption := 'Log level';
+        loglevelLabel.SetBounds(10, Y0 + 112, ColW - 20, 16);
+      end;
+      if Assigned(loglevelComboBox) then
+        loglevelComboBox.SetBounds(10, Y0 + 130, ComboW, 26);
+
       if Assigned(FOptiPatcherToggle) then
       begin
-        FOptiPatcherToggle.SetBounds(10, Y0 + 124, FOptiPatcherToggle.GetOptimalWidth, 20);
+        FOptiPatcherToggle.SetBounds(10, Y0 + 172, FOptiPatcherToggle.GetOptimalWidth, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 122, 22, 22);
+          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 170, 22, 22);
       end
       else
       begin
-        optipatcherCheckBox.SetBounds(10, Y0 + 124, 95, 20);
+        optipatcherCheckBox.SetBounds(10, Y0 + 172, 95, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(108, Y0 + 122, 22, 22);
+          FOsPatcherListBtn.SetBounds(108, Y0 + 170, 22, 22);
       end;
 
-      shortcutkeyLabel.SetBounds(10, Y0 + 166, ColW - 20, 16);
+      shortcutkeyLabel.SetBounds(10, Y0 + 210, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
-        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 184, Min(ColW - 20, 120), 28);
+        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 228, Min(ColW - 20, 120), 28);
 
       if Assigned(dlssenablerToggleLabel) then
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 218, ColW - 20, 16);
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 264, ColW - 20, 16);
       if Assigned(dlssenablerToggleBtn) then
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 236, Min(ColW - 20, 120), 28);
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 282, Min(ColW - 20, 120), 28);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
@@ -1356,6 +1395,7 @@ var
   SavedFsrOnChange: TNotifyEvent;
   SavedOptOnChange: TNotifyEvent;
   SavedPreferredUpscalerOnChange: TNotifyEvent;
+  SavedLogLevelOnChange: TNotifyEvent;
   Idx: Integer;
 begin
   with FForm do
@@ -1367,9 +1407,16 @@ begin
     SavedFsrOnChange := fsrversionComboBox.OnChange;
     SavedOptOnChange := optversionComboBox.OnChange;
     SavedPreferredUpscalerOnChange := preferredUpscalerComboBox.OnChange;
+    if Assigned(loglevelComboBox) then
+      SavedLogLevelOnChange := loglevelComboBox.OnChange
+    else
+      SavedLogLevelOnChange := nil;
+
     fsrversionComboBox.OnChange := nil;
     optversionComboBox.OnChange := nil;
     preferredUpscalerComboBox.OnChange := nil;
+    if Assigned(loglevelComboBox) then
+      loglevelComboBox.OnChange := nil;
     try
       filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
       emufp8CheckBox.Checked := Settings.EmuFp8Checked;
@@ -1394,6 +1441,14 @@ begin
           if Idx > 11 then Idx := 11;
           menuscaleComboBox.ItemIndex := Idx;
         end;
+      end;
+
+      if Assigned(loglevelComboBox) then
+      begin
+        if (Settings.LogLevelItemIndex >= 0) and (Settings.LogLevelItemIndex < loglevelComboBox.Items.Count) then
+          loglevelComboBox.ItemIndex := Settings.LogLevelItemIndex
+        else
+          loglevelComboBox.ItemIndex := 2;
       end;
 
       overrideCheckBox.Checked := Settings.OverrideChecked;
@@ -1463,6 +1518,8 @@ begin
       fsrversionComboBox.OnChange := SavedFsrOnChange;
       optversionComboBox.OnChange := SavedOptOnChange;
       preferredUpscalerComboBox.OnChange := SavedPreferredUpscalerOnChange;
+      if Assigned(loglevelComboBox) then
+        loglevelComboBox.OnChange := SavedLogLevelOnChange;
     end;
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
@@ -1496,6 +1553,10 @@ begin
     end
     else
       Settings.MenuScalePosition := menuscaleTrackBar.Position;
+    if Assigned(loglevelComboBox) and (loglevelComboBox.ItemIndex >= 0) then
+      Settings.LogLevelItemIndex := loglevelComboBox.ItemIndex
+    else
+      Settings.LogLevelItemIndex := 2;
     Settings.OverrideChecked := overrideCheckBox.Checked;
     Settings.SpoofChecked := spoofCheckBox.Checked;
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;

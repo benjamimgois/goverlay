@@ -48,6 +48,7 @@ type
     procedure TestOptiOverrideNvapiSave;
     procedure TestOptiPatcherToggleSave;
     procedure TestOptiFsrVersionSelector;
+    procedure TestOptiLogLevelSelector;
     procedure TestOptiPreferredUpscalerSave;
     procedure TestOptiForceFsr4Int8Save;
     procedure TestOptiFilenameDllSave;
@@ -979,6 +980,8 @@ var
 begin
   SeedOptiScalerFiles;
   NavigateOptiScalerTab;
+  AssertTrue('optipatcher defaults to checked', goverlayform.optipatcherCheckBox.Checked);
+
   goverlayform.optipatcherCheckBox.Checked := True;
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
@@ -988,6 +991,68 @@ begin
   SaveOpti;
   Content := ReadFileText(OptiIniPath);
   AssertTrue('LoadAsiPlugins=false persisted', Pos('LoadAsiPlugins=false', Content) > 0);
+
+  NavigateOptiScalerTab;
+  AssertFalse('optipatcher explicit deactivation remembered', goverlayform.optipatcherCheckBox.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestOptiLogLevelSelector;
+var
+  Content: string;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  // 1. Controls existence, visibility, items, and hint
+  AssertTrue('loglevelComboBox assigned', Assigned(goverlayform.loglevelComboBox));
+  AssertTrue('loglevelLabel assigned', Assigned(goverlayform.loglevelLabel));
+  AssertTrue('loglevelComboBox visible', goverlayform.loglevelComboBox.Visible);
+  AssertTrue('loglevelLabel visible', goverlayform.loglevelLabel.Visible);
+  AssertEquals('loglevelComboBox item count is 5', 5, goverlayform.loglevelComboBox.Items.Count);
+  AssertEquals('item 0 is 0 - Trace', '0 - Trace', goverlayform.loglevelComboBox.Items[0]);
+  AssertEquals('item 1 is 1 - Debug', '1 - Debug', goverlayform.loglevelComboBox.Items[1]);
+  AssertEquals('item 2 is 2 - Info (Default)', '2 - Info (Default)', goverlayform.loglevelComboBox.Items[2]);
+  AssertEquals('item 3 is 3 - Warning', '3 - Warning', goverlayform.loglevelComboBox.Items[3]);
+  AssertEquals('item 4 is 4 - Error', '4 - Error', goverlayform.loglevelComboBox.Items[4]);
+  AssertEquals('default item index is 2 (Info)', 2, goverlayform.loglevelComboBox.ItemIndex);
+  AssertTrue('tooltip warning present', Pos('Trace', goverlayform.loglevelComboBox.Hint) > 0);
+
+  // 2. Select 1 - Debug (index 1) and test auto-save
+  goverlayform.loglevelComboBox.ItemIndex := 1;
+  goverlayform.loglevelComboBoxChange(goverlayform.loglevelComboBox);
+  AssertTrue('autoSaveTimer enabled after loglevelComboBox change', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('LogLevel=1 persisted in OptiScaler.ini', Pos('LogLevel=1', Content) > 0);
+
+  // Reload tab and verify index 1 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 1 (Debug)', 1, goverlayform.loglevelComboBox.ItemIndex);
+
+  // 3. Select 4 - Error (index 4) and test auto-save
+  goverlayform.loglevelComboBox.ItemIndex := 4;
+  goverlayform.loglevelComboBoxChange(goverlayform.loglevelComboBox);
+  AssertTrue('autoSaveTimer enabled after selecting 4 - Error', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('LogLevel=4 persisted in OptiScaler.ini', Pos('LogLevel=4', Content) > 0);
+
+  // Reload tab and verify index 4 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 4 (Error)', 4, goverlayform.loglevelComboBox.ItemIndex);
+
+  // 4. Select 2 - Info (index 2) and Save
+  goverlayform.loglevelComboBox.ItemIndex := 2;
+  goverlayform.loglevelComboBoxChange(goverlayform.loglevelComboBox);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('LogLevel=2 persisted in OptiScaler.ini', Pos('LogLevel=2', Content) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiFsrVersionSelector;

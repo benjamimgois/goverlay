@@ -110,6 +110,7 @@ const
 
   OPTI_INI_SECTION_MENU        = '[Menu]';
   OPTI_INI_SECTION_FRAMEGEN    = '[FrameGen]';
+  OPTI_INI_SECTION_LOG         = '[Log]';
   OPTI_KEY_SHORTCUT            = 'ShortcutKey=';
   OPTI_KEY_SCALE               = 'Scale=';
   OPTI_KEY_OVERRIDE_NVAPI      = 'OverrideNvapiDll=';
@@ -119,6 +120,7 @@ const
   OPTI_KEY_DX11_UPSCALER       = 'Dx11Upscaler=';
   OPTI_KEY_DX12_UPSCALER       = 'Dx12Upscaler=';
   OPTI_KEY_VULKAN_UPSCALER     = 'VulkanUpscaler=';
+  OPTI_KEY_LOG_LEVEL           = 'LogLevel=';
 
   FAKE_KEY_FORCE_REFLEX        = 'force_reflex=';
   FAKE_KEY_FORCE_LATENCY       = 'force_latencyflex=';

@@ -364,6 +364,8 @@ type
     memLabel: TLabel;
     menuLabel: TLabel;
     menuscaleComboBox: TComboBox;
+    loglevelLabel: TLabel;
+    loglevelComboBox: TComboBox;
     menuscaleTrackBar: TTrackBar;
     menuscalevalueLabel: TLabel;
     mesaImage: TImage;
@@ -566,6 +568,7 @@ type
     procedure frametimetypeBitBtnClick(Sender: TObject);
     procedure fsrversionComboBoxChange(Sender: TObject);
     procedure preferredUpscalerComboBoxChange(Sender: TObject);
+    procedure loglevelComboBoxChange(Sender: TObject);
     procedure gputempCheckBoxChange(Sender: TObject);
     procedure cputempCheckBoxChange(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
@@ -5984,6 +5987,12 @@ begin
 end;
 
 procedure Tgoverlayform.preferredUpscalerComboBoxChange(Sender: TObject);
+begin
+  if (Sender <> nil) and not FLoadingConfig then
+    StartAutoSaveTimer;
+end;
+
+procedure Tgoverlayform.loglevelComboBoxChange(Sender: TObject);
 begin
   if (Sender <> nil) and not FLoadingConfig then
     StartAutoSaveTimer;

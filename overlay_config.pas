@@ -73,6 +73,7 @@ type
     UpscalerTypeItemIndex: Integer;
     FGInputItemIndex: Integer;
     FGOutputItemIndex: Integer;
+    LogLevelItemIndex: Integer;
   end;
 
   TMangoHudSettings = record
@@ -831,6 +832,7 @@ var
   OverrideNvapiDllValue: string;
   DxgiValue: string;
   LoadAsiPluginsValue: string;
+  LogLevelValue: string;
   Fsr4UpdateValue: string;
   PreferredUpscalerValue, FGInputValue, FGOutputValue: string;
   FakeNvapiIniPath: string;
@@ -984,6 +986,18 @@ begin
       OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
       OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
       OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
+
+      case Settings.LogLevelItemIndex of
+        0: LogLevelValue := '0';
+        1: LogLevelValue := '1';
+        2: LogLevelValue := '2';
+        3: LogLevelValue := '3';
+        4: LogLevelValue := '4';
+      else
+        LogLevelValue := '2';
+      end;
+      OptiCfg.SetValue(OPTI_KEY_LOG_LEVEL, LogLevelValue, OPTI_INI_SECTION_LOG);
+
       OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
       OptiCfg.SetValue(OPTI_KEY_DX11_UPSCALER, PreferredUpscalerValue);
       OptiCfg.SetValue(OPTI_KEY_DX12_UPSCALER, PreferredUpscalerValue);
@@ -1539,6 +1553,7 @@ begin
   Settings.LatencyFlexItemIndex := 0;
   Settings.TraceLogChecked := False;
   Settings.ForceFsr4Int8Checked := True;
+  Settings.LogLevelItemIndex := 2;
 
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
@@ -1593,10 +1608,24 @@ begin
 
         Settings.OverrideChecked := SameText(OptiCfg.GetValue(OPTI_KEY_OVERRIDE_NVAPI, ''), 'true');
         Value := OptiCfg.GetValue(OPTI_KEY_LOAD_ASI, '');
-        if SameText(Value, 'false') or SameText(Value, 'auto') then
+        if SameText(Value, 'false') then
           Settings.OptipatcherChecked := False
         else
           Settings.OptipatcherChecked := True;
+
+        Value := OptiCfg.GetValue(OPTI_KEY_LOG_LEVEL, '', OPTI_INI_SECTION_LOG);
+        if (Value = '0') then
+          Settings.LogLevelItemIndex := 0
+        else if (Value = '1') then
+          Settings.LogLevelItemIndex := 1
+        else if (Value = '2') then
+          Settings.LogLevelItemIndex := 2
+        else if (Value = '3') then
+          Settings.LogLevelItemIndex := 3
+        else if (Value = '4') then
+          Settings.LogLevelItemIndex := 4
+        else
+          Settings.LogLevelItemIndex := 2;
 
         Value := OptiCfg.GetValue(OPTI_KEY_FSR4_UPDATE, '');
         if SameText(Value, 'auto') or SameText(Value, 'true') then
