@@ -544,19 +544,31 @@ begin
   GameDir := '';
   UninstallerPath := ExtractFilePath(ParamStr(0));
 
-  // Original-DLL backup folder lives in the per-game GOverlay config dir
-  // (the parent of this binary's location for per-game installs, or
-  // bgmod/backups/ when the uninstaller binary was invoked from the global
-  // pristine bgmod/ folder). Backups are only restored from here; never
-  // written by the uninstaller.
-  BackupsDir := UninstallerPath + 'backups' + PathDelim;
+  // Original-DLL backup folder lives in the per-game GOverlay config dir.
+  // Check explicit environment variables first (e.g. passed from GOverlay GUI
+  // or scripts), otherwise resolve relative to UninstallerPath. Backups are only
+  // restored from here; never written by the uninstaller.
+  BackupsDir := GetEnvironmentVariable('BGMOD_BACKUPS_DIR');
+  if BackupsDir <> '' then
+    BackupsDir := IncludeTrailingPathDelimiter(BackupsDir)
+  else
+  begin
+    TempStr := GetEnvironmentVariable('BGMOD_CONFIG_DIR');
+    if TempStr <> '' then
+      BackupsDir := IncludeTrailingPathDelimiter(TempStr) + 'backups' + PathDelim
+    else
+      BackupsDir := UninstallerPath + 'backups' + PathDelim;
+  end;
   
   // Resolve central GOverlay log path
   CentralLogDir := '';
   CentralLogFile := '';
-  if UninstallerPath <> '' then
+  TempStr := GetEnvironmentVariable('BGMOD_CONFIG_DIR');
+  if TempStr = '' then
+    TempStr := UninstallerPath;
+  if TempStr <> '' then
   begin
-    TempStr := ExcludeTrailingPathDelimiter(UninstallerPath);
+    TempStr := ExcludeTrailingPathDelimiter(TempStr);
     Key := ExtractFileName(TempStr); // GameName or 'bgmod'
     Val := ExtractFilePath(TempStr); // Parent folder path (e.g. gameconfig/ or share/goverlay/)
     if Val <> '' then
@@ -717,17 +729,23 @@ begin
       SafeCleanOrRestore(GameDir, BackupsDir, 'nvngx-wrapper.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, '_nvngx.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
-      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.common.dll', False);
+      // Streamline DLLs:
+      // Critical native host DLLs: sl.common.dll, sl.interposer.dll, sl.pcl.dll
+      // These are required by games using Streamline (e.g. God of War Ragnarök).
+      // They MUST be restored if backup exists, and MUST NOT be deleted if no backup exists.
+      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.common.dll', True);
+      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.interposer.dll', True);
+      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.pcl.dll', True);
+
+      // Optional Streamline plugin DLLs: restore if backup exists, otherwise safe to delete
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.deepdvc.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.directsr.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.dlss.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.dlss_d.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.dlss_g.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.imgui.dll', False);
-      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.interposer.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.nis.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.nvperf.dll', False);
-      SafeCleanOrRestore(GameDir, BackupsDir, 'sl.pcl.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.reflex.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.template.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'sl.reflex_vk.dll', False);

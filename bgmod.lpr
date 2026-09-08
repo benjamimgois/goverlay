@@ -1294,6 +1294,23 @@ begin
   end;
 end;
 
+function IsNativeGameDll(const FileName: string): Boolean;
+begin
+  Result := (FileName = 'd3dcompiler_47.dll') or
+            (FileName = 'nvngx.dll') or
+            (FileName = 'amd_fidelityfx_dx12.dll') or
+            (FileName = 'amd_fidelityfx_framegeneration_dx12.dll') or
+            (FileName = 'amd_fidelityfx_upscaler_dx12.dll') or
+            (FileName = 'amd_fidelityfx_vk.dll') or
+            (FileName = 'libxess.dll') or
+            (FileName = 'libxess_dx11.dll') or
+            (FileName = 'libxess_fg.dll') or
+            (FileName = 'libxell.dll') or
+            (FileName = 'sl.common.dll') or
+            (FileName = 'sl.interposer.dll') or
+            (FileName = 'sl.pcl.dll');
+end;
+
 procedure PurgeUpscalerFromGameDir(const AGameDir, ABackupsDir: string);
 var
   i: Integer;
@@ -1301,7 +1318,7 @@ begin
   Log('Purging installed upscaler files from game directory...');
   for i := 0 to High(OrigDlls) do
   begin
-    if (OrigDlls[i] = 'd3dcompiler_47.dll') or (OrigDlls[i] = 'nvngx.dll') then
+    if IsNativeGameDll(OrigDlls[i]) or ((ABackupsDir <> '') and FileExists(IncludeTrailingPathDelimiter(ABackupsDir) + OrigDlls[i])) then
       SafeCleanOrRestore(AGameDir, ABackupsDir, OrigDlls[i], True)
     else
       SafeCleanOrRestore(AGameDir, ABackupsDir, OrigDlls[i], False);
@@ -1845,7 +1862,7 @@ begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
           for i := 0 to High(OrigDlls) do
           begin
-            if (OrigDlls[i] = 'd3dcompiler_47.dll') or (OrigDlls[i] = 'nvngx.dll') then
+            if IsNativeGameDll(OrigDlls[i]) or ((BackupsDir <> '') and FileExists(IncludeTrailingPathDelimiter(BackupsDir) + OrigDlls[i])) then
               SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], True)
             else
               SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], False);

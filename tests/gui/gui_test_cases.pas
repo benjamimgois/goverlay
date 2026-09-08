@@ -75,6 +75,7 @@ type
     procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
     procedure TestDlssEnablerSyncSupportingFiles;
     procedure TestDlssEnablerStreamlineBackupAndCleanup;
+    procedure TestSafeUninstallChangesRestoresStreamlineBackups;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -2450,6 +2451,101 @@ begin
   AssertFalse('sl.dlss_g.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.dlss_g.dll'));
   AssertFalse('sl.reflex.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.reflex.dll'));
   AssertFalse('sl.nis.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.nis.dll'));
+end;
+
+procedure TGoverlayGuiTests.TestSafeUninstallChangesRestoresStreamlineBackups;
+var
+  GameDir, GameCfgDir, BackupsDir, UninstallerBin, ExecCmd: string;
+  Proc: TProcess;
+  FileContent: TStringList;
+  F: TextFile;
+begin
+  GameDir := IsolatedHome + '/games/SafeUninstallGame/';
+  GameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/SafeUninstallGame/';
+  BackupsDir := GameCfgDir + 'backups/';
+  ForceDirectories(GameDir);
+  ForceDirectories(BackupsDir);
+
+  // 1. Write original native game files into BackupsDir
+  AssignFile(F, BackupsDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_SL_COMMON'); CloseFile(F);
+  AssignFile(F, BackupsDir + 'sl.interposer.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_SL_INTERPOSER'); CloseFile(F);
+  AssignFile(F, BackupsDir + 'sl.pcl.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_SL_PCL'); CloseFile(F);
+
+  // 2. Write modified / deployed mod files in GameDir
+  AssignFile(F, GameDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_COMMON_REPLACED'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.interposer.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_INTERPOSER_REPLACED'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.pcl.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_PCL_REPLACED'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.deepdvc.dll'); Rewrite(F); WriteLn(F, 'MOD_ONLY_PLUGIN'); CloseFile(F);
+  AssignFile(F, GameDir + 'version.dll'); Rewrite(F); WriteLn(F, 'MOD_PROXY'); CloseFile(F);
+  AssignFile(F, GameDir + 'goverlay.vars'); Rewrite(F); WriteLn(F, 'dlssenablerversion=4.9.0'); CloseFile(F);
+
+  // Locate bgmod-uninstaller binary
+  UninstallerBin := GetCurrentDir + '/bgmod-uninstaller';
+  if not FileExists(UninstallerBin) then
+    UninstallerBin := ExtractFilePath(ParamStr(0)) + '../../bgmod-uninstaller';
+  if not FileExists(UninstallerBin) then
+    UninstallerBin := ExtractFilePath(ParamStr(0)) + 'bgmod-uninstaller';
+  AssertTrue('bgmod-uninstaller binary exists for testing', FileExists(UninstallerBin));
+
+  // 3. Execute uninstaller with BGMOD_CONFIG_DIR and BGMOD_BACKUPS_DIR (mirroring GameCardUninstallClick)
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
+      'BGMOD_CONFIG_DIR="' + GameCfgDir + '" ' +
+      'BGMOD_BACKUPS_DIR="' + BackupsDir + '" ' +
+      'STEAM_COMPAT_INSTALL_PATH="' + GameDir + '" "' +
+      UninstallerBin + '" -- 2>/dev/null';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod-uninstaller execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 4. Verify native files were restored to GameDir from BackupsDir
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(GameDir + 'sl.common.dll');
+    AssertEquals('sl.common.dll restored with native content', 'ORIGINAL_NATIVE_SL_COMMON', Trim(FileContent.Text));
+    FileContent.LoadFromFile(GameDir + 'sl.interposer.dll');
+    AssertEquals('sl.interposer.dll restored with native content', 'ORIGINAL_NATIVE_SL_INTERPOSER', Trim(FileContent.Text));
+    FileContent.LoadFromFile(GameDir + 'sl.pcl.dll');
+    AssertEquals('sl.pcl.dll restored with native content', 'ORIGINAL_NATIVE_SL_PCL', Trim(FileContent.Text));
+  finally
+    FileContent.Free;
+  end;
+
+  // 5. Verify mod-only files and proxies were removed
+  AssertFalse('sl.deepdvc.dll removed on uninstallation', FileExists(GameDir + 'sl.deepdvc.dll'));
+  AssertFalse('version.dll removed on uninstallation', FileExists(GameDir + 'version.dll'));
+  AssertFalse('goverlay.vars removed on uninstallation', FileExists(GameDir + 'goverlay.vars'));
+
+  // 6. Verify that deleting GameCfgDir after uninstallation completes cleanly
+  if DirectoryExists(GameCfgDir) then
+    DeleteDirectory(GameCfgDir, False);
+  AssertFalse('GameCfgDir deleted after restore', DirectoryExists(GameCfgDir));
+
+  // 7. Test fallback safety: if no backup exists, native host DLLs are NOT deleted
+  AssignFile(F, GameDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'NATIVE_WITHOUT_BACKUP'); CloseFile(F);
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
+      'STEAM_COMPAT_INSTALL_PATH="' + GameDir + '" "' +
+      UninstallerBin + '" -- 2>/dev/null';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod-uninstaller fallback execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  AssertTrue('sl.common.dll preserved even when backup is absent', FileExists(GameDir + 'sl.common.dll'));
 end;
 
 procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;

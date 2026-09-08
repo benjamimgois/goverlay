@@ -2293,10 +2293,6 @@ begin
 
   GameCfgDir := GetGameConfigDir(GameName);
 
-  // Recursively delete the GOverlay game config directory
-  if DirectoryExists(GameCfgDir) then
-    DeleteDirectory(GameCfgDir, False);
-
   // Remove all OptiScaler/FGMod files from the game's install directory and subdirectories.
   if (GamePath <> '') and DirectoryExists(GamePath) then
   begin
@@ -2353,16 +2349,19 @@ begin
       // directory instead of the legacy inline duplicate (RunFGModUninstallCommands).
       // The binary shares the marker-based IsGOverlayProxyFile logic with bgmod,
       // so cleanup correctness is identical across the launch-wrapper and GUI
-      // flows. We point the binary at each TargetDir via STEAM_COMPAT_INSTALL_PATH
-      // (its existing fallback resolution path) so it operates only on the
-      // matching subfolder instead of walking the whole game tree at once.
-      UninstallerBin := IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod-uninstaller';
+      // flows. We pass BGMOD_CONFIG_DIR and BGMOD_BACKUPS_DIR so the uninstaller
+      // can locate and restore native file backups before GameCfgDir is deleted.
+      UninstallerBin := IncludeTrailingPathDelimiter(GameCfgDir) + 'bgmod-uninstaller';
+      if not FileExists(UninstallerBin) then
+        UninstallerBin := IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod-uninstaller';
       if not FileExists(UninstallerBin) then
         UninstallerBin := IncludeTrailingPathDelimiter(GetFGModOriginalPath) + 'bgmod-uninstaller';
       for j := 0 to TargetDirs.Count - 1 do
       begin
         if not DirectoryExists(TargetDirs[j]) then Continue;
         ExecuteShellCommand(
+          'BGMOD_CONFIG_DIR=' + QuotedStr(GameCfgDir) + ' ' +
+          'BGMOD_BACKUPS_DIR=' + QuotedStr(IncludeTrailingPathDelimiter(GameCfgDir) + 'backups') + ' ' +
           'STEAM_COMPAT_INSTALL_PATH=' + QuotedStr(TargetDirs[j]) + ' ' +
           QuotedStr(UninstallerBin) + ' -- 2>/dev/null');
       end;
@@ -2370,6 +2369,11 @@ begin
       TargetDirs.Free;
     end;
   end;
+
+  // Recursively delete the GOverlay game config directory only after the
+  // uninstaller has executed and restored all native backups to the game.
+  if (GameCfgDir <> '') and DirectoryExists(GameCfgDir) then
+    DeleteDirectory(GameCfgDir, False);
 
   // Remove badge controls from the card panel.
   // GOverlay badges are tagged 2 at creation time; platform badges
