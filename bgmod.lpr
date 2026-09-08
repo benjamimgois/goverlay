@@ -73,8 +73,9 @@ var
   BgmodPath: string;
   ConfigDir: string;
   SourceDir: string;
+  UpscalerType: Integer;
   HasGamePerformance: Boolean;
-  OrigDlls: array[0..13] of string = (
+  OrigDlls: array[0..25] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
     'amd_fidelityfx_loader_dx12.dll',
@@ -88,7 +89,33 @@ var
     'nvngx.dll',
     'nvngx_dlss.dll',
     'nvngx_dlssd.dll',
-    'nvngx_dlssg.dll'
+    'nvngx_dlssg.dll',
+    'sl.common.dll',
+    'sl.deepdvc.dll',
+    'sl.directsr.dll',
+    'sl.dlss.dll',
+    'sl.dlss_d.dll',
+    'sl.dlss_g.dll',
+    'sl.imgui.dll',
+    'sl.interposer.dll',
+    'sl.nis.dll',
+    'sl.nvperf.dll',
+    'sl.pcl.dll',
+    'sl.reflex.dll'
+  );
+  StreamlineDlls: array[0..11] of string = (
+    'sl.common.dll',
+    'sl.deepdvc.dll',
+    'sl.directsr.dll',
+    'sl.dlss.dll',
+    'sl.dlss_d.dll',
+    'sl.dlss_g.dll',
+    'sl.imgui.dll',
+    'sl.interposer.dll',
+    'sl.nis.dll',
+    'sl.nvperf.dll',
+    'sl.pcl.dll',
+    'sl.reflex.dll'
   );
   ProxyDlls: array[0..6] of string = (
     'dxgi.dll',
@@ -608,15 +635,31 @@ begin
   Result := IncludeTrailingPathDelimiter(Result);
 end;
 
+function GetFileSize(const APath: string): Int64;
+var
+  sb: stat;
+begin
+  Result := -1;
+  if (APath <> '') and (FpStat(PChar(APath), sb) = 0) then
+    Result := sb.st_size;
+end;
+
 // Compare specific keys between two goverlay.vars files.
-// ignoreFsrVersion=True  -> only OptiScalerVersion/FakeNVAPI (cache sync check)
+// ignoreFsrVersion=True  -> only OptiScalerVersion/FakeNVAPI/DLSS-Enabler/Streamline (cache sync check)
 // ignoreFsrVersion=False -> also includes fsrversion (GameDir freshness check)
 function NeedsUpdateWithKeys(const LocalPath, GlobalPath: string; IgnoreFsrVersion: Boolean): Boolean;
 var
   LocalVars, GlobalVars: string;
   LocalSL, GlobalSL: TStringList;
   LocalVal, GlobalVal: string;
-  VersionKeys: array[0..2] of string = ('optiscalerversion', 'fakenvapiversion', 'fsrversion');
+  VersionKeys: array[0..5] of string = (
+    'optiscalerversion',
+    'fakenvapiversion',
+    'dlssenablerversion',
+    'streamlineversion',
+    'upscalertype',
+    'fsrversion'
+  );
   k, LastKey: Integer;
 
   function GetValFromList(SL: TStringList; const AKey: string): string;
@@ -653,11 +696,11 @@ begin
     Exit;
   end;
 
-  // When ignoring fsrversion (cache sync), only compare the first 2 keys.
+  // When ignoring fsrversion (cache sync), compare all version keys except fsrversion (last key).
   if IgnoreFsrVersion then
-    LastKey := 1
+    LastKey := 4
   else
-    LastKey := 2;
+    LastKey := 5;
 
   LocalSL  := TStringList.Create;
   GlobalSL := TStringList.Create;
@@ -691,10 +734,33 @@ begin
   Result := NeedsUpdateWithKeys(LocalPath, GlobalPath, True);
 end;
 
-// ConfigDir → GameDir: include fsrversion so an INT8/Latest change triggers reinstall
+// ConfigDir → GameDir: include fsrversion so an INT8/Latest change triggers reinstall.
+// Also performs file-level integrity checks for Streamline and proxy libraries.
 function NeedsGameDirUpdate(const LocalPath, GlobalPath: string): Boolean;
+var
+  i: Integer;
 begin
   Result := NeedsUpdateWithKeys(LocalPath, GlobalPath, False);
+  if Result then Exit;
+
+  // Additional file integrity check for DLSS Enabler / Streamline:
+  // If any Streamline DLL in SourceDir is missing or has a different size in GameDir, trigger reinstall
+  if UpscalerType = 1 then
+  begin
+    for i := 0 to High(StreamlineDlls) do
+    begin
+      if FileExists(SourceDir + StreamlineDlls[i]) then
+      begin
+        if (not FileExists(LocalPath + StreamlineDlls[i])) or
+           (GetFileSize(LocalPath + StreamlineDlls[i]) <> GetFileSize(SourceDir + StreamlineDlls[i])) then
+        begin
+          Log('Streamline DLL ' + StreamlineDlls[i] + ' missing or size mismatch in game directory, update needed.');
+          Result := True;
+          Exit;
+        end;
+      end;
+    end;
+  end;
 end;
 
 
@@ -1132,15 +1198,28 @@ begin
   FullDest := IncludeTrailingPathDelimiter(BackupsDir) + DllFile;
 
   if not FileExists(FullSrc) then Exit;
-  if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') then
-  begin
-    Log('Skipping backup of ' + DllFile + ' (game already has GOverlay install)');
-    Exit;
-  end;
   if FileExists(FullDest) then
   begin
     Log('Skipping backup of ' + DllFile + ' (backup slot already filled)');
     Exit;
+  end;
+
+  if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') then
+  begin
+    // If goverlay.vars exists, this game folder previously had a GOverlay installation.
+    // For proxy DLLs (like dxgi.dll, version.dll) or mod files matching SourceDir,
+    // do NOT back up as original.
+    // However, if FullSrc is a native game file that was never backed up (e.g. newly supported
+    // Streamline DLL or file restored via Steam validation) and differs from SourceDir, back it up!
+    if FileExists(SourceDir + DllFile) and (GetFileSize(FullSrc) <> GetFileSize(SourceDir + DllFile)) then
+    begin
+      Log('Detected native game file for newly tracked ' + DllFile + ' despite goverlay.vars, backing up...');
+    end
+    else
+    begin
+      Log('Skipping backup of ' + DllFile + ' (game already has GOverlay install)');
+      Exit;
+    end;
   end;
 
   try
@@ -1220,6 +1299,14 @@ var
   i: Integer;
 begin
   Log('Purging installed upscaler files from game directory...');
+  for i := 0 to High(OrigDlls) do
+  begin
+    if (OrigDlls[i] = 'd3dcompiler_47.dll') or (OrigDlls[i] = 'nvngx.dll') then
+      SafeCleanOrRestore(AGameDir, ABackupsDir, OrigDlls[i], True)
+    else
+      SafeCleanOrRestore(AGameDir, ABackupsDir, OrigDlls[i], False);
+  end;
+
   for i := 0 to High(ProxyDlls) do
     SafeCleanOrRestore(AGameDir, ABackupsDir, ProxyDlls[i], False);
 
@@ -1230,25 +1317,12 @@ begin
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler-upscaler.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlss-enabler.log');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + '_nvngx.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx-wrapper.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvapi64.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.ini');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.log');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess_dx11.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxess_fg.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'libxell.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_dx12.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_loader_dx12.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'amd_fidelityfx_vk.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlss.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlssd.dll');
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlssg.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
 
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
@@ -1404,7 +1478,7 @@ var
   LsfgMult: Integer;
   TomlLines: TStringList;
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
-  UpscalerType, InstalledUpscaler: Integer;
+  InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
   BackupsDir: string;
@@ -1739,12 +1813,8 @@ begin
           SafeCopyFile(SourceDir + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssg.dll');
           
           // Streamline SDK libraries
-          SafeCopyFile(SourceDir + 'sl.common.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.common.dll');
-          SafeCopyFile(SourceDir + 'sl.dlss.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.dlss.dll');
-          SafeCopyFile(SourceDir + 'sl.dlss_g.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.dlss_g.dll');
-          SafeCopyFile(SourceDir + 'sl.interposer.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.interposer.dll');
-          SafeCopyFile(SourceDir + 'sl.nis.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.nis.dll');
-          SafeCopyFile(SourceDir + 'sl.reflex.dll', IncludeTrailingPathDelimiter(GameDir) + 'sl.reflex.dll');
+          for i := 0 to High(StreamlineDlls) do
+            SafeCopyFile(SourceDir + StreamlineDlls[i], IncludeTrailingPathDelimiter(GameDir) + StreamlineDlls[i]);
           
           // 9. Copy Nukem FG
           SafeCopyFile(SourceDir + 'dlssg_to_fsr3_amd_is_better.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
@@ -1774,7 +1844,12 @@ begin
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
           for i := 0 to High(OrigDlls) do
-            SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], True);
+          begin
+            if (OrigDlls[i] = 'd3dcompiler_47.dll') or (OrigDlls[i] = 'nvngx.dll') then
+              SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], True)
+            else
+              SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], False);
+          end;
           for i := 0 to High(ProxyDlls) do
             SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
@@ -1786,17 +1861,9 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.log');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess_dx11.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxess_fg.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'libxell.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_loader_dx12.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_vk.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
           SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
           CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');

@@ -74,6 +74,7 @@ type
     procedure TestDlssEnablerUpdateStatusDisplay;
     procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
     procedure TestDlssEnablerSyncSupportingFiles;
+    procedure TestDlssEnablerStreamlineBackupAndCleanup;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -137,7 +138,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, Process, BaseUnix;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2275,6 +2276,180 @@ begin
   AssertTrue('Nukem bridge copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'dlssg_to_fsr3_amd_is_better.dll'));
   AssertTrue('fakenvapi copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'fakenvapi.dll'));
   AssertTrue('plugins copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'plugins/OptiPatcher.asi'));
+end;
+
+procedure TGoverlayGuiTests.TestDlssEnablerStreamlineBackupAndCleanup;
+var
+  GameDir, GameCfgDir, DlssStableDir, BackupsDir, BgmodBin, ExecCmd: string;
+  F: TextFile;
+  Proc: TProcess;
+  FileContent: TStringList;
+begin
+  GameDir := IsolatedHome + '/games/StreamlineGame/';
+  GameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/StreamlineGame/';
+  DlssStableDir := IsolatedHome + '/.local/share/goverlay/dlssenabler-stable/';
+  BackupsDir := GameCfgDir + 'backups/';
+
+  ForceDirectories(GameDir);
+  ForceDirectories(GameCfgDir);
+  ForceDirectories(DlssStableDir);
+
+  // 1. Seed native game files in GameDir
+  AssignFile(F, GameDir + 'StreamlineGame.exe'); Rewrite(F); WriteLn(F, 'dummy_exe'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'NATIVE_SL_COMMON_2_4'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.pcl.dll'); Rewrite(F); WriteLn(F, 'NATIVE_SL_PCL_2_4'); CloseFile(F);
+  AssignFile(F, GameDir + 'sl.interposer.dll'); Rewrite(F); WriteLn(F, 'NATIVE_SL_INTERPOSER_2_4'); CloseFile(F);
+
+  // 2. Seed DLSS Enabler 2.12 files in dlssenabler-stable
+  AssignFile(F, DlssStableDir + 'version.dll'); Rewrite(F); WriteLn(F, 'DLSS_ENABLER_VERSION'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_COMMON_2_12'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.pcl.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_PCL_2_12'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.interposer.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_INTERPOSER_2_12'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.deepdvc.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_DEEPDVC'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.directsr.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_DIRECTSR'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.dlss.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_DLSS'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.dlss_d.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_DLSS_D'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.dlss_g.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_DLSS_G'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.imgui.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_IMGUI'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.nis.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_NIS'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.nvperf.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_NVPERF'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.reflex.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_REFLEX'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'goverlay.vars'); Rewrite(F);
+  WriteLn(F, 'dlssenablerversion=4.9.0');
+  WriteLn(F, 'upscalertype=1');
+  CloseFile(F);
+
+  // Locate bgmod binary
+  BgmodBin := GetCurrentDir + '/bgmod';
+  if not FileExists(BgmodBin) then
+    BgmodBin := ExtractFilePath(ParamStr(0)) + '../../bgmod';
+  if not FileExists(BgmodBin) then
+    BgmodBin := ExtractFilePath(ParamStr(0)) + 'bgmod';
+
+  AssertTrue('bgmod binary exists for testing', FileExists(BgmodBin));
+  CopyFile(BgmodBin, GameCfgDir + 'bgmod');
+  fpChmod(GameCfgDir + 'bgmod', &755);
+  CopyFile(BgmodBin, DlssStableDir + 'bgmod');
+  fpChmod(DlssStableDir + 'bgmod', &755);
+  CopyFile(DlssStableDir + 'goverlay.vars', GameCfgDir + 'goverlay.vars');
+
+  // 3. Write bgmod.conf with DLSS Enabler enabled
+  AssignFile(F, GameCfgDir + 'bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_MANGOHUD=0');
+  WriteLn(F, 'GOVERLAY_VKBASALT=0');
+  WriteLn(F, 'GOVERLAY_VKSUMI=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'GOVERLAY_TWEAKS=0');
+  WriteLn(F, 'GOVERLAY_LOSSLESS=0');
+  WriteLn(F, 'UPSCALER_TYPE=1');
+  WriteLn(F, 'OPT_CHANNEL=0');
+  WriteLn(F, 'DLL=version.dll');
+  WriteLn(F, 'PRESERVE_INI=false');
+  CloseFile(F);
+
+  // 4. Run bgmod to perform installation
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
+      GameCfgDir + 'bgmod" /bin/true "' + GameDir + 'StreamlineGame.exe"';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 5. Verify original Streamline binaries backed up
+  AssertTrue('sl.pcl.dll backed up to backups folder', FileExists(BackupsDir + 'sl.pcl.dll'));
+  AssertTrue('sl.common.dll backed up to backups folder', FileExists(BackupsDir + 'sl.common.dll'));
+  AssertTrue('sl.interposer.dll backed up to backups folder', FileExists(BackupsDir + 'sl.interposer.dll'));
+
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(BackupsDir + 'sl.pcl.dll');
+    AssertEquals('Backup sl.pcl.dll contains native content', 'NATIVE_SL_PCL_2_4', Trim(FileContent.Text));
+    FileContent.LoadFromFile(BackupsDir + 'sl.common.dll');
+    AssertEquals('Backup sl.common.dll contains native content', 'NATIVE_SL_COMMON_2_4', Trim(FileContent.Text));
+    FileContent.LoadFromFile(BackupsDir + 'sl.interposer.dll');
+    AssertEquals('Backup sl.interposer.dll contains native content', 'NATIVE_SL_INTERPOSER_2_4', Trim(FileContent.Text));
+
+    // 6. Verify mod versions deployed to GameDir, including sl.pcl.dll and all plugins
+    FileContent.LoadFromFile(GameDir + 'sl.pcl.dll');
+    AssertEquals('Deployed sl.pcl.dll is updated to 2.12', 'MOD_SL_PCL_2_12', Trim(FileContent.Text));
+    FileContent.LoadFromFile(GameDir + 'sl.common.dll');
+    AssertEquals('Deployed sl.common.dll is updated to 2.12', 'MOD_SL_COMMON_2_12', Trim(FileContent.Text));
+
+    AssertTrue('sl.deepdvc.dll deployed to GameDir', FileExists(GameDir + 'sl.deepdvc.dll'));
+    AssertTrue('sl.directsr.dll deployed to GameDir', FileExists(GameDir + 'sl.directsr.dll'));
+    AssertTrue('sl.dlss_d.dll deployed to GameDir', FileExists(GameDir + 'sl.dlss_d.dll'));
+    AssertTrue('sl.imgui.dll deployed to GameDir', FileExists(GameDir + 'sl.imgui.dll'));
+    AssertTrue('sl.nvperf.dll deployed to GameDir', FileExists(GameDir + 'sl.nvperf.dll'));
+    AssertTrue('sl.dlss.dll deployed to GameDir', FileExists(GameDir + 'sl.dlss.dll'));
+    AssertTrue('sl.dlss_g.dll deployed to GameDir', FileExists(GameDir + 'sl.dlss_g.dll'));
+    AssertTrue('sl.reflex.dll deployed to GameDir', FileExists(GameDir + 'sl.reflex.dll'));
+    AssertTrue('sl.nis.dll deployed to GameDir', FileExists(GameDir + 'sl.nis.dll'));
+  finally
+    FileContent.Free;
+  end;
+
+  // 7. Test uninstallation / disable: set GOVERLAY_OPTISCALER=0
+  AssignFile(F, GameCfgDir + 'bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_MANGOHUD=0');
+  WriteLn(F, 'GOVERLAY_VKBASALT=0');
+  WriteLn(F, 'GOVERLAY_VKSUMI=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+  WriteLn(F, 'GOVERLAY_TWEAKS=0');
+  WriteLn(F, 'GOVERLAY_LOSSLESS=0');
+  WriteLn(F, 'UPSCALER_TYPE=1');
+  WriteLn(F, 'OPT_CHANNEL=0');
+  WriteLn(F, 'DLL=version.dll');
+  WriteLn(F, 'PRESERVE_INI=false');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod cleanup execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 8. Verify original Streamline files were restored and backups consumed
+  AssertFalse('Backup sl.pcl.dll was consumed/removed', FileExists(BackupsDir + 'sl.pcl.dll'));
+  AssertFalse('Backup sl.common.dll was consumed/removed', FileExists(BackupsDir + 'sl.common.dll'));
+  AssertFalse('Backup sl.interposer.dll was consumed/removed', FileExists(BackupsDir + 'sl.interposer.dll'));
+
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(GameDir + 'sl.pcl.dll');
+    AssertEquals('Restored sl.pcl.dll has original native content', 'NATIVE_SL_PCL_2_4', Trim(FileContent.Text));
+    FileContent.LoadFromFile(GameDir + 'sl.common.dll');
+    AssertEquals('Restored sl.common.dll has original native content', 'NATIVE_SL_COMMON_2_4', Trim(FileContent.Text));
+    FileContent.LoadFromFile(GameDir + 'sl.interposer.dll');
+    AssertEquals('Restored sl.interposer.dll has original native content', 'NATIVE_SL_INTERPOSER_2_4', Trim(FileContent.Text));
+  finally
+    FileContent.Free;
+  end;
+
+  // 9. Verify non-native Streamline DLLs deployed by mod were cleaned up
+  AssertFalse('sl.deepdvc.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.deepdvc.dll'));
+  AssertFalse('sl.directsr.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.directsr.dll'));
+  AssertFalse('sl.dlss_d.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.dlss_d.dll'));
+  AssertFalse('sl.imgui.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.imgui.dll'));
+  AssertFalse('sl.nvperf.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.nvperf.dll'));
+  AssertFalse('sl.dlss.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.dlss.dll'));
+  AssertFalse('sl.dlss_g.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.dlss_g.dll'));
+  AssertFalse('sl.reflex.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.reflex.dll'));
+  AssertFalse('sl.nis.dll deleted from GameDir on cleanup', FileExists(GameDir + 'sl.nis.dll'));
 end;
 
 procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;
