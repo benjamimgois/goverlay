@@ -5978,11 +5978,15 @@ begin
   // forceFsr4Int8CheckBox is linked to TToggleSwitch (keep underlying checkbox hidden)
   if Assigned(forceFsr4Int8CheckBox) then
     forceFsr4Int8CheckBox.Visible := False;
+
+  if (Sender <> nil) and not FLoadingConfig then
+    StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.preferredUpscalerComboBoxChange(Sender: TObject);
 begin
-  // No-op, values are saved when the global save button is clicked
+  if (Sender <> nil) and not FLoadingConfig then
+    StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);

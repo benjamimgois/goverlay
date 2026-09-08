@@ -1009,15 +1009,19 @@ begin
   AssertEquals('item 2 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[2]);
   AssertEquals('default item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 2. Select 4.1.1b (index 1) and Save
+  // 2. Select 4.1.1b (index 1) and test auto-save
   goverlayform.fsrversionComboBox.ItemIndex := 1;
+  goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
+  AssertTrue('autoSaveTimer enabled after fsrversionComboBox change', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+
   // Trigger channel change handler to verify combobox stays at index 1 and visible
   if Assigned(goverlayform.optversionComboBox.OnChange) then
     goverlayform.optversionComboBox.OnChange(goverlayform.optversionComboBox);
   AssertEquals('item index remains 1 after channel switch', 1, goverlayform.fsrversionComboBox.ItemIndex);
   AssertTrue('fsrversionComboBox remains visible after channel switch', goverlayform.fsrversionComboBox.Visible);
 
-  SaveOpti;
   VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
   if FileExists(VarsPath) then
   begin
@@ -1029,9 +1033,12 @@ begin
   NavigateOptiScalerTab;
   AssertEquals('reloaded item index is 1 (4.1.1b)', 1, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 3. Select 4.0.2c (index 2) and Save
+  // 3. Select 4.0.2c (index 2) and test auto-save
   goverlayform.fsrversionComboBox.ItemIndex := 2;
-  SaveOpti;
+  goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
+  AssertTrue('autoSaveTimer enabled after selecting 4.0.2c', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
   if FileExists(VarsPath) then
   begin
     Content := ReadFileText(VarsPath);
