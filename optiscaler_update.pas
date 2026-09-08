@@ -20,6 +20,9 @@ function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean 
 // Check and automatically install DLSS Enabler if not present
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Synchronize OptiScaler supporting libraries to DLSS Enabler cache directory
+procedure SyncOptiScalerFilesToDlssEnabler(AIsStable: Boolean = True);
+
 // Check and automatically install Streamline SDK if not present
 function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 
@@ -2868,6 +2871,131 @@ begin
     AOnProgress(AEndPct, AStatusPrefix);
 end;
 
+procedure SyncOptiScalerFilesToDlssEnabler(AIsStable: Boolean = True);
+var
+  OptiDir, DestDir, FsrLatestSrc: string;
+  SupportingFiles: array[0..17] of string = (
+    'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_framegeneration_dx12.dll',
+    'amd_fidelityfx_upscaler_dx12.dll',
+    'amd_fidelityfx_vk.dll',
+    'amd_fidelityfx_loader_dx12.dll',
+    'libxess.dll',
+    'libxess_dx11.dll',
+    'libxess_fg.dll',
+    'libxell.dll',
+    'dlssg_to_fsr3_amd_is_better.dll',
+    'fakenvapi.dll',
+    'fakenvapi.ini',
+    'OptiScaler.ini',
+    'OptiScaler.dll',
+    'bgmod',
+    'bgmod-uninstaller',
+    'fgmod',
+    'setup_linux.sh'
+  );
+  SupportingDirs: array[0..3] of string = (
+    'D3D12_Optiscaler',
+    'D3D12_OptiScaler',
+    'plugins',
+    'Licenses'
+  );
+  i: Integer;
+  SrcFile, DstFile, SrcSubDir, DstSubDir: string;
+
+  procedure CopyDirRecursive(const ASrc, ADst: string);
+  var
+    SR: TSearchRec;
+    SPath, DPath: string;
+  begin
+    if not DirectoryExists(ADst) then
+      ForceDirectories(ADst);
+    SPath := IncludeTrailingPathDelimiter(ASrc);
+    DPath := IncludeTrailingPathDelimiter(ADst);
+    if FindFirst(SPath + '*', faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Name <> '.') and (SR.Name <> '..') then
+          begin
+            if (SR.Attr and faDirectory) = faDirectory then
+              CopyDirRecursive(SPath + SR.Name, DPath + SR.Name)
+            else
+              CopyFile(SPath + SR.Name, DPath + SR.Name);
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+begin
+  DestDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(AIsStable));
+  ForceDirectories(DestDir);
+
+  if AIsStable then
+    OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath)
+  else
+    OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath);
+
+  // If the matching channel OptiScaler directory does not exist or lacks key files, fallback to the other channel
+  if not DirectoryExists(OptiDir) or not FileExists(OptiDir + 'amd_fidelityfx_upscaler_dx12.dll') then
+  begin
+    if not AIsStable and DirectoryExists(GetBGModOriginalPath) and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+      OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath)
+    else if AIsStable and DirectoryExists(GetBGModOriginalEdgePath) and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+      OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath);
+  end;
+
+  if not DirectoryExists(OptiDir) then
+  begin
+    WriteLn('[DLSS-ENABLER] SyncOptiScalerFilesToDlssEnabler: Source OptiScaler directory not found: ', OptiDir);
+    Exit;
+  end;
+
+  WriteLn('[DLSS-ENABLER] Synchronizing OptiScaler supporting files from ', OptiDir, ' to ', DestDir);
+
+  // Copy individual supporting files
+  for i := Low(SupportingFiles) to High(SupportingFiles) do
+  begin
+    SrcFile := OptiDir + SupportingFiles[i];
+    DstFile := DestDir + SupportingFiles[i];
+
+    if FileExists(SrcFile) then
+    begin
+      CopyFile(SrcFile, DstFile);
+      if (SupportingFiles[i] = 'bgmod') or (SupportingFiles[i] = 'bgmod-uninstaller') or
+         (SupportingFiles[i] = 'fgmod') or (SupportingFiles[i] = 'setup_linux.sh') then
+        fpChmod(DstFile, &755);
+    end;
+  end;
+
+  // Fallback for amd_fidelityfx_upscaler_dx12.dll from central FSR4/Latest if missing in OptiDir
+  if not FileExists(DestDir + 'amd_fidelityfx_upscaler_dx12.dll') then
+  begin
+    FsrLatestSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+    if FileExists(FsrLatestSrc) then
+      CopyFile(FsrLatestSrc, DestDir + 'amd_fidelityfx_upscaler_dx12.dll');
+  end;
+
+  // Copy DLSS files if not already present in DestDir
+  if not FileExists(DestDir + 'nvngx_dlss.dll') and FileExists(OptiDir + 'nvngx_dlss.dll') then
+    CopyFile(OptiDir + 'nvngx_dlss.dll', DestDir + 'nvngx_dlss.dll');
+  if not FileExists(DestDir + 'nvngx_dlssd.dll') and FileExists(OptiDir + 'nvngx_dlssd.dll') then
+    CopyFile(OptiDir + 'nvngx_dlssd.dll', DestDir + 'nvngx_dlssd.dll');
+  if not FileExists(DestDir + 'nvngx_dlssg.dll') and FileExists(OptiDir + 'nvngx_dlssg.dll') then
+    CopyFile(OptiDir + 'nvngx_dlssg.dll', DestDir + 'nvngx_dlssg.dll');
+
+  // Copy supporting directories
+  for i := Low(SupportingDirs) to High(SupportingDirs) do
+  begin
+    SrcSubDir := OptiDir + SupportingDirs[i];
+    DstSubDir := DestDir + SupportingDirs[i];
+    if DirectoryExists(SrcSubDir) then
+      CopyDirRecursive(SrcSubDir, DstSubDir);
+  end;
+end;
+
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response, TmpFile: string;
@@ -2899,6 +3027,16 @@ begin
 
   if not AForce and FileExists(VarsFilePath) and AlreadyExtracted then
   begin
+    // Check if critical supporting files are missing (self-healing)
+    if not FileExists(DestDir + 'dlssg_to_fsr3_amd_is_better.dll') or
+       not FileExists(DestDir + 'amd_fidelityfx_upscaler_dx12.dll') or
+       not FileExists(DestDir + 'fakenvapi.dll') or
+       not FileExists(DestDir + 'libxess.dll') then
+    begin
+      WriteLn('[DLSS-ENABLER] Existing cache missing supporting libraries, running self-healing sync...');
+      SyncOptiScalerFilesToDlssEnabler(AIsStable);
+    end;
+
     if Assigned(AOnProgress) then
       AOnProgress(EndPct, ChanLabel);
     Result := True;
@@ -3076,6 +3214,7 @@ begin
   end;
 
   CheckAndInstallStreamlineSDK(AIsStable, AForce);
+  SyncOptiScalerFilesToDlssEnabler(AIsStable);
 
   Result := FileExists(VarsFilePath) and FileExists(DestDir + 'version.dll');
 end;

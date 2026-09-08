@@ -73,6 +73,7 @@ type
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
     procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
+    procedure TestDlssEnablerSyncSupportingFiles;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -2207,6 +2208,73 @@ begin
   AssertTrue('OptiLabel2 is visible when newer version 4.9.0.7 is available', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
   AssertEquals('DLSS Enabler status row shows update arrow for 4.9.0.7', '4.9.0.6 → 4.9.0.7', goverlayform.FOsStatVerLbls[2].Caption);
   AssertEquals('DLSS Enabler status row color is CLR_UPDATE', $0044AAFF, goverlayform.FOsStatVerLbls[2].Font.Color);
+end;
+
+procedure TGoverlayGuiTests.TestDlssEnablerSyncSupportingFiles;
+var
+  OptiStableDir, DlssStableDir, DlssEdgeDir: string;
+  F: TextFile;
+  VerContent: TStringList;
+begin
+  OptiStableDir := IsolatedHome + '/.local/share/goverlay/optiscaler-stable/';
+  DlssStableDir := IsolatedHome + '/.local/share/goverlay/dlssenabler-stable/';
+  DlssEdgeDir   := IsolatedHome + '/.local/share/goverlay/dlssenabler-edge/';
+
+  // 1. Seed OptiScaler supporting libraries, scripts, and directories
+  ForceDirectories(OptiStableDir + 'D3D12_Optiscaler');
+  ForceDirectories(OptiStableDir + 'plugins');
+
+  AssignFile(F, OptiStableDir + 'amd_fidelityfx_upscaler_dx12.dll'); Rewrite(F); WriteLn(F, 'fsr_upscaler'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'amd_fidelityfx_framegeneration_dx12.dll'); Rewrite(F); WriteLn(F, 'fsr_fg'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'libxess.dll'); Rewrite(F); WriteLn(F, 'xess'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'dlssg_to_fsr3_amd_is_better.dll'); Rewrite(F); WriteLn(F, 'nukem_bridge'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'fakenvapi.dll'); Rewrite(F); WriteLn(F, 'fakenvapi'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'D3D12_Optiscaler/sample.dll'); Rewrite(F); WriteLn(F, 'd3d12_sample'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'plugins/OptiPatcher.asi'); Rewrite(F); WriteLn(F, 'patcher'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'bgmod'); Rewrite(F); WriteLn(F, '#!/bin/sh'); CloseFile(F);
+
+  // 2. Seed DLSS Enabler native files in dlssenabler-stable
+  ForceDirectories(DlssStableDir);
+  AssignFile(F, DlssStableDir + 'version.dll'); Rewrite(F); WriteLn(F, 'DLSS_ENABLER_VERSION_DLL'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'sl.interposer.dll'); Rewrite(F); WriteLn(F, 'streamline'); CloseFile(F);
+  AssignFile(F, DlssStableDir + 'goverlay.vars'); Rewrite(F);
+  WriteLn(F, 'dlssenablerversion=4.9.0');
+  WriteLn(F, 'upscalertype=1');
+  CloseFile(F);
+
+  // 3. Test self-healing sync on existing dlssenabler-stable
+  CheckAndInstallDlssEnabler(True, False);
+
+  // Assert supporting files and directories are synchronized
+  AssertTrue('FSR upscaler copied to dlssenabler-stable', FileExists(DlssStableDir + 'amd_fidelityfx_upscaler_dx12.dll'));
+  AssertTrue('FSR framegen copied to dlssenabler-stable', FileExists(DlssStableDir + 'amd_fidelityfx_framegeneration_dx12.dll'));
+  AssertTrue('XeSS copied to dlssenabler-stable', FileExists(DlssStableDir + 'libxess.dll'));
+  AssertTrue('Nukem bridge copied to dlssenabler-stable', FileExists(DlssStableDir + 'dlssg_to_fsr3_amd_is_better.dll'));
+  AssertTrue('fakenvapi copied to dlssenabler-stable', FileExists(DlssStableDir + 'fakenvapi.dll'));
+  AssertTrue('D3D12_Optiscaler directory copied to dlssenabler-stable', FileExists(DlssStableDir + 'D3D12_Optiscaler/sample.dll'));
+  AssertTrue('plugins directory copied to dlssenabler-stable', FileExists(DlssStableDir + 'plugins/OptiPatcher.asi'));
+  AssertTrue('bgmod copied to dlssenabler-stable', FileExists(DlssStableDir + 'bgmod'));
+
+  // Assert DLSS Enabler native files are strictly preserved
+  VerContent := TStringList.Create;
+  try
+    VerContent.LoadFromFile(DlssStableDir + 'version.dll');
+    AssertEquals('version.dll preserved as DLSS Enabler binary', 'DLSS_ENABLER_VERSION_DLL', Trim(VerContent.Text));
+    VerContent.LoadFromFile(DlssStableDir + 'goverlay.vars');
+    AssertTrue('goverlay.vars preserved', Pos('dlssenablerversion=4.9.0', VerContent.Text) > 0);
+  finally
+    VerContent.Free;
+  end;
+
+  // 4. Test synchronization to dlssenabler-edge with fallback to stable optiscaler
+  ForceDirectories(DlssEdgeDir);
+  AssignFile(F, DlssEdgeDir + 'version.dll'); Rewrite(F); WriteLn(F, 'EDGE_VERSION_DLL'); CloseFile(F);
+  SyncOptiScalerFilesToDlssEnabler(False);
+
+  AssertTrue('FSR upscaler copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'amd_fidelityfx_upscaler_dx12.dll'));
+  AssertTrue('Nukem bridge copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'dlssg_to_fsr3_amd_is_better.dll'));
+  AssertTrue('fakenvapi copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'fakenvapi.dll'));
+  AssertTrue('plugins copied to dlssenabler-edge via fallback', FileExists(DlssEdgeDir + 'plugins/OptiPatcher.asi'));
 end;
 
 procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;
