@@ -4445,6 +4445,7 @@ begin
     AssertEquals('Method is imNone', Ord(imNone), Ord(Helper.InterpolationMethod));
     AssertTrue('DisabledNoticeLbl is visible for imNone', Helper.DisabledNoticeLbl.Visible);
     AssertFalse('SpatialCard is hidden for imNone', Helper.SpatialCard.Visible);
+    AssertFalse('MultiplierTrackBar is hidden for imNone', Helper.MultiplierTrackBar.Visible);
     AssertEquals('Multiplier is 1 for imNone', 1, Helper.MultiplierTrackBar.Position);
     AssertEquals('Active env vars empty for imNone', '', Helper.GetActiveEnvVars);
 

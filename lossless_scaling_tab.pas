@@ -2019,6 +2019,7 @@ begin
   FLsFgModeTitleLbl.Caption := 'Frame Generation Mode';
   FLsFgModeTitleLbl.Hint := 'Choose between Fixed Multiplier (2x-5x) or Adaptive Frame Generation';
   FLsFgModeTitleLbl.ShowHint := True;
+  FLsFgModeTitleLbl.Visible := False;
   StyleLabel(FLsFgModeTitleLbl, lrControlLabel);
 
   FLsFgModeComboBox := TComboBox.Create(FLsFrameGenCard);
@@ -2028,6 +2029,7 @@ begin
   FLsFgModeComboBox.Items.Add('Adaptive Frame Generation (Dynamic Multiplier)');
   FLsFgModeComboBox.ItemIndex := 0;
   FLsFgModeComboBox.OnChange := @FgModeChange;
+  FLsFgModeComboBox.Visible := False;
   StyleInputControl(FLsFgModeComboBox);
   
   // Fixed Multiplier Sliders
@@ -2036,6 +2038,7 @@ begin
   FLsMultiplierTitleLbl.Caption := 'Multiplier';
   FLsMultiplierTitleLbl.Hint := 'Frame generation multiplier: 1x (disabled), 2x, 3x, 4x, 5x';
   FLsMultiplierTitleLbl.ShowHint := True;
+  FLsMultiplierTitleLbl.Visible := False;
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
   
   FLsMultiplierTrackBar := TTrackBar.Create(FLsFrameGenCard);
@@ -2046,6 +2049,7 @@ begin
   FLsMultiplierTrackBar.TickStyle := tsNone;
   FLsMultiplierTrackBar.Hint := 'Frame generation multiplier: 1x (disabled), 2x, 3x, 4x, 5x';
   FLsMultiplierTrackBar.ShowHint := True;
+  FLsMultiplierTrackBar.Visible := False;
   FLsMultiplierTrackBar.OnChange := @MultiplierChange;
   
   FLsMultiplierValueLabel := TLabel.Create(FLsFrameGenCard);
@@ -2053,6 +2057,7 @@ begin
   FLsMultiplierValueLabel.Caption := '1x (Disabled)';
   FLsMultiplierValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsMultiplierValueLabel.Font.Style := [fsBold];
+  FLsMultiplierValueLabel.Visible := False;
 
   // Adaptive Controls
   FLsTargetFpsTitleLbl := TLabel.Create(FLsFrameGenCard);
@@ -2139,6 +2144,7 @@ begin
   FLsFlowScaleTitleLbl.Caption := 'Flow Scale';
   FLsFlowScaleTitleLbl.Hint := 'Motion estimation resolution scale (default 90% recommended by MAKO)';
   FLsFlowScaleTitleLbl.ShowHint := True;
+  FLsFlowScaleTitleLbl.Visible := False;
   StyleLabel(FLsFlowScaleTitleLbl, lrControlLabel);
   
   FLsFlowScaleTrackBar := TTrackBar.Create(FLsFrameGenCard);
@@ -2149,6 +2155,7 @@ begin
   FLsFlowScaleTrackBar.TickStyle := tsNone;
   FLsFlowScaleTrackBar.Hint := 'Motion estimation resolution scale';
   FLsFlowScaleTrackBar.ShowHint := True;
+  FLsFlowScaleTrackBar.Visible := False;
   FLsFlowScaleTrackBar.OnChange := @FlowScaleChange;
   
   FLsFlowScaleValueLabel := TLabel.Create(FLsFrameGenCard);
@@ -2156,6 +2163,7 @@ begin
   FLsFlowScaleValueLabel.Caption := '100%';
   FLsFlowScaleValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsFlowScaleValueLabel.Font.Style := [fsBold];
+  FLsFlowScaleValueLabel.Visible := False;
 
   // Base FPS Cap
   FLsBaseFpsCapTitleLbl := TLabel.Create(FLsFrameGenCard);
@@ -2163,6 +2171,7 @@ begin
   FLsBaseFpsCapTitleLbl.Caption := 'Base FPS Cap';
   FLsBaseFpsCapTitleLbl.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
   FLsBaseFpsCapTitleLbl.ShowHint := True;
+  FLsBaseFpsCapTitleLbl.Visible := False;
   StyleLabel(FLsBaseFpsCapTitleLbl, lrControlLabel);
 
   FLsBaseFpsCapTrackBar := TTrackBar.Create(FLsFrameGenCard);
@@ -2173,6 +2182,7 @@ begin
   FLsBaseFpsCapTrackBar.TickStyle := tsNone;
   FLsBaseFpsCapTrackBar.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
   FLsBaseFpsCapTrackBar.ShowHint := True;
+  FLsBaseFpsCapTrackBar.Visible := False;
   FLsBaseFpsCapTrackBar.OnChange := @BaseFpsCapChange;
 
   FLsBaseFpsCapValueLabel := TLabel.Create(FLsFrameGenCard);
@@ -2180,6 +2190,7 @@ begin
   FLsBaseFpsCapValueLabel.Caption := 'Disabled';
   FLsBaseFpsCapValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsBaseFpsCapValueLabel.Font.Style := [fsBold];
+  FLsBaseFpsCapValueLabel.Visible := False;
 
   // Refresh Threshold
   FLsRefreshThresholdTitleLbl := TLabel.Create(FLsFrameGenCard);
@@ -2187,6 +2198,7 @@ begin
   FLsRefreshThresholdTitleLbl.Caption := 'Refresh Threshold';
   FLsRefreshThresholdTitleLbl.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
   FLsRefreshThresholdTitleLbl.ShowHint := True;
+  FLsRefreshThresholdTitleLbl.Visible := False;
   StyleLabel(FLsRefreshThresholdTitleLbl, lrControlLabel);
 
   FLsRefreshThresholdTrackBar := TTrackBar.Create(FLsFrameGenCard);
@@ -2197,6 +2209,7 @@ begin
   FLsRefreshThresholdTrackBar.TickStyle := tsNone;
   FLsRefreshThresholdTrackBar.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
   FLsRefreshThresholdTrackBar.ShowHint := True;
+  FLsRefreshThresholdTrackBar.Visible := False;
   FLsRefreshThresholdTrackBar.OnChange := @RefreshThresholdChange;
 
   FLsRefreshThresholdValueLabel := TLabel.Create(FLsFrameGenCard);
@@ -2204,6 +2217,7 @@ begin
   FLsRefreshThresholdValueLabel.Caption := 'Disabled';
   FLsRefreshThresholdValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsRefreshThresholdValueLabel.Font.Style := [fsBold];
+  FLsRefreshThresholdValueLabel.Visible := False;
   
   // Toggles
   FLsFgLiveCheckBox := TCheckBox.Create(FLsFrameGenCard);
@@ -2220,6 +2234,7 @@ begin
   FLsFgLiveToggle.LinkToCheckBox(FLsFgLiveCheckBox);
   FLsFgLiveToggle.Height := 20;
   FLsFgLiveToggle.Width := FLsFgLiveToggle.GetOptimalWidth;
+  FLsFgLiveToggle.Visible := False;
 
   FLsAllowFp16CheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsAllowFp16CheckBox.Parent := FLsFrameGenCard;
@@ -2235,6 +2250,7 @@ begin
   FLsAllowFp16Toggle.LinkToCheckBox(FLsAllowFp16CheckBox);
   FLsAllowFp16Toggle.Height := 20;
   FLsAllowFp16Toggle.Width := FLsAllowFp16Toggle.GetOptimalWidth;
+  FLsAllowFp16Toggle.Visible := False;
 
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
@@ -2250,6 +2266,7 @@ begin
   FLsPerfModeToggle.LinkToCheckBox(FLsPerfModeCheckBox);
   FLsPerfModeToggle.Height := 20;
   FLsPerfModeToggle.Width  := FLsPerfModeToggle.GetOptimalWidth;
+  FLsPerfModeToggle.Visible := False;
 
   FLsUltraPerfCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsUltraPerfCheckBox.Parent := FLsFrameGenCard;
@@ -2265,6 +2282,7 @@ begin
   FLsUltraPerfToggle.LinkToCheckBox(FLsUltraPerfCheckBox);
   FLsUltraPerfToggle.Height := 20;
   FLsUltraPerfToggle.Width := FLsUltraPerfToggle.GetOptimalWidth;
+  FLsUltraPerfToggle.Visible := False;
 
   // Compatibility Toggles for Tests
   FLsHdrModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
@@ -2303,6 +2321,7 @@ begin
   FLsOverridePresentModeToggle.LinkToCheckBox(FLsOverridePresentModeCheckBox);
   FLsOverridePresentModeToggle.Height := 20;
   FLsOverridePresentModeToggle.Width := FLsOverridePresentModeToggle.GetOptimalWidth;
+  FLsOverridePresentModeToggle.Visible := False;
 
   FLsPreserveSwapchainCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPreserveSwapchainCheckBox.Parent := FLsFrameGenCard;
@@ -2319,6 +2338,7 @@ begin
   FLsPreserveSwapchainToggle.LinkToCheckBox(FLsPreserveSwapchainCheckBox);
   FLsPreserveSwapchainToggle.Height := 20;
   FLsPreserveSwapchainToggle.Width := FLsPreserveSwapchainToggle.GetOptimalWidth;
+  FLsPreserveSwapchainToggle.Visible := False;
 
   // Dropdowns (Pacing)
   FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
@@ -2326,6 +2346,7 @@ begin
   FLsPacingTitleLbl.Caption := 'Pacing Mode';
   FLsPacingTitleLbl.Hint := 'Frame pacing mode to use';
   FLsPacingTitleLbl.ShowHint := True;
+  FLsPacingTitleLbl.Visible := False;
   StyleLabel(FLsPacingTitleLbl, lrControlLabel);
   
   FLsPacingComboBox := TComboBox.Create(FLsFrameGenCard);
@@ -2337,6 +2358,7 @@ begin
   FLsPacingComboBox.Hint := 'Frame pacing synchronization mode (vsync or none)';
   FLsPacingComboBox.ShowHint := True;
   FLsPacingComboBox.OnChange := @ControlStateChange;
+  FLsPacingComboBox.Visible := False;
   StyleInputControl(FLsPacingComboBox);
 
   // ── Card 2: Spatial Scaling ───────────────────────────────────────────────
@@ -2444,6 +2466,7 @@ begin
   FLsScalingSupersamplingToggle.LinkToCheckBox(FLsScalingSupersamplingCheckBox);
   FLsScalingSupersamplingToggle.Height := 20;
   FLsScalingSupersamplingToggle.Width := FLsScalingSupersamplingToggle.GetOptimalWidth;
+  FLsScalingSupersamplingToggle.Visible := False;
 
   // ── Card 3: Software Status (Anchored to Bottom) ─────────────────────────
   FLsStatusCard := TPanel.Create(FForm);
@@ -3352,7 +3375,7 @@ begin
   begin
     FLsMultiplierTrackBar.Enabled := FgActive and not AdaptiveActive;
     FLsMultiplierTrackBar.Visible := (FInterpolationMethod = imLsfg) or ((FInterpolationMethod = imMako) and not AdaptiveActive);
-    if not AdaptiveActive then
+    if FgActive and not AdaptiveActive then
       FLsMultiplierTrackBar.BringToFront;
   end;
   if Assigned(FLsMultiplierValueLabel) then
