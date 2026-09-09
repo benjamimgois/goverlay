@@ -41,6 +41,7 @@ function InspectMakoLosslessDll(const ADllPath: string; out ADetails: string): B
 function IsLsfgVkInstalled: Boolean;
 function GetLsfgVkLibraryPath: string;
 function GetLsfgVkInstalledVersion: string;
+function ParseLsfgVkBuildsHtml(const AHtml: string; out AUrl: string): string;
 function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
@@ -4642,12 +4643,58 @@ begin
   Result := RawVer;
 end;
 
+function ParseLsfgVkBuildsHtml(const AHtml: string; out AUrl: string): string;
+var
+  OutputList: TStringList;
+  Line, TagVer, Href: string;
+  i, p1, p2: Integer;
+begin
+  Result := '';
+  AUrl := '';
+  if AHtml = '' then Exit;
+
+  OutputList := TStringList.Create;
+  try
+    OutputList.Text := AHtml;
+    for i := 0 to OutputList.Count - 1 do
+    begin
+      Line := OutputList[i];
+      if Pos('Latest release (', Line) > 0 then
+      begin
+        p1 := Pos('(', Line);
+        p2 := Pos(')', Line);
+        if (p1 > 0) and (p2 > p1) then
+        begin
+          TagVer := Copy(Line, p1 + 1, p2 - p1 - 1);
+          Result := Trim(TagVer);
+        end;
+
+        p1 := Pos('href="', Line);
+        if p1 > 0 then
+        begin
+          Href := Copy(Line, p1 + 6, MaxInt);
+          p2 := Pos('"', Href);
+          if p2 > 0 then
+            Href := Copy(Href, 1, p2 - 1);
+          if Pos('http', Href) = 1 then
+            AUrl := Href
+          else
+            AUrl := URL_LSFGVK_BUILDS + Href;
+        end;
+
+        if Result <> '' then Break;
+      end;
+    end;
+  finally
+    OutputList.Free;
+  end;
+end;
+
 function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
 var
-  RespFile, Line, TagVer, Href: string;
+  RespFile: string;
   Process: TProcess;
   OutputList: TStringList;
-  i, p1, p2: Integer;
 begin
   Result := '';
   AUrl := '';
@@ -4672,35 +4719,7 @@ begin
       OutputList := TStringList.Create;
       try
         OutputList.LoadFromFile(RespFile);
-        for i := 0 to OutputList.Count - 1 do
-        begin
-          Line := OutputList[i];
-          if (Pos('Latest release (', Line) > 0) or (Pos('Latest git version (', Line) > 0) then
-          begin
-            p1 := Pos('(', Line);
-            p2 := Pos(')', Line);
-            if (p1 > 0) and (p2 > p1) then
-            begin
-              TagVer := Copy(Line, p1 + 1, p2 - p1 - 1);
-              Result := Trim(TagVer);
-            end;
-
-            p1 := Pos('href="', Line);
-            if p1 > 0 then
-            begin
-              Href := Copy(Line, p1 + 6, MaxInt);
-              p2 := Pos('"', Href);
-              if p2 > 0 then
-                Href := Copy(Href, 1, p2 - 1);
-              if Pos('http', Href) = 1 then
-                AUrl := Href
-              else
-                AUrl := URL_LSFGVK_BUILDS + Href;
-            end;
-
-            if Result <> '' then Break;
-          end;
-        end;
+        Result := ParseLsfgVkBuildsHtml(OutputList.Text, AUrl);
       finally
         OutputList.Free;
         DeleteFile(RespFile);

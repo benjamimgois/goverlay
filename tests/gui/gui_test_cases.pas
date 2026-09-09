@@ -120,6 +120,7 @@ type
     procedure TestLosslessScalingMethodSwitching;
     procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
     procedure TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
+    procedure TestLsfgVkBuildsHtmlParsingIgnoresGitVersion;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
     procedure TestFinishConfigurationDialogModernSteamUI;
@@ -4658,6 +4659,33 @@ begin
     Helper.SetLsfgUpdateState('', False);
     if FileExists(LayerFile) then DeleteFile(LayerFile);
   end;
+end;
+
+procedure TGoverlayGuiTests.TestLsfgVkBuildsHtmlParsingIgnoresGitVersion;
+var
+  SampleHtml, OutUrl, ExtractedVer: string;
+begin
+  // Upstream builds.lsfg-vk.dev HTML with git autobuild, release candidate, and stable release
+  SampleHtml :=
+    '<!DOCTYPE html>' + LineEnding +
+    '<html><body>' + LineEnding +
+    '<table>' + LineEnding +
+    '<tr><td><a href="lsfg-vk-2.0.0.r1.g0e7a389.tar.xz">&gt;&gt; Latest git version (2.0.0.r1.g0e7a389) &lt;&lt;</a></td><td>08-Sep-2026 11:05</td></tr>' + LineEnding +
+    '<tr><td><a href="lsfg-vk-2.0.0.tar.xz">&gt;&gt; Latest release candidate (2.0.0) &lt;&lt;</a></td><td>05-Sep-2026 16:57</td></tr>' + LineEnding +
+    '<tr><td><a href="lsfg-vk-2.0.0.tar.xz">&gt;&gt; Latest release (2.0.0) &lt;&lt;</a></td><td>05-Sep-2026 16:57</td></tr>' + LineEnding +
+    '</table>' + LineEnding +
+    '</body></html>';
+
+  ExtractedVer := ParseLsfgVkBuildsHtml(SampleHtml, OutUrl);
+  AssertEquals('Must extract stable release version and ignore git version and RC', '2.0.0', ExtractedVer);
+  AssertEquals('Must extract stable release download URL', 'https://builds.lsfg-vk.dev/lsfg-vk-2.0.0.tar.xz', OutUrl);
+
+  // When only git autobuilds exist (no official release), Result must be empty
+  SampleHtml :=
+    '<tr><td><a href="lsfg-vk-2.0.0.r1.g0e7a389.tar.xz">&gt;&gt; Latest git version (2.0.0.r1.g0e7a389) &lt;&lt;</a></td></tr>';
+  ExtractedVer := ParseLsfgVkBuildsHtml(SampleHtml, OutUrl);
+  AssertEquals('Must return empty string when no official release is present', '', ExtractedVer);
+  AssertEquals('Url must be empty string when no official release is present', '', OutUrl);
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudPresetsToggleSynchronization;
