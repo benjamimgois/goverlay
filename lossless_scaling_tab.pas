@@ -956,28 +956,6 @@ begin
     FLsLsfgImage.Enabled := FLsLsfgRadio.Checked;
   if Assigned(FLsMakoImage) and Assigned(FLsMakoRadio) then
     FLsMakoImage.Enabled := FLsMakoRadio.Checked;
-
-  if Assigned(FLsNoneLbl) then
-  begin
-    if Assigned(FLsNoneRadio) and FLsNoneRadio.Checked then
-      FLsNoneLbl.Font.Color := clWhite
-    else
-      FLsNoneLbl.Font.Color := $00888888;
-  end;
-  if Assigned(FLsLsfgLbl) then
-  begin
-    if Assigned(FLsLsfgRadio) and FLsLsfgRadio.Checked then
-      FLsLsfgLbl.Font.Color := clWhite
-    else
-      FLsLsfgLbl.Font.Color := $00888888;
-  end;
-  if Assigned(FLsMakoLbl) then
-  begin
-    if Assigned(FLsMakoRadio) and FLsMakoRadio.Checked then
-      FLsMakoLbl.Font.Color := clWhite
-    else
-      FLsMakoLbl.Font.Color := $00888888;
-  end;
 end;
 
 function TLosslessScalingTabHelper.CheckLsfgVkLayerInstalled(out APath: string): Boolean;
@@ -1923,6 +1901,7 @@ begin
   FLsLsfgLbl.AutoSize := True;
   FLsLsfgLbl.Cursor := crHandPoint;
   FLsLsfgLbl.OnClick := @MethodLsfgClick;
+  FLsLsfgLbl.Visible := False;
 
   // Method Option 3: MAKO
   FLsMakoRadio := TRadioButton.Create(FForm);
@@ -1953,6 +1932,7 @@ begin
   FLsMakoLbl.AutoSize := True;
   FLsMakoLbl.Cursor := crHandPoint;
   FLsMakoLbl.OnClick := @MethodMakoClick;
+  FLsMakoLbl.Visible := False;
 
   FNonePngLogo := TPortableNetworkGraphic.Create;
   FLsfgPngLogo := TPortableNetworkGraphic.Create;
@@ -1962,11 +1942,15 @@ begin
   if not FileExists(IconPath) then IconPath := 'assets/icons/upscaler_none.png';
   if FileExists(IconPath) then FNonePngLogo.LoadFromFile(IconPath);
 
-  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png';
+  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/method_lsfg.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/method_lsfg.png';
+  if not FileExists(IconPath) then IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/lossless_scaling.png';
   if not FileExists(IconPath) then IconPath := 'assets/icons/lossless_scaling.png';
   if FileExists(IconPath) then FLsfgPngLogo.LoadFromFile(IconPath);
 
-  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/mako_renderer.png';
+  IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/method_mako.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/method_mako.png';
+  if not FileExists(IconPath) then IconPath := Tgoverlayform(FForm).GetAppBaseDir + 'assets/icons/mako_renderer.png';
   if not FileExists(IconPath) then IconPath := 'assets/icons/mako_renderer.png';
   if FileExists(IconPath) then FMakoPngLogo.LoadFromFile(IconPath);
 
@@ -2624,7 +2608,7 @@ procedure TLosslessScalingTabHelper.ReflowLosslessScalingTab(AContentW: Integer)
 var
   W, CW, CurY, Col2W, RightColX, Col3W, Col4W: Integer;
   CardW, InnerW, HDR, GPU_H, GPU_GH: Integer;
-  LogoW_None, IconSize, TextW_Lsfg, TextW_Mako: Integer;
+  LogoW_None, LogoW_Lsfg, LogoW_Mako: Integer;
   GroupW_None, GroupW_Lsfg, GroupW_Mako, TotalGroupW, GapBetween: Integer;
   X1, X2, X3: Integer;
   EditLeft, EditW, BrowseW: Integer;
@@ -2658,13 +2642,12 @@ begin
   InnerW := CardW - 2 * PAD;
 
   LogoW_None := 48;
-  IconSize   := 34;
-  TextW_Lsfg := 54;
-  TextW_Mako := 48;
+  LogoW_Lsfg := 117;
+  LogoW_Mako := 97;
 
   GroupW_None := 22 + LogoW_None;
-  GroupW_Lsfg := 22 + IconSize + 8 + TextW_Lsfg;
-  GroupW_Mako := 22 + IconSize + 8 + TextW_Mako;
+  GroupW_Lsfg := 22 + LogoW_Lsfg;
+  GroupW_Mako := 22 + LogoW_Mako;
   TotalGroupW := GroupW_None + GroupW_Lsfg + GroupW_Mako;
 
   if InnerW > TotalGroupW then
@@ -2683,22 +2666,24 @@ begin
     FLsNoneRadio.SetBounds(X1, HDR + (GPU_GH - 20) div 2, 20, 20);
   if Assigned(FLsNoneImage) then
     FLsNoneImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
+  if Assigned(FLsNoneLbl) then
+    FLsNoneLbl.SetBounds(X1 + 22 + LogoW_None + 4, HDR + (GPU_GH - 18) div 2, 0, 0);
 
   // Column 1: lsfg-vk (middle)
   if Assigned(FLsLsfgRadio) then
     FLsLsfgRadio.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
   if Assigned(FLsLsfgImage) then
-    FLsLsfgImage.SetBounds(X2 + 22, HDR + (GPU_GH - IconSize) div 2, IconSize, IconSize);
+    FLsLsfgImage.SetBounds(X2 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Lsfg, 36);
   if Assigned(FLsLsfgLbl) then
-    FLsLsfgLbl.SetBounds(X2 + 22 + IconSize + 8, HDR + (GPU_GH - 18) div 2, TextW_Lsfg, 18);
+    FLsLsfgLbl.SetBounds(X2 + 22 + LogoW_Lsfg + 4, HDR + (GPU_GH - 18) div 2, 0, 0);
 
   // Column 2: MAKO (rightmost)
   if Assigned(FLsMakoRadio) then
     FLsMakoRadio.SetBounds(X3, HDR + (GPU_GH - 20) div 2, 20, 20);
   if Assigned(FLsMakoImage) then
-    FLsMakoImage.SetBounds(X3 + 22, HDR + (GPU_GH - IconSize) div 2, IconSize, IconSize);
+    FLsMakoImage.SetBounds(X3 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Mako, 36);
   if Assigned(FLsMakoLbl) then
-    FLsMakoLbl.SetBounds(X3 + 22 + IconSize + 8, HDR + (GPU_GH - 18) div 2, TextW_Mako, 18);
+    FLsMakoLbl.SetBounds(X3 + 22 + LogoW_Mako + 4, HDR + (GPU_GH - 18) div 2, 0, 0);
 
   // ── Card 0b: Target GPU Device (Right 50%) ──────────────────────────────
   FLsGpuCard.SetBounds(MARGIN + CardW + GAP, CurY, CW - CardW - GAP, GPU_H);
