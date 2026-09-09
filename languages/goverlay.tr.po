@@ -706,7 +706,7 @@ msgstr "Yüke Göre Renk"
 
 #: tgoverlayform.cpuloadcorecheckbox.caption
 msgid "Core load"
-msgstr "Çekirdek yükü"
+msgstr "Çekirdek Yükü"
 
 #: tgoverlayform.cpumainmetricslabel.caption
 msgctxt "tgoverlayform.cpumainmetricslabel.caption"
@@ -723,7 +723,7 @@ msgstr "CPU Gücü"
 
 #: tgoverlayform.cputempcheckbox.caption
 msgid "CPU temp"
-msgstr "CPU sıcaklığı"
+msgstr "CPU Sıcaklığı"
 
 #: tgoverlayform.cputemplabel.caption
 msgid "Temperature / Power"
@@ -1387,7 +1387,7 @@ msgstr "Bilgi"
 
 #: tgoverlayform.gpujunctempcheckbox.caption
 msgid "Junction"
-msgstr "En sıcak nokta"
+msgstr "En Sıcak Nokta"
 
 #: tgoverlayform.gpuload1colorbutton.hint
 msgctxt "tgoverlayform.gpuload1colorbutton.hint"
@@ -1458,7 +1458,7 @@ msgstr "GPU'nun güç, sıcaklık veya \"diğer\" nedenlerle hız sınırlaması
 
 #: tgoverlayform.gputhrottlinggraphcheckbox.caption
 msgid "Throttling  graph"
-msgstr "Hız Sınırlama  grafiği"
+msgstr "Hız Sınırlama Grafiği"
 
 #: tgoverlayform.gputhrottlinggraphcheckbox.hint
 msgid "Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling"
@@ -1499,7 +1499,7 @@ msgstr ""
 
 #: tgoverlayform.hidehudcheckbox.caption
 msgid "Hide by default"
-msgstr "Varsayılan olarak gizle"
+msgstr "Başlangıçta gizle"
 
 #: tgoverlayform.hidehudcheckbox.hint
 msgid "This option will turn the hud off by default. Pressing the keybinding will show it up."
@@ -1982,7 +1982,7 @@ msgstr "Hazır Ayarlar"
 #: tgoverlayform.procmemcheckbox.caption
 msgctxt "tgoverlayform.procmemcheckbox.caption"
 msgid "Process"
-msgstr "Süreç"
+msgstr "İşlemler"
 
 #: tgoverlayform.procmemcheckbox.hint
 msgid "Displays process' memory usage: resident, shared and/or virtual."
@@ -1999,7 +1999,7 @@ msgstr "Sürecin vram kullanımı"
 
 #: tgoverlayform.ramtempcheckbox.caption
 msgid "RAM temp"
-msgstr "RAM sıcaklığı"
+msgstr "RAM Sıcaklığı"
 
 #: tgoverlayform.ramtempcheckbox.hint
 msgid "only supports DDR5 with spd5118 driver"
@@ -2169,7 +2169,7 @@ msgstr "Efekti listeden kaldır"
 
 #: tgoverlayform.swapusagecheckbox.caption
 msgid "Swap"
-msgstr "Takas"
+msgstr "Takas Alanı"
 
 #: tgoverlayform.systemgroupbox.caption
 msgid "System Information"
@@ -2280,7 +2280,7 @@ msgstr "Dikey"
 
 #: tgoverlayform.visualtabsheet.caption
 msgid "Visual"
-msgstr "Görsel"
+msgstr "Görünüm"
 
 #: tgoverlayform.vkbasaltlabel.caption
 msgctxt "tgoverlayform.vkbasaltlabel.caption"

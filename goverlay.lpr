@@ -5,13 +5,10 @@ program goverlay;
 uses
   {$IFDEF UNIX}
   cmem,
-  cthreads, // <--- Agora será sempre incluído no Linux
+  cthreads,
   {$ENDIF}
-  Interfaces, // this includes the LCL widgetset
-  Forms, goverlay_i18n, overlayunit, aboutunit, blacklistUnit, howto;
-
-
-
+  Interfaces,
+  Forms, DefaultTranslator, goverlay_i18n, overlayunit, aboutunit, blacklistUnit, howto;
 
 {$R *.res}
 
