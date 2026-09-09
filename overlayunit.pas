@@ -6517,10 +6517,7 @@ begin
      (goverlayPageControl.ActivePage = metricsTabSheet) or
      (goverlayPageControl.ActivePage = extrasTabSheet) then
   begin
-    if FileExists(LogDir + 'mangohud.log') then
-      Result := LogDir + 'mangohud.log'
-    else
-      Result := LogDir + 'bgmod.log';
+    Result := LogDir + 'mangohud.log';
   end
   else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
     Result := LogDir + 'vkbasalt.log'
@@ -6528,11 +6525,23 @@ begin
     Result := LogDir + 'vksumi.log'
   else if goverlayPageControl.ActivePage = optiscalerTabSheet then
   begin
-    Result := LogDir + 'optiscaler.log';
-    if not FileExists(Result) and (FActiveGameName <> '') then
+    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
     begin
-      if FileExists(ConfigDir + 'OptiScaler.log') then
-        Result := ConfigDir + 'OptiScaler.log';
+      Result := LogDir + 'dlss-enabler.log';
+      if not FileExists(Result) and (FActiveGameName <> '') then
+      begin
+        if FileExists(LogDir + 'fakenvapi.log') then
+          Result := LogDir + 'fakenvapi.log';
+      end;
+    end
+    else
+    begin
+      Result := LogDir + 'optiscaler.log';
+      if not FileExists(Result) and (FActiveGameName <> '') then
+      begin
+        if FileExists(ConfigDir + 'OptiScaler.log') then
+          Result := ConfigDir + 'OptiScaler.log';
+      end;
     end;
   end
   else if goverlayPageControl.ActivePage = losslessScalingTabSheet then

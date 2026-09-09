@@ -521,6 +521,109 @@ begin
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + ChannelFolder;
 end;
 
+function FindFileCaseInsensitive(const ADir, AFileName: string): string;
+var
+  Info: TSearchRec;
+  CleanDir, TargetLow: string;
+begin
+  Result := '';
+  if (ADir = '') or not DirectoryExists(ADir) then Exit;
+  CleanDir := IncludeTrailingPathDelimiter(ADir);
+  if FileExists(CleanDir + AFileName) then
+  begin
+    Result := CleanDir + AFileName;
+    Exit;
+  end;
+  TargetLow := LowerCase(AFileName);
+  if FindFirst(CleanDir + '*', faAnyFile, Info) = 0 then
+  begin
+    repeat
+      if (Info.Attr and faDirectory) = 0 then
+      begin
+        if LowerCase(Info.Name) = TargetLow then
+        begin
+          Result := CleanDir + Info.Name;
+          Break;
+        end;
+      end;
+    until FindNext(Info) <> 0;
+    FindClose(Info);
+  end;
+end;
+
+procedure SafeSyncLogFile(const Src, Dest: string);
+var
+  SrcStream, DstStream: TFileStream;
+  SrcSize, DstSize: Int64;
+  St: Stat;
+begin
+  if (Src = '') or (Dest = '') or not FileExists(Src) then Exit;
+  if LowerCase(Src) = LowerCase(Dest) then Exit;
+
+  if fpStat(PChar(Src), St) <> 0 then Exit;
+  SrcSize := St.st_size;
+  if SrcSize <= 0 then Exit;
+
+  DstSize := -1;
+  if fpStat(PChar(Dest), St) = 0 then
+    DstSize := St.st_size;
+
+  if (SrcSize = DstSize) and (DstSize > 0) then Exit;
+
+  try
+    if not DirectoryExists(ExtractFilePath(Dest)) then
+      ForceDirectories(ExtractFilePath(Dest));
+    SrcStream := TFileStream.Create(Src, fmOpenRead or fmShareDenyNone);
+    try
+      DstStream := TFileStream.Create(Dest, fmCreate);
+      try
+        DstStream.CopyFrom(SrcStream, SrcStream.Size);
+      finally
+        DstStream.Free;
+      end;
+    finally
+      SrcStream.Free;
+    end;
+  except
+    // ignore sync errors
+  end;
+end;
+
+procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
+var
+  Candidates: array[0..8] of string = (
+    'optiscaler.log',
+    'dlss-enabler.log',
+    'fakenvapi.log',
+    'vksumi.log',
+    'vkbasalt.log',
+    'mako.log',
+    'lsfg.log',
+    'bgmod-uninstaller.log',
+    'mangohud.log'
+  );
+  i: Integer;
+  FoundSrc, TargetDest: string;
+begin
+  if (AGameDir = '') or (ACentralDir = '') or not DirectoryExists(AGameDir) then Exit;
+  try
+    if not DirectoryExists(ACentralDir) then
+      ForceDirectories(ACentralDir);
+  except
+    Exit;
+  end;
+
+  for i := Low(Candidates) to High(Candidates) do
+  begin
+    FoundSrc := FindFileCaseInsensitive(AGameDir, Candidates[i]);
+    if (FoundSrc <> '') and FileExists(FoundSrc) then
+    begin
+      TargetDest := IncludeTrailingPathDelimiter(ACentralDir) + Candidates[i];
+      SafeSyncLogFile(FoundSrc, TargetDest);
+    end;
+  end;
+end;
+
 var
   TempStr, Key, Val, Line, CurrentOverrides: string;
   i, StartArgIdx: Integer;
@@ -761,6 +864,10 @@ begin
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       
+      // Synchronize tool logs to central logs folder before removing files
+      if CentralLogDir <> '' then
+        SyncGameDirLogsToCentral(GameDir, CentralLogDir);
+
       // Remove wrappers and script configs
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fgmod');
@@ -771,6 +878,10 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mako.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'lsfg.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'optiscaler.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mangohud.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
@@ -780,6 +891,10 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
       
       Log('Uninstallation from game directory completed.');
+
+      // Ensure bgmod-uninstaller.log is mirrored to CentralLogFile
+      if (CentralLogFile <> '') and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log') then
+        CopyFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log', CentralLogFile);
     end;
   end;
 

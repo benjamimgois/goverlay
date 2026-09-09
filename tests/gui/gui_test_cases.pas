@@ -519,6 +519,28 @@ begin
   AssertEquals('MAKO selected opens conf.toml', 'conf.toml', ExtractFileName(ConfigFile));
   LogFile := goverlayform.GetActiveTabLogFile;
   AssertEquals('MAKO selected opens mako.log', 'mako.log', ExtractFileName(LogFile));
+
+  // 3. Test MangoHud tab
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.presetTabSheet;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('MangoHud preset tab opens mangohud.log', 'mangohud.log', ExtractFileName(LogFile));
+
+  // 4. Test OptiScaler tab with OptiScaler selected
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+  if Assigned(goverlayform.optiscalerRadioButton) then
+    goverlayform.optiscalerRadioButton.Checked := True;
+  if Assigned(goverlayform.dlssenablerRadioButton) then
+    goverlayform.dlssenablerRadioButton.Checked := False;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('OptiScaler selected opens optiscaler.log', 'optiscaler.log', ExtractFileName(LogFile));
+
+  // 5. Test OptiScaler tab with DLSS Enabler selected
+  if Assigned(goverlayform.optiscalerRadioButton) then
+    goverlayform.optiscalerRadioButton.Checked := False;
+  if Assigned(goverlayform.dlssenablerRadioButton) then
+    goverlayform.dlssenablerRadioButton.Checked := True;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('DLSS Enabler selected opens dlss-enabler.log', 'dlss-enabler.log', ExtractFileName(LogFile));
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingDynamicDllAndMigrationAssistant;
