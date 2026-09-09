@@ -1838,7 +1838,11 @@ msgid "offset Y"
 msgstr "сдвиг по Y"
 
 #: tgoverlayform.openconfigfilemenuitem.caption
-msgid "Open config file"
+msgid "Open config folder"
+msgstr ""
+
+#: tgoverlayform.openlogfilemenuitem.caption
+msgid "Open log folder"
 msgstr ""
 
 #: tgoverlayform.optionsgroupbox.caption

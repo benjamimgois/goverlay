@@ -3952,11 +3952,17 @@ procedure TGoverlayGuiTests.TestDockOpenConfigFileAction;
 begin
   // 1. Verify openConfigFileMenuItem and openLogFileMenuItem exist and are configured in popsaveMenu
   AssertNotNull('openConfigFileMenuItem exists in goverlayform', goverlayform.openConfigFileMenuItem);
-  AssertEquals('openConfigFileMenuItem caption', 'Open config file', goverlayform.openConfigFileMenuItem.Caption);
-  AssertEquals('openConfigFileMenuItem ImageIndex', 39, goverlayform.openConfigFileMenuItem.ImageIndex);
+  AssertEquals('openConfigFileMenuItem caption', 'Open config folder', goverlayform.openConfigFileMenuItem.Caption);
+  AssertEquals('openConfigFileMenuItem ImageIndex', 24, goverlayform.openConfigFileMenuItem.ImageIndex);
   AssertNotNull('openLogFileMenuItem exists in goverlayform', goverlayform.openLogFileMenuItem);
-  AssertEquals('openLogFileMenuItem caption', 'Open log file', goverlayform.openLogFileMenuItem.Caption);
-  AssertEquals('openLogFileMenuItem ImageIndex', 39, goverlayform.openLogFileMenuItem.ImageIndex);
+  AssertEquals('openLogFileMenuItem caption', 'Open log folder', goverlayform.openLogFileMenuItem.Caption);
+  AssertEquals('openLogFileMenuItem ImageIndex', 24, goverlayform.openLogFileMenuItem.ImageIndex);
+
+  // Verify order in popsaveMenu: Save options (0), Load config (1), Open config folder (2), Open log folder (3)
+  AssertEquals('saveoptionsItem is at index 0', 0, goverlayform.popsaveMenu.Items.IndexOf(goverlayform.saveoptionsItem));
+  AssertEquals('loadconfigMenuItem is at index 1', 1, goverlayform.popsaveMenu.Items.IndexOf(goverlayform.loadconfigMenuItem));
+  AssertEquals('openConfigFileMenuItem is at index 2', 2, goverlayform.popsaveMenu.Items.IndexOf(goverlayform.openConfigFileMenuItem));
+  AssertEquals('openLogFileMenuItem is at index 3', 3, goverlayform.popsaveMenu.Items.IndexOf(goverlayform.openLogFileMenuItem));
 
   // 2. MangoHud tab: verify floating dock shows Menu and popupBitBtnClick sets menu items Visible
   NavigateMangoHud;

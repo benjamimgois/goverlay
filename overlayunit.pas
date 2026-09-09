@@ -3446,6 +3446,11 @@ begin
     popupBitBtn.BorderSpacing.Right := 85;
   end;
 
+  if Assigned(openConfigFileMenuItem) then
+    openConfigFileMenuItem.Caption := 'Open config folder';
+  if Assigned(openLogFileMenuItem) then
+    openLogFileMenuItem.Caption := 'Open log folder';
+
   savedStatusLabel := TLabel.Create(Self);
   savedStatusLabel.Parent := goverlaybarPanel;
   savedStatusLabel.AnchorSideLeft.Control := nil;
@@ -6060,11 +6065,13 @@ end;
 
 procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
 begin
-  // "Open config file" and "Open log file" are always available at the top for all configuration tabs
+  // Menu items: "Save options" and "Load config" (when available) come first, followed by "Open config folder" and "Open log folder"
+  openConfigFileMenuItem.Caption := 'Open config folder';
+  openLogFileMenuItem.Caption := 'Open log folder';
   openConfigFileMenuItem.Visible := True;
   openLogFileMenuItem.Visible := True;
 
-  // "lsfg-vk Migration Assistant" is visible directly below "Open log file" when on the Lossless Scaling tab and lsfg-vk is selected
+  // "lsfg-vk Migration Assistant" is visible directly below "Open log folder" when on the Lossless Scaling tab and lsfg-vk is selected
   lsfgMigrationMenuItem.Visible := (goverlayPageControl.ActivePage = losslessScalingTabSheet) and
     Assigned(FLosslessScalingHelper) and
     (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imLsfg);
@@ -6088,7 +6095,7 @@ begin
           (goverlayPageControl.ActivePage = losslessScalingTabSheet) or
           (goverlayPageControl.ActivePage = tweaksTabSheet) then
   begin
-    // OptiScaler, Lossless Scaling, and Tweaks tabs: show only open config file and global enable
+    // OptiScaler, Lossless Scaling, and Tweaks tabs: hide Save options/Load config, show Config folder, Log folder, and global enable
     loadconfigMenuItem.Visible := False;
     saveoptionsItem.Visible := False;
     saveasMenuItem.Visible := False;
@@ -6570,47 +6577,34 @@ end;
 procedure Tgoverlayform.openConfigFileMenuItemClick(Sender: TObject);
 var
   TargetFile: string;
+  TargetDir: string;
 begin
   TargetFile := GetActiveTabConfigFile;
 
   if TargetFile <> '' then
+    TargetDir := ExtractFilePath(TargetFile)
+  else
+    TargetDir := GetGameConfigDir(FActiveGameName);
+
+  if TargetDir <> '' then
   begin
-    if not DirectoryExists(ExtractFilePath(TargetFile)) then
-      ForceDirectories(ExtractFilePath(TargetFile));
-    if not FileExists(TargetFile) then
-    begin
-      with TStringList.Create do
-      try
-        SaveToFile(TargetFile);
-      finally
-        Free;
-      end;
-    end;
-    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetFile) + ' &');
+    if not DirectoryExists(TargetDir) then
+      ForceDirectories(TargetDir);
+    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetDir) + ' &');
   end;
 end;
 
 procedure Tgoverlayform.openLogFileMenuItemClick(Sender: TObject);
 var
-  TargetFile: string;
+  TargetDir: string;
 begin
-  TargetFile := GetActiveTabLogFile;
+  TargetDir := GetGameLogDir(FActiveGameName);
 
-  if TargetFile <> '' then
+  if TargetDir <> '' then
   begin
-    if not DirectoryExists(ExtractFilePath(TargetFile)) then
-      ForceDirectories(ExtractFilePath(TargetFile));
-    if not FileExists(TargetFile) then
-    begin
-      with TStringList.Create do
-      try
-        Add(FormatDateTime('yyyy-MM-dd hh:nn:ss', Now) + ' - Log file initialized. Logs will be recorded here when the game is launched.');
-        SaveToFile(TargetFile);
-      finally
-        Free;
-      end;
-    end;
-    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetFile) + ' &');
+    if not DirectoryExists(TargetDir) then
+      ForceDirectories(TargetDir);
+    ExecuteShellCommand('xdg-open ' + QuotedStr(TargetDir) + ' &');
   end;
 end;
 
