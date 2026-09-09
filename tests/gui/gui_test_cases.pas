@@ -1032,8 +1032,8 @@ begin
   // 1. Controls existence, visibility, items, and hint
   AssertTrue('loglevelComboBox assigned', Assigned(goverlayform.loglevelComboBox));
   AssertTrue('loglevelLabel assigned', Assigned(goverlayform.loglevelLabel));
-  AssertTrue('loglevelComboBox visible', goverlayform.loglevelComboBox.Visible);
-  AssertTrue('loglevelLabel visible', goverlayform.loglevelLabel.Visible);
+  AssertFalse('loglevelComboBox hidden', goverlayform.loglevelComboBox.Visible);
+  AssertFalse('loglevelLabel hidden', goverlayform.loglevelLabel.Visible);
   AssertEquals('loglevelComboBox item count is 5', 5, goverlayform.loglevelComboBox.Items.Count);
   AssertEquals('item 0 is 0 - Trace', '0 - Trace', goverlayform.loglevelComboBox.Items[0]);
   AssertEquals('item 1 is 1 - Debug', '1 - Debug', goverlayform.loglevelComboBox.Items[1]);

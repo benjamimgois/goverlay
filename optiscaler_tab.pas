@@ -561,6 +561,7 @@ begin
     loglevelLabel.AnchorSideRight.Control  := nil; loglevelLabel.AnchorSideBottom.Control := nil;
     loglevelLabel.Anchors := [akLeft, akTop];
     loglevelLabel.Parent  := FOsMainSec;
+    loglevelLabel.Visible := False;
 
     if loglevelComboBox = nil then
     begin
@@ -581,6 +582,7 @@ begin
     loglevelComboBox.AnchorSideRight.Control  := nil; loglevelComboBox.AnchorSideBottom.Control := nil;
     loglevelComboBox.Anchors := [akLeft, akTop];
     loglevelComboBox.Parent  := FOsMainSec;
+    loglevelComboBox.Visible := False;
 
     optipatcherCheckBox.AnchorSideLeft.Control   := nil; optipatcherCheckBox.AnchorSideTop.Control    := nil;
     optipatcherCheckBox.AnchorSideRight.Control  := nil; optipatcherCheckBox.AnchorSideBottom.Control := nil;
@@ -1239,42 +1241,39 @@ begin
       if Assigned(FOsMainLbl) then FOsMainLbl.SetBounds(10, 6, ColW - 20, 16);
 
       filenameLabel.SetBounds(10, Y0, ColW - 20, 16);
-      filenameComboBox.SetBounds(10, Y0 + 18, ComboW, 26);
+      filenameComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
       menuLabel.Caption := 'Menu scale';
       menuLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
       if Assigned(menuscaleComboBox) then
-        menuscaleComboBox.SetBounds(10, Y0 + 74, ComboW, 26);
+        menuscaleComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(loglevelLabel) then
-      begin
-        loglevelLabel.Caption := 'Log level';
-        loglevelLabel.SetBounds(10, Y0 + 112, ColW - 20, 16);
-      end;
+        loglevelLabel.Visible := False;
       if Assigned(loglevelComboBox) then
-        loglevelComboBox.SetBounds(10, Y0 + 130, ComboW, 26);
+        loglevelComboBox.Visible := False;
 
       if Assigned(FOptiPatcherToggle) then
       begin
-        FOptiPatcherToggle.SetBounds(10, Y0 + 172, FOptiPatcherToggle.GetOptimalWidth, 20);
+        FOptiPatcherToggle.SetBounds(10, Y0 + 116, FOptiPatcherToggle.GetOptimalWidth, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 170, 22, 22);
+          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 114, 22, 22);
       end
       else
       begin
-        optipatcherCheckBox.SetBounds(10, Y0 + 172, 95, 20);
+        optipatcherCheckBox.SetBounds(10, Y0 + 116, 95, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(108, Y0 + 170, 22, 22);
+          FOsPatcherListBtn.SetBounds(108, Y0 + 114, 22, 22);
       end;
 
-      shortcutkeyLabel.SetBounds(10, Y0 + 210, ColW - 20, 16);
+      shortcutkeyLabel.SetBounds(10, Y0 + 148, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
-        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 228, Min(ColW - 20, 120), 28);
+        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 166, Min(ColW - 20, 120), 28);
 
       if Assigned(dlssenablerToggleLabel) then
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 264, ColW - 20, 16);
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 204, ColW - 20, 16);
       if Assigned(dlssenablerToggleBtn) then
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 282, Min(ColW - 20, 120), 28);
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 222, Min(ColW - 20, 120), 28);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
@@ -1283,20 +1282,20 @@ begin
       if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(10, 6, ColW - 20, 16);
 
       preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
-      preferredUpscalerComboBox.SetBounds(10, Y0 + 18, ComboW, 26);
+      preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
-      fsrversionLabel.SetBounds(10, Y0 + 52, ColW - 20, 16);
-      fsrversionComboBox.SetBounds(10, Y0 + 70, ComboW, 26);
+      fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(FSpoofToggle) then
-        FSpoofToggle.SetBounds(10, Y0 + 106, ColW - 20, 20)
+        FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20)
       else
-        spoofCheckBox.SetBounds(10, Y0 + 106, ColW - 20, 20);
+        spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
 
       if Assigned(FForceFsr4Toggle) then
-        FForceFsr4Toggle.SetBounds(10, Y0 + 138, ColW - 20, 20)
+        FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20)
       else
-        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 138, ColW - 20, 20);
+        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler
@@ -1305,15 +1304,15 @@ begin
       if Assigned(FOsTemporalLbl) then FOsTemporalLbl.SetBounds(10, 6, ColW - 20, 16);
 
       fgInputLabel.SetBounds(10, Y0, ColW - 20, 16);
-      fgInputComboBox.SetBounds(10, Y0 + 18, ComboW, 26);
+      fgInputComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
       fgOutputLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
-      fgOutputComboBox.SetBounds(10, Y0 + 74, ComboW, 26);
+      fgOutputComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(FForceMlfgToggle) then
-        FForceMlfgToggle.SetBounds(10, Y0 + 124, ColW - 20, 20)
+        FForceMlfgToggle.SetBounds(10, Y0 + 116, ColW - 20, 20)
       else
-        emufp8CheckBox.SetBounds(10, Y0 + 124, ColW - 20, 20);
+        emufp8CheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 4: Reflex / Antilag
