@@ -1,0 +1,2490 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: goverlay_strings.rsactionaborted
+msgid "Action aborted by user"
+msgstr "İşlem kullanıcı tarafından iptal edildi"
+
+#: goverlay_strings.rsantilagblockedbykorthos
+msgid "You cannot enable AMD Anti-Lag 2 [MESA] while any Korthos low latency layer option is active."
+msgstr "Herhangi çalışan bir Korthos düşük gecikmeli katman seçeneği varken AMD Anti-Lag 2 [MESA] açamazsınız"
+
+#: goverlay_strings.rsblacklistduplicate
+msgid "This program is already on the blacklist."
+msgstr "Bu program zaten kara listede."
+
+#: goverlay_strings.rsblacklistnamerequired
+msgid "Insert a program name"
+msgstr "Bir program adı girin"
+
+#: goverlay_strings.rsblacklistselecttoremove
+msgid "Select an item to remove."
+msgstr "Kaldırılıcak bir öğe seçin."
+
+#: goverlay_strings.rscachecleanfailed
+#, object-pascal-format
+msgid ""
+"Error: Could not clean cache directory.\n"
+"%s"
+msgstr ""
+"Hata: Önbellek dizini temizlenemedi.\n"
+"%s"
+
+#: goverlay_strings.rsclearconfigdone
+msgid ""
+"Configuration cleared successfully.\n"
+"Please restart GOverlay."
+msgstr ""
+"Yapılandırma başarıyla temizlendi.\n"
+"Lütfen GOverlay'i yeniden başlatın."
+
+#: goverlay_strings.rsclearconfigpartial
+msgid ""
+"Some configuration folders could not be removed.\n"
+"Please check file permissions and restart GOverlay."
+msgstr ""
+"Bazı yapılandırma dosyaları kaldırılamadı.\n"
+"Lütfen dosya izinlerini kontrol edin ve GOverlay'i yeniden başlatın."
+
+#: goverlay_strings.rsclearconfigprompt
+msgid ""
+"All files and settings will be removed and GOverlay will return to its initial configuration.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"Tüm dosyalar ve ayarlar kaldırılacak ve GOverlay ilk yapılandırmasına dönecektir.\n"
+"\n"
+"Devam etmek istiyor musunuz?"
+
+#: goverlay_strings.rsclearconfigtitle
+msgid "Clear Configuration"
+msgstr "Yapılandırmayı Temizle"
+
+#: goverlay_strings.rscopyfilefailed
+#, object-pascal-format
+msgid "Error copying file: %s"
+msgstr "Dosya kopyalama hatası: %s"
+
+#: goverlay_strings.rscustompresetprompt
+msgid ""
+"No custom configuration was found to load.\n"
+"\n"
+"To create your custom preset:\n"
+"1. Customize your desired elements and colors in GOverlay.\n"
+"2. Click the menu button in the bottom bar.\n"
+"3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
+"\n"
+"Once created, click \"Custom\" anytime to apply your preset!"
+msgstr ""
+"Yüklenecek bir özel yapılandırma bulunamadı.\n"
+"\n"
+"Özel yapılandırma oluşturmak için:\n"
+"1. GOverlay'de istediğiniz öğeleri ve renkleri özelleştirin.\n"
+"2. Alt çubukta bulunan menü düğmesine basın.\n"
+"3. \"Ayarları Kaydet\" -> \"Özel Yapılandırma olarak kaydet\" seçeneğini seçin.\n"
+"\n"
+"Oluşturduktan sonra, ön ayarınızı uygulamak için istediğiniz zaman \"Özel\"e tıklayın!"
+
+#: goverlay_strings.rscustompresettitle
+msgid "Custom Preset Required"
+msgstr "Özel Ön Ayar Gerekli"
+
+#: goverlay_strings.rsdownloadcurlfailed
+#, object-pascal-format
+msgid ""
+"Error downloading file: curl exited with code %d\n"
+"URL: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+"Dosya indirme hatası: curl %d koduyla sonlandırıldı\n"
+"URL: %s\n"
+"İnternet bağlantınızı ve curl'ün kurulu olup olmadığını kontrol edin."
+
+#: goverlay_strings.rsdownloadfailed
+#, object-pascal-format
+msgid ""
+"Error downloading file: %s\n"
+"URL: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+"Dosya indirme hatası: %s\n"
+"URL: %s\n"
+"İnternet bağlantınızı ve curl'ün kurulu olup olmadığını kontrol edin."
+
+#: goverlay_strings.rsdownloadmissingfile
+#, object-pascal-format
+msgid ""
+"Error: Downloaded file does not exist.\n"
+"URL: %s"
+msgstr ""
+"Hata: İndirilen dosya yok.\n"
+"URL: %s"
+
+#: goverlay_strings.rseffectalreadyactive
+msgid "This effect is already active"
+msgstr "Bu efekt zaten aktif"
+
+#: goverlay_strings.rseffectnoneactive
+msgid "There are no active effects"
+msgstr "Aktif efekt bulunmuyor"
+
+#: goverlay_strings.rseffectselectavailable
+msgid "Select at least one effect in \"available effects\"."
+msgstr "\"mevcut efektler\" içerisinden en az bir efekt seçin."
+
+#: goverlay_strings.rseffectselecttoremove
+msgid "Select at least one effect to remove"
+msgstr "Kaldırılacak en az bir efekt seçin"
+
+#: goverlay_strings.rserrortitle
+msgid "Error"
+msgstr "Hata"
+
+#: goverlay_strings.rsfolderalreadyadded
+msgid "This folder has already been added."
+msgstr "Bu klasör zaten eklendi."
+
+#: goverlay_strings.rsgamemodeflatpakprompt
+msgid ""
+"You are running GOverlay in Flatpak. GameMode must be installed on your host system for this feature to work.\n"
+"\n"
+"If GameMode is not installed, games may fail to launch.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"GOverlay'i Flatpak içerisinde çalıştırıyorsunuz. Bu özelliğin çalışması için GameMode'un ana sisteminize yüklenmiş olması gerekir.\n"
+"\n"
+"GameMode yüklü değilse, oyunlar başlatılamayabilir.\n"
+"\n"
+"Devam etmek istiyor musunuz?"
+
+#: goverlay_strings.rsgamemodetitle
+msgid "GameMode Warning"
+msgstr "GameMode Uyarısı"
+
+#: goverlay_strings.rsintelfixapplyprompt
+msgid ""
+"Due to a known vulnerability in Intel CPUs, the energy_uj file has to be readable by your user.\n"
+"Having the file readable may potentially be a security vulnerability.\n"
+"\n"
+"How would you like to apply the fix?\n"
+"\n"
+"- Yes: Apply PERMANENTLY (creates persistent udev rule).\n"
+"- No: Apply TEMPORARILY for this session only (resets on reboot).\n"
+"- Cancel: Abort changes."
+msgstr ""
+"Intel işlemcilerindeki bilinen bir güvenlik açığı nedeniyle, energy_uj dosyasının kullanıcınız tarafından okunabilir olması gerekmektedir.\n"
+"Dosyanın okunabilir olması potansiyel bir güvenlik açığı oluşturabilir.\n"
+"\n"
+"Düzeltmeyi nasıl uygulamak istersiniz?\n"
+"\n"
+"- Evet: KALICI olarak uygula (kalıcı bir udev kuralı oluşturur).\n"
+"- Hayır: Yalnızca bu oturum için GEÇİCİ olarak uygula (yeniden başlatıldığında sıfırlanır).\n"
+"- İptal: Değişiklikleri iptal et."
+
+
+#: goverlay_strings.rsintelfixnoflatpak
+msgid ""
+"Intel CPU power monitoring fix is not available in Flatpak.\n"
+"\n"
+"Flatpak applications cannot modify system file permissions in /sys/.\n"
+"\n"
+"This fix must be applied from outside the Flatpak sandbox on the host system."
+msgstr ""
+"Intel CPU güç izleme düzeltmesi Flatpak'te mevcut değil.\n"
+"\n"
+"Flatpak uygulamaları, /sys/ dizinindeki sistem dosyası izinlerini değiştiremez.\n"
+"\n"
+"Bu düzeltme, ana sistem üzerinde Flatpak korumalı alanının dışından uygulanmalıdır."
+
+#: goverlay_strings.rsintelfixremoved
+msgid "Persistent udev rule removed. Please reboot to restore default permissions."
+msgstr "Kalıcı udev kuralı kaldırıldı. Varsayılan izinleri geri yüklemek için lütfen sistemi yeniden başlatın."
+
+#: goverlay_strings.rsintelfixremoveprompt
+msgid ""
+"The persistent udev rule fix is currently active.\n"
+"\n"
+"Do you want to disable and remove it?"
+msgstr ""
+"Kalıcı udev kuralı düzeltmesi şu an aktif.\n"
+"\n"
+"Devre dışı bırakıp kaldırmak istiyor musunuz?"
+
+#: goverlay_strings.rsintelfixtitle
+msgid "Intel CPU Power Fix"
+msgstr "Intel CPU Güç Düzeltmesi"
+
+#: goverlay_strings.rskorthosblockedbyantilag
+msgid "You cannot enable any Korthos low latency layer option while AMD Anti-Lag 2 [MESA] is active."
+msgstr "AMD Anti-Lag 2 [MESA] aktifken herhangi Korthos düşük gecikmeli katmanı seçeneğini açamazsınız."
+
+#: goverlay_strings.rslinkopenerror
+#, object-pascal-format
+msgid "Error opening the link: %s"
+msgstr "Bağlantı açılırken hata oluştu: %s"
+
+#: goverlay_strings.rslinkopenfailed
+msgid "Unable to open the link in the default web browser."
+msgstr "Varsayılan web tarayıcısında bağlantı açılamadı."
+
+#: goverlay_strings.rsmangohudconfigmissing
+msgid "Error: Could not find MangoHud configuration file."
+msgstr "Hata: MangoHud yapılandırma dosyası bulunamadı."
+
+#: goverlay_strings.rsmangohuddisabledprompt
+msgid ""
+"MangoHud has been disabled globally. A session restart is required for changes to take effect.\n"
+"\n"
+"Do you want to restart your session now?"
+msgstr ""
+"MangoHud küresel olarak devre dışı bırakıldı. Değişikliklerin geçerli olması için oturumun yeniden başlatılması gerekir.\n"
+"\n"
+"Oturumunuzu şimdi yeniden başlatmak istiyor musunuz?"
+
+#: goverlay_strings.rsmangohudenabledprompt
+msgid ""
+"MangoHud has been enabled globally. A session restart is required for changes to take effect.\n"
+"\n"
+"Do you want to restart your session now?"
+msgstr ""
+"MangoHud küresel olarak etkinleştirildi. Değişikliklerin geçerli olması için oturumun yeniden başlatılması gerekir.\n"
+"Oturumunuzu şimdi yeniden başlatmak istiyor musunuz?"
+
+#: goverlay_strings.rsmangohudglobalfailed
+#, object-pascal-format
+msgid "Failed to toggle MangoHud global enable: %s"
+msgstr "MangoHud küresel etkinleştirme durumu değiştirilemedi: %s"
+
+#: goverlay_strings.rsmangohudglobalprompt
+msgid ""
+"Enabling MangoHud globally may cause unexpected issues in some applications and desktop environments. Make sure you know what you are doing.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"MangoHud'u küresel olarak etkinleştirmek bazı uygulamalar ve masaüstü ortamlarında beklenmeyen sorunlara yol açabilir. Ne yaptığınızdan emin olun.\n"
+"\n"
+"Devam etmek istiyor musunuz?"
+
+#: goverlay_strings.rsmangohudglobaltitle
+msgid "Enable MangoHud Globally"
+msgstr "MangoHud'u Küresel Olarak Etkinleştir"
+
+#: goverlay_strings.rsmanifestfetchfailed
+#, object-pascal-format
+msgid "Error getting OptiScaler manifest: %s"
+msgstr "OptiScaler manifestini alırken hata oluştu: %s"
+
+#: goverlay_strings.rsoptiscalerchannelinvalid
+msgid "Please select a valid OptiScaler channel."
+msgstr "Lütfen geçerli bir OptiScaler kanalı seçin."
+
+#: goverlay_strings.rsoptiscalerchannelmissing
+msgid "OptiScaler channel not configured."
+msgstr "OptiScaler kanalı yapılandırılmadı."
+
+#: goverlay_strings.rsprotontrickserror
+#, object-pascal-format
+msgid "Error executing protontricks: %s"
+msgstr "protontricks yürütülürken hata oluştu: %s"
+
+#: goverlay_strings.rsprotontricksfailed
+#, object-pascal-format
+msgid "Error: protontricks exited with code %d. Make sure protontricks is installed."
+msgstr "Hata: protontricks %d koduyla sonlandırıldı. protontricks'in kurulu olduğuna emin olun."
+
+#: goverlay_strings.rspython3missing
+msgid "python3 is not installed or not in PATH."
+msgstr "python3 yüklenmemiş ya da YOL'da bulunmuyor."
+
+#: goverlay_strings.rsreleasefetchfailed
+#, object-pascal-format
+msgid ""
+"Error getting latest release: %s\n"
+"Check your internet connection and if curl is installed."
+msgstr ""
+"Son sürümü alırken hata oluştu: %s\n"
+"İnternet bağlantınızı ve curl'ün kurulu olduğunu kontrol edin."
+
+#: goverlay_strings.rsremovefolderprompt
+#, object-pascal-format
+msgid "Are you sure you want to remove the folder \"%s\" from Goverlay?"
+msgstr "\"%s\" klasörünü GOverlay'den kaldırmak istediğinize emin misiniz?"
+
+#: goverlay_strings.rsremovefoldertitle
+msgid "Remove non-Steam folder"
+msgstr "Steam-dışı klasörü kaldır"
+
+#: goverlay_strings.rsreshadesyncfailed
+#, object-pascal-format
+msgid "Error while synchronizing reshade repo. Code: %d"
+msgstr "Reshade veri havuzu eşitlenirken hata oluştu. Kod: %d"
+
+#: goverlay_strings.rsrestartsessiontitle
+msgid "Restart Session"
+msgstr "Oturumu yeniden başlat"
+
+#: goverlay_strings.rssevenziperror
+#, object-pascal-format
+msgid "Error executing 7z: %s"
+msgstr "7z yürütülürken hata oluştu: %s"
+
+#: goverlay_strings.rssevenzipfailed
+#, object-pascal-format
+msgid ""
+"Error extracting 7z file. Exit code: %d\n"
+"\n"
+"Check terminal output for details.\n"
+"File: %s"
+msgstr ""
+"7z dosyası çıkarılırken hata oluştu. Çıkış kodu: %d\n"
+"\n"
+"Detaylar için konsol çıktısını kontrol edin.\n"
+"Dosya: %s"
+
+#: goverlay_strings.rssevenzipmissing
+#, object-pascal-format
+msgid "Error: 7z file not found at: %s"
+msgstr "Hata: 7z dosyası şurada bulunamadı: %s"
+
+#: goverlay_strings.rsspoofblockedbyhideamdgpu
+msgid "You cannot enable both 'LOW_LATENCY_LAYER_SPOOF_NVIDIA' and 'DXVK_CONFIG=\"dxgi.hideAmdGpu = True\"' at the same time."
+msgstr "Hem 'LOW_LATENCY_LAYER_SPOOF_NVIDIA' hem de 'DXVK_CONFIG=\"dxgi.hideAmdGpu = True\"' seçeneklerini aynı anda etkinleştiremezsiniz."
+
+#: goverlay_strings.rssteamhelpermissing
+#, object-pascal-format
+msgid "Steam shortcut helper script not found: %s"
+msgstr "Steam kısayol yardımcı betiği bulunamadı: %s"
+
+#: goverlay_strings.rssteamrunning
+msgid "Steam is currently running. Please close Steam completely (Steam -> Exit) before creating the shortcut, as Steam will overwrite and discard any changes when it exits."
+msgstr "Steam şu an çalışıyor. Lütfen Steam'i kısayolu oluşturmadan önce tamamen kapatın (Steam -> Çıkış), aksi takdirde Steam kapandığında yaptığınız değişikliklerin üzerine yazacak ve bunları silecektir."
+
+#: goverlay_strings.rssteamshortcutfailed
+#, object-pascal-format
+msgid ""
+"Error (Code %d):\n"
+"%s"
+msgstr ""
+"Hata (Kod %d):\n"
+"%s"
+
+#: goverlay_strings.rsuninstallchangesprompt
+#, object-pascal-format
+msgid "Are you sure you want to uninstall all changes for \"%s\"?"
+msgstr "\"%s\" için tüm değişiklikleri kaldırmak istediğinize emin misiniz?"
+
+#: goverlay_strings.rsuninstallchangestitle
+msgid "Uninstall changes"
+msgstr "Değişiklikleri kaldır"
+
+#: goverlay_strings.rsupdatecheckfailed
+#, object-pascal-format
+msgid "Error checking for updates: %s"
+msgstr "Güncelleme kontrolü sırasında hata: %s"
+
+#: goverlay_strings.rsvarsreadfailed
+#, object-pascal-format
+msgid "Warning: Could not read goverlay.vars: %s"
+msgstr "Uyarı: goverlay.vars okunamadı: %s"
+
+#: goverlay_strings.rsvideoplayermissing
+msgid "Could not open video tutorial. Please install a media player."
+msgstr "Eğitim videosu açılamadı. Lütfen bir medya oynatıcısı kurun."
+
+#: goverlay_strings.rsvideotutorialmissing
+msgid "Video tutorial not found."
+msgstr "Eğitim videosu bulunamadı."
+
+#: goverlay_strings.rsvkbasaltdirmissing
+msgid "vkBasalt directory not found"
+msgstr "vkBasalt konumu bulunamadı"
+
+#: goverlay_strings.rsvkcuberunning
+msgid "vkcube is running!"
+msgstr "vkcube çalışıyor!"
+
+#: goverlay_strings.rszipextractfailed
+#, object-pascal-format
+msgid "Error extracting ZIP: %s"
+msgstr "ZIP çıkarılırken hata oluştu: %s"
+
+#: taboutform.abouttabsheet.caption
+msgctxt "taboutform.abouttabsheet.caption"
+msgid "About"
+msgstr "Hakkında"
+
+#: taboutform.caption
+msgctxt "taboutform.caption"
+msgid "About"
+msgstr "Hakkında"
+
+#: taboutform.creditslabel.caption
+msgid ""
+"\n"
+"Credits:\n"
+"\n"
+"FlightlessMango – MangoHud\n"
+"DadSchoorse – vkBasalt\n"
+"OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler\n"
+"\n"
+"Special thanks to Jason Evangelho and Valve.\n"
+"\n"
+"Project links:\n"
+"github.com/benjamimgois/goverlay\n"
+"github.com/benjamimgois/pascube"
+msgstr ""
+"\n"
+"Emeği Geçenler:\n"
+"\n"
+"FlightlessMango – MangoHud\n"
+"DadSchoorse – vkBasalt\n"
+"OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler\n"
+"\n"
+"Jason Evangelho ve Valve'a özel teşekkürler.\n"
+"\n"
+"Proje bağlantıları:\n"
+"github.com/benjamimgois/goverlay\n"
+"github.com/benjamimgois/pascube"
+
+#: taboutform.desclabel.caption
+msgid "Open-source tool providing a unified interface to configure MangoHud, vkBasalt, and OptiScaler."
+msgstr "MangoHud, vkBasalt ve OptiScaler'ı yapılandırmak için birleşik bir arayüz sunan açık kaynaklı bir araç"
+
+#: taboutform.licensetabsheet.caption
+msgid "License"
+msgstr "Lisans"
+
+#: taboutform.melabel.caption
+msgid ""
+"Benjamim Góis\n"
+"\n"
+"benjamim.gois@gmail.com"
+msgstr ""
+"Benjamim Góis\n"
+"\n"
+"benjamim.gois@gmail.com"
+
+#: taboutform.titlelabel.caption
+msgid "Goverlay"
+msgstr "Goverlay"
+
+#: tblacklistform.blacklistlabel.caption
+msgid "Enter application name to ignore MangoHud"
+msgstr "MangoHud'ın görmezden gelmesi için uygulama adı girin"
+
+#: tblacklistform.caption
+msgctxt "tblacklistform.caption"
+msgid "Blacklisted Apps"
+msgstr "Kara Listeye Alınmış Uygulamalar"
+
+#: tblacklistform.insertblacklistbitbtn.hint
+msgid "Save application name"
+msgstr "Uygulama adını kaydet"
+
+#: tblacklistform.removeblacklistbitbtn.hint
+msgid "Remove selected application"
+msgstr "Seçilmiş uygulamayı kaldır"
+
+#: tgoverlayform.activegpulabel.caption
+msgid "Active GPU"
+msgstr "Aktif GPU"
+
+#: tgoverlayform.actprotonlogscheckbox.caption
+msgid "Active Proton Logs"
+msgstr "Aktif Proton Günlükleri"
+
+#: tgoverlayform.actprotonlogscheckbox.hint
+msgid ""
+"PROTON_LOG=1\n"
+"Generates a log file for debugging game issues."
+msgstr ""
+"PROTON_LOG=1\n"
+"Oyun sorunlarında hata ayıklamak için bir günlük dosyası oluşturur."
+
+#: tgoverlayform.addbitbtn.caption
+msgctxt "tgoverlayform.addbitbtn.caption"
+msgid "+"
+msgstr "+"
+
+#: tgoverlayform.addbitbtn.hint
+msgid "Add effect to the list"
+msgstr "Listeye efekt ekle"
+
+#: tgoverlayform.advancedgroupbox.caption
+msgid "Advanced Tweaks"
+msgstr "Gelişmiş İnce Ayarlar"
+
+#: tgoverlayform.aflabel.caption
+msgid "Anisotropic filtering "
+msgstr "Eşyönsüz Filtreleme "
+
+#: tgoverlayform.afterburnercolorbitbtn1.hint
+msgid "Pink colors in from older versions of MSI Afterburner"
+msgstr "MSI Afterburner'ın eski sürümlerinden kalan pembe renkler"
+
+#: tgoverlayform.afterburnercolorlabel.caption
+msgid "Old afterburner"
+msgstr "Eski afterburner"
+
+#: tgoverlayform.aftrackbar.hint
+msgid ""
+"Anisotropic filtering is a technique used to improve the quality of \n"
+"textures applied to the surfaces of 3D objects when drawn at a \n"
+"sharp angle."
+msgstr ""
+"Eşyönsüz filtreleme, 3D nesnelerin yüzeylerine uygulanan dokuların, \n"
+"keskin bir açıyla çizildiklerinde kalitesini artırmak için kullanılan \n"
+"bir tekniktir."
+
+#: tgoverlayform.afvaluelabel.caption
+msgctxt "tgoverlayform.afvaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.alphavaluelabel.caption
+msgctxt "tgoverlayform.alphavaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.archcheckbox.caption
+msgid "Arch"
+msgstr "Arch"
+
+#: tgoverlayform.autodetectmesalabel.caption
+msgctxt "tgoverlayform.autodetectmesalabel.caption"
+msgid "Auto Detected"
+msgstr "Otomatik Algılandı"
+
+#: tgoverlayform.autodetectnvlabel.caption
+msgctxt "tgoverlayform.autodetectnvlabel.caption"
+msgid "Auto Detected"
+msgstr "Otomatik Algılandı"
+
+#: tgoverlayform.autouploadcheckbox.caption
+msgid "Autoupload results"
+msgstr "Otoyükleme sonuçları"
+
+#: tgoverlayform.autouploadcheckbox.hint
+msgid "Enables automatic uploads of logs to flightlessmango.com"
+msgstr "Günlüklerin flightlessmango.com'a otomatik olarak yüklenmesini sağlar."
+
+#: tgoverlayform.backgroundgroupbox.caption
+msgid "Background"
+msgstr "Arka plan"
+
+#: tgoverlayform.backgroundlabel.caption
+msgctxt "tgoverlayform.backgroundlabel.caption"
+msgid "Color"
+msgstr "Renk"
+
+#: tgoverlayform.basicgroupbox.caption
+msgid "Basic Tweaks"
+msgstr "Temel İnce Ayarlar"
+
+#: tgoverlayform.basichorizontallabel.caption
+msgid "Basic Horizontal"
+msgstr "Temel Yatay"
+
+#: tgoverlayform.basiclabel.caption
+msgid "Basic"
+msgstr "Temel"
+
+#: tgoverlayform.batterycheckbox.caption
+msgid "Percentage"
+msgstr "Yüzde"
+
+#: tgoverlayform.batterylabel.caption
+msgid "Battery"
+msgstr "Batarya"
+
+#: tgoverlayform.batterytimecheckbox.caption
+msgid "Time remain"
+msgstr "Kalan süre"
+
+#: tgoverlayform.batterywattcheckbox.caption
+msgid "Wattage"
+msgstr "Watt değeri"
+
+#: tgoverlayform.blacklistmenuitem.caption
+msgctxt "tgoverlayform.blacklistmenuitem.caption"
+msgid "Blacklisted Apps"
+msgstr "Kara Listedeki Uygulamalar"
+
+#: tgoverlayform.bordergroupbox.caption
+msgid "Borders"
+msgstr "Sınırlar"
+
+#: tgoverlayform.builtineffectsgroupbox.caption
+msgid "Built in Effects "
+msgstr "Dahili Efektler"
+
+#: tgoverlayform.caption
+msgid "Goverlay <GVERSION> <GCHANNEL>"
+msgstr "Goverlay <GVERSION> <GCHANNEL>"
+
+#: tgoverlayform.caslabel.caption
+msgid "CAS"
+msgstr "CAS"
+
+#: tgoverlayform.castrackbar.hint
+msgid "Contrast Adaptive Sharpening"
+msgstr "Kontrast Uyumlu Keskinleştirme"
+
+#: tgoverlayform.casvaluelabel.caption
+msgctxt "tgoverlayform.casvaluelabel.caption"
+msgid "0"
+msgstr "0"
+
+#: tgoverlayform.checkupdbitbtn.caption
+msgid "Check updates"
+msgstr "Güncellemeleri kontrol et"
+
+#: tgoverlayform.colorthemelabel.caption
+msgid "Color Theme"
+msgstr "Renk Teması"
+
+#: tgoverlayform.columsgroupbox.caption
+msgid "Columns"
+msgstr "Sütunlar"
+
+#: tgoverlayform.columvaluelabel.caption
+msgid "3"
+msgstr "3"
+
+#: tgoverlayform.coreloadtypebitbtn.caption
+msgid "Percent"
+msgstr "Yüzde"
+
+#: tgoverlayform.cpuavgloadcheckbox.caption
+msgctxt "tgoverlayform.cpuavgloadcheckbox.caption"
+msgid "Load"
+msgstr "Yük"
+
+#: tgoverlayform.cpucoretypecheckbox.caption
+msgid "Core Type"
+msgstr "Çekirdek Tipi"
+
+#: tgoverlayform.cpuefficiencycheckbox.caption
+msgctxt "tgoverlayform.cpuefficiencycheckbox.caption"
+msgid "Efficiency"
+msgstr "Verimlilik"
+
+#: tgoverlayform.cpuframesjoulebitbtn.caption
+msgctxt "tgoverlayform.cpuframesjoulebitbtn.caption"
+msgid "Frames / Joule"
+msgstr "Kareler / Joule"
+
+#: tgoverlayform.cpufreqcheckbox.caption
+msgctxt "tgoverlayform.cpufreqcheckbox.caption"
+msgid "Core Freq"
+msgstr "Çekirdek Frekansı"
+
+#: tgoverlayform.cpugroupbox.caption
+msgid "CPU / Memory"
+msgstr "CPU / Bellek"
+
+#: tgoverlayform.cpuload1colorbutton.hint
+msgctxt "tgoverlayform.cpuload1colorbutton.hint"
+msgid "Low load color (0 - 50%)"
+msgstr "Düşük yükte renk (0 - 50%)"
+
+#: tgoverlayform.cpuload2colorbutton.hint
+msgctxt "tgoverlayform.cpuload2colorbutton.hint"
+msgid "Medium load color (50 - 90%)"
+msgstr "Orta yükte renk (50 - 90%)"
+
+#: tgoverlayform.cpuload3colorbutton.hint
+msgctxt "tgoverlayform.cpuload3colorbutton.hint"
+msgid "High load color (90 - 100%)"
+msgstr "Yüksek yükte renk (90 - 100%)"
+
+#: tgoverlayform.cpuloadcolorcheckbox.caption
+msgctxt "tgoverlayform.cpuloadcolorcheckbox.caption"
+msgid "Load Color"
+msgstr "Yüke Göre Renk"
+
+#: tgoverlayform.cpuloadcorecheckbox.caption
+msgid "Core load"
+msgstr "Çekirdek Yükü"
+
+#: tgoverlayform.cpumainmetricslabel.caption
+msgctxt "tgoverlayform.cpumainmetricslabel.caption"
+msgid "Main metrics"
+msgstr "Ana ölçütler"
+
+#: tgoverlayform.cpunameedit.texthint
+msgid "-- CPU Model --"
+msgstr "-- CPU Modeli --"
+
+#: tgoverlayform.cpupowercheckbox.caption
+msgid "CPU Power"
+msgstr "CPU Gücü"
+
+#: tgoverlayform.cputempcheckbox.caption
+msgid "CPU temp"
+msgstr "CPU Sıcaklığı"
+
+#: tgoverlayform.cputemplabel.caption
+msgid "Temperature / Power"
+msgstr "Sıcaklık / Güç"
+
+#: tgoverlayform.customcommandedit.hint
+msgid "Print the output of a custom command"
+msgstr "Özel bir komutun çıktısını yazdır"
+
+#: tgoverlayform.customcommandedit.texthint
+msgid "-- Custom command --"
+msgstr "-- Özel Komut --"
+
+#: tgoverlayform.customenvedit.texthint
+msgid "-- Custom environment variables --"
+msgstr "-- Özel ortam değişkenleri --"
+
+#: tgoverlayform.customlabel.caption
+msgid "Custom"
+msgstr "Özel"
+
+#: tgoverlayform.customolorlabel.caption
+msgid "Goverlay "
+msgstr "Goverlay"
+
+#: tgoverlayform.deckpreset1menuitem.caption
+msgid "Steam Deck preset 1"
+msgstr "Steam Deck ön ayarı 1"
+
+#: tgoverlayform.deckpreset2menuitem.caption
+msgid "Steam Deck preset 2"
+msgstr "Steam Deck ön ayarı 2"
+
+#: tgoverlayform.deckpreset3menuitem.caption
+msgid "Steam Deck preset 3"
+msgstr "Steam Deck ön ayarı 3"
+
+#: tgoverlayform.deckpreset4menuitem.caption
+msgid "Steam Deck preset 4"
+msgstr "Steam Deck ön ayarı 4"
+
+#: tgoverlayform.delayvaluelabel.caption
+msgctxt "tgoverlayform.delayvaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.dependencieslabel.caption
+msgid "DEPENDENCIES STATUS"
+msgstr "BAĞIMLILIK DURUMU"
+
+#: tgoverlayform.devicecheckbox.caption
+msgid "Devices"
+msgstr "Cihazlar"
+
+#: tgoverlayform.devicecheckbox.hint
+msgid "Gamepad battery status (Need xone driver for xbox controllers)"
+msgstr "Oyun kolu pil durumu (Xbox kolları için xone sürücüsü gerekir)"
+
+#: tgoverlayform.disablentsynccheckbox.caption
+msgid "Disable NTSYNC"
+msgstr "NTSYNC'i Kapat"
+
+#: tgoverlayform.disablentsynccheckbox.hint
+msgid ""
+"PROTON_NO_NTSYNC=1\n"
+"Disables ntsync (use if game has sync-related bugs)."
+msgstr ""
+"PROTON_NO_NTSYNC=1\n"
+"ntsync'i devre dışı bırakır (oyunda senkronizasyonla ilgili hatalar varsa kullanın)."
+
+#: tgoverlayform.diskiocheckbox.caption
+msgid "DISK IO"
+msgstr "DİSK G/Ç"
+
+#: tgoverlayform.displayservercheckbox.caption
+msgid "Display Server"
+msgstr "Görüntü Sunucusu"
+
+#: tgoverlayform.displayservercheckbox.hint
+msgid "Display if your session is x11 or wayland"
+msgstr "Oturumunuzun X11 mi yoksa Wayland mi olduğunu gösterir"
+
+#: tgoverlayform.distroinfocheckbox.caption
+msgid "Distro info"
+msgstr "Dağıtım bilgisi"
+
+#: tgoverlayform.distroinfocheckbox.hint
+msgid "Display Distribution name, version and kernel"
+msgstr "Dağıtım adını, sürümünü ve çekirdeği göster"
+
+#: tgoverlayform.dlslabel.caption
+msgid "DLS"
+msgstr "DLS"
+
+#: tgoverlayform.dlsslabel.caption
+msgid "DLSS:"
+msgstr "DLSS:"
+
+#: tgoverlayform.dlsslabel1.caption
+msgctxt "tgoverlayform.dlsslabel1.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.dlsvaluelabel.caption
+msgctxt "tgoverlayform.dlsvaluelabel.caption"
+msgid "0"
+msgstr "0"
+
+#: tgoverlayform.durationvaluelabel.caption
+msgctxt "tgoverlayform.durationvaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.dxapicheckbox.caption
+msgid "DX API"
+msgstr "DX API"
+
+#: tgoverlayform.dxapicheckbox.hint
+msgid "attempts to show the underlying directx api"
+msgstr "arkada çalışan directx api'sini göstermeye çalışır"
+
+#: tgoverlayform.emufp8checkbox.caption
+msgid "Emulate FP8"
+msgstr "FP8'i taklit et"
+
+#: tgoverlayform.emufp8checkbox.hint
+msgid "Emulate FP8 with FP16 on RDNA2 / RDNA3"
+msgstr "RDNA2 / RDNA3 üzerinde FP16 ile FP8'i taklit et"
+
+#: tgoverlayform.emurtcheckbox.caption
+msgid "Emulate RT (old AMD)"
+msgstr "RT'yi taklit et (eski AMD)"
+
+#: tgoverlayform.emurtcheckbox.hint
+msgid ""
+"RADV_PERFTEST=rt,emulate_rt\n"
+"Simulates Ray Tracing support on older AMD hardware."
+msgstr ""
+"RADV_PERFTEST=rt,emulate_rt\n"
+"Eski AMD donanımlarında Ray Tracing desteğini simüle eder."
+
+#: tgoverlayform.engineshortcheckbox.caption
+msgid "Engine Short"
+msgstr "Motor Kısaltması"
+
+#: tgoverlayform.engineshortcheckbox.hint
+msgid "Use short names for engines"
+msgstr "Motor adları için kısaltma kullan"
+
+#: tgoverlayform.engineversioncheckbox.caption
+msgid "Engine Ver"
+msgstr "Motor Sürümü"
+
+#: tgoverlayform.enhdrcheckbox.caption
+msgid "Enable HDR"
+msgstr "HDR'yi etkinleştir"
+
+#: tgoverlayform.enhdrcheckbox.hint
+msgid ""
+"PROTON_ENABLE_HDR=1\n"
+"ENABLE_HDR_WSI=1\n"
+"Enables High Dynamic Range output support."
+msgstr ""
+"PROTON_ENABLE_HDR=1\n"
+"ENABLE_HDR_WSI=1\n"
+"Yüksek Dinamik Aralık çıkışı desteğini etkinleştirir."
+
+#: tgoverlayform.enwaylandcheckbox.caption
+msgid "Enable Wayland"
+msgstr "Wayland'i etkinleştir"
+
+#: tgoverlayform.enwaylandcheckbox.hint
+msgid ""
+"PROTON_ENABLE_WAYLAND=1\n"
+"Allows/forces the use of the Wayland display protocol."
+msgstr ""
+"PROTON_ENABLE_WAYLAND=1\n"
+"Wayland görüntüleme protokolünün kullanımına izin verir/kullanımını zorunlu kılar."
+
+#: tgoverlayform.extrastabsheet.caption
+msgid "Extras"
+msgstr "Ekstralar"
+
+#: tgoverlayform.fahrenheitcheckbox.caption
+msgid "Fahrenheit"
+msgstr "Fahrenheit"
+
+#: tgoverlayform.fahrenheitcheckbox.hint
+msgid "Use Fahrenheit temperature unit"
+msgstr "Fahrenheit sıcaklık birimini kullan"
+
+#: tgoverlayform.fakenvapi1.caption
+msgctxt "tgoverlayform.fakenvapi1.caption"
+msgid "-"
+msgstr "-"
+
+#: tgoverlayform.fakenvapi2.caption
+msgctxt "tgoverlayform.fakenvapi2.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.fakenvapigroupbox.caption
+msgid "Fakenvapi"
+msgstr "Fakenvapi"
+
+#: tgoverlayform.fakenvapilabel.caption
+msgid "Fakenvapi:"
+msgstr "Fakenvapi:"
+
+#: tgoverlayform.fcatcheckbox.caption
+msgid "FCAT"
+msgstr "FCAT"
+
+#: tgoverlayform.fcatcheckbox.hint
+msgid "Frame capture analysis"
+msgstr "Kare yakalama analizi"
+
+#: tgoverlayform.fexstatscheckbox.caption
+msgid "FEX Stats"
+msgstr "FEX İstatistikleri"
+
+#: tgoverlayform.fexstatscheckbox.hint
+msgid "Show FEX-Emu statistics. Default = status+apptype+hotthreads+jitload+sigbus+smc+softfloat"
+msgstr "FEX-Emu istatistiklerini gösterir. Varsayılan = status+apptype+hotthreads+jitload+sigbus+smc+softfloat"
+
+#: tgoverlayform.filenamecombobox.text
+msgid "dxgi.dll"
+msgstr "dxgi.dll"
+
+#: tgoverlayform.filenamelabel.caption
+msgid "File name"
+msgstr "Dosya adı"
+
+#: tgoverlayform.filtersgroupbox.caption
+msgid "Filters"
+msgstr "Filtreler"
+
+#: tgoverlayform.fontcolorlabel.caption
+msgctxt "tgoverlayform.fontcolorlabel.caption"
+msgid "Color"
+msgstr "Renk"
+
+#: tgoverlayform.fontcombobox.hint
+msgid "ttf fonts  in /usr/share/fonts"
+msgstr "/usr/share/fonts  dizinindeki TTF yazı tipleri"
+
+#: tgoverlayform.fontcombobox.text
+msgid "Default"
+msgstr "Varsayılan"
+
+#: tgoverlayform.fontlabel.caption
+msgid "Size"
+msgstr "Boyut"
+
+#: tgoverlayform.fontsgroupbox.caption
+msgid "Fonts"
+msgstr "Yazı tipleri"
+
+#: tgoverlayform.fontsizetrackbar.hint
+msgid ""
+"Recommended Values:\n"
+"720p - 19\n"
+"1080 - 24\n"
+"4K - 31"
+msgstr ""
+"Önerilen Değerler:\n"
+"720p - 19\n"
+"1080 - 24\n"
+"4K - 31"
+
+#: tgoverlayform.fontsizevaluelabel.caption
+msgctxt "tgoverlayform.fontsizevaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.forcelatencyflexcheckbox.caption
+msgid "Force LatencyFlex"
+msgstr "LatencyFlex'i Zorla"
+
+#: tgoverlayform.forcelatencyflexcheckbox.hint
+msgid "Useful in native fsg fg games"
+msgstr "Yerel destekli fsg fg oyunlarında kullanışlıdır."
+
+#: tgoverlayform.forcenvapicheckbox.caption
+msgid "Force enable NVAPI"
+msgstr "NVAPI kullanmayı zorlamayı etkinleştir"
+
+#: tgoverlayform.forcenvapicheckbox.hint
+msgid ""
+"PROTON_ENABLE_NVAPI=1\n"
+"Enable Nvidia's specific APIs"
+msgstr ""
+"PROTON_ENABLE_NVAPI=1\n"
+"Nvidia'ya özgü API'yi etkinleştir"
+
+#: tgoverlayform.forcereflexcheckbox.caption
+msgid "Force Reflex"
+msgstr "Reflex'i zorla"
+
+#: tgoverlayform.forcereflexcheckbox.hint
+msgctxt "tgoverlayform.forcereflexcheckbox.hint"
+msgid ""
+"Forces the use of Reflex, which can help enable AMD's Anti-Lag 2 (AL2) for lower latency.\n"
+"The recommended setting is \"Force enable\""
+msgstr ""
+"Daha düşük gecikme süresi için AMD'nin Anti-Lag 2 (AL2) teknolojisini etkinleştirmeye yardımcı olabilen Reflex'in kullanımını zorunlu kılar.\n"
+"\"Zorunlu olarak etkinleştir\" önerilen ayardır"
+
+#: tgoverlayform.forcezinkcheckbox.caption
+msgid "Use ZINK"
+msgstr "ZINK kullan"
+
+#: tgoverlayform.forcezinkcheckbox.hint
+msgid ""
+"(AMD/INTEL)\n"
+"MESA_LOADER_DRIVER_OVERRIDE=zink\n"
+"\n"
+"(NVIDIA)\n"
+"__GLX_VENDOR_LIBRARY_NAME=mesa \n"
+"MESA_LOADER_DRIVER_OVERRIDE=zink\n"
+"\n"
+"Translation layor for OpenGL over Vulkan"
+msgstr ""
+"(AMD/INTEL)\n"
+"MESA_LOADER_DRIVER_OVERRIDE=zink\n"
+"\n"
+"(NVIDIA)\n"
+"__GLX_VENDOR_LIBRARY_NAME=mesa \n"
+"MESA_LOADER_DRIVER_OVERRIDE=zink\n"
+"\n"
+"Vulkan üzerinde OpenGL dönüştürme katmanı"
+
+#: tgoverlayform.fpsavgbitbtn.caption
+msgid "1% low"
+msgstr "1% düşük"
+
+#: tgoverlayform.fpsavgcheckbox.caption
+msgid "FPS Average"
+msgstr "Ortalama FPS"
+
+#: tgoverlayform.fpsavgcheckbox.hint
+msgctxt "tgoverlayform.fpsavgcheckbox.hint"
+msgid "Display fps and api in use"
+msgstr "Fps'yi ve kullanılan api'yi görüntüle"
+
+#: tgoverlayform.fpscheckbox.caption
+msgid "Show FPS"
+msgstr "FPS'i Göster"
+
+#: tgoverlayform.fpscheckbox.hint
+msgctxt "tgoverlayform.fpscheckbox.hint"
+msgid "Display fps and api in use"
+msgstr "Fps'yi ve kullanılan api'yi görüntüle"
+
+#: tgoverlayform.fpscolor1colorbutton.hint
+msgid "Low color"
+msgstr "Düşük FPS'te renk"
+
+#: tgoverlayform.fpscolor2colorbutton.hint
+msgid "Middle color"
+msgstr "Orta FPS'te renk"
+
+#: tgoverlayform.fpscolor2spinedit.hint
+msgid "Middle break point for FPS colors"
+msgstr "FPS renkleri için orta eşik değeri"
+
+#: tgoverlayform.fpscolor3colorbutton.hint
+msgid "High color"
+msgstr "Yüksek FPS'te renk"
+
+#: tgoverlayform.fpscolor3spinedit.hint
+msgid "Superior break point for FPS colors"
+msgstr "FPS renkleri için üst eşik değeri"
+
+#: tgoverlayform.fpscolorcheckbox.caption
+msgid "Change FPS colors"
+msgstr "FPS renklerini değiştir"
+
+#: tgoverlayform.fpsgroupbox.caption
+msgctxt "tgoverlayform.fpsgroupbox.caption"
+msgid "Information"
+msgstr "Bilgilendirme"
+
+#: tgoverlayform.fpslimcheckgroup.hint
+msgid ""
+"Check all the FPS limits you need and toggle between \n"
+"then with the toggle key.\n"
+"\n"
+"0 = unlimited fps"
+msgstr ""
+"İhtiyacınız olan tüm FPS sınırlarını işaretleyin ve \n"
+"değiştirme tuşuyla aralarında geçiş yapın.\n"
+"\n"
+"0 = sınırsız fps"
+
+#: tgoverlayform.fpslimitergroupbox.caption
+msgid "Limiters"
+msgstr "Sınırlayıcılar"
+
+#: tgoverlayform.fpslimlabel.caption
+msgid "FPS Limit"
+msgstr "FPS Sınırı"
+
+#: tgoverlayform.fpslimmetcombobox.hint
+msgid ""
+"If FPS limiter should wait before or after presenting a frame. \n"
+"\n"
+"- Late (default) for the lowest latency  \n"
+"- Early for the smoothest frametimes"
+msgstr ""
+"FPS sınırlayıcısının kareyi göstermeden önce mi yoksa sonra mı beklemesi gerektiği. \n"
+"\n"
+"- En düşük gecikme için Sonra (varsayılan)  \n"
+"- En akıcı kare süresi için Önce"
+
+#: tgoverlayform.fpslimmetcombobox.text
+msgid "Late*"
+msgstr "Sonra*"
+
+#: tgoverlayform.fpslimtogglecombobox.hint
+msgid ""
+"FPS limit toggle key\n"
+"(Shift_L = left shift)\n"
+"(Shift_R = right shift)"
+msgstr ""
+"FPS sınırı açma/kapatma tuşu\n"
+"(Shift_L = sol shift)\n"
+"(Shift_R = sağ shift)"
+
+#: tgoverlayform.fpslimtogglecombobox.text
+msgid "Shift_L+F1"
+msgstr "Shift_L+F1"
+
+#: tgoverlayform.fpsonlylabel.caption
+msgid "FPS only"
+msgstr "Yalnızca FPS"
+
+#: tgoverlayform.framecountcheckbox.caption
+msgid "Count frames"
+msgstr "Kareleri say"
+
+#: tgoverlayform.framecountcheckbox.hint
+msgid "Shows the number of frames since start"
+msgstr "Başlangıçtan bu yana geçen kare sayısını gösterir."
+
+#: tgoverlayform.frametimegraphcheckbox.caption
+msgid "Frame Time"
+msgstr "Kare Zamanı"
+
+#: tgoverlayform.frametimetypebitbtn.caption
+msgid "Curve"
+msgstr "Eğri"
+
+#: tgoverlayform.fsrcheckbox.caption
+msgid "FSR*"
+msgstr "FSR*"
+
+#: tgoverlayform.fsrcheckbox.hint
+msgctxt "tgoverlayform.fsrcheckbox.hint"
+msgid "*Gamescope Only"
+msgstr "Yalnızca *Gamescope"
+
+#: tgoverlayform.fsrlabel.caption
+msgid "FSR:"
+msgstr "FSR:"
+
+#: tgoverlayform.fsrlabel1.caption
+msgctxt "tgoverlayform.fsrlabel1.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.fsrversioncombobox.hint
+msgid ""
+"Latest FSR versions are compatible with RDNA4+ and newer.\n"
+"Also sets \"Fsr4Update=auto\" in Optiscaler.ini\n"
+"\n"
+"4.0.2c INT8 FSR is compatible with RDNA2 and RDNA3"
+msgstr ""
+"En güncel FSR sürümleri RDNA4+ ve daha yenileri için uyumlu.\n"
+"Ayrıca Optiscaler.ini'de \"Fsr4Update=auto\" değerini ayarlar\n"
+"\n"
+"4.0.2c INT8 FSR RDNA2 ve RDNA3 ile uyumlu"
+
+#: tgoverlayform.fsrversioncombobox.text
+msgid "Latest"
+msgstr "En güncel"
+
+#: tgoverlayform.fsrversionlabel.caption
+msgid "FSR Version"
+msgstr "FSR Versiyonu"
+
+#: tgoverlayform.ftracecheckbox.caption
+msgid "ftrace debug"
+msgstr "ftrace hata ayıklama"
+
+#: tgoverlayform.ftracecheckbox.hint
+msgid ""
+"Displays kernel trace events captured through Linux ftrace. \n"
+"Useful for advanced debugging and performance analysis.\n"
+"\n"
+"Requires ftrace events to be enabled on the system."
+msgstr ""
+"Linux ftrace aracılığıyla yakalanan çekirdek izleme olaylarını görüntüler.\n"
+"Gelişmiş hata ayıklama ve performans analizi için kullanışlı.\n"
+"\n"
+"Ftrace etkinliklerinin sistemde açık olmasını gerektirir."
+
+#: tgoverlayform.fulllabel.caption
+msgid "Full"
+msgstr "Tam"
+
+#: tgoverlayform.fxaalabel.caption
+msgid "FXAA"
+msgstr "FXAA"
+
+#: tgoverlayform.fxaavaluelabel.caption
+msgctxt "tgoverlayform.fxaavaluelabel.caption"
+msgid "0"
+msgstr "0"
+
+#: tgoverlayform.gamemodecheckbox.caption
+msgid "Always use GameMode"
+msgstr "Her zaman GameMode kullan"
+
+#: tgoverlayform.gamemodecheckbox.hint
+msgid "Forces Feral GameMode for CPU/GPU priority."
+msgstr "CPU/GPU önceliği için Feral GameMode'u zorunlu kılar."
+
+#: tgoverlayform.gamemodestatuscheckbox.caption
+msgid "GameMode"
+msgstr "GameMode"
+
+#: tgoverlayform.gamemodestatuscheckbox.hint
+msgid "Feral gamemode status"
+msgstr "Feral gamemode durumu"
+
+#: tgoverlayform.gamestabsheet.caption
+msgid "Games"
+msgstr "Oyunlar"
+
+#: tgoverlayform.gelabel.caption
+msgid "Auto Enable"
+msgstr "Otomatik Etkinleştir"
+
+#: tgoverlayform.generalgroupbox.caption
+msgid "General"
+msgstr "Genel"
+
+#: tgoverlayform.gespeedbutton.hint
+msgid ""
+"MangoHUD will be automatically enabled for all VULKAN applications.\n"
+"(no need to use MANGOHUD=1 every time)\n"
+"\n"
+"NEEDS RESTART!"
+msgstr ""
+"MangoHUD otomatik olarak tüm VULKAN uygulamaları için etkinleştirilir.\n"
+"(her seferinde MANGOHUD=1 kullanmaya gerek kalmaz)\n"
+"\n"
+"YENİDEN BAŞLATMA GEREKLİDİR"
+
+#: tgoverlayform.globalenablemenuitem.caption
+msgid "Global Enable"
+msgstr "Küresel Etkinleştirme"
+
+#: tgoverlayform.glvsynccombobox.hint
+msgid ""
+"ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) \n"
+"for better stability and avoid tearing.\n"
+"\n"
+"ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur \n"
+"at that point.\n"
+"\n"
+"N - Sync to refresh rate (OpenGL only)\n"
+"\n"
+"OFF - Do not synchronize frame rate and refresh rate, gives better \n"
+"performance but produces tearing as consequence.\n"
+"\n"
+"UNSET - Let the game decide"
+msgstr ""
+"AÇIK - Daha iyi bir kararlılık sağlamak ve yırtılmayı önlemek için oyunun \n"
+"kare hızını monitör yenileme hızıyla (60Hz) senkronize eder.\n"
+"\n"
+"ADAPTİF - Yenileme hızına ulaşamadığınızda V-Sync'i kapatır, \n"
+"bu noktada görüntü yırtılması oluşur.\n"
+"\n"
+"N - Yenileme hızına eşitle (Yalnızca OpenGL)\n"
+"\n"
+"KAPALI - Kare hızını yenileme hızıyla eşitlemez, daha iyi \n"
+"performans verir ancak görüntüde yırtılmalara yol açar.\n"
+"\n"
+"AYARLANMAMIŞ - Kararı oyuna bırakır"
+
+#: tgoverlayform.glvsynccombobox.text
+msgctxt "tgoverlayform.glvsynccombobox.text"
+msgid "Unset"
+msgstr "Ayarlanmamış"
+
+#: tgoverlayform.goverlaybitbtn.hint
+msgid ""
+"Goverlay color theme will Set GPU and CPU colors according to manufacturer brand.\n"
+"\n"
+"AMD Radeon = #F1003B\n"
+"AMD Ryzen = #FA8000\n"
+"Intel ARC = #01C6FE\n"
+"Intel Core = #26397D\n"
+"Nvidia Geforce = #75B800\n"
+"\n"
+"Other interface elements will have custom colors as well"
+msgstr ""
+"Goverlay renk teması, GPU ve CPU renklerini üretici markasına göre ayarlar.\n"
+"\n"
+"AMD Radeon = #F1003B\n"
+"AMD Ryzen = #FA8000\n"
+"Intel ARC = #01C6FE\n"
+"Intel Core = #26397D\n"
+"Nvidia Geforce = #75B800\n"
+"\n"
+"Diğer arayüz öğeleri de özel renklere sahip olacak."
+
+#: tgoverlayform.gpuavgloadcheckbox.caption
+msgctxt "tgoverlayform.gpuavgloadcheckbox.caption"
+msgid "Load"
+msgstr "Yük"
+
+#: tgoverlayform.gpudescedit.text
+msgid "Select GPU to use"
+msgstr "Kullanılacak GPU'yu seçin"
+
+#: tgoverlayform.gpudrivergroupbox.caption
+msgid "GPU Driver"
+msgstr "GPU Sürücüsü"
+
+#: tgoverlayform.gpuefficiencycheckbox.caption
+msgctxt "tgoverlayform.gpuefficiencycheckbox.caption"
+msgid "Efficiency"
+msgstr "Verimlilik"
+
+#: tgoverlayform.gpufancheckbox.caption
+msgid "Fans"
+msgstr "Fanlar"
+
+#: tgoverlayform.gpuframesjoulebitbtn.caption
+msgctxt "tgoverlayform.gpuframesjoulebitbtn.caption"
+msgid "Frames / Joule"
+msgstr "Kareler / Joule"
+
+#: tgoverlayform.gpufreqcheckbox.caption
+msgctxt "tgoverlayform.gpufreqcheckbox.caption"
+msgid "Core Freq"
+msgstr "Çekirdek Frekansı"
+
+#: tgoverlayform.gpugroupbox.caption
+msgctxt "tgoverlayform.gpugroupbox.caption"
+msgid "GPU"
+msgstr "GPU"
+
+#: tgoverlayform.gpuinfolabel.caption
+msgctxt "tgoverlayform.gpuinfolabel.caption"
+msgid "Information"
+msgstr "Bilgi"
+
+#: tgoverlayform.gpujunctempcheckbox.caption
+msgid "Junction"
+msgstr "En Sıcak Nokta"
+
+#: tgoverlayform.gpuload1colorbutton.hint
+msgctxt "tgoverlayform.gpuload1colorbutton.hint"
+msgid "Low load color (0 - 50%)"
+msgstr "Düşük yükte renk (0 - 50%)"
+
+#: tgoverlayform.gpuload2colorbutton.hint
+msgctxt "tgoverlayform.gpuload2colorbutton.hint"
+msgid "Medium load color (50 - 90%)"
+msgstr "Orta yükte renk (50 - 90%)"
+
+#: tgoverlayform.gpuload3colorbutton.hint
+msgctxt "tgoverlayform.gpuload3colorbutton.hint"
+msgid "High load color (90 - 100%)"
+msgstr "Yüksek yükte renk (90 - 100%)"
+
+#: tgoverlayform.gpuloadcolorcheckbox.caption
+msgctxt "tgoverlayform.gpuloadcolorcheckbox.caption"
+msgid "Load Color"
+msgstr "Yüke Göre Renk"
+
+#: tgoverlayform.gpumemfreqcheckbox.caption
+msgid "Mem Freq"
+msgstr "Bellek Frekansı"
+
+#: tgoverlayform.gpumemtempcheckbox.caption
+msgid "Memory"
+msgstr "Bellek"
+
+#: tgoverlayform.gpumodelcheckbox.caption
+msgid "Model"
+msgstr "Model"
+
+#: tgoverlayform.gpunameedit.texthint
+msgid "-- GPU NAME --"
+msgstr "-- GPU ADI --"
+
+#: tgoverlayform.gpupowercheckbox.caption
+msgctxt "tgoverlayform.gpupowercheckbox.caption"
+msgid "Power"
+msgstr "Güç"
+
+#: tgoverlayform.gpupowerlabel.caption
+msgctxt "tgoverlayform.gpupowerlabel.caption"
+msgid "Power"
+msgstr "Güç"
+
+#: tgoverlayform.gpupowerlimitcheckbox.caption
+msgid "Power Limit"
+msgstr "Güç Limiti"
+
+#: tgoverlayform.gputempcheckbox.caption
+msgctxt "tgoverlayform.gputempcheckbox.caption"
+msgid "GPU"
+msgstr "GPU"
+
+#: tgoverlayform.gputemplabel.caption
+msgid "Temperature"
+msgstr "Sıcaklık"
+
+#: tgoverlayform.gputhrottlingcheckbox.caption
+msgid "Throttling"
+msgstr "Hız Sınırlama"
+
+#: tgoverlayform.gputhrottlingcheckbox.hint
+msgid "Shows if GPU is throttling based on Power, current, temp or \"other\" (Only shows if throttling is currently happening)"
+msgstr "GPU'nun güç, sıcaklık veya \"diğer\" nedenlerle hız sınırlamasına uyğrayıp uğramadığını gösterir (Yalnızca o anda hız sınırlama durumu yaşanıyorsa görüntülenir)."
+
+#: tgoverlayform.gputhrottlinggraphcheckbox.caption
+msgid "Throttling  graph"
+msgstr "Hız Sınırlama Grafiği"
+
+#: tgoverlayform.gputhrottlinggraphcheckbox.hint
+msgid "Same as throttling_status but displays throttling in the frametime graph and only power and temp throttling"
+msgstr "throttling_status ile aynıdır, ancak kare zamanlaması grafiğinde hız sınırlamayı gösterir ve yalnızca güç ile sıcaklık hız sınırlamalarını yansıtır."
+
+#: tgoverlayform.gpuvoltagecheckbox.caption
+msgid "Voltage"
+msgstr "Voltaj"
+
+#: tgoverlayform.graphicsgroupbox.caption
+msgid "Graphics"
+msgstr "Grafikler"
+
+#: tgoverlayform.gupdatebitbtn.caption
+msgid "GOVERLAY UPDATE STATUS"
+msgstr "GOVERLAY GÜNCELLEME DURUMU"
+
+#: tgoverlayform.hdrcheckbox.caption
+msgid "HDR*"
+msgstr "HDR*"
+
+#: tgoverlayform.hdrcheckbox.hint
+msgctxt "tgoverlayform.hdrcheckbox.hint"
+msgid "*Gamescope Only"
+msgstr "Yalnızca *Gamescope"
+
+#: tgoverlayform.heapdelaycheckbox.caption
+msgid "Heap Delay Free"
+msgstr "Gecikmeli Bellek Temizleme"
+
+#: tgoverlayform.heapdelaycheckbox.hint
+msgid ""
+"PROTON_HEAP_DELAY_FREE=1\n"
+"Prevents crashes in games with memory management bugs."
+msgstr ""
+"PROTON_HEAP_DELAY_FREE=1\n"
+"Bellek yönetimi hataları içeren oyunlarda oluşan çökmeleri engeller."
+
+#: tgoverlayform.hidehudcheckbox.caption
+msgid "Hide by default"
+msgstr "Başlangıçta gizle"
+
+#: tgoverlayform.hidehudcheckbox.hint
+msgid "This option will turn the hud off by default. Pressing the keybinding will show it up."
+msgstr "Bu seçenek, hud'u varsayılan olarak kapatacaktır. Atanan tuşa basıldığında hud gösterilecek."
+
+#: tgoverlayform.hidenvidiacheckbox.caption
+msgid "Hide Nvidia GPU"
+msgstr "Nvidia GPU'ları Gizle"
+
+#: tgoverlayform.hidenvidiacheckbox.hint
+msgid ""
+"PROTON_HIDE_NVIDIA_GPU=1\n"
+"Prevents games from detecting Nvidia-specific libraries."
+msgstr ""
+"PROTON_HIDE_NVIDIA_GPU=1\n"
+"Oyunların Nvidia-özel kütüphaneleri algılanmasını engeller."
+
+#: tgoverlayform.highpricheckbox.caption
+msgid "Higher priority for games"
+msgstr "Oyunlar için yüksek öncelik"
+
+#: tgoverlayform.highpricheckbox.hint
+msgid ""
+"PROTON_PRIORITY_HIGH=1\n"
+"Sets high CPU priority for the game process."
+msgstr ""
+"PROTON_PRIORITY_HIGH=1\n"
+"Oyun süreci için yüksek CPU önceliği ayarlar."
+
+#: tgoverlayform.himage.hint
+msgid "Horizontal"
+msgstr "Yatay"
+
+#: tgoverlayform.hudcompactcheckbox.caption
+msgid "Compact HUD"
+msgstr "Kompakt HUD"
+
+#: tgoverlayform.hudcompactcheckbox.hint
+msgid "Display compact version of MangoHud"
+msgstr "MangoHud'un kompakt versiyonunu gösterir"
+
+#: tgoverlayform.hudonoffcombobox.hint
+msgctxt "tgoverlayform.hudonoffcombobox.hint"
+msgid ""
+"Key to enable and disable the HUD\n"
+"(Shift_L = left shift)\n"
+"(Shift_R = right shift)"
+msgstr ""
+"HUD'u açıp kapatma tuşu\n"
+"(Shift_L = sağ shift)\n"
+"(Shift_R = sol shift)"
+
+#: tgoverlayform.hudonoffcombobox.text
+msgid "Shift_R+F12"
+msgstr "Shift_R+F12"
+
+#: tgoverlayform.hudtitleedit.hint
+msgid "Create a custom title for the hud"
+msgstr "Hud için özel bir başlık oluştur"
+
+#: tgoverlayform.hudtitleedit.texthint
+msgid "-- HUD title --"
+msgstr "-- HUD başlığı --"
+
+#: tgoverlayform.hudtoggleimage.hint
+msgctxt "tgoverlayform.hudtoggleimage.hint"
+msgid ""
+"Key to enable and disable the HUD\n"
+"(Shift_L = left shift)\n"
+"(Shift_R = right shift)"
+msgstr ""
+"HUD'u açıp kapatma tuşu\n"
+"(Shift_L = sol shift)\n"
+"(Shift_R = sağ shift)"
+
+#: tgoverlayform.hudtogglelabel.caption
+msgid "HUD Toggle Key"
+msgstr "HUD Açma/Kapama Tuşu"
+
+#: tgoverlayform.hudversioncheckbox.caption
+msgid "HUD Version"
+msgstr "HUD Sürümü"
+
+#: tgoverlayform.imgmenugroupbox.caption
+msgid "ImGUI Menu"
+msgstr "ImGUI Menüsü"
+
+#: tgoverlayform.intelpowerfixbitbtn.hint
+msgid "Fix for power draw on intel CPUs"
+msgstr "Intel CPU'lardaki güç tüketimi sorunu için düzeltme"
+
+#: tgoverlayform.intervalvaluelabel.caption
+msgctxt "tgoverlayform.intervalvaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.largeaddresscheckbox.caption
+msgid "Large Address Aware"
+msgstr "Geniş Bellek Adresleme"
+
+#: tgoverlayform.largeaddresscheckbox.hint
+msgid ""
+"PROTON_FORCE_LARGE_ADDRESS_AWARE=1\n"
+"Allows 32-bit games to access more than 2GB of RAM."
+msgstr ""
+"PROTON_FORCE_LARGE_ADDRESS_AWARE=1\n"
+"32-bit oyunların 2GB RAM üzerine erişmesini sağlar."
+
+#: tgoverlayform.latencyflexcombobox.hint
+msgid ""
+"Use reflex frame ids - Activates a new Reflex ID-based frame pacing mode for LatencyFlex, \n"
+"which offers good latency reduction with stable frame times, particularly in Unreal Engine games. \n"
+"If unsupported, it will fall back to aggressive mode."
+msgstr ""
+"Reflex kare kimliklerini kullan - LatencyFlex için Reflex ID tabanlı yeni bir kare zamanlama modunu etkinleştirir, \n"
+"bu mod özellikle Unreal Engine oyunlarında kararlı kare süreleriyle iyi bir gecikme düşüşü sağlar. \n"
+"Desteklenmiyorsa agresif geçer."
+
+#: tgoverlayform.latencyflexcombobox.text
+msgctxt "tgoverlayform.latencyflexcombobox.text"
+msgid "Choose mode"
+msgstr "Modu seçin"
+
+#: tgoverlayform.layoutslabel.caption
+msgid "Layouts"
+msgstr "Düzenler"
+
+#: tgoverlayform.limtogglelabel.caption
+msgid "Limit toggle key"
+msgstr "Limit açma/kapama tuşu"
+
+#: tgoverlayform.loadconfigmenuitem.caption
+msgid "Load config"
+msgstr "Yapılandırmayı yükle"
+
+#: tgoverlayform.logdelaylabel.caption
+msgid "Autostart "
+msgstr "Otomatik başlatma "
+
+#: tgoverlayform.logdurationlabel.caption
+msgid "Duration"
+msgstr "Süre"
+
+#: tgoverlayform.logfolderlabel.caption
+msgid "Log folder"
+msgstr "Kayıt klasörü"
+
+#: tgoverlayform.logginggroupbox.caption
+msgid "Logging"
+msgstr "Kayıt tutma"
+
+#: tgoverlayform.logintervallabel.caption
+msgid "Interval"
+msgstr "Aralık"
+
+#: tgoverlayform.logtogglecombobox.hint
+msgid ""
+"Key to start and stop logging\n"
+"(Shift_L = left shift)\n"
+"(Shift_R = right shift)"
+msgstr ""
+"Kayıt almayı başlatma ve durdurma tuşu\n"
+"(Shift_L = sol shift)\n"
+"(Shift_R = sağ shift)"
+
+#: tgoverlayform.logtogglecombobox.text
+msgid "Shift_L+F2"
+msgstr "Shift_L+F2"
+
+#: tgoverlayform.logtogglelabel.caption
+msgid "Logging toggle"
+msgstr "Kayıt alma açma/kapama"
+
+#: tgoverlayform.mainmetriclabel.caption
+msgctxt "tgoverlayform.mainmetriclabel.caption"
+msgid "Main metrics"
+msgstr "Ana ölçütler"
+
+#: tgoverlayform.mangocolorbitbtn.hint
+msgid "Stock mangohud colors"
+msgstr "Varsayılan mangohud renkleri"
+
+#: tgoverlayform.mangocolorlabel.caption
+msgid "MangoHud Stock"
+msgstr "MangoHud Varsayılan"
+
+#: tgoverlayform.mangohudlabel.caption
+msgid "MangoHud"
+msgstr "MangoHud"
+
+#: tgoverlayform.mangohudlabel.hint
+msgctxt "tgoverlayform.mangohudlabel.hint"
+msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
+msgstr "FPS, sıcaklık, CPU/GPU yükü ve daha fazlasını izlemek için Vulkan ve OpenGL arayüzü."
+
+#: tgoverlayform.mangohudshape.hint
+msgctxt "tgoverlayform.mangohudshape.hint"
+msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
+msgstr "FPS, sıcaklık, CPU/GPU yükü ve daha fazlasıını izlemek için Vulkan ve OpenGL arayüzü."
+
+#: tgoverlayform.mark1label.caption
+msgid "1080p"
+msgstr "1080p"
+
+#: tgoverlayform.mark2label.caption
+msgid "1440p"
+msgstr "1440p"
+
+#: tgoverlayform.mark3label.caption
+msgid "4K"
+msgstr "4K"
+
+#: tgoverlayform.mediacheckbox.caption
+msgid "Media Info"
+msgstr "Medya Bilgisi"
+
+#: tgoverlayform.memlabel.caption
+msgid "Memory / IO"
+msgstr "Bellek / GÇ"
+
+#: tgoverlayform.menulabel.caption
+msgid "Scale"
+msgstr "Boyut"
+
+#: tgoverlayform.menuscaletrackbar.hint
+msgid "The size of the in game menu"
+msgstr "Oyun içi menünün ölçeği"
+
+#: tgoverlayform.menuscalevaluelabel.caption
+msgid "1"
+msgstr "1"
+
+#: tgoverlayform.methodlabel.caption
+msgid "Method"
+msgstr "Metod"
+
+#: tgoverlayform.metricstabsheet.caption
+msgid "Metrics"
+msgstr "Ölçütler"
+
+#: tgoverlayform.minusbutton.caption
+msgctxt "tgoverlayform.minusbutton.caption"
+msgid "-"
+msgstr "-"
+
+#: tgoverlayform.mipmaplabel.caption
+msgid "Mip-map LoD bias "
+msgstr "Mip-map LoD bias"
+
+#: tgoverlayform.mipmaptrackbar.hint
+msgid ""
+"The Mipmap LOD Bias is a graphics setting that determines how detailed a texture looks at different distances. \n"
+"\n"
+"Positive values simplify for better performance.\n"
+"Negative values enhance detail. \n"
+"\n"
+"It's handy for optimizing visuals in games, adjusting texture quality based on viewing distance or object scale."
+msgstr ""
+"Mipmap LOD Bias, bir kaplamanın farklı mesafelerde ne kadar ayrıntılı görüneceğini belirleyen bir grafik ayarıdır.\n"
+"\n"
+"Pozitif değerler daha iyi performans içindir.\n"
+"Negatif değerler detayları iyileştirmek içindir. \n"
+"\n"
+"Oyunlardaki görselleri optimize etmek, görüntüleme mesafesine veya nesne ölçeğine göre doku kalitesini ayarlamak için kullanışlıdır."
+
+#: tgoverlayform.mipmapvaluelabel.caption
+msgctxt "tgoverlayform.mipmapvaluelabel.caption"
+msgid "X"
+msgstr "X"
+
+#: tgoverlayform.networkcheckbox.caption
+msgid "Network"
+msgstr "Ağ"
+
+#: tgoverlayform.networkcombobox.hint
+msgid ""
+"Key to start and stop logging\n"
+"(Shift_L = Left shift)"
+msgstr ""
+"Kayıt almayı başlatmak ve durdurmak için tuş\n"
+"(Shift_L = Sol shift)"
+
+#: tgoverlayform.networkcombobox.text
+msgid "Interface"
+msgstr "Arayüz"
+
+#: tgoverlayform.nofastclearscheckbox.caption
+msgid "No fast clears"
+msgstr "Hızlı temizleme yok"
+
+#: tgoverlayform.nofastclearscheckbox.hint
+msgid ""
+"Working around rendering corruption and GPU hangs on AMD graphics cards, \n"
+"particularly with older or specific DXVK titles."
+msgstr ""
+"Özellikle eski veya belirli DXVK oyunlarında, AMD ekran kartlarındaki \n"
+"görüntü bozulmaları ve GPU donmalarını giderme."
+
+#: tgoverlayform.notificationlabel.caption
+msgid " Config Saved"
+msgstr " Yapılandırma Kaydedildi"
+
+#: tgoverlayform.obs_vkcapturecheckbox.caption
+msgid "OBS Vulkan Capture"
+msgstr "OBS Vulkan Yakalama"
+
+#: tgoverlayform.obs_vkcapturecheckbox.hint
+msgid ""
+"OBS_VKCAPTURE=1\n"
+"Activate Vulkan capture for OBS Studio"
+msgstr ""
+"OBS_VKCAPTURE=1\n"
+"OBS Studio için Vulkan yakalamayı etkinleştir"
+
+#: tgoverlayform.offsetlabel.caption
+msgid "Offset"
+msgstr "Ofset"
+
+#: tgoverlayform.offsetspinedit.hint
+msgid "Negative offset, you can use it to set a value slightly different than the chosen one. Very useful for VRR"
+msgstr "Negatif ofset, seçilen değerden biraz daha farklı bir değer ayarlamak için kullanılabilir. VRR için oldukça kullanışlıdır."
+
+#: tgoverlayform.offsetxspinedit.hint
+msgid "offset X"
+msgstr "ofset X"
+
+#: tgoverlayform.offsetyspinedit.hint
+msgid "offset Y"
+msgstr "ofset Y"
+
+#: tgoverlayform.openconfigfilemenuitem.caption
+msgid "Open config file"
+msgstr "Yapılandırma dosyasını aç"
+
+#: tgoverlayform.optionsgroupbox.caption
+msgid "Basic Options"
+msgstr "Temel Seçenekler"
+
+#: tgoverlayform.optionslabel.caption
+msgid "Options"
+msgstr "Seçenekler"
+
+#: tgoverlayform.optipatchercheckbox.caption
+msgid "OptiPatcher"
+msgstr "OptiPatcher"
+
+#: tgoverlayform.optipatchercheckbox.hint
+msgid ""
+"An ASI Plugin for OptiScaler for exposing DLSS/DLSS-FG inputs \n"
+"without spoofing in supported games."
+msgstr ""
+"Desteklenen oyunlarda taklit etme (spoofing) kullanmadan DLSS/DLSS-FG \n"
+"girdilerini sunmayı sağlayan bir OptiScaler ASI eklentisidir."
+
+#: tgoverlayform.optipatcherlabel.caption
+msgid "Optipacher:"
+msgstr "Optipatcher:"
+
+#: tgoverlayform.optipatcherlabel1.caption
+msgctxt "tgoverlayform.optipatcherlabel1.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.optiscalergroupbox.caption
+msgctxt "tgoverlayform.optiscalergroupbox.caption"
+msgid "OptiScaler"
+msgstr "OptiScaler"
+
+#: tgoverlayform.optiscalerlabel.caption
+msgctxt "tgoverlayform.optiscalerlabel.caption"
+msgid "OptiScaler"
+msgstr "OptiScaler"
+
+#: tgoverlayform.optiscalerlabel.hint
+msgid "OptiScaler bridges upscaling/frame gen across GPUs. "
+msgstr "OptiScaler, farklı GPU'lar arasında ölçeklendirme/kare oluşturma teknolojilerini bir araya getirir."
+
+#: tgoverlayform.optiscalershape.hint
+msgctxt "tgoverlayform.optiscalershape.hint"
+msgid "Vulkan post processing layer to enhance the visual graphics of games."
+msgstr "Oyunların görsel grafiklerini iyileştiren Vulkan son işlem katmanı."
+
+#: tgoverlayform.optiscalertabsheet.caption
+msgid "Optiscaler"
+msgstr "Optiscaler"
+
+#: tgoverlayform.optlabel.caption
+msgid "OptiScaler:"
+msgstr "OptiScaler:"
+
+#: tgoverlayform.optlabel1.caption
+msgctxt "tgoverlayform.optlabel1.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.optlabel2.caption
+msgctxt "tgoverlayform.optlabel2.caption"
+msgid "--"
+msgstr "--"
+
+#: tgoverlayform.optversioncombobox.hint
+msgid "Choose OptiScaler branch"
+msgstr "OptiScaler dalını seç"
+
+#: tgoverlayform.optversioncombobox.text
+msgid "Stable Channel"
+msgstr "Stabil Kanal"
+
+#: tgoverlayform.orientationgroupbox.caption
+msgid "Orientation"
+msgstr "Oryantasyon"
+
+#: tgoverlayform.otherslabel.caption
+msgid "Others"
+msgstr "Diğer"
+
+#: tgoverlayform.overridecheckbox.caption
+msgid "Override Nvapi Dll"
+msgstr "Nvapi DLL'sini geçersiz kıl"
+
+#: tgoverlayform.overridecheckbox.hint
+msgid "you may need to set this to true in if Fakenvapi isn't automatically loaded."
+msgstr "Eğer Fakenvpapi otomatik yüklenmediyse bunu etkin yapmanız gerekir."
+
+#: tgoverlayform.patcherlistlabel.caption
+msgid "Games supported"
+msgstr "Desteklenen oyunlar"
+
+#: tgoverlayform.patcherlistlabel.hint
+msgid "List of games supported by optipatcher"
+msgstr "Optipatcher tarafından desteklenen oyunlar listesi"
+
+#: tgoverlayform.pbarlabel.caption
+msgid "- -"
+msgstr "- -"
+
+#: tgoverlayform.pcidevcombobox.hint
+msgid "PCIDEV of GPU, as listed by \"lspci\""
+msgstr "\"lspci\" tarafından listelenen GPU PCI kimliği (PCIDEV)"
+
+#: tgoverlayform.pcidevcombobox.texthint
+msgid "PCI ID"
+msgstr "PCI Kimliği"
+
+#: tgoverlayform.performancegroupbox.caption
+msgctxt "tgoverlayform.performancegroupbox.caption"
+msgid "Performance"
+msgstr "Performans"
+
+#: tgoverlayform.performancetabsheet.caption
+msgctxt "tgoverlayform.performancetabsheet.caption"
+msgid "Performance"
+msgstr "Performans"
+
+#: tgoverlayform.plusspeedbutton.caption
+msgctxt "tgoverlayform.plusspeedbutton.caption"
+msgid "+"
+msgstr "+"
+
+#: tgoverlayform.popupbitbtn.caption
+msgid "RUN"
+msgstr "ÇALIŞTIR"
+
+#: tgoverlayform.popupbitbtn.hint
+msgid "More options"
+msgstr "Daha fazla seçenek"
+
+#: tgoverlayform.positiongroupbox.caption
+msgid "Position"
+msgstr "Pozisyon"
+
+#: tgoverlayform.preferredupscalerlabel.caption
+msgid "Preferred upscaler"
+msgstr "Tercih edilen upscaler"
+
+#: tgoverlayform.presettabsheet.caption
+msgid "Presets"
+msgstr "Hazır Ayarlar"
+
+#: tgoverlayform.procmemcheckbox.caption
+msgctxt "tgoverlayform.procmemcheckbox.caption"
+msgid "Process"
+msgstr "İşlemler"
+
+#: tgoverlayform.procmemcheckbox.hint
+msgid "Displays process' memory usage: resident, shared and/or virtual."
+msgstr "Sürecin bellek kullanımını görüntüler: yerleşik (RAM), paylaşılan ve/veya sanal."
+
+#: tgoverlayform.procvramcheckbox.caption
+msgctxt "tgoverlayform.procvramcheckbox.caption"
+msgid "Process"
+msgstr "İşlem"
+
+#: tgoverlayform.procvramcheckbox.hint
+msgid "Process vram usage"
+msgstr "Sürecin vram kullanımı"
+
+#: tgoverlayform.ramtempcheckbox.caption
+msgid "RAM temp"
+msgstr "RAM Sıcaklığı"
+
+#: tgoverlayform.ramtempcheckbox.hint
+msgid "only supports DDR5 with spd5118 driver"
+msgstr "yalnızca spd5118 sürücüsü ile DDR5'i destekler"
+
+#: tgoverlayform.ramusagecheckbox.caption
+msgid "RAM"
+msgstr "RAM"
+
+#: tgoverlayform.reflexcombobox.hint
+msgctxt "tgoverlayform.reflexcombobox.hint"
+msgid ""
+"Forces the use of Reflex, which can help enable AMD's Anti-Lag 2 (AL2) for lower latency.\n"
+"The recommended setting is \"Force enable\""
+msgstr ""
+"En düşük gecikme için AMD'nin Anti-Lag 2 (AL2) teknolojisinin etkinleştirilmesine yardımcı olabilen Reflex'in kullanımını zorunlu kılar.\n"
+"\"Zorla etkinleştir\" önerilen ayardır"
+
+#: tgoverlayform.reflexcombobox.text
+msgctxt "tgoverlayform.reflexcombobox.text"
+msgid "Choose mode"
+msgstr "Mod seç"
+
+#: tgoverlayform.refreshratecheckbox.caption
+msgid "Refresh rate*"
+msgstr "Yenileme hızı"
+
+#: tgoverlayform.refreshratecheckbox.hint
+msgid "*Gamescope only"
+msgstr "Yalnızca *Gamescope"
+
+#: tgoverlayform.reshadegroupbox.caption
+msgid "Reshade"
+msgstr "Reshade"
+
+#: tgoverlayform.reshadelabel1.caption
+msgid "Available Effects"
+msgstr "Kullanılabilir Efektler"
+
+#: tgoverlayform.reshadelabel2.caption
+msgid "Active Effects"
+msgstr "Aktif Efektler"
+
+#: tgoverlayform.reshaderefreshbitbtn.caption
+msgctxt "tgoverlayform.reshaderefreshbitbtn.caption"
+msgid "Update"
+msgstr "Güncelle"
+
+#: tgoverlayform.resolutioncheckbox.caption
+msgid "Resolution"
+msgstr "Çözünürlük"
+
+#: tgoverlayform.roundimage.hint
+msgid "Round edge"
+msgstr "Yuvarlatılmış kenar"
+
+#: tgoverlayform.saveasmenuitem.caption
+msgid "Save as"
+msgstr "Farklı kaydet"
+
+#: tgoverlayform.savebitbtn.caption
+msgid " Save "
+msgstr " Kaydet "
+
+#: tgoverlayform.savebitbtn.hint
+msgid "Save current config"
+msgstr "Mevcut yapılandırmayı kaydet"
+
+#: tgoverlayform.savecustommenuitem.caption
+msgid "Custom Config"
+msgstr "Özel Yapılandırma"
+
+#: tgoverlayform.saveoptionsitem.caption
+msgid "Save options"
+msgstr "Ayarları kaydet"
+
+#: tgoverlayform.settingsaboutmenuitem.caption
+msgctxt "tgoverlayform.settingsaboutmenuitem.caption"
+msgid "About"
+msgstr "Hakkında"
+
+#: tgoverlayform.settingsdonatemenuitem.caption
+msgid "Donate to Goverlay"
+msgstr "GOverlay'e bağış yap"
+
+#: tgoverlayform.settingswhatsnewmenuitem.caption
+msgid "What's new ?"
+msgstr "Ne var ne yok?"
+
+#: tgoverlayform.shortcutkeycombobox.hint
+msgid ""
+"optifg - requires amd_fidelityfx_dx12.dll\n"
+"nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well"
+msgstr ""
+"optifg - amd_fidelityfx_dx12.dll gerektirir\n"
+"nukems - dlssg_to_fsr3_amd_is_better.dll gerektirir, AMD/Intel GPU kullanıcılarının ayrıca fakenvapi'yi de eklemesi gerekiyor."
+
+#: tgoverlayform.shortcutkeycombobox.text
+msgid "0x2d"
+msgstr "0x2d"
+
+#: tgoverlayform.shortcutkeylabel.caption
+msgid "Shortcut key"
+msgstr "Kısayol tuşu"
+
+#: tgoverlayform.showfpslimcheckbox.caption
+msgid "FPS limit"
+msgstr "FPS limiti"
+
+#: tgoverlayform.showfpslimcheckbox.hint
+msgid "Display FPS Limit"
+msgstr "FPS Limitini Göster"
+
+#: tgoverlayform.simdeckcheckbox.caption
+msgid "Simulate Steam Deck"
+msgstr "Steam Deck'i Simüle Et"
+
+#: tgoverlayform.simdeckcheckbox.hint
+msgid ""
+"SteamDeck=1\n"
+"Mimics Steam Deck environment for specific UI/features."
+msgstr ""
+"SteamDeck=1\n"
+"Belirli arayüz ve özellikler için Steam Deck ortamını taklit eder."
+
+#: tgoverlayform.smaalabel.caption
+msgid "SMAA"
+msgstr "SMAA"
+
+#: tgoverlayform.smaavaluelabel.caption
+msgctxt "tgoverlayform.smaavaluelabel.caption"
+msgid "0"
+msgstr "0"
+
+#: tgoverlayform.spoofcheckbox.caption
+msgid "Spoof DLSS"
+msgstr "DLSS'i Taklit Et"
+
+#: tgoverlayform.squareimage.hint
+msgid "Square edge"
+msgstr "Kare kenar"
+
+#: tgoverlayform.stagememcheckbox.caption
+msgid "Staging shared memory"
+msgstr "Paylaşımlı Bellekte Veri Hazırlama"
+
+#: tgoverlayform.stagememcheckbox.hint
+msgid ""
+"STAGING_SHARED_MEMORY=1\n"
+"Improves performance through efficient memory sharing."
+msgstr ""
+"STAGING_SHARED_MEMORY=1\n"
+"Verimli bellek paylaşımı ile performansı arttırır."
+
+#: tgoverlayform.statusgroupbox.caption
+msgid "Software Status"
+msgstr "Yazılım Durumu"
+
+#: tgoverlayform.subbitbtn.caption
+msgctxt "tgoverlayform.subbitbtn.caption"
+msgid "-"
+msgstr "-"
+
+#: tgoverlayform.subbitbtn.hint
+msgid "Remove effect from the list"
+msgstr "Efekti listeden kaldır"
+
+#: tgoverlayform.swapusagecheckbox.caption
+msgid "Swap"
+msgstr "Takas Alanı"
+
+#: tgoverlayform.systemgroupbox.caption
+msgid "System Information"
+msgstr "Sistem Bilgisi"
+
+#: tgoverlayform.systemlabel.caption
+msgid "System"
+msgstr "Sistem"
+
+#: tgoverlayform.thememenuitem.caption
+msgid "Switch to Light theme"
+msgstr "Açık temaya geçiş yap"
+
+#: tgoverlayform.timecheckbox.caption
+msgid "Time"
+msgstr "Zaman"
+
+#: tgoverlayform.toggleimage.hint
+msgctxt "tgoverlayform.toggleimage.hint"
+msgid ""
+"Key to enable and disable the HUD\n"
+"(Shift_L = left shift)\n"
+"(Shift_R = right shift)"
+msgstr ""
+"HUD'u açıp kapatma tuşu\n"
+"(Shift_L = sol shift)\n"
+"(Shift_R = sağ shift)"
+
+#: tgoverlayform.tracelogcheckbox.caption
+msgid "Enable trace logs"
+msgstr "İzleme kayıtlarını etkinleştir"
+
+#: tgoverlayform.tracelogcheckbox.hint
+msgid ""
+"Use this to generate detailed log files for troubleshooting. \n"
+"This is useful for debugging issues when reporting them to the developers."
+msgstr ""
+"Bunu sorun giderme için ayrıntılı kayıt dosyaları oluşturmak için kullanın. \n"
+"Bu, sorunları geliştiricilere bildirirken hata ayıklama yapmak için yararlıdır."
+
+#: tgoverlayform.transparencylabel.caption
+msgid "Alpha"
+msgstr "Alfa"
+
+#: tgoverlayform.tweakslabel.caption
+msgctxt "tgoverlayform.tweakslabel.caption"
+msgid "Proton Tweaks"
+msgstr "Proton Tweaks"
+
+#: tgoverlayform.tweaksshape.hint
+msgctxt "tgoverlayform.tweaksshape.hint"
+msgid "Vulkan post processing layer to enhance the visual graphics of games."
+msgstr "Oyunlardaki görselliği iyileştiren Vulkan son işleme katmanı."
+
+#: tgoverlayform.tweakstabsheet.caption
+msgid "Tweaks"
+msgstr "İnce Ayarlar"
+
+#: tgoverlayform.tweakstext.caption
+msgctxt "tgoverlayform.tweakstext.caption"
+msgid "Proton Tweaks"
+msgstr "Proton Tweaks"
+
+#: tgoverlayform.tweakstext2.caption
+msgid "Manage environment variables easily"
+msgstr "Ortam değişkenlerini kolayca yönetin"
+
+#: tgoverlayform.updatebitbtn.caption
+msgctxt "tgoverlayform.updatebitbtn.caption"
+msgid "Update"
+msgstr "Güncelle"
+
+#: tgoverlayform.updatebitbtn.hint
+msgid "Update packages"
+msgstr "Paketleri güncelle"
+
+#: tgoverlayform.updatestatuslabel.caption
+msgid "-------"
+msgstr "-------"
+
+#: tgoverlayform.usesdlcheckbox.caption
+msgid "Use SDL Input"
+msgstr "SDL Girişini Kullan"
+
+#: tgoverlayform.usesdlcheckbox.hint
+msgid ""
+"PROTON_USE_SDL=1\n"
+"Uses SDL library for better controller compatibility."
+msgstr ""
+"PROTON_USE_SDL=1\n"
+"Daha iyi kontrolcü uyumluluğu için SDL kütüphanesini kullanır."
+
+#: tgoverlayform.versioningcheckbox.caption
+msgid "Log Versioning"
+msgstr "Kayıt Sürümleme"
+
+#: tgoverlayform.versioningcheckbox.hint
+msgid ""
+"Adds more headers and information such as versioning to the log. \n"
+"This format is not supported on flightlessmango.com (yet)"
+msgstr ""
+"Günlüğe daha fazla başlık ve sürüm bilgisi gibi veriler ekler. \n"
+"Bu format flightlessmango.com'da (henüz) desteklenmiyor"
+
+#: tgoverlayform.vimage.hint
+msgid "Vertical"
+msgstr "Dikey"
+
+#: tgoverlayform.visualtabsheet.caption
+msgid "Visual"
+msgstr "Görünüm"
+
+#: tgoverlayform.vkbasaltlabel.caption
+msgctxt "tgoverlayform.vkbasaltlabel.caption"
+msgid "vkBasalt"
+msgstr "vkBasalt"
+
+#: tgoverlayform.vkbasaltlabel.hint
+msgctxt "tgoverlayform.vkbasaltlabel.hint"
+msgid "Vulkan post processing layer to enhance the visual graphics of games."
+msgstr "Oyunlardaki görsel grafiklerini iyileştiren Vulkan son işleme katmanı."
+
+#: tgoverlayform.vkbasaltshape.hint
+msgctxt "tgoverlayform.vkbasaltshape.hint"
+msgid "Vulkan post processing layer to enhance the visual graphics of games."
+msgstr "Oyunlardaki görsel grafiklerini iyileştiren Vulkan son işleme katmanı."
+
+#: tgoverlayform.vkbasaltstatuscheckbox.caption
+msgctxt "tgoverlayform.vkbasaltstatuscheckbox.caption"
+msgid "vkBasalt"
+msgstr "vkBasalt"
+
+#: tgoverlayform.vkbasaltstatuscheckbox.hint
+msgid "VKbasalt status"
+msgstr "VKbasalt durumu"
+
+#: tgoverlayform.vkbasalttabsheet.caption
+msgid "vkbasalt"
+msgstr "vkbasalt"
+
+#: tgoverlayform.vkbtogglekeycombobox.hint
+msgid "Key that will enable and disable effects"
+msgstr "Efektleri açıp kapatacak tuş"
+
+#: tgoverlayform.vkbtogglekeycombobox.text
+msgid "Home"
+msgstr "Home"
+
+#: tgoverlayform.vktogglelabel.caption
+msgid "Toggle Key"
+msgstr "Geçiş Tuşu"
+
+#: tgoverlayform.vpscheckbox.caption
+msgid "VPS"
+msgstr "VPS"
+
+#: tgoverlayform.vpscheckbox.hint
+msgid "Display Vulkan Present Mode"
+msgstr "Vulkan Sunum Modunu Görüntüle"
+
+#: tgoverlayform.vramusagecheckbox.caption
+msgid "VRAM"
+msgstr "VRAM"
+
+#: tgoverlayform.vsynccombobox.hint
+msgid ""
+"ON -  Synchronize the frame rate of the game with the monitor refresh rate (60Hz) \n"
+"for better stability and avoid tearing.\n"
+"\n"
+"ADAPTIVE - Turns V-sync off if you fail to reach your refresh rate, so tearing will occur \n"
+"at that point.\n"
+"\n"
+"MAILBOX - mailbox renders the game without a FPS limit but only sends the images \n"
+"to the monitor according to the refresh rate. It provides low latency with high power \n"
+"consumption, but provides low latency and tearing free.\n"
+"\n"
+"OFF - Do not synchronize frame rate and refresh rate, gives better \n"
+"performance but produces tearing as consequence.\n"
+"\n"
+"UNSET - Let the game decide"
+msgstr ""
+"AÇIK - Daha iyi bir kararlılık sağlamak ve yırtılmayı önlemek için oyunun \n"
+"kare hızını monitör yenileme hızıyla (60Hz) senkronize eder.\n"
+"\n"
+"ADAPTİF - Yenileme hızına ulaşamadığınızda V-Sync'i kapatır, \n"
+"bu noktada görüntü yırtılması oluşur.\n"
+"\n"
+"MAILBOX - mailbox modu, oyunu FPS sınırı olmaksızın işler ancak görüntüleri \n"
+"yalnızca yenileme hızına uygun şekilde monitöre gönderir. Yüksek güç tüketimi \n"
+"pahasına düşük gecikme süresi sağlar, ayrıca düşük gecikme ve yırtılmasız görüntü sunar.\n"
+"\n"
+"KAPALI - Kare hızını yenileme hızıyla eşitlemez, daha iyi \n"
+"performans verir ancak görüntüde yırtılmalara yol açar.\n"
+"\n"
+"AYARLANMAMIŞ - Kararı oyuna bırakır"
+
+#: tgoverlayform.vsynccombobox.text
+msgctxt "tgoverlayform.vsynccombobox.text"
+msgid "Unset"
+msgstr "Ayarlanmamış"
+
+#: tgoverlayform.vsyncgroupbox.caption
+msgid "VSYNC"
+msgstr "VSYNC"
+
+#: tgoverlayform.vulkandrivercheckbox.caption
+msgid "Vulkan Driver"
+msgstr "Vulkan Sürücüsü"
+
+#: tgoverlayform.whitecolorbitbtn.hint
+msgid "All white theme"
+msgstr "Tamamen beyaz tema"
+
+#: tgoverlayform.whitecolorlabel.caption
+msgid "Simple White"
+msgstr "Sade Beyaz"
+
+#: tgoverlayform.winecheckbox.caption
+msgid "Wine Ver"
+msgstr "Wine Sürümü"
+
+#: tgoverlayform.wined3dcheckbox.caption
+msgid "Use old WINED3D"
+msgstr "Eski WINED3D'yi kullan"
+
+#: tgoverlayform.wined3dcheckbox.hint
+msgid ""
+"PROTON_USE_WINED3D=1\n"
+"Forces OpenGL-based translation instead of Vulkan (DXVK)."
+msgstr ""
+"PROTON_USE_WINED3D=1\n"
+"Vulkan (DXVK) yerine OpenGL tabanlı çeviriyi zorlar."
+
+#: tgoverlayform.winelabel.caption
+msgid "Wine"
+msgstr "Wine"
+
+#: tgoverlayform.winesynccheckbox.caption
+msgid "Wine Sync"
+msgstr "Wine Sync"
+
+#: tgoverlayform.wow64checkbox.caption
+msgid "Use WOW64"
+msgstr "WOW64 kullan"
+
+#: tgoverlayform.wow64checkbox.hint
+msgid ""
+"PROTON_USE_WOW64=1\n"
+"Enables the modern 64-bit container for 32-bit apps."
+msgstr ""
+"PROTON_USE_WOW64=1\n"
+"32-bit uygulamalar için modern 64-bit kapsayıcıyı etkinleştirir."
+
+#: tgoverlayform.xesslabel.caption
+msgid "XeSS:"
+msgstr "XeSS:"
+
+#: tgoverlayform.xesslabel1.caption
+msgctxt "tgoverlayform.xesslabel1.caption"
+msgid "--"
+msgstr "--"
+
+#: thowtoform.caption
+msgid "howtoForm"
+msgstr "howtoForm"
+
+#: thowtoform.closehowtobitbtn.caption
+msgctxt "thowtoform.closehowtobitbtn.caption"
+msgid "Close"
+msgstr "Kapat"
+
+#: thowtoform.heroicsheet.caption
+msgid "Heroic"
+msgstr "Heroic"
+
+#: thowtoform.nextbitbtn.caption
+msgid ">>"
+msgstr ">>"
+
+#: thowtoform.previousbitbtn.caption
+msgid "<<"
+msgstr "<<"
+
+#: thowtoform.steamsheet.caption
+msgid "Steam"
+msgstr "Steam"
+
+#: tprotontricksform.applybutton.caption
+msgid "Apply"
+msgstr "Uygula"
+
+#: tprotontricksform.caption
+msgid "Wine prefix manager"
+msgstr "Wine prefix yöneticisi"
+
+#: tprotontricksform.closebutton.caption
+msgctxt "tprotontricksform.closebutton.caption"
+msgid "Close"
+msgstr "Kapat"
+
+#: tprotontricksform.gameslistview.columns[0].caption
+msgid "Game"
+msgstr "Oyun"
+
+#: tprotontricksform.gameslistview.columns[1].caption
+msgid "AppID"
+msgstr "Uygulama ID"
+
+#: tprotontricksform.gameslistview.columns[2].caption
+msgctxt "tprotontricksform.gameslistview.columns[2].caption"
+msgid "Windows Version"
+msgstr "Windows Sürümü"
+
+#: tprotontricksform.winvercombobox.texthint
+msgctxt "tprotontricksform.winvercombobox.texthint"
+msgid "Windows Version"
+msgstr "Windows Sürümü"
+
