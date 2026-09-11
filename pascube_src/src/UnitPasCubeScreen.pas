@@ -161,10 +161,34 @@ type
         property IsFinished: Boolean read GetIsFinished;
       end;
 
+      TPasCubeScreen = class;
+
+      TTelemetryThread = class(TThread)
+      private
+        FScreen: TPasCubeScreen;
+        FDeviceName: string;
+        FSL: TStringList;
+        FLastCPUEnergy: Int64;
+        FLastCPUTime: Double;
+        function FindCPUEnergyPath: String;
+        function SampleCPUTemp: Double;
+        procedure SampleCPUPower;
+        function SampleGPUTempHwmon: Double;
+        function SampleGPUPowerHwmon: Double;
+        procedure SampleNvidia(var aTemp, aPower: Double);
+        procedure SampleTelemetry;
+      protected
+        procedure Execute; override;
+      public
+        constructor Create(aScreen: TPasCubeScreen; const aDeviceName: string);
+        destructor Destroy; override;
+      end;
+
      TPasCubeScreen=class(TpvApplicationScreen)
       private
        fSubmitStatus: Integer; // 0=Idle, 1=Submitting, 2=Success, 3=Error, 4=Disabled
        fSubmitThread: TSubmitThread;
+       fTelemetryThread: TTelemetryThread;
        fVulkanGraphicsCommandPool:TpvVulkanCommandPool;
        fVulkanGraphicsCommandBuffer:TpvVulkanCommandBuffer;
        fVulkanGraphicsCommandBufferFence:TpvVulkanFence;
@@ -381,6 +405,8 @@ begin
     ForceDirectories(Dir);
   Result := Dir + '/' + AFileName;
 end;
+
+procedure CleanProcessEnvironment(AProcess: TProcess); forward;
 
 function T7ZipThread.GetIsFinished: Boolean;
 begin
@@ -746,6 +772,398 @@ begin
   ThreadLog('TSubmitThread.Execute: Thread completed. Success = ' + BoolToStr(FSuccess, True));
 end;
 
+constructor TTelemetryThread.Create(aScreen: TPasCubeScreen; const aDeviceName: string);
+begin
+  FScreen := aScreen;
+  FDeviceName := aDeviceName;
+  FSL := TStringList.Create;
+  FLastCPUEnergy := 0;
+  FLastCPUTime := GetTickCount64 / 1000.0;
+  inherited Create(False);
+end;
+
+destructor TTelemetryThread.Destroy;
+begin
+  FreeAndNil(FSL);
+  inherited Destroy;
+end;
+
+function TTelemetryThread.FindCPUEnergyPath: String;
+var
+  idx, jdx: Integer;
+  hPath, inPath, lblPath, lblStr: String;
+begin
+  Result := '';
+  for idx := 0 to 15 do begin
+    hPath := '/sys/class/hwmon/hwmon' + IntToStr(idx);
+    if not DirectoryExists(hPath) then Continue;
+    for jdx := 1 to 16 do begin
+      inPath := hPath + '/energy' + IntToStr(jdx) + '_input';
+      if not FileExists(inPath) then Continue;
+      lblPath := hPath + '/energy' + IntToStr(jdx) + '_label';
+      if FileExists(lblPath) then begin
+        try
+          FSL.LoadFromFile(lblPath);
+          if FSL.Count > 0 then begin
+            lblStr := LowerCase(Trim(FSL[0]));
+            if (Pos('socket', lblStr) > 0) or (Pos('package', lblStr) > 0) or (Pos('total', lblStr) > 0) then begin
+              Result := inPath;
+              Exit;
+            end;
+          end;
+        except
+        end;
+      end;
+      if Result = '' then Result := inPath;
+    end;
+    if Result <> '' then Exit;
+  end;
+end;
+
+function TTelemetryThread.SampleCPUTemp: Double;
+var
+  i, j, Pass: Integer;
+  HwmonPath, NamePath, TempPath, NameStr: String;
+  ValInt: LongInt;
+  Match: Boolean;
+begin
+  Result := -1.0;
+  for Pass := 1 to 2 do begin
+    for i := 0 to 15 do begin
+      HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+      if not DirectoryExists(HwmonPath) then Continue;
+      NamePath := HwmonPath + '/name';
+      NameStr := '';
+      if FileExists(NamePath) then begin
+        try
+          FSL.LoadFromFile(NamePath);
+          if FSL.Count > 0 then NameStr := LowerCase(Trim(FSL[0]));
+        except
+        end;
+      end;
+
+      Match := false;
+      if Pass = 1 then begin
+        if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
+           (Pos('zenpower', NameStr) > 0) then Match := true;
+      end else begin
+        if (Pos('cpu', NameStr) > 0) or (Pos('acpitz', NameStr) > 0) or
+           (Pos('package', NameStr) > 0) or (NameStr = '') then Match := true;
+      end;
+
+      if Match then begin
+        for j := 1 to 8 do begin
+          TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
+          if FileExists(TempPath) then begin
+            try
+              FSL.LoadFromFile(TempPath);
+              if (FSL.Count > 0) and TryStrToInt(Trim(FSL[0]), ValInt) then begin
+                if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+                if (Result > 0) and (Result < 150) then Exit;
+              end;
+            except
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  for i := 0 to 8 do begin
+    TempPath := '/sys/class/thermal/thermal_zone' + IntToStr(i) + '/temp';
+    if FileExists(TempPath) then begin
+      try
+        FSL.LoadFromFile(TempPath);
+        if (FSL.Count > 0) and TryStrToInt(Trim(FSL[0]), ValInt) then begin
+          if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+          if (Result > 0) and (Result < 150) then Exit;
+        end;
+      except
+      end;
+    end;
+  end;
+end;
+
+procedure TTelemetryThread.SampleCPUPower;
+var
+  EnergyVal: Int64;
+  NowSec, TimeDiff, EnergyDiff, CurrentPower: Double;
+  EnergyPath, HwmonPath, NamePath, PowerPath, NameStr: String;
+  ValInt, i: Integer;
+begin
+  EnergyVal := 0;
+  NowSec := GetTickCount64 / 1000.0;
+
+  if FileExists('/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj') then begin
+    try
+      FSL.LoadFromFile('/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj');
+      if FSL.Count > 0 then TryStrToInt64(Trim(FSL[0]), EnergyVal);
+    except
+    end;
+  end;
+
+  if EnergyVal = 0 then begin
+    EnergyPath := FindCPUEnergyPath;
+    if EnergyPath <> '' then begin
+      try
+        FSL.LoadFromFile(EnergyPath);
+        if FSL.Count > 0 then TryStrToInt64(Trim(FSL[0]), EnergyVal);
+      except
+      end;
+    end;
+  end;
+
+  if EnergyVal > 0 then begin
+    if FLastCPUEnergy > 0 then begin
+      TimeDiff := NowSec - FLastCPUTime;
+      if TimeDiff > 0.05 then begin
+        EnergyDiff := EnergyVal - FLastCPUEnergy;
+        if EnergyDiff >= 0 then begin
+          CurrentPower := (EnergyDiff / TimeDiff) / 1000000.0;
+          if (CurrentPower > 0) and (CurrentPower < 1000) then begin
+            if Assigned(FScreen) and (CurrentPower > FScreen.fCurrentResult.CPUPowerMax) then
+              FScreen.fCurrentResult.CPUPowerMax := CurrentPower;
+          end;
+        end;
+      end;
+    end;
+    FLastCPUEnergy := EnergyVal;
+    FLastCPUTime := NowSec;
+    Exit;
+  end;
+
+  for i := 0 to 15 do begin
+    HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+    if not DirectoryExists(HwmonPath) then Continue;
+    NamePath := HwmonPath + '/name';
+    NameStr := '';
+    if FileExists(NamePath) then begin
+      try
+        FSL.LoadFromFile(NamePath);
+        if FSL.Count > 0 then NameStr := LowerCase(Trim(FSL[0]));
+      except
+      end;
+    end;
+
+    if (Pos('k10temp', NameStr) > 0) or (Pos('coretemp', NameStr) > 0) or
+       (Pos('zenpower', NameStr) > 0) or (Pos('fam15h_power', NameStr) > 0) or
+       (Pos('acpitz', NameStr) > 0) then begin
+      PowerPath := HwmonPath + '/power1_input';
+      if not FileExists(PowerPath) then
+        PowerPath := HwmonPath + '/power1_average';
+      if FileExists(PowerPath) then begin
+        try
+          FSL.LoadFromFile(PowerPath);
+          if (FSL.Count > 0) and TryStrToInt(Trim(FSL[0]), ValInt) then begin
+            if ValInt > 1000 then CurrentPower := ValInt / 1000000.0 else CurrentPower := ValInt;
+            if (CurrentPower > 0) and (CurrentPower < 1000) then begin
+              if Assigned(FScreen) and (CurrentPower > FScreen.fCurrentResult.CPUPowerMax) then
+                FScreen.fCurrentResult.CPUPowerMax := CurrentPower;
+            end;
+          end;
+        except
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TTelemetryThread.SampleGPUTempHwmon: Double;
+var
+  i, j: Integer;
+  HwmonPath, NamePath, TempPath, NameStr: String;
+  ValInt: LongInt;
+begin
+  Result := -1.0;
+  for i := 0 to 15 do begin
+    HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+    if not DirectoryExists(HwmonPath) then Continue;
+    NamePath := HwmonPath + '/name';
+    NameStr := '';
+    if FileExists(NamePath) then begin
+      try
+        FSL.LoadFromFile(NamePath);
+        if FSL.Count > 0 then NameStr := LowerCase(Trim(FSL[0]));
+      except
+      end;
+    end;
+
+    if (Pos('amdgpu', NameStr) > 0) or (Pos('nvidia', NameStr) > 0) or
+       (Pos('nouveau', NameStr) > 0) or (Pos('i915', NameStr) > 0) or (Pos('xe', NameStr) > 0) then begin
+      for j := 1 to 8 do begin
+        TempPath := HwmonPath + '/temp' + IntToStr(j) + '_input';
+        if FileExists(TempPath) then begin
+          try
+            FSL.LoadFromFile(TempPath);
+            if (FSL.Count > 0) and TryStrToInt(Trim(FSL[0]), ValInt) then begin
+              if ValInt > 150 then Result := ValInt / 1000.0 else Result := ValInt;
+              if (Result > 0) and (Result < 150) then Exit;
+            end;
+          except
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TTelemetryThread.SampleGPUPowerHwmon: Double;
+var
+  i: Integer;
+  HwmonPath, NamePath, PowerPath, NameStr: String;
+  ValInt: LongInt;
+begin
+  Result := -1.0;
+  for i := 0 to 15 do begin
+    HwmonPath := '/sys/class/hwmon/hwmon' + IntToStr(i);
+    if not DirectoryExists(HwmonPath) then Continue;
+    NamePath := HwmonPath + '/name';
+    NameStr := '';
+    if FileExists(NamePath) then begin
+      try
+        FSL.LoadFromFile(NamePath);
+        if FSL.Count > 0 then NameStr := LowerCase(Trim(FSL[0]));
+      except
+      end;
+    end;
+
+    if (Pos('amdgpu', NameStr) > 0) or (Pos('i915', NameStr) > 0) or (Pos('xe', NameStr) > 0) then begin
+      PowerPath := HwmonPath + '/power1_average';
+      if not FileExists(PowerPath) then
+        PowerPath := HwmonPath + '/power1_input';
+
+      if FileExists(PowerPath) then begin
+        try
+          FSL.LoadFromFile(PowerPath);
+          if (FSL.Count > 0) and TryStrToInt(Trim(FSL[0]), ValInt) then begin
+            if ValInt > 1000 then Result := ValInt / 1000000.0 else Result := ValInt;
+            if Result > 0 then Exit;
+          end;
+        except
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TTelemetryThread.SampleNvidia(var aTemp, aPower: Double);
+var
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr, TempStr, PowerStr: String;
+  CommaPos, LoopCount: Integer;
+  ValTemp: LongInt;
+  ValPower: Double;
+begin
+  aTemp := -1.0;
+  aPower := -1.0;
+  AProcess := TProcess.Create(nil);
+  try
+    CleanProcessEnvironment(AProcess);
+    AProcess.Executable := 'nvidia-smi';
+    AProcess.Parameters.Add('--query-gpu=temperature.gpu,power.draw');
+    AProcess.Parameters.Add('--format=csv,noheader,nounits');
+    AProcess.Options := [poUsePipes, poNoConsole];
+    try
+      AProcess.Execute;
+      AProcess.CloseInput;
+      OutputStr := '';
+      LoopCount := 0;
+      while (AProcess.Running or (AProcess.Output.NumBytesAvailable > 0)) and not Terminated do begin
+        Inc(LoopCount);
+        if LoopCount > 40 then begin
+          try AProcess.Terminate(1); except end;
+          Break;
+        end;
+        if AProcess.Output.NumBytesAvailable > 0 then begin
+          BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+          if BytesRead > 0 then begin
+            Buffer[BytesRead] := #0;
+            OutputStr := OutputStr + StrPas(Buffer);
+          end;
+        end;
+        Sleep(5);
+      end;
+      if Pos(#10, OutputStr) > 0 then
+        OutputStr := Copy(OutputStr, 1, Pos(#10, OutputStr) - 1);
+      OutputStr := Trim(OutputStr);
+      CommaPos := Pos(',', OutputStr);
+      if CommaPos > 0 then begin
+        TempStr := Trim(Copy(OutputStr, 1, CommaPos - 1));
+        PowerStr := Trim(Copy(OutputStr, CommaPos + 1, Length(OutputStr)));
+        if TryStrToInt(TempStr, ValTemp) then
+          aTemp := ValTemp;
+        PowerStr := StringReplace(PowerStr, '.', DefaultFormatSettings.DecimalSeparator, [rfReplaceAll]);
+        if TryStrToFloat(PowerStr, ValPower) then
+          aPower := ValPower;
+      end;
+    except
+    end;
+  finally
+    AProcess.Free;
+  end;
+end;
+
+procedure TTelemetryThread.SampleTelemetry;
+var
+  curCPU, curGPU, curGPUPower: Double;
+  nvTemp, nvPower: Double;
+  isNvidia: Boolean;
+begin
+  if not Assigned(FScreen) or Terminated then Exit;
+
+  // 1. CPU Temperature & Power
+  curCPU := SampleCPUTemp;
+  if (curCPU > 0) and (curCPU < 150) then begin
+    if curCPU > FScreen.fCurrentResult.CPUTempMax then
+      FScreen.fCurrentResult.CPUTempMax := curCPU;
+  end;
+
+  SampleCPUPower;
+
+  // 2. GPU Temperature & Power
+  isNvidia := (Pos('nvidia', LowerCase(FDeviceName)) > 0) or
+              (Pos('geforce', LowerCase(FDeviceName)) > 0) or
+              FileExists('/proc/driver/nvidia/version');
+  curGPU := -1.0;
+  curGPUPower := -1.0;
+  nvTemp := -1.0;
+  nvPower := -1.0;
+
+  if isNvidia then begin
+    SampleNvidia(nvTemp, nvPower);
+    curGPU := nvTemp;
+    curGPUPower := nvPower;
+  end else begin
+    curGPU := SampleGPUTempHwmon;
+    curGPUPower := SampleGPUPowerHwmon;
+  end;
+
+  if (curGPU > 0) and (curGPU < 150) then begin
+    if curGPU > FScreen.fCurrentResult.GPUTempMax then
+      FScreen.fCurrentResult.GPUTempMax := curGPU;
+  end;
+
+  if (curGPUPower > 0) and (curGPUPower < 2000) then begin
+    if curGPUPower > FScreen.fCurrentResult.GPUPowerMax then
+      FScreen.fCurrentResult.GPUPowerMax := curGPUPower;
+  end;
+end;
+
+procedure TTelemetryThread.Execute;
+var
+  i: Integer;
+begin
+  while not Terminated do begin
+    SampleTelemetry;
+    for i := 1 to 10 do begin
+      if Terminated then Break;
+      Sleep(50);
+    end;
+  end;
+end;
+
 
  type PVertex=^TVertex;
       TVertex=record
@@ -811,6 +1229,7 @@ begin
   GetSubmitURL;
   fSubmitStatus := 0;
   fSubmitThread := nil;
+  fTelemetryThread := nil;
   fRenderWidth := 1920;
   fRenderHeight := 1080;
   fGPU360pFallback := false;
@@ -818,6 +1237,11 @@ end;
 
 destructor TPasCubeScreen.Destroy;
 begin
+  if Assigned(fTelemetryThread) then begin
+   fTelemetryThread.Terminate;
+   fTelemetryThread.WaitFor;
+   FreeAndNil(fTelemetryThread);
+  end;
   if Assigned(f7ZipThread) then begin
    f7ZipThread.Terminate;
    f7ZipThread.WaitFor;
@@ -1747,9 +2171,6 @@ var p:pointer;
     body: PCubeBody;
     i: Integer;
     isBenchmark: Boolean;
-    curGPU: Double;
-    curCPU: Double;
-    curGPUPower: Double;
     gpuStressValue: TpvFloat;
     SkyParams: array[0..1] of TpvFloat;
     scaleFactor, scaleX, scaleY, scaleZ: TpvFloat;
@@ -1775,18 +2196,6 @@ begin
  if assigned(fVulkanGraphicsPipeline) then begin
 
     isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
-     if isBenchmark then begin
-       if fBenchmarkTimer - fLastTelemetryTime > 0.1 then begin
-         fLastTelemetryTime := fBenchmarkTimer;
-         curGPU := GetGPUTemperature;
-         if (curGPU > 0) and (curGPU > fCurrentResult.GPUTempMax) then fCurrentResult.GPUTempMax := curGPU;
-         curCPU := GetCPUTemperature;
-         if (curCPU > 0) and (curCPU > fCurrentResult.CPUTempMax) then fCurrentResult.CPUTempMax := curCPU;
-         curGPUPower := GetGPUPower;
-         if (curGPUPower > 0) and (curGPUPower > fCurrentResult.GPUPowerMax) then fCurrentResult.GPUPowerMax := curGPUPower;
-         UpdateCPUPower;
-       end;
-     end;
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -2312,6 +2721,12 @@ begin
    fLastCPUEnergy := 0;
    fLastCPUTime := 0.0;
    fLastTelemetryTime := 0.0;
+   if Assigned(fTelemetryThread) then begin
+     fTelemetryThread.Terminate;
+     fTelemetryThread.WaitFor;
+     FreeAndNil(fTelemetryThread);
+   end;
+   fTelemetryThread := TTelemetryThread.Create(Self, fCurrentResult.DeviceName);
    InitParticles;
    fRenderWidth := 1920;
    fRenderHeight := 1080;
@@ -2537,13 +2952,13 @@ end;
 
 procedure TPasCubeScreen.FinishBenchmark;
 var i: Integer;
-    curGPUPower: Double;
 begin
- UpdateCPUPower;
- curGPUPower := GetGPUPower;
- if (curGPUPower > 0) and (curGPUPower > fCurrentResult.GPUPowerMax) then
-   fCurrentResult.GPUPowerMax := curGPUPower;
- fCurrentResult.BenchmarkDuration := fBenchmarkTimer;
+  if Assigned(fTelemetryThread) then begin
+    fTelemetryThread.Terminate;
+    fTelemetryThread.WaitFor;
+    FreeAndNil(fTelemetryThread);
+  end;
+  fCurrentResult.BenchmarkDuration := fBenchmarkTimer;
  if (fCurrentResult.CPUTempStart > 0) and (fCurrentResult.CPUTempMax >= fCurrentResult.CPUTempStart) then
    fCurrentResult.CPUTempDelta := fCurrentResult.CPUTempMax - fCurrentResult.CPUTempStart
  else

@@ -1,5 +1,5 @@
 object howtoForm: ThowtoForm
-  Left = 0
+  Left = 1280
   Height = 690
   Top = 0
   Width = 1000
