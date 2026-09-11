@@ -44,6 +44,7 @@ type
    bpCPU_Single,   // CPU Single-Threaded 7-Zip test
    bpCPU_Multi,    // CPU Multi-Threaded 7-Zip test
    bpGPU_1080p,    // GPU Vulkan stress at 1080p
+   bpRT_1080p,     // GPU Vulkan Ray Tracing stress at 1080p
    bpResults
   );
 
@@ -68,6 +69,8 @@ type
     Timestamp: String;
     Resolution: String;
     TotalScore: Integer;
+    RTScore: Integer;
+    RTSupported: Boolean;
     PhaseResults: array[0..8] of TBenchmarkPhaseResult;
     DeviceName: String;
     VulkanAPI: String;
@@ -235,6 +238,7 @@ type
         fPhaseTimer: TpvDouble;
         fPhysicsWorld: TPhysicsWorld;
         fCurrentResult: TBenchmarkResult;
+        fRayTracingSupported: Boolean;
         fLastCPUEnergy: Int64;
         fLastCPUTime: TpvDouble;
         fLastTelemetryTime: TpvDouble;
@@ -259,6 +263,8 @@ type
            fShowMethodology: Boolean;
            fGPUIteration: Integer;
            fGPURuns: array[0..2] of TBenchmarkPhaseResult;
+           fRTIteration: Integer;
+           fRTRuns: array[0..2] of TBenchmarkPhaseResult;
 
           // Metrics
        fFrameAccumulator: TpvDouble;
@@ -327,6 +333,7 @@ type
         procedure SaveResultsJSON;
         procedure LoadResultsJSON;
         procedure CalculateScore;
+        function CheckRayTracingSupport: Boolean;
         procedure SpawnPhaseCubes;
         procedure UpdatePhysics(const aDeltaTime: TpvDouble);
         procedure UpdateLights(const aDeltaTime: TpvDouble);
@@ -1447,6 +1454,7 @@ begin
  // Push constant range should cover both vectors (2 * SizeOf(TpvVector4) = 32 bytes)
  fVulkanPipelineLayout.AddPushConstantRange(TVkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),0,SizeOf(TpvVector4)*2);
  fVulkanPipelineLayout.Initialize;
+ fRayTracingSupported:=CheckRayTracingSupport;
 end;
 
 procedure TPasCubeScreen.Hide;
@@ -1808,7 +1816,7 @@ begin
  if fReady and (aKeyEvent.KeyEventType=TpvApplicationInputKeyEventType.Down) then begin
   case aKeyEvent.KeyCode of
     KEYCODE_ESCAPE:begin
-       if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
+       if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p, bpRT_1080p] then begin
        fBenchmarkPhase := bpIdleMenu;
        fShowSkybox := true;
       result:=true;
@@ -2047,7 +2055,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
  Inc(fFrameCount);
 
    // Benchmark state machine
-    if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p] then begin
+    if fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p, bpRT_1080p] then begin
    fBenchmarkTimer := fBenchmarkTimer + aDeltaTime;
    fPhaseTimer := fPhaseTimer + aDeltaTime;
  
@@ -2071,7 +2079,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
         NextPhase;
       end;
      end;
-     bpGPU_1080p: begin
+     bpGPU_1080p, bpRT_1080p: begin
       if fPhaseTimer >= 10.0 then NextPhase;
      end;
    end;
@@ -2084,8 +2092,8 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
     pvApplication.MaximumFramesPerSecond := 0.0;
    end;
 
-   // Update lights & particles if in GPU stress phase
-    if fBenchmarkPhase in [bpGPU_1080p] then begin
+   // Update lights & particles if in GPU stress or RT phase
+    if fBenchmarkPhase in [bpGPU_1080p, bpRT_1080p] then begin
     UpdateLights(aDeltaTime);
     UpdateParticles(aDeltaTime);
    end;
@@ -2195,7 +2203,7 @@ begin
  inherited Draw(aSwapChainImageIndex,aWaitSemaphore,nil);
  if assigned(fVulkanGraphicsPipeline) then begin
 
-    isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p];
+    isBenchmark := fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpCPU_Multi, bpGPU_1080p, bpRT_1080p];
 
   // Debug log every ~2 seconds during benchmark
   if isBenchmark and (fBenchmarkTimer - fLastDebugSave > 2.0) then begin
@@ -2216,7 +2224,7 @@ begin
    ViewMatrix:=TpvMatrix4x4.CreateTranslation(0.0,0.0,-8.0);
    ProjectionMatrix:=TpvMatrix4x4.CreatePerspective(45.0,1920.0/1080.0,1.0,128.0);
 
-   if isBenchmark and (fBenchmarkPhase in [bpGPU_1080p]) then begin
+   if isBenchmark and (fBenchmarkPhase in [bpGPU_1080p, bpRT_1080p]) then begin
    // Main Cube (Instance 0)
    ModelMatrix:=TpvMatrix4x4.CreateRotate(State^.AnglePhases[0]*TwoPI,TpvVector3.Create(0.0,0.0,1.0))*
                 TpvMatrix4x4.CreateRotate(State^.AnglePhases[1]*TwoPI,TpvVector3.Create(0.0,1.0,0.0));
@@ -2313,10 +2321,12 @@ begin
                                                                                                                0,
                                                                                                                nil);
 
-     if fBenchmarkPhase in [bpGPU_1080p] then
-     gpuStressValue := fBenchmarkTimer
-    else
-     gpuStressValue := 0.0;
+     if fBenchmarkPhase in [bpRT_1080p] then
+      gpuStressValue := 2.0
+     else if fBenchmarkPhase in [bpGPU_1080p] then
+      gpuStressValue := 1.0
+     else
+      gpuStressValue := 0.0;
 
     // Render physics bodies instanced
     if isBenchmark and (fPhysicsWorld.BodyCount > 0) then begin
@@ -2360,7 +2370,7 @@ begin
     end;
 
       // Render particles (GPU particle phase)
-       if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase in [bpGPU_1080p]) then begin
+       if isBenchmark and (fParticleCount > 0) and (fBenchmarkPhase in [bpGPU_1080p, bpRT_1080p]) then begin
        // 8 Orbiting lights
        for i := 0 to 7 do begin
         PushConstants.Vector := TpvVector4.Create(fParticleColors[i].x, fParticleColors[i].y, fParticleColors[i].z, 0.85);
@@ -2383,11 +2393,14 @@ begin
       end;
 
      // Default cube (idle menu / warmup / CPU single / GPU stress phases)
-      if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_1080p]) then begin
+      if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_1080p, bpRT_1080p]) then begin
       if isBenchmark then begin
         if fBenchmarkPhase = bpCPU_Single then begin
           PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
           PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, 0.0);
+         end else if fBenchmarkPhase in [bpRT_1080p] then begin
+          PushConstants.Vector := TpvVector4.Create(0.7 + 0.3 * Sin(fPhaseTimer * 6.0), 0.2, 1.0, 1.0);
+          PushConstants.Params := TpvVector4.Create(1.2, 0.8, 32.0, gpuStressValue);
          end else if fBenchmarkPhase in [bpGPU_1080p] then begin
           PushConstants.Vector := TpvVector4.Create(0.0, 0.8 + 0.2 * Sin(fPhaseTimer * 8.0), 1.0, 1.0);
            PushConstants.Params := TpvVector4.Create(0.85, 0.7, 24.0, gpuStressValue);
@@ -2508,6 +2521,7 @@ begin
   bpCPU_Single: Result := 0.0;
    bpCPU_Multi: Result := 0.0;
    bpGPU_1080p: Result := 10.0;
+   bpRT_1080p: Result := 10.0;
    else Result := 0.0;
  end;
 end;
@@ -2520,6 +2534,7 @@ begin
   bpCPU_Single: Result := 'CPU Single-Thread';
   bpCPU_Multi: Result := 'CPU Multi-Thread (' + IntToStr(pvApplication.CountCPUThreads) + ')';
    bpGPU_1080p: Result := 'GPU Stress at 1080p (Run ' + IntToStr(fGPUIteration + 1) + '/3)';
+   bpRT_1080p: Result := 'Ray Tracing Stress at 1080p (Run ' + IntToStr(fRTIteration + 1) + '/3)';
   bpResults: Result := 'Results';
   else Result := 'Unknown';
  end;
@@ -2690,6 +2705,7 @@ begin
   fPhaseTimer := 0.0;
   fPhaseResultIndex := -1;
   fGPUIteration := 0;
+  fRTIteration := 0;
   fShowSkybox := false;
   if Assigned(f7ZipThread) then begin
     f7ZipThread.Free;
@@ -2731,6 +2747,8 @@ begin
    fRenderWidth := 1920;
    fRenderHeight := 1080;
    fGPU360pFallback := false;
+   fRayTracingSupported := CheckRayTracingSupport;
+   fCurrentResult.RTSupported := fRayTracingSupported;
   ResetCounters;
 end;
 
@@ -2787,6 +2805,36 @@ begin
    fPhaseFPSMax := (fGPURuns[0].FPSMax + fGPURuns[1].FPSMax + fGPURuns[2].FPSMax) / 3.0;
   end;
 
+   if fBenchmarkPhase = bpRT_1080p then begin
+    if (fFrameCount > 0) and (fPhaseFrameTimeSum > 0.0) then begin
+     fpsAvg := fFrameCount / fPhaseFrameTimeSum;
+     ftAvg := (fPhaseFrameTimeSum / fFrameCount) * 1000.0;
+    end else begin
+     fpsAvg := 0.0;
+     ftAvg := 0.0;
+    end;
+
+    // Store iteration results
+    fRTRuns[fRTIteration].FPSAvg := fpsAvg;
+    fRTRuns[fRTIteration].FPSMin := fPhaseFPSMin;
+    fRTRuns[fRTIteration].FPSMax := fPhaseFPSMax;
+    fRTRuns[fRTIteration].FrameTimeMs := ftAvg;
+
+    if fRTIteration < 2 then begin
+      Inc(fRTIteration);
+      DebugLog('NextPhase: bpRT_1080p iteration ' + IntToStr(fRTIteration + 1) + ' of 3.');
+      fPhaseTimer := 0.0;
+      ResetCounters;
+      Exit;
+    end;
+
+    // 3 iterations completed, compute average
+    fpsAvg := (fRTRuns[0].FPSAvg + fRTRuns[1].FPSAvg + fRTRuns[2].FPSAvg) / 3.0;
+    ftAvg := (fRTRuns[0].FrameTimeMs + fRTRuns[1].FrameTimeMs + fRTRuns[2].FrameTimeMs) / 3.0;
+    fPhaseFPSMin := (fRTRuns[0].FPSMin + fRTRuns[1].FPSMin + fRTRuns[2].FPSMin) / 3.0;
+    fPhaseFPSMax := (fRTRuns[0].FPSMax + fRTRuns[1].FPSMax + fRTRuns[2].FPSMax) / 3.0;
+   end;
+
   if (fBenchmarkPhase > bpWarmup) and (fPhaseResultIndex >= 0) and (fPhaseResultIndex <= 6) then begin
    if (fFrameCount > 0) and (fPhaseFrameTimeSum > 0.0) then begin
     fpsAvg := fFrameCount / fPhaseFrameTimeSum;
@@ -2820,7 +2868,7 @@ begin
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].ParticlesActive := 0;
      fCurrentResult.PhaseResults[fPhaseResultIndex].PhysicsBodies := 0;
-    end else if fBenchmarkPhase in [bpGPU_1080p] then begin
+    end else if fBenchmarkPhase in [bpGPU_1080p, bpRT_1080p] then begin
       fCurrentResult.PhaseResults[fPhaseResultIndex].Score := Round(fpsAvg * 25.0);
      fCurrentResult.PhaseResults[fPhaseResultIndex].ObjectsRendered := 1;
      fCurrentResult.PhaseResults[fPhaseResultIndex].LightsActive := 8;
@@ -2856,18 +2904,32 @@ begin
       InitParticles;
      end;
       bpGPU_1080p: begin
-       DebugLog('NextPhase: bpGPU_1080p -> bpResults. Completing benchmark.');
        if fGPU360pFallback then
        begin
          fRenderWidth := 1920;
          fRenderHeight := 1080;
-         DebugLog('Restored render resolution from 360p to 1080p for results screen.');
+         DebugLog('Restored render resolution from 360p to 1080p.');
        end;
+       if fRayTracingSupported then begin
+         DebugLog('NextPhase: bpGPU_1080p -> bpRT_1080p. Starting Ray Tracing phase.');
+         fBenchmarkPhase := bpRT_1080p;
+         fPhaseResultIndex := 4;
+         fRTIteration := 0;
+       end else begin
+         DebugLog('NextPhase: bpGPU_1080p -> bpResults. Ray Tracing not supported on this GPU, completing benchmark.');
+         fBenchmarkPhase := bpResults;
+         CalculateScore;
+         FinishBenchmark;
+         Exit;
+       end;
+      end;
+      bpRT_1080p: begin
+       DebugLog('NextPhase: bpRT_1080p -> bpResults. Completing benchmark.');
        fBenchmarkPhase := bpResults;
-      CalculateScore;
-      FinishBenchmark;
-      Exit;
-     end;
+       CalculateScore;
+       FinishBenchmark;
+       Exit;
+      end;
    else begin
     DebugLog('NextPhase: Unknown or bpResults -> bpIdleMenu.');
     fBenchmarkPhase := bpIdleMenu;
@@ -2901,10 +2963,29 @@ begin
    fPhysicsWorld.GetBody(0)^.Scale]));
 end;
 
+function TPasCubeScreen.CheckRayTracingSupport: Boolean;
+var
+  PhysDev: TpvVulkanPhysicalDevice;
+begin
+  Result := False;
+  if not (Assigned(pvApplication) and Assigned(pvApplication.VulkanDevice) and Assigned(pvApplication.VulkanDevice.PhysicalDevice)) then
+    Exit;
+  PhysDev := pvApplication.VulkanDevice.PhysicalDevice;
+  if Assigned(PhysDev.AvailableExtensionNames) then
+  begin
+    Result := (PhysDev.AvailableExtensionNames.IndexOf(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) >= 0) or
+              (PhysDev.AvailableExtensionNames.IndexOf(VK_KHR_RAY_QUERY_EXTENSION_NAME) >= 0) or
+              (PhysDev.AvailableExtensionNames.IndexOf('VK_NV_ray_tracing') >= 0);
+  end;
+  DebugLog(Format('CheckRayTracingSupport: Device="%s" RT_Supported=%s', [PhysDev.DeviceName, BoolToStr(Result, True)]));
+end;
+
 procedure TPasCubeScreen.CalculateScore;
 var cpuSTPoints, cpuMTPoints: Integer;
     gpu1080Points, gpuAvgPoints: Integer;
     gpuAvgFPS: TpvDouble;
+    rtPoints: Integer;
+    rtAvgFPS: TpvDouble;
 begin
   if fGPU360pFallback then begin
     fCurrentResult.PhaseResults[3].Score := Round(fCurrentResult.PhaseResults[3].Score / 5.0);
@@ -2945,8 +3026,40 @@ begin
   fCurrentResult.PhaseResults[7].ParticlesActive := fParticleCount;
   fCurrentResult.PhaseResults[7].PhysicsBodies := 0;
 
+  // Ray Tracing score calculation
+  fCurrentResult.RTSupported := fRayTracingSupported;
+  if fRayTracingSupported and (fCurrentResult.PhaseResults[4].Score > 0) then begin
+    rtPoints := fCurrentResult.PhaseResults[4].Score;
+    if rtPoints < 1 then rtPoints := 1;
+    rtAvgFPS := fCurrentResult.PhaseResults[4].FPSAvg;
+    fCurrentResult.RTScore := rtPoints;
+
+    fCurrentResult.PhaseResults[8].PhaseName := 'Ray Tracing Render';
+    fCurrentResult.PhaseResults[8].Score := rtPoints;
+    fCurrentResult.PhaseResults[8].FPSAvg := rtAvgFPS;
+    fCurrentResult.PhaseResults[8].FPSMin := fCurrentResult.PhaseResults[4].FPSMin;
+    fCurrentResult.PhaseResults[8].FPSMax := fCurrentResult.PhaseResults[4].FPSMax;
+    fCurrentResult.PhaseResults[8].FrameTimeMs := fCurrentResult.PhaseResults[4].FrameTimeMs;
+    fCurrentResult.PhaseResults[8].ObjectsRendered := 1;
+    fCurrentResult.PhaseResults[8].LightsActive := 8;
+    fCurrentResult.PhaseResults[8].ParticlesActive := fParticleCount;
+    fCurrentResult.PhaseResults[8].PhysicsBodies := 0;
+  end else begin
+    fCurrentResult.RTScore := 0;
+    fCurrentResult.PhaseResults[8].PhaseName := 'Ray Tracing Render';
+    fCurrentResult.PhaseResults[8].Score := 0;
+    fCurrentResult.PhaseResults[8].FPSAvg := 0.0;
+    fCurrentResult.PhaseResults[8].FPSMin := 0.0;
+    fCurrentResult.PhaseResults[8].FPSMax := 0.0;
+    fCurrentResult.PhaseResults[8].FrameTimeMs := 0.0;
+    fCurrentResult.PhaseResults[8].ObjectsRendered := 0;
+    fCurrentResult.PhaseResults[8].LightsActive := 0;
+    fCurrentResult.PhaseResults[8].ParticlesActive := 0;
+    fCurrentResult.PhaseResults[8].PhysicsBodies := 0;
+  end;
+
   // Calculate weighted global gaming score: 35% CPU ST + 15% CPU MT + 50% GPU average
-   fCurrentResult.TotalScore := Round((0.35 * cpuSTPoints) + (0.15 * cpuMTPoints) + (0.50 * gpuAvgPoints));
+  fCurrentResult.TotalScore := Round((0.35 * cpuSTPoints) + (0.15 * cpuMTPoints) + (0.50 * gpuAvgPoints));
   if fCurrentResult.TotalScore < 1 then fCurrentResult.TotalScore := 1;
 end;
 
@@ -3017,6 +3130,8 @@ begin
     json := json + ' "cpu_max_power": ' + FloatToJsonStr(fHistory[i].CPUPowerMax) + ',';
     json := json + ' "gpu_max_power": ' + FloatToJsonStr(fHistory[i].GPUPowerMax) + ',';
     json := json + ' "total_score": ' + IntToStr(fHistory[i].TotalScore) + ',';
+    json := json + ' "rt_score": ' + IntToStr(fHistory[i].RTScore) + ',';
+    json := json + ' "rt_supported": ' + LowerCase(BoolToStr(fHistory[i].RTSupported, True)) + ',';
     json := json + ' "duration": ' + FormatFloat('0.0', fHistory[i].BenchmarkDuration) + ',';
    json := json + ' "phases": [';
    for j := 0 to 8 do begin
@@ -3109,6 +3224,8 @@ begin
           if fHistory[i].GPUPowerMax = 0.0 then
             fHistory[i].GPUPowerMax := HistoryObj.Get('gpumaxpower', 0.0);
           fHistory[i].TotalScore := HistoryObj.Get('total_score', 0);
+          fHistory[i].RTScore := HistoryObj.Get('rt_score', 0);
+          fHistory[i].RTSupported := HistoryObj.Get('rt_supported', False);
           fHistory[i].BenchmarkDuration := HistoryObj.Get('duration', 0.0);
          
          PhasesArr := TJSONArray(HistoryObj.FindPath('phases'));
@@ -3128,6 +3245,10 @@ begin
             fHistory[i].PhaseResults[j].PhysicsBodies := PhaseObj.Get('bodies', 0);
            end;
           end;
+         end;
+         if (fHistory[i].RTScore = 0) and (fHistory[i].PhaseResults[8].Score > 0) then begin
+           fHistory[i].RTScore := fHistory[i].PhaseResults[8].Score;
+           fHistory[i].RTSupported := True;
          end;
          Inc(fHistoryCount);
          if fHistory[i].TotalScore > fBestScore then
@@ -3890,6 +4011,8 @@ begin
     JSONObj.Add('cpu_single', fCurrentResult.PhaseResults[1].Score);
     JSONObj.Add('cpu_multi', fCurrentResult.PhaseResults[2].Score);
     JSONObj.Add('gpu_score', fCurrentResult.PhaseResults[3].Score);
+    JSONObj.Add('rt_score', fCurrentResult.RTScore);
+    JSONObj.Add('rt_supported', LowerCase(BoolToStr(fCurrentResult.RTSupported, True)));
     JSONObj.Add('machine_hash', GetSHA256Hash(GetGPUHardwareSignature));
     JSONObj.Add('client_id', GetSHA256Hash(GetGPUHardwareSignature));
     JSONObj.Add('architecture', GetCPUArchitecture);
@@ -4113,8 +4236,8 @@ begin
                          0.0, 0.0, 0.0, 0.0, 255.0);
 
   // Dialog box
-  boxW := 66.0 * charWidth;
-  boxH := 22.0 * charHeight;
+  boxW := 68.0 * charWidth;
+  boxH := 26.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
   app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -4149,10 +4272,15 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          '3. GPU: Vulkan instanced multi-cube stress (1080p, 10s)',
+                          '3. GPU: Vulkan instanced multi-cube stress (1080p, 3x10s)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
-  lineY := lineY + 2.0 * charHeight;
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          '4. Ray Tracing: Vulkan RT reflections & shadows stress (1080p, 3x10s)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + 1.8 * charHeight;
 
   // Section 2: Results
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, 1.0, toaLeft, 'Results',
@@ -4171,10 +4299,15 @@ begin
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'GPU Score = (avg FPS * 60) + (min FPS * 40), recalibrated to 1080p',
+                          'GPU Raster Score = 3-run avg (FPS * 60) + (min FPS * 40), recalibrated to 1080p',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
-  lineY := lineY + 2.0 * charHeight;
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'Ray Tracing Score = 3-run avg (FPS * 60) + (min FPS * 40) [Independent Score]',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + 1.8 * charHeight;
 
   // Section 3: Formula
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, 1.0, toaLeft, 'Formula',
@@ -4183,7 +4316,7 @@ begin
   lineY := lineY + 1.4 * charHeight;
 
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
-                          'Main Score = (CPU ST * 0.35) + (CPU MT * 0.15) + (GPU * 0.5)',
+                          'Main Score = (CPU ST * 0.35) + (CPU MT * 0.15) + (GPU Raster * 0.5)',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + lineH;
@@ -4194,6 +4327,11 @@ begin
   lineY := lineY + lineH;
   app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
                           'Recalibrated against Steam Machine reference (2087 pts)',
+                          0.0, 0.0, 0.0, 0.0,
+                          179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+  lineY := lineY + lineH;
+  app.TextOverlay.AddText(boxX + 2.0 * charWidth, lineY, textScale, toaLeft,
+                          'Note: Ray Tracing score is tracked separately and not added to Main Score',
                           0.0, 0.0, 0.0, 0.0,
                           179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
   lineY := lineY + 1.0 * charHeight;
@@ -4256,6 +4394,7 @@ begin
    bpCPU_Single: infoStr := 'Running 7-Zip Single-Thread benchmark (MIPS)...';
    bpCPU_Multi: infoStr := 'Running 7-Zip Multi-Thread benchmark (MIPS)...';
     bpGPU_1080p: infoStr := 'Testing GPU at 1080p (1920x1080)...';
+    bpRT_1080p: infoStr := 'Testing Ray Tracing performance at 1080p...';
   end;
 
   pbWidth := 1920.0 * 0.6;
@@ -5534,14 +5673,31 @@ begin
    app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[2].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-   // --- Card: Unified GPU Score ---
+   // --- Row 2: GPU Raster Score | Ray Tracing Score ---
    cardY := cardY + cardHeight + 0.5 * charHeight;
-   app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, cardHeight,
+
+   // GPU Raster Score (left)
+   app.TextOverlay.AddBox(leftColX1, cardY, halfWidth, cardHeight,
                           33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
                           255.0);
-   app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-    app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+   app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Raster Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+   app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+
+   // Ray Tracing Score (right)
+   app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
+                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
+                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                          255.0);
+   app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'Ray Tracing Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+   if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then begin
+     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.RTScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+   end else if not fCurrentResult.RTSupported then begin
+     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.38, 1.8, toaCenter, 'N/A', 1.0, 1.0, 1.0, 0.0, 150.0 / 255.0, 160.0 / 255.0, 180.0 / 255.0, 0.8);
+     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.72, 0.65, toaCenter, 'No Hardware RT Support', 1.0, 1.0, 1.0, 0.0, 120.0 / 255.0, 130.0 / 255.0, 150.0 / 255.0, 0.8);
+   end else begin
+     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 1.8, toaCenter, 'N/A', 1.0, 1.0, 1.0, 0.0, 150.0 / 255.0, 160.0 / 255.0, 180.0 / 255.0, 0.8);
+   end;
 
     // --- SCORE TREND GRAPH (expanded, replaces former History / Benchmark Details space) ---
     if fHistoryCount > 0 then begin
@@ -5657,7 +5813,11 @@ begin
      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-      detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
+      if fHistory[fHoveredHistoryIdx].RTSupported and (fHistory[fHoveredHistoryIdx].RTScore > 0) then
+        detailStr := 'GPU: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score) +
+                     '  RT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].RTScore)
+      else
+        detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
                               1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
