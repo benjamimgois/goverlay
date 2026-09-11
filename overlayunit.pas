@@ -3320,7 +3320,7 @@ begin
   end;
 
   //Program Version
-  GVERSION := '1.9.1';
+  GVERSION := '1.9.2';
   GCHANNEL := 'stable'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
