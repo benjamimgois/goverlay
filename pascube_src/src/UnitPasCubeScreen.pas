@@ -98,9 +98,11 @@ type
    THardwareRef = record
      Name: String;
      Score: Integer;
+     RTScore: Integer;
      IsCurrent: Boolean;
      Specs: String;
     end;
+   THardwareRefArray = array[0..11] of THardwareRef;
 
   TModelMatrixInfo=record
    ModelViewProjectionMatrix:TpvMatrix4x4;
@@ -254,6 +256,7 @@ type
          fShowSkybox: Boolean;
           fExpandedHardwareIdx: Integer;
           fHoveredHardwareIdx: Integer;
+          fCurrentHardwareIdx: Integer;
           fHoveredHistoryIdx: Integer;
           fHWExpandProgress: array[0..11] of TpvFloat;
             fClearConfirmPending: Boolean;
@@ -352,6 +355,7 @@ type
            function IsClearConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
            function IsSubmitConfirmButtonHovered(const aPos: TpvVector2; out aButton: Integer): Boolean;
           function IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
+          procedure GetHardwareReferences(out aRefs: THardwareRefArray);
           function IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
           procedure DrawBenchmarkOverlay;
          procedure ClearBenchmarkResults;
@@ -1220,6 +1224,7 @@ begin
    fShowSkybox := true;
    fExpandedHardwareIdx := -1;
    fHoveredHardwareIdx := -1;
+   fCurrentHardwareIdx := -1;
    fHoveredHistoryIdx := -1;
      fClearConfirmPending := false;
      fClearConfirmHovered := 0;
@@ -1886,9 +1891,9 @@ begin
         fDraggingCube:=false;
         result:=true;
         end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
-        fAutoRotation:=false;
-        fDraggingCube:=false;
-        result:=true;
+         fAutoRotation:=false;
+         fDraggingCube:=false;
+         result:=true;
         end else if (fBenchmarkPhase = bpResults) and fShowMethodology then begin
          fAutoRotation:=false;
          fDraggingCube:=false;
@@ -1959,9 +1964,12 @@ begin
       fClearConfirmHovered := 0;
       result:=true;
        end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
-        fExpandedHardwareIdx := idx;
+        if fExpandedHardwareIdx = idx then
+         fExpandedHardwareIdx := -1
+        else
+         fExpandedHardwareIdx := idx;
         result:=true;
-        end;
+       end;
    end;
   end;
   TpvApplicationInputPointerEventType.Motion:begin
@@ -2118,7 +2126,7 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
     // Animate hardware comparison accordion
     if fBenchmarkPhase = bpResults then begin
       for i := 0 to 11 do begin
-       if i = fExpandedHardwareIdx then begin
+       if (i = fExpandedHardwareIdx) or (i = fCurrentHardwareIdx) then begin
         if fHWExpandProgress[i] < 1.0 then
          fHWExpandProgress[i] := fHWExpandProgress[i] + (1.0 - fHWExpandProgress[i]) * Min(aDeltaTime * 12.0, 1.0);
        end else begin
@@ -3539,14 +3547,70 @@ begin
            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
 
+procedure TPasCubeScreen.GetHardwareReferences(out aRefs: THardwareRefArray);
+var i, j: Integer;
+    TempHW: THardwareRef;
+begin
+  aRefs[0].Name := 'Raspberry Pi 5'; aRefs[0].Score := 400; aRefs[0].RTScore := 0; aRefs[0].IsCurrent := false;
+  aRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
+
+  aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 2087; aRefs[1].RTScore := 920; aRefs[1].IsCurrent := false;
+  aRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
+
+  aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 750; aRefs[2].RTScore := 240; aRefs[2].IsCurrent := false;
+  aRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
+
+  aRefs[3].Name := 'Steam Deck'; aRefs[3].Score := 818; aRefs[3].RTScore := 180; aRefs[3].IsCurrent := false;
+  aRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
+
+  aRefs[4].Name := 'ROG Ally X'; aRefs[4].Score := 1212; aRefs[4].RTScore := 340; aRefs[4].IsCurrent := false;
+  aRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
+
+  aRefs[5].Name := 'Entry Gamer PC'; aRefs[5].Score := 1580; aRefs[5].RTScore := 520; aRefs[5].IsCurrent := false;
+  aRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
+
+  aRefs[6].Name := 'PlayStation 5';     aRefs[6].Score := 1800; aRefs[6].RTScore := 680; aRefs[6].IsCurrent := false;
+  aRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
+
+  aRefs[7].Name := 'XBOX Series X';     aRefs[7].Score := 2000; aRefs[7].RTScore := 850; aRefs[7].IsCurrent := false;
+  aRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
+
+  aRefs[8].Name := 'PlayStation 5 Pro'; aRefs[8].Score := 2700; aRefs[8].RTScore := 1450; aRefs[8].IsCurrent := false;
+  aRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
+
+  aRefs[9].Name := 'Mid-Range Gamer PC'; aRefs[9].Score := 2898; aRefs[9].RTScore := 2100; aRefs[9].IsCurrent := false;
+  aRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
+
+  aRefs[10].Name := 'High-End Gamer PC'; aRefs[10].Score := 8062; aRefs[10].RTScore := 7450; aRefs[10].IsCurrent := false;
+  aRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
+
+  aRefs[11].Name := 'Current System'; aRefs[11].Score := fCurrentResult.TotalScore;
+  if fCurrentResult.RTSupported then
+    aRefs[11].RTScore := fCurrentResult.RTScore
+  else
+    aRefs[11].RTScore := 0;
+  aRefs[11].IsCurrent := true;
+  aRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+
+  // Ordenar decrescente por pontuacao principal
+  for i := 0 to 10 do begin
+   for j := i + 1 to 11 do begin
+    if aRefs[i].Score < aRefs[j].Score then begin
+     TempHW := aRefs[i];
+     aRefs[i] := aRefs[j];
+     aRefs[j] := TempHW;
+    end;
+   end;
+  end;
+end;
+
 function TPasCubeScreen.IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
 var app: TPasCubeApplication;
-    cx, rightColX1, rightColWidth, cardY: TpvFloat;
-    charWidth, charHeight: TpvFloat;
-    i, j: Integer;
+    rightColX1, rightColWidth, cardY: TpvFloat;
+    charHeight: TpvFloat;
+    i: Integer;
     itemY, itemH: TpvFloat;
-    HWRefs: array[0..11] of THardwareRef;
-    TempHW: THardwareRef;
+    HWRefs: THardwareRefArray;
 begin
   Result := false;
   aIndex := -1;
@@ -3554,63 +3618,27 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
-  cx := 1920.0 * 0.5;
   rightColX1 := 1920.0 * 0.52;
   rightColWidth := 1920.0 * 0.43;
-   cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
+  cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
 
-   // Reconstruct and sort hardware references (same as DrawResultsOverlay)
-   HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
-   HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 1700; HWRefs[1].IsCurrent := false;
-    HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
-   HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
-   HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
-   HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 808; HWRefs[3].IsCurrent := false;
-   HWRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
-   HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1300; HWRefs[4].IsCurrent := false;
-   HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
-   HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 1500; HWRefs[5].IsCurrent := false;
-   HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-   HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 1800; HWRefs[6].IsCurrent := false;
-   HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-   HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 2000; HWRefs[7].IsCurrent := false;
-   HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-   HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
-   HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-   HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 3000; HWRefs[9].IsCurrent := false;
-   HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-   HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 8062; HWRefs[10].IsCurrent := false;
-   HWRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
-   HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
-   HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+  GetHardwareReferences(HWRefs);
 
-   for i := 0 to 10 do begin
-    for j := i + 1 to 11 do begin
-     if HWRefs[i].Score < HWRefs[j].Score then begin
-      TempHW := HWRefs[i];
-      HWRefs[i] := HWRefs[j];
-      HWRefs[j] := TempHW;
-     end;
-    end;
+  // Determine which item is hovered using animated Y layout
+  itemY := cardY + 3.5 * charHeight;
+  for i := 0 to 11 do begin
+   itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
+
+   if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
+      (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
+    aIndex := i;
+    Result := true;
+    Exit;
    end;
-
-    // Determine which item is hovered using animated Y layout
-    itemY := cardY + 2.8 * charHeight;
-    for i := 0 to 11 do begin
-     itemH := 2.6 * charHeight + 1.6 * charHeight * fHWExpandProgress[i];
-
-     if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
-        (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
-      aIndex := i;
-      Result := true;
-      Exit;
-     end;
-     itemY := itemY + itemH;
-    end;
+   itemY := itemY + itemH;
   end;
+end;
 
 function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
@@ -5574,18 +5602,18 @@ end;
  procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
     cx, cy: TpvFloat;
-    i, j: Integer;
+    i: Integer;
     lineStr, resultStr, descStr, nickname: String;
     leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
-     HWRefs: array[0..11] of THardwareRef;
-     TempHW: THardwareRef;
-     MaxScore: Integer;
+     HWRefs: THardwareRefArray;
+     MaxScore, MaxRTScore: Integer;
       barStartX, maxBarWidth, barWidth, barHeight, barY: TpvFloat;
+      rtBarWidth, rtBarY, rtBarR, rtBarG, rtBarB, rtBarA, rtTextR, rtTextG, rtTextB: TpvFloat;
       bgR, bgG, bgB, bgA: TpvFloat;
       isExpanded, isHovered: Boolean;
       itemH: TpvFloat;
       nameR, nameG, nameB, scoreR, scoreG, scoreB, barR, barG, barB, barA: TpvFloat;
-      hwScoreStr, kernelStr, driverStr: String;
+      hwScoreStr, hwRTStr, kernelStr, driverStr: String;
     charWidth, charHeight: TpvFloat;
     textScaleSmall: TpvFloat;
     scaleFactor: TpvDouble;
@@ -5846,60 +5874,31 @@ begin
    // --- Hardware Comparison title (right column) ---
    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, hwCardY + 0.94 * charHeight, 1.2, toaLeft, 'Hardware Comparison', 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
-    HWRefs[0].Name := 'Raspberry Pi 5'; HWRefs[0].Score := 400; HWRefs[0].IsCurrent := false;
-    HWRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
-    HWRefs[1].Name := 'Steam Machine'; HWRefs[1].Score := 2087; HWRefs[1].IsCurrent := false;
-    HWRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
-    HWRefs[2].Name := 'Nintendo Switch 2'; HWRefs[2].Score := 750; HWRefs[2].IsCurrent := false;
-    HWRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
-    HWRefs[3].Name := 'Steam Deck'; HWRefs[3].Score := 818; HWRefs[3].IsCurrent := false;
-    HWRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
-    HWRefs[4].Name := 'ROG Ally X'; HWRefs[4].Score := 1212; HWRefs[4].IsCurrent := false;
-    HWRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
-    HWRefs[5].Name := 'Entry Gamer PC'; HWRefs[5].Score := 1580; HWRefs[5].IsCurrent := false;
-    HWRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
-    HWRefs[6].Name := 'PlayStation 5';     HWRefs[6].Score := 1800; HWRefs[6].IsCurrent := false;
-    HWRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
-    HWRefs[7].Name := 'XBOX Series X';     HWRefs[7].Score := 2000; HWRefs[7].IsCurrent := false;
-    HWRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
-    HWRefs[8].Name := 'PlayStation 5 Pro';     HWRefs[8].Score := 2700; HWRefs[8].IsCurrent := false;
-    HWRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
-    HWRefs[9].Name := 'Mid-Range Gamer PC';     HWRefs[9].Score := 2898; HWRefs[9].IsCurrent := false;
-    HWRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
-    HWRefs[10].Name := 'High-End Gamer PC';     HWRefs[10].Score := 8062; HWRefs[10].IsCurrent := false;
-    HWRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
-    HWRefs[11].Name := 'Current System'; HWRefs[11].Score := fCurrentResult.TotalScore; HWRefs[11].IsCurrent := true;
-    HWRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
-
-    scaleFactor := 1.0;
-
-    // Ordenar decrescente por pontuacao
-    for i := 0 to 10 do begin
-     for j := i + 1 to 11 do begin
-      if HWRefs[i].Score < HWRefs[j].Score then begin
-       TempHW := HWRefs[i];
-       HWRefs[i] := HWRefs[j];
-       HWRefs[j] := TempHW;
-      end;
-     end;
-    end;
+    GetHardwareReferences(HWRefs);
 
     MaxScore := HWRefs[0].Score;
     if MaxScore = 0 then MaxScore := 1;
 
+    MaxRTScore := 1;
+    for i := 0 to 11 do begin
+      if HWRefs[i].RTScore > MaxRTScore then
+        MaxRTScore := HWRefs[i].RTScore;
+    end;
+
     // Find Current System index and always keep it expanded
     for i := 0 to 11 do begin
      if HWRefs[i].IsCurrent then begin
+      fCurrentHardwareIdx := i;
       fHWExpandProgress[i] := 1.0;
       Break;
      end;
     end;
 
-     itemY := hwCardY + 3.5 * charHeight;
+    itemY := hwCardY + 3.5 * charHeight;
 
     for i := 0 to 11 do begin
      isHovered := (fHoveredHardwareIdx = i);
-     itemH := 2.6 * charHeight + 1.6 * charHeight * fHWExpandProgress[i];
+     itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
 
      // Hover background highlight (subtle cyan glow)
      if isHovered then begin
@@ -5935,40 +5934,101 @@ begin
      // --- Linha 1: Nome (esquerda) + Pontuacao (direita) ---
      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, nameR, nameG, nameB, 1.0);
 
-    hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
-    app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, scoreR, scoreG, scoreB, 1.0);
+     hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
+     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, scoreR, scoreG, scoreB, 1.0);
 
-    // --- Linha 2: Barra fina moderna ---
-    barStartX := rightColX1 + 2.5 * charWidth;
-    maxBarWidth := rightColWidth - 5.0 * charWidth;
-    barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
-    if barWidth < 2.0 then barWidth := 2.0;
+     // --- Linha 2: Barra fina moderna (Main Score) ---
+     barStartX := rightColX1 + 2.5 * charWidth;
+     maxBarWidth := rightColWidth - 5.0 * charWidth;
+     barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
+     if barWidth < 2.0 then barWidth := 2.0;
 
-    barHeight := 0.18 * charHeight;
-    barY := itemY + 1.1 * charHeight;
+     barHeight := 0.18 * charHeight;
+     barY := itemY + 1.1 * charHeight;
 
-    // Background track
-    app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
-                           22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
-                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
-                           255.0);
-    // Fill
-    app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, barR, barG, barB, barA, barR, barG, barB, barA, 255.0);
+     // Background track
+     app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
+                            22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
+                            50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
+                            255.0);
+     // Fill
+     app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, barR, barG, barB, barA, barR, barG, barB, barA, 255.0);
 
-    // --- Linha 3: Especificacoes (accordion com fade) ---
-    if fHWExpandProgress[i] > 0.01 then begin
-     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                             itemY + 1.65 * charHeight,
-                             0.6,
-                             toaLeft,
-                             HWRefs[i].Specs,
-                             1.0, 1.0, 1.0, 0.0,
-                             179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, fHWExpandProgress[i]
-                            );
+     // --- Linha 3, 4, 5: Detalhes expandidos (RT Score + Barra de RT + Specs) ---
+     if fHWExpandProgress[i] > 0.01 then begin
+      if HWRefs[i].IsCurrent then begin
+       rtTextR := 192.0 / 255.0; rtTextG := 132.0 / 255.0; rtTextB := 252.0 / 255.0;
+       rtBarR := 175.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 255.0 / 255.0; rtBarA := 1.0;
+      end else begin
+       rtTextR := 160.0 / 255.0; rtTextG := 150.0 / 255.0; rtTextB := 195.0 / 255.0;
+       rtBarR := 140.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 190.0 / 255.0; rtBarA := 0.95;
+      end;
+
+      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                              itemY + 1.55 * charHeight,
+                              0.7,
+                              toaLeft,
+                              'Ray Tracing',
+                              1.0, 1.0, 1.0, 0.0,
+                              rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
+
+      if HWRefs[i].RTScore > 0 then
+       hwRTStr := FormatScoreValue(HWRefs[i].RTScore) + ' points'
+      else
+       hwRTStr := 'N/A';
+
+      if HWRefs[i].RTScore > 0 then begin
+       app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
+                               itemY + 1.55 * charHeight,
+                               0.7,
+                               toaRight,
+                               hwRTStr,
+                               1.0, 1.0, 1.0, 0.0,
+                               rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
+      end else begin
+       app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
+                               itemY + 1.55 * charHeight,
+                               0.7,
+                               toaRight,
+                               hwRTStr,
+                               1.0, 1.0, 1.0, 0.0,
+                               150.0 / 255.0, 155.0 / 255.0, 170.0 / 255.0, 0.8 * fHWExpandProgress[i]);
+      end;
+
+      // Segunda barra (Ray Tracing)
+      rtBarY := itemY + 2.35 * charHeight;
+      if HWRefs[i].RTScore > 0 then begin
+       rtBarWidth := (HWRefs[i].RTScore / MaxRTScore) * maxBarWidth;
+       if rtBarWidth < 2.0 then rtBarWidth := 2.0;
+      end else begin
+       rtBarWidth := 0.0;
+      end;
+
+      // Background track da barra de RT
+      app.TextOverlay.AddBox(barStartX, rtBarY, maxBarWidth, barHeight,
+                             22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8 * fHWExpandProgress[i],
+                             50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6 * fHWExpandProgress[i],
+                             255.0);
+      // Fill da barra de RT
+      if rtBarWidth > 0.0 then begin
+       app.TextOverlay.AddBox(barStartX, rtBarY, rtBarWidth, barHeight,
+                              rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
+                              rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
+                              255.0);
+      end;
+
+      // Especificacoes (accordion com fade)
+      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                              itemY + 2.9 * charHeight,
+                              0.6,
+                              toaLeft,
+                              HWRefs[i].Specs,
+                              1.0, 1.0, 1.0, 0.0,
+                              179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, fHWExpandProgress[i]);
+     end;
+
+     itemY := itemY + itemH;
     end;
-
-    itemY := itemY + itemH;
-   end;
 
   // --- BOTTOM BUTTON BAR ---
   yText := 1080.0 - 55.0;
