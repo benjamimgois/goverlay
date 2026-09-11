@@ -193,6 +193,7 @@ modules:
         mkdir -p /app/lib/extensions/vulkan/MangoHud
         mkdir -p /app/lib/extensions/vulkan/vkBasalt
         mkdir -p /app/lib/extensions/vulkan/vkSumi
+        mkdir -p /app/lib/extensions/vulkan/lsfgvk
         # Install metainfo
         install -Dm644 data/${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo
         # Create a convenience symlink so pascube can find assets at /app/assets/
