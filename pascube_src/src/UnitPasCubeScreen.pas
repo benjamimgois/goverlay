@@ -4011,7 +4011,19 @@ begin
     JSONObj.Add('cpu_single', fCurrentResult.PhaseResults[1].Score);
     JSONObj.Add('cpu_multi', fCurrentResult.PhaseResults[2].Score);
     JSONObj.Add('gpu_score', fCurrentResult.PhaseResults[3].Score);
-    JSONObj.Add('rt_score', fCurrentResult.RTScore);
+    if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then begin
+      JSONObj.Add('GPU RT', fCurrentResult.RTScore);
+      JSONObj.Add('gpu_rt', fCurrentResult.RTScore);
+      JSONObj.Add('rt_score', fCurrentResult.RTScore);
+    end else if not fCurrentResult.RTSupported then begin
+      JSONObj.Add('GPU RT', 'N/A');
+      JSONObj.Add('gpu_rt', 'N/A');
+      JSONObj.Add('rt_score', 0);
+    end else begin
+      JSONObj.Add('GPU RT', 0);
+      JSONObj.Add('gpu_rt', 0);
+      JSONObj.Add('rt_score', 0);
+    end;
     JSONObj.Add('rt_supported', LowerCase(BoolToStr(fCurrentResult.RTSupported, True)));
     JSONObj.Add('machine_hash', GetSHA256Hash(GetGPUHardwareSignature));
     JSONObj.Add('client_id', GetSHA256Hash(GetGPUHardwareSignature));
@@ -4161,7 +4173,7 @@ begin
   charHeight := app.TextOverlay.FontCharHeight;
 
   boxW := 66.0 * charWidth;
-  boxH := 42.0 * charHeight;
+  boxH := 43.5 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
 
@@ -6167,7 +6179,7 @@ begin
 
     // Dialog box
     boxW := 66.0 * charWidth;
-    boxH := 42.0 * charHeight;
+    boxH := 43.5 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
     app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
@@ -6221,71 +6233,79 @@ begin
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 15.4 * charHeight, 0.9, toaLeft, 'GPU Score:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 15.4 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.PhaseResults[3].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, nickname, 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, 'Architecture:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, GetCPUArchitecture, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, 'Package:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, GetPackageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, 'Timer:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, IntToStr(Round(fCurrentResult.BenchmarkDuration)) + ' seconds', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, 'Display Server:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayServer, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, 'Resolution/Rate:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayResolution + ' @ ' + fCurrentResult.RefreshRate, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, 'Desktop Env:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, fCurrentResult.DesktopEnvironment, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, 'Storage Type:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, fCurrentResult.StorageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, 'Vulkan Driver:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, fCurrentResult.VulkanDriver, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, 'CPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.CPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, 'GPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.GPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'CPU Max Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    if fCurrentResult.CPUTempMax > 0 then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUTempMax) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'GPU RT:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.RTScore), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else if not fCurrentResult.RTSupported then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'N/A', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'N/A', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'CPU Temp Delta:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    if fCurrentResult.CPUTempDelta >= 0 then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, '+' + FloatToJsonStr(fCurrentResult.CPUTempDelta) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, nickname, 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, 'Architecture:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, GetCPUArchitecture, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, 'Package:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, GetPackageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, 'Timer:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, IntToStr(Round(fCurrentResult.BenchmarkDuration)) + ' seconds', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, 'Display Server:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayServer, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, 'Resolution/Rate:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayResolution + ' @ ' + fCurrentResult.RefreshRate, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, 'Desktop Env:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, fCurrentResult.DesktopEnvironment, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, 'Storage Type:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, fCurrentResult.StorageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, 'Vulkan Driver:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, fCurrentResult.VulkanDriver, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, 'CPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.CPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'GPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.GPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'CPU Max Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUTempMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUTempMax) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'CPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    if fCurrentResult.CPUPowerMax > 0 then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'CPU Temp Delta:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUTempDelta >= 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, '+' + FloatToJsonStr(fCurrentResult.CPUTempDelta) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'GPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    if fCurrentResult.GPUPowerMax > 0 then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.GPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'CPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.CPUPowerMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'GOverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
-    if Assigned(app) and (app.Version <> '') then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, app.Version, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'GPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if fCurrentResult.GPUPowerMax > 0 then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.GPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'GOverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    if Assigned(app) and (app.Version <> '') then
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, app.Version, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+    else
+      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
     // Buttons
     gap := 5.0 * charWidth;
