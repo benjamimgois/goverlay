@@ -29,6 +29,12 @@ procedure SyncOptiScalerFilesToDlssEnabler(AIsStable: Boolean = True);
 // Check and automatically install Streamline SDK if not present
 function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean = False): Boolean;
 
+// Validate if a shared library file exists and has valid ELF header and size
+function IsValidSharedLibrary(const APath: string; AMinSizeBytes: Int64 = 65536): Boolean;
+
+// Sanitize implicit Vulkan layer manifests (removes stale/corrupted manifests)
+procedure SanitizeImplicitVulkanLayers;
+
 // Check and automatically install vkSumi Vulkan layer if not present
 function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
@@ -3053,6 +3059,121 @@ begin
   end;
 end;
 
+function IsValidSharedLibrary(const APath: string; AMinSizeBytes: Int64 = 65536): Boolean;
+var
+  FS: TFileStream;
+  Magic: array[0..3] of Byte;
+begin
+  Result := False;
+  if not FileExists(APath) then Exit;
+  try
+    FS := TFileStream.Create(APath, fmOpenRead or fmShareDenyNone);
+    try
+      if FS.Size < AMinSizeBytes then Exit;
+      if FS.Read(Magic, 4) = 4 then
+      begin
+        // ELF header magic: 0x7F, 'E', 'L', 'F'
+        Result := (Magic[0] = $7F) and (Magic[1] = Ord('E')) and (Magic[2] = Ord('L')) and (Magic[3] = Ord('F'));
+      end;
+    finally
+      FS.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+procedure SanitizeImplicitVulkanLayers;
+var
+  DataHome, CandidateDir, CandidateJson, TargetSo, JsonContent: string;
+  CandidateDirs: array[0..1] of string;
+  SL: TStringList;
+  JsonData, LayerObj, PathData: TJSONData;
+  d: Integer;
+begin
+  CandidateDirs[0] := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/';
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome <> '' then
+    CandidateDirs[1] := IncludeTrailingPathDelimiter(DataHome) + 'vulkan/implicit_layer.d/'
+  else
+    CandidateDirs[1] := '';
+
+  for d := 0 to 1 do
+  begin
+    CandidateDir := CandidateDirs[d];
+    if (CandidateDir = '') or (not DirectoryExists(CandidateDir)) then Continue;
+
+    // 1. Sanitize vksumi.json
+    CandidateJson := CandidateDir + 'vksumi.json';
+    if FileExists(CandidateJson) then
+    begin
+      TargetSo := '';
+      try
+        SL := TStringList.Create;
+        try
+          SL.LoadFromFile(CandidateJson);
+          JsonContent := SL.Text;
+        finally
+          SL.Free;
+        end;
+
+        if JsonContent <> '' then
+        begin
+          JsonData := GetJSON(JsonContent);
+          try
+            if Assigned(JsonData) then
+            begin
+              LayerObj := JsonData.FindPath('layer');
+              if Assigned(LayerObj) then
+              begin
+                PathData := LayerObj.FindPath('library_path');
+                if Assigned(PathData) then
+                  TargetSo := PathData.AsString;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        end;
+      except
+        TargetSo := '';
+      end;
+
+      // If library_path is missing, points to a non-existent file, or points to an invalid ELF binary:
+      if (TargetSo = '') or (not FileExists(TargetSo)) or (not IsValidSharedLibrary(TargetSo)) then
+      begin
+        WriteLn('[CLEANUP] Removing corrupted or invalid vkSumi Vulkan layer manifest: ', CandidateJson);
+        DeleteFile(CandidateJson);
+        if (TargetSo <> '') and FileExists(TargetSo) and (not IsValidSharedLibrary(TargetSo)) then
+        begin
+          WriteLn('[CLEANUP] Removing corrupted vkSumi shared library file: ', TargetSo);
+          DeleteFile(TargetSo);
+        end;
+      end;
+    end;
+
+    // 2. Sanitize MAKO implicit layers: check if library is missing or running in Flatpak
+    if FileExists(CandidateDir + 'VkLayer_MAKO_render.json') then
+    begin
+      if IsRunningInFlatpak or
+         ((not FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so')) and
+          (not FileExists('/usr/lib/libmako-render.so')) and
+          (not FileExists('/usr/lib/x86_64-linux-gnu/libmako-render.so')) and
+          (not FileExists('/usr/lib64/libmako-render.so'))) then
+      begin
+        WriteLn('[CLEANUP] Removing broken or orphaned MAKO layer manifest: ', CandidateDir + 'VkLayer_MAKO_render.json');
+        DeleteFile(CandidateDir + 'VkLayer_MAKO_render.json');
+        if FileExists(CandidateDir + 'VkLayer_MAKO_render.x86.json') then
+          DeleteFile(CandidateDir + 'VkLayer_MAKO_render.x86.json');
+        if FileExists(CandidateDir + 'VkLayer_MAKO_spatial_scaling.json') then
+          DeleteFile(CandidateDir + 'VkLayer_MAKO_spatial_scaling.json');
+        if FileExists(CandidateDir + 'VkLayer_MAKO_spatial_scaling.x86.json') then
+          DeleteFile(CandidateDir + 'VkLayer_MAKO_spatial_scaling.x86.json');
+      end;
+    end;
+  end;
+end;
+
 function RunCurlWithProgress(const AUrl, AOutputFile: string; AStartPct, AEndPct: Integer; const AStatusPrefix: string; AOnProgress: TDownloadProgressProc): Integer;
 var
   Process: TProcess;
@@ -3072,6 +3193,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-#');
     Process.Parameters.Add('-L');
+    Process.Parameters.Add('--fail');
     Process.Parameters.Add('--connect-timeout');
     Process.Parameters.Add('10');
     Process.Parameters.Add('-H');
@@ -3121,6 +3243,8 @@ begin
       Sleep(20);
     end;
     Result := Process.ExitStatus;
+    if (Result <> 0) and FileExists(AOutputFile) then
+      DeleteFile(AOutputFile);
   finally
     Process.Free;
   end;
@@ -4094,9 +4218,20 @@ var
   TagPos, UrlPos, QuoteEnd: Integer;
 begin
   Result := False;
-  ChanLabel := 'Checking vkSumi runtime';
   StartPct := 70;
   EndPct := 95;
+
+  // In Flatpak, skip downloading; layer cannot and should not be written to host
+  if IsRunningInFlatpak then
+  begin
+    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping vkSumi host layer installation');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'vkSumi runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Checking vkSumi runtime';
 
   LayersDir := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim;
   TargetSoFile := LayersDir + 'libVkLayer_vksumi.so';
@@ -4117,7 +4252,7 @@ begin
         FileExists('/app/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
         FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') or
         FileExists('/etc/vulkan/implicit_layer.d/vksumi.json')) or
-       (FileExists(TargetSoFile) and FileExists(TargetJsonFile)) then
+       (FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) and FileExists(TargetJsonFile)) then
     begin
       WriteLn('[AUTO-INSTALL] vkSumi layer is already available');
       if Assigned(AOnProgress) then
@@ -4259,7 +4394,7 @@ begin
       RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/vksumi/libVkLayer_vksumi.so', TargetSoFile, StartPct + 16, StartPct + 20, ChanLabel + ' (fallback)', AOnProgress);
     end;
 
-    if FileExists(TargetSoFile) then
+    if FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) then
     begin
       // Create/Update vksumi.json
       JsonSL := TStringList.Create;
@@ -4297,6 +4432,16 @@ begin
     end
     else
     begin
+      if FileExists(TargetSoFile) then
+      begin
+        WriteLn('[AUTO-INSTALL] ERROR: Downloaded vkSumi file is corrupted or invalid ELF; removing: ', TargetSoFile);
+        DeleteFile(TargetSoFile);
+      end;
+      if FileExists(TargetJsonFile) then
+      begin
+        WriteLn('[AUTO-INSTALL] ERROR: Removing stale vkSumi manifest: ', TargetJsonFile);
+        DeleteFile(TargetJsonFile);
+      end;
       WriteLn('[AUTO-INSTALL] ERROR: Failed to install vkSumi layer');
     end;
   except
@@ -4509,9 +4654,20 @@ var
   Process: TProcess;
 begin
   Result := False;
-  ChanLabel := 'Checking MAKO runtime';
   StartPct := 75;
   EndPct := 95;
+
+  // In Flatpak, skip downloading; layer cannot and should not be written to host
+  if IsRunningInFlatpak then
+  begin
+    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping MAKO host layer installation');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'MAKO runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Checking MAKO runtime';
 
   if not AForce and IsMakoInstalled then
   begin

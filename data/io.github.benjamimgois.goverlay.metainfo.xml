@@ -60,6 +60,17 @@
     </screenshots>
 
     <releases>
+        <release version="1.9.2" date="2026-09-11">
+            <description>
+                <p>Bug Fixes</p>
+                <ul>
+                    <li>Fixed critical boot loop on SteamOS caused by Flatpak writing incomplete implicit Vulkan layers to the host filesystem</li>
+                    <li>Restricted vkSumi and MAKO automatic layer provisioning to native environments</li>
+                    <li>Hardened download routines with HTTP error status verification and ELF binary validation</li>
+                    <li>Added automatic cleanup of stale or corrupted user-space Vulkan layer manifests</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.9.1" date="2026-09-10">
             <description>
                 <p>New Features</p>

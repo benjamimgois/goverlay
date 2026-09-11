@@ -42,7 +42,6 @@ finish-args:
   - --filesystem=xdg-config/vkBasalt:rw
   - --filesystem=xdg-config/vkSumi:rw
   - --filesystem=xdg-config/lsfg-vk:create
-  - --filesystem=xdg-data/vulkan:create
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam:ro
