@@ -9521,6 +9521,7 @@ end;
 procedure TStartupDownloadThread.Execute;
 begin
   try
+    SanitizeImplicitVulkanLayers;
     CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 30%)
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (30% - 50%)
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (50% - 65%)
