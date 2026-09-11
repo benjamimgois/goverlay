@@ -778,18 +778,18 @@ var
   PosFlatpak: Integer;
   FlatpakBase: string;
   UpscalerType: Integer;
+  OptChannel: Integer;
   Ini: TIniFile;
-  IsStable: Boolean;
   ChannelFolder: string;
 begin
   UpscalerType := 0;
-  IsStable := True;
+  OptChannel := 0;
   if FileExists(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf') then
   begin
     Ini := TIniFile.Create(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf');
     try
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
-      IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+      OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
     finally
       Ini.Free;
     end;
@@ -797,15 +797,17 @@ begin
 
   if UpscalerType = 1 then
   begin
-    if IsStable then
-      ChannelFolder := 'dlssenabler-stable'
+    if OptChannel = 1 then
+      ChannelFolder := 'dlssenabler-edge'
     else
-      ChannelFolder := 'dlssenabler-edge';
+      ChannelFolder := 'dlssenabler-stable';
   end
-  else if IsStable then
-    ChannelFolder := 'optiscaler-stable'
+  else if OptChannel = 2 then
+    ChannelFolder := 'optiscaler-custom'
+  else if OptChannel = 1 then
+    ChannelFolder := 'optiscaler-edge'
   else
-    ChannelFolder := 'optiscaler-edge';
+    ChannelFolder := 'optiscaler-stable';
 
   PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
   if PosFlatpak > 0 then
@@ -1159,7 +1161,7 @@ begin
   end;
 end;
 
-procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean);
+procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean; AUnmanagedIni: Boolean = False);
 var
   ConfigIni, GameIni: string;
   AgeConfig, AgeGame: TDateTime;
@@ -1173,6 +1175,13 @@ begin
 
   if not ConfigExists and not GameExists then
     Exit;
+
+  if AUnmanagedIni and GameExists then
+  begin
+    Log('Unmanaged INI mode enabled: preserving GameDir/OptiScaler.ini untouched.');
+    EnsureOptiScalerLogging(GameIni);
+    Exit;
+  end;
 
   if not ConfigExists and GameExists then
   begin
@@ -1705,7 +1714,7 @@ var
   ProfileName, CurProfile: string;
   LsfgMult: Integer;
   TomlLines: TStringList;
-  GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni: Boolean;
+  GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni, UnmanagedIni: Boolean;
   InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings: TStringList;
@@ -1788,6 +1797,8 @@ begin
       begin
         CentralLogDir := IncludeTrailingPathDelimiter(CurrentOverrides) + 'logs' + PathDelim + Key;
         CentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'bgmod.log';
+        if not DirectoryExists(CentralLogDir) then
+          ForceDirectories(CentralLogDir);
       end
       else if LowerCase(Key) = 'bgmod' then
       begin
@@ -1796,6 +1807,8 @@ begin
       end;
     end;
   end;
+  
+  Log('Executing bgmod: ' + ParamStr(0));
   
   // Default values
   GOverlayMangoHud := False;
@@ -1806,6 +1819,7 @@ begin
   GOverlayLossless := False;
   DllName := 'dxgi.dll';
   PreserveIni := True;
+  UnmanagedIni := False;
   
   EnvList := TStringList.Create;
   EnvStrings := TStringList.Create;
@@ -1835,6 +1849,7 @@ begin
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
+      UnmanagedIni := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
       
       LsfgDllPath := Ini.ReadString('Config', 'LS_DLL_PATH', Ini.ReadString('Env', 'LSFG_DLL_PATH', ''));
       LsfgMult := Ini.ReadInteger('Config', 'LS_MULTIPLIER', Ini.ReadInteger('Env', 'LSFG_MULTIPLIER', 2));
@@ -1867,7 +1882,8 @@ begin
       ', Lossless=' + BoolToStr(GOverlayLossless, '1', '0') +
       ', Method=' + InterpolationMethod +
       ', DLL=' + DllName +
-      ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false'));
+      ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false') +
+      ', UnmanagedIni=' + BoolToStr(UnmanagedIni, 'true', 'false'));
       
   // Copy and configure files for the game
   if GameDir <> '' then
@@ -1901,7 +1917,7 @@ begin
            not NeedsGameDirUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
         begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
-          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni);
+          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
           SyncFakeNvapiIni(ConfigDir, GameDir);
         end
         else
@@ -1992,7 +2008,7 @@ begin
           end;
           
           // 6. OptiScaler.ini & fakenvapi.ini Handling
-          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni);
+          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
           SyncFakeNvapiIni(ConfigDir, GameDir);
             
           // 7. Copy plugins/ folder if it exists

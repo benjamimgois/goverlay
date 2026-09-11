@@ -23,6 +23,7 @@ function GetBGModPath: string;
 // Get the pristine bgmod original path (Flatpak-aware).
 function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
+function GetBGModOriginalCustomPath: string;
 
 function GetGOverlayDataPath: string;
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
@@ -170,6 +171,16 @@ begin
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-edge';
+end;
+
+function GetBGModOriginalCustomPath: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-custom';
 end;
 
 function GetGOverlayDataPath: string;
@@ -462,6 +473,26 @@ begin
     end;
   end;
 
+  OriginalPath := GetBGModOriginalCustomPath;
+  if DirectoryExists(OriginalPath) then
+  begin
+    WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-custom cache...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'fgmod') + ' ' +
+                          QuotedStr(OriginalPath) + '/ 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+
   WriteLn('[BGMOD] bgmod template directory resources initialized.');
 
 end;
@@ -471,6 +502,7 @@ var
   BGModPath, GlobalCfgDir, DataHomeEnv, GlobalConf, CacheDir: string;
   Proc: TProcess;
   IsStable, IsOptiEnabled: Boolean;
+  OptChannel: Integer;
   Ini: TIniFile;
 begin
   BGModPath := GetBGModPath;
@@ -526,14 +558,14 @@ begin
     end;
 
     // Read OPT_CHANNEL and GOVERLAY_OPTISCALER from bgmod.conf
-    IsStable := True;
+    OptChannel := 0;
     IsOptiEnabled := False;
     GlobalConf := GlobalCfgDir + 'bgmod.conf';
     if FileExists(GlobalConf) then
     begin
       Ini := TIniFile.Create(GlobalConf);
       try
-        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+        OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
         IsOptiEnabled := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       finally
         Ini.Free;
@@ -543,10 +575,12 @@ begin
     // Then, if OptiScaler is enabled, sync DLLs and plugins from the correct cache folder
     if IsOptiEnabled then
     begin
-      if IsStable then
-        CacheDir := GetBGModOriginalPath
+      case OptChannel of
+        1: CacheDir := GetBGModOriginalEdgePath;
+        2: CacheDir := GetBGModOriginalCustomPath;
       else
-        CacheDir := GetBGModOriginalEdgePath;
+        CacheDir := GetBGModOriginalPath;
+      end;
 
       WriteLn('[BGMOD] Syncing OptiScaler assets from ', CacheDir, ' to gameconfig/global/...');
       Proc := TProcess.Create(nil);

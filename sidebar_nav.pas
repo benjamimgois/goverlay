@@ -883,31 +883,33 @@ procedure TSidebarNavHelper.CopyOptiScalerGameFiles(const AGameCfgDir: string);
 var
   ConfigPath, CacheDir: string;
   Ini: TIniFile;
-  IsStable: Boolean;
+  OptChannel: Integer;
   UpscalerType: Integer;
   Settings: TOptiScalerSettings;
   FsrDllSrc: string;
 begin
   UpscalerType := 0;
-  IsStable := True;
+  OptChannel := 0;
   ConfigPath := IncludeTrailingPathDelimiter(AGameCfgDir) + 'bgmod.conf';
   if FileExists(ConfigPath) then
   begin
     Ini := TIniFile.Create(ConfigPath);
     try
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
-      IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+      OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
     finally
       Ini.Free;
     end;
   end;
 
   if UpscalerType = 1 then
-    CacheDir := GetDlssEnablerPath(IsStable)
-  else if IsStable then
-    CacheDir := GetBGModOriginalPath
+    CacheDir := GetDlssEnablerPath(OptChannel <> 1)
+  else if OptChannel = 2 then
+    CacheDir := GetBGModOriginalCustomPath
+  else if OptChannel = 1 then
+    CacheDir := GetBGModOriginalEdgePath
   else
-    CacheDir := GetBGModOriginalEdgePath;
+    CacheDir := GetBGModOriginalPath;
 
   WriteLn('[BGMOD] Copying OptiScaler assets from ', CacheDir, ' to ', AGameCfgDir);
   ExecuteShellCommand('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + '.') + ' ' +

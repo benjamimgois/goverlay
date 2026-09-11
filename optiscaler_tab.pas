@@ -25,6 +25,8 @@ type
     FForceMlfgToggle: TToggleSwitch;
     FForceReflexToggle: TToggleSwitch;
     FForceLatencyFlexToggle: TToggleSwitch;
+    FUnmanagedIniToggle: TToggleSwitch;
+    FOsCustomInfoLbl: TLabel;
     FOsToggles: TFPList;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
   public
@@ -38,6 +40,7 @@ type
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure UpdateFrameGenOptionsUI;
     procedure SyncAllToggles;
+    procedure UnmanagedIniToggleChange(Sender: TObject);
 
     property OptiPatcherToggle: TToggleSwitch read FOptiPatcherToggle;
     property SpoofToggle: TToggleSwitch read FSpoofToggle;
@@ -45,6 +48,8 @@ type
     property ForceMlfgToggle: TToggleSwitch read FForceMlfgToggle;
     property ForceReflexToggle: TToggleSwitch read FForceReflexToggle;
     property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
+    property UnmanagedIniToggle: TToggleSwitch read FUnmanagedIniToggle;
+    property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
     property OsToggles: TFPList read FOsToggles;
   end;
 
@@ -76,6 +81,15 @@ begin
   FOsToggles.Add(Result);
 end;
 
+procedure TOptiScalerTabHelper.UnmanagedIniToggleChange(Sender: TObject);
+begin
+  if Assigned(FForm) and not FForm.FLoadingConfig then
+  begin
+    ReflowOptiScalerTabNew(0);
+    FForm.StartAutoSaveTimer;
+  end;
+end;
+
 procedure TOptiScalerTabHelper.SyncAllToggles;
 var
   i: Integer;
@@ -88,6 +102,7 @@ begin
     if Assigned(FForm.emufp8CheckBox) then FForm.emufp8CheckBox.Visible := False;
     if Assigned(FForm.forcereflexCheckBox) then FForm.forcereflexCheckBox.Visible := False;
     if Assigned(FForm.forcelatencyflexCheckBox) then FForm.forcelatencyflexCheckBox.Visible := False;
+    if Assigned(FForm.unmanagedIniCheckBox) then FForm.unmanagedIniCheckBox.Visible := False;
   end;
 
   if Assigned(FOsToggles) then
@@ -865,6 +880,39 @@ begin
     optversionComboBox.Visible := True;
     DarkCombo(optversionComboBox);
 
+    if unmanagedIniCheckBox = nil then
+    begin
+      unmanagedIniCheckBox := TCheckBox.Create(FForm);
+      unmanagedIniCheckBox.Name := 'unmanagedIniCheckBox';
+      unmanagedIniCheckBox.Caption := 'In-game menu configuration only';
+      unmanagedIniCheckBox.Hint := 'Do not overwrite OptiScaler.ini from GOverlay (configure in-game instead)';
+      unmanagedIniCheckBox.ShowHint := True;
+      unmanagedIniCheckBox.Anchors := [akLeft, akTop];
+      unmanagedIniCheckBox.Parent := FOsStatusCard;
+      unmanagedIniCheckBox.OnChange := @UnmanagedIniToggleChange;
+    end;
+    DarkCheck(unmanagedIniCheckBox);
+    unmanagedIniCheckBox.Visible := False;
+    if FUnmanagedIniToggle = nil then
+    begin
+      FUnmanagedIniToggle := PlaceOsToggle(unmanagedIniCheckBox, FOsStatusCard);
+      FUnmanagedIniToggle.Hint := 'Do not overwrite OptiScaler.ini from GOverlay (configure in-game instead)';
+      FUnmanagedIniToggle.ShowHint := True;
+      FUnmanagedIniToggle.Visible := False;
+    end;
+
+    if FOsCustomInfoLbl = nil then
+    begin
+      FOsCustomInfoLbl := TLabel.Create(FForm);
+      FOsCustomInfoLbl.Parent := FOsStatusCard;
+      FOsCustomInfoLbl.Caption := '* Missing companion libraries inherited from stable cache';
+      FOsCustomInfoLbl.Font.Color := $888888;
+      FOsCustomInfoLbl.Font.Size := 8;
+      FOsCustomInfoLbl.AutoSize := True;
+      FOsCustomInfoLbl.Transparent := True;
+      FOsCustomInfoLbl.Visible := False;
+    end;
+
     updateBitBtn.Parent      := FOsStatusCard;
     updateBitBtn.Anchors     := [akLeft, akTop];
     updateBitBtn.Visible     := True;
@@ -1103,12 +1151,13 @@ const
   CB_H      = 26;   // combo height
   BTN_H     = 32;   // update buttons height
   PB_H      = 16;   // progress bar height
-  STAT_H    = HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
   BOX_TOP = 6;
   IMARGIN = 4;
   IGAP    = 6;
 var
   CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
+  StatH: Integer;
+  IsCustom, IsUnmanaged: Boolean;
   MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
@@ -1129,13 +1178,21 @@ begin
     TotalH := FOsScrollBox.ClientHeight;
     if TotalH < 100 then TotalH := 600;
 
+    IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
+    IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
+
+    if IsCustom then
+      StatH := HDR + 6 + BTN_H + 8 + 26 + STAT_ROWS * ROW_H + 12
+    else
+      StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
+
     MinOptH := 410;
-    CardTop := TotalH - MARGIN - STAT_H;
+    CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
       OptH := MinOptH;
       CardTop := MARGIN + GPU_H + GAP + OptH + GAP;
-      TotalH := CardTop + STAT_H + MARGIN;
+      TotalH := CardTop + StatH + MARGIN;
     end
     else
     begin
@@ -1339,7 +1396,7 @@ begin
     Self.SyncAllToggles;
 
     // ── Card 2: Software Status (Anchored to Bottom) ─────────────────────
-    FOsStatusCard.SetBounds(MARGIN, CardTop, CW, STAT_H);
+    FOsStatusCard.SetBounds(MARGIN, CardTop, CW, StatH);
 
     CheckW := 130;
     ComboW := CW - 2 * PAD - 8 - CheckW;
@@ -1352,7 +1409,43 @@ begin
     updateProgressBar.SetBounds(PAD, Y + (BTN_H - PB_H) div 2, ComboW, PB_H);
     updatestatusLabel.SetBounds(PAD + ComboW + 4, Y + (BTN_H - PB_H) div 2, CheckW + 4, PB_H);
 
-    Y := Y + BTN_H + 8;
+    if IsCustom then
+    begin
+      if Assigned(FUnmanagedIniToggle) then
+      begin
+        FUnmanagedIniToggle.Visible := True;
+        FUnmanagedIniToggle.SetBounds(PAD, Y + BTN_H + 4, FUnmanagedIniToggle.GetOptimalWidth, 20);
+      end;
+      if Assigned(FOsCustomInfoLbl) then
+      begin
+        FOsCustomInfoLbl.Visible := True;
+        FOsCustomInfoLbl.SetBounds(PAD + FUnmanagedIniToggle.GetOptimalWidth + 14, Y + BTN_H + 7, CW - PAD - (PAD + FUnmanagedIniToggle.GetOptimalWidth + 14), 16);
+      end;
+      Y := Y + BTN_H + 8 + 26;
+    end
+    else
+    begin
+      if Assigned(FUnmanagedIniToggle) then
+        FUnmanagedIniToggle.Visible := False;
+      if Assigned(FOsCustomInfoLbl) then
+        FOsCustomInfoLbl.Visible := False;
+      Y := Y + BTN_H + 8;
+    end;
+
+    if IsUnmanaged then
+    begin
+      preferredUpscalerComboBox.Enabled := False;
+      preferredUpscalerComboBox.Hint := 'Upscaler is configured via in-game menu (unmanaged mode)';
+      if Assigned(fgInputComboBox) then fgInputComboBox.Enabled := False;
+      if Assigned(fgOutputComboBox) then fgOutputComboBox.Enabled := False;
+    end
+    else
+    begin
+      preferredUpscalerComboBox.Enabled := True;
+      preferredUpscalerComboBox.Hint := '';
+      if Assigned(fgInputComboBox) then fgInputComboBox.Enabled := True;
+      if Assigned(fgOutputComboBox) then fgOutputComboBox.Enabled := True;
+    end;
     ColW    := (CW - 2 * PAD) div 2;
     ColX[0] := PAD;
     ColX[1] := PAD + ColW;
@@ -1478,6 +1571,9 @@ begin
       if Assigned(fgOutputComboBox) then
         fgOutputComboBox.ItemIndex := Settings.FGOutputItemIndex;
 
+      if Assigned(unmanagedIniCheckBox) then
+        unmanagedIniCheckBox.Checked := Settings.UnmanagedIniChecked;
+
       if Settings.UpscalerTypeItemIndex = 1 then
       begin
         dlssenablerRadioButton.Checked := True;
@@ -1485,7 +1581,7 @@ begin
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1] then
+        if Settings.OptVersionItemIndex in [0, 1, 2] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1505,7 +1601,7 @@ begin
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1] then
+        if Settings.OptVersionItemIndex in [0, 1, 2] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1521,9 +1617,13 @@ begin
         loglevelComboBox.OnChange := SavedLogLevelOnChange;
     end;
 
+    if Assigned(FOptiscalerUpdate) then
+      FOptiscalerUpdate.UpdateCustomBuildUI;
+
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
     Self.SyncAllToggles;
+    Self.ReflowOptiScalerTabNew(0);
   end;
 end;
 
@@ -1561,6 +1661,10 @@ begin
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
     Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
     Settings.OptVersionItemIndex := optversionComboBox.ItemIndex;
+    if Assigned(unmanagedIniCheckBox) then
+      Settings.UnmanagedIniChecked := unmanagedIniCheckBox.Checked
+    else
+      Settings.UnmanagedIniChecked := False;
     Settings.ForceReflexChecked := forcereflexCheckBox.Checked;
     Settings.ReflexItemIndex := reflexComboBox.ItemIndex;
     Settings.ForceLatencyFlexChecked := forcelatencyflexCheckBox.Checked;

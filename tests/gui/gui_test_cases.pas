@@ -54,6 +54,7 @@ type
     procedure TestOptiFilenameDllSave;
     procedure TestOptiChannelSave;
     procedure TestUpscalerChannelPersistence;
+    procedure TestCustomOptiScalerBuildSupport;
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
@@ -1396,6 +1397,115 @@ begin
     goverlayform.autoSaveTimer.Enabled := False;
     goverlayform.TriggerAutoSave;
   end;
+end;
+
+procedure TGoverlayGuiTests.TestCustomOptiScalerBuildSupport;
+var
+  CustomDir, StableDir, GameCfgDir, GameConfPath: string;
+  ErrMsg: string;
+  Ini: TIniFile;
+  F: TextFile;
+  IniContent: string;
+  CustomTabHelper: TOptiScalerTabHelper;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  CustomTabHelper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+
+  // 1. Channel selection UI & Toggle visibility
+  goverlayform.optversionComboBox.ItemIndex := 2; // Custom Build
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+
+  AssertTrue('UnmanagedIniToggle should be visible for Custom Build', Assigned(CustomTabHelper.UnmanagedIniToggle) and CustomTabHelper.UnmanagedIniToggle.Visible);
+  AssertTrue('OsCustomInfoLbl should be visible for Custom Build', Assigned(CustomTabHelper.OsCustomInfoLbl) and CustomTabHelper.OsCustomInfoLbl.Visible);
+  AssertEquals('checkupdBitBtn caption should be Select Folder...', 'Select Folder...', goverlayform.checkupdBitBtn.Caption);
+
+  // 2. Unmanaged mode serialization & OptiScaler.ini preservation
+  goverlayform.unmanagedIniCheckBox.Checked := True;
+  CustomTabHelper.UnmanagedIniToggleChange(nil);
+  SaveOpti;
+
+  AssertEquals('OPT_CHANNEL=2 persisted', '2', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+  AssertEquals('OPT_UNMANAGED_INI=1 persisted', '1', ReadBgmodConf('Config', 'OPT_UNMANAGED_INI'));
+
+  // Append a custom section to OptiScaler.ini
+  AssignFile(F, OptiIniPath);
+  Append(F);
+  WriteLn(F, '[CustomForkSection]');
+  WriteLn(F, 'ExperimentalNeuralMode=true');
+  CloseFile(F);
+
+  // Save again in unmanaged mode: OptiScaler.ini must NOT overwrite custom settings
+  SaveOpti;
+  IniContent := ReadFileText(OptiIniPath);
+  AssertTrue('Custom section in OptiScaler.ini preserved in unmanaged mode', Pos('ExperimentalNeuralMode=true', IniContent) > 0);
+
+  // Disable unmanaged mode and verify serialization
+  goverlayform.unmanagedIniCheckBox.Checked := False;
+  CustomTabHelper.UnmanagedIniToggleChange(nil);
+  SaveOpti;
+  AssertEquals('OPT_UNMANAGED_INI=0 persisted', '0', ReadBgmodConf('Config', 'OPT_UNMANAGED_INI'));
+
+  // 3. Switch back to Stable (0) and verify UI elements hide
+  goverlayform.optversionComboBox.ItemIndex := 0;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  AssertFalse('UnmanagedIniToggle hidden for Stable channel', CustomTabHelper.UnmanagedIniToggle.Visible);
+  AssertFalse('OsCustomInfoLbl hidden for Stable channel', CustomTabHelper.OsCustomInfoLbl.Visible);
+  AssertEquals('checkupdBitBtn caption reverted to Check updates', 'Check updates', goverlayform.checkupdBitBtn.Caption);
+
+  // 4. Test ImportCustomOptiScalerBuild validation & fallback inheritance
+  CustomDir := IsolatedHome + '/dummy_custom_build';
+  StableDir := IsolatedHome + '/.local/share/goverlay/optiscaler-stable';
+  ForceDirectories(CustomDir);
+  ForceDirectories(StableDir);
+
+  // Missing OptiScaler.dll should fail validation
+  AssertFalse('Import without OptiScaler.dll must fail', ImportCustomOptiScalerBuild(CustomDir, ErrMsg));
+  AssertTrue('ErrMsg should mention OptiScaler.dll', Pos('OptiScaler.dll', ErrMsg) > 0);
+
+  // Seed companion files in stable cache
+  AssignFile(F, StableDir + '/amd_fidelityfx_dx12.dll'); Rewrite(F); WriteLn(F, 'stable_fsr'); CloseFile(F);
+  AssignFile(F, StableDir + '/goverlay.vars'); Rewrite(F); WriteLn(F, 'fsrversion=Latest'); CloseFile(F);
+
+  // Add OptiScaler.dll to custom dir and import
+  AssignFile(F, CustomDir + '/OptiScaler.dll'); Rewrite(F); WriteLn(F, 'dummy_custom_optiscaler'); CloseFile(F);
+  AssertTrue('Import with OptiScaler.dll must succeed', ImportCustomOptiScalerBuild(CustomDir, ErrMsg));
+
+  // Verify files in optiscaler-custom/
+  AssertTrue('Custom OptiScaler.dll copied', FileExists(IsolatedHome + '/.local/share/goverlay/optiscaler-custom/OptiScaler.dll'));
+  AssertTrue('Companion amd_fidelityfx_dx12.dll inherited from stable', FileExists(IsolatedHome + '/.local/share/goverlay/optiscaler-custom/amd_fidelityfx_dx12.dll'));
+  AssertTrue('goverlay.vars created in optiscaler-custom', FileExists(IsolatedHome + '/.local/share/goverlay/optiscaler-custom/goverlay.vars'));
+
+  // 5. Test CopyOptiScalerGameFiles with OPT_CHANNEL=2
+  GameCfgDir := goverlayform.GetGameConfigDir('CustomDeployGame');
+  ForceDirectories(GameCfgDir);
+  GameConfPath := GameCfgDir + 'bgmod.conf';
+  Ini := TIniFile.Create(GameConfPath);
+  try
+    Ini.WriteInteger('Config', 'UPSCALER_TYPE', 0);
+    Ini.WriteInteger('Config', 'OPT_CHANNEL', 2);
+  finally
+    Ini.Free;
+  end;
+
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/optiscaler-custom/custom_deploy_marker.txt');
+  Rewrite(F);
+  WriteLn(F, 'marker');
+  CloseFile(F);
+
+  goverlayform.CopyOptiScalerGameFiles(GameCfgDir);
+  AssertTrue('Custom asset deployed from optiscaler-custom to game config dir', FileExists(GameCfgDir + 'custom_deploy_marker.txt'));
+
+  // Cleanup
+  DeleteDirectory(CustomDir, False);
+  DeleteDirectory(GameCfgDir, False);
+  DeleteDirectory(IsolatedHome + '/.local/share/goverlay/optiscaler-custom', False);
+  DeleteDirectory(StableDir, False);
+
+  // Reset to default
+  goverlayform.optversionComboBox.ItemIndex := 0;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  SaveOpti;
 end;
 
 procedure TGoverlayGuiTests.TestOptiEmuFp8Save;

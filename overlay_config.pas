@@ -74,6 +74,7 @@ type
     FGInputItemIndex: Integer;
     FGOutputItemIndex: Integer;
     LogLevelItemIndex: Integer;
+    UnmanagedIniChecked: Boolean;
   end;
 
   TMangoHudSettings = record
@@ -887,6 +888,10 @@ begin
     Ini.WriteString('Config', 'PRESERVE_INI', 'true');
     Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
     Ini.WriteInteger('Config', 'UPSCALER_TYPE', Settings.UpscalerTypeItemIndex);
+    if Settings.UnmanagedIniChecked then
+      Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '1')
+    else
+      Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '0');
 
     if Settings.EmuFp8Checked then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
@@ -904,22 +909,12 @@ begin
   // Seed default OptiScaler.ini template from cache if it is missing
   if not FileExists(OptiScalerIniPath) then
   begin
-    IsStable := True;
-    ConfigConf := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
-    if FileExists(ConfigConf) then
-    begin
-      Ini := TIniFile.Create(ConfigConf);
-      try
-        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
-      finally
-        Ini.Free;
-      end;
-    end;
-
-    if IsStable then
-      FGModPath := GetBGModOriginalPath
+    if Settings.OptVersionItemIndex = 2 then
+      FGModPath := GetBGModOriginalCustomPath
+    else if Settings.OptVersionItemIndex = 1 then
+      FGModPath := GetBGModOriginalEdgePath
     else
-      FGModPath := GetBGModOriginalEdgePath;
+      FGModPath := GetBGModOriginalPath;
 
     if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'OptiScaler.ini') then
     begin
@@ -976,90 +971,93 @@ begin
     PreferredUpscalerValue := 'auto';
   end;
 
-  // Update OptiScaler.ini using TConfigFile wrapper
-  OptiCfg := TConfigFile.Create;
-  try
-    if OptiCfg.Load(OptiScalerIniPath) then
-    begin
-      OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
-      OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
-      OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
-      OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
-      OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
+  // Update OptiScaler.ini using TConfigFile wrapper (skipped when in unmanaged mode)
+  if not Settings.UnmanagedIniChecked then
+  begin
+    OptiCfg := TConfigFile.Create;
+    try
+      if OptiCfg.Load(OptiScalerIniPath) then
+      begin
+        OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
+        OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
+        OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
 
-      case Settings.LogLevelItemIndex of
-        0: LogLevelValue := '0';
-        1: LogLevelValue := '1';
-        2: LogLevelValue := '2';
-        3: LogLevelValue := '3';
-        4: LogLevelValue := '4';
-      else
-        LogLevelValue := '2';
+        case Settings.LogLevelItemIndex of
+          0: LogLevelValue := '0';
+          1: LogLevelValue := '1';
+          2: LogLevelValue := '2';
+          3: LogLevelValue := '3';
+          4: LogLevelValue := '4';
+        else
+          LogLevelValue := '2';
+        end;
+        OptiCfg.SetValue(OPTI_KEY_LOG_LEVEL, LogLevelValue, OPTI_INI_SECTION_LOG);
+
+        OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
+        OptiCfg.SetValue(OPTI_KEY_DX11_UPSCALER, PreferredUpscalerValue);
+        OptiCfg.SetValue(OPTI_KEY_DX12_UPSCALER, PreferredUpscalerValue);
+        OptiCfg.SetValue(OPTI_KEY_VULKAN_UPSCALER, PreferredUpscalerValue);
+        if Settings.FsrversionItemIndex = 0 then
+          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
+        else
+          OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
+        if Settings.ForceFsr4Int8Checked then
+          OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'true')
+        else
+          OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'false');
+
+        case Settings.FGInputItemIndex of
+          1: FGInputValue := 'nofg';
+          2: FGInputValue := 'dlssg';
+          3: begin
+               if Settings.UpscalerTypeItemIndex = 1 then
+                 FGInputValue := 'nvngxfg'
+               else
+                 FGInputValue := 'nukems';
+             end;
+          4: FGInputValue := 'fsrfg';
+          5: FGInputValue := 'upscaler';
+          6: FGInputValue := 'fsrfg30';
+        else
+          FGInputValue := 'auto';
+        end;
+
+        case Settings.FGOutputItemIndex of
+          1: FGOutputValue := 'nofg';
+          2: FGOutputValue := 'fsrfg';
+          3: FGOutputValue := 'xefg';
+          4: begin
+               if Settings.UpscalerTypeItemIndex = 1 then
+                 FGOutputValue := 'nvngxfg'
+               else
+                 FGOutputValue := 'nukems';
+             end;
+          5: FGOutputValue := 'dlssg';
+          6: FGOutputValue := 'dlssgwithnvngx';
+        else
+          FGOutputValue := 'auto';
+        end;
+
+        OptiCfg.SetValue('FGInput=', FGInputValue, OPTI_INI_SECTION_FRAMEGEN);
+        OptiCfg.SetValue('FGOutput=', FGOutputValue, OPTI_INI_SECTION_FRAMEGEN);
+
+        if (not SameText(FGInputValue, 'auto')) or (not SameText(FGOutputValue, 'auto')) then
+          OptiCfg.SetValue('Enabled=', 'true', OPTI_INI_SECTION_FRAMEGEN)
+        else
+          OptiCfg.SetValue('Enabled=', 'auto', OPTI_INI_SECTION_FRAMEGEN);
+
+        try
+          OptiCfg.Save;
+        except
+          on E: Exception do
+            WriteLn('[OPTISCALER] Warning: Failed to save OptiScaler.ini: ', E.Message);
+        end;
       end;
-      OptiCfg.SetValue(OPTI_KEY_LOG_LEVEL, LogLevelValue, OPTI_INI_SECTION_LOG);
-
-      OptiCfg.SetValue(OPTI_KEY_FSR4_UPDATE, Fsr4UpdateValue);
-      OptiCfg.SetValue(OPTI_KEY_DX11_UPSCALER, PreferredUpscalerValue);
-      OptiCfg.SetValue(OPTI_KEY_DX12_UPSCALER, PreferredUpscalerValue);
-      OptiCfg.SetValue(OPTI_KEY_VULKAN_UPSCALER, PreferredUpscalerValue);
-      if Settings.FsrversionItemIndex = 0 then
-        OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'true')
-      else
-        OptiCfg.SetValue('FsrAgilitySDKUpgrade=', 'auto');
-      if Settings.ForceFsr4Int8Checked then
-        OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'true')
-      else
-        OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'false');
-
-      case Settings.FGInputItemIndex of
-        1: FGInputValue := 'nofg';
-        2: FGInputValue := 'dlssg';
-        3: begin
-             if Settings.UpscalerTypeItemIndex = 1 then
-               FGInputValue := 'nvngxfg'
-             else
-               FGInputValue := 'nukems';
-           end;
-        4: FGInputValue := 'fsrfg';
-        5: FGInputValue := 'upscaler';
-        6: FGInputValue := 'fsrfg30';
-      else
-        FGInputValue := 'auto';
-      end;
-
-      case Settings.FGOutputItemIndex of
-        1: FGOutputValue := 'nofg';
-        2: FGOutputValue := 'fsrfg';
-        3: FGOutputValue := 'xefg';
-        4: begin
-             if Settings.UpscalerTypeItemIndex = 1 then
-               FGOutputValue := 'nvngxfg'
-             else
-               FGOutputValue := 'nukems';
-           end;
-        5: FGOutputValue := 'dlssg';
-        6: FGOutputValue := 'dlssgwithnvngx';
-      else
-        FGOutputValue := 'auto';
-      end;
-
-      OptiCfg.SetValue('FGInput=', FGInputValue, OPTI_INI_SECTION_FRAMEGEN);
-      OptiCfg.SetValue('FGOutput=', FGOutputValue, OPTI_INI_SECTION_FRAMEGEN);
-
-      if (not SameText(FGInputValue, 'auto')) or (not SameText(FGOutputValue, 'auto')) then
-        OptiCfg.SetValue('Enabled=', 'true', OPTI_INI_SECTION_FRAMEGEN)
-      else
-        OptiCfg.SetValue('Enabled=', 'auto', OPTI_INI_SECTION_FRAMEGEN);
-
-      try
-        OptiCfg.Save;
-      except
-        on E: Exception do
-          WriteLn('[OPTISCALER] Warning: Failed to save OptiScaler.ini: ', E.Message);
-      end;
+    finally
+      OptiCfg.Free;
     end;
-  finally
-    OptiCfg.Free;
   end;
 
 
@@ -1532,6 +1530,7 @@ var
   i, SepPos: Integer;
   ConfigLines: TStringList;
   IsStable: Boolean;
+  OptChannel: Integer;
   CacheDir: string;
 begin
   Result := False;
@@ -1554,6 +1553,7 @@ begin
   Settings.TraceLogChecked := False;
   Settings.ForceFsr4Int8Checked := True;
   Settings.LogLevelItemIndex := 2;
+  Settings.UnmanagedIniChecked := False;
 
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
@@ -1565,22 +1565,24 @@ begin
   // load settings from the template/default OptiScaler.ini in the cache folder.
   if not FileExists(OptiScalerIniPath) then
   begin
-    IsStable := True;
+    OptChannel := 0;
     ConfigPath := GetGameConfigDir(ActiveGameName) + 'bgmod.conf';
     if FileExists(ConfigPath) then
     begin
       Ini := TIniFile.Create(ConfigPath);
       try
-        IsStable := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0) <> 1;
+        OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
       finally
         Ini.Free;
       end;
     end;
 
-    if IsStable then
-      CacheDir := GetBGModOriginalPath
+    if OptChannel = 2 then
+      CacheDir := GetBGModOriginalCustomPath
+    else if OptChannel = 1 then
+      CacheDir := GetBGModOriginalEdgePath
     else
-      CacheDir := GetBGModOriginalEdgePath;
+      CacheDir := GetBGModOriginalPath;
 
     if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.ini') then
       OptiScalerIniPath := IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.ini';
@@ -1778,6 +1780,7 @@ begin
       Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
       Settings.OptVersionItemIndex := Ini.ReadInteger('Config', 'OPT_CHANNEL', -1);
       Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
+      Settings.UnmanagedIniChecked := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
     finally
       Ini.Free;
     end;

@@ -17,6 +17,9 @@ type
 // Returns True if OptiScaler is installed (or was successfully installed)
 function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Import a custom OptiScaler build from a local directory
+function ImportCustomOptiScalerBuild(const ASourceDir: string; out AErrorMsg: string): Boolean;
+
 // Check and automatically install DLSS Enabler if not present
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
@@ -105,6 +108,8 @@ type
     procedure UpdateButtonClick(Sender: TObject);
     procedure InitializeTab;
     procedure CheckForUpdatesOnClick;
+    function SelectAndImportCustomBuild: Boolean;
+    procedure UpdateCustomBuildUI;
     procedure CheckAndUpdateOptiPatcherAsync;
     procedure OptiPatcherThreadTerminated(Sender: TObject);
     property FGModPath: string read FFGModPath write FFGModPath;
@@ -233,6 +238,12 @@ begin
   // Skip if channel changed since thread was spawned (only for standard OptiScaler)
   if not IsDlssEnablerActive and Assigned(FOptiTab.FOptVersionComboBox) then
   begin
+    if FOptiTab.FOptVersionComboBox.ItemIndex = 2 then
+    begin
+      FOptiTab.UpdateCustomBuildUI;
+      FOptiTab.FUpdateThread := nil;
+      Exit;
+    end;
     if (FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 0))
        or (not FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 1)) then
     begin
@@ -1534,9 +1545,232 @@ begin
   WriteLn('[DEBUG] SyncPristineAssetsTo: synced pristine assets from ', Source, ' to ', Target);
 end;
 
+function ImportCustomOptiScalerBuild(const ASourceDir: string; out AErrorMsg: string): Boolean;
+var
+  CleanSourceDir, TargetDir, StableDir, OptiDll: string;
+  FolderName: string;
+  Proc: TProcess;
+  VarsList, StableVars: TStringList;
+  VarsFile: string;
+  CompanionFiles: array[0..14] of string = (
+    'amd_fidelityfx_dx12.dll',
+    'amd_fidelityfx_framegeneration_dx12.dll',
+    'amd_fidelityfx_upscaler_dx12.dll',
+    'amd_fidelityfx_vk.dll',
+    'libxess.dll',
+    'libxess_dx11.dll',
+    'libxess_fg.dll',
+    'libxell.dll',
+    'fakenvapi.dll',
+    'fakenvapi.ini',
+    'nvngx_dlss.dll',
+    'nvngx_dlssd.dll',
+    'nvngx_dlssg.dll',
+    'dlssg_to_fsr3_amd_is_better.dll',
+    'OptiScaler.ini'
+  );
+  i: Integer;
+  SrcFile, DstFile: string;
+begin
+  Result := False;
+  AErrorMsg := '';
+  CleanSourceDir := ExcludeTrailingPathDelimiter(Trim(ASourceDir));
+
+  if (CleanSourceDir = '') or not DirectoryExists(CleanSourceDir) then
+  begin
+    AErrorMsg := 'The selected directory does not exist.';
+    Exit;
+  end;
+
+  OptiDll := IncludeTrailingPathDelimiter(CleanSourceDir) + 'OptiScaler.dll';
+  if not FileExists(OptiDll) then
+  begin
+    AErrorMsg := 'The selected directory does not contain OptiScaler.dll';
+    Exit;
+  end;
+
+  TargetDir := GetBGModOriginalCustomPath;
+  if not ForceDirectories(TargetDir) then
+  begin
+    AErrorMsg := 'Failed to create target directory: ' + TargetDir;
+    Exit;
+  end;
+
+  WriteLn('[OPTISCALER-CUSTOM] Importing build from: ', CleanSourceDir);
+  WriteLn('[OPTISCALER-CUSTOM] Target cache path: ', TargetDir);
+
+  // Copy files from source directory into target cache
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'sh';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('cp -rf --no-preserve=mode ' +
+                        QuotedStr(IncludeTrailingPathDelimiter(CleanSourceDir) + '.') + ' ' +
+                        QuotedStr(IncludeTrailingPathDelimiter(TargetDir)) + ' 2>/dev/null');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+
+  // Inherit missing companion libraries from optiscaler-stable
+  StableDir := GetBGModOriginalPath;
+  if DirectoryExists(StableDir) then
+  begin
+    for i := 0 to High(CompanionFiles) do
+    begin
+      DstFile := IncludeTrailingPathDelimiter(TargetDir) + CompanionFiles[i];
+      SrcFile := IncludeTrailingPathDelimiter(StableDir) + CompanionFiles[i];
+      if not FileExists(DstFile) and FileExists(SrcFile) then
+      begin
+        WriteLn('[OPTISCALER-CUSTOM] Inheriting missing companion file: ', CompanionFiles[i]);
+        CopyFile(SrcFile, DstFile);
+      end;
+    end;
+
+    // Inherit plugins directory if missing
+    if DirectoryExists(IncludeTrailingPathDelimiter(StableDir) + 'plugins') and
+       not DirectoryExists(IncludeTrailingPathDelimiter(TargetDir) + 'plugins') then
+    begin
+      WriteLn('[OPTISCALER-CUSTOM] Inheriting plugins/ directory from stable cache');
+      Proc := TProcess.Create(nil);
+      try
+        Proc.Executable := 'sh';
+        Proc.Parameters.Add('-c');
+        Proc.Parameters.Add('cp -rf --no-preserve=mode ' +
+                            QuotedStr(IncludeTrailingPathDelimiter(StableDir) + 'plugins') + ' ' +
+                            QuotedStr(IncludeTrailingPathDelimiter(TargetDir)) + ' 2>/dev/null');
+        Proc.Options := [poWaitOnExit];
+        Proc.Execute;
+      finally
+        Proc.Free;
+      end;
+    end;
+  end;
+
+  // Ensure bgmod wrapper binaries are present and executable
+  if FileExists(IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod') then
+    CopyFile(IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod', IncludeTrailingPathDelimiter(TargetDir) + 'bgmod');
+  if FileExists(IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod-uninstaller') then
+    CopyFile(IncludeTrailingPathDelimiter(GetBGModPath) + 'bgmod-uninstaller', IncludeTrailingPathDelimiter(TargetDir) + 'bgmod-uninstaller');
+  if FileExists(IncludeTrailingPathDelimiter(GetBGModPath) + 'fgmod') then
+    CopyFile(IncludeTrailingPathDelimiter(GetBGModPath) + 'fgmod', IncludeTrailingPathDelimiter(TargetDir) + 'fgmod');
+
+  if FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'bgmod') then
+    fpChmod(IncludeTrailingPathDelimiter(TargetDir) + 'bgmod', &755);
+  if FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'bgmod-uninstaller') then
+    fpChmod(IncludeTrailingPathDelimiter(TargetDir) + 'bgmod-uninstaller', &755);
+
+  // Update or create goverlay.vars in optiscaler-custom/
+  FolderName := ExtractFileName(CleanSourceDir);
+  VarsFile := IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars';
+  VarsList := TStringList.Create;
+  try
+    if FileExists(VarsFile) then
+      VarsList.LoadFromFile(VarsFile);
+
+    VarsList.Values['OptiScalerVersion'] := 'custom (' + FolderName + ')';
+
+    // Inherit other keys from stable goverlay.vars if missing
+    if DirectoryExists(StableDir) and FileExists(IncludeTrailingPathDelimiter(StableDir) + 'goverlay.vars') then
+    begin
+      StableVars := TStringList.Create;
+      try
+        StableVars.LoadFromFile(IncludeTrailingPathDelimiter(StableDir) + 'goverlay.vars');
+        if VarsList.Values['fsrversion'] = '' then
+          VarsList.Values['fsrversion'] := StableVars.Values['fsrversion'];
+        if VarsList.Values['xessversion'] = '' then
+          VarsList.Values['xessversion'] := StableVars.Values['xessversion'];
+        if VarsList.Values['FakeNvapiVersion'] = '' then
+          VarsList.Values['FakeNvapiVersion'] := StableVars.Values['FakeNvapiVersion'];
+        if VarsList.Values['dlssversion'] = '' then
+          VarsList.Values['dlssversion'] := StableVars.Values['dlssversion'];
+        if VarsList.Values['optipatcher'] = '' then
+          VarsList.Values['optipatcher'] := StableVars.Values['optipatcher'];
+      finally
+        StableVars.Free;
+      end;
+    end;
+
+    VarsList.SaveToFile(VarsFile);
+  finally
+    VarsList.Free;
+  end;
+
+  Result := True;
+end;
+
+function TOptiscalerTab.SelectAndImportCustomBuild: Boolean;
+var
+  DirDlg: TSelectDirectoryDialog;
+  ErrMsg: string;
+begin
+  Result := False;
+  DirDlg := TSelectDirectoryDialog.Create(nil);
+  try
+    DirDlg.Title := 'Select Custom OptiScaler Folder (containing OptiScaler.dll)';
+    DirDlg.InitialDir := GetUserDir;
+    if DirDlg.Execute then
+    begin
+      if ImportCustomOptiScalerBuild(DirDlg.FileName, ErrMsg) then
+      begin
+        LoadVersionsFromFile;
+        if Assigned(goverlayform) then
+        begin
+          goverlayform.RefreshHomeOptiStatus;
+          goverlayform.RefreshOsStatusDots;
+          if (goverlayform.FActiveGameName <> '') and Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+            goverlayform.CopyOptiScalerGameFiles(goverlayform.GetGameConfigDir(goverlayform.FActiveGameName));
+        end;
+        ShowToast(ntSuccess, 'Custom OptiScaler build imported successfully!', 4000);
+        ShowToast(ntInfo, 'Missing companion libraries inherited from stable cache.', 4000);
+        Result := True;
+      end
+      else if ErrMsg <> '' then
+      begin
+        ShowToast(ntWarning, ErrMsg, 5000);
+      end;
+    end;
+  finally
+    DirDlg.Free;
+  end;
+end;
+
+procedure TOptiscalerTab.UpdateCustomBuildUI;
+var
+  IsCustom: Boolean;
+begin
+  IsCustom := Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2);
+
+  if IsCustom then
+  begin
+    if Assigned(FCheckupdBtn) then
+    begin
+      FCheckupdBtn.Caption := 'Select Folder...';
+      FCheckupdBtn.Hint := 'Choose local folder with custom OptiScaler build';
+      FCheckupdBtn.Visible := True;
+      FCheckupdBtn.Enabled := True;
+    end;
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Visible := False;
+    if Assigned(FOptiLabel2) then
+      FOptiLabel2.Visible := False;
+  end
+  else
+  begin
+    if Assigned(FCheckupdBtn) then
+    begin
+      FCheckupdBtn.Caption := 'Check updates';
+      FCheckupdBtn.Hint := 'Check for OptiScaler updates';
+    end;
+  end;
+end;
+
 function TOptiscalerTab.GetBGModOriginalPathForChannel(IsStable: Boolean): string;
 begin
-  if IsStable then
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+    Result := GetBGModOriginalCustomPath
+  else if IsStable then
     Result := GetBGModOriginalPath
   else
     Result := GetBGModOriginalEdgePath;
@@ -1559,7 +1793,13 @@ begin
   // If the file does not exist in FFGModPath, fall back to the active channel's cache folder
   if not FileExists(VarsFilePath) then
   begin
-    if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
+    if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+    begin
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalCustomPath) + 'goverlay.vars'; // custom cache
+      if not FileExists(VarsFilePath) then
+        VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // fallback
+    end
+    else if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
     begin
       VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'; // edge cache
       if not FileExists(VarsFilePath) then
@@ -1832,6 +2072,12 @@ procedure TOptiscalerTab.CheckForUpdatesOnClick;
 var
   IsStableChannel: Boolean;
 begin
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+  begin
+    SelectAndImportCustomBuild;
+    Exit;
+  end;
+
   // Test mode: never spawn network update threads (deterministic test runs)
   if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
 
@@ -2003,12 +2249,12 @@ begin
           ActiveGame := goverlayform.FActiveGameName;
 
         SavedSettings := Default(TOptiScalerSettings);
-        if overlay_config.LoadOptiScalerConfig(ActiveGame, SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1]) then
+        if overlay_config.LoadOptiScalerConfig(ActiveGame, SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1, 2]) then
         begin
           FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
           WriteLn('[DEBUG] InitializeTab: Restored saved channel selection for "', ActiveGame, '", ComboBox index = ', SavedSettings.OptVersionItemIndex);
         end
-        else if not (FOptVersionComboBox.ItemIndex in [0, 1]) then
+        else if not (FOptVersionComboBox.ItemIndex in [0, 1, 2]) then
         begin
           // Fallback: combobox not yet set by game-specific config, derive from installed version tag
           CurrentVersion := '';
@@ -2016,7 +2262,12 @@ begin
             CurrentVersion := FOptiLabel.Caption;
           WriteLn('[DEBUG] InitializeTab: Current OptiScaler version = "', CurrentVersion, '"');
 
-          if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+          if Pos('custom', LowerCase(CurrentVersion)) > 0 then
+          begin
+            FOptVersionComboBox.ItemIndex := 2;
+            WriteLn('[DEBUG] InitializeTab: Detected custom version, set ComboBox to index 2');
+          end
+          else if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
           begin
             FOptVersionComboBox.ItemIndex := 1;
             WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
@@ -2036,6 +2287,7 @@ begin
 
     // Load current versions matching restored channel
     LoadVersionsFromFile;
+    UpdateCustomBuildUI;
 
     // Set button to "Update" mode
     if Assigned(FUpdateBtn) then
@@ -2176,6 +2428,11 @@ begin
       begin
         IsStableChannel := False;
         WriteLn('[DEBUG] UpdateButtonClick: Bleeding-Edge Channel selected');
+      end
+      else if FOptVersionComboBox.ItemIndex = 2 then
+      begin
+        SelectAndImportCustomBuild;
+        Exit;
       end
       else
       begin

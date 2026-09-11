@@ -223,6 +223,7 @@ type
     dxapiCheckBox: TCheckBox;
     emufp8CheckBox: TCheckBox;
     forceFsr4Int8CheckBox: TCheckBox;
+    unmanagedIniCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineshortCheckBox: TCheckBox;
     engineversionCheckBox: TCheckBox;
@@ -1650,7 +1651,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit;
 
 function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
@@ -4994,10 +4995,17 @@ begin
     if Assigned(optlabel1) then
       OptVer := optlabel1.Caption;
 
-    if (Length(OptVer) > 5) and (Copy(OptVer, 1, 5) = 'edge-') then
+    if Pos('custom', LowerCase(OptVer)) > 0 then
+      optversionComboBox.ItemIndex := 2
+    else if (Length(OptVer) > 5) and (Copy(OptVer, 1, 5) = 'edge-') then
       optversionComboBox.ItemIndex := 1
     else
       optversionComboBox.ItemIndex := 0;
+
+    if Assigned(FOptiscalerUpdate) then
+      FOptiscalerUpdate.UpdateCustomBuildUI;
+    if Assigned(FOptiScalerHelper) then
+      TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
 
   RefreshOsStatusDots;
@@ -5961,13 +5969,19 @@ end;
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
 begin
   // Immediately refresh version labels in the Software Status card for the selected channel
-  // and check for remote updates
+  // and check for remote updates (suppressed for Custom Build)
   if Assigned(FOptiscalerUpdate) then
   begin
+    FOptiscalerUpdate.UpdateCustomBuildUI;
     FOptiscalerUpdate.LoadVersionsFromFile;
-    FOptiscalerUpdate.CheckForUpdatesOnClick;
+    if optversionComboBox.ItemIndex <> 2 then
+      FOptiscalerUpdate.CheckForUpdatesOnClick;
     RefreshOsStatusDots;
   end;
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  if optversionComboBox.ItemIndex = 2 then
+    ShowToast(ntInfo, 'Custom build selected. Missing companion libraries are inherited from stable cache.', 4000);
   // Sync emufp8CheckBox enabled state with the current optversionComboBox selection
   fsrversionComboBoxChange(nil);
   // Persist channel selection (OPT_CHANNEL) to active profile's bgmod.conf
