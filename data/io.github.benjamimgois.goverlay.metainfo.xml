@@ -60,6 +60,39 @@
     </screenshots>
 
     <releases>
+        <release version="1.9.1" date="2026-09-10">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Migrated Lossless Scaling integration to lsfg-vk 2.0 schema with automated Migration Assistant dialog and dynamic DLL validation</li>
+                    <li>Added MAKO Vulkan layer support for frame generation and spatial scaling with background download and updates</li>
+                    <li>Added Lutris platform tab in the Finish Configuration dialog with procedural canvas guidance and clean command formatting</li>
+                    <li>Streamline SDK full deployment, native backup, and auto-healing support via bgmod</li>
+                    <li>Centralized diagnostic tool logging to user directory (~/.local/share/goverlay/logs/) with real-time sync and file manager shortcuts</li>
+                    <li>Added FSR version combobox with centralized downloads and auto-saving in OptiScaler</li>
+                    <li>Added metric graph toggles and graphs= support in MangoHud Metrics tab</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Replaced checkboxes across all tabs with compact, anti-aliased toggle switches with shadow depth</li>
+                    <li>Redesigned Environment Variables tab with modern cards and color-coded RADEON and NVIDIA badges</li>
+                    <li>Unified Lossless Scaling tab visual design with side-by-side Method and GPU selectors and high-res banners</li>
+                    <li>Simplified MangoHud Active GPU selector with clean market names and index prefixes</li>
+                    <li>Safe atomic config saving preventing file-locking crashes</li>
+                    <li>Added Steam Grid artwork integration and modernized game card fallback covers</li>
+                    <li>AppImage embedded update information and published zsync control files</li>
+                    <li>Replaced PROTON_PRIORITY_HIGH with dedicated game-performance wrapper</li>
+                </ul>
+                <p>Fixes</p>
+                <ul>
+                    <li>Fixed Flatpak sandbox startup crash by pre-creating the lsfgvk extension mount directory</li>
+                    <li>Preemptively restore original DLL backups before game uninstall and configuration wipe</li>
+                    <li>Synchronized toggle switch states when selecting MangoHud presets and preserved custom FPS color thresholds</li>
+                    <li>Prevented MangoHud global enable from injecting descriptive text into launch commands</li>
+                    <li>Prevented duplicate vkBasalt built-in effects and fixed button clipping on resize</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.9.0" date="2026-08-22">
             <description>
                 <p>New Features</p>

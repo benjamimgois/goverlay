@@ -256,10 +256,6 @@
         <Filename Value="lossless_scaling_tab.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit36>
-      <Unit37>
-        <Filename Value="lsfg_migration_dialog.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit37>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

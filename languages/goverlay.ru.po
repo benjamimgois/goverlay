@@ -54,8 +54,13 @@ msgstr ""
 "Проверьте права доступа к файлам и перезапустите GOverlay."
 
 #: goverlay_strings.rsclearconfigprompt
+#, fuzzy
+#| msgid ""
+#| "All files and settings will be removed and GOverlay will return to its initial configuration.\n"
+#| "\n"
+#| "Do you want to continue?"
 msgid ""
-"All files and settings will be removed and GOverlay will return to its initial configuration.\n"
+"All files and settings will be removed and GOverlay will return to its initial configuration. Original game backup files will be preserved.\n"
 "\n"
 "Do you want to continue?"
 msgstr ""
@@ -375,6 +380,21 @@ msgid ""
 msgstr ""
 "Ошибка (код %d):\n"
 "%s"
+
+#: goverlay_strings.rssteamshortcutflatpakinfo
+msgid ""
+"To add GOverlay to your Steam Library in Desktop Mode:\n"
+"\n"
+"Method 1 (Application Menu):\n"
+"1. Open the Application Launcher (bottom-left corner).\n"
+"2. Locate GOverlay under System, Utilities, or Games.\n"
+"3. Right-click on GOverlay and select \"Add to Steam\".\n"
+"\n"
+"Method 2 (Steam Client):\n"
+"1. In Steam, click \"Games\" in the top menu.\n"
+"2. Select \"Add a Non-Steam Game to My Library...\".\n"
+"3. Choose GOverlay from the list and click \"Add Selected Programs\"."
+msgstr ""
 
 #: goverlay_strings.rsuninstallchangesprompt
 #, object-pascal-format
@@ -1264,6 +1284,16 @@ msgstr ""
 msgid "Feral gamemode status"
 msgstr "Состояние Feral GameMode"
 
+#: tgoverlayform.gameperfcheckbox.caption
+msgid "Sets CPU governor to performance"
+msgstr ""
+
+#: tgoverlayform.gameperfcheckbox.hint
+msgid ""
+"game-performance\n"
+"Sets CPU governor to performance."
+msgstr ""
+
 #: tgoverlayform.gamestabsheet.caption
 msgid "Games"
 msgstr "Игры"
@@ -1522,18 +1552,6 @@ msgstr ""
 "PROTON_HIDE_NVIDIA_GPU=1\n"
 "Не даёт играм обнаружить библиотеки Nvidia."
 
-#: tgoverlayform.highpricheckbox.caption
-msgid "Higher priority for games"
-msgstr "Повышенный приоритет для игр"
-
-#: tgoverlayform.highpricheckbox.hint
-msgid ""
-"PROTON_PRIORITY_HIGH=1\n"
-"Sets high CPU priority for the game process."
-msgstr ""
-"PROTON_PRIORITY_HIGH=1\n"
-"Задаёт высокий приоритет ЦП процессу игры."
-
 #: tgoverlayform.himage.hint
 msgid "Horizontal"
 msgstr "Горизонтально"
@@ -1679,6 +1697,10 @@ msgstr ""
 #| msgid "Optiscaler toggle"
 msgid "Logging toggle"
 msgstr "Переключение Optiscaler"
+
+#: tgoverlayform.lsfgmigrationmenuitem.caption
+msgid "lsfg-vk Migration Assistant"
+msgstr ""
 
 #: tgoverlayform.mainmetriclabel.caption
 msgctxt "tgoverlayform.mainmetriclabel.caption"

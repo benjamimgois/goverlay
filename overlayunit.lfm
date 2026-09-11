@@ -8047,7 +8047,7 @@ object goverlayform: Tgoverlayform
             Left = 17
             Height = 18
             Top = 115
-            Width = 118
+            Width = 114
             BorderSpacing.Top = 12
             Caption = 'Mip-map LoD bias '
             Font.Height = -13
@@ -15883,7 +15883,7 @@ object goverlayform: Tgoverlayform
               Height = 22
               Hint = 'game-performance'#10'Sets CPU governor to performance.'
               Top = 10
-              Width = 179
+              Width = 237
               BorderSpacing.Left = 10
               BorderSpacing.Top = 10
               Caption = 'Sets CPU governor to performance'
@@ -15921,7 +15921,7 @@ object goverlayform: Tgoverlayform
               AnchorSideLeft.Control = gameperfCheckBox
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = performanceGroupBox
-              Left = 209
+              Left = 267
               Height = 22
               Hint = 'PROTON_USE_WOW64=1'#10'Enables the modern 64-bit container for 32-bit apps.'
               Top = 10
@@ -15936,7 +15936,7 @@ object goverlayform: Tgoverlayform
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = wow64CheckBox
               AnchorSideTop.Side = asrBottom
-              Left = 209
+              Left = 267
               Height = 22
               Hint = 'PROTON_NO_NTSYNC=1'#10'Disables ntsync (use if game has sync-related bugs).'
               Top = 42
@@ -15951,7 +15951,7 @@ object goverlayform: Tgoverlayform
               AnchorSideLeft.Side = asrBottom
               AnchorSideTop.Control = disablentsyncCheckBox
               AnchorSideTop.Side = asrBottom
-              Left = 209
+              Left = 267
               Height = 22
               Hint = 'PROTON_HEAP_DELAY_FREE=1'#10'Prevents crashes in games with memory management bugs.'
               Top = 74
