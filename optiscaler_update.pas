@@ -3953,7 +3953,7 @@ var
   LayersDir, TargetSoFile, UserVulkanImplicitDir, TargetJsonFile: string;
   ChanLabel: string;
   StartPct, EndPct: Integer;
-  DownloadUrl, TempDebFile, TempExtractDir: string;
+  DownloadUrl, TempArchiveFile, TempExtractDir: string;
   Process: TProcess;
   JsonSL, OutputList: TStringList;
   FoundFiles: TStringList;
@@ -4044,21 +4044,41 @@ begin
           DeleteFile(RespFile);
         end;
 
-        // Find .deb browser_download_url
+        // Prefer .pkg.tar.zst browser_download_url (extracted directly with tar)
         UrlPos := Pos('browser_download_url', RespText);
         while UrlPos > 0 do
         begin
-          QuoteEnd := PosEx('.deb"', RespText, UrlPos);
+          QuoteEnd := PosEx('.pkg.tar.zst"', RespText, UrlPos);
           if QuoteEnd > 0 then
           begin
             TagPos := PosEx('http', RespText, UrlPos);
             if (TagPos > 0) and (TagPos < QuoteEnd) then
             begin
-              DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 4 - TagPos);
+              DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 12 - TagPos);
               Break;
             end;
           end;
           UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+        end;
+
+        // Fallback: look for .deb browser_download_url if no tar.zst found
+        if DownloadUrl = '' then
+        begin
+          UrlPos := Pos('browser_download_url', RespText);
+          while UrlPos > 0 do
+          begin
+            QuoteEnd := PosEx('.deb"', RespText, UrlPos);
+            if QuoteEnd > 0 then
+            begin
+              TagPos := PosEx('http', RespText, UrlPos);
+              if (TagPos > 0) and (TagPos < QuoteEnd) then
+              begin
+                DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 4 - TagPos);
+                Break;
+              end;
+            end;
+            UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+          end;
         end;
       end;
     finally
@@ -4066,51 +4086,75 @@ begin
     end;
 
     if DownloadUrl = '' then
-      DownloadUrl := 'https://github.com/reakjra/vkSumi/releases/download/v0.0.7/vksumi_0.0.7_amd64.deb';
+      DownloadUrl := 'https://github.com/reakjra/vkSumi/releases/download/v0.0.7/vksumi-0.0.7-2-x86_64.pkg.tar.zst';
 
     WriteLn('[AUTO-INSTALL] vkSumi Download URL: ', DownloadUrl);
-    TempDebFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_download.deb';
+    if Pos('.deb', DownloadUrl) > 0 then
+      TempArchiveFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_download.deb'
+    else
+      TempArchiveFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_download.pkg.tar.zst';
+
     TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_extract' + PathDelim;
 
-    RunCurlWithProgress(DownloadUrl, TempDebFile, StartPct + 4, StartPct + 15, ChanLabel, AOnProgress);
+    RunCurlWithProgress(DownloadUrl, TempArchiveFile, StartPct + 4, StartPct + 15, ChanLabel, AOnProgress);
 
-    if FileExists(TempDebFile) then
+    if FileExists(TempArchiveFile) then
     begin
       ForceDirectories(TempExtractDir);
-      // Unpack deb with 7z
-      Process := TProcess.Create(nil);
-      try
-        Process.Executable := '7z';
-        Process.Parameters.Add('x');
-        Process.Parameters.Add('-y');
-        Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtractDir));
-        Process.Parameters.Add(TempDebFile);
-        Process.Options := [poWaitOnExit];
-        Process.Execute;
-      finally
-        Process.Free;
-      end;
 
-      // Unpack data.tar.* if present
-      FoundFiles := FindAllFiles(TempExtractDir, 'data.tar*', False);
-      try
-        if FoundFiles.Count > 0 then
-        begin
-          Process := TProcess.Create(nil);
-          try
-            Process.Executable := '7z';
-            Process.Parameters.Add('x');
-            Process.Parameters.Add('-y');
-            Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtractDir));
-            Process.Parameters.Add(FoundFiles[0]);
-            Process.Options := [poWaitOnExit];
-            Process.Execute;
-          finally
-            Process.Free;
-          end;
+      if Pos('.pkg.tar.zst', TempArchiveFile) > 0 then
+      begin
+        // Unpack tar.zst directly with tar
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := 'tar';
+          Process.Parameters.Add('-xf');
+          Process.Parameters.Add(TempArchiveFile);
+          Process.Parameters.Add('-C');
+          Process.Parameters.Add(ExcludeTrailingPathDelimiter(TempExtractDir));
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
         end;
-      finally
-        FoundFiles.Free;
+      end
+      else
+      begin
+        // Unpack deb with 7z
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := '7z';
+          Process.Parameters.Add('x');
+          Process.Parameters.Add('-y');
+          Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtractDir));
+          Process.Parameters.Add(TempArchiveFile);
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
+        end;
+
+        // Unpack data.tar.* if present
+        FoundFiles := FindAllFiles(TempExtractDir, 'data.tar*', False);
+        try
+          if FoundFiles.Count > 0 then
+          begin
+            Process := TProcess.Create(nil);
+            try
+              Process.Executable := 'tar';
+              Process.Parameters.Add('-xf');
+              Process.Parameters.Add(FoundFiles[0]);
+              Process.Parameters.Add('-C');
+              Process.Parameters.Add(ExcludeTrailingPathDelimiter(TempExtractDir));
+              Process.Options := [poWaitOnExit];
+              Process.Execute;
+            finally
+              Process.Free;
+            end;
+          end;
+        finally
+          FoundFiles.Free;
+        end;
       end;
 
       // Find libVkLayer_vksumi.so in extracted tree
@@ -4126,7 +4170,7 @@ begin
       end;
 
       // Cleanup temp
-      DeleteFile(TempDebFile);
+      DeleteFile(TempArchiveFile);
       DeleteDirectory(TempExtractDir, False);
     end;
 
