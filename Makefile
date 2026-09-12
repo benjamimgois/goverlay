@@ -54,6 +54,7 @@ install: goverlay pascube bgmod bgmod-uninstaller data/goverlay.sh
 	install -D -m=644 data/icons/128x128/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png
 	install -D -m=644 data/icons/256x256/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 	install -D -m=644 data/icons/512x512/goverlay.png $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
+	install -D -m=644 data/icons/goverlay.svg $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/scalable/apps/io.github.benjamimgois.goverlay.svg
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/assets
 	cp -r assets/* $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/
 	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-shortcut.py
@@ -81,6 +82,7 @@ uninstall:
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
+	rm -f $(DESTDIR)$(prefix)$(datadir)/icons/hicolor/scalable/apps/io.github.benjamimgois.goverlay.svg
 	rm -rf $(DESTDIR)$(prefix)$(datadir)/goverlay
 
 tests:

@@ -3,7 +3,7 @@
     <id>io.github.benjamimgois.goverlay</id>
 
     <name>Goverlay</name>
-    <summary>Easily configure MangoHud, vkBasalt, OptiScaler, and Lossless Scaling</summary>
+    <summary>Configure gaming overlays</summary>
     <developer id="io.github.benjamimgois">
         <name>Benjamim Gois</name>
     </developer>
@@ -24,37 +24,37 @@
     <launchable type="desktop-id">io.github.benjamimgois.goverlay.desktop</launchable>
 
     <branding>
-        <color type="primary" scheme_preference="light">#ff00ff</color>
-        <color type="primary" scheme_preference="dark">#993d3d</color>
+        <color type="primary" scheme_preference="light">#0369a1</color>
+        <color type="primary" scheme_preference="dark">#0f4c75</color>
     </branding>
 
     <screenshots>
         <screenshot type="default">
-            <caption>Pre configured presets</caption>
+            <caption>Pre-configured presets</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/1.webp</image>
         </screenshot>
         <screenshot>
-            <caption>Visual section to configure orientation,borders..</caption>
+            <caption>Visual configuration for position and orientation</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/2.webp</image>
         </screenshot>
         <screenshot>
-            <caption>Performance section to configure fps,frame time..</caption>
+            <caption>Performance metrics and frametime graphs</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/3.webp</image>
         </screenshot>
         <screenshot>
-            <caption>Metrics section to configure CPU and GPU stats.</caption>
+            <caption>Hardware metrics for CPU and GPU monitoring</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/4.webp</image>
         </screenshot>
         <screenshot>
-            <caption>Extra goodies like distro info, wine version..</caption>
+            <caption>System information and session details</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/5.webp</image>
         </screenshot>
         <screenshot>
-            <caption>VkBasalt configuration section</caption>
+            <caption>Visual enhancement shaders with vkBasalt</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/6.webp</image>
         </screenshot>
         <screenshot>
-            <caption>OptiScaler configuration section</caption>
+            <caption>Upscaling and frame generation configuration</caption>
             <image>https://raw.githubusercontent.com/benjamimgois/goverlay/refs/heads/main/data/screenshots/7.webp</image>
         </screenshot>
     </screenshots>
