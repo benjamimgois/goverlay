@@ -43,6 +43,7 @@ make install DESTDIR=$RPM_BUILD_ROOT prefix=/usr libexecdir=/lib
 %{_datadir}/icons/hicolor/128x128/apps/io.github.benjamimgois.goverlay.png
 %{_datadir}/icons/hicolor/256x256/apps/io.github.benjamimgois.goverlay.png
 %{_datadir}/icons/hicolor/512x512/apps/io.github.benjamimgois.goverlay.png
+%{_datadir}/icons/hicolor/scalable/apps/io.github.benjamimgois.goverlay.svg
 %{_datadir}/goverlay/
 
 %changelog
