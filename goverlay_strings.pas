@@ -158,6 +158,10 @@ resourcestring
   rsCacheCleanFailed = 'Error: Could not clean cache directory.' + sLineBreak + '%s';
   rsVarsReadFailed = 'Warning: Could not read goverlay.vars: %s';
 
+  // Startup downloads and integrity verification
+  rsStartupDownloadFailedDetails = 'Could not download required libraries: %s. Check your internet connection.';
+  rsStartupDownloadFailedSummary = 'Could not download %d required libraries. Check your internet connection.';
+
 implementation
 
 end.

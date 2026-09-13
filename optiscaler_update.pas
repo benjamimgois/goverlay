@@ -15,13 +15,20 @@ type
 
 // Check and automatically install OptiScaler if not present
 // Returns True if OptiScaler is installed (or was successfully installed)
-function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Check and automatically install/heal central FSR4 libraries (Latest, 4.1.1b, 4.0.2c)
+function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Audit mandatory upscaler and DLSS libraries on disk
+function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean; overload;
+function HasMissingMandatoryLibraries: Boolean; overload;
 
 // Import a custom OptiScaler build from a local directory
 function ImportCustomOptiScalerBuild(const ASourceDir: string; out AErrorMsg: string): Boolean;
 
 // Check and automatically install DLSS Enabler if not present
-function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 // Synchronize OptiScaler supporting libraries to DLSS Enabler cache directory
 procedure SyncOptiScalerFilesToDlssEnabler(AIsStable: Boolean = True);
@@ -3378,7 +3385,7 @@ begin
   end;
 end;
 
-function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   DestDir, VarsFilePath, DownloadUrl, TagName, ZipFile, TargetKeyword, ItemName, Response, TmpFile: string;
   DummyStableVer, DummyStableURL, DummyEdgeVer, DummyEdgeURL: string;
@@ -3564,6 +3571,8 @@ begin
     begin
       WriteLn('[DLSS-ENABLER] ERROR: Download failed or corrupt archive (size < 10KB)');
       DeleteFile(ZipFile);
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('version.dll (DLSS Enabler)') = -1) then
+        AFailedFiles.Add('version.dll (DLSS Enabler)');
       Result := False;
       Exit;
     end;
@@ -3582,6 +3591,21 @@ begin
       Process.Free;
     end;
     DeleteFile(ZipFile);
+  end
+  else
+  begin
+    WriteLn('[DLSS-ENABLER] ERROR: dlssenabler.zip not found after download');
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('version.dll (DLSS Enabler)') = -1) then
+      AFailedFiles.Add('version.dll (DLSS Enabler)');
+    Result := False;
+    Exit;
+  end;
+
+  if not FileExists(DestDir + 'version.dll') then
+  begin
+    WriteLn('[DLSS-ENABLER] ERROR: version.dll not found after extraction');
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('version.dll (DLSS Enabler)') = -1) then
+      AFailedFiles.Add('version.dll (DLSS Enabler)');
   end;
 
   // Write goverlay.vars
@@ -3749,7 +3773,153 @@ begin
   Result := FileExists(DestDir + 'sl.common.dll') or FileExists(DestDir + 'sl.interposer.dll');
 end;
 
-function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  BaseDir, LatestPath, Ver411bPath, Ver402cPath, OrigDll: string;
+  AllPresent: Boolean;
+  ExitCode: Integer;
+begin
+  Result := True;
+  BaseDir := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+  EnsureFSR4Directories;
+
+  LatestPath := BaseDir + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+  Ver411bPath := BaseDir + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+  Ver402cPath := BaseDir + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+
+  AllPresent := FileExists(LatestPath) and FileExists(Ver411bPath) and FileExists(Ver402cPath);
+
+  if not AForce and AllPresent then
+  begin
+    WriteLn('[FSR4] All FSR4 libraries are present in ', BaseDir);
+    Exit(True);
+  end;
+
+  WriteLn('[FSR4] Verifying and downloading FSR4 libraries...');
+
+  // 1. Latest: copy from OptiScaler stable cache if missing
+  if AForce or not FileExists(LatestPath) then
+  begin
+    OrigDll := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll';
+    if FileExists(OrigDll) then
+    begin
+      CopyFile(OrigDll, LatestPath);
+      WriteLn('[FSR4] Copied native upscaler to FSR4/Latest');
+    end
+    else
+    begin
+      WriteLn('[FSR4] Warning: native upscaler not found in ', OrigDll);
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)') = -1) then
+        AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
+      Result := False;
+    end;
+  end;
+
+  // 2. FSR 4.1.1b
+  if AForce or not FileExists(Ver411bPath) then
+  begin
+    if Assigned(AOnProgress) then
+      AOnProgress(35, 'Downloading FSR 4.1.1b');
+    ExitCode := RunCurlWithProgress(
+      'https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
+      Ver411bPath, 35, 42, 'Downloading FSR 4.1.1b', AOnProgress);
+    if (ExitCode <> 0) or not FileExists(Ver411bPath) then
+    begin
+      WriteLn('[FSR4] Failed to download FSR 4.1.1b');
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)') = -1) then
+        AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
+      Result := False;
+    end
+    else
+      WriteLn('[FSR4] Successfully downloaded FSR 4.1.1b');
+  end;
+
+  // 3. FSR 4.0.2c
+  if AForce or not FileExists(Ver402cPath) then
+  begin
+    if Assigned(AOnProgress) then
+      AOnProgress(43, 'Downloading FSR 4.0.2c');
+    ExitCode := RunCurlWithProgress(
+      'https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
+      Ver402cPath, 43, 50, 'Downloading FSR 4.0.2c', AOnProgress);
+    if (ExitCode <> 0) or not FileExists(Ver402cPath) then
+    begin
+      WriteLn('[FSR4] Failed to download FSR 4.0.2c');
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)') = -1) then
+        AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
+      Result := False;
+    end
+    else
+      WriteLn('[FSR4] Successfully downloaded FSR 4.0.2c');
+  end;
+
+  // Clean up legacy directories if present
+  if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST') then
+    DeleteDirectory(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_LATEST', False);
+  if DirectoryExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8') then
+    DeleteDirectory(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8', False);
+end;
+
+function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean;
+var
+  OptiDir, DlssEnablerDir, FsrBase: string;
+begin
+  AMissingList := TStringList.Create;
+
+  OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
+  DlssEnablerDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(True));
+  FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+
+  // OptiScaler core
+  if not FileExists(OptiDir + 'OptiScaler.dll') then
+    AMissingList.Add('OptiScaler.dll');
+  if not FileExists(OptiDir + 'amd_fidelityfx_upscaler_dx12.dll') then
+    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll');
+
+  // DLSS Enabler core
+  if not FileExists(DlssEnablerDir + 'version.dll') then
+    AMissingList.Add('version.dll (DLSS Enabler)');
+
+  // NVIDIA DLSS companion DLLs
+  if not FileExists(OptiDir + 'nvngx_dlss.dll') then
+    AMissingList.Add('nvngx_dlss.dll');
+  if not FileExists(OptiDir + 'nvngx_dlssd.dll') then
+    AMissingList.Add('nvngx_dlssd.dll');
+  if not FileExists(OptiDir + 'nvngx_dlssg.dll') then
+    AMissingList.Add('nvngx_dlssg.dll');
+
+  // FrameGen bridge
+  if not FileExists(OptiDir + 'dlssg_to_fsr3_amd_is_better.dll') then
+    AMissingList.Add('dlssg_to_fsr3_amd_is_better.dll');
+
+  // FakeNVAPI
+  if not FileExists(OptiDir + 'fakenvapi.dll') then
+    AMissingList.Add('fakenvapi.dll');
+
+  // FSR4 central directory DLLs
+  if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
+  if not FileExists(FsrBase + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
+  if not FileExists(FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
+
+  Result := AMissingList.Count > 0;
+end;
+
+function HasMissingMandatoryLibraries: Boolean;
+var
+  TempList: TStringList;
+begin
+  TempList := TStringList.Create;
+  try
+    Result := HasMissingMandatoryLibraries(TempList);
+  finally
+    TempList.Free;
+  end;
+end;
+
+function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   OptiScalerTag: string;
   DownloadURL: string;
@@ -3813,7 +3983,94 @@ begin
   // Check if OptiScaler.dll already exists in target cache
   if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'OptiScaler.dll') then
   begin
-    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in ', TargetCacheDir, ', no installation needed');
+    WriteLn('[AUTO-INSTALL] OptiScaler.dll already exists in ', TargetCacheDir, ', checking companion libraries and FSR4...');
+
+    // 1. Check & heal NVIDIA DLSS DLLs
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing nvngx_dlss.dll...');
+      ExitCode := RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll', StartPct + 17, StartPct + 19, ChanLabel + ' (nvidia dlss)', AOnProgress);
+      if (ExitCode <> 0) or not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll') then
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlss.dll') = -1) then
+          AFailedFiles.Add('nvngx_dlss.dll');
+    end;
+
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing nvngx_dlssd.dll...');
+      ExitCode := RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll', StartPct + 19, StartPct + 21, ChanLabel + ' (nvidia dlss)', AOnProgress);
+      if (ExitCode <> 0) or not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll') then
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlssd.dll') = -1) then
+          AFailedFiles.Add('nvngx_dlssd.dll');
+    end;
+
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing nvngx_dlssg.dll...');
+      ExitCode := RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll', StartPct + 21, StartPct + 22, ChanLabel + ' (nvidia dlss)', AOnProgress);
+      if (ExitCode <> 0) or not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll') then
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlssg.dll') = -1) then
+          AFailedFiles.Add('nvngx_dlssg.dll');
+    end;
+
+    // 2. Check & heal framegen bridge
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing dlssg_to_fsr3 DLL...');
+      ExitCode := RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
+        IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll', StartPct + 22, StartPct + 23, ChanLabel + ' (framegen bridge)', AOnProgress);
+      if (ExitCode <> 0) or not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll') then
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('dlssg_to_fsr3_amd_is_better.dll') = -1) then
+          AFailedFiles.Add('dlssg_to_fsr3_amd_is_better.dll');
+    end;
+
+    // 3. Check & heal FakeNVAPI
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing FakeNVAPI...');
+      try
+        OptiscalerTabTemp := TOptiscalerTab.Create;
+        try
+          UserDir := GetUserDir;
+          if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
+          begin
+            Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
+            ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ' (fakenvapi)', AOnProgress);
+            if (ExitCode = 0) and FileExists(Fake7zPath) then
+            begin
+              Process := TProcess.Create(nil);
+              try
+                Process.Executable := '7z';
+                Process.Parameters.Add('x');
+                Process.Parameters.Add('-y');
+                Process.Parameters.Add('-o' + TargetCacheDir);
+                Process.Parameters.Add(Fake7zPath);
+                Process.Options := [poWaitOnExit];
+                Process.Execute;
+              finally
+                Process.Free;
+              end;
+              DeleteFile(Fake7zPath);
+            end;
+          end;
+        finally
+          OptiscalerTabTemp.Free;
+        end;
+      except
+        on E: Exception do
+          WriteLn('[AUTO-INSTALL] WARN: Self-healing FakeNVAPI failed: ', E.Message);
+      end;
+      if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('fakenvapi.dll') = -1) then
+          AFailedFiles.Add('fakenvapi.dll');
+    end;
+
+    // 4. Check & heal FSR4 libraries
+    CheckAndInstallFsr4(False, AOnProgress, AFailedFiles);
+
+    // 5. Sync to DLSS Enabler
+    SyncOptiScalerFilesToDlssEnabler(AIsStable);
+
     if Assigned(AOnProgress) then
       AOnProgress(EndPct, ChanLabel);
     Result := True;
@@ -3947,13 +4204,27 @@ begin
     // Download NVIDIA DLSS DLLs to target cache
     WriteLn('[AUTO-INSTALL] Downloading NVIDIA DLSS DLLs...');
     RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlss.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll', StartPct + 17, StartPct + 19, ChanLabel + ' (nvidia dlss)', AOnProgress);
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlss.dll') then
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlss.dll') = -1) then
+        AFailedFiles.Add('nvngx_dlss.dll');
+
     RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssd.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll', StartPct + 19, StartPct + 21, ChanLabel + ' (nvidia dlss)', AOnProgress);
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssd.dll') then
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlssd.dll') = -1) then
+        AFailedFiles.Add('nvngx_dlssd.dll');
+
     RunCurlWithProgress(URL_NVIDIA_DLSS_BASE + 'nvngx_dlssg.dll', IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll', StartPct + 21, StartPct + 22, ChanLabel + ' (nvidia dlss)', AOnProgress);
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'nvngx_dlssg.dll') then
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('nvngx_dlssg.dll') = -1) then
+        AFailedFiles.Add('nvngx_dlssg.dll');
 
     // Download auxiliary dlssg_to_fsr3 DLL
     WriteLn('[AUTO-INSTALL] Downloading dlssg_to_fsr3 DLL...');
     RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/dlssg-fsr3-0.130/dlssg_to_fsr3_amd_is_better.dll',
       IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll', StartPct + 22, StartPct + 23, ChanLabel + ' (framegen bridge)', AOnProgress);
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'dlssg_to_fsr3_amd_is_better.dll') then
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('dlssg_to_fsr3_amd_is_better.dll') = -1) then
+        AFailedFiles.Add('dlssg_to_fsr3_amd_is_better.dll');
 
     // Fetch and download/extract latest FakeNVAPI
     WriteLn('[AUTO-INSTALL] Downloading FakeNVAPI...');
@@ -4000,31 +4271,12 @@ begin
     else
       WriteLn('[AUTO-INSTALL] WARN: Failed to fetch FakeNVAPI latest release info');
 
+    if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('fakenvapi.dll') = -1) then
+        AFailedFiles.Add('fakenvapi.dll');
+
     // Download and setup FSR upscaler DLLs
-    WriteLn('[AUTO-INSTALL] Setting up central FSR4 directories...');
-    EnsureFSR4Directories;
-
-    // Copy native upscaler dll to FSR4/Latest
-    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll') then
-    begin
-      CopyFile(IncludeTrailingPathDelimiter(TargetCacheDir) + 'amd_fidelityfx_upscaler_dx12.dll',
-               IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
-      WriteLn('[AUTO-INSTALL] Copied native upscaler to FSR4/Latest');
-    end;
-
-    // Download FSR 4.1.1b DLL using curl with progress
-    RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
-      IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll', StartPct + 23, StartPct + 24, ChanLabel + ' (fsr 4.1.1b)', AOnProgress);
-
-    // Download FSR 4.0.2c DLL using curl with progress
-    RunCurlWithProgress('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-      IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll', StartPct + 24, EndPct, ChanLabel + ' (fsr 4.0.2c)', AOnProgress);
-
-    // Clean up legacy directories if present
-    if DirectoryExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST') then
-      DeleteDirectory(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_LATEST', False);
-    if DirectoryExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8') then
-      DeleteDirectory(IncludeTrailingPathDelimiter(TargetCacheDir) + 'FSR4_INT8', False);
+    CheckAndInstallFsr4(False, AOnProgress, AFailedFiles);
 
     // Write/update DLSS download date in goverlay.vars
     VarsFilePath := IncludeTrailingPathDelimiter(TargetCacheDir) + 'goverlay.vars';

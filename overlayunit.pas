@@ -70,19 +70,22 @@ const
 
 type
 
-  { TStartupDownloadThread - runs OptiScaler/DLSS Enabler downloads in background
+  { TStartupDownloadThread - runs OptiScaler/DLSS Enabler/FSR4 downloads in background
     so the main thread stays free to repaint the splash form }
   TStartupDownloadThread = class(TThread)
   private
-    FOwner:   TObject;   // holds Tgoverlayform; declared as TObject to avoid forward-ref
-    FPercent: Integer;
-    FStatus:  string;
+    FOwner:       TObject;   // holds Tgoverlayform; declared as TObject to avoid forward-ref
+    FPercent:     Integer;
+    FStatus:      string;
+    FFailedFiles: TStringList;
     procedure DoUpdateSplash;
     procedure OnDownloadProgress(APercent: Integer; const AStatus: string);
   protected
     procedure Execute; override;
   public
     constructor Create(AOwner: TObject);
+    destructor Destroy; override;
+    property FailedFiles: TStringList read FFailedFiles;
   end;
 
   { TChangelogFetchThread - fetches release notes in background and shows popup }
@@ -3235,12 +3238,14 @@ end;
 procedure Tgoverlayform.StartupDownloadsAsync(Data: PtrInt);
 var
   NeedsDownload: Boolean;
+  DownloadThread: TStartupDownloadThread;
+  FailedNotice: string;
+  i: Integer;
 begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
-  NeedsDownload := (not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll')) or
-                   (not FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll'));
+  NeedsDownload := HasMissingMandatoryLibraries;
 
   if not NeedsDownload then
   begin
@@ -3254,23 +3259,42 @@ begin
 
   // Run downloads on a background thread so the main thread stays free to
   // repaint the splash window via Application.ProcessMessages
-  with TStartupDownloadThread.Create(Self) do
-  begin
-    Start;
-    try
-      while not Finished do
-      begin
-        Application.ProcessMessages;
-        Sleep(16); // ~60 fps paint budget
-      end;
-    finally
-      Free;
+  DownloadThread := TStartupDownloadThread.Create(Self);
+  try
+    DownloadThread.Start;
+    while not DownloadThread.Finished do
+    begin
+      Application.ProcessMessages;
+      Sleep(16); // ~60 fps paint budget
     end;
+
+    // Collect failed downloads before freeing the thread
+    FailedNotice := '';
+    if DownloadThread.FailedFiles.Count > 0 then
+    begin
+      if DownloadThread.FailedFiles.Count <= 2 then
+      begin
+        for i := 0 to DownloadThread.FailedFiles.Count - 1 do
+        begin
+          if FailedNotice <> '' then
+            FailedNotice := FailedNotice + ', ';
+          FailedNotice := FailedNotice + DownloadThread.FailedFiles[i];
+        end;
+        FailedNotice := Format(rsStartupDownloadFailedDetails, [FailedNotice]);
+      end
+      else
+        FailedNotice := Format(rsStartupDownloadFailedSummary, [DownloadThread.FailedFiles.Count]);
+    end;
+  finally
+    DownloadThread.Free;
   end;
 
   HideBootSplash;
   Self.Show;
   RefreshOsStatusDots;
+
+  if FailedNotice <> '' then
+    ShowToast(ntWarning, FailedNotice, 6000);
 
   // Check and display changelog popup only after main window is fully visible
   Application.QueueAsyncCall(@ShowChangelogAsync, 0);
@@ -9517,6 +9541,14 @@ begin
   inherited Create(True);   // suspended
   FOwner := AOwner;
   FreeOnTerminate := False; // caller waits for finish, then frees
+  FFailedFiles := TStringList.Create;
+  FFailedFiles.Duplicates := dupIgnore;
+end;
+
+destructor TStartupDownloadThread.Destroy;
+begin
+  FFailedFiles.Free;
+  inherited Destroy;
 end;
 
 procedure TStartupDownloadThread.DoUpdateSplash;
@@ -9536,10 +9568,11 @@ procedure TStartupDownloadThread.Execute;
 begin
   try
     SanitizeImplicitVulkanLayers;
-    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress);   // Stable channel (0% - 30%)
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress);          // Stable channel (30% - 50%)
-    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (50% - 65%)
-    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (65% - 85%)
+    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
+    CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
+    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
+    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 70%)
+    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (70% - 85%)
     CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (85% - 98%)
 
     OnDownloadProgress(100, 'Finishing setup...');
