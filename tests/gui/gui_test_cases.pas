@@ -136,12 +136,13 @@ type
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
     procedure TestFastGamesTabReturnAndInPlaceBadgeUpdate;
     procedure TestDownloadProgressNoFloatingBanner;
+    procedure TestLsfgSteamBetaNoticeDialog;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, Process, BaseUnix;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, Process, BaseUnix;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -672,6 +673,8 @@ begin
     AssertNotNull('Dialog created successfully', Dialog);
     Dialog.RefreshAllChecks;
     AssertNotNull('Step1Dot is initialized', Dialog.Step1Dot);
+    AssertNotNull('Step1GuideBtn is initialized', Dialog.Step1GuideBtn);
+    AssertNotNull('Step1Thumbnail is initialized', Dialog.Step1Thumbnail);
     AssertNotNull('Step2CleanBtn is initialized', Dialog.Step2CleanBtn);
     AssertNotNull('Step4UpdateBtn is initialized', Dialog.Step4UpdateBtn);
   finally
@@ -707,6 +710,19 @@ begin
   goverlayform.popupBitBtnClick(nil);
   AssertFalse('Migration menu item is hidden in hamburger menu when on another tab',
     goverlayform.lsfgMigrationMenuItem.Visible);
+
+  // 7. Test lsfg-vk Assistant button on the main interface (Software Status card)
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  AssertNotNull('LsfgAssistantBtn is allocated', Helper.LsfgAssistantBtn);
+  AssertEquals('LsfgAssistantBtn caption is correct', 'lsfg-vk Assistant', Helper.LsfgAssistantBtn.Caption);
+  AssertTrue('LsfgAssistantBtn is visible in Software Status card', Helper.LsfgAssistantBtn.Visible);
+  AssertTrue('LsfgAssistantBtn OnClick is assigned', Assigned(Helper.LsfgAssistantBtn.OnClick));
+
+  Helper.ReflowLosslessScalingTab(935);
+  AssertTrue('LsfgAssistantBtn has valid width and height',
+    (Helper.LsfgAssistantBtn.Width >= 120) and (Helper.LsfgAssistantBtn.Height > 0));
+  AssertTrue('LsfgAssistantBtn is to the right of LsfgStatusLabel',
+    Helper.LsfgAssistantBtn.Left >= Helper.LsfgStatusLabel.Left + Helper.LsfgStatusLabel.Width);
 end;
 
 function TGoverlayGuiTests.ReadFileText(const APath: string): string;
@@ -5112,6 +5128,44 @@ begin
   AssertFalse('FFloatingProgress not visible during ReshadeGitProgress', goverlayform.FFloatingProgress.Visible);
   if Assigned(goverlayform.FReshadeProgressBar) then
     AssertEquals('FReshadeProgressBar updated in-card', 50, goverlayform.FReshadeProgressBar.Position);
+end;
+
+procedure TGoverlayGuiTests.TestLsfgSteamBetaNoticeDialog;
+var
+  Helper: TLosslessScalingTabHelper;
+  NoticeDlg: TLSFGVkSteamBetaNoticeDialog;
+  OriginalVal: Boolean;
+begin
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Lossless helper assigned', Helper);
+
+  // 1. Instantiation and component verification
+  NoticeDlg := TLSFGVkSteamBetaNoticeDialog.Create(nil, Helper);
+  try
+    AssertNotNull('Notice dialog created', NoticeDlg);
+    AssertNotNull('DoNotShowAgainCheck assigned', NoticeDlg.DoNotShowAgainCheck);
+    AssertNotNull('OpenFolderBtn assigned', NoticeDlg.OpenFolderBtn);
+    AssertNotNull('MigrationBtn assigned', NoticeDlg.MigrationBtn);
+    AssertNotNull('CloseBtn assigned', NoticeDlg.CloseBtn);
+    AssertNotNull('SteamImage assigned', NoticeDlg.SteamImage);
+  finally
+    NoticeDlg.Free;
+  end;
+
+  // 2. HideSteamBetaNotice round-trip persistence and suppression check
+  OriginalVal := Helper.HideSteamBetaNotice;
+  try
+    Helper.HideSteamBetaNotice := True;
+    AssertTrue('HideSteamBetaNotice is True after setting True', Helper.HideSteamBetaNotice);
+    AssertFalse('ShouldShowSteamBetaNotice returns False when notice is suppressed', Helper.ShouldShowSteamBetaNotice);
+
+    Helper.HideSteamBetaNotice := False;
+    AssertFalse('HideSteamBetaNotice is False after setting False', Helper.HideSteamBetaNotice);
+  finally
+    Helper.HideSteamBetaNotice := OriginalVal;
+  end;
 end;
 
 initialization

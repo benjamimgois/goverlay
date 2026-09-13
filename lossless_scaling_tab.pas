@@ -174,6 +174,7 @@ type
     FLsScalingSupersamplingCheckBox: TCheckBox;
     FLsScalingSupersamplingToggle: TToggleSwitch;
     FLsLsfgInstallBtn: TBitBtn;
+    FLsLsfgAssistantBtn: TBitBtn;
     
     // Controls
     FLsPacingTitleLbl: TLabel;
@@ -193,6 +194,8 @@ type
     FDetectedSteamLsfgDllCached: string;
     FSteamDllDetectedThisSession: Boolean;
     FSteamLsfgDllDetectedThisSession: Boolean;
+    FHideSteamBetaNotice: Boolean;
+    FHideSteamBetaNoticeLoaded: Boolean;
     
     procedure MethodNoneClick(Sender: TObject);
     procedure MethodLsfgClick(Sender: TObject);
@@ -202,6 +205,7 @@ type
     function CheckLsfgVkLayerInstalled(out APath: string): Boolean;
     procedure MigrationAlertPaint(Sender: TObject);
     procedure MigrationAlertBtnClick(Sender: TObject);
+    procedure LsfgAssistantBtnClick(Sender: TObject);
     
     procedure DllPathChange(Sender: TObject);
     procedure BrowseDllClick(Sender: TObject);
@@ -252,7 +256,11 @@ type
     function GetStatNameLabel(Index: Integer): TLabel;
     procedure SetMakoUpdateState(const ARemoteVer: string; AAvailable: Boolean);
     procedure SetLsfgUpdateState(const ARemoteVer: string; AAvailable: Boolean);
+    function GetHideSteamBetaNotice: Boolean;
+    procedure SetHideSteamBetaNotice(AValue: Boolean);
+    function ShouldShowSteamBetaNotice: Boolean;
     
+    property HideSteamBetaNotice: Boolean read GetHideSteamBetaNotice write SetHideSteamBetaNotice;
     property InterpolationMethod: TInterpolationMethod read GetInterpolationMethod write SetInterpolationMethod;
     property MethodCard: TPanel read FLsMethodCard;
     property GpuCard: TPanel read FLsGpuCard;
@@ -325,6 +333,7 @@ type
     property CheckUpdatesBtn: TBitBtn read FLsCheckUpdatesBtn;
     property InstallBtn: TBitBtn read FLsInstallBtn;
     property LsfgInstallBtn: TBitBtn read FLsLsfgInstallBtn;
+    property LsfgAssistantBtn: TBitBtn read FLsLsfgAssistantBtn;
     property OverridePresentModeCheckBox: TCheckBox read FLsOverridePresentModeCheckBox;
     property OverridePresentModeToggle: TToggleSwitch read FLsOverridePresentModeToggle;
     property PreserveSwapchainCheckBox: TCheckBox read FLsPreserveSwapchainCheckBox;
@@ -356,6 +365,7 @@ uses
   overlay_config,
   optiscaler_update,
   lsfg_migration_dialog,
+  lsfg_steam_beta_dialog,
   Process;
 
 const
@@ -828,6 +838,8 @@ begin
   FLsfgUpdateAvailable := False;
   FLsfgCheckingUpdate := False;
   FLsfgUpdateCheckedThisSession := False;
+  FHideSteamBetaNotice := False;
+  FHideSteamBetaNoticeLoaded := False;
 end;
 
 destructor TLosslessScalingTabHelper.Destroy;
@@ -854,6 +866,12 @@ begin
       FLsMultiplierValueLabel.Caption := '2x';
   end;
   ControlStateChange(Sender);
+
+  if not (Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig) then
+  begin
+    if ShouldShowSteamBetaNotice then
+      ShowLsfgSteamBetaNoticeDialog(FForm, Self);
+  end;
 end;
 
 procedure TLosslessScalingTabHelper.MethodMakoClick(Sender: TObject);
@@ -1332,6 +1350,63 @@ begin
   end;
 end;
 
+function TLosslessScalingTabHelper.GetHideSteamBetaNotice: Boolean;
+var
+  Ini: TIniFile;
+  ConfigPath: string;
+begin
+  if FHideSteamBetaNoticeLoaded then
+    Exit(FHideSteamBetaNotice);
+
+  Result := False;
+  try
+    ConfigPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'goverlay.conf';
+    if FileExists(ConfigPath) then
+    begin
+      Ini := TIniFile.Create(ConfigPath);
+      try
+        Result := Ini.ReadBool('LosslessScaling', 'HideSteamBetaNotice', False);
+      finally
+        Ini.Free;
+      end;
+    end;
+  except
+  end;
+  FHideSteamBetaNotice := Result;
+  FHideSteamBetaNoticeLoaded := True;
+end;
+
+procedure TLosslessScalingTabHelper.SetHideSteamBetaNotice(AValue: Boolean);
+var
+  Ini: TIniFile;
+  ConfigPath, ConfigDir: string;
+begin
+  FHideSteamBetaNotice := AValue;
+  FHideSteamBetaNoticeLoaded := True;
+  try
+    ConfigPath := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'goverlay.conf';
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      Ini.WriteBool('LosslessScaling', 'HideSteamBetaNotice', AValue);
+    finally
+      Ini.Free;
+    end;
+  except
+  end;
+end;
+
+function TLosslessScalingTabHelper.ShouldShowSteamBetaNotice: Boolean;
+var
+  BetaDll: string;
+begin
+  Result := False;
+  if GetHideSteamBetaNotice then Exit;
+  Result := CheckSteamBetaDllHealth(BetaDll);
+end;
+
 function TLosslessScalingTabHelper.CheckLegacySystemLayersHealth(out AFoundFiles: TStringList): Boolean;
 var
   CandidatePaths: array[0..5] of string;
@@ -1532,6 +1607,11 @@ begin
 end;
 
 procedure TLosslessScalingTabHelper.MigrationAlertBtnClick(Sender: TObject);
+begin
+  ShowLsfgMigrationDialog(FForm, Self);
+end;
+
+procedure TLosslessScalingTabHelper.LsfgAssistantBtnClick(Sender: TObject);
 begin
   ShowLsfgMigrationDialog(FForm, Self);
 end;
@@ -1756,6 +1836,10 @@ begin
     QWidget_setStyleSheet(TQtWidget(FLsCheckUpdatesBtn.Handle).Widget, @SS);
   if Assigned(FLsInstallBtn) and FLsInstallBtn.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(FLsInstallBtn.Handle).Widget, @SS);
+  if Assigned(FLsLsfgAssistantBtn) and FLsLsfgAssistantBtn.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FLsLsfgAssistantBtn.Handle).Widget, @SS);
+  if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(FLsLsfgInstallBtn.Handle).Widget, @SS);
 end;
 
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;
@@ -2578,6 +2662,16 @@ begin
   FLsLsfgInstallBtn.Visible := False;
   StyleActionButton(FLsLsfgInstallBtn);
 
+  FLsLsfgAssistantBtn := TBitBtn.Create(FLsStatusCard);
+  FLsLsfgAssistantBtn.Parent := FLsStatusCard;
+  FLsLsfgAssistantBtn.Caption := 'lsfg-vk Assistant';
+  FLsLsfgAssistantBtn.Cursor := crHandPoint;
+  FLsLsfgAssistantBtn.Hint := 'Open the lsfg-vk assistant and troubleshooting dialog';
+  FLsLsfgAssistantBtn.ShowHint := True;
+  FLsLsfgAssistantBtn.OnClick := @LsfgAssistantBtnClick;
+  FLsLsfgAssistantBtn.Visible := True;
+  StyleActionButton(FLsLsfgAssistantBtn);
+
   // Progress Bar for installation
   FLsProgressBar := TProgressBar.Create(FLsStatusCard);
   FLsProgressBar.Parent := FLsStatusCard;
@@ -2611,7 +2705,7 @@ var
   LogoW_None, LogoW_Lsfg, LogoW_Mako: Integer;
   GroupW_None, GroupW_Lsfg, GroupW_Mako, TotalGroupW, GapBetween: Integer;
   X1, X2, X3: Integer;
-  EditLeft, EditW, BrowseW: Integer;
+  EditLeft, EditW, BrowseW, BtnLeft: Integer;
   Y0, Y1, Y2, Y3, StatusCardH: Integer;
   IsAdaptive: Boolean;
 begin
@@ -3011,10 +3105,29 @@ begin
 
   if Assigned(FLsLsfgStatusLabel) then
   begin
+    FLsLsfgStatusLabel.AutoSize := True;
+    FLsLsfgStatusLabel.AdjustSize;
+    FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, FLsLsfgStatusLabel.Width, 18);
+  end;
+
+  if Assigned(FLsLsfgAssistantBtn) and FLsLsfgAssistantBtn.Visible then
+  begin
+    BtnLeft := EditLeft;
+    if Assigned(FLsLsfgStatusLabel) then
+      BtnLeft := EditLeft + FLsLsfgStatusLabel.Width + 12;
     if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.Visible then
-      FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD - 128, 18)
+    begin
+      if BtnLeft + 150 > CW - PAD - 120 - 6 then
+        BtnLeft := CW - PAD - 120 - 6 - 150;
+    end
     else
-      FLsLsfgStatusLabel.SetBounds(EditLeft, Y2 + (ROW_H - 18) div 2, CW - EditLeft - PAD, 18);
+    begin
+      if BtnLeft + 150 > CW - PAD then
+        BtnLeft := CW - PAD - 150;
+    end;
+    if BtnLeft < EditLeft then
+      BtnLeft := EditLeft;
+    FLsLsfgAssistantBtn.SetBounds(BtnLeft, Y2, 150, ROW_H);
   end;
 
   // Row 3 (Optional): Progress bar during installation

@@ -29,6 +29,8 @@ type
     FStep1Status: TLabel;
     FStep1Desc: TLabel;
     FStep1OpenBtn: TBitBtn;
+    FStep1GuideBtn: TBitBtn;
+    FStep1Thumbnail: TImage;
 
     // Step 2: Legacy Clean
     FStep2Panel: TPanel;
@@ -60,6 +62,7 @@ type
 
     procedure BuildUI;
     procedure CardPaint(Sender: TObject);
+    procedure Step1GuideClick(Sender: TObject);
     procedure OpenFolderClick(Sender: TObject);
     procedure CleanLegacyClick(Sender: TObject);
     procedure UpdateConfigClick(Sender: TObject);
@@ -75,6 +78,8 @@ type
     property Step1Dot: TShape read FStep1Dot;
     property Step1Status: TLabel read FStep1Status;
     property Step1OpenBtn: TBitBtn read FStep1OpenBtn;
+    property Step1GuideBtn: TBitBtn read FStep1GuideBtn;
+    property Step1Thumbnail: TImage read FStep1Thumbnail;
     property Step2Dot: TShape read FStep2Dot;
     property Step2Status: TLabel read FStep2Status;
     property Step2CleanBtn: TBitBtn read FStep2CleanBtn;
@@ -92,7 +97,8 @@ procedure ShowLsfgMigrationDialog(AOwner: TComponent; ATabHelper: TObject = nil)
 implementation
 
 uses
-  lossless_scaling_tab;
+  lossless_scaling_tab,
+  lsfg_steam_beta_dialog;
 
 const
   CLR_BG       = $00281A16; // #161A28 (Dark theme background)
@@ -160,6 +166,7 @@ const
   CARD_W = DLG_W - 2 * PAD - 18; // account for scrollbar
 var
   CurY: Integer;
+  ImgP: string;
 begin
   Caption := 'lsfg-vk 2.0 Migration & Health Assistant';
   Width := DLG_W;
@@ -260,13 +267,41 @@ begin
   FStep1Desc.Font.Size := 8;
   FStep1Desc.Font.Color := CLR_TEXT;
   FStep1Desc.WordWrap := True;
-  FStep1Desc.SetBounds(34, 54, CARD_W - 200, 40);
+  FStep1Desc.SetBounds(34, 54, CARD_W - 310, 40);
+
+  FStep1Thumbnail := TImage.Create(FStep1Panel);
+  FStep1Thumbnail.Parent := FStep1Panel;
+  FStep1Thumbnail.SetBounds(CARD_W - 146, 12, 134, 70);
+  FStep1Thumbnail.Proportional := True;
+  FStep1Thumbnail.Stretch := True;
+  FStep1Thumbnail.Center := True;
+  FStep1Thumbnail.AntialiasingMode := amOn;
+  FStep1Thumbnail.Cursor := crHandPoint;
+  FStep1Thumbnail.Hint := 'Click to view Steam Betas guide';
+  FStep1Thumbnail.ShowHint := True;
+  FStep1Thumbnail.OnClick := @Step1GuideClick;
+
+  ImgP := GetSteamBetaImagePath;
+  if (ImgP <> '') and FileExists(ImgP) then
+  begin
+    try
+      FStep1Thumbnail.Picture.LoadFromFile(ImgP);
+    except
+    end;
+  end;
+
+  FStep1GuideBtn := TBitBtn.Create(FStep1Panel);
+  FStep1GuideBtn.Parent := FStep1Panel;
+  FStep1GuideBtn.Caption := 'Steam Guide';
+  FStep1GuideBtn.Cursor := crHandPoint;
+  FStep1GuideBtn.SetBounds(CARD_W - 280, 90, 124, 30);
+  FStep1GuideBtn.OnClick := @Step1GuideClick;
 
   FStep1OpenBtn := TBitBtn.Create(FStep1Panel);
   FStep1OpenBtn.Parent := FStep1Panel;
   FStep1OpenBtn.Caption := 'Open Steam Folder';
   FStep1OpenBtn.Cursor := crHandPoint;
-  FStep1OpenBtn.SetBounds(CARD_W - 160, 90, 146, 30);
+  FStep1OpenBtn.SetBounds(CARD_W - 146, 90, 134, 30);
   FStep1OpenBtn.OnClick := @OpenFolderClick;
 
   CurY := CurY + 134 + 10;
@@ -408,6 +443,11 @@ begin
   FStep4ResultLbl.Font.Size := 8;
   FStep4ResultLbl.Font.Style := [fsBold];
   FStep4ResultLbl.SetBounds(34, 96, CARD_W - 220, 20);
+end;
+
+procedure TLSFGVkMigrationDialog.Step1GuideClick(Sender: TObject);
+begin
+  ShowLsfgSteamBetaNoticeDialog(Self, FTabHelper);
 end;
 
 procedure TLSFGVkMigrationDialog.OpenFolderClick(Sender: TObject);
