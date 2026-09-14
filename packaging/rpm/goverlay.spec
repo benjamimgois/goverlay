@@ -37,6 +37,7 @@ make install DESTDIR=$RPM_BUILD_ROOT prefix=/usr libexecdir=/lib
 %{_prefix}/lib/pascube
 %{_prefix}/lib/bgmod
 %{_prefix}/lib/bgmod-uninstaller
+%{_prefix}/lib/bgmod-splash
 %{_datadir}/applications/io.github.benjamimgois.goverlay.desktop
 %{_datadir}/metainfo/io.github.benjamimgois.goverlay.metainfo.xml
 %{_mandir}/man1/goverlay.1*

@@ -79,6 +79,7 @@ install: goverlay pascube bgmod bgmod-uninstaller bgmod-splash data/goverlay.sh
 	cp -r data/bgmod/* $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/
 	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod
 	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod-uninstaller
+	rm -f $(DESTDIR)$(prefix)$(datadir)/goverlay/bgmod/bgmod-splash
 
 uninstall:
 	rm -f $(DESTDIR)$(prefix)$(libexecdir)/goverlay

@@ -90,10 +90,11 @@ if [ -d "${PROJECT_ROOT}/languages" ]; then
 else
   echo "[AppImageBuild] WARNING: ${PROJECT_ROOT}/languages does not exist!"
 fi
-# Copy unwrapped bgmod and bgmod-uninstaller binaries directly to AppDir/lib
+# Copy unwrapped bgmod, bgmod-uninstaller and bgmod-splash binaries directly to AppDir/lib
 mkdir -p ./AppDir/lib
 cp -pf /usr/lib/bgmod ./AppDir/lib/bgmod
 cp -pf /usr/lib/bgmod-uninstaller ./AppDir/lib/bgmod-uninstaller
+cp -pf /usr/lib/bgmod-splash ./AppDir/lib/bgmod-splash
 
 echo "[AppImageBuild] ls AppDir/bin:"
 ls -la ./AppDir/bin/
