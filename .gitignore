@@ -19,6 +19,9 @@ scratch/
 /bgmod-uninstaller
 data/bgmod/bgmod-uninstaller
 data/bgmod/bgmod.conf
+/bgmod-splash
+data/bgmod/bgmod-splash
+bgmod_splash_src/bgmod-splash
 
 # Flatpak build artifacts
 .flatpak-builder/

@@ -368,9 +368,17 @@ begin
   FForm.FCreateSteamShortcutItem.OnClick := @FForm.CreateSteamShortcutMenuItemClick;
   FForm.settingsMenu.Items.Insert(6, FForm.FCreateSteamShortcutItem);
 
+  // Launch splash screen toggle
+  FForm.FLaunchSplashItem := TMenuItem.Create(FForm.settingsMenu);
+  FForm.FLaunchSplashItem.Caption := 'Show launch splash screen';
+  FForm.FLaunchSplashItem.AutoCheck := True;
+  FForm.FLaunchSplashItem.Checked := FForm.FShowLaunchSplash;
+  FForm.FLaunchSplashItem.OnClick := @FForm.LaunchSplashMenuItemClick;
+  FForm.settingsMenu.Items.Insert(7, FForm.FLaunchSplashItem);
+
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(7, Sep);
+  FForm.settingsMenu.Items.Insert(8, Sep);
 
   // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
@@ -390,12 +398,12 @@ begin
   HeroicItem.OnClick := @FForm.howtoHeroicClick;
   FForm.FHowToMenuItem.Add(HeroicItem);
 
-  FForm.settingsMenu.Items.Insert(8, FForm.FHowToMenuItem);
+  FForm.settingsMenu.Items.Insert(9, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
   Sep.Visible := False;
-  FForm.settingsMenu.Items.Insert(9, Sep);
+  FForm.settingsMenu.Items.Insert(10, Sep);
 end;
 
 procedure TSidebarNavHelper.SettingsBtnMouseEnter(Sender: TObject);

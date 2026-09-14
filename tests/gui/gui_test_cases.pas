@@ -71,6 +71,7 @@ type
     procedure TestCommandPanelRightMarginConsistency;
     procedure TestFloatingActionDockAndFinishDialog;
     procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
+    procedure TestLaunchSplashSettingsMenuItem;
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
     procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
@@ -2231,6 +2232,75 @@ begin
   AssertEquals('preferredUpscalerComboBox item 3 is lowercase fsr22', 'fsr22', goverlayform.preferredUpscalerComboBox.Items[3]);
   AssertEquals('preferredUpscalerComboBox item 4 is lowercase fsr4', 'fsr4', goverlayform.preferredUpscalerComboBox.Items[4]);
   AssertEquals('preferredUpscalerComboBox item 5 is lowercase dlss', 'dlss', goverlayform.preferredUpscalerComboBox.Items[5]);
+end;
+
+procedure TGoverlayGuiTests.TestLaunchSplashSettingsMenuItem;
+var
+  IdxCreate, IdxSplash: Integer;
+  ConfigPath, BgmodPath: string;
+  Ini: TIniFile;
+begin
+  AssertNotNull('Launch splash menu item is assigned', goverlayform.FLaunchSplashItem);
+  AssertEquals('Launch splash menu item caption is correct', 'Show launch splash screen', goverlayform.FLaunchSplashItem.Caption);
+  AssertTrue('Launch splash menu item AutoCheck is True', goverlayform.FLaunchSplashItem.AutoCheck);
+  AssertTrue('Launch splash menu item defaults to Checked', goverlayform.FLaunchSplashItem.Checked);
+  AssertTrue('FShowLaunchSplash defaults to True', goverlayform.FShowLaunchSplash);
+
+  // Position: directly beneath FCreateSteamShortcutItem
+  IdxCreate := goverlayform.settingsMenu.Items.IndexOf(goverlayform.FCreateSteamShortcutItem);
+  IdxSplash := goverlayform.settingsMenu.Items.IndexOf(goverlayform.FLaunchSplashItem);
+  AssertTrue('FCreateSteamShortcutItem exists in settingsMenu', IdxCreate >= 0);
+  AssertTrue('FLaunchSplashItem exists in settingsMenu', IdxSplash >= 0);
+  AssertEquals('FLaunchSplashItem is directly beneath FCreateSteamShortcutItem', IdxCreate + 1, IdxSplash);
+
+  // Test toggle: uncheck
+  goverlayform.FLaunchSplashItem.Checked := False;
+  goverlayform.LaunchSplashMenuItemClick(goverlayform.FLaunchSplashItem);
+  AssertFalse('FShowLaunchSplash updated to False', goverlayform.FShowLaunchSplash);
+
+  // Verify persistence in goverlay.conf
+  ConfigPath := GetConfigFilePath;
+  AssertTrue('goverlay.conf exists', FileExists(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    AssertFalse('ShowLaunchSplash saved as False in goverlay.conf', Ini.ReadBool('General', 'ShowLaunchSplash', True));
+  finally
+    Ini.Free;
+  end;
+
+  // Verify persistence in global bgmod.conf
+  BgmodPath := goverlayform.GetGameConfigDir('') + 'bgmod.conf';
+  if FileExists(BgmodPath) then
+  begin
+    Ini := TIniFile.Create(BgmodPath);
+    try
+      AssertEquals('SHOW_LAUNCH_SPLASH saved as 0 in bgmod.conf', '0', Ini.ReadString('Config', 'SHOW_LAUNCH_SPLASH', '1'));
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  // Test toggle: check again
+  goverlayform.FLaunchSplashItem.Checked := True;
+  goverlayform.LaunchSplashMenuItemClick(goverlayform.FLaunchSplashItem);
+  AssertTrue('FShowLaunchSplash restored to True', goverlayform.FShowLaunchSplash);
+
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    AssertTrue('ShowLaunchSplash restored to True in goverlay.conf', Ini.ReadBool('General', 'ShowLaunchSplash', False));
+  finally
+    Ini.Free;
+  end;
+
+  if FileExists(BgmodPath) then
+  begin
+    Ini := TIniFile.Create(BgmodPath);
+    try
+      AssertEquals('SHOW_LAUNCH_SPLASH restored to 1 in bgmod.conf', '1', Ini.ReadString('Config', 'SHOW_LAUNCH_SPLASH', '0'));
+    finally
+      Ini.Free;
+    end;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestDlssEnablerTagMatchingNoFalseUpdate;

@@ -321,6 +321,8 @@ begin
       // Make binaries executable
       fpChmod(PChar(GlobalCfgDir + 'bgmod'), &755);
       fpChmod(PChar(GlobalCfgDir + 'bgmod-uninstaller'), &755);
+      if FileExists(GlobalCfgDir + 'bgmod-splash') then
+        fpChmod(PChar(GlobalCfgDir + 'bgmod-splash'), &755);
       WriteLn('[BGMOD] gameconfig/global/ initialized from bgmod/');
     end;
   end
@@ -404,6 +406,7 @@ begin
       Proc.Parameters.Add('cp -f --no-preserve=mode ' +
                           QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod') + ' ' +
                           QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BinaryDir) + 'bgmod-splash') + ' ' +
                           QuotedStr(BGModPath) + '/ 2>/dev/null');
       Proc.Options := [poWaitOnExit];
       Proc.Execute;
@@ -419,6 +422,8 @@ begin
     fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod', &755);
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') then
     fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller', &755);
+  if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash') then
+    fpChmod(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash', &755);
 
   // Create backward compatibility symlink for fgmod in bgmod path
   Proc := TProcess.Create(nil);

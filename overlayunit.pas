@@ -1288,8 +1288,10 @@ type
     FWinePrefixMenuItem: TMenuItem;  // Wine Prefix menu item inside settingsMenu
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FCreateSteamShortcutItem: TMenuItem; // settings menu item to create steam shortcut
+    FLaunchSplashItem:   TMenuItem;  // settings menu toggle for launch splash screen
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
+    FShowLaunchSplash:   Boolean;    // whether to show launch splash screen on game start
 
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
@@ -1367,6 +1369,9 @@ type
     procedure SettingsBtnClick(Sender: TObject);
     procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
     procedure CreateSteamShortcutMenuItemClick(Sender: TObject);
+    procedure LaunchSplashMenuItemClick(Sender: TObject);
+    procedure LoadLaunchSplashConfig;
+    procedure SaveLaunchSplashConfig;
      procedure BenchmarkTimerTick(Sender: TObject);
      procedure CopyPasCubeLogs;
      procedure BuildNavToolToggles;
@@ -3376,6 +3381,7 @@ begin
   // Check and update config version
   CheckAndUpdateConfigVersion;
   LoadWindowGeometry;
+  LoadLaunchSplashConfig;
 
   //Set initial TAB
   goverlayPageControl.ActivePage:=gamesTabsheet;
@@ -9532,6 +9538,89 @@ begin
   except
     // Fail silently so startup isn't aborted
   end;
+end;
+
+procedure Tgoverlayform.LoadLaunchSplashConfig;
+var
+  IniFile: TIniFile;
+  ConfigPath: string;
+begin
+  FShowLaunchSplash := True;
+  try
+    ConfigPath := GetConfigFilePath;
+    if FileExists(ConfigPath) then
+    begin
+      IniFile := TIniFile.Create(ConfigPath);
+      try
+        FShowLaunchSplash := IniFile.ReadBool('General', 'ShowLaunchSplash', True);
+      finally
+        IniFile.Free;
+      end;
+    end;
+  except
+  end;
+  if Assigned(FLaunchSplashItem) then
+    FLaunchSplashItem.Checked := FShowLaunchSplash;
+end;
+
+procedure Tgoverlayform.SaveLaunchSplashConfig;
+var
+  IniFile: TIniFile;
+  ConfigPath, ConfigDir, BgmodPath: string;
+begin
+  // 1. Save to goverlay.conf under [General] ShowLaunchSplash
+  try
+    ConfigPath := GetConfigFilePath;
+    ConfigDir := ExtractFilePath(ConfigPath);
+    if not DirectoryExists(ConfigDir) then
+      ForceDirectories(ConfigDir);
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      IniFile.WriteBool('General', 'ShowLaunchSplash', FShowLaunchSplash);
+    finally
+      IniFile.Free;
+    end;
+  except
+  end;
+
+  // 2. Save to global bgmod.conf
+  try
+    BgmodPath := GetGameConfigDir('') + 'bgmod.conf';
+    if DirectoryExists(ExtractFilePath(BgmodPath)) then
+    begin
+      IniFile := TIniFile.Create(BgmodPath);
+      try
+        IniFile.WriteString('Config', 'SHOW_LAUNCH_SPLASH', IfThen(FShowLaunchSplash, '1', '0'));
+      finally
+        IniFile.Free;
+      end;
+    end;
+
+    // And active game's bgmod.conf if one is active
+    if FActiveGameName <> '' then
+    begin
+      BgmodPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
+      if DirectoryExists(ExtractFilePath(BgmodPath)) then
+      begin
+        IniFile := TIniFile.Create(BgmodPath);
+        try
+          IniFile.WriteString('Config', 'SHOW_LAUNCH_SPLASH', IfThen(FShowLaunchSplash, '1', '0'));
+        finally
+          IniFile.Free;
+        end;
+      end;
+    end;
+  except
+  end;
+end;
+
+procedure Tgoverlayform.LaunchSplashMenuItemClick(Sender: TObject);
+begin
+  if Assigned(FLaunchSplashItem) then
+    FShowLaunchSplash := FLaunchSplashItem.Checked
+  else
+    FShowLaunchSplash := not FShowLaunchSplash;
+  SaveLaunchSplashConfig;
 end;
 
 { TStartupDownloadThread }

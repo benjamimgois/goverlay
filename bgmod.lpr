@@ -1704,6 +1704,99 @@ begin
   end;
 end;
 
+function FindSplashBinary(const ABgmodPath, ASourceDir: string): string;
+var
+  DataHome: string;
+  Candidates: array[0..8] of string;
+  idx: Integer;
+begin
+  Result := '';
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + '.local/share';
+
+  Candidates[0] := IncludeTrailingPathDelimiter(ABgmodPath) + 'bgmod-splash';
+  Candidates[1] := IncludeTrailingPathDelimiter(ASourceDir) + 'bgmod-splash';
+  Candidates[2] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/bgmod-splash';
+  Candidates[3] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/gameconfig/global/bgmod-splash';
+  Candidates[4] := '/usr/libexec/goverlay/bgmod-splash';
+  Candidates[5] := '/usr/libexec/bgmod-splash';
+  Candidates[6] := '/usr/local/libexec/goverlay/bgmod-splash';
+  Candidates[7] := '/app/bin/bgmod-splash';
+  Candidates[8] := '/usr/bin/bgmod-splash';
+
+  for idx := 0 to High(Candidates) do
+  begin
+    if (Candidates[idx] <> '') and FileExists(Candidates[idx]) and (fpAccess(PChar(Candidates[idx]), X_OK) = 0) then
+      Exit(Candidates[idx]);
+  end;
+
+  Result := FileSearch('bgmod-splash', GetEnvironmentVariable('PATH'));
+end;
+
+procedure SpawnLaunchSplashAsync(
+  const ASplashExe: string;
+  const AGameTitle: string;
+  AItems: TStringList;
+  AEnvp: PPChar
+);
+var
+  SplashArgsList: TStringList;
+  SplashArgs: array of PChar;
+  idx: Integer;
+  ForkPid: TPid;
+  Status: cint;
+  DevNull: cint;
+begin
+  if (ASplashExe = '') or (AItems = nil) or (AItems.Count = 0) then Exit;
+  if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then Exit;
+
+  SplashArgsList := TStringList.Create;
+  try
+    SplashArgsList.Add(ASplashExe);
+    if AGameTitle <> '' then
+      SplashArgsList.Add('--game=' + AGameTitle);
+
+    for idx := 0 to AItems.Count - 1 do
+      SplashArgsList.Add('--item=' + AItems[idx]);
+
+    SplashArgsList.Add('--duration=2500');
+
+    SetLength(SplashArgs, SplashArgsList.Count + 1);
+    for idx := 0 to SplashArgsList.Count - 1 do
+      SplashArgs[idx] := PChar(SplashArgsList[idx]);
+    SplashArgs[SplashArgsList.Count] := nil;
+
+    ForkPid := fpFork;
+    if ForkPid = 0 then
+    begin
+      // Detached grandchild creation so grandchild is reparented to init (PID 1)
+      if fpFork = 0 then
+      begin
+        DevNull := fpOpen('/dev/null', O_RDWR);
+        if DevNull >= 0 then
+        begin
+          fpDup2(DevNull, 0);
+          fpDup2(DevNull, 1);
+          fpDup2(DevNull, 2);
+          fpClose(DevNull);
+        end;
+        execvpe(SplashArgs[0], @SplashArgs[0], AEnvp);
+        fpExit(0);
+      end;
+      fpExit(0);
+    end
+    else if ForkPid > 0 then
+    begin
+      // Parent: wait for immediate child to reap it instantly
+      Status := 0;
+      fpWaitPid(ForkPid, Status, 0);
+    end;
+  finally
+    SplashArgsList.Free;
+  end;
+end;
+
 var
   DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
   TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr, InterpolationMethod, LsfgGpu: string;
@@ -1733,6 +1826,9 @@ var
   SumiCentralLogFile, SumiGameLogFile: string;
   BasaltCentralLogFile, BasaltGameLogFile: string;
   HasAnyToolLogging: Boolean;
+  ShowLaunchSplash: Boolean;
+  SplashExe, SplashGameTitle: string;
+  SplashItems: TStringList;
   PipeFds: array[0..1] of cint;
   ForkPid: TPid;
   OrigStderr: cint;
@@ -1817,6 +1913,7 @@ begin
   GOverlayOptiscaler := False;
   GOverlayTweaks := False;
   GOverlayLossless := False;
+  ShowLaunchSplash := True;
   DllName := 'dxgi.dll';
   PreserveIni := True;
   UnmanagedIni := False;
@@ -1829,6 +1926,7 @@ begin
   begin
     Ini := TIniFile.Create(ConfigDir + 'bgmod.conf');
     try
+      ShowLaunchSplash := Ini.ReadString('Config', 'SHOW_LAUNCH_SPLASH', '1') = '1';
       GOverlayMangoHud := Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1';
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
       GOverlayVkSumi := Ini.ReadString('Config', 'GOVERLAY_VKSUMI', '0') = '1';
@@ -2869,6 +2967,60 @@ begin
   // Synchronize any existing tool logs from GameDir to CentralLogDir before game execution
   if CentralLogDir <> '' then
     SyncGameDirLogsToCentral(GameDir, CentralLogDir);
+
+  // If launch splash is enabled, spawn bgmod-splash asynchronously
+  if ShowLaunchSplash then
+  begin
+    SplashItems := TStringList.Create;
+    try
+      if GOverlayMangoHud then
+        SplashItems.Add('MangoHud');
+
+      if GOverlayOptiscaler then
+      begin
+        if UpscalerType = 1 then
+          SplashItems.Add('DLSS Enabler')
+        else
+          SplashItems.Add('OptiScaler');
+      end;
+
+      if GOverlayLossless then
+      begin
+        if InterpolationMethod = 'lsfg' then
+          SplashItems.Add('Lossless Scaling (lsfg-vk)')
+        else if InterpolationMethod = 'mako' then
+          SplashItems.Add('Lossless Scaling (Mako)')
+        else
+          SplashItems.Add('Lossless Scaling');
+      end;
+
+      if GOverlayVkBasalt then
+        SplashItems.Add('vkBasalt');
+
+      if GOverlayVkSumi then
+        SplashItems.Add('vkSumi');
+
+      if GOverlayTweaks then
+        SplashItems.Add('Environment Variables');
+
+      if SplashItems.Count > 0 then
+      begin
+        SplashExe := FindSplashBinary(BgmodPath, SourceDir);
+        if SplashExe <> '' then
+        begin
+          SplashGameTitle := '';
+          if (LowerCase(Key) <> 'bgmod') and (LowerCase(Key) <> 'global') and (Key <> '') then
+            SplashGameTitle := Key
+          else if TargetExeName <> '' then
+            SplashGameTitle := ChangeFileExt(TargetExeName, '');
+
+          SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+        end;
+      end;
+    finally
+      SplashItems.Free;
+    end;
+  end;
 
   execvpe(Args[0], @Args[0], @EnvArgs[0]);
   
