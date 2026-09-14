@@ -1806,6 +1806,13 @@ var
 begin
   if Assigned(FOptiscalerUpdate) then
   begin
+    // For Custom Build, this button is labeled "Select Folder..." - prompt user to select folder
+    if Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2) then
+    begin
+      FOptiscalerUpdate.SelectAndImportCustomBuild;
+      Exit;
+    end;
+
     // Store the state before checking
     HasUpdates := False;
 
@@ -4018,7 +4025,7 @@ begin
     WriteLn(StdErr, '[DEBUG_GPU] mesaRadioButton.Enabled = ', mesaRadioButton.Enabled, ', Checked = ', mesaRadioButton.Checked);
 
     //Check for updates on startup
-    if (not TestMode) and Assigned(FOptiscalerUpdate) then
+    if (not TestMode) and Assigned(FOptiscalerUpdate) and (optversionComboBox.ItemIndex <> 2) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
 
     // Populate Home tab and OptiScaler status card after update check
@@ -5176,7 +5183,7 @@ begin
   if Assigned(FOptiscalerUpdate) then
   begin
     FOptiscalerUpdate.CheckAndUpdateOptiPatcherAsync;
-    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
+    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked and (optversionComboBox.ItemIndex <> 2) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
   end;
 
@@ -8292,7 +8299,7 @@ begin
   finally
     FLoadingConfig := False;
   end;
-  if Assigned(FOptiscalerUpdate) then
+  if Assigned(FOptiscalerUpdate) and (optversionComboBox.ItemIndex <> 2) then
     FOptiscalerUpdate.CheckForUpdatesOnClick;
 end;
 

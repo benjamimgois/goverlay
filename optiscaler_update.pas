@@ -1719,6 +1719,9 @@ var
   ErrMsg: string;
 begin
   Result := False;
+  // Test mode: never open GUI dialogs
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+
   DirDlg := TSelectDirectoryDialog.Create(nil);
   try
     DirDlg.Title := 'Select Custom OptiScaler Folder (containing OptiScaler.dll)';
@@ -2085,11 +2088,9 @@ procedure TOptiscalerTab.CheckForUpdatesOnClick;
 var
   IsStableChannel: Boolean;
 begin
+  // Custom Build has no remote repository or online updates to check on GitHub
   if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
-  begin
-    SelectAndImportCustomBuild;
     Exit;
-  end;
 
   // Test mode: never spawn network update threads (deterministic test runs)
   if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;

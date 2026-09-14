@@ -362,10 +362,20 @@ end;
 
 var
   GLoggerSignalReceived: cint = 0;
+  GSupervisorGamePid: TPid = -1;
+  GSupervisorLoggerPid: TPid = -1;
 
 procedure LoggerSigHandler(sig: cint); cdecl;
 begin
   GLoggerSignalReceived := sig;
+end;
+
+procedure SupervisorSigHandler(sig: cint); cdecl;
+begin
+  if GSupervisorGamePid > 0 then
+    fpKill(GSupervisorGamePid, sig);
+  if GSupervisorLoggerPid > 0 then
+    fpKill(GSupervisorLoggerPid, sig);
 end;
 
 procedure RunSubprocessLogger(ReadFd, OrigStderrFd: cint; 
@@ -1830,7 +1840,8 @@ var
   SplashExe, SplashGameTitle: string;
   SplashItems: TStringList;
   PipeFds: array[0..1] of cint;
-  ForkPid: TPid;
+  LoggerPid, GamePid: TPid;
+  GameStatus, LoggerStatus: cint;
   OrigStderr: cint;
 
 
@@ -1845,6 +1856,10 @@ end;
 {$endif}
 
 begin
+  FpSignal(SIGTERM, SignalHandler(@SupervisorSigHandler));
+  FpSignal(SIGINT, SignalHandler(@SupervisorSigHandler));
+  FpSignal(SIGHUP, SignalHandler(@SupervisorSigHandler));
+
   BgmodPath := ExtractFilePath(ParamStr(0));
   
   // Resolve central GOverlay log path
@@ -2916,6 +2931,12 @@ begin
 
   HasAnyToolLogging := GOverlayMangoHud or (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
 
+  LoggerPid := -1;
+  GamePid := -1;
+  OrigStderr := -1;
+  PipeFds[0] := -1;
+  PipeFds[1] := -1;
+
   // If any tool logging is enabled, spawn background stderr filter process
   if HasAnyToolLogging and (
      (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') or
@@ -2930,8 +2951,8 @@ begin
     if fpPipe(PipeFds) = 0 then
     begin
       OrigStderr := fpDup(2);
-      ForkPid := fpFork;
-      if ForkPid = 0 then
+      LoggerPid := fpFork;
+      if LoggerPid = 0 then
       begin
         // Child: background logger process
         fpClose(PipeFds[1]);
@@ -2953,13 +2974,12 @@ begin
           (GOverlayOptiscaler and (UpscalerType = 1))
         );
       end
-      else if ForkPid > 0 then
+      else if LoggerPid > 0 then
       begin
-        // Parent: redirect stderr to pipe write end and proceed to execvpe
+        GSupervisorLoggerPid := LoggerPid;
+        // Parent: close read end in supervisor
         fpClose(PipeFds[0]);
-        fpDup2(PipeFds[1], 2);
-        fpClose(PipeFds[1]);
-        if OrigStderr >= 0 then fpClose(OrigStderr);
+        PipeFds[0] := -1;
       end;
     end;
   end;
@@ -3022,10 +3042,85 @@ begin
     end;
   end;
 
-  execvpe(Args[0], @Args[0], @EnvArgs[0]);
-  
-  // If we reach here, execvpe failed
-  Log('Error: execvpe failed');
-  EnvStrings.Free;
-  Halt(127);
+  GamePid := fpFork;
+  if GamePid = 0 then
+  begin
+    // Child: redirect stderr to pipe write end if tool logging is active
+    if PipeFds[1] >= 0 then
+    begin
+      fpDup2(PipeFds[1], 2);
+      fpClose(PipeFds[1]);
+    end;
+    if OrigStderr >= 0 then
+      fpClose(OrigStderr);
+
+    execvpe(Args[0], @Args[0], @EnvArgs[0]);
+    
+    // If we reach here, execvpe failed
+    Log('Error: execvpe failed');
+    fpExit(127);
+  end
+  else if GamePid > 0 then
+  begin
+    GSupervisorGamePid := GamePid;
+
+    // Parent supervisor: close pipe write end so bgmod does not keep the pipe open
+    if PipeFds[1] >= 0 then
+    begin
+      fpClose(PipeFds[1]);
+      PipeFds[1] := -1;
+    end;
+    if OrigStderr >= 0 then
+    begin
+      fpClose(OrigStderr);
+      OrigStderr := -1;
+    end;
+
+    // Wait for game process to exit
+    GameStatus := 0;
+    while fpWaitPid(GamePid, GameStatus, 0) < 0 do
+    begin
+      if fpGetErrno <> ESysEINTR then
+        Break;
+    end;
+    GSupervisorGamePid := -1;
+
+    // Clean up background logger process if active
+    if LoggerPid > 0 then
+    begin
+      LoggerStatus := 0;
+      if fpKill(LoggerPid, 0) = 0 then
+      begin
+        fpKill(LoggerPid, SIGTERM);
+        while fpWaitPid(LoggerPid, LoggerStatus, 0) < 0 do
+        begin
+          if fpGetErrno <> ESysEINTR then
+            Break;
+        end;
+      end;
+      GSupervisorLoggerPid := -1;
+    end;
+
+    EnvStrings.Free;
+
+    if wIfExited(GameStatus) then
+      Halt(wExitStatus(GameStatus))
+    else if wIfSignaled(GameStatus) then
+      Halt(128 + wTermSig(GameStatus))
+    else
+      Halt(0);
+  end
+  else
+  begin
+    Log('Error: fpFork for game process failed');
+    if PipeFds[1] >= 0 then fpClose(PipeFds[1]);
+    if OrigStderr >= 0 then fpClose(OrigStderr);
+    if LoggerPid > 0 then
+    begin
+      fpKill(LoggerPid, SIGTERM);
+      fpWaitPid(LoggerPid, LoggerStatus, 0);
+    end;
+    EnvStrings.Free;
+    Halt(1);
+  end;
 end.

@@ -74,10 +74,17 @@ type
     procedure TestMakoRemoteVersionUrlResolution;
   end;
 
+  TBgmodSupervisorTests = class(TTestCase)
+  published
+    procedure TestSupervisorExitCodeTrue;
+    procedure TestSupervisorExitCodeFalse;
+    procedure TestSupervisorStderrClosure;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, Process;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -795,6 +802,70 @@ begin
   end;
 end;
 
+function GetBgmodBinaryPath: string;
+begin
+  if FileExists('./bgmod') then
+    Result := './bgmod'
+  else if FileExists('../../bgmod') then
+    Result := '../../bgmod'
+  else if FileExists('data/bgmod/bgmod') then
+    Result := 'data/bgmod/bgmod'
+  else if FileExists('../../data/bgmod/bgmod') then
+    Result := '../../data/bgmod/bgmod'
+  else
+    Result := 'bgmod';
+end;
+
+procedure TBgmodSupervisorTests.TestSupervisorExitCodeTrue;
+var
+  Proc: TProcess;
+begin
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := GetBgmodBinaryPath;
+    Proc.Parameters.Add('/bin/true');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod /bin/true should return exit code 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestSupervisorExitCodeFalse;
+var
+  Proc: TProcess;
+begin
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := GetBgmodBinaryPath;
+    Proc.Parameters.Add('/bin/false');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod /bin/false should return exit code 1', 1, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestSupervisorStderrClosure;
+var
+  Proc: TProcess;
+begin
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := GetBgmodBinaryPath;
+    Proc.Parameters.Add('/bin/sh');
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('echo "testing stderr output" >&2; exit 0');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod running command with stderr output should return exit code 0 without hanging', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -805,5 +876,6 @@ initialization
   RegisterTest(TMangoHudGpuListTests);
   RegisterTest(TClearConfigTests);
   RegisterTest(TMakoLogicTests);
+  RegisterTest(TBgmodSupervisorTests);
 
 end.
