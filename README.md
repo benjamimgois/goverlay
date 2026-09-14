@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/benjamimgois/Goverlay/releases">
+  <a href="https://github.com/benjamimgois/goverlay/releases">
     <img
-      src="https://img.shields.io/github/v/release/benjamimgois/Goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge"
+      src="https://img.shields.io/github/v/release/benjamimgois/goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge"
       alt="Latest release">
   </a>
 
@@ -19,15 +19,15 @@
       alt="AUR version">
   </a>
 
-<a href="https://github.com/benjamimgois/Goverlay/releases">
+<a href="https://github.com/benjamimgois/goverlay/releases">
   <img
     src="https://img.shields.io/badge/AppImage-Stable-orange?style=for-the-badge&logo=linux"
     alt="AppImage stable">
 </a>
 
-  <a href="https://github.com/benjamimgois/Goverlay/blob/main/LICENSE">
+  <a href="https://github.com/benjamimgois/goverlay/blob/main/LICENSE">
     <img
-      src="https://img.shields.io/github/license/benjamimgois/Goverlay?color=2196f3&label=License&style=for-the-badge"
+      src="https://img.shields.io/github/license/benjamimgois/goverlay?color=2196f3&label=License&style=for-the-badge"
       alt="License">
   </a>
 </p>
@@ -68,10 +68,10 @@ I’m just a network engineer who loves Linux and gaming — this is my way of g
 ---
 
 ### Integrated Vulkan Preview (PasCube)
-Goverlay ships with **PasCube**, a full Vulkan demo compiled from the PasVulkan engine. It launches automatically (or on demand) to preview your MangoHud, vkBasalt, and vkSumi settings in real time. The demo title bar and overlay display the current GOverlay version.
+Goverlay ships with **PasCube**, a full Vulkan demo compiled from the PasVulkan engine. It launches automatically (or on demand) to preview your MangoHud, vkBasalt, and vkSumi settings in real time. The demo title bar and overlay display the current Goverlay version.
 
 ### Per-Game Config Architecture
-When a game is selected, GOverlay switches to **Game Mode**. Each game gets its own XDG-compliant config directory containing:
+When a game is selected, Goverlay switches to **Game Mode**. Each game gets its own XDG-compliant config directory containing:
 - `MangoHud.conf`
 - `vkBasalt.conf`
 - `vkSumi.conf`
@@ -137,7 +137,7 @@ An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and re
 
 
 > [!NOTE]
-> In Flatpak, GOverlay hides host-dependent features such as GameMode and Protontricks because it cannot reliably detect or execute host binaries.
+> In Flatpak, Goverlay hides host-dependent features such as GameMode and Protontricks because it cannot reliably detect or execute host binaries.
 
 ---
 
@@ -159,11 +159,11 @@ flatpak install flathub io.github.benjamimgois.goverlay
 
 ### AppImage
 
-Download the AppImage from the [Releases page](https://github.com/benjamimgois/Goverlay/releases) and make it executable:
+Download the AppImage from the [Releases page](https://github.com/benjamimgois/goverlay/releases) and make it executable:
 
 ```bash
-chmod +x Goverlay_*.AppImage
-./Goverlay_*.AppImage
+chmod +x goverlay*.AppImage
+./goverlay*.AppImage
 ```
 
 ## Distributions
@@ -207,14 +207,14 @@ sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
 
 ## Tarball
 
-1. Download the latest tarball from the [Releases page](https://github.com/benjamimgois/Goverlay/releases).
+1. Download the latest tarball from the [Releases page](https://github.com/benjamimgois/goverlay/releases).
 2. Extract it:
    ```bash
-   tar -xvf Goverlay*.tar.xz
+   tar -xvf goverlay*.tar.xz
    ```
 3. Run the binary:
    ```bash
-   ./Goverlay
+   ./goverlay
    ```
 
 > **Note:** Since version 0.6.4, MangoHud must be installed to run Goverlay.
@@ -231,8 +231,8 @@ sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
 ### Building
 
 ```bash
-git clone https://github.com/benjamimgois/Goverlay.git
-cd Goverlay
+git clone https://github.com/benjamimgois/goverlay.git
+cd goverlay
 make
 ```
 

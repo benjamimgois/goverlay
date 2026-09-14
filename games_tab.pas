@@ -1220,7 +1220,7 @@ begin
             if FileExists(IconPath) then
               try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-            BdgHint := 'Enabled GOverlay Tools:';
+            BdgHint := 'Enabled Goverlay Tools:';
             if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
             if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
             if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
@@ -1517,7 +1517,7 @@ begin
         if FileExists(IconPath) then
           try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
 
-        BdgHint := 'Enabled GOverlay Tools:';
+        BdgHint := 'Enabled Goverlay Tools:';
         if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
         if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
         if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
@@ -3394,7 +3394,7 @@ begin
         end;
 
         // Strip existing badge hint if present
-        p := Pos('Enabled GOverlay Tools:', TargetPanel.Hint);
+        p := Pos('Enabled Goverlay Tools:', TargetPanel.Hint);
         if p > 0 then
           BaseHint := TrimRight(Copy(TargetPanel.Hint, 1, p - 1))
         else
@@ -3402,7 +3402,7 @@ begin
 
         if BadgeCount > 0 then
         begin
-          BdgHint := 'Enabled GOverlay Tools:';
+          BdgHint := 'Enabled Goverlay Tools:';
           if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
           if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
           if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';

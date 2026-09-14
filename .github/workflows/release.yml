@@ -1,4 +1,4 @@
-name: GOverlay Stable Release
+name: Goverlay Stable Release
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
           chmod +x ./appimage/get-dependencies.sh
           ./appimage/get-dependencies.sh
 
-      - name: Build GOverlay
+      - name: Build Goverlay
         run: |
           export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt6"
           make
@@ -174,7 +174,7 @@ jobs:
       - name: Create stable Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "GOverlay ${{ github.ref_name }}"
+          name: "Goverlay ${{ github.ref_name }}"
           tag_name: "${{ github.ref_name }}"
           prerelease: false
           draft: false

@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or unexpected behavior in GOverlay
+description: Report a bug or unexpected behavior in Goverlay
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -43,7 +43,7 @@ body:
     id: installation
     attributes:
       label: Installation Method
-      description: How did you install GOverlay?
+      description: How did you install Goverlay?
       options:
         - Flatpak (Flathub)
         - Native (pacman/zypper/eopkg)
@@ -57,8 +57,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: GOverlay Version
-      description: What version of GOverlay are you using?
+      label: Goverlay Version
+      description: What version of Goverlay are you using?
       placeholder: "e.g., 1.7.0"
     validations:
       required: true
@@ -131,5 +131,5 @@ body:
       options:
         - label: I have searched for existing issues before creating this one
           required: true
-        - label: I am using the latest version of GOverlay
+        - label: I am using the latest version of Goverlay
           required: false

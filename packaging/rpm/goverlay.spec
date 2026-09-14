@@ -17,7 +17,7 @@ Recommends:     vkbasalt
 Recommends:     mangohud
 
 %description
-GOverlay is an open-source project that aims to create a Graphical UI
+Goverlay is an open-source project that aims to create a Graphical UI
 to manage Vulkan/OpenGL overlays. It supports vkBasalt, MangoHud,
 and other overlay tools.
 

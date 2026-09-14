@@ -214,10 +214,16 @@ def main():
     
     # AppID generation (matching Steam behavior)
     # Concatenate Exe + AppName
-    s = (exe_path + "GOverlay").encode('utf-8')
+    s = (exe_path + "Goverlay").encode('utf-8')
     crc = binascii.crc32(s) & 0xffffffff
     appid = crc | 0x80000000
     long_grid_id = (appid << 32) | 0x02000000
+
+    # Also calculate legacy GOverlay AppID for artwork cleanup
+    s_legacy = (exe_path + "GOverlay").encode('utf-8')
+    crc_legacy = binascii.crc32(s_legacy) & 0xffffffff
+    appid_legacy = crc_legacy | 0x80000000
+    long_grid_id_legacy = (appid_legacy << 32) | 0x02000000
     
     for vdf_path in shortcut_files:
         try:
@@ -238,11 +244,11 @@ def main():
                 
             shortcuts = parse_shortcuts(vdf_path)
             
-            # Find and remove any existing GOverlay shortcuts & collect IDs for artwork cleanup
+            # Find and remove any existing Goverlay/GOverlay shortcuts & collect IDs for artwork cleanup
             goverlay_keys = []
-            goverlay_ids = {str(appid), str(long_grid_id)}
+            goverlay_ids = {str(appid), str(long_grid_id), str(appid_legacy), str(long_grid_id_legacy)}
             for k, v in shortcuts.items():
-                if v.get('AppName') == 'GOverlay':
+                if v.get('AppName') in ('Goverlay', 'GOverlay'):
                     goverlay_keys.append(k)
                     old_id = v.get('appid')
                     if old_id:
@@ -290,7 +296,7 @@ def main():
                     
                 shortcuts[str(new_idx)] = {
                     'appid': appid,
-                    'AppName': 'GOverlay',
+                    'AppName': 'Goverlay',
                     'Exe': exe_val,
                     'StartDir': start_val,
                     'icon': icon_path,

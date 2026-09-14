@@ -5169,7 +5169,7 @@ begin
       end;
     AssertFalse('Badge image with Tag 2 removed when no tools enabled', HasBadge2);
     AssertFalse('Badge header removed from hint',
-      Pos('Enabled GOverlay Tools:', TestCard.Hint) > 0);
+      Pos('Enabled Goverlay Tools:', TestCard.Hint) > 0);
     AssertEquals('Card Hint restored to original base hint', BaseHintText, TestCard.Hint);
 
   finally

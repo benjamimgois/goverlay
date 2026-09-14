@@ -382,7 +382,7 @@ begin
   FStep3Desc.Parent := FStep3Panel;
   FStep3Desc.Caption := 'If you installed lsfg-vk from AUR or a package manager (e.g. lsfg-vk-git), we recommend uninstalling it:' + LineEnding +
                         '  Arch / Manjaro: sudo pacman -R lsfg-vk-git   or   yay -R lsfg-vk-git' + LineEnding +
-                        'GOverlay manages the 2.0 layer automatically in ~/.local/share/vulkan.';
+                        'Goverlay manages the 2.0 layer automatically in ~/.local/share/vulkan.';
   FStep3Desc.Font.Size := 8;
   FStep3Desc.Font.Color := CLR_TEXT;
   FStep3Desc.WordWrap := True;

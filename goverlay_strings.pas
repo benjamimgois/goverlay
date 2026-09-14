@@ -2,7 +2,7 @@ unit goverlay_strings;
 
 {$mode objfpc}{$H+}
 
-// Text GOverlay shows in message boxes.
+// Text Goverlay shows in message boxes.
 //
 // These live in a resourcestring section so the Lazarus IDE picks them up into
 // languages/goverlay.pot the same way it picks up the form captions; a plain
@@ -37,13 +37,13 @@ resourcestring
 
   // Home tab: clearing the configuration
   rsClearConfigTitle = 'Clear Configuration';
-  rsClearConfigPrompt = 'All files and settings will be removed and GOverlay '
+  rsClearConfigPrompt = 'All files and settings will be removed and Goverlay '
     + 'will return to its initial configuration. Original game backup files will be preserved.' + sLineBreak + sLineBreak
     + 'Do you want to continue?';
   rsClearConfigDone = 'Configuration cleared successfully.' + sLineBreak
-    + 'Please restart GOverlay.';
+    + 'Please restart Goverlay.';
   rsClearConfigPartial = 'Some configuration folders could not be removed.'
-    + sLineBreak + 'Please check file permissions and restart GOverlay.';
+    + sLineBreak + 'Please check file permissions and restart Goverlay.';
 
   // Effects
   rsEffectSelectAvailable = 'Select at least one effect in "available effects".';
@@ -57,7 +57,7 @@ resourcestring
   rsCustomPresetTitle = 'Custom Preset Required';
   rsCustomPresetPrompt = 'No custom configuration was found to load.' + LineEnding + LineEnding
     + 'To create your custom preset:' + LineEnding
-    + '1. Customize your desired elements and colors in GOverlay.' + LineEnding
+    + '1. Customize your desired elements and colors in Goverlay.' + LineEnding
     + '2. Click the menu button in the bottom bar.' + LineEnding
     + '3. Select "Save Options" -> "Save as Custom Config".' + LineEnding + LineEnding
     + 'Once created, click "Custom" anytime to apply your preset!';
@@ -101,21 +101,21 @@ resourcestring
 
   // GameMode
   rsGameModeTitle = 'GameMode Warning';
-  rsGameModeFlatpakPrompt = 'You are running GOverlay in Flatpak. GameMode must be '
+  rsGameModeFlatpakPrompt = 'You are running Goverlay in Flatpak. GameMode must be '
     + 'installed on your host system for this feature to work.' + LineEnding + LineEnding
     + 'If GameMode is not installed, games may fail to launch.' + LineEnding + LineEnding
     + 'Do you want to continue?';
 
   // Steam shortcut
-  rsSteamShortcutFlatpakInfo = 'To add GOverlay to your Steam Library in Desktop Mode:' + LineEnding + LineEnding
+  rsSteamShortcutFlatpakInfo = 'To add Goverlay to your Steam Library in Desktop Mode:' + LineEnding + LineEnding
     + 'Method 1 (Application Menu):' + LineEnding
     + '1. Open the Application Launcher (bottom-left corner).' + LineEnding
-    + '2. Locate GOverlay under System, Utilities, or Games.' + LineEnding
-    + '3. Right-click on GOverlay and select "Add to Steam".' + LineEnding + LineEnding
+    + '2. Locate Goverlay under System, Utilities, or Games.' + LineEnding
+    + '3. Right-click on Goverlay and select "Add to Steam".' + LineEnding + LineEnding
     + 'Method 2 (Steam Client):' + LineEnding
     + '1. In Steam, click "Games" in the top menu.' + LineEnding
     + '2. Select "Add a Non-Steam Game to My Library...".' + LineEnding
-    + '3. Choose GOverlay from the list and click "Add Selected Programs".';
+    + '3. Choose Goverlay from the list and click "Add Selected Programs".';
   rsSteamRunning = 'Steam is currently running. Please close Steam completely '
     + '(Steam -> Exit) before creating the shortcut, as Steam will overwrite and '
     + 'discard any changes when it exits.';

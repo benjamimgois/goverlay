@@ -885,7 +885,7 @@ begin
       unmanagedIniCheckBox := TCheckBox.Create(FForm);
       unmanagedIniCheckBox.Name := 'unmanagedIniCheckBox';
       unmanagedIniCheckBox.Caption := 'In-game menu configuration only';
-      unmanagedIniCheckBox.Hint := 'Do not overwrite OptiScaler.ini from GOverlay (configure in-game instead)';
+      unmanagedIniCheckBox.Hint := 'Do not overwrite OptiScaler.ini from Goverlay (configure in-game instead)';
       unmanagedIniCheckBox.ShowHint := True;
       unmanagedIniCheckBox.Anchors := [akLeft, akTop];
       unmanagedIniCheckBox.Parent := FOsStatusCard;
@@ -896,7 +896,7 @@ begin
     if FUnmanagedIniToggle = nil then
     begin
       FUnmanagedIniToggle := PlaceOsToggle(unmanagedIniCheckBox, FOsStatusCard);
-      FUnmanagedIniToggle.Hint := 'Do not overwrite OptiScaler.ini from GOverlay (configure in-game instead)';
+      FUnmanagedIniToggle.Hint := 'Do not overwrite OptiScaler.ini from Goverlay (configure in-game instead)';
       FUnmanagedIniToggle.ShowHint := True;
       FUnmanagedIniToggle.Visible := False;
     end;

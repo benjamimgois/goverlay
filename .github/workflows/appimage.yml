@@ -27,7 +27,7 @@ jobs:
           chmod +x ./appimage/get-dependencies.sh
           ./appimage/get-dependencies.sh
 
-      - name: Build GOverlay
+      - name: Build Goverlay
         run: |
           export LAZBUILDOPTS="--lazarusdir=/usr/lib/lazarus --widgetset=qt6"
           make

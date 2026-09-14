@@ -1,6 +1,6 @@
-# Contributing to GOverlay
+# Contributing to Goverlay
 
-Thank you for your interest in contributing to **GOverlay**! 🎉
+Thank you for your interest in contributing to **Goverlay**! 🎉
 
 This document provides guidelines for contributing to the project. Following these guidelines helps maintain code quality and makes the review process smoother for everyone.
 
@@ -23,13 +23,14 @@ This document provides guidelines for contributing to the project. Following the
   - [Translations](#translations)
 - [Project Structure](#project-structure)
 - [Building and Running](#building-and-running)
+- [Community](#community)
 - [License](#license)
 
 ---
 
 ## Code of Conduct
 
-Be respectful and considerate of others. This is a community project, and we value contributions from everyone. Harassment, discrimination, or any form of abusive behavior will not be tolerated.
+Please be respectful and considerate of others when contributing to this project. We aim to create a welcoming and inclusive environment for everyone.
 
 ---
 
@@ -37,45 +38,48 @@ Be respectful and considerate of others. This is a community project, and we val
 
 ### Prerequisites
 
-Before you start contributing, ensure you have the following tools installed:
+Before you begin, ensure you have the following installed:
 
-#### Required Tools
-
-- **[Lazarus IDE](https://www.lazarus-ide.org/)** - Free Pascal IDE
-- **[Free Pascal Compiler (FPC)](https://www.freepascal.org/)** - Pascal compiler
-- **[Git](https://git-scm.com/)** - Version control
-- **[qt6pas](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings)** - Qt6 bindings for Lazarus
-
-#### Runtime Dependencies
-
-- **[MangoHud](https://github.com/flightlessmango/MangoHud)** - Performance overlay
-- **[vkBasalt](https://github.com/DadSchoorse/vkBasalt)** - Post-processing effects
-- **[mesa-demos](https://gitlab.freedesktop.org/mesa/demos)** - OpenGL demo tools
-- **[vulkan-tools](https://github.com/LunarG/VulkanTools)** - Vulkan utilities
+- **Free Pascal Compiler (FPC)** 3.2.0 or higher
+- **Lazarus IDE** 2.2.0 or higher
+- **Make**
+- **Git**
+- Core overlay tools (for testing):
+  - `MangoHud`
+  - `vkBasalt`
+  - `vkSumi` (optional, for frame generation testing)
+  - `OptiScaler` (optional, for upscaling testing)
 
 ### Setting Up Development Environment
 
 1. **Fork and clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/goverlay.git
+   git clone https://github.com/your-username/goverlay.git
    cd goverlay
    ```
 
-2. **Open the project in Lazarus IDE:**
+2. **Add upstream remote:**
    ```bash
-   lazarus-ide goverlay.lpi
+   git remote add upstream https://github.com/benjamimgois/goverlay.git
    ```
-   
-   Or simply open `goverlay.lpi` from the IDE.
 
-3. **Build the project:**
+3. **Install build dependencies (distribution-specific):**
+   - **Debian/Ubuntu:**
+     ```bash
+     sudo apt install fp-compiler fpc-source lazarus make git
+     ```
+   - **Fedora:**
+     ```bash
+     sudo dnf install fpc fpc-src lazarus make git
+     ```
+   - **Arch Linux:**
+     ```bash
+     sudo pacman -S fpc fpc-src lazarus make git
+     ```
+
+4. **Build the project:**
    ```bash
    make
-   ```
-
-4. **Run the application:**
-   ```bash
-   ./start_goverlay.sh
    ```
 
 ---
@@ -84,17 +88,20 @@ Before you start contributing, ensure you have the following tools installed:
 
 ### Reporting Bugs
 
-If you find a bug, please create an issue on [GitHub Issues](https://github.com/benjamimgois/goverlay/issues) with the following information:
+Found a bug? Help us squash it!
 
-- **Clear title** describing the issue
-- **Description** of what happened vs. what you expected
-- **Steps to reproduce** the bug
-- **Environment details:**
-  - GOverlay version
-  - Distribution and version
-  - Installation method (Flatpak, native, AppImage, etc.)
-  - MangoHud/vkBasalt/OptiScaler versions
-- **Logs or screenshots** if applicable
+1. **Check existing issues:** Search [GitHub Issues](https://github.com/benjamimgois/goverlay/issues) to avoid duplicates.
+2. **Open a new issue:** If not found, use the bug report template.
+3. **Include details:**
+   - Clear, descriptive title
+   - Description of what happened vs. what you expected
+   - Steps to reproduce the bug
+   - Environment details:
+     - Goverlay version
+     - Distribution and version
+     - Installation method (Flatpak, native, AppImage, etc.)
+     - MangoHud/vkBasalt/OptiScaler versions
+   - Logs or screenshots if applicable
 
 **Example:**
 ```markdown
@@ -104,14 +111,14 @@ If you find a bug, please create an issue on [GitHub Issues](https://github.com/
 **Actual:** Always saves "Home" regardless of selection
 
 **Steps to Reproduce:**
-1. Open GOverlay
+1. Open Goverlay
 2. Go to vkBasalt tab
 3. Select "F1" from toggle key dropdown
 4. Click Save
 5. Check vkBasalt config - shows "Home"
 
 **Environment:**
-- GOverlay 1.7.0 (Flatpak)
+- Goverlay 1.7.0 (Flatpak)
 - Arch Linux
 - vkBasalt 0.3.2
 ```
@@ -163,7 +170,7 @@ Feature requests are welcome! Please create an issue with:
 
 ### Code Style
 
-GOverlay is written in **Object Pascal** using the **Lazarus IDE**. Follow these guidelines:
+Goverlay is written in **Object Pascal** using the **Lazarus IDE**. Follow these guidelines:
 
 #### General Rules
 
@@ -393,7 +400,7 @@ make clean
 
 ## License
 
-By contributing to GOverlay, you agree that your contributions will be licensed under the **GNU General Public License v3.0**.
+By contributing to Goverlay, you agree that your contributions will be licensed under the **GNU General Public License v3.0**.
 
 See [LICENSE](LICENSE) for the full license text.
 
@@ -409,4 +416,4 @@ If you have questions about contributing, feel free to:
 
 ---
 
-**Thank you for contributing to GOverlay!** Your efforts help make Linux gaming better for everyone. 🚀
+**Thank you for contributing to Goverlay!** Your efforts help make Linux gaming better for everyone. 🚀

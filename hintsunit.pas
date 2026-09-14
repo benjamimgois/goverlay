@@ -299,7 +299,7 @@ begin
   SetHint('saveBitBtn', 'Save configurations' + LineEnding +
     'Applies and saves all changes');
   SetHint('gupdateBitBtn', 'Check for updates' + LineEnding +
-    'Checks if there is a new GOverlay version');
+    'Checks if there is a new Goverlay version');
   SetHint('checkupdBitBtn', 'Check MangoHud updates' + LineEnding +
     'Checks latest MangoHud version');
   SetHint('themeToggleSpeedButton', 'Toggle theme' + LineEnding +

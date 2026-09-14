@@ -3022,7 +3022,7 @@ begin
 
   gpuAvgFPS := fCurrentResult.PhaseResults[3].FPSAvg;
 
-  // Populate PhaseResults[7] as the main GPU Vulkan Render phase for GOverlay compatibility
+  // Populate PhaseResults[7] as the main GPU Vulkan Render phase for Goverlay compatibility
   fCurrentResult.PhaseResults[7].PhaseName := 'GPU Vulkan Render';
   fCurrentResult.PhaseResults[7].Score := gpuAvgPoints;
   fCurrentResult.PhaseResults[7].FPSAvg := gpuAvgFPS;
@@ -3392,7 +3392,7 @@ begin
                           1.0, 1.0, 1.0, 1.0);
 
   app.TextOverlay.AddText(cx, boxY + 4.3 * charHeight, 0.8, toaCenter,
-                          'Disable Lossless Scaling in GOverlay to run benchmarks.',
+                          'Disable Lossless Scaling in Goverlay to run benchmarks.',
                           0.0, 0.0, 0.0, 0.0,
                           185.0/255.0, 190.0/255.0, 205.0/255.0, 1.0);
  end;
@@ -4446,7 +4446,7 @@ begin
    if infoStr <> '' then
     app.TextOverlay.AddText(1920.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
 
-   // Draw progress bar track (background box, GOverlay dark blue-grey, blue-grey outline)
+   // Draw progress bar track (background box, Goverlay dark blue-grey, blue-grey outline)
    app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
                           22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
                           50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
@@ -6361,7 +6361,7 @@ begin
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'GOverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
+    app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'Goverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if Assigned(app) and (app.Version <> '') then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, app.Version, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else

@@ -146,7 +146,7 @@ begin
   begin
     FTitleLabel := TLabel.Create(Self);
     FTitleLabel.Parent := Self;
-    FTitleLabel.Caption := 'GOverlay';
+    FTitleLabel.Caption := 'Goverlay';
     FTitleLabel.Font.Color := clWhite;
     FTitleLabel.Font.Size := 15;
     FTitleLabel.Font.Style := [fsBold];

@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for GOverlay
+description: Suggest a new feature or enhancement for Goverlay
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
@@ -95,5 +95,5 @@ body:
       options:
         - label: I have searched for existing feature requests before creating this one
           required: true
-        - label: This feature aligns with GOverlay's purpose (MangoHud/vkBasalt/OptiScaler configuration)
+        - label: This feature aligns with Goverlay's purpose (MangoHud/vkBasalt/OptiScaler configuration)
           required: true

@@ -37,14 +37,14 @@ uses
 constructor TChangelogForm.CreateNew(AOwner: TComponent; Dummy: Integer = 0);
 begin
   inherited CreateNew(AOwner, Dummy);
-  Caption := 'What''s New in GOverlay';
+  Caption := 'What''s New in Goverlay';
   Width := 600;
   Height := 460;
   Position := poOwnerFormCenter;
   BorderStyle := bsNone;
   FormStyle := fsStayOnTop;
   PopupMode := pmAuto;
-  Color := RGBToColor(22, 26, 40); // GOverlay background navy blue
+  Color := RGBToColor(22, 26, 40); // Goverlay background navy blue
   OnPaint := @FormPaint;
   OnClose := @FormClose;
   OnMouseDown := @HeaderMouseDown;
@@ -69,7 +69,7 @@ begin
   FTitleLabel.Font.Size := 12;
   FTitleLabel.Font.Style := [fsBold];
   FTitleLabel.Font.Color := clWhite;
-  FTitleLabel.Caption := '🚀 What''s New in GOverlay';
+  FTitleLabel.Caption := '🚀 What''s New in Goverlay';
   FTitleLabel.OnMouseDown := @HeaderMouseDown;
   FTitleLabel.OnMouseMove := @HeaderMouseMove;
   FTitleLabel.OnMouseUp := @HeaderMouseUp;
@@ -105,7 +105,7 @@ end;
 
 procedure TChangelogForm.FormPaint(Sender: TObject);
 begin
-  // Draw custom border matching GOverlay styling
+  // Draw custom border matching Goverlay styling
   Canvas.Brush.Style := bsClear;
   Canvas.Pen.Color := RGBToColor(45, 55, 80);
   Canvas.Pen.Width := 2;
@@ -152,7 +152,7 @@ end;
 
 procedure TChangelogForm.SetChangelogText(const AVersion, AText: string);
 begin
-  FTitleLabel.Caption := '🚀 What''s New in GOverlay ' + AVersion;
+  FTitleLabel.Caption := '🚀 What''s New in Goverlay ' + AVersion;
   FMemo.Text := AText;
   FMemo.SelStart := 0;
   FMemo.SelLength := 0;

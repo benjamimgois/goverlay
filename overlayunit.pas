@@ -7018,7 +7018,7 @@ begin
       ExistingLines.SaveToFile(PresetsFilePath);
 
       // Send notification via D-Bus
-      SendNotification('GOverlay', 'Steam Deck Preset ' + IntToStr(PresetNumber) + ' saved successfully!');
+      SendNotification('Goverlay', 'Steam Deck Preset ' + IntToStr(PresetNumber) + ' saved successfully!');
 
     finally
       ExistingLines.Free;
@@ -8970,7 +8970,7 @@ begin
     GameDirName := SanitizeFileName(AGameName);
 
   // Use the centralized Flatpak-aware helper so game configs are stored in
-  // the same location whether GOverlay is running natively or as Flatpak.
+  // the same location whether Goverlay is running natively or as Flatpak.
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + GameDirName + '/';
 end;
