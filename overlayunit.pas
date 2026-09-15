@@ -1112,6 +1112,9 @@ type
     FOptiScalerPngLogo: TPortableNetworkGraphic;
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
     FNoneUpscalerPngLogo: TPortableNetworkGraphic;
+    FOptiScalerPngLogoDimmed: TPortableNetworkGraphic;
+    FDlssEnablerPngLogoDimmed: TPortableNetworkGraphic;
+    FNoneUpscalerPngLogoDimmed: TPortableNetworkGraphic;
     FOsStatDots:     array[0..5] of TShape;
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel;
@@ -2835,6 +2838,12 @@ begin
   FreeAndNil(FGlobalThumbPng);
   FreeAndNil(FMangoIconGfx);
   FreeAndNil(FOptiIconGfx);
+  FreeAndNil(FOptiScalerPngLogo);
+  FreeAndNil(FDlssEnablerPngLogo);
+  FreeAndNil(FNoneUpscalerPngLogo);
+  FreeAndNil(FOptiScalerPngLogoDimmed);
+  FreeAndNil(FDlssEnablerPngLogoDimmed);
+  FreeAndNil(FNoneUpscalerPngLogoDimmed);
   FreeAndNil(FOptiScalerHelper);
   FreeAndNil(FLosslessScalingHelper);
   FreeAndNil(FHomeHelper);
@@ -5150,11 +5159,49 @@ end;
 procedure Tgoverlayform.UpdateUpscalerImageOpacity;
 begin
   if Assigned(optiscalerLogoImage) and Assigned(optiscalerRadioButton) then
-    optiscalerLogoImage.Enabled := optiscalerRadioButton.Checked;
+  begin
+    optiscalerLogoImage.Enabled := True;
+    if optiscalerRadioButton.Checked then
+    begin
+      if Assigned(FOptiScalerPngLogo) then
+        optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
+    end
+    else
+    begin
+      if Assigned(FOptiScalerPngLogoDimmed) then
+        optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogoDimmed);
+    end;
+  end;
+
   if Assigned(dlssEnablerLogoImage) and Assigned(dlssenablerRadioButton) then
-    dlssEnablerLogoImage.Enabled := dlssenablerRadioButton.Checked;
+  begin
+    dlssEnablerLogoImage.Enabled := True;
+    if dlssenablerRadioButton.Checked then
+    begin
+      if Assigned(FDlssEnablerPngLogo) then
+        dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
+    end
+    else
+    begin
+      if Assigned(FDlssEnablerPngLogoDimmed) then
+        dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogoDimmed);
+    end;
+  end;
+
   if Assigned(noneUpscalerLogoImage) and Assigned(noneUpscalerRadioButton) then
-    noneUpscalerLogoImage.Enabled := noneUpscalerRadioButton.Checked;
+  begin
+    noneUpscalerLogoImage.Enabled := True;
+    if noneUpscalerRadioButton.Checked then
+    begin
+      if Assigned(FNoneUpscalerPngLogo) then
+        noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogo);
+    end
+    else
+    begin
+      if Assigned(FNoneUpscalerPngLogoDimmed) then
+        noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogoDimmed);
+    end;
+  end;
 end;
 
 

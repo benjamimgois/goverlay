@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, FileUtil, StrUtils, Graphics, Types, Math, BaseUnix, Unix,
-  constants, configmanager, systemdetector;
+  IntfGraphics, FPImage, constants, configmanager, systemdetector;
 
 /// <summary>Write a timestamped debug message to stderr.</summary>
 procedure DbgLog(const Msg: string);
@@ -55,6 +55,9 @@ procedure InstallStdoutHook;
 
 /// <summary>Restore original stdout/stderr file descriptors and remove hooks.</summary>
 procedure RestoreStdoutHook;
+
+/// <summary>Create a dimmed copy of a TPortableNetworkGraphic with adjusted RGB brightness and preserved alpha.</summary>
+function CreateDimmedPng(ASrc: TPortableNetworkGraphic; BrightFactor: Integer = 35): TPortableNetworkGraphic;
 
 implementation
 
@@ -544,6 +547,49 @@ begin
     Missing.Add(DEP_NERDFONTS);
 
   Result := Missing.Count = 0;
+end;
+
+function CreateDimmedPng(ASrc: TPortableNetworkGraphic; BrightFactor: Integer): TPortableNetworkGraphic;
+var
+  SrcIntf, DstIntf: TLazIntfImage;
+  W, H, Stride, BPP, x, y, px: Integer;
+  SrcRow, DstRow: PByte;
+begin
+  Result := TPortableNetworkGraphic.Create;
+  if (ASrc = nil) or (ASrc.Width = 0) or (ASrc.Height = 0) then Exit;
+
+  SrcIntf := ASrc.CreateIntfImage;
+  try
+    W := SrcIntf.Width;
+    H := SrcIntf.Height;
+    Stride := SrcIntf.DataDescription.BytesPerLine;
+    BPP := SrcIntf.DataDescription.BitsPerPixel div 8;
+
+    DstIntf := TLazIntfImage.Create(W, H);
+    DstIntf.DataDescription := SrcIntf.DataDescription;
+    DstIntf.CreateData;
+    try
+      for y := 0 to H - 1 do
+      begin
+        SrcRow := SrcIntf.PixelData + PtrUInt(y * Stride);
+        DstRow := DstIntf.PixelData + PtrUInt(y * Stride);
+        for x := 0 to W - 1 do
+        begin
+          px := x * BPP;
+          DstRow[px]   := Byte(Integer(SrcRow[px])   * BrightFactor div 100);
+          DstRow[px+1] := Byte(Integer(SrcRow[px+1]) * BrightFactor div 100);
+          DstRow[px+2] := Byte(Integer(SrcRow[px+2]) * BrightFactor div 100);
+          if BPP >= 4 then
+            DstRow[px+3] := SrcRow[px+3];
+        end;
+      end;
+      Result.LoadFromIntfImage(DstIntf);
+    finally
+      DstIntf.Free;
+    end;
+  finally
+    SrcIntf.Free;
+  end;
 end;
 
 initialization

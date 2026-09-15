@@ -77,6 +77,9 @@ type
     FNonePngLogo: TPortableNetworkGraphic;
     FLsfgPngLogo: TPortableNetworkGraphic;
     FMakoPngLogo: TPortableNetworkGraphic;
+    FNonePngDimmed: TPortableNetworkGraphic;
+    FLsfgPngDimmed: TPortableNetworkGraphic;
+    FMakoPngDimmed: TPortableNetworkGraphic;
     FInterpolationMethod: TInterpolationMethod;
 
     // Card 0b: Target GPU Device
@@ -273,6 +276,15 @@ type
     property LsfgRadio: TRadioButton read FLsLsfgRadio;
     property MakoRadio: TRadioButton read FLsMakoRadio;
     property DisabledNoticeLbl: TLabel read FLsDisabledNoticeLbl;
+    property NoneImage: TImage read FLsNoneImage;
+    property LsfgImage: TImage read FLsLsfgImage;
+    property MakoImage: TImage read FLsMakoImage;
+    property NonePngLogo: TPortableNetworkGraphic read FNonePngLogo;
+    property NonePngDimmed: TPortableNetworkGraphic read FNonePngDimmed;
+    property LsfgPngLogo: TPortableNetworkGraphic read FLsfgPngLogo;
+    property LsfgPngDimmed: TPortableNetworkGraphic read FLsfgPngDimmed;
+    property MakoPngLogo: TPortableNetworkGraphic read FMakoPngLogo;
+    property MakoPngDimmed: TPortableNetworkGraphic read FMakoPngDimmed;
 
     property LogoImage: TImage read FLsLogoImage;
     property DllPathEdit: TEdit read FLsDllPathEdit;
@@ -847,6 +859,9 @@ begin
   if Assigned(FNonePngLogo) then FNonePngLogo.Free;
   if Assigned(FLsfgPngLogo) then FLsfgPngLogo.Free;
   if Assigned(FMakoPngLogo) then FMakoPngLogo.Free;
+  if Assigned(FNonePngDimmed) then FNonePngDimmed.Free;
+  if Assigned(FLsfgPngDimmed) then FLsfgPngDimmed.Free;
+  if Assigned(FMakoPngDimmed) then FMakoPngDimmed.Free;
   inherited Destroy;
 end;
 
@@ -969,11 +984,49 @@ end;
 procedure TLosslessScalingTabHelper.UpdateMethodImageOpacity;
 begin
   if Assigned(FLsNoneImage) and Assigned(FLsNoneRadio) then
-    FLsNoneImage.Enabled := FLsNoneRadio.Checked;
+  begin
+    FLsNoneImage.Enabled := True;
+    if FLsNoneRadio.Checked then
+    begin
+      if Assigned(FNonePngLogo) then
+        FLsNoneImage.Picture.Assign(FNonePngLogo);
+    end
+    else
+    begin
+      if Assigned(FNonePngDimmed) then
+        FLsNoneImage.Picture.Assign(FNonePngDimmed);
+    end;
+  end;
+
   if Assigned(FLsLsfgImage) and Assigned(FLsLsfgRadio) then
-    FLsLsfgImage.Enabled := FLsLsfgRadio.Checked;
+  begin
+    FLsLsfgImage.Enabled := True;
+    if FLsLsfgRadio.Checked then
+    begin
+      if Assigned(FLsfgPngLogo) then
+        FLsLsfgImage.Picture.Assign(FLsfgPngLogo);
+    end
+    else
+    begin
+      if Assigned(FLsfgPngDimmed) then
+        FLsLsfgImage.Picture.Assign(FLsfgPngDimmed);
+    end;
+  end;
+
   if Assigned(FLsMakoImage) and Assigned(FLsMakoRadio) then
-    FLsMakoImage.Enabled := FLsMakoRadio.Checked;
+  begin
+    FLsMakoImage.Enabled := True;
+    if FLsMakoRadio.Checked then
+    begin
+      if Assigned(FMakoPngLogo) then
+        FLsMakoImage.Picture.Assign(FMakoPngLogo);
+    end
+    else
+    begin
+      if Assigned(FMakoPngDimmed) then
+        FLsMakoImage.Picture.Assign(FMakoPngDimmed);
+    end;
+  end;
 end;
 
 function TLosslessScalingTabHelper.CheckLsfgVkLayerInstalled(out APath: string): Boolean;
@@ -2038,9 +2091,14 @@ begin
   if not FileExists(IconPath) then IconPath := 'assets/icons/mako_renderer.png';
   if FileExists(IconPath) then FMakoPngLogo.LoadFromFile(IconPath);
 
+  FNonePngDimmed := CreateDimmedPng(FNonePngLogo, 35);
+  FLsfgPngDimmed := CreateDimmedPng(FLsfgPngLogo, 35);
+  FMakoPngDimmed := CreateDimmedPng(FMakoPngLogo, 35);
+
   FLsNoneImage.Picture.Assign(FNonePngLogo);
   FLsLsfgImage.Picture.Assign(FLsfgPngLogo);
   FLsMakoImage.Picture.Assign(FMakoPngLogo);
+  UpdateMethodImageOpacity;
 
   FLsLogoImage := FLsLsfgImage;
   FLsMakoLogoImage := FLsMakoImage;

@@ -138,6 +138,7 @@ type
     procedure TestFastGamesTabReturnAndInPlaceBadgeUpdate;
     procedure TestDownloadProgressNoFloatingBanner;
     procedure TestLsfgSteamBetaNoticeDialog;
+    procedure TestMethodLogoDimming;
   end;
 
 implementation
@@ -5075,6 +5076,14 @@ begin
 
   // Cleanup
   goverlayform.FActiveGameName := '';
+  goverlayform.FNavToolEnabled[0] := True;
+  goverlayform.FNavToolEnabled[1] := True;
+  goverlayform.FNavToolEnabled[2] := True;
+  goverlayform.FNavToolEnabled[3] := True;
+  goverlayform.ApplyToolEnabledState(0, True);
+  goverlayform.ApplyToolEnabledState(1, True);
+  goverlayform.ApplyToolEnabledState(2, True);
+  goverlayform.ApplyToolEnabledState(3, True);
 end;
 
 procedure TGoverlayGuiTests.TestFastGamesTabReturnAndInPlaceBadgeUpdate;
@@ -5236,6 +5245,92 @@ begin
   finally
     Helper.HideSteamBetaNotice := OriginalVal;
   end;
+end;
+
+procedure TGoverlayGuiTests.TestMethodLogoDimming;
+var
+  Helper: TLosslessScalingTabHelper;
+begin
+  goverlayform.FNavToolEnabled[2] := True;
+  goverlayform.ApplyToolEnabledState(2, True);
+
+  // --- 1. OptiScaler Tab Method Logos ---
+  NavigateOptiScalerTab;
+  AssertNotNull('FOptiScalerPngLogo initialized', goverlayform.FOptiScalerPngLogo);
+  AssertNotNull('FOptiScalerPngLogoDimmed initialized', goverlayform.FOptiScalerPngLogoDimmed);
+  AssertNotNull('FDlssEnablerPngLogo initialized', goverlayform.FDlssEnablerPngLogo);
+  AssertNotNull('FDlssEnablerPngLogoDimmed initialized', goverlayform.FDlssEnablerPngLogoDimmed);
+  AssertNotNull('FNoneUpscalerPngLogo initialized', goverlayform.FNoneUpscalerPngLogo);
+  AssertNotNull('FNoneUpscalerPngLogoDimmed initialized', goverlayform.FNoneUpscalerPngLogoDimmed);
+
+  // When OptiScaler is selected:
+  goverlayform.optiscalerLogoImageClick(goverlayform.optiscalerLogoImage);
+  AssertTrue('OptiScaler radio checked', goverlayform.optiscalerRadioButton.Checked);
+  AssertFalse('DLSS Enabler radio unchecked', goverlayform.dlssenablerRadioButton.Checked);
+  AssertFalse('None upscaler radio unchecked', goverlayform.noneUpscalerRadioButton.Checked);
+  // All images must remain clickable (Enabled := True)
+  AssertTrue('optiscalerLogoImage is enabled', goverlayform.optiscalerLogoImage.Enabled);
+  AssertTrue('dlssEnablerLogoImage is enabled', goverlayform.dlssEnablerLogoImage.Enabled);
+  AssertTrue('noneUpscalerLogoImage is enabled', goverlayform.noneUpscalerLogoImage.Enabled);
+
+  // When DLSS Enabler is clicked:
+  goverlayform.dlssEnablerLogoImageClick(goverlayform.dlssEnablerLogoImage);
+  AssertFalse('OptiScaler radio unchecked', goverlayform.optiscalerRadioButton.Checked);
+  AssertTrue('DLSS Enabler radio checked', goverlayform.dlssenablerRadioButton.Checked);
+  AssertFalse('None upscaler radio unchecked', goverlayform.noneUpscalerRadioButton.Checked);
+  AssertTrue('optiscalerLogoImage is enabled', goverlayform.optiscalerLogoImage.Enabled);
+  AssertTrue('dlssEnablerLogoImage is enabled', goverlayform.dlssEnablerLogoImage.Enabled);
+  AssertTrue('noneUpscalerLogoImage is enabled', goverlayform.noneUpscalerLogoImage.Enabled);
+
+  // When None is clicked:
+  goverlayform.noneUpscalerLogoImageClick(goverlayform.noneUpscalerLogoImage);
+  AssertFalse('OptiScaler radio unchecked', goverlayform.optiscalerRadioButton.Checked);
+  AssertFalse('DLSS Enabler radio unchecked', goverlayform.dlssenablerRadioButton.Checked);
+  AssertTrue('None upscaler radio checked', goverlayform.noneUpscalerRadioButton.Checked);
+  AssertTrue('optiscalerLogoImage is enabled', goverlayform.optiscalerLogoImage.Enabled);
+  AssertTrue('dlssEnablerLogoImage is enabled', goverlayform.dlssEnablerLogoImage.Enabled);
+  AssertTrue('noneUpscalerLogoImage is enabled', goverlayform.noneUpscalerLogoImage.Enabled);
+
+  // --- 2. Lossless Scaling Tab Method Logos ---
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Lossless helper assigned', Helper);
+  AssertNotNull('FNonePngLogo initialized', Helper.NonePngLogo);
+  AssertNotNull('FNonePngDimmed initialized', Helper.NonePngDimmed);
+  AssertNotNull('FLsfgPngLogo initialized', Helper.LsfgPngLogo);
+  AssertNotNull('FLsfgPngDimmed initialized', Helper.LsfgPngDimmed);
+  AssertNotNull('FMakoPngLogo initialized', Helper.MakoPngLogo);
+  AssertNotNull('FMakoPngDimmed initialized', Helper.MakoPngDimmed);
+
+  // Clicking None image
+  Helper.NoneImage.OnClick(Helper.NoneImage);
+  AssertEquals('InterpolationMethod is imNone', Ord(imNone), Ord(Helper.InterpolationMethod));
+  AssertTrue('NoneRadio is checked', Helper.NoneRadio.Checked);
+  AssertFalse('LsfgRadio is unchecked', Helper.LsfgRadio.Checked);
+  AssertFalse('MakoRadio is unchecked', Helper.MakoRadio.Checked);
+  AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
+  AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
+  AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+
+  // Clicking Lsfg image
+  Helper.LsfgImage.OnClick(Helper.LsfgImage);
+  AssertEquals('InterpolationMethod is imLsfg', Ord(imLsfg), Ord(Helper.InterpolationMethod));
+  AssertFalse('NoneRadio is unchecked', Helper.NoneRadio.Checked);
+  AssertTrue('LsfgRadio is checked', Helper.LsfgRadio.Checked);
+  AssertFalse('MakoRadio is unchecked', Helper.MakoRadio.Checked);
+  AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
+  AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
+  AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+
+  // Clicking Mako image
+  Helper.MakoImage.OnClick(Helper.MakoImage);
+  AssertEquals('InterpolationMethod is imMako', Ord(imMako), Ord(Helper.InterpolationMethod));
+  AssertFalse('NoneRadio is unchecked', Helper.NoneRadio.Checked);
+  AssertFalse('LsfgRadio is unchecked', Helper.LsfgRadio.Checked);
+  AssertTrue('MakoRadio is checked', Helper.MakoRadio.Checked);
+  AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
+  AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
+  AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
 end;
 
 initialization

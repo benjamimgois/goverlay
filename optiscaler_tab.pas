@@ -392,6 +392,10 @@ begin
     if FileExists(IconPath) then
       FNoneUpscalerPngLogo.LoadFromFile(IconPath);
 
+    FOptiScalerPngLogoDimmed := CreateDimmedPng(FOptiScalerPngLogo, 35);
+    FDlssEnablerPngLogoDimmed := CreateDimmedPng(FDlssEnablerPngLogo, 35);
+    FNoneUpscalerPngLogoDimmed := CreateDimmedPng(FNoneUpscalerPngLogo, 35);
+
     optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
     dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
     noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogo);
