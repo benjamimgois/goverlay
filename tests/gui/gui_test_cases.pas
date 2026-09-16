@@ -78,6 +78,7 @@ type
     procedure TestDlssEnablerSyncSupportingFiles;
     procedure TestDlssEnablerStreamlineBackupAndCleanup;
     procedure TestSafeUninstallChangesRestoresStreamlineBackups;
+    procedure TestThirdPartyProxyDllPreservedDuringLaunchAndUninstall;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -2697,7 +2698,10 @@ begin
   AssignFile(F, GameDir + 'sl.pcl.dll'); Rewrite(F); WriteLn(F, 'MOD_SL_PCL_REPLACED'); CloseFile(F);
   AssignFile(F, GameDir + 'sl.deepdvc.dll'); Rewrite(F); WriteLn(F, 'MOD_ONLY_PLUGIN'); CloseFile(F);
   AssignFile(F, GameDir + 'version.dll'); Rewrite(F); WriteLn(F, 'MOD_PROXY'); CloseFile(F);
-  AssignFile(F, GameDir + 'goverlay.vars'); Rewrite(F); WriteLn(F, 'dlssenablerversion=4.9.0'); CloseFile(F);
+  AssignFile(F, GameDir + 'goverlay.vars'); Rewrite(F);
+  WriteLn(F, 'dlssenablerversion=4.9.0');
+  WriteLn(F, 'proxydll=version.dll');
+  CloseFile(F);
 
   // Locate bgmod-uninstaller binary
   UninstallerBin := GetCurrentDir + '/bgmod-uninstaller';
@@ -2766,6 +2770,135 @@ begin
   end;
 
   AssertTrue('sl.common.dll preserved even when backup is absent', FileExists(GameDir + 'sl.common.dll'));
+end;
+
+procedure TGoverlayGuiTests.TestThirdPartyProxyDllPreservedDuringLaunchAndUninstall;
+var
+  GameDir, GameCfgDir, OptiStableDir, BgmodBin, UninstallerBin, ExecCmd: string;
+  Proc: TProcess;
+  FileContent: TStringList;
+  F: TextFile;
+begin
+  GameDir := IsolatedHome + '/games/ProxyPreserveGame/';
+  GameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ProxyPreserveGame/';
+  OptiStableDir := IsolatedHome + '/.local/share/goverlay/optiscaler-stable/';
+  ForceDirectories(GameDir);
+  ForceDirectories(GameCfgDir);
+  ForceDirectories(OptiStableDir);
+
+  // 1. Simulate a pre-existing third-party ReShade dxgi.dll in the game folder
+  AssignFile(F, GameDir + 'dxgi.dll'); Rewrite(F);
+  WriteLn(F, 'RESHADE_6_3_0_DXGI_PAYLOAD_SIZE_123456789');
+  CloseFile(F);
+
+  // 2. Seed OptiScaler stable template files
+  AssignFile(F, OptiStableDir + 'OptiScaler.dll'); Rewrite(F);
+  WriteLn(F, 'OPTISCALER_DLL_ORIGINAL');
+  CloseFile(F);
+  AssignFile(F, OptiStableDir + 'OptiScaler.ini'); Rewrite(F);
+  WriteLn(F, '[OptiScaler]');
+  CloseFile(F);
+  AssignFile(F, OptiStableDir + 'goverlay.vars'); Rewrite(F);
+  WriteLn(F, 'optiscalerversion=0.7.9');
+  CloseFile(F);
+
+  // Locate bgmod binary
+  BgmodBin := GetCurrentDir + '/bgmod';
+  if not FileExists(BgmodBin) then
+    BgmodBin := ExtractFilePath(ParamStr(0)) + '../../bgmod';
+  if not FileExists(BgmodBin) then
+    BgmodBin := ExtractFilePath(ParamStr(0)) + 'bgmod';
+  AssertTrue('bgmod binary exists for testing', FileExists(BgmodBin));
+
+  CopyFile(BgmodBin, GameCfgDir + 'bgmod');
+  fpChmod(GameCfgDir + 'bgmod', &755);
+  CopyFile(BgmodBin, OptiStableDir + 'bgmod');
+  fpChmod(OptiStableDir + 'bgmod', &755);
+  CopyFile(OptiStableDir + 'goverlay.vars', GameCfgDir + 'goverlay.vars');
+
+  // Locate bgmod-uninstaller binary
+  UninstallerBin := GetCurrentDir + '/bgmod-uninstaller';
+  if not FileExists(UninstallerBin) then
+    UninstallerBin := ExtractFilePath(ParamStr(0)) + '../../bgmod-uninstaller';
+  if not FileExists(UninstallerBin) then
+    UninstallerBin := ExtractFilePath(ParamStr(0)) + 'bgmod-uninstaller';
+  AssertTrue('bgmod-uninstaller binary exists for testing', FileExists(UninstallerBin));
+  CopyFile(UninstallerBin, OptiStableDir + 'bgmod-uninstaller');
+  fpChmod(OptiStableDir + 'bgmod-uninstaller', &755);
+
+  // 3. Write bgmod.conf with OptiScaler enabled, using d3d12.dll proxy
+  AssignFile(F, GameCfgDir + 'bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_MANGOHUD=0');
+  WriteLn(F, 'GOVERLAY_VKBASALT=0');
+  WriteLn(F, 'GOVERLAY_VKSUMI=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'GOVERLAY_TWEAKS=0');
+  WriteLn(F, 'GOVERLAY_LOSSLESS=0');
+  WriteLn(F, 'UPSCALER_TYPE=0');
+  WriteLn(F, 'OPT_CHANNEL=0');
+  WriteLn(F, 'DLL=d3d12.dll');
+  WriteLn(F, 'PRESERVE_INI=false');
+  CloseFile(F);
+
+  // 4. Run bgmod to perform installation
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
+      GameCfgDir + 'bgmod" /bin/true "' + GameDir + 'Game.exe"';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 5. Verify d3d12.dll was deployed and proxydll=d3d12.dll recorded in goverlay.vars
+  AssertTrue('d3d12.dll deployed to GameDir', FileExists(GameDir + 'd3d12.dll'));
+  AssertTrue('goverlay.vars deployed to GameDir', FileExists(GameDir + 'goverlay.vars'));
+
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(GameDir + 'goverlay.vars');
+    AssertTrue('goverlay.vars contains proxydll=d3d12.dll', Pos('proxydll=d3d12.dll', FileContent.Text) > 0);
+
+    // 6. Verify third-party dxgi.dll was NOT deleted and has its original content
+    AssertTrue('Third-party dxgi.dll preserved in GameDir during launch', FileExists(GameDir + 'dxgi.dll'));
+    FileContent.LoadFromFile(GameDir + 'dxgi.dll');
+    AssertEquals('Third-party dxgi.dll content untouched', 'RESHADE_6_3_0_DXGI_PAYLOAD_SIZE_123456789', Trim(FileContent.Text));
+  finally
+    FileContent.Free;
+  end;
+
+  // 7. Run uninstaller to clean up OptiScaler
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := '/bin/sh';
+    ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
+      'STEAM_COMPAT_INSTALL_PATH="' + GameDir + '" "' +
+      UninstallerBin + '" -- 2>/dev/null';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add(ExecCmd);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod-uninstaller execution exited cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 8. Verify d3d12.dll was removed, but third-party dxgi.dll was preserved
+  AssertFalse('d3d12.dll removed on uninstallation', FileExists(GameDir + 'd3d12.dll'));
+  AssertTrue('Third-party dxgi.dll preserved after uninstallation', FileExists(GameDir + 'dxgi.dll'));
+  FileContent := TStringList.Create;
+  try
+    FileContent.LoadFromFile(GameDir + 'dxgi.dll');
+    AssertEquals('Third-party dxgi.dll content still untouched after uninstallation', 'RESHADE_6_3_0_DXGI_PAYLOAD_SIZE_123456789', Trim(FileContent.Text));
+  finally
+    FileContent.Free;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestOptiscalerAndDlssEnablerToggleKeyDisplay;

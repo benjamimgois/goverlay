@@ -987,34 +987,134 @@ end;
 
 
 // Marker-based ownership check.
-// A proxy DLL is GOverlay-owned when its name is a known GOverlay proxy DLL
-// (per IsProxyDllName) and a goverlay.vars marker file exists in the same
-// directory. The goverlay.vars marker is written by this installer (see the
-// install block, which ends with SafeCopyFile(ConfigDir + 'goverlay.vars',
-// ...)) and is therefore a channel-agnostic signature that GOverlay placed
-// the DLLs there, regardless of whether OptiScaler was installed on the
-// stable or bleeding-edge channel. This replaces the previous file-size
-// comparison against bgmod/renames/<name>.dll / bgmod/OptiScaler.dll, which
-// only matched the stable template and silently failed for bleeding-edge
-// installs whose DLL has a different size, leaving proxy DLLs behind during
-// the disabled-cleanup path here and during uninstaller runs.
+// A proxy DLL is GOverlay-owned when:
+// 1. Primary check: goverlay.vars in TargetDir records proxydll=<name>,
+//    and FileName matches that recorded name.
+// 2. Fallback check (legacy installs where proxydll is not yet recorded):
+//    goverlay.vars exists and the file size of FileName matches one of the
+//    candidate OptiScaler/proxy DLLs in BgmodPath, GlobalPath, or the
+//    central cache directories. Third-party DLLs (e.g. ReShade) with differing
+//    sizes are preserved.
 function IsProxyDllName(const FileName: string): Boolean; forward;
+function ReadVarFromFile(const FilePath, Key: string): string; forward;
 
 function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
+var
+  VarsFile, RecordedProxy, TargetFile: string;
+  TargetSize: Int64;
+  CandidatePath, GlobalPath, DataHome, ConfPath: string;
+  Folders: array[0..4] of string;
+  f: Integer;
+  Ini: TIniFile;
 begin
   Result := False;
   if not IsProxyDllName(FileName) then Exit;
-  Result := FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars');
+
+  VarsFile := IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars';
+  if not FileExists(VarsFile) then Exit;
+
+  // Primary tier: explicit proxydll marker in goverlay.vars
+  RecordedProxy := ReadVarFromFile(VarsFile, 'proxydll');
+  if RecordedProxy <> '' then
+  begin
+    Result := SameText(RecordedProxy, FileName);
+    Exit;
+  end;
+
+  // Fallback 1: check bgmod.conf in TargetDir or ConfigDir
+  ConfPath := IncludeTrailingPathDelimiter(TargetDir) + 'bgmod.conf';
+  if not FileExists(ConfPath) and (ConfigDir <> '') then
+    ConfPath := IncludeTrailingPathDelimiter(ConfigDir) + 'bgmod.conf';
+  if FileExists(ConfPath) then
+  begin
+    Ini := TIniFile.Create(ConfPath);
+    try
+      RecordedProxy := Ini.ReadString('Config', 'DLL', '');
+    finally
+      Ini.Free;
+    end;
+    if RecordedProxy <> '' then
+    begin
+      Result := SameText(RecordedProxy, FileName);
+      Exit;
+    end;
+  end;
+
+  // Fallback 2: if dlssenablerversion is present in legacy goverlay.vars without proxydll,
+  // the deployed proxy was version.dll
+  if ReadVarFromFile(VarsFile, 'dlssenablerversion') <> '' then
+  begin
+    if SameText(FileName, 'version.dll') then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // Fallback 3 for legacy installs: compare file size against candidate OptiScaler DLLs
+  TargetFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
+  TargetSize := GetFileSize(TargetFile);
+  if TargetSize <= 0 then Exit;
+
+  // 1. Check local BgmodPath
+  if BgmodPath <> '' then
+  begin
+    if (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(BgmodPath) + 'renames' + PathDelim + FileName)) or
+       (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(BgmodPath) + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // 2. Check GlobalPath
+  GlobalPath := GetGlobalBGModPath(BgmodPath);
+  if GlobalPath <> '' then
+  begin
+    if (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(GlobalPath) + 'renames' + PathDelim + FileName)) or
+       (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(GlobalPath) + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // 3. Check central cache folders under XDG_DATA_HOME/goverlay
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  DataHome := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim;
+
+  Folders[0] := 'optiscaler-stable';
+  Folders[1] := 'optiscaler-edge';
+  Folders[2] := 'optiscaler-custom';
+  Folders[3] := 'dlssenabler-stable';
+  Folders[4] := 'dlssenabler-edge';
+
+  for f := 0 to High(Folders) do
+  begin
+    CandidatePath := DataHome + Folders[f] + PathDelim;
+    if DirectoryExists(CandidatePath) then
+    begin
+      if (TargetSize = GetFileSize(CandidatePath + 'renames' + PathDelim + FileName)) or
+         (TargetSize = GetFileSize(CandidatePath + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + FileName)) then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
 end;
 
 function IsProxyDllName(const FileName: string): Boolean;
+var
+  i: Integer;
 begin
-  Result := SameText(FileName, 'dxgi.dll') or
-            SameText(FileName, 'winmm.dll') or
-            SameText(FileName, 'dbghelp.dll') or
-            SameText(FileName, 'version.dll') or
-            SameText(FileName, 'wininet.dll') or
-            SameText(FileName, 'winhttp.dll');
+  Result := False;
+  for i := 0 to High(ProxyDlls) do
+    if SameText(FileName, ProxyDlls[i]) then
+      Exit(True);
 end;
 
 procedure CopyDirectoryFiltered(const SrcDir, DestDir: string);
@@ -2032,6 +2132,8 @@ begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
           SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
           SyncFakeNvapiIni(ConfigDir, GameDir);
+          if ReadVarFromFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll') = '' then
+            WriteVarToFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll', DllName);
         end
         else
         begin
@@ -2191,6 +2293,7 @@ begin
           // 12. Copy version file to game folder
           SafeCopyFile(ConfigDir + 'goverlay.vars', IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
           WriteVarToFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'upscalertype', IntToStr(UpscalerType));
+          WriteVarToFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll', DllName);
         end;
       end
       else
@@ -2199,7 +2302,7 @@ begin
         if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') or
            FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll') or
            FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') or
-           FileExists(IncludeTrailingPathDelimiter(GameDir) + DllName) then
+           IsGOverlayProxyFile(GameDir, DllName) then
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
           for i := 0 to High(OrigDlls) do
