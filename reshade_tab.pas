@@ -54,8 +54,6 @@ type
     FHotkeyComboBox: TComboBox;
     FProxyTitleLbl: TLabel;
     FProxyComboBox: TComboBox;
-    FProtonPathLbl: TLabel;
-    FOptiCoexistLbl: TLabel;
     FLoading: Boolean;
 
     function IsLoading: Boolean;
@@ -279,12 +277,12 @@ begin
   FBgPanel.Left := 0;
   FBgPanel.Top := 0;
   FBgPanel.Width := FScrollBox.ClientWidth;
-  FBgPanel.Height := 850;
+  FBgPanel.Height := 630;
 
   // ----------------------------------------------------
-  // Card 1: Config (Top: 12, Height: 235)
+  // Card 1: Config (Top: 10, Height: 140)
   // ----------------------------------------------------
-  FConfigCard := MkCard(12, 235);
+  FConfigCard := MkCard(10, 140);
 
   FConfigTitleLbl := TLabel.Create(FConfigCard);
   FConfigTitleLbl.Parent := FConfigCard;
@@ -295,14 +293,14 @@ begin
   FEnableCheckBox.Caption := 'Enable ReShade';
   FEnableCheckBox.Font.Color := TxtClr;
   FEnableCheckBox.Font.Style := [fsBold];
-  FEnableCheckBox.SetBounds(CARD_P, 38, 240, 24);
+  FEnableCheckBox.SetBounds(CARD_P, 36, 240, 24);
   FEnableCheckBox.OnChange := @OnEnableChange;
 
   FHotkeyTitleLbl := TLabel.Create(FConfigCard);
   FHotkeyTitleLbl.Parent := FConfigCard;
   FHotkeyTitleLbl.Caption := 'In-Game Overlay Hotkey:';
   FHotkeyTitleLbl.Font.Color := TxtClr;
-  FHotkeyTitleLbl.SetBounds(CARD_P, 74, 180, 20);
+  FHotkeyTitleLbl.SetBounds(CARD_P, 70, 180, 20);
 
   FHotkeyComboBox := TComboBox.Create(FConfigCard);
   FHotkeyComboBox.Parent := FConfigCard;
@@ -315,13 +313,13 @@ begin
   FHotkeyComboBox.Items.Add('F11 (VK 122)');
   FHotkeyComboBox.ItemIndex := 0;
   FHotkeyComboBox.OnChange := @OnHotkeyChange;
-  FHotkeyComboBox.SetBounds(210, 70, 220, 28);
+  FHotkeyComboBox.SetBounds(210, 66, 220, 28);
 
   FProxyTitleLbl := TLabel.Create(FConfigCard);
   FProxyTitleLbl.Parent := FConfigCard;
   FProxyTitleLbl.Caption := 'Default Proxy DLL:';
   FProxyTitleLbl.Font.Color := TxtClr;
-  FProxyTitleLbl.SetBounds(CARD_P, 114, 180, 20);
+  FProxyTitleLbl.SetBounds(CARD_P, 106, 180, 20);
 
   FProxyComboBox := TComboBox.Create(FConfigCard);
   FProxyComboBox.Parent := FConfigCard;
@@ -333,26 +331,14 @@ begin
   FProxyComboBox.Items.Add('opengl32.dll (OpenGL)');
   FProxyComboBox.ItemIndex := 0;
   FProxyComboBox.OnChange := @OnProxyChange;
-  FProxyComboBox.SetBounds(210, 110, 220, 28);
-
-  FProtonPathLbl := TLabel.Create(FConfigCard);
-  FProtonPathLbl.Parent := FConfigCard;
-  FProtonPathLbl.Caption := 'Proton mapping: Shaders & textures are mapped to Z:\home\... in ReShade.ini for Wine compatibility.';
-  FProtonPathLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
-  FProtonPathLbl.Font.Size := 9;
-  FProtonPathLbl.SetBounds(CARD_P, 154, 620, 18);
-
-  FOptiCoexistLbl := TLabel.Create(FConfigCard);
-  FOptiCoexistLbl.Parent := FConfigCard;
-  FOptiCoexistLbl.Caption := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
-  FOptiCoexistLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
-  FOptiCoexistLbl.Font.Size := 9;
-  FOptiCoexistLbl.SetBounds(CARD_P, 178, 620, 36);
+  FProxyComboBox.SetBounds(210, 102, 220, 28);
+  FProxyComboBox.Hint := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
+  FProxyComboBox.ShowHint := True;
 
   // ----------------------------------------------------
-  // Card 2: Shaders (Top: 259, Height: 410)
+  // Card 2: Shaders (Top: 160, Height: 330)
   // ----------------------------------------------------
-  FShadersCard := MkCard(259, 410);
+  FShadersCard := MkCard(160, 330);
 
   FShadersTitleLbl := TLabel.Create(FShadersCard);
   FShadersTitleLbl.Parent := FShadersCard;
@@ -363,7 +349,7 @@ begin
   FOpenShadersBtn.Caption := 'Open Shaders Directory';
   FOpenShadersBtn.Cursor := crHandPoint;
   FOpenShadersBtn.OnClick := @OnOpenShadersBtnClick;
-  FOpenShadersBtn.SetBounds(Max(150, FShadersCard.Width - CARD_P - 180), 8, 180, 28);
+  FOpenShadersBtn.SetBounds(Max(150, FShadersCard.Width - CARD_P - 180), 6, 180, 26);
   StyleActionButton(FOpenShadersBtn);
 
   SetLength(FPackPanels, RESHADE_PACK_COUNT);
@@ -372,14 +358,14 @@ begin
   SetLength(FPackStatusLbls, RESHADE_PACK_COUNT);
   SetLength(FPackActionBtns, RESHADE_PACK_COUNT);
 
-  PackY := 46;
+  PackY := 36;
   for i := 0 to RESHADE_PACK_COUNT - 1 do
   begin
     PPanel := TPanel.Create(FShadersCard);
     PPanel.Parent := FShadersCard;
     PPanel.BevelOuter := bvNone;
     PPanel.Color := IfThen(IsLight, RGBToColor(245, 245, 245), RGBToColor(20, 23, 35));
-    PPanel.SetBounds(CARD_P, PackY, FShadersCard.Width - (CARD_P * 2), 62);
+    PPanel.SetBounds(CARD_P, PackY, FShadersCard.Width - (CARD_P * 2), 52);
     FPackPanels[i] := PPanel;
 
     FPackNameLbls[i] := TLabel.Create(PPanel);
@@ -387,21 +373,21 @@ begin
     FPackNameLbls[i].Caption := RESHADE_PACKS[i].Name;
     FPackNameLbls[i].Font.Bold := True;
     FPackNameLbls[i].Font.Color := TxtClr;
-    FPackNameLbls[i].SetBounds(10, 8, 300, 18);
+    FPackNameLbls[i].SetBounds(10, 6, 300, 18);
 
     FPackDescLbls[i] := TLabel.Create(PPanel);
     FPackDescLbls[i].Parent := PPanel;
     FPackDescLbls[i].Caption := RESHADE_PACKS[i].Description;
     FPackDescLbls[i].Font.Size := 9;
     FPackDescLbls[i].Font.Color := IfThen(IsLight, clGray, clMedGray);
-    FPackDescLbls[i].SetBounds(10, 28, 500, 16);
+    FPackDescLbls[i].SetBounds(10, 26, 500, 16);
 
     FPackStatusLbls[i] := TLabel.Create(PPanel);
     FPackStatusLbls[i].Parent := PPanel;
     FPackStatusLbls[i].Caption := 'Checking...';
     FPackStatusLbls[i].Font.Size := 9;
     FPackStatusLbls[i].Font.Color := TxtClr;
-    FPackStatusLbls[i].SetBounds(PPanel.Width - 230, 20, 100, 20);
+    FPackStatusLbls[i].SetBounds(PPanel.Width - 230, 16, 100, 20);
 
     FPackActionBtns[i] := TBitBtn.Create(PPanel);
     FPackActionBtns[i].Parent := PPanel;
@@ -409,16 +395,16 @@ begin
     FPackActionBtns[i].Caption := 'Install';
     FPackActionBtns[i].Cursor := crHandPoint;
     FPackActionBtns[i].OnClick := @OnPackActionClick;
-    FPackActionBtns[i].SetBounds(PPanel.Width - 120, 16, 110, 30);
+    FPackActionBtns[i].SetBounds(PPanel.Width - 120, 12, 110, 28);
     StyleActionButton(FPackActionBtns[i]);
 
-    Inc(PackY, 68);
+    Inc(PackY, 58);
   end;
 
   // ----------------------------------------------------
-  // Card 3: Software status (Top: 681, Height: 145)
+  // Card 3: Software status (Top: 500, Height: 114)
   // ----------------------------------------------------
-  FStatusCard := MkCard(681, 145);
+  FStatusCard := MkCard(500, 114);
 
   FStatusTitleLbl := TLabel.Create(FStatusCard);
   FStatusTitleLbl.Parent := FStatusCard;
@@ -429,33 +415,33 @@ begin
   FUpdateBtn.Caption := 'Check / Update ReShade';
   FUpdateBtn.Cursor := crHandPoint;
   FUpdateBtn.OnClick := @OnUpdateBtnClick;
-  FUpdateBtn.SetBounds(Max(300, FStatusCard.Width - CARD_P - 180), 8, 180, 28);
+  FUpdateBtn.SetBounds(Max(300, FStatusCard.Width - CARD_P - 180), 6, 180, 26);
   StyleActionButton(FUpdateBtn);
 
   FVersionLbl := TLabel.Create(FStatusCard);
   FVersionLbl.Parent := FStatusCard;
   FVersionLbl.Caption := 'Version: 6.4.0 (Add-on Edition)';
   FVersionLbl.Font.Color := TxtClr;
-  FVersionLbl.SetBounds(CARD_P, 38, 300, 20);
+  FVersionLbl.SetBounds(CARD_P, 32, 300, 18);
 
   FDll64Lbl := TLabel.Create(FStatusCard);
   FDll64Lbl.Parent := FStatusCard;
   FDll64Lbl.Caption := 'ReShade64.dll: Checking...';
   FDll64Lbl.Font.Color := TxtClr;
-  FDll64Lbl.SetBounds(CARD_P, 58, 300, 20);
+  FDll64Lbl.SetBounds(CARD_P, 50, 300, 18);
 
   FDll32Lbl := TLabel.Create(FStatusCard);
   FDll32Lbl.Parent := FStatusCard;
   FDll32Lbl.Caption := 'ReShade32.dll: Checking...';
   FDll32Lbl.Font.Color := TxtClr;
-  FDll32Lbl.SetBounds(CARD_P, 78, 300, 20);
+  FDll32Lbl.SetBounds(CARD_P, 68, 300, 18);
 
   FNoticeLbl := TLabel.Create(FStatusCard);
   FNoticeLbl.Parent := FStatusCard;
   FNoticeLbl.Caption := 'Notice: The Add-on edition provides unrestricted depth buffer access for shaders like RTGI and AO. Use in single-player games.';
   FNoticeLbl.Font.Color := RGBToColor(180, 140, 40);
   FNoticeLbl.Font.Size := 9;
-  FNoticeLbl.SetBounds(CARD_P, 106, 600, 18);
+  FNoticeLbl.SetBounds(CARD_P, 88, 600, 16);
 
   LoadConfig;
   RefreshStatus;
@@ -468,6 +454,8 @@ begin
   if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
 
   FBgPanel.Width := FScrollBox.ClientWidth;
+  if Assigned(FStatusCard) then
+    FBgPanel.Height := Max(FScrollBox.ClientHeight, FStatusCard.Top + FStatusCard.Height + 10);
   TargetCardW := Max(200, FBgPanel.Width - (CARD_P * 2));
 
   if Assigned(FConfigCard) then FConfigCard.Width := TargetCardW;
