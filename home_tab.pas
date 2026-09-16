@@ -397,6 +397,8 @@ begin
 
     goverlayPageControl.ShowTabs := False;
     vkbasalttabsheet.TabVisible  := False;
+    if Assigned(reshadeTabSheet) then
+      reshadeTabSheet.TabVisible := False;
     vksumiTabSheet.TabVisible    := False;
     optiscalertabsheet.TabVisible := False;
     losslessScalingTabSheet.TabVisible := False;

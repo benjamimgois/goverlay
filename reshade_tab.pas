@@ -1,0 +1,715 @@
+unit reshade_tab;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  ComCtrls, Math, themeunit, constants, hintsunit, apputils;
+
+type
+  TReshadePackInfo = record
+    ID: string;
+    Name: string;
+    RepoUrl: string;
+    CheckFile: string;
+    Description: string;
+  end;
+
+  { TReshadeTabHelper }
+
+  TReshadeTabHelper = class
+  private
+    FForm: TForm;
+    FScrollBox: TScrollBox;
+    FBgPanel: TPanel;
+
+    // Cards
+    FStatusCard: TPanel;
+    FShadersCard: TPanel;
+    FConfigCard: TPanel;
+
+    // Card 1: Status & Actions
+    FStatusTitleLbl: TLabel;
+    FVersionLbl: TLabel;
+    FDll64Lbl: TLabel;
+    FDll32Lbl: TLabel;
+    FNoticeLbl: TLabel;
+    FUpdateBtn: TBitBtn;
+    FOpenShadersBtn: TBitBtn;
+
+    // Card 2: Shader Packages
+    FShadersTitleLbl: TLabel;
+    FPackPanels: array of TPanel;
+    FPackNameLbls: array of TLabel;
+    FPackDescLbls: array of TLabel;
+    FPackStatusLbls: array of TLabel;
+    FPackActionBtns: array of TBitBtn;
+
+    // Card 3: Configuration
+    FConfigTitleLbl: TLabel;
+    FEnableCheckBox: TCheckBox;
+    FHotkeyTitleLbl: TLabel;
+    FHotkeyComboBox: TComboBox;
+    FProxyTitleLbl: TLabel;
+    FProxyComboBox: TComboBox;
+    FProtonPathLbl: TLabel;
+    FOptiCoexistLbl: TLabel;
+    FLoading: Boolean;
+
+    function IsLoading: Boolean;
+    procedure OnPackActionClick(Sender: TObject);
+    procedure OnUpdateBtnClick(Sender: TObject);
+    procedure OnOpenShadersBtnClick(Sender: TObject);
+    procedure OnEnableChange(Sender: TObject);
+    procedure OnHotkeyChange(Sender: TObject);
+    procedure OnProxyChange(Sender: TObject);
+    function MkCard(ATop, AHeight: Integer): TPanel;
+  public
+    constructor Create(AForm: TForm);
+    destructor Destroy; override;
+
+    procedure BuildReShadeTab;
+    procedure ReflowReShadeTab(AContentW: Integer);
+    procedure RefreshStatus;
+    procedure LoadConfig;
+    procedure SaveConfig;
+    procedure BeginLoad;
+    procedure EndLoad;
+
+    property StatusCard: TPanel read FStatusCard;
+    property ShadersCard: TPanel read FShadersCard;
+    property ConfigCard: TPanel read FConfigCard;
+    property UpdateBtn: TBitBtn read FUpdateBtn;
+    property EnableCheckBox: TCheckBox read FEnableCheckBox;
+    property ProxyComboBox: TComboBox read FProxyComboBox;
+    property HotkeyComboBox: TComboBox read FHotkeyComboBox;
+  end;
+
+const
+  RESHADE_PACK_COUNT = 5;
+  RESHADE_PACKS: array[0..RESHADE_PACK_COUNT - 1] of TReshadePackInfo = (
+    (
+      ID: 'standard';
+      Name: 'Standard Effects (crosire)';
+      RepoUrl: 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz';
+      CheckFile: 'DisplayDepth.fx';
+      Description: 'Core shaders, SMAA, FXAA, Bloom, LUT, Daltonize, Deband, and display calibration tools.'
+    ),
+    (
+      ID: 'sweetfx';
+      Name: 'SweetFX (CeeJayDK)';
+      RepoUrl: 'https://github.com/CeeJayDK/SweetFX/archive/refs/heads/master.tar.gz';
+      CheckFile: 'SweetFX/ASCII.fx';
+      Description: 'Classic post-processing suite: CAS, CRT, Bloom, HDR, Curves, ColorMatrix, and Vibrance.'
+    ),
+    (
+      ID: 'quint';
+      Name: 'qUINT (Marty McFly)';
+      RepoUrl: 'https://github.com/martymcmodding/qUINT/archive/refs/heads/master.tar.gz';
+      CheckFile: 'qUINT_bloom.fx';
+      Description: 'Next-gen screen-space shaders: MXAO, SSR, Depth of Field, Lightroom color grading.'
+    ),
+    (
+      ID: 'astrayfx';
+      Name: 'AstrayFX (BlueSkyDefender)';
+      RepoUrl: 'https://github.com/BlueSkyDefender/AstrayFX/archive/refs/heads/master.tar.gz';
+      CheckFile: 'AstrayFX/Depth_Alpha.fx';
+      Description: 'Cinematic depth effects, volumetric lighting, and advanced perspective controls.'
+    ),
+    (
+      ID: 'prod80';
+      Name: 'Prod80 Color Grading';
+      RepoUrl: 'https://github.com/prod80/prod80-ReShade-Repository/archive/refs/heads/master.tar.gz';
+      CheckFile: 'prod80_01A_RT_Correct_Color.fx';
+      Description: 'Professional studio photography curves, saturation, film contrast, and balance filters.'
+    )
+  );
+
+implementation
+
+uses
+  overlayunit, optiscaler_update, bgmod_resources, IniFiles, FileUtil;
+
+const
+  CARD_P = 16;
+  CARD_GAP = 12;
+
+function FormatBytes(ABytes: Int64): string;
+begin
+  if ABytes >= 1048576 then
+    Result := Format('%.1f MB', [ABytes / 1048576.0])
+  else if ABytes >= 1024 then
+    Result := Format('%.0f KB', [ABytes / 1024.0])
+  else
+    Result := IntToStr(ABytes) + ' B';
+end;
+
+type
+  TReshadeAsyncInstallThread = class(TThread)
+  private
+    FPackIdx: Integer;
+    FIsFullUpdate: Boolean;
+    FHelper: TReshadeTabHelper;
+    procedure SyncDone;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AHelper: TReshadeTabHelper; APackIdx: Integer; AFullUpdate: Boolean = False);
+  end;
+
+constructor TReshadeAsyncInstallThread.Create(AHelper: TReshadeTabHelper; APackIdx: Integer; AFullUpdate: Boolean);
+begin
+  inherited Create(True);
+  FreeOnTerminate := True;
+  FHelper := AHelper;
+  FPackIdx := APackIdx;
+  FIsFullUpdate := AFullUpdate;
+  Start;
+end;
+
+procedure TReshadeAsyncInstallThread.SyncDone;
+begin
+  if Assigned(FHelper) then
+    FHelper.RefreshStatus;
+end;
+
+procedure TReshadeAsyncInstallThread.Execute;
+begin
+  try
+    if FIsFullUpdate then
+    begin
+      CheckAndInstallReShade(True, nil, nil);
+    end
+    else if (FPackIdx >= 0) and (FPackIdx < RESHADE_PACK_COUNT) then
+    begin
+      InstallReShadeShaderPack(RESHADE_PACKS[FPackIdx].ID, RESHADE_PACKS[FPackIdx].RepoUrl, nil);
+    end;
+  except
+    on E: Exception do
+      WriteLn('[RESHADE] Async install error: ', E.Message);
+  end;
+  Synchronize(@SyncDone);
+end;
+
+constructor TReshadeTabHelper.Create(AForm: TForm);
+begin
+  FForm := AForm;
+end;
+
+destructor TReshadeTabHelper.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TReshadeTabHelper.IsLoading: Boolean;
+begin
+  Result := FLoading;
+end;
+
+procedure TReshadeTabHelper.BeginLoad;
+begin
+  FLoading := True;
+end;
+
+procedure TReshadeTabHelper.EndLoad;
+begin
+  FLoading := False;
+end;
+
+function TReshadeTabHelper.MkCard(ATop, AHeight: Integer): TPanel;
+var
+  Card: TPanel;
+  IsLight: Boolean;
+  CardBg: TColor;
+begin
+  IsLight := CurrentTheme = tmLight;
+  CardBg := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
+
+  Card := TPanel.Create(FBgPanel);
+  Card.Parent := FBgPanel;
+  Card.BevelOuter := bvNone;
+  Card.Color := CardBg;
+  Card.DoubleBuffered := True;
+  Card.Top := ATop;
+  Card.Height := AHeight;
+  Card.Left := CARD_P;
+  Card.Width := Max(200, FBgPanel.Width - (CARD_P * 2));
+  Result := Card;
+end;
+
+procedure TReshadeTabHelper.BuildReShadeTab;
+var
+  MainForm: Tgoverlayform;
+  IsLight: Boolean;
+  BgClr, CardBg, TxtClr: TColor;
+  i, PackY: Integer;
+  PPanel: TPanel;
+begin
+  MainForm := Tgoverlayform(FForm);
+  if not Assigned(MainForm) or not Assigned(MainForm.reshadeTabSheet) then Exit;
+
+  IsLight := CurrentTheme = tmLight;
+  BgClr := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 25, 37));
+  CardBg := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
+  TxtClr := IfThen(IsLight, LightTextColor, DarkTextColor);
+
+  MainForm.reshadeTabSheet.Color := BgClr;
+
+  // ScrollBox
+  FScrollBox := TScrollBox.Create(MainForm.reshadeTabSheet);
+  FScrollBox.Parent := MainForm.reshadeTabSheet;
+  FScrollBox.Align := alClient;
+  FScrollBox.AutoScroll := True;
+  FScrollBox.BorderStyle := bsNone;
+  FScrollBox.HorzScrollBar.Visible := False;
+  FScrollBox.Color := BgClr;
+  FScrollBox.ParentColor := False;
+
+  // Background Container
+  FBgPanel := TPanel.Create(FScrollBox);
+  FBgPanel.Parent := FScrollBox;
+  FBgPanel.BevelOuter := bvNone;
+  FBgPanel.Color := BgClr;
+  FBgPanel.Caption := '';
+  FBgPanel.Left := 0;
+  FBgPanel.Top := 0;
+  FBgPanel.Width := FScrollBox.ClientWidth;
+  FBgPanel.Height := 900;
+
+  // ----------------------------------------------------
+  // Card 1: Status & Actions (Top: 12, Height: 155)
+  // ----------------------------------------------------
+  FStatusCard := MkCard(12, 155);
+
+  FStatusTitleLbl := TLabel.Create(FStatusCard);
+  FStatusTitleLbl.Parent := FStatusCard;
+  StyleLabel(FStatusTitleLbl, lrCardTitle);
+  FStatusTitleLbl.Caption := 'ReShade Status';
+  FStatusTitleLbl.SetBounds(CARD_P, CARD_P, 200, 22);
+
+  FVersionLbl := TLabel.Create(FStatusCard);
+  FVersionLbl.Parent := FStatusCard;
+  FVersionLbl.Caption := 'Version: 6.4.0 (Add-on Edition)';
+  FVersionLbl.Font.Color := TxtClr;
+  FVersionLbl.SetBounds(CARD_P, CARD_P + 28, 300, 20);
+
+  FDll64Lbl := TLabel.Create(FStatusCard);
+  FDll64Lbl.Parent := FStatusCard;
+  FDll64Lbl.Caption := 'ReShade64.dll: Checking...';
+  FDll64Lbl.Font.Color := TxtClr;
+  FDll64Lbl.SetBounds(CARD_P, CARD_P + 50, 300, 20);
+
+  FDll32Lbl := TLabel.Create(FStatusCard);
+  FDll32Lbl.Parent := FStatusCard;
+  FDll32Lbl.Caption := 'ReShade32.dll: Checking...';
+  FDll32Lbl.Font.Color := TxtClr;
+  FDll32Lbl.SetBounds(CARD_P, CARD_P + 72, 300, 20);
+
+  FNoticeLbl := TLabel.Create(FStatusCard);
+  FNoticeLbl.Parent := FStatusCard;
+  FNoticeLbl.Caption := 'Notice: The Add-on edition provides unrestricted depth buffer access for shaders like RTGI and AO. Use in single-player games.';
+  FNoticeLbl.Font.Color := RGBToColor(180, 140, 40);
+  FNoticeLbl.Font.Size := 9;
+  FNoticeLbl.SetBounds(CARD_P, CARD_P + 96, 600, 18);
+
+  FUpdateBtn := TBitBtn.Create(FStatusCard);
+  FUpdateBtn.Parent := FStatusCard;
+  FUpdateBtn.Caption := 'Check / Update ReShade';
+  FUpdateBtn.Cursor := crHandPoint;
+  FUpdateBtn.OnClick := @OnUpdateBtnClick;
+  FUpdateBtn.SetBounds(340, CARD_P + 26, 180, 30);
+  StyleActionButton(FUpdateBtn);
+
+  FOpenShadersBtn := TBitBtn.Create(FStatusCard);
+  FOpenShadersBtn.Parent := FStatusCard;
+  FOpenShadersBtn.Caption := 'Open Shaders Directory';
+  FOpenShadersBtn.Cursor := crHandPoint;
+  FOpenShadersBtn.OnClick := @OnOpenShadersBtnClick;
+  FOpenShadersBtn.SetBounds(340, CARD_P + 62, 180, 30);
+  StyleActionButton(FOpenShadersBtn);
+
+  // ----------------------------------------------------
+  // Card 2: Shader Packages (Top: 179, Height: 390)
+  // ----------------------------------------------------
+  FShadersCard := MkCard(179, 390);
+
+  FShadersTitleLbl := TLabel.Create(FShadersCard);
+  FShadersTitleLbl.Parent := FShadersCard;
+  StyleLabel(FShadersTitleLbl, lrCardTitle);
+  FShadersTitleLbl.Caption := 'Shader Collections';
+  FShadersTitleLbl.SetBounds(CARD_P, CARD_P, 250, 22);
+
+  SetLength(FPackPanels, RESHADE_PACK_COUNT);
+  SetLength(FPackNameLbls, RESHADE_PACK_COUNT);
+  SetLength(FPackDescLbls, RESHADE_PACK_COUNT);
+  SetLength(FPackStatusLbls, RESHADE_PACK_COUNT);
+  SetLength(FPackActionBtns, RESHADE_PACK_COUNT);
+
+  PackY := CARD_P + 30;
+  for i := 0 to RESHADE_PACK_COUNT - 1 do
+  begin
+    PPanel := TPanel.Create(FShadersCard);
+    PPanel.Parent := FShadersCard;
+    PPanel.BevelOuter := bvNone;
+    PPanel.Color := IfThen(IsLight, RGBToColor(245, 245, 245), RGBToColor(20, 23, 35));
+    PPanel.SetBounds(CARD_P, PackY, FShadersCard.Width - (CARD_P * 2), 62);
+    FPackPanels[i] := PPanel;
+
+    FPackNameLbls[i] := TLabel.Create(PPanel);
+    FPackNameLbls[i].Parent := PPanel;
+    FPackNameLbls[i].Caption := RESHADE_PACKS[i].Name;
+    FPackNameLbls[i].Font.Bold := True;
+    FPackNameLbls[i].Font.Color := TxtClr;
+    FPackNameLbls[i].SetBounds(10, 8, 300, 18);
+
+    FPackDescLbls[i] := TLabel.Create(PPanel);
+    FPackDescLbls[i].Parent := PPanel;
+    FPackDescLbls[i].Caption := RESHADE_PACKS[i].Description;
+    FPackDescLbls[i].Font.Size := 9;
+    FPackDescLbls[i].Font.Color := IfThen(IsLight, clGray, clMedGray);
+    FPackDescLbls[i].SetBounds(10, 28, 500, 16);
+
+    FPackStatusLbls[i] := TLabel.Create(PPanel);
+    FPackStatusLbls[i].Parent := PPanel;
+    FPackStatusLbls[i].Caption := 'Checking...';
+    FPackStatusLbls[i].Font.Size := 9;
+    FPackStatusLbls[i].Font.Color := TxtClr;
+    FPackStatusLbls[i].SetBounds(PPanel.Width - 230, 20, 100, 20);
+
+    FPackActionBtns[i] := TBitBtn.Create(PPanel);
+    FPackActionBtns[i].Parent := PPanel;
+    FPackActionBtns[i].Tag := i;
+    FPackActionBtns[i].Caption := 'Install';
+    FPackActionBtns[i].Cursor := crHandPoint;
+    FPackActionBtns[i].OnClick := @OnPackActionClick;
+    FPackActionBtns[i].SetBounds(PPanel.Width - 120, 16, 110, 30);
+    StyleActionButton(FPackActionBtns[i]);
+
+    Inc(PackY, 68);
+  end;
+
+  // ----------------------------------------------------
+  // Card 3: Configuration (Top: 581, Height: 240)
+  // ----------------------------------------------------
+  FConfigCard := MkCard(581, 240);
+
+  FConfigTitleLbl := TLabel.Create(FConfigCard);
+  FConfigTitleLbl.Parent := FConfigCard;
+  StyleLabel(FConfigTitleLbl, lrCardTitle);
+  FConfigTitleLbl.Caption := 'Configuration & Wine Integration';
+  FConfigTitleLbl.SetBounds(CARD_P, CARD_P, 300, 22);
+
+  FEnableCheckBox := TCheckBox.Create(FConfigCard);
+  FEnableCheckBox.Parent := FConfigCard;
+  FEnableCheckBox.Caption := 'Enable ReShade';
+  FEnableCheckBox.Font.Color := TxtClr;
+  FEnableCheckBox.Font.Style := [fsBold];
+  FEnableCheckBox.SetBounds(CARD_P, CARD_P + 30, 240, 24);
+  FEnableCheckBox.OnChange := @OnEnableChange;
+
+  FHotkeyTitleLbl := TLabel.Create(FConfigCard);
+  FHotkeyTitleLbl.Parent := FConfigCard;
+  FHotkeyTitleLbl.Caption := 'In-Game Overlay Hotkey:';
+  FHotkeyTitleLbl.Font.Color := TxtClr;
+  FHotkeyTitleLbl.SetBounds(CARD_P, CARD_P + 66, 180, 20);
+
+  FHotkeyComboBox := TComboBox.Create(FConfigCard);
+  FHotkeyComboBox.Parent := FConfigCard;
+  FHotkeyComboBox.Style := csDropDownList;
+  FHotkeyComboBox.Items.Add('Home (VK 36, Default)');
+  FHotkeyComboBox.Items.Add('Shift+F2');
+  FHotkeyComboBox.Items.Add('End (VK 35)');
+  FHotkeyComboBox.Items.Add('Insert (VK 45)');
+  FHotkeyComboBox.Items.Add('Page Up (VK 33)');
+  FHotkeyComboBox.Items.Add('F11 (VK 122)');
+  FHotkeyComboBox.ItemIndex := 0;
+  FHotkeyComboBox.OnChange := @OnHotkeyChange;
+  FHotkeyComboBox.SetBounds(210, CARD_P + 62, 220, 28);
+
+  FProxyTitleLbl := TLabel.Create(FConfigCard);
+  FProxyTitleLbl.Parent := FConfigCard;
+  FProxyTitleLbl.Caption := 'Default Proxy DLL:';
+  FProxyTitleLbl.Font.Color := TxtClr;
+  FProxyTitleLbl.SetBounds(CARD_P, CARD_P + 106, 180, 20);
+
+  FProxyComboBox := TComboBox.Create(FConfigCard);
+  FProxyComboBox.Parent := FConfigCard;
+  FProxyComboBox.Style := csDropDownList;
+  FProxyComboBox.Items.Add('dxgi.dll (Default - DirectX 11/12)');
+  FProxyComboBox.Items.Add('d3d11.dll (DirectX 11)');
+  FProxyComboBox.Items.Add('d3d12.dll (DirectX 12)');
+  FProxyComboBox.Items.Add('d3d9.dll (DirectX 9)');
+  FProxyComboBox.Items.Add('opengl32.dll (OpenGL)');
+  FProxyComboBox.ItemIndex := 0;
+  FProxyComboBox.OnChange := @OnProxyChange;
+  FProxyComboBox.SetBounds(210, CARD_P + 102, 220, 28);
+
+  FProtonPathLbl := TLabel.Create(FConfigCard);
+  FProtonPathLbl.Parent := FConfigCard;
+  FProtonPathLbl.Caption := 'Proton mapping: Shaders & textures are mapped to Z:\home\... in ReShade.ini for Wine compatibility.';
+  FProtonPathLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
+  FProtonPathLbl.Font.Size := 9;
+  FProtonPathLbl.SetBounds(CARD_P, CARD_P + 148, 620, 18);
+
+  FOptiCoexistLbl := TLabel.Create(FConfigCard);
+  FOptiCoexistLbl.Parent := FConfigCard;
+  FOptiCoexistLbl.Caption := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
+  FOptiCoexistLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
+  FOptiCoexistLbl.Font.Size := 9;
+  FOptiCoexistLbl.SetBounds(CARD_P, CARD_P + 172, 620, 36);
+
+  LoadConfig;
+  RefreshStatus;
+end;
+
+procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
+var
+  TargetCardW, i: Integer;
+begin
+  if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
+
+  FBgPanel.Width := FScrollBox.ClientWidth;
+  TargetCardW := Max(200, FBgPanel.Width - (CARD_P * 2));
+
+  if Assigned(FStatusCard) then FStatusCard.Width := TargetCardW;
+  if Assigned(FShadersCard) then FShadersCard.Width := TargetCardW;
+  if Assigned(FConfigCard) then FConfigCard.Width := TargetCardW;
+
+  for i := 0 to Length(FPackPanels) - 1 do
+  begin
+    if Assigned(FPackPanels[i]) then
+    begin
+      FPackPanels[i].Width := TargetCardW - (CARD_P * 2);
+      if Assigned(FPackActionBtns[i]) then
+        FPackActionBtns[i].Left := FPackPanels[i].Width - 120;
+      if Assigned(FPackStatusLbls[i]) then
+        FPackStatusLbls[i].Left := FPackPanels[i].Width - 230;
+      if Assigned(FPackDescLbls[i]) then
+        FPackDescLbls[i].Width := Max(100, FPackPanels[i].Width - 250);
+    end;
+  end;
+end;
+
+procedure TReshadeTabHelper.RefreshStatus;
+var
+  BinDir, ShadersDir, CheckPath: string;
+  i: Integer;
+  IsInstalled: Boolean;
+begin
+  BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
+  ShadersDir := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
+
+  if FileExists(BinDir + 'ReShade64.dll') then
+  begin
+    FDll64Lbl.Caption := 'ReShade64.dll: Installed (' + FormatBytes(FileSize(BinDir + 'ReShade64.dll')) + ')';
+    FDll64Lbl.Font.Color := clGreen;
+  end
+  else
+  begin
+    FDll64Lbl.Caption := 'ReShade64.dll: Not installed';
+    FDll64Lbl.Font.Color := clRed;
+  end;
+
+  if FileExists(BinDir + 'ReShade32.dll') then
+  begin
+    FDll32Lbl.Caption := 'ReShade32.dll: Installed (' + FormatBytes(FileSize(BinDir + 'ReShade32.dll')) + ')';
+    FDll32Lbl.Font.Color := clGreen;
+  end
+  else
+  begin
+    FDll32Lbl.Caption := 'ReShade32.dll: Not installed';
+    FDll32Lbl.Font.Color := clRed;
+  end;
+
+  for i := 0 to RESHADE_PACK_COUNT - 1 do
+  begin
+    CheckPath := ShadersDir + 'Shaders' + PathDelim + RESHADE_PACKS[i].CheckFile;
+    IsInstalled := FileExists(CheckPath) or (DirectoryExists(ShadersDir + 'Shaders') and (i = 0));
+
+    if IsInstalled then
+    begin
+      FPackStatusLbls[i].Caption := '✔ Installed';
+      FPackStatusLbls[i].Font.Color := clGreen;
+      FPackActionBtns[i].Caption := 'Re-install';
+    end
+    else
+    begin
+      FPackStatusLbls[i].Caption := 'Not installed';
+      FPackStatusLbls[i].Font.Color := clMedGray;
+      FPackActionBtns[i].Caption := 'Install';
+    end;
+  end;
+end;
+
+procedure TReshadeTabHelper.OnPackActionClick(Sender: TObject);
+var
+  Idx: Integer;
+  Btn: TBitBtn;
+begin
+  if not (Sender is TBitBtn) then Exit;
+  Btn := TBitBtn(Sender);
+  Idx := Btn.Tag;
+  if (Idx >= 0) and (Idx < RESHADE_PACK_COUNT) then
+  begin
+    Btn.Enabled := False;
+    Btn.Caption := 'Downloading...';
+    TReshadeAsyncInstallThread.Create(Self, Idx, False);
+  end;
+end;
+
+procedure TReshadeTabHelper.OnUpdateBtnClick(Sender: TObject);
+begin
+  FUpdateBtn.Enabled := False;
+  FUpdateBtn.Caption := 'Updating...';
+  TReshadeAsyncInstallThread.Create(Self, -1, True);
+end;
+
+procedure TReshadeTabHelper.OnOpenShadersBtnClick(Sender: TObject);
+var
+  ShadersDir: string;
+begin
+  ShadersDir := GetReShadeShadersPath;
+  EnsureReShadeDirectories;
+  ExecuteShellCommand('xdg-open ' + QuotedStr(ShadersDir) + ' &');
+end;
+
+procedure TReshadeTabHelper.OnEnableChange(Sender: TObject);
+begin
+  if FLoading then Exit;
+  SaveConfig;
+end;
+
+procedure TReshadeTabHelper.OnHotkeyChange(Sender: TObject);
+begin
+  if FLoading then Exit;
+  SaveConfig;
+end;
+
+procedure TReshadeTabHelper.OnProxyChange(Sender: TObject);
+begin
+  if FLoading then Exit;
+  SaveConfig;
+end;
+
+procedure TReshadeTabHelper.LoadConfig;
+var
+  IniPath, ConfPath: string;
+  Ini: TIniFile;
+  KeyVal, ProxyVal: string;
+begin
+  FLoading := True;
+  try
+  IniPath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
+  if FileExists(IniPath) then
+  begin
+    Ini := TIniFile.Create(IniPath);
+    try
+      KeyVal := Ini.ReadString('INPUT', 'KeyOverlay', Ini.ReadString('GENERAL', 'KeyOverlay', '36,0,0,0'));
+      if Pos('36', KeyVal) = 1 then FHotkeyComboBox.ItemIndex := 0
+      else if Pos('113', KeyVal) > 0 then FHotkeyComboBox.ItemIndex := 1
+      else if Pos('35', KeyVal) = 1 then FHotkeyComboBox.ItemIndex := 2
+      else if Pos('45', KeyVal) = 1 then FHotkeyComboBox.ItemIndex := 3
+      else if Pos('33', KeyVal) = 1 then FHotkeyComboBox.ItemIndex := 4
+      else if Pos('122', KeyVal) = 1 then FHotkeyComboBox.ItemIndex := 5
+      else FHotkeyComboBox.ItemIndex := 0;
+
+      ProxyVal := Ini.ReadString('GOVERLAY', 'DefaultProxy', 'dxgi.dll');
+      if SameText(ProxyVal, 'dxgi.dll') then FProxyComboBox.ItemIndex := 0
+      else if SameText(ProxyVal, 'd3d11.dll') then FProxyComboBox.ItemIndex := 1
+      else if SameText(ProxyVal, 'd3d12.dll') then FProxyComboBox.ItemIndex := 2
+      else if SameText(ProxyVal, 'd3d9.dll') then FProxyComboBox.ItemIndex := 3
+      else if SameText(ProxyVal, 'opengl32.dll') then FProxyComboBox.ItemIndex := 4
+      else FProxyComboBox.ItemIndex := 0;
+
+      FEnableCheckBox.Checked := Ini.ReadString('GOVERLAY', 'Enabled', '0') = '1';
+    finally
+      Ini.Free;
+    end;
+  end;
+
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
+    ConfPath := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName) + 'bgmod.conf';
+    if FileExists(ConfPath) then
+    begin
+      Ini := TIniFile.Create(ConfPath);
+      try
+        FEnableCheckBox.Checked := Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') = '1';
+        ProxyVal := Ini.ReadString('Config', 'RESHADE_DLL', '');
+        if ProxyVal <> '' then
+        begin
+          if SameText(ProxyVal, 'dxgi.dll') then FProxyComboBox.ItemIndex := 0
+          else if SameText(ProxyVal, 'd3d11.dll') then FProxyComboBox.ItemIndex := 1
+          else if SameText(ProxyVal, 'd3d12.dll') then FProxyComboBox.ItemIndex := 2
+          else if SameText(ProxyVal, 'd3d9.dll') then FProxyComboBox.ItemIndex := 3
+          else if SameText(ProxyVal, 'opengl32.dll') then FProxyComboBox.ItemIndex := 4;
+        end;
+      finally
+        Ini.Free;
+      end;
+    end;
+  end;
+  finally
+    FLoading := False;
+  end;
+end;
+
+procedure TReshadeTabHelper.SaveConfig;
+var
+  IniPath, ConfPath: string;
+  Ini: TIniFile;
+  KeyVal, ProxyVal: string;
+begin
+  if FLoading then Exit;  // Never save while loading — guards against queued Qt events
+
+  IniPath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
+  EnsureReShadeDirectories;
+
+  case FHotkeyComboBox.ItemIndex of
+    0: KeyVal := '36,0,0,0';       // Home
+    1: KeyVal := '113,0,1,0';      // Shift+F2
+    2: KeyVal := '35,0,0,0';       // End
+    3: KeyVal := '45,0,0,0';       // Insert
+    4: KeyVal := '33,0,0,0';       // Page Up
+    5: KeyVal := '122,0,0,0';      // F11
+  else
+    KeyVal := '36,0,0,0';
+  end;
+
+  case FProxyComboBox.ItemIndex of
+    0: ProxyVal := 'dxgi.dll';
+    1: ProxyVal := 'd3d11.dll';
+    2: ProxyVal := 'd3d12.dll';
+    3: ProxyVal := 'd3d9.dll';
+    4: ProxyVal := 'opengl32.dll';
+  else
+    ProxyVal := 'dxgi.dll';
+  end;
+
+  Ini := TIniFile.Create(IniPath);
+  try
+    Ini.WriteString('GENERAL', 'KeyOverlay', KeyVal);
+    Ini.WriteString('INPUT', 'KeyOverlay', KeyVal);
+    Ini.WriteString('GOVERLAY', 'DefaultProxy', ProxyVal);
+    Ini.WriteString('GOVERLAY', 'Enabled', BoolToStr(FEnableCheckBox.Checked, '1', '0'));
+  finally
+    Ini.Free;
+  end;
+
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
+    ConfPath := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName) + 'bgmod.conf';
+    ForceDirectories(ExtractFilePath(ConfPath));
+    Ini := TIniFile.Create(ConfPath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_RESHADE', BoolToStr(FEnableCheckBox.Checked, '1', '0'));
+      Ini.WriteString('Config', 'RESHADE_DLL', ProxyVal);
+    finally
+      Ini.Free;
+    end;
+  end;
+end;
+
+end.

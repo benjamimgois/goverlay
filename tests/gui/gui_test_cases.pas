@@ -12,6 +12,7 @@ type
   private
     function ReadGpuDriver: string;
     function ReadFileText(const APath: string): string;
+    procedure NavigateReshadeTab;
     procedure NavigateVkBasaltTab;
     procedure NavigateVkSumiTab;
     procedure NavigateOptiScalerTab;
@@ -37,6 +38,9 @@ type
     procedure TestLosslessScalingPerGameContextIsolation;
     procedure TestLosslessScalingDynamicConfigFileAndLog;
     procedure TestLosslessScalingDynamicDllAndMigrationAssistant;
+    procedure TestNavigateReshadeTab;
+    procedure TestReShadeTabOrderingAndCardControls;
+    procedure TestReShadeConfigSaveAndLoad;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -145,7 +149,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, Process, BaseUnix;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -743,12 +747,127 @@ begin
   end;
 end;
 
+procedure TGoverlayGuiTests.NavigateReshadeTab;
+begin
+  AssertTrue('vkbasaltLabel.OnClick is bound', Assigned(goverlayform.vkbasaltLabel.OnClick));
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.reshadeTabSheet;
+end;
+
+procedure TGoverlayGuiTests.TestNavigateReshadeTab;
+begin
+  NavigateReshadeTab;
+  AssertTrue('reshade tab is active after navigation',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
+  AssertTrue('reshade tab is visible',
+    goverlayform.reshadeTabSheet.TabVisible);
+  AssertTrue('vkbasalt tab is visible alongside reshade',
+    goverlayform.vkbasaltTabSheet.TabVisible);
+  AssertTrue('vksumi tab is visible alongside reshade',
+    goverlayform.vksumiTabSheet.TabVisible);
+end;
+
+procedure TGoverlayGuiTests.TestReShadeTabOrderingAndCardControls;
+var
+  Helper: TReshadeTabHelper;
+begin
+  AssertTrue('vkbasaltLabel.OnClick is bound', Assigned(goverlayform.vkbasaltLabel.OnClick));
+  goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+
+  AssertTrue('Active page defaults to reshadeTabSheet on Post processing click',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
+  AssertTrue('reshadeTabSheet is before vkbasaltTabSheet',
+    goverlayform.reshadeTabSheet.PageIndex < goverlayform.vkbasaltTabSheet.PageIndex);
+  AssertTrue('vkbasaltTabSheet is before vksumiTabSheet',
+    goverlayform.vkbasaltTabSheet.PageIndex < goverlayform.vksumiTabSheet.PageIndex);
+
+  AssertTrue('FReshadeHelper is assigned', Assigned(goverlayform.FReshadeHelper));
+  Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
+
+  AssertTrue('StatusCard is assigned', Assigned(Helper.StatusCard));
+  AssertTrue('ShadersCard is assigned', Assigned(Helper.ShadersCard));
+  AssertTrue('ConfigCard is assigned', Assigned(Helper.ConfigCard));
+  AssertTrue('EnableCheckBox is assigned', Assigned(Helper.EnableCheckBox));
+  AssertTrue('ProxyComboBox is assigned', Assigned(Helper.ProxyComboBox));
+  AssertTrue('HotkeyComboBox is assigned', Assigned(Helper.HotkeyComboBox));
+  AssertTrue('UpdateBtn is assigned', Assigned(Helper.UpdateBtn));
+
+  AssertTrue('dxgi.dll in proxy list', Pos('dxgi.dll', Helper.ProxyComboBox.Items.Text) > 0);
+  AssertTrue('d3d11.dll in proxy list', Pos('d3d11.dll', Helper.ProxyComboBox.Items.Text) > 0);
+  AssertTrue('d3d12.dll in proxy list', Pos('d3d12.dll', Helper.ProxyComboBox.Items.Text) > 0);
+  AssertTrue('d3d9.dll in proxy list', Pos('d3d9.dll', Helper.ProxyComboBox.Items.Text) > 0);
+  AssertTrue('opengl32.dll in proxy list', Pos('opengl32.dll', Helper.ProxyComboBox.Items.Text) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestReShadeConfigSaveAndLoad;
+var
+  Helper: TReshadeTabHelper;
+  ReShadeIni, Content, ActualConfPath: string;
+  Ini: TIniFile;
+begin
+  NavigateReshadeTab;
+  Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
+
+  // Configure ReShade via BeginLoad to suppress auto-save triggers
+  Helper.BeginLoad;
+  Helper.EnableCheckBox.Checked := True;
+  Helper.ProxyComboBox.ItemIndex := 1; // d3d11.dll
+  Helper.HotkeyComboBox.ItemIndex := 1; // Shift+F2
+  Helper.EndLoad;
+
+  // Save explicitly
+  Helper.SaveConfig;
+
+  // Read the actual bgmod.conf path that SaveConfig uses
+  ActualConfPath := goverlayform.GetGameConfigDir(goverlayform.FActiveGameName) + 'bgmod.conf';
+  AssertTrue('bgmod.conf was created by SaveConfig', FileExists(ActualConfPath));
+
+  Ini := TIniFile.Create(ActualConfPath);
+  try
+    AssertEquals('GOVERLAY_RESHADE="1" in bgmod.conf', '1', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+    AssertEquals('RESHADE_DLL="d3d11.dll" in bgmod.conf', 'd3d11.dll', Ini.ReadString('Config', 'RESHADE_DLL', ''));
+  finally
+    Ini.Free;
+  end;
+
+  ReShadeIni := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
+  AssertTrue('ReShade.ini exists in base path', FileExists(ReShadeIni));
+  Content := ReadFileText(ReShadeIni);
+  AssertTrue('KeyOverlay=113,0,1,0 in ReShade.ini', Pos('113,0,1,0', Content) > 0);
+
+  // Reset controls WITHOUT triggering auto-save, then verify LoadConfig restores saved state
+  Helper.BeginLoad;
+  Helper.EnableCheckBox.Checked := False;
+  Helper.ProxyComboBox.ItemIndex := 0;
+  Helper.HotkeyComboBox.ItemIndex := 0;
+  Helper.EndLoad;
+
+  Helper.LoadConfig;
+  AssertTrue('EnableCheckBox reloaded as checked', Helper.EnableCheckBox.Checked);
+  AssertEquals('ProxyComboBox item index restored to 1 (d3d11.dll)', 1, Helper.ProxyComboBox.ItemIndex);
+  AssertEquals('HotkeyComboBox item index restored to 1 (Shift+F2)', 1, Helper.HotkeyComboBox.ItemIndex);
+
+  // Toggle ReShade OFF and verify
+  Helper.BeginLoad;
+  Helper.EnableCheckBox.Checked := False;
+  Helper.EndLoad;
+  Helper.SaveConfig;
+
+  Ini := TIniFile.Create(ActualConfPath);
+  try
+    AssertEquals('GOVERLAY_RESHADE="0" after disable', '0', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+  finally
+    Ini.Free;
+  end;
+end;
+
 procedure TGoverlayGuiTests.NavigateVkBasaltTab;
 begin
   // Pre-create reshade-shaders so vkbasaltTabSheetShow skips the git clone
   ForceDirectories(IsolatedHome + '/.config/vkBasalt/reshade-shaders');
   AssertTrue('vkbasaltLabel.OnClick is bound', Assigned(goverlayform.vkbasaltLabel.OnClick));
   goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.vkbasaltTabSheet;
 end;
 
 procedure TGoverlayGuiTests.NavigateVkSumiTab;
@@ -762,8 +881,10 @@ end;
 procedure TGoverlayGuiTests.TestNavigateVkBasaltTab;
 begin
   NavigateVkBasaltTab;
-  AssertTrue('vkbasalt tab is active after sidebar click',
+  AssertTrue('vkbasalt tab is active after page switch',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.vkbasaltTabSheet);
+  AssertTrue('reshade tab becomes visible alongside vkbasalt',
+    goverlayform.reshadeTabSheet.TabVisible);
   AssertTrue('vksumi tab becomes visible alongside vkbasalt',
     goverlayform.vksumiTabSheet.TabVisible);
   AssertTrue('FVkToggleCard assigned',

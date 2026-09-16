@@ -729,6 +729,8 @@ begin
     end;
     1:
     begin
+      if Assigned(FForm.reshadeTabSheet) then
+        FForm.SetControlTreeEnabled(FForm.reshadeTabSheet,     AEnabled);
       FForm.SetControlTreeEnabled(FForm.vkbasaltTabsheet,    AEnabled);
       FForm.SetControlTreeEnabled(FForm.vksumiTabSheet,      AEnabled);
     end;
@@ -780,7 +782,7 @@ begin
   if (P = FForm.presetTabSheet) or (P = FForm.visualTabSheet) or
      (P = FForm.performanceTabSheet) or (P = FForm.metricsTabSheet) or (P = FForm.extrasTabSheet) then
     Result := 0
-  else if (P = FForm.vkbasaltTabsheet) or (P = FForm.vksumiTabSheet) then
+  else if (P = FForm.reshadeTabSheet) or (P = FForm.vkbasaltTabsheet) or (P = FForm.vksumiTabSheet) then
     Result := 1
   else if (P = FForm.optiscalertabsheet) or (P = FForm.losslessScalingTabSheet) then
     Result := 2

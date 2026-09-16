@@ -30,6 +30,13 @@ function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 function GetFSR4BasePath: string;
 procedure EnsureFSR4Directories;
 
+function GetReShadeBasePath: string;
+function GetReShadeBinPath: string;
+function GetReShadeShadersPath: string;
+function GetReShadePresetsPath: string;
+procedure EnsureReShadeDirectories;
+function UnixPathToWinePath(const AUnixPath: string): string;
+
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
 function GetFGModOriginalPath: string;
@@ -214,6 +221,49 @@ begin
   ForceDirectories(Base + 'Latest');
   ForceDirectories(Base + '4.1.1b');
   ForceDirectories(Base + '4.0.2c');
+end;
+
+function GetReShadeBasePath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'reshade';
+end;
+
+function GetReShadeBinPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'bin';
+end;
+
+function GetReShadeShadersPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'shaders';
+end;
+
+function GetReShadePresetsPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'presets';
+end;
+
+procedure EnsureReShadeDirectories;
+begin
+  ForceDirectories(GetReShadeBinPath);
+  ForceDirectories(IncludeTrailingPathDelimiter(GetReShadeShadersPath) + 'Shaders');
+  ForceDirectories(IncludeTrailingPathDelimiter(GetReShadeShadersPath) + 'Textures');
+  ForceDirectories(GetReShadePresetsPath);
+end;
+
+function UnixPathToWinePath(const AUnixPath: string): string;
+var
+  i: Integer;
+begin
+  Result := AUnixPath;
+  if Result = '' then Exit;
+  for i := 1 to Length(Result) do
+    if Result[i] = '/' then
+      Result[i] := '\';
+  if (Length(Result) > 0) and (Result[1] = '\') then
+    Result := 'Z:' + Result
+  else if (Length(Result) > 0) and (Pos(':', Result) = 0) then
+    Result := 'Z:\' + Result;
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location

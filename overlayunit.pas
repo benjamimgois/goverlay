@@ -499,6 +499,7 @@ type
     optiscalerShape: TShape;
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltTabSheet: TTabSheet;
+    reshadeTabSheet: TTabSheet;
     vksumiTabSheet: TTabSheet;
     losslessScalingTabSheet: TTabSheet;
     vkbtogglekeyCombobox: TComboBox;
@@ -643,6 +644,8 @@ type
     procedure StartAutoSaveTimer;
     procedure ShowSavedStatus;
     procedure LoadVkBasaltConfig;
+    procedure reshadeTabSheetShow(Sender: TObject);
+    procedure ReshadeTabSheetResize(Sender: TObject);
     procedure vkbasaltTabSheetShow(Sender: TObject);
     procedure VkBasaltTabSheetResize(Sender: TObject);
     procedure vkSumiTabSheetShow(Sender: TObject);
@@ -1337,6 +1340,7 @@ type
     FOptiIconGfx:  TPortableNetworkGraphic;
   public
     FLosslessScalingHelper: TObject;
+    FReshadeHelper: TObject;
     function GetActiveTabConfigFile: string;
     function GetActiveTabLogFile: string;
     procedure RefreshOsStatusDots;
@@ -1662,7 +1666,7 @@ var
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit, reshade_tab;
 
 function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
@@ -1846,6 +1850,7 @@ begin
 //Enable goverlay tabs
 goverlayPageControl.ShowTabs:=false; //disable mangohud tab
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+if Assigned(reshadeTabSheet) then reshadeTabSheet.TabVisible:=false; //disable reshade tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
@@ -1974,8 +1979,10 @@ begin
   // Reload UI from the correct config file (VKBASALTCFGFILE was just updated above)
   LoadVkBasaltConfig;
   LoadVkSumiConfig;
+  if Assigned(FReshadeHelper) then
+    TReshadeTabHelper(FReshadeHelper).LoadConfig;
 
-  //Show only vkBasalt and vkSumi tabs
+  //Show ReShade, vkBasalt and vkSumi tabs
   goverlayPageControl.ShowTabs:=true;
   presetTabSheet.TabVisible:=false;
   visualTabSheet.TabVisible:=false;
@@ -1988,9 +1995,14 @@ begin
   gamesTabSheet.TabVisible:=false;
   FHomeTabSheet.TabVisible:=false;
 
+  if Assigned(reshadeTabSheet) then
+    reshadeTabSheet.TabVisible:=true;
   vkbasalttabsheet.TabVisible:=true;
   vksumiTabSheet.TabVisible:=true;
-  goverlayPageControl.ActivePage:=vkbasaltTabsheet;
+  if Assigned(reshadeTabSheet) then
+    goverlayPageControl.ActivePage:=reshadeTabSheet
+  else
+    goverlayPageControl.ActivePage:=vkbasaltTabsheet;
 
   SetNavActive(2);
 
@@ -2464,6 +2476,23 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.reshadeTabSheetShow(Sender: TObject);
+begin
+  if Assigned(FReshadeHelper) then
+  begin
+    TReshadeTabHelper(FReshadeHelper).RefreshStatus;
+    if Assigned(reshadeTabSheet) and (reshadeTabSheet.ClientWidth > 0) then
+      TReshadeTabHelper(FReshadeHelper).ReflowReShadeTab(reshadeTabSheet.ClientWidth);
+  end;
+end;
+
+procedure Tgoverlayform.ReshadeTabSheetResize(Sender: TObject);
+begin
+  if (goverlayPageControl.ActivePage = reshadeTabSheet) and Assigned(FReshadeHelper) and
+     Assigned(reshadeTabSheet) and (reshadeTabSheet.ClientWidth > 0) then
+    TReshadeTabHelper(FReshadeHelper).ReflowReShadeTab(reshadeTabSheet.ClientWidth);
+end;
+
 procedure Tgoverlayform.vkbasaltTabSheetShow(Sender: TObject);
 var
   RepoDir: string;
@@ -2846,6 +2875,7 @@ begin
   FreeAndNil(FNoneUpscalerPngLogoDimmed);
   FreeAndNil(FOptiScalerHelper);
   FreeAndNil(FLosslessScalingHelper);
+  FreeAndNil(FReshadeHelper);
   FreeAndNil(FHomeHelper);
   FreeAndNil(FNavHelper);
   FreeAndNil(FTweaksHelper);
@@ -3429,6 +3459,18 @@ begin
   // Apply navy background to remaining tabs (vkBasalt, Tweaks)
   // Games & OptiScaler tabs handle background internally via FOsBgPanel
   AddNavyBgToTab(vkbasaltTabSheet);
+
+  // Create ReShade tab sheet (placed first before vkBasalt)
+  reshadeTabSheet := TTabSheet.Create(goverlayPageControl);
+  reshadeTabSheet.PageControl := goverlayPageControl;
+  reshadeTabSheet.Caption     := 'ReShade';
+  reshadeTabSheet.TabVisible  := False;
+  reshadeTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex;
+  reshadeTabSheet.OnShow      := @reshadeTabSheetShow;
+  reshadeTabSheet.OnResize    := @ReshadeTabSheetResize;
+
+  FReshadeHelper := TReshadeTabHelper.Create(Self);
+  TReshadeTabHelper(FReshadeHelper).BuildReShadeTab;
 
   // Create vkSumi tab sheet (must exist before BuildVkSumiTab)
   vksumiTabSheet := TTabSheet.Create(goverlayPageControl);
@@ -4872,6 +4914,8 @@ begin
   //Disable tabs
   goverlayPageControl.ShowTabs:=false;
   vkbasalttabsheet.TabVisible:=false;
+  if Assigned(reshadeTabSheet) then
+    reshadeTabSheet.TabVisible:=false;
   vksumiTabSheet.TabVisible:=false;
   optiscalertabsheet.TabVisible:=false;
   losslessScalingTabSheet.TabVisible:=false;
@@ -4923,6 +4967,7 @@ metricsTabSheet.TabVisible:=true;
 extrasTabSheet.TabVisible:=true;
 
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
+if Assigned(reshadeTabSheet) then reshadeTabSheet.TabVisible:=false; //disable reshade tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
@@ -5218,6 +5263,8 @@ begin
   metricsTabSheet.TabVisible := False;
   extrasTabSheet.TabVisible := False;
   vkbasalttabsheet.TabVisible := False;
+  if Assigned(reshadeTabSheet) then
+    reshadeTabSheet.TabVisible := False;
   vksumiTabSheet.TabVisible := False;
   tweakstabsheet.TabVisible := False;
   gamesTabSheet.TabVisible := False;
@@ -6411,10 +6458,21 @@ begin
     Exit;
   end;
 
+  // ################### SAVE RESHADE SETTINGS
+  if (goverlayPageControl.ActivePage = reshadeTabSheet) and Assigned(FReshadeHelper) then
+  begin
+    TReshadeTabHelper(FReshadeHelper).SaveConfig;
+    notificationLabel.Visible := False;
+    FLaunchCommand := GetLaunchCommand;
+    commandPaintBox.Invalidate;
+    Exit;
+  end;
+
   // ################### SAVE MANGOHUD
 
    if (goverlayPageControl.ActivePage <> vkbasaltTabSheet) and
-      (goverlayPageControl.ActivePage <> vksumiTabSheet) then
+      (goverlayPageControl.ActivePage <> vksumiTabSheet) and
+      (goverlayPageControl.ActivePage <> reshadeTabSheet) then
    begin
 
 
@@ -9714,9 +9772,10 @@ begin
     CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
     CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
-    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 70%)
-    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (70% - 85%)
-    CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (85% - 98%)
+    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
+    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
+    CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
+    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (88% - 99%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

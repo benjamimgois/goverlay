@@ -75,6 +75,8 @@ var
   SourceDir: string;
   UpscalerType: Integer;
   HasGamePerformance: Boolean;
+  GOverlayReshade: Boolean;
+  ReshadeDllName: string;
   OrigDlls: array[0..25] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
@@ -117,14 +119,19 @@ var
     'sl.pcl.dll',
     'sl.reflex.dll'
   );
-  ProxyDlls: array[0..6] of string = (
+  ProxyDlls: array[0..11] of string = (
     'dxgi.dll',
     'winmm.dll',
     'dbghelp.dll',
     'version.dll',
     'wininet.dll',
     'winhttp.dll',
-    'd3d12.dll'
+    'd3d12.dll',
+    'd3d11.dll',
+    'd3d9.dll',
+    'opengl32.dll',
+    'ReShade64.dll',
+    'ReShade32.dll'
   );
 
 procedure Log(const Msg: string);
@@ -327,12 +334,13 @@ end;
 
 procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
 var
-  Candidates: array[0..8] of string = (
+  Candidates: array[0..9] of string = (
     'optiscaler.log',
     'dlss-enabler.log',
     'fakenvapi.log',
     'vksumi.log',
     'vkbasalt.log',
+    'reshade.log',
     'mako.log',
     'lsfg.log',
     'bgmod-uninstaller.log',
@@ -1000,7 +1008,7 @@ function ReadVarFromFile(const FilePath, Key: string): string; forward;
 
 function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
 var
-  VarsFile, RecordedProxy, TargetFile: string;
+  VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath: string;
   Folders: array[0..4] of string;
@@ -1013,11 +1021,18 @@ begin
   VarsFile := IncludeTrailingPathDelimiter(TargetDir) + 'goverlay.vars';
   if not FileExists(VarsFile) then Exit;
 
-  // Primary tier: explicit proxydll marker in goverlay.vars
+  // Primary tier: explicit proxydll or reshadeproxy marker in goverlay.vars
   RecordedProxy := ReadVarFromFile(VarsFile, 'proxydll');
-  if RecordedProxy <> '' then
+  if (RecordedProxy <> '') and SameText(RecordedProxy, FileName) then
   begin
-    Result := SameText(RecordedProxy, FileName);
+    Result := True;
+    Exit;
+  end;
+
+  RecordedReshade := ReadVarFromFile(VarsFile, 'reshadeproxy');
+  if (RecordedReshade <> '') and SameText(RecordedReshade, FileName) then
+  begin
+    Result := True;
     Exit;
   end;
 
@@ -1030,12 +1045,18 @@ begin
     Ini := TIniFile.Create(ConfPath);
     try
       RecordedProxy := Ini.ReadString('Config', 'DLL', '');
+      RecordedReshade := Ini.ReadString('Config', 'RESHADE_DLL', '');
     finally
       Ini.Free;
     end;
-    if RecordedProxy <> '' then
+    if (RecordedProxy <> '') and SameText(RecordedProxy, FileName) then
     begin
-      Result := SameText(RecordedProxy, FileName);
+      Result := True;
+      Exit;
+    end;
+    if (RecordedReshade <> '') and SameText(RecordedReshade, FileName) then
+    begin
+      Result := True;
       Exit;
     end;
   end;
@@ -1051,7 +1072,7 @@ begin
     end;
   end;
 
-  // Fallback 3 for legacy installs: compare file size against candidate OptiScaler DLLs
+  // Fallback 3 for legacy installs: compare file size against candidate OptiScaler or ReShade DLLs
   TargetFile := IncludeTrailingPathDelimiter(TargetDir) + FileName;
   TargetSize := GetFileSize(TargetFile);
   if TargetSize <= 0 then Exit;
@@ -1103,6 +1124,19 @@ begin
         Result := True;
         Exit;
       end;
+    end;
+  end;
+
+  // 4. Check central ReShade bin folder
+  CandidatePath := DataHome + 'reshade' + PathDelim + 'bin' + PathDelim;
+  if DirectoryExists(CandidatePath) then
+  begin
+    if (TargetSize = GetFileSize(CandidatePath + 'ReShade64.dll')) or
+       (TargetSize = GetFileSize(CandidatePath + 'ReShade32.dll')) or
+       (TargetSize = GetFileSize(CandidatePath + FileName)) then
+    begin
+      Result := True;
+      Exit;
     end;
   end;
 end;
@@ -1622,6 +1656,51 @@ begin
   end;
 end;
 
+procedure RemoveVarFromFile(const FilePath, Key: string);
+var
+  SL: TStringList;
+  idx, SepPos: Integer;
+  Line, K: string;
+begin
+  if not FileExists(FilePath) then Exit;
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(FilePath);
+    for idx := SL.Count - 1 downto 0 do
+    begin
+      Line := Trim(SL[idx]);
+      SepPos := Pos('=', Line);
+      if SepPos > 0 then
+      begin
+        K := Trim(Copy(Line, 1, SepPos - 1));
+        if SameText(K, Key) then
+          SL.Delete(idx);
+      end;
+    end;
+    if SL.Count = 0 then
+      SafeDeleteFile(FilePath)
+    else
+      SL.SaveToFile(FilePath);
+  finally
+    SL.Free;
+  end;
+end;
+
+function UnixPathToWinePath(const AUnixPath: string): string;
+var
+  i: Integer;
+begin
+  Result := AUnixPath;
+  if Result = '' then Exit;
+  for i := 1 to Length(Result) do
+    if Result[i] = '/' then
+      Result[i] := '\';
+  if (Length(Result) > 0) and (Result[1] = '\') then
+    Result := 'Z:' + Result
+  else if (Length(Result) > 0) and (Pos(':', Result) = 0) then
+    Result := 'Z:\' + Result;
+end;
+
 function IsNativeGameDll(const FileName: string): Boolean;
 begin
   Result := (FileName = 'd3dcompiler_47.dll') or
@@ -1655,7 +1734,11 @@ begin
   end;
 
   for i := 0 to High(ProxyDlls) do
+  begin
+    if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+      Continue;
     SafeCleanOrRestore(AGameDir, ABackupsDir, ProxyDlls[i], False);
+  end;
 
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler.ini');
@@ -1680,7 +1763,13 @@ begin
     RemoveDir(IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
   end;
 
-  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars');
+  if GOverlayReshade then
+  begin
+    RemoveVarFromFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars', 'proxydll');
+    RemoveVarFromFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars', 'upscalertype');
+  end
+  else
+    SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars');
 end;
 
 procedure ResolveGameDirectory;
@@ -1925,6 +2014,10 @@ var
   IsPerGameProfile: Boolean;
   i, p, StartArgIdx, EnvCount: Integer;
   Key, Val, Line: string;
+  ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
+  ReShadeShadersDir, WineShaders, WineTextures, EffectPaths, TexturePaths, OverlayKey: string;
+  ReShadeIniFile, PrevReshadeProxy, VarsFile: string;
+  GlobalReShadeIni, GameReShadeIni, OptiIni: TIniFile;
   EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
@@ -1935,6 +2028,7 @@ var
   MangoCentralLogFile, MangoGameLogFile: string;
   SumiCentralLogFile, SumiGameLogFile: string;
   BasaltCentralLogFile, BasaltGameLogFile: string;
+  ReShadeCentralLogFile, ReShadeGameLogFile: string;
   HasAnyToolLogging: Boolean;
   ShowLaunchSplash: Boolean;
   SplashExe, SplashGameTitle: string;
@@ -2026,10 +2120,12 @@ begin
   GOverlayVkBasalt := False;
   GOverlayVkSumi := False;
   GOverlayOptiscaler := False;
+  GOverlayReshade := False;
   GOverlayTweaks := False;
   GOverlayLossless := False;
   ShowLaunchSplash := True;
   DllName := 'dxgi.dll';
+  ReshadeDllName := 'dxgi.dll';
   PreserveIni := True;
   UnmanagedIni := False;
   
@@ -2046,6 +2142,9 @@ begin
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
       GOverlayVkSumi := Ini.ReadString('Config', 'GOVERLAY_VKSUMI', '0') = '1';
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
+      GOverlayReshade := Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') = '1';
+      ReshadeDllName := Ini.ReadString('Config', 'RESHADE_DLL', 'dxgi.dll');
+      if ReshadeDllName = '' then ReshadeDllName := 'dxgi.dll';
       GOverlayTweaks := Ini.ReadString('Config', 'GOVERLAY_TWEAKS', '0') = '1';
       GOverlayLossless := Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1';
       InterpolationMethod := LowerCase(Trim(Ini.ReadString('Config', 'INTERPOLATION_METHOD', '')));
@@ -2090,11 +2189,13 @@ begin
   Log('Config: MangoHud=' + BoolToStr(GOverlayMangoHud, '1', '0') + 
       ', vkBasalt=' + BoolToStr(GOverlayVkBasalt, '1', '0') + 
       ', vkSumi=' + BoolToStr(GOverlayVkSumi, '1', '0') + 
+      ', ReShade=' + BoolToStr(GOverlayReshade, '1', '0') +
       ', OptiScaler=' + BoolToStr(GOverlayOptiscaler, '1', '0') + 
       ', Tweaks=' + BoolToStr(GOverlayTweaks, '1', '0') +
       ', Lossless=' + BoolToStr(GOverlayLossless, '1', '0') +
       ', Method=' + InterpolationMethod +
       ', DLL=' + DllName +
+      ', ReshadeDLL=' + ReshadeDllName +
       ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false') +
       ', UnmanagedIni=' + BoolToStr(UnmanagedIni, 'true', 'false'));
       
@@ -2172,6 +2273,8 @@ begin
           begin
             if SameText(ProxyDlls[i], DllName) then
               SafeBackupFile(GameDir, BackupsDir, ProxyDlls[i])
+            else if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+              Continue
             else
               SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
           end;
@@ -2261,7 +2364,7 @@ begin
           if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
             SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll')
           else if FileExists(SourceDir + 'amd_fidelityfx_loader_dx12.dll') then
-            SafeCopyFile(SourceDir + 'amd_fidelityfx_loader_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_dx12.dll');
+            SafeCopyFile(SourceDir + 'amd_fidelityfx_loader_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_loader_dx12.dll');
           SafeCopyFile(SourceDir + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_framegeneration_dx12.dll');
           if FileExists(ConfigDir + 'amd_fidelityfx_upscaler_dx12.dll') then
             SafeCopyFile(ConfigDir + 'amd_fidelityfx_upscaler_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'amd_fidelityfx_upscaler_dx12.dll')
@@ -2313,12 +2416,22 @@ begin
               SafeCleanOrRestore(GameDir, BackupsDir, OrigDlls[i], False);
           end;
           for i := 0 to High(ProxyDlls) do
+          begin
+            if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+              Continue;
             SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
+          end;
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.asi');
-          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
+          if GOverlayReshade then
+          begin
+            RemoveVarFromFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll');
+            RemoveVarFromFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'upscalertype');
+          end
+          else
+            SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.log');
@@ -2355,6 +2468,108 @@ begin
         SafeCopyFile(BgmodPath + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf')
       else
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
+
+      // --- ReShade Deployment and Configuration ---
+      if GOverlayReshade then
+      begin
+        Log('ReShade is enabled. Preparing deployment...');
+        ReShadeDataDir := GetEnvironmentVariable('XDG_DATA_HOME');
+        if ReShadeDataDir = '' then
+          ReShadeDataDir := GetUserDir + '.local/share';
+        ReShadeDataDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'goverlay' + PathDelim + 'reshade';
+        ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+
+        if not FileExists(ReShadeSrcDll) then
+          Log('Warning: ReShade64.dll not found in ' + ReShadeSrcDll)
+        else
+        begin
+          if GOverlayOptiscaler and SameText(DllName, ReshadeDllName) then
+          begin
+            Log('OptiScaler and ReShade both configured for ' + ReshadeDllName + '. Chaining via OptiScaler [ReShade] loader...');
+            TargetReShadeDll := 'ReShade64.dll';
+            SafeCopyFile(ReShadeSrcDll, IncludeTrailingPathDelimiter(GameDir) + TargetReShadeDll);
+
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+            begin
+              OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+              try
+                OptiIni.WriteString('ReShade', 'Enabled', 'true');
+                OptiIni.WriteString('ReShade', 'Path', TargetReShadeDll);
+              finally
+                OptiIni.Free;
+              end;
+              Log('Configured OptiScaler.ini [ReShade] Enabled=true, Path=' + TargetReShadeDll);
+            end;
+          end
+          else
+          begin
+            TargetReShadeDll := ReshadeDllName;
+            Log('Deploying ReShade runtime as ' + TargetReShadeDll + ' into game directory...');
+            SafeBackupFile(GameDir, BackupsDir, TargetReShadeDll);
+            SafeCopyFile(ReShadeSrcDll, IncludeTrailingPathDelimiter(GameDir) + TargetReShadeDll);
+          end;
+
+          // Generate/update ReShade.ini with Wine paths
+          ReShadeShadersDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'shaders';
+          WineShaders := UnixPathToWinePath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders');
+          WineTextures := UnixPathToWinePath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures');
+          EffectPaths := WineShaders + ',' + WineShaders + '\**';
+          TexturePaths := WineTextures + ',' + WineTextures + '\**';
+
+          OverlayKey := '36,0,0,0';
+          if FileExists(IncludeTrailingPathDelimiter(ReShadeDataDir) + 'ReShade.ini') then
+          begin
+            GlobalReShadeIni := TIniFile.Create(IncludeTrailingPathDelimiter(ReShadeDataDir) + 'ReShade.ini');
+            try
+              OverlayKey := GlobalReShadeIni.ReadString('INPUT', 'KeyOverlay',
+                GlobalReShadeIni.ReadString('GENERAL', 'KeyOverlay', '36,0,0,0'));
+            finally
+              GlobalReShadeIni.Free;
+            end;
+          end;
+
+          ReShadeIniFile := IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini';
+          GameReShadeIni := TIniFile.Create(ReShadeIniFile);
+          try
+            GameReShadeIni.WriteString('GENERAL', 'EffectSearchPaths', EffectPaths);
+            GameReShadeIni.WriteString('GENERAL', 'TextureSearchPaths', TexturePaths);
+            if GameReShadeIni.ReadString('GENERAL', 'PresetPath', '') = '' then
+              GameReShadeIni.WriteString('GENERAL', 'PresetPath', '.\ReShadePreset.ini');
+            if GameReShadeIni.ReadString('INPUT', 'KeyOverlay', '') = '' then
+              GameReShadeIni.WriteString('INPUT', 'KeyOverlay', OverlayKey);
+            if GameReShadeIni.ReadString('GENERAL', 'KeyOverlay', '') = '' then
+              GameReShadeIni.WriteString('GENERAL', 'KeyOverlay', OverlayKey);
+          finally
+            GameReShadeIni.Free;
+          end;
+          Log('Generated/updated ReShade.ini with Wine paths.');
+
+          VarsFile := IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars';
+          WriteVarToFile(VarsFile, 'reshadeproxy', TargetReShadeDll);
+          Log('Recorded reshadeproxy=' + TargetReShadeDll + ' in goverlay.vars');
+        end;
+      end
+      else
+      begin
+        VarsFile := IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars';
+        PrevReshadeProxy := ReadVarFromFile(VarsFile, 'reshadeproxy');
+        if PrevReshadeProxy <> '' then
+        begin
+          Log('ReShade is disabled. Removing previously recorded proxy ' + PrevReshadeProxy + '...');
+          SafeCleanOrRestore(GameDir, BackupsDir, PrevReshadeProxy, False);
+          RemoveVarFromFile(VarsFile, 'reshadeproxy');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini');
+        end;
+        if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+        begin
+          OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+          try
+            OptiIni.WriteString('ReShade', 'Enabled', 'false');
+          finally
+            OptiIni.Free;
+          end;
+        end;
+      end;
     end;
   end;
   
@@ -2438,6 +2653,21 @@ begin
       NewOverrides := DllBase + '=n,b';
     SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
+  end;
+
+  if GOverlayReshade and not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
+  begin
+    ReshadeDllBase := ChangeFileExt(ReshadeDllName, '');
+    CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
+    if Pos(ReshadeDllBase + '=', CurrentOverrides) = 0 then
+    begin
+      if CurrentOverrides <> '' then
+        NewOverrides := CurrentOverrides + ',' + ReshadeDllBase + '=n,b'
+      else
+        NewOverrides := ReshadeDllBase + '=n,b';
+      SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
+      Log('Export WINEDLLOVERRIDES=' + NewOverrides);
+    end;
   end;
   
   if GOverlayLossless then
@@ -3032,7 +3262,23 @@ begin
     end;
   end;
 
-  HasAnyToolLogging := GOverlayMangoHud or (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt;
+  if GOverlayReshade then
+  begin
+    if CentralLogDir <> '' then
+    begin
+      ReShadeCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'reshade.log';
+      InitToolLogFile(ReShadeCentralLogFile, 'ReShade', GameDir, IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini');
+      Log('ReShade central log: ' + ReShadeCentralLogFile);
+    end;
+    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
+    begin
+      ReShadeGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'reshade.log';
+      InitToolLogFile(ReShadeGameLogFile, 'ReShade', GameDir, IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini');
+      Log('ReShade game log: ' + ReShadeGameLogFile);
+    end;
+  end;
+
+  HasAnyToolLogging := GOverlayMangoHud or (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt or GOverlayReshade;
 
   LoggerPid := -1;
   GamePid := -1;
@@ -3048,7 +3294,8 @@ begin
      (DlssCentralLogFile <> '') or (DlssGameLogFile <> '') or
      (MangoCentralLogFile <> '') or (MangoGameLogFile <> '') or
      (SumiCentralLogFile <> '') or (SumiGameLogFile <> '') or
-     (BasaltCentralLogFile <> '') or (BasaltGameLogFile <> '')
+     (BasaltCentralLogFile <> '') or (BasaltGameLogFile <> '') or
+     (ReShadeCentralLogFile <> '') or (ReShadeGameLogFile <> '')
   ) then
   begin
     if fpPipe(PipeFds) = 0 then

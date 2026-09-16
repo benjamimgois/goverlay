@@ -81,10 +81,17 @@ type
     procedure TestSupervisorStderrClosure;
   end;
 
+  TReShadeLogicTests = class(TTestCase)
+  published
+    procedure TestUnixPathToWinePath;
+    procedure TestReShadeDirectoryLayout;
+    procedure TestReShadeIniPathFormatting;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, Process;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, bgmod_resources, Process;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -866,6 +873,50 @@ begin
   end;
 end;
 
+procedure TReShadeLogicTests.TestUnixPathToWinePath;
+begin
+  AssertEquals('Empty path', '', UnixPathToWinePath(''));
+  AssertEquals('Root path', 'Z:\', UnixPathToWinePath('/'));
+  AssertEquals('Standard path', 'Z:\home\user\.local\share\goverlay\reshade\Shaders',
+    UnixPathToWinePath('/home/user/.local/share/goverlay/reshade/Shaders'));
+  AssertEquals('Trailing slash preserved as backslash', 'Z:\opt\games\',
+    UnixPathToWinePath('/opt/games/'));
+end;
+
+procedure TReShadeLogicTests.TestReShadeDirectoryLayout;
+var
+  BaseDir, BinDir, ShadersDir, PresetsDir: string;
+begin
+  BaseDir := GetReShadeBasePath;
+  BinDir := GetReShadeBinPath;
+  ShadersDir := GetReShadeShadersPath;
+  PresetsDir := GetReShadePresetsPath;
+
+  AssertTrue('BaseDir contains reshade', Pos('reshade', BaseDir) > 0);
+  AssertTrue('BinDir is under BaseDir', Pos(BaseDir, BinDir) = 1);
+  AssertTrue('ShadersDir is under BaseDir', Pos(BaseDir, ShadersDir) = 1);
+  AssertTrue('PresetsDir is under BaseDir', Pos(BaseDir, PresetsDir) = 1);
+
+  EnsureReShadeDirectories;
+  AssertTrue('BaseDir exists after ensure', DirectoryExists(BaseDir));
+  AssertTrue('BinDir exists after ensure', DirectoryExists(BinDir));
+  AssertTrue('ShadersDir exists after ensure', DirectoryExists(ShadersDir));
+  AssertTrue('PresetsDir exists after ensure', DirectoryExists(PresetsDir));
+end;
+
+procedure TReShadeLogicTests.TestReShadeIniPathFormatting;
+var
+  ShadersDir, WineShaders, EffectPaths, TexturePaths: string;
+begin
+  ShadersDir := '/home/user/.local/share/goverlay/reshade/Shaders';
+  WineShaders := UnixPathToWinePath(ShadersDir);
+  EffectPaths := '.\,' + WineShaders + '\**';
+  TexturePaths := '.\,' + WineShaders + '\**';
+
+  AssertEquals('EffectSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', EffectPaths);
+  AssertEquals('TextureSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', TexturePaths);
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -877,5 +928,6 @@ initialization
   RegisterTest(TClearConfigTests);
   RegisterTest(TMakoLogicTests);
   RegisterTest(TBgmodSupervisorTests);
+  RegisterTest(TReShadeLogicTests);
 
 end.

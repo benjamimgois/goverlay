@@ -61,6 +61,13 @@ function ParseLsfgVkBuildsHtml(const AHtml: string; out AUrl: string): string;
 function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Check and automatically install ReShade runtime and standard shaders
+function ExtractArchive7z(const A7zFile, ADestPath: string): Boolean;
+function ExtractTarArchive(const ATarFile, ADestPath: string; AStripComponents: Integer = 0): Boolean;
+function IsReShadeInstalled: Boolean;
+function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+
 type
   TOptiscalerTab = class
   private
@@ -3864,12 +3871,15 @@ end;
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean;
 var
   OptiDir, DlssEnablerDir, FsrBase: string;
+  ReShadeBin, ReShadeShaders: string;
 begin
   AMissingList := TStringList.Create;
 
   OptiDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
   DlssEnablerDir := IncludeTrailingPathDelimiter(GetDlssEnablerPath(True));
   FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+  ReShadeBin := IncludeTrailingPathDelimiter(GetReShadeBinPath);
+  ReShadeShaders := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
 
   // OptiScaler core
   if not FileExists(OptiDir + 'OptiScaler.dll') then
@@ -3904,6 +3914,14 @@ begin
     AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
   if not FileExists(FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
     AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
+
+  // ReShade runtime & standard shaders
+  if not FileExists(ReShadeBin + 'ReShade64.dll') then
+    AMissingList.Add('ReShade64.dll');
+  if not FileExists(ReShadeBin + 'ReShade32.dll') then
+    AMissingList.Add('ReShade32.dll');
+  if not DirectoryExists(ReShadeShaders + 'Shaders') then
+    AMissingList.Add('ReShade Standard Shaders');
 
   Result := AMissingList.Count > 0;
 end;
@@ -5542,6 +5560,245 @@ begin
   except
     on E: Exception do
       WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallLsfgVk: ', E.Message);
+  end;
+end;
+
+function ExtractArchive7z(const A7zFile, ADestPath: string): Boolean;
+var
+  Process: TProcess;
+  Exe7z: string;
+begin
+  Result := False;
+  if not FileExists(A7zFile) then Exit;
+  Exe7z := FindDefaultExecutablePath('7z');
+  if Exe7z = '' then Exe7z := FindDefaultExecutablePath('7za');
+  if Exe7z = '' then Exe7z := FindDefaultExecutablePath('7zr');
+  if Exe7z = '' then
+  begin
+    WriteLn('[ERROR] 7z executable not found on system');
+    Exit;
+  end;
+
+  ForceDirectories(ADestPath);
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := Exe7z;
+    Process.Parameters.Add('x');
+    Process.Parameters.Add('-y');
+    Process.Parameters.Add('-o' + ADestPath);
+    Process.Parameters.Add(A7zFile);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+    Result := (Process.ExitStatus = 0);
+  finally
+    Process.Free;
+  end;
+end;
+
+function ExtractTarArchive(const ATarFile, ADestPath: string; AStripComponents: Integer = 0): Boolean;
+var
+  Process: TProcess;
+  TarExe: string;
+begin
+  Result := False;
+  if not FileExists(ATarFile) then Exit;
+  TarExe := FindDefaultExecutablePath('tar');
+  if TarExe = '' then TarExe := 'tar';
+
+  ForceDirectories(ADestPath);
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := TarExe;
+    Process.Parameters.Add('-xzf');
+    Process.Parameters.Add(ATarFile);
+    if AStripComponents > 0 then
+      Process.Parameters.Add('--strip-components=' + IntToStr(AStripComponents));
+    Process.Parameters.Add('-C');
+    Process.Parameters.Add(ExcludeTrailingPathDelimiter(ADestPath));
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+    Result := (Process.ExitStatus = 0);
+  finally
+    Process.Free;
+  end;
+end;
+
+function IsReShadeInstalled: Boolean;
+var
+  BinDir, ShadersDir: string;
+begin
+  BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
+  ShadersDir := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
+  Result := FileExists(BinDir + 'ReShade64.dll') and
+            FileExists(BinDir + 'ReShade32.dll') and
+            DirectoryExists(ShadersDir + 'Shaders');
+end;
+
+function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  StartPct, EndPct: Integer;
+  ChanLabel: string;
+  ReShadeExeUrl, ShadersTarUrl: string;
+  TempExe, TempExtractDir, TempTar: string;
+  BinDir, ShadersDir, PresetsDir, IniTemplatePath: string;
+  IniLines: TStringList;
+begin
+  Result := False;
+  StartPct := 88;
+  EndPct := 99;
+
+  EnsureReShadeDirectories;
+  BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
+  ShadersDir := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
+  PresetsDir := IncludeTrailingPathDelimiter(GetReShadePresetsPath);
+
+  if not AForce and IsReShadeInstalled then
+  begin
+    WriteLn('[AUTO-INSTALL] ReShade runtime is already installed');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'ReShade runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Checking ReShade runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing ReShade (Add-on) in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    // Step 1: Download and extract ReShade Add-on installer
+    ReShadeExeUrl := 'https://reshade.me/downloads/ReShade_Setup_6.4.0_Addon.exe';
+    TempExe := IncludeTrailingPathDelimiter(GetTempDir) + 'ReShade_Setup_Addon.exe';
+    TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_ext_' + IntToStr(fpgetpid) + PathDelim;
+
+    if Assigned(AOnProgress) then
+      AOnProgress(StartPct + 2, 'Downloading ReShade (Add-on)...');
+
+    if RunCurlWithProgress(ReShadeExeUrl, TempExe, StartPct + 2, StartPct + 5, 'Downloading ReShade...', AOnProgress) = 0 then
+    begin
+      if FileExists(TempExe) then
+      begin
+        if Assigned(AOnProgress) then
+          AOnProgress(StartPct + 6, 'Extracting ReShade runtime...');
+
+        ForceDirectories(TempExtractDir);
+        if ExtractArchive7z(TempExe, TempExtractDir) then
+        begin
+          if FileExists(TempExtractDir + 'ReShade64.dll') then
+            CopyFile(TempExtractDir + 'ReShade64.dll', BinDir + 'ReShade64.dll');
+          if FileExists(TempExtractDir + 'ReShade32.dll') then
+            CopyFile(TempExtractDir + 'ReShade32.dll', BinDir + 'ReShade32.dll');
+          if FileExists(TempExtractDir + 'ReShade64.json') then
+            CopyFile(TempExtractDir + 'ReShade64.json', BinDir + 'ReShade64.json');
+          if FileExists(TempExtractDir + 'ReShade32.json') then
+            CopyFile(TempExtractDir + 'ReShade32.json', BinDir + 'ReShade32.json');
+        end
+        else
+        begin
+          WriteLn('[AUTO-INSTALL] 7z extraction of ReShade setup failed');
+          if Assigned(AFailedFiles) then
+            AFailedFiles.Add('ReShade runtime (7z extraction failed)');
+        end;
+
+        DeleteDirectory(TempExtractDir, False);
+        DeleteFile(TempExe);
+      end;
+    end
+    else
+    begin
+      WriteLn('[AUTO-INSTALL] Download of ReShade setup failed');
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('ReShade_Setup_6.4.0_Addon.exe');
+    end;
+
+    // Step 2: Download standard shaders if missing
+    if not DirectoryExists(ShadersDir + 'Shaders') or AForce then
+    begin
+      ShadersTarUrl := 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz';
+      TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade-shaders-slim.tar.gz';
+
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 7, 'Downloading Standard Shaders...');
+
+      if RunCurlWithProgress(ShadersTarUrl, TempTar, StartPct + 7, StartPct + 9, 'Downloading Standard Shaders...', AOnProgress) = 0 then
+      begin
+        if FileExists(TempTar) then
+        begin
+          if Assigned(AOnProgress) then
+            AOnProgress(StartPct + 10, 'Extracting Standard Shaders...');
+
+          ExtractTarArchive(TempTar, ShadersDir, 1);
+          DeleteFile(TempTar);
+        end;
+      end
+      else
+      begin
+        WriteLn('[AUTO-INSTALL] Download of standard shaders failed');
+        if Assigned(AFailedFiles) then
+          AFailedFiles.Add('ReShade Standard Shaders');
+      end;
+    end;
+
+    // Step 3: Ensure ReShade.ini template exists
+    IniTemplatePath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
+    if not FileExists(IniTemplatePath) then
+    begin
+      IniLines := TStringList.Create;
+      try
+        IniLines.Add('[GENERAL]');
+        IniLines.Add('EffectSearchPaths=' + UnixPathToWinePath(ShadersDir + 'Shaders') + '\**');
+        IniLines.Add('TextureSearchPaths=' + UnixPathToWinePath(ShadersDir + 'Textures') + '\**');
+        IniLines.Add('IntermediateCachePath=' + UnixPathToWinePath(IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'cache'));
+        IniLines.Add('PresetPath=' + UnixPathToWinePath(PresetsDir + 'DefaultPreset.ini'));
+        IniLines.Add('KeyOverlay=36,0,0,0');
+        IniLines.Add('');
+        IniLines.Add('[INPUT]');
+        IniLines.Add('KeyOverlay=36,0,0,0');
+        IniLines.SaveToFile(IniTemplatePath);
+      finally
+        IniLines.Free;
+      end;
+    end;
+
+    Result := IsReShadeInstalled;
+    if Result then
+    begin
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'ReShade runtime ready');
+    end;
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallReShade: ', E.Message);
+  end;
+end;
+
+function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  TempTar, ShadersDir: string;
+begin
+  Result := False;
+  ShadersDir := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
+  TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_pack_' + APackName + '.tar.gz';
+
+  if Assigned(AOnProgress) then
+    AOnProgress(10, 'Downloading ' + APackName + '...');
+
+  if RunCurlWithProgress(ARepoUrl, TempTar, 10, 80, 'Downloading ' + APackName + '...', AOnProgress) = 0 then
+  begin
+    if FileExists(TempTar) then
+    begin
+      if Assigned(AOnProgress) then
+        AOnProgress(85, 'Extracting ' + APackName + '...');
+
+      Result := ExtractTarArchive(TempTar, ShadersDir, 1);
+      DeleteFile(TempTar);
+      if Result and Assigned(AOnProgress) then
+        AOnProgress(100, APackName + ' installed');
+    end;
   end;
 end;
 
