@@ -761,7 +761,7 @@ begin
     goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
   AssertTrue('reshade tab is visible',
     goverlayform.reshadeTabSheet.TabVisible);
-  AssertTrue('vkbasalt tab is visible alongside reshade',
+  AssertFalse('vkbasalt tab is hidden',
     goverlayform.vkbasaltTabSheet.TabVisible);
   AssertTrue('vksumi tab is visible alongside reshade',
     goverlayform.vksumiTabSheet.TabVisible);
@@ -784,24 +784,55 @@ begin
   AssertTrue('FReshadeHelper is assigned', Assigned(goverlayform.FReshadeHelper));
   Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
 
+  // Method Card and controls
+  AssertTrue('MethodCard is assigned', Assigned(Helper.MethodCard));
+  AssertTrue('NoneRadio is assigned', Assigned(Helper.NoneRadio));
+  AssertTrue('ReshadeRadio is assigned', Assigned(Helper.ReshadeRadio));
+  AssertTrue('VkBasaltRadio is assigned', Assigned(Helper.VkBasaltRadio));
+  AssertTrue('NoneLogoImg is assigned', Assigned(Helper.NoneLogoImg));
+  AssertTrue('ReshadeLogoImg is assigned', Assigned(Helper.ReshadeLogoImg));
+  AssertTrue('VkBasaltLogoImg is assigned', Assigned(Helper.VkBasaltLogoImg));
+
+  // Verify None method hides effect cards but shows status card
+  Helper.SelectMethod(rmNone);
+  AssertFalse('ConfigCard is hidden for rmNone', Helper.ConfigCard.Visible);
+  AssertFalse('ShadersCard is hidden for rmNone', Helper.ShadersCard.Visible);
+  AssertTrue('StatusCard is visible for rmNone', Helper.StatusCard.Visible);
+
+  // Select ReShade method to test ReShade card controls and ordering
+  Helper.SelectMethod(rmReshade);
+  AssertTrue('ConfigCard is visible for rmReshade', Helper.ConfigCard.Visible);
+  AssertTrue('ShadersCard is visible for rmReshade', Helper.ShadersCard.Visible);
+  AssertTrue('StatusCard is visible for rmReshade', Helper.StatusCard.Visible);
+
+  // Effect cards
   AssertTrue('StatusCard is assigned', Assigned(Helper.StatusCard));
   AssertTrue('ShadersCard is assigned', Assigned(Helper.ShadersCard));
   AssertTrue('ConfigCard is assigned', Assigned(Helper.ConfigCard));
+  AssertTrue('MethodCard is positioned above ConfigCard', Helper.MethodCard.Top < Helper.ConfigCard.Top);
   AssertTrue('ConfigCard is positioned above ShadersCard', Helper.ConfigCard.Top < Helper.ShadersCard.Top);
   AssertTrue('ShadersCard is positioned above StatusCard', Helper.ShadersCard.Top < Helper.StatusCard.Top);
   AssertTrue('OpenShadersBtn is assigned', Assigned(Helper.OpenShadersBtn));
   AssertTrue('OpenShadersBtn is parented to ShadersCard', Helper.OpenShadersBtn.Parent = Helper.ShadersCard);
-  AssertTrue('EnableCheckBox is assigned', Assigned(Helper.EnableCheckBox));
   AssertTrue('ProxyComboBox is assigned', Assigned(Helper.ProxyComboBox));
   AssertTrue('HotkeyComboBox is assigned', Assigned(Helper.HotkeyComboBox));
   AssertTrue('ToggleBtn is assigned', Assigned(Helper.ToggleBtn));
   AssertTrue('ToggleBtn parented to ConfigCard', Helper.ToggleBtn.Parent = Helper.ConfigCard);
   AssertEquals('ToggleBtn tag is 7', 7, Helper.ToggleBtn.Tag);
+
+  // Dual software status indicators
   AssertTrue('StatDot is assigned', Assigned(Helper.StatDot));
   AssertTrue('StatDot parented to StatusCard', Helper.StatDot.Parent = Helper.StatusCard);
   AssertTrue('StatNameLbl is assigned', Assigned(Helper.StatNameLbl));
   AssertEquals('StatNameLbl caption is ReShade', 'ReShade', Helper.StatNameLbl.Caption);
   AssertTrue('StatVerLbl is assigned', Assigned(Helper.StatVerLbl));
+
+  AssertTrue('VkStatDot is assigned', Assigned(Helper.VkStatDot));
+  AssertTrue('VkStatDot parented to StatusCard', Helper.VkStatDot.Parent = Helper.StatusCard);
+  AssertTrue('VkStatNameLbl is assigned', Assigned(Helper.VkStatNameLbl));
+  AssertEquals('VkStatNameLbl caption is vkBasalt', 'vkBasalt', Helper.VkStatNameLbl.Caption);
+  AssertTrue('VkStatVerLbl is assigned', Assigned(Helper.VkStatVerLbl));
+
   AssertTrue('UpdateBtn is assigned', Assigned(Helper.UpdateBtn));
 
   AssertTrue('dxgi.dll in proxy list', Pos('dxgi.dll', Helper.ProxyComboBox.Items.Text) > 0);
@@ -822,7 +853,7 @@ begin
 
   // Configure ReShade via BeginLoad to suppress auto-save triggers
   Helper.BeginLoad;
-  Helper.EnableCheckBox.Checked := True;
+  Helper.SelectMethod(rmReshade);
   Helper.ProxyComboBox.ItemIndex := 1; // d3d11.dll
   Helper.HotkeyComboBox.ItemIndex := 1; // Shift+F2
   Helper.EndLoad;
@@ -837,6 +868,7 @@ begin
   Ini := TIniFile.Create(ActualConfPath);
   try
     AssertEquals('GOVERLAY_RESHADE="1" in bgmod.conf', '1', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+    AssertEquals('GOVERLAY_VKBASALT="0" in bgmod.conf', '0', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', ''));
     AssertEquals('RESHADE_DLL="d3d11.dll" in bgmod.conf', 'd3d11.dll', Ini.ReadString('Config', 'RESHADE_DLL', ''));
   finally
     Ini.Free;
@@ -849,13 +881,14 @@ begin
 
   // Reset controls WITHOUT triggering auto-save, then verify LoadConfig restores saved state
   Helper.BeginLoad;
-  Helper.EnableCheckBox.Checked := False;
+  Helper.SelectMethod(rmNone);
   Helper.ProxyComboBox.ItemIndex := 0;
   Helper.HotkeyComboBox.ItemIndex := 0;
   Helper.EndLoad;
 
   Helper.LoadConfig;
-  AssertTrue('EnableCheckBox reloaded as checked', Helper.EnableCheckBox.Checked);
+  AssertTrue('Method reloaded as ReShade', Helper.SelectedMethod = rmReshade);
+  AssertTrue('ReshadeRadio reloaded as checked', Helper.ReshadeRadio.Checked);
   AssertEquals('ProxyComboBox item index restored to 1 (d3d11.dll)', 1, Helper.ProxyComboBox.ItemIndex);
   AssertEquals('HotkeyComboBox item index restored to 1 (Shift+F2)', 1, Helper.HotkeyComboBox.ItemIndex);
   AssertTrue('ToggleBtn caption restored with Shift+F2', Pos('Shift+F2', Helper.ToggleBtn.Caption) > 0);
@@ -865,15 +898,26 @@ begin
   AssertTrue('ToggleBtn caption updated to Home', Pos('Home', Helper.ToggleBtn.Caption) > 0);
   AssertEquals('HotkeyComboBox synced to index 0 (Home)', 0, Helper.HotkeyComboBox.ItemIndex);
 
-  // Toggle ReShade OFF and verify
-  Helper.BeginLoad;
-  Helper.EnableCheckBox.Checked := False;
-  Helper.EndLoad;
+  // Select vkBasalt and verify mutual exclusion
+  Helper.SelectMethod(rmVkBasalt);
   Helper.SaveConfig;
 
   Ini := TIniFile.Create(ActualConfPath);
   try
-    AssertEquals('GOVERLAY_RESHADE="0" after disable', '0', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+    AssertEquals('GOVERLAY_RESHADE="0" when vkBasalt active', '0', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+    AssertEquals('GOVERLAY_VKBASALT="1" when vkBasalt active', '1', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Toggle to None and verify
+  Helper.SelectMethod(rmNone);
+  Helper.SaveConfig;
+
+  Ini := TIniFile.Create(ActualConfPath);
+  try
+    AssertEquals('GOVERLAY_RESHADE="0" after None', '0', Ini.ReadString('Config', 'GOVERLAY_RESHADE', ''));
+    AssertEquals('GOVERLAY_VKBASALT="0" after None', '0', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', ''));
   finally
     Ini.Free;
   end;
@@ -885,30 +929,35 @@ begin
   ForceDirectories(IsolatedHome + '/.config/vkBasalt/reshade-shaders');
   AssertTrue('vkbasaltLabel.OnClick is bound', Assigned(goverlayform.vkbasaltLabel.OnClick));
   goverlayform.vkbasaltLabel.OnClick(goverlayform.vkbasaltLabel);
-  goverlayform.goverlayPageControl.ActivePage := goverlayform.vkbasaltTabSheet;
+  if Assigned(goverlayform.FReshadeHelper) then
+    TReshadeTabHelper(goverlayform.FReshadeHelper).SelectMethod(rmVkBasalt);
 end;
 
 procedure TGoverlayGuiTests.NavigateVkSumiTab;
 begin
-  // vkSumi has no sidebar label; it is a sibling tab next to vkBasalt.
+  // vkSumi has no sidebar label; it is a sibling tab next to ReShade.
   // Switching pages fires vkSumiTabSheetShow -> LoadVkSumiConfig.
-  NavigateVkBasaltTab;
+  NavigateReshadeTab;
   goverlayform.goverlayPageControl.ActivePage := goverlayform.vksumiTabSheet;
 end;
 
 procedure TGoverlayGuiTests.TestNavigateVkBasaltTab;
 begin
   NavigateVkBasaltTab;
-  AssertTrue('vkbasalt tab is active after page switch',
-    goverlayform.goverlayPageControl.ActivePage = goverlayform.vkbasaltTabSheet);
-  AssertTrue('reshade tab becomes visible alongside vkbasalt',
+  AssertTrue('reshade tab is active after navigation',
+    goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
+  AssertTrue('reshade tab is visible',
     goverlayform.reshadeTabSheet.TabVisible);
-  AssertTrue('vksumi tab becomes visible alongside vkbasalt',
+  AssertFalse('vkbasalt tab is hidden from tab bar',
+    goverlayform.vkbasaltTabSheet.TabVisible);
+  AssertTrue('vksumi tab becomes visible alongside reshade',
     goverlayform.vksumiTabSheet.TabVisible);
   AssertTrue('FVkToggleCard assigned',
     Assigned(goverlayform.FVkToggleCard));
-  AssertTrue('FVkToggleCard fully contained within vkbasaltTabSheet',
-    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.vkbasaltTabSheet.ClientHeight);
+  AssertTrue('FVkToggleCard is visible when vkBasalt method selected',
+    goverlayform.FVkToggleCard.Visible);
+  AssertTrue('FVkToggleCard fully contained within parent container',
+    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
   AssertTrue('FVkToggleCaptureBtn visible within toggle card',
     Assigned(goverlayform.FVkToggleCaptureBtn) and
     (goverlayform.FVkToggleCaptureBtn.Top + goverlayform.FVkToggleCaptureBtn.Height <= goverlayform.FVkToggleCard.Height));
@@ -4208,8 +4257,8 @@ begin
     goverlayform.FVkPipelineCard.Top >= goverlayform.FVkBuiltinCard.Top + goverlayform.FVkBuiltinCard.Height);
   AssertTrue('ToggleCard is below PipelineCard',
     goverlayform.FVkToggleCard.Top >= goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height);
-  AssertTrue('ToggleCard is fully contained inside vkbasaltTabSheet',
-    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.vkbasaltTabSheet.ClientHeight);
+  AssertTrue('ToggleCard is fully contained inside parent container',
+    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltPipelineInteractions;

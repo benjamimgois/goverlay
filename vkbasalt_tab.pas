@@ -59,6 +59,7 @@ type
 implementation
 
 uses
+  reshade_tab,
   {$IFDEF LCLqt6}
   qt6,
   qtobjects,
@@ -87,9 +88,14 @@ const
   CLR_WHITE = clWhite;
 var
   TitleLbl:  TLabel;
+  TargetParent: TWinControl;
 begin
   with FForm do
   begin
+    TargetParent := vkbasaltTabSheet;
+    if Assigned(FReshadeHelper) and Assigned(TReshadeTabHelper(FReshadeHelper).BgPanel) then
+      TargetParent := TReshadeTabHelper(FReshadeHelper).BgPanel;
+
     // ── Hide the old LFM group boxes (functional children are reparented below)
   reshadeGroupBox.Visible        := False;
   builtineffectsGroupBox.Visible := False;
@@ -100,7 +106,7 @@ begin
   // CARD 1 — Reshade Effects
   // ══════════════════════════════════════════════════════════════════════════
   FVkReshadeCard := TPanel.Create(FForm);
-  FVkReshadeCard.Parent     := vkbasaltTabSheet;
+  FVkReshadeCard.Parent     := TargetParent;
   FVkReshadeCard.BevelOuter := bvNone;
   FVkReshadeCard.Color      := BG;
   FVkReshadeCard.Caption    := '';
@@ -142,7 +148,7 @@ begin
   // CARD 2 — Built-in Effects
   // ══════════════════════════════════════════════════════════════════════════
   FVkBuiltinCard := TPanel.Create(FForm);
-  FVkBuiltinCard.Parent     := vkbasaltTabSheet;
+  FVkBuiltinCard.Parent     := TargetParent;
   FVkBuiltinCard.BevelOuter := bvNone;
   FVkBuiltinCard.Color      := BG;
   FVkBuiltinCard.Caption    := '';
@@ -249,7 +255,7 @@ begin
   // CARD 3 — Effect Pipeline
   // ══════════════════════════════════════════════════════════════════════════
   FVkPipelineCard := TPanel.Create(FForm);
-  FVkPipelineCard.Parent     := vkbasaltTabSheet;
+  FVkPipelineCard.Parent     := TargetParent;
   FVkPipelineCard.BevelOuter := bvNone;
   FVkPipelineCard.Color      := BG;
   FVkPipelineCard.Caption    := '';
@@ -283,7 +289,7 @@ begin
   // CARD 4 — Toggle Key
   // ══════════════════════════════════════════════════════════════════════════
   FVkToggleCard := TPanel.Create(FForm);
-  FVkToggleCard.Parent     := vkbasaltTabSheet;
+  FVkToggleCard.Parent     := TargetParent;
   FVkToggleCard.BevelOuter := bvNone;
   FVkToggleCard.Color      := BG;
   FVkToggleCard.Caption    := '';
@@ -358,19 +364,30 @@ begin
     if not Assigned(FVkReshadeCard) then Exit;
 
   CW   := AContentW - 2 * MARGIN;
-  TabH := vkbasaltTabSheet.ClientHeight;
-  if (TabH < 150) or (goverlayPageControl.ShowTabs and (TabH >= goverlayPageControl.ClientHeight - 10)) then
+  if FVkReshadeCard.Parent = vkbasaltTabSheet then
   begin
-    if Assigned(goverlayPageControl) and (goverlayPageControl.ClientHeight > 150) then
-      TabH := goverlayPageControl.ClientHeight - 38
-    else
-      TabH := FForm.ClientHeight - 170;
+    TabH := vkbasaltTabSheet.ClientHeight;
+    if (TabH < 150) or (goverlayPageControl.ShowTabs and (TabH >= goverlayPageControl.ClientHeight - 10)) then
+    begin
+      if Assigned(goverlayPageControl) and (goverlayPageControl.ClientHeight > 150) then
+        TabH := goverlayPageControl.ClientHeight - 38
+      else
+        TabH := FForm.ClientHeight - 170;
+    end;
+
+    // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
+    RSHD_H := TabH - 2 * MARGIN - BTIN_H - PIPE_H - TOGL_H - 3 * GAP;
+    if RSHD_H < 120 then RSHD_H := 120;  // minimum sensible height
+    FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
+    FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
+    if Assigned(FVkPipelineCard) then
+      FVkPipelineCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, PIPE_H);
+    if Assigned(FVkToggleCard) then
+      FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP + PIPE_H + GAP, CW, TOGL_H);
   end;
 
-  // ── Card 1: Reshade (fills remaining space above bottom cards) ─────────
-  RSHD_H := TabH - 2 * MARGIN - BTIN_H - PIPE_H - TOGL_H - 3 * GAP;
-  if RSHD_H < 120 then RSHD_H := 120;  // minimum sensible height
-  FVkReshadeCard.SetBounds(MARGIN, MARGIN, CW, RSHD_H);
+  CW     := FVkReshadeCard.Width;
+  RSHD_H := FVkReshadeCard.Height;
 
   if Assigned(FVkReshadePB) then
     FVkReshadePB.SetBounds(PAD, 40, CW - 2 * PAD - SB_W, RSHD_H - 40 - PAD);
@@ -378,8 +395,7 @@ begin
     FVkReshadeSB.SetBounds(CW - PAD - SB_W, 40, SB_W, RSHD_H - 40 - PAD);
 
   // ── Card 2: Built-in Effects (bottom area, left) ───────────────────────
-  FVkBuiltinCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP, CW, BTIN_H);
-
+  CW    := FVkBuiltinCard.Width;
   ColW  := (CW - 3 * PAD) div 2;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
@@ -414,7 +430,7 @@ begin
   // ── Card 3: Effect Pipeline (Execution Order) ──────────────────────────
   if Assigned(FVkPipelineCard) then
   begin
-    FVkPipelineCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP, CW, PIPE_H);
+    CW := FVkPipelineCard.Width;
     if Assigned(FVkPipelinePB) then
       FVkPipelinePB.SetBounds(PAD, 24, CW - 2 * PAD, 34);
     if Assigned(FVkPipelineSB) then
@@ -422,8 +438,6 @@ begin
   end;
 
   // ── Card 4: Toggle Key (bottom area, right) ────────────────────────────
-  FVkToggleCard.SetBounds(MARGIN, MARGIN + RSHD_H + GAP + BTIN_H + GAP + PIPE_H + GAP, CW, TOGL_H);
-
   if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
     FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
                                    FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 4, 120, 28);
@@ -1073,7 +1087,8 @@ begin
     OrigLblAnchors := pbarLabel.Anchors;
 
     try
-      if goverlayPageControl.ActivePage = vkbasaltTabSheet then
+      if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+         (goverlayPageControl.ActivePage = reshadeTabSheet) then
       begin
         if Assigned(FVkToggleCaptureBtn) then FVkToggleCaptureBtn.Visible := False;
         if Assigned(FVkReshadeSyncBtn) then FVkReshadeSyncBtn.Visible := False;

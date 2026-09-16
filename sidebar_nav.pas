@@ -670,7 +670,10 @@ begin
   if not FileExists(ConfigPath) then Exit;
   Ini := TIniFile.Create(ConfigPath);
   try
-    if AToolIdx = 2 then
+    if AToolIdx = 1 then
+      Result := (Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1') or
+                (Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') = '1')
+    else if AToolIdx = 2 then
       Result := (Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', DefaultVal) = '1') or
                 (Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0') = '1')
     else
@@ -691,7 +694,21 @@ begin
   ForceDirectories(ExtractFilePath(ConfigPath));
   Ini := TIniFile.Create(ConfigPath);
   try
-    if AToolIdx = 2 then
+    if AToolIdx = 1 then
+    begin
+      if AEnabled then
+      begin
+        if (Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') <> '1') and
+           (Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') <> '1') then
+          Ini.WriteString('Config', 'GOVERLAY_RESHADE', '1');
+      end
+      else
+      begin
+        Ini.WriteString('Config', 'GOVERLAY_RESHADE', '0');
+        Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
+      end;
+    end
+    else if AToolIdx = 2 then
     begin
       if AEnabled then
         Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1')

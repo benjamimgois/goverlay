@@ -1997,7 +1997,7 @@ begin
 
   if Assigned(reshadeTabSheet) then
     reshadeTabSheet.TabVisible:=true;
-  vkbasalttabsheet.TabVisible:=true;
+  vkbasalttabsheet.TabVisible:=false;
   vksumiTabSheet.TabVisible:=true;
   if Assigned(reshadeTabSheet) then
     goverlayPageControl.ActivePage:=reshadeTabSheet
@@ -6223,7 +6223,8 @@ begin
 
   // Control menu item visibility based on active tab
   if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
-     (goverlayPageControl.ActivePage = vksumiTabSheet) then
+     (goverlayPageControl.ActivePage = vksumiTabSheet) or
+     (goverlayPageControl.ActivePage = reshadeTabSheet) then
   begin
     // vkBasalt tab: show save options and save as, hide MangoHud-specific items
     loadconfigMenuItem.Visible := True;

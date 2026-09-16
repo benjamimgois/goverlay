@@ -17,6 +17,8 @@ type
     Description: string;
   end;
 
+  TReshadeMethod = (rmNone, rmReshade, rmVkBasalt);
+
   { TReshadeTabHelper }
 
   TReshadeTabHelper = class
@@ -25,6 +27,26 @@ type
     FScrollBox: TScrollBox;
     FBgPanel: TPanel;
 
+    // Card 0: Method
+    FMethodCard: TPanel;
+    FMethodTitleLbl: TLabel;
+    FNoneRadio: TRadioButton;
+    FNoneLogoImg: TImage;
+    FReshadeRadio: TRadioButton;
+    FReshadeLogoImg: TImage;
+    FVkBasaltRadio: TRadioButton;
+    FVkBasaltLogoImg: TImage;
+
+    FNonePngLogo: TPortableNetworkGraphic;
+    FNonePngDimmed: TPortableNetworkGraphic;
+    FReshadePngLogo: TPortableNetworkGraphic;
+    FReshadePngDimmed: TPortableNetworkGraphic;
+    FVkBasaltPngLogo: TPortableNetworkGraphic;
+    FVkBasaltPngDimmed: TPortableNetworkGraphic;
+
+    FSelectedMethod: TReshadeMethod;
+    FNoneNoticeLbl: TLabel;
+
     // Cards
     FStatusCard: TPanel;
     FShadersCard: TPanel;
@@ -32,7 +54,6 @@ type
 
     // Card 1: Config
     FConfigTitleLbl: TLabel;
-    FEnableCheckBox: TCheckBox;
     FToggleTitleLbl: TLabel;
     FToggleBtn: TBitBtn;
     FHotkeyComboBox: TComboBox;
@@ -55,15 +76,22 @@ type
     FStatDot: TShape;
     FStatNameLbl: TLabel;
     FStatVerLbl: TLabel;
+    FVkStatDot: TShape;
+    FVkStatNameLbl: TLabel;
+    FVkStatVerLbl: TLabel;
     FUpdateBtn: TBitBtn;
 
     function IsLoading: Boolean;
     procedure OnPackActionClick(Sender: TObject);
     procedure OnUpdateBtnClick(Sender: TObject);
     procedure OnOpenShadersBtnClick(Sender: TObject);
-    procedure OnEnableChange(Sender: TObject);
     procedure OnHotkeyChange(Sender: TObject);
     procedure OnProxyChange(Sender: TObject);
+    procedure OnMethodNoneClick(Sender: TObject);
+    procedure OnMethodReshadeClick(Sender: TObject);
+    procedure OnMethodVkBasaltClick(Sender: TObject);
+    procedure UpdateMethodOpacity;
+    procedure ApplyMethodSelection(AMethod: TReshadeMethod; ASave: Boolean = True);
     function MkCard(ATop, AHeight: Integer): TPanel;
   public
     constructor Create(AForm: TForm);
@@ -78,19 +106,34 @@ type
     procedure EndLoad;
     procedure ApplyCapturedKey(AKey: Word; AShift: TShiftState);
     procedure SyncHotkeyUI;
+    procedure SelectMethod(AMethod: TReshadeMethod);
+
+    property BgPanel: TPanel read FBgPanel;
+    property ScrollBox: TScrollBox read FScrollBox;
+    property MethodCard: TPanel read FMethodCard;
+    property NoneRadio: TRadioButton read FNoneRadio;
+    property ReshadeRadio: TRadioButton read FReshadeRadio;
+    property VkBasaltRadio: TRadioButton read FVkBasaltRadio;
+    property NoneLogoImg: TImage read FNoneLogoImg;
+    property ReshadeLogoImg: TImage read FReshadeLogoImg;
+    property VkBasaltLogoImg: TImage read FVkBasaltLogoImg;
+    property SelectedMethod: TReshadeMethod read FSelectedMethod;
+    property NoneNoticeLbl: TLabel read FNoneNoticeLbl;
 
     property StatusCard: TPanel read FStatusCard;
     property ShadersCard: TPanel read FShadersCard;
     property ConfigCard: TPanel read FConfigCard;
     property UpdateBtn: TBitBtn read FUpdateBtn;
     property OpenShadersBtn: TBitBtn read FOpenShadersBtn;
-    property EnableCheckBox: TCheckBox read FEnableCheckBox;
     property ProxyComboBox: TComboBox read FProxyComboBox;
     property HotkeyComboBox: TComboBox read FHotkeyComboBox;
     property ToggleBtn: TBitBtn read FToggleBtn;
     property StatDot: TShape read FStatDot;
     property StatNameLbl: TLabel read FStatNameLbl;
     property StatVerLbl: TLabel read FStatVerLbl;
+    property VkStatDot: TShape read FVkStatDot;
+    property VkStatNameLbl: TLabel read FVkStatNameLbl;
+    property VkStatVerLbl: TLabel read FVkStatVerLbl;
   end;
 
 const
@@ -240,10 +283,17 @@ end;
 constructor TReshadeTabHelper.Create(AForm: TForm);
 begin
   FForm := AForm;
+  FSelectedMethod := rmReshade;
 end;
 
 destructor TReshadeTabHelper.Destroy;
 begin
+  FreeAndNil(FNonePngLogo);
+  FreeAndNil(FNonePngDimmed);
+  FreeAndNil(FReshadePngLogo);
+  FreeAndNil(FReshadePngDimmed);
+  FreeAndNil(FVkBasaltPngLogo);
+  FreeAndNil(FVkBasaltPngDimmed);
   inherited Destroy;
 end;
 
@@ -323,6 +373,7 @@ var
   BgClr, TxtClr: TColor;
   i, PackY: Integer;
   PPanel: TPanel;
+  IconPath: string;
 begin
   MainForm := Tgoverlayform(FForm);
   if not Assigned(MainForm) or not Assigned(MainForm.reshadeTabSheet) then Exit;
@@ -355,27 +406,123 @@ begin
   FBgPanel.Height := 580;
 
   // ----------------------------------------------------
-  // Card 1: Config (Top: 10, Height: 134)
+  // Card 0: Method (Top: 10, Height: 70)
   // ----------------------------------------------------
-  FConfigCard := MkCard(10, 134);
+  FMethodCard := MkCard(10, 70);
+
+  FMethodTitleLbl := TLabel.Create(FMethodCard);
+  FMethodTitleLbl.Parent := FMethodCard;
+  StyleMainCard(FMethodCard, FMethodTitleLbl, 'Method');
+
+  // Option 1: None
+  FNoneRadio := TRadioButton.Create(FMethodCard);
+  FNoneRadio.Parent := FMethodCard;
+  FNoneRadio.Caption := '';
+  StyleToggleControl(FNoneRadio);
+  FNoneRadio.Checked := False;
+  FNoneRadio.OnClick := @OnMethodNoneClick;
+
+  FNoneLogoImg := TImage.Create(FMethodCard);
+  FNoneLogoImg.Parent := FMethodCard;
+  FNoneLogoImg.AntialiasingMode := amOn;
+  FNoneLogoImg.StretchInEnabled := True;
+  FNoneLogoImg.StretchOutEnabled := True;
+  FNoneLogoImg.Transparent := True;
+  FNoneLogoImg.Center := True;
+  FNoneLogoImg.Proportional := True;
+  FNoneLogoImg.Stretch := True;
+  FNoneLogoImg.Cursor := crHandPoint;
+  FNoneLogoImg.OnClick := @OnMethodNoneClick;
+
+  // Option 2: ReShade
+  FReshadeRadio := TRadioButton.Create(FMethodCard);
+  FReshadeRadio.Parent := FMethodCard;
+  FReshadeRadio.Caption := '';
+  StyleToggleControl(FReshadeRadio);
+  FReshadeRadio.Checked := True;
+  FReshadeRadio.OnClick := @OnMethodReshadeClick;
+
+  FReshadeLogoImg := TImage.Create(FMethodCard);
+  FReshadeLogoImg.Parent := FMethodCard;
+  FReshadeLogoImg.AntialiasingMode := amOn;
+  FReshadeLogoImg.StretchInEnabled := True;
+  FReshadeLogoImg.StretchOutEnabled := True;
+  FReshadeLogoImg.Transparent := True;
+  FReshadeLogoImg.Center := True;
+  FReshadeLogoImg.Proportional := True;
+  FReshadeLogoImg.Stretch := True;
+  FReshadeLogoImg.Cursor := crHandPoint;
+  FReshadeLogoImg.OnClick := @OnMethodReshadeClick;
+
+  // Option 3: vkBasalt
+  FVkBasaltRadio := TRadioButton.Create(FMethodCard);
+  FVkBasaltRadio.Parent := FMethodCard;
+  FVkBasaltRadio.Caption := '';
+  StyleToggleControl(FVkBasaltRadio);
+  FVkBasaltRadio.Checked := False;
+  FVkBasaltRadio.OnClick := @OnMethodVkBasaltClick;
+
+  FVkBasaltLogoImg := TImage.Create(FMethodCard);
+  FVkBasaltLogoImg.Parent := FMethodCard;
+  FVkBasaltLogoImg.AntialiasingMode := amOn;
+  FVkBasaltLogoImg.StretchInEnabled := True;
+  FVkBasaltLogoImg.StretchOutEnabled := True;
+  FVkBasaltLogoImg.Transparent := True;
+  FVkBasaltLogoImg.Center := True;
+  FVkBasaltLogoImg.Proportional := True;
+  FVkBasaltLogoImg.Stretch := True;
+  FVkBasaltLogoImg.Cursor := crHandPoint;
+  FVkBasaltLogoImg.OnClick := @OnMethodVkBasaltClick;
+
+  // Load Method PNGs
+  FNonePngLogo := TPortableNetworkGraphic.Create;
+  FReshadePngLogo := TPortableNetworkGraphic.Create;
+  FVkBasaltPngLogo := TPortableNetworkGraphic.Create;
+
+  IconPath := GetAppBaseDir + 'assets/icons/upscaler_none.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/upscaler_none.png';
+  if FileExists(IconPath) then FNonePngLogo.LoadFromFile(IconPath);
+
+  IconPath := GetAppBaseDir + 'assets/icons/method_reshade.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/method_reshade.png';
+  if FileExists(IconPath) then FReshadePngLogo.LoadFromFile(IconPath);
+
+  IconPath := GetAppBaseDir + 'assets/icons/method_vkbasalt.png';
+  if not FileExists(IconPath) then IconPath := 'assets/icons/method_vkbasalt.png';
+  if FileExists(IconPath) then FVkBasaltPngLogo.LoadFromFile(IconPath);
+
+  FNonePngDimmed := CreateDimmedPng(FNonePngLogo, 35);
+  FReshadePngDimmed := CreateDimmedPng(FReshadePngLogo, 35);
+  FVkBasaltPngDimmed := CreateDimmedPng(FVkBasaltPngLogo, 35);
+
+  FNoneLogoImg.Picture.Assign(FNonePngLogo);
+  FReshadeLogoImg.Picture.Assign(FReshadePngLogo);
+  FVkBasaltLogoImg.Picture.Assign(FVkBasaltPngLogo);
+
+  // Informational label for None state
+  FNoneNoticeLbl := TLabel.Create(FBgPanel);
+  FNoneNoticeLbl.Parent := FBgPanel;
+  FNoneNoticeLbl.Caption := 'Post-processing is disabled. Select ReShade or vkBasalt above to configure effects.';
+  FNoneNoticeLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
+  FNoneNoticeLbl.Font.Size := 10;
+  FNoneNoticeLbl.Alignment := taCenter;
+  FNoneNoticeLbl.AutoSize := False;
+  FNoneNoticeLbl.Visible := False;
+
+  // ----------------------------------------------------
+  // Card 1: Config (Top: 90, Height: 110)
+  // ----------------------------------------------------
+  FConfigCard := MkCard(90, 110);
 
   FConfigTitleLbl := TLabel.Create(FConfigCard);
   FConfigTitleLbl.Parent := FConfigCard;
   StyleMainCard(FConfigCard, FConfigTitleLbl, 'Config');
 
-  FEnableCheckBox := TCheckBox.Create(FConfigCard);
-  FEnableCheckBox.Parent := FConfigCard;
-  FEnableCheckBox.Caption := 'Enable ReShade';
-  FEnableCheckBox.Font.Color := TxtClr;
-  FEnableCheckBox.Font.Style := [fsBold];
-  FEnableCheckBox.SetBounds(CARD_P, 36, 240, 24);
-  FEnableCheckBox.OnChange := @OnEnableChange;
-
   FToggleTitleLbl := TLabel.Create(FConfigCard);
   FToggleTitleLbl.Parent := FConfigCard;
   FToggleTitleLbl.Caption := 'Toggle:';
   FToggleTitleLbl.Font.Color := TxtClr;
-  FToggleTitleLbl.SetBounds(CARD_P, 70, 180, 20);
+  FToggleTitleLbl.SetBounds(CARD_P, 40, 180, 20);
 
   FToggleBtn := TBitBtn.Create(FConfigCard);
   FToggleBtn.Parent := FConfigCard;
@@ -383,7 +530,7 @@ begin
   FToggleBtn.Anchors := [akLeft, akTop];
   FToggleBtn.Cursor := crHandPoint;
   FToggleBtn.OnClick := @MainForm.CaptureBtnClick;
-  FToggleBtn.SetBounds(210, 66, 120, 28);
+  FToggleBtn.SetBounds(210, 36, 120, 28);
   FToggleBtn.Caption := '⌨ Home';
   StyleActionButton(FToggleBtn);
 
@@ -399,13 +546,13 @@ begin
   FHotkeyComboBox.Items.Add('F11 (VK 122)');
   FHotkeyComboBox.ItemIndex := 0;
   FHotkeyComboBox.OnChange := @OnHotkeyChange;
-  FHotkeyComboBox.SetBounds(210, 66, 220, 28);
+  FHotkeyComboBox.SetBounds(210, 36, 220, 28);
 
   FProxyTitleLbl := TLabel.Create(FConfigCard);
   FProxyTitleLbl.Parent := FConfigCard;
   FProxyTitleLbl.Caption := 'Default Proxy DLL:';
   FProxyTitleLbl.Font.Color := TxtClr;
-  FProxyTitleLbl.SetBounds(CARD_P, 104, 180, 20);
+  FProxyTitleLbl.SetBounds(CARD_P, 74, 180, 20);
 
   FProxyComboBox := TComboBox.Create(FConfigCard);
   FProxyComboBox.Parent := FConfigCard;
@@ -417,14 +564,14 @@ begin
   FProxyComboBox.Items.Add('opengl32.dll (OpenGL)');
   FProxyComboBox.ItemIndex := 0;
   FProxyComboBox.OnChange := @OnProxyChange;
-  FProxyComboBox.SetBounds(210, 100, 220, 28);
+  FProxyComboBox.SetBounds(210, 70, 220, 28);
   FProxyComboBox.Hint := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
   FProxyComboBox.ShowHint := True;
 
   // ----------------------------------------------------
-  // Card 2: Shaders (Top: 154, Height: 330)
+  // Card 2: Shaders (Top: 210, Height: 330)
   // ----------------------------------------------------
-  FShadersCard := MkCard(154, 330);
+  FShadersCard := MkCard(210, 330);
 
   FShadersTitleLbl := TLabel.Create(FShadersCard);
   FShadersTitleLbl.Parent := FShadersCard;
@@ -488,9 +635,9 @@ begin
   end;
 
   // ----------------------------------------------------
-  // Card 3: Software status (Top: 494, Height: 68)
+  // Card 3: Software status (Top: 550, Height: 68)
   // ----------------------------------------------------
-  FStatusCard := MkCard(494, 68);
+  FStatusCard := MkCard(550, 68);
 
   FStatusTitleLbl := TLabel.Create(FStatusCard);
   FStatusTitleLbl.Parent := FStatusCard;
@@ -504,6 +651,7 @@ begin
   FUpdateBtn.SetBounds(Max(300, FStatusCard.Width - CARD_P - 180), 6, 180, 26);
   StyleActionButton(FUpdateBtn);
 
+  // Col 1: ReShade
   FStatDot := TShape.Create(FStatusCard);
   FStatDot.Parent := FStatusCard;
   FStatDot.Shape := stEllipse;
@@ -532,37 +680,317 @@ begin
   FStatVerLbl.Left := FStatNameLbl.Left + 65;
   FStatVerLbl.Top := 37;
 
+  // Col 2: vkBasalt
+  FVkStatDot := TShape.Create(FStatusCard);
+  FVkStatDot.Parent := FStatusCard;
+  FVkStatDot.Shape := stEllipse;
+  FVkStatDot.Brush.Color := $00666666;
+  FVkStatDot.Pen.Style := psClear;
+  FVkStatDot.SetBounds(CARD_P + 240, 42, 8, 8);
+
+  FVkStatNameLbl := TLabel.Create(FStatusCard);
+  FVkStatNameLbl.Parent := FStatusCard;
+  FVkStatNameLbl.Caption := 'vkBasalt';
+  FVkStatNameLbl.Font.Color := $AAAAAA;
+  FVkStatNameLbl.Font.Size := 9;
+  FVkStatNameLbl.Font.Style := [fsBold];
+  FVkStatNameLbl.AutoSize := True;
+  FVkStatNameLbl.Transparent := True;
+  FVkStatNameLbl.Left := FVkStatDot.Left + 14;
+  FVkStatNameLbl.Top := 37;
+
+  FVkStatVerLbl := TLabel.Create(FStatusCard);
+  FVkStatVerLbl.Parent := FStatusCard;
+  FVkStatVerLbl.Caption := '—';
+  FVkStatVerLbl.Font.Color := $00666666;
+  FVkStatVerLbl.Font.Size := 9;
+  FVkStatVerLbl.AutoSize := True;
+  FVkStatVerLbl.Transparent := True;
+  FVkStatVerLbl.Left := FVkStatNameLbl.Left + 65;
+  FVkStatVerLbl.Top := 37;
+
+  FSelectedMethod := rmReshade;
   LoadConfig;
   RefreshStatus;
 end;
 
+procedure TReshadeTabHelper.OnMethodNoneClick(Sender: TObject);
+begin
+  if FSelectedMethod = rmNone then Exit;
+  ApplyMethodSelection(rmNone, not FLoading);
+end;
+
+procedure TReshadeTabHelper.OnMethodReshadeClick(Sender: TObject);
+begin
+  if FSelectedMethod = rmReshade then Exit;
+  ApplyMethodSelection(rmReshade, not FLoading);
+end;
+
+procedure TReshadeTabHelper.OnMethodVkBasaltClick(Sender: TObject);
+begin
+  if FSelectedMethod = rmVkBasalt then Exit;
+  ApplyMethodSelection(rmVkBasalt, not FLoading);
+end;
+
+procedure TReshadeTabHelper.SelectMethod(AMethod: TReshadeMethod);
+begin
+  ApplyMethodSelection(AMethod, not FLoading);
+end;
+
+procedure TReshadeTabHelper.UpdateMethodOpacity;
+begin
+  if Assigned(FNoneLogoImg) and Assigned(FNonePngLogo) and Assigned(FNonePngDimmed) then
+  begin
+    if FSelectedMethod = rmNone then
+      FNoneLogoImg.Picture.Assign(FNonePngLogo)
+    else
+      FNoneLogoImg.Picture.Assign(FNonePngDimmed);
+  end;
+
+  if Assigned(FReshadeLogoImg) and Assigned(FReshadePngLogo) and Assigned(FReshadePngDimmed) then
+  begin
+    if FSelectedMethod = rmReshade then
+      FReshadeLogoImg.Picture.Assign(FReshadePngLogo)
+    else
+      FReshadeLogoImg.Picture.Assign(FReshadePngDimmed);
+  end;
+
+  if Assigned(FVkBasaltLogoImg) and Assigned(FVkBasaltPngLogo) and Assigned(FVkBasaltPngDimmed) then
+  begin
+    if FSelectedMethod = rmVkBasalt then
+      FVkBasaltLogoImg.Picture.Assign(FVkBasaltPngLogo)
+    else
+      FVkBasaltLogoImg.Picture.Assign(FVkBasaltPngDimmed);
+  end;
+end;
+
+procedure TReshadeTabHelper.ApplyMethodSelection(AMethod: TReshadeMethod; ASave: Boolean);
+var
+  MainForm: Tgoverlayform;
+begin
+  FSelectedMethod := AMethod;
+  if Assigned(FNoneRadio) then FNoneRadio.Checked := (AMethod = rmNone);
+  if Assigned(FReshadeRadio) then FReshadeRadio.Checked := (AMethod = rmReshade);
+  if Assigned(FVkBasaltRadio) then FVkBasaltRadio.Checked := (AMethod = rmVkBasalt);
+  UpdateMethodOpacity;
+
+  MainForm := Tgoverlayform(FForm);
+  if Assigned(MainForm) then
+  begin
+    // Ensure vkBasalt cards are parented to FBgPanel
+    if Assigned(MainForm.FVkReshadeCard) and (MainForm.FVkReshadeCard.Parent <> FBgPanel) then
+    begin
+      MainForm.FVkReshadeCard.Parent := FBgPanel;
+      MainForm.FVkBuiltinCard.Parent := FBgPanel;
+      MainForm.FVkPipelineCard.Parent := FBgPanel;
+      MainForm.FVkToggleCard.Parent := FBgPanel;
+    end;
+
+    case AMethod of
+      rmNone:
+      begin
+        if Assigned(FConfigCard) then FConfigCard.Visible := False;
+        if Assigned(FShadersCard) then FShadersCard.Visible := False;
+        if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := False;
+        if Assigned(MainForm.FVkBuiltinCard) then MainForm.FVkBuiltinCard.Visible := False;
+        if Assigned(MainForm.FVkPipelineCard) then MainForm.FVkPipelineCard.Visible := False;
+        if Assigned(MainForm.FVkToggleCard) then MainForm.FVkToggleCard.Visible := False;
+        if Assigned(FNoneNoticeLbl) then FNoneNoticeLbl.Visible := True;
+      end;
+
+      rmReshade:
+      begin
+        if Assigned(FConfigCard) then FConfigCard.Visible := True;
+        if Assigned(FShadersCard) then FShadersCard.Visible := True;
+        if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := False;
+        if Assigned(MainForm.FVkBuiltinCard) then MainForm.FVkBuiltinCard.Visible := False;
+        if Assigned(MainForm.FVkPipelineCard) then MainForm.FVkPipelineCard.Visible := False;
+        if Assigned(MainForm.FVkToggleCard) then MainForm.FVkToggleCard.Visible := False;
+        if Assigned(FNoneNoticeLbl) then FNoneNoticeLbl.Visible := False;
+      end;
+
+      rmVkBasalt:
+      begin
+        if Assigned(FConfigCard) then FConfigCard.Visible := False;
+        if Assigned(FShadersCard) then FShadersCard.Visible := False;
+        if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := True;
+        if Assigned(MainForm.FVkBuiltinCard) then MainForm.FVkBuiltinCard.Visible := True;
+        if Assigned(MainForm.FVkPipelineCard) then MainForm.FVkPipelineCard.Visible := True;
+        if Assigned(MainForm.FVkToggleCard) then MainForm.FVkToggleCard.Visible := True;
+        if Assigned(FNoneNoticeLbl) then FNoneNoticeLbl.Visible := False;
+      end;
+    end;
+  end;
+
+  if Assigned(FScrollBox) then
+    ReflowReShadeTab(FScrollBox.ClientWidth);
+
+  if ASave and not FLoading then
+    SaveConfig;
+end;
+
 procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
 var
-  TargetCardW, i: Integer;
+  TargetCardW, CurY, i: Integer;
+  MainForm: Tgoverlayform;
+  LogoW_None, LogoW_Reshade, LogoW_VkBasalt: Integer;
+  GroupW_None, GroupW_Reshade, GroupW_VkBasalt: Integer;
+  TotalGroupW, GapBetween, InnerW, X1, X2, X3: Integer;
 begin
   if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
 
   FBgPanel.Width := FScrollBox.ClientWidth;
-  if Assigned(FStatusCard) then
-    FBgPanel.Height := Max(FScrollBox.ClientHeight, FStatusCard.Top + FStatusCard.Height + 10);
   TargetCardW := Max(200, FBgPanel.Width - (CARD_P * 2));
+  MainForm := Tgoverlayform(FForm);
 
-  if Assigned(FConfigCard) then FConfigCard.Width := TargetCardW;
-  if Assigned(FShadersCard) then
+  // Ensure vkBasalt cards are parented to FBgPanel if created
+  if Assigned(MainForm) and Assigned(MainForm.FVkReshadeCard) and (MainForm.FVkReshadeCard.Parent <> FBgPanel) then
   begin
-    FShadersCard.Width := TargetCardW;
-    if Assigned(FOpenShadersBtn) then
-      FOpenShadersBtn.Left := Max(150, TargetCardW - CARD_P - FOpenShadersBtn.Width);
+    MainForm.FVkReshadeCard.Parent := FBgPanel;
+    MainForm.FVkBuiltinCard.Parent := FBgPanel;
+    MainForm.FVkPipelineCard.Parent := FBgPanel;
+    MainForm.FVkToggleCard.Parent := FBgPanel;
   end;
+
+  // 1. Method Card
+  if Assigned(FMethodCard) then
+  begin
+    FMethodCard.SetBounds(CARD_P, 10, TargetCardW, 70);
+    InnerW := TargetCardW - 2 * CARD_P;
+    LogoW_None := 50;
+    LogoW_Reshade := 143;
+    LogoW_VkBasalt := 105;
+
+    GroupW_None := 22 + LogoW_None;
+    GroupW_Reshade := 22 + LogoW_Reshade;
+    GroupW_VkBasalt := 22 + LogoW_VkBasalt;
+    TotalGroupW := GroupW_None + GroupW_Reshade + GroupW_VkBasalt;
+
+    if InnerW > TotalGroupW then
+      GapBetween := (InnerW - TotalGroupW) div 3
+    else
+      GapBetween := 8;
+
+    X1 := CARD_P;
+    X2 := X1 + GroupW_None + GapBetween;
+    X3 := X2 + GroupW_Reshade + GapBetween;
+
+    if Assigned(FNoneRadio) then
+      FNoneRadio.SetBounds(X1, 36, 20, 20);
+    if Assigned(FNoneLogoImg) then
+      FNoneLogoImg.SetBounds(X1 + 22, 36, LogoW_None, 20);
+
+    if Assigned(FReshadeRadio) then
+      FReshadeRadio.SetBounds(X2, 36, 20, 20);
+    if Assigned(FReshadeLogoImg) then
+      FReshadeLogoImg.SetBounds(X2 + 22, 28, LogoW_Reshade, 36);
+
+    if Assigned(FVkBasaltRadio) then
+      FVkBasaltRadio.SetBounds(X3, 36, 20, 20);
+    if Assigned(FVkBasaltLogoImg) then
+      FVkBasaltLogoImg.SetBounds(X3 + 22, 28, LogoW_VkBasalt, 36);
+  end;
+
+  CurY := 10 + 70 + CARD_GAP; // 92
+
+  case FSelectedMethod of
+    rmNone:
+    begin
+      if Assigned(FNoneNoticeLbl) then
+      begin
+        FNoneNoticeLbl.SetBounds(CARD_P + 10, CurY + 10, TargetCardW - 20, 40);
+        CurY := CurY + 60;
+      end;
+      if Assigned(FStatusCard) then
+      begin
+        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
+        CurY := CurY + 68 + 10;
+      end;
+    end;
+
+    rmReshade:
+    begin
+      if Assigned(FConfigCard) then
+      begin
+        FConfigCard.SetBounds(CARD_P, CurY, TargetCardW, 110);
+        CurY := CurY + 110 + CARD_GAP;
+      end;
+
+      if Assigned(FShadersCard) then
+      begin
+        FShadersCard.SetBounds(CARD_P, CurY, TargetCardW, 330);
+        if Assigned(FOpenShadersBtn) then
+          FOpenShadersBtn.Left := Max(150, TargetCardW - CARD_P - FOpenShadersBtn.Width);
+        CurY := CurY + 330 + CARD_GAP;
+      end;
+
+      if Assigned(FStatusCard) then
+      begin
+        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
+        CurY := CurY + 68 + 10;
+      end;
+    end;
+
+    rmVkBasalt:
+    begin
+      if Assigned(MainForm) and Assigned(MainForm.FVkReshadeCard) then
+      begin
+        MainForm.FVkReshadeCard.SetBounds(CARD_P, CurY, TargetCardW, 220);
+        CurY := CurY + 220 + CARD_GAP;
+      end;
+
+      if Assigned(MainForm) and Assigned(MainForm.FVkBuiltinCard) then
+      begin
+        MainForm.FVkBuiltinCard.SetBounds(CARD_P, CurY, TargetCardW, 145);
+        CurY := CurY + 145 + CARD_GAP;
+      end;
+
+      if Assigned(MainForm) and Assigned(MainForm.FVkPipelineCard) then
+      begin
+        MainForm.FVkPipelineCard.SetBounds(CARD_P, CurY, TargetCardW, 72);
+        CurY := CurY + 72 + CARD_GAP;
+      end;
+
+      if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
+      begin
+        MainForm.FVkToggleCard.SetBounds(CARD_P, CurY, TargetCardW, 75);
+        CurY := CurY + 75 + CARD_GAP;
+      end;
+
+      if Assigned(FStatusCard) then
+      begin
+        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
+        CurY := CurY + 68 + 10;
+      end;
+
+      if Assigned(MainForm) then
+        MainForm.ReflowVkBasaltTab(TargetCardW);
+    end;
+  end;
+
+  FBgPanel.Height := Max(FScrollBox.ClientHeight, CurY);
+
+  // Status card internal layout
   if Assigned(FStatusCard) then
   begin
     FStatusCard.Width := TargetCardW;
     if Assigned(FUpdateBtn) then
       FUpdateBtn.Left := Max(300, TargetCardW - CARD_P - FUpdateBtn.Width);
+
+    // Col 1: ReShade
     if Assigned(FStatNameLbl) and Assigned(FStatVerLbl) then
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
+
+    // Col 2: vkBasalt
+    if Assigned(FVkStatDot) then
+      FVkStatDot.Left := Max(CARD_P + 240, TargetCardW div 2 - 40);
+    if Assigned(FVkStatNameLbl) and Assigned(FVkStatDot) then
+      FVkStatNameLbl.Left := FVkStatDot.Left + 14;
+    if Assigned(FVkStatVerLbl) and Assigned(FVkStatNameLbl) then
+      FVkStatVerLbl.Left := FVkStatNameLbl.Left + FVkStatNameLbl.Width + 12;
   end;
 
+  // Shader packs internal layout
   for i := 0 to Length(FPackPanels) - 1 do
   begin
     if Assigned(FPackPanels[i]) then
@@ -584,13 +1012,14 @@ const
   CLR_NONE = $00666666;   // gray  — not installed
   PURPLE   = $BB99FF;
 var
-  BinDir, ShadersDir, CheckPath: string;
+  BinDir, ShadersDir, CheckPath, VkVer: string;
   i: Integer;
   IsInstalled, HasDll: Boolean;
 begin
   BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
   ShadersDir := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
 
+  // ReShade status
   HasDll := FileExists(BinDir + 'ReShade64.dll') or FileExists(BinDir + 'ReShade32.dll');
   if Assigned(FStatDot) and Assigned(FStatVerLbl) then
   begin
@@ -610,6 +1039,30 @@ begin
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
   end;
 
+  // vkBasalt status
+  if Assigned(FVkStatDot) and Assigned(FVkStatVerLbl) then
+  begin
+    VkVer := '';
+    if Assigned(FForm) and (FForm is Tgoverlayform) then
+      VkVer := Tgoverlayform(FForm).GetVkBasaltVersion;
+
+    if VkVer <> '' then
+    begin
+      FVkStatDot.Brush.Color := CLR_OK;
+      FVkStatVerLbl.Caption := VkVer;
+      FVkStatVerLbl.Font.Color := PURPLE;
+    end
+    else
+    begin
+      FVkStatDot.Brush.Color := CLR_NONE;
+      FVkStatVerLbl.Caption := '—';
+      FVkStatVerLbl.Font.Color := CLR_NONE;
+    end;
+    if Assigned(FVkStatNameLbl) then
+      FVkStatVerLbl.Left := FVkStatNameLbl.Left + FVkStatNameLbl.Width + 12;
+  end;
+
+  // Shaders status
   for i := 0 to RESHADE_PACK_COUNT - 1 do
   begin
     CheckPath := ShadersDir + 'Shaders' + PathDelim + RESHADE_PACKS[i].CheckFile;
@@ -662,12 +1115,6 @@ begin
   ExecuteShellCommand('xdg-open ' + QuotedStr(ShadersDir) + ' &');
 end;
 
-procedure TReshadeTabHelper.OnEnableChange(Sender: TObject);
-begin
-  if FLoading then Exit;
-  SaveConfig;
-end;
-
 procedure TReshadeTabHelper.OnHotkeyChange(Sender: TObject);
 begin
   case FHotkeyComboBox.ItemIndex of
@@ -694,10 +1141,13 @@ procedure TReshadeTabHelper.LoadConfig;
 var
   IniPath, ConfPath: string;
   Ini: TIniFile;
-  KeyVal, ProxyVal: string;
+  KeyVal, ProxyVal, ReshadeVal, VkBasaltVal: string;
+  LoadedMethod: TReshadeMethod;
 begin
   FLoading := True;
   try
+    LoadedMethod := rmNone;
+
     IniPath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
     if FileExists(IniPath) then
     begin
@@ -715,7 +1165,8 @@ begin
         else if SameText(ProxyVal, 'opengl32.dll') then FProxyComboBox.ItemIndex := 4
         else FProxyComboBox.ItemIndex := 0;
 
-        FEnableCheckBox.Checked := Ini.ReadString('GOVERLAY', 'Enabled', '0') = '1';
+        if Ini.ReadString('GOVERLAY', 'Enabled', '0') = '1' then
+          LoadedMethod := rmReshade;
       finally
         Ini.Free;
       end;
@@ -733,7 +1184,16 @@ begin
       begin
         Ini := TIniFile.Create(ConfPath);
         try
-          FEnableCheckBox.Checked := Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') = '1';
+          ReshadeVal := Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0');
+          VkBasaltVal := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0');
+
+          if ReshadeVal = '1' then
+            LoadedMethod := rmReshade
+          else if VkBasaltVal = '1' then
+            LoadedMethod := rmVkBasalt
+          else
+            LoadedMethod := rmNone;
+
           ProxyVal := Ini.ReadString('Config', 'RESHADE_DLL', '');
           if ProxyVal <> '' then
           begin
@@ -748,6 +1208,8 @@ begin
         end;
       end;
     end;
+
+    ApplyMethodSelection(LoadedMethod, False);
   finally
     FLoading := False;
   end;
@@ -794,7 +1256,7 @@ begin
     Ini.WriteString('GENERAL', 'KeyOverlay', KeyVal);
     Ini.WriteString('INPUT', 'KeyOverlay', KeyVal);
     Ini.WriteString('GOVERLAY', 'DefaultProxy', ProxyVal);
-    Ini.WriteString('GOVERLAY', 'Enabled', BoolToStr(FEnableCheckBox.Checked, '1', '0'));
+    Ini.WriteString('GOVERLAY', 'Enabled', BoolToStr(FSelectedMethod = rmReshade, '1', '0'));
   finally
     Ini.Free;
   end;
@@ -805,11 +1267,30 @@ begin
     ForceDirectories(ExtractFilePath(ConfPath));
     Ini := TIniFile.Create(ConfPath);
     try
-      Ini.WriteString('Config', 'GOVERLAY_RESHADE', BoolToStr(FEnableCheckBox.Checked, '1', '0'));
+      case FSelectedMethod of
+        rmReshade:
+        begin
+          Ini.WriteString('Config', 'GOVERLAY_RESHADE', '1');
+          Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
+        end;
+        rmVkBasalt:
+        begin
+          Ini.WriteString('Config', 'GOVERLAY_RESHADE', '0');
+          Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '1');
+        end;
+        rmNone:
+        begin
+          Ini.WriteString('Config', 'GOVERLAY_RESHADE', '0');
+          Ini.WriteString('Config', 'GOVERLAY_VKBASALT', '0');
+        end;
+      end;
       Ini.WriteString('Config', 'RESHADE_DLL', ProxyVal);
     finally
       Ini.Free;
     end;
+
+    if FSelectedMethod = rmVkBasalt then
+      Tgoverlayform(FForm).SaveVkBasaltConfig;
   end;
 end;
 
