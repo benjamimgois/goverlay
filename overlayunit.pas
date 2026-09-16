@@ -8044,6 +8044,17 @@ begin
     Exit;
   end;
 
+  // ── ReShade path (tag=7): store Windows VK and modifiers for ReShade
+  if Assigned(FCaptureBtn) and (FCaptureBtn.Tag = 7) then
+  begin
+    if Assigned(FReshadeHelper) then
+      TReshadeTabHelper(FReshadeHelper).ApplyCapturedKey(Key, Shift);
+    if Assigned(FCaptureForm) then
+      FCaptureForm.ModalResult := mrOk;
+    Key := 0;
+    Exit;
+  end;
+
   // ── MangoHud / vkBasalt path: X11 Keysym format with optional modifiers
   if ssShift in Shift then
   begin

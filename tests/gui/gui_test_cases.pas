@@ -794,6 +794,14 @@ begin
   AssertTrue('EnableCheckBox is assigned', Assigned(Helper.EnableCheckBox));
   AssertTrue('ProxyComboBox is assigned', Assigned(Helper.ProxyComboBox));
   AssertTrue('HotkeyComboBox is assigned', Assigned(Helper.HotkeyComboBox));
+  AssertTrue('ToggleBtn is assigned', Assigned(Helper.ToggleBtn));
+  AssertTrue('ToggleBtn parented to ConfigCard', Helper.ToggleBtn.Parent = Helper.ConfigCard);
+  AssertEquals('ToggleBtn tag is 7', 7, Helper.ToggleBtn.Tag);
+  AssertTrue('StatDot is assigned', Assigned(Helper.StatDot));
+  AssertTrue('StatDot parented to StatusCard', Helper.StatDot.Parent = Helper.StatusCard);
+  AssertTrue('StatNameLbl is assigned', Assigned(Helper.StatNameLbl));
+  AssertEquals('StatNameLbl caption is ReShade', 'ReShade', Helper.StatNameLbl.Caption);
+  AssertTrue('StatVerLbl is assigned', Assigned(Helper.StatVerLbl));
   AssertTrue('UpdateBtn is assigned', Assigned(Helper.UpdateBtn));
 
   AssertTrue('dxgi.dll in proxy list', Pos('dxgi.dll', Helper.ProxyComboBox.Items.Text) > 0);
@@ -850,6 +858,12 @@ begin
   AssertTrue('EnableCheckBox reloaded as checked', Helper.EnableCheckBox.Checked);
   AssertEquals('ProxyComboBox item index restored to 1 (d3d11.dll)', 1, Helper.ProxyComboBox.ItemIndex);
   AssertEquals('HotkeyComboBox item index restored to 1 (Shift+F2)', 1, Helper.HotkeyComboBox.ItemIndex);
+  AssertTrue('ToggleBtn caption restored with Shift+F2', Pos('Shift+F2', Helper.ToggleBtn.Caption) > 0);
+
+  // Test capturing key via ApplyCapturedKey
+  Helper.ApplyCapturedKey(36, []); // Home
+  AssertTrue('ToggleBtn caption updated to Home', Pos('Home', Helper.ToggleBtn.Caption) > 0);
+  AssertEquals('HotkeyComboBox synced to index 0 (Home)', 0, Helper.HotkeyComboBox.ItemIndex);
 
   // Toggle ReShade OFF and verify
   Helper.BeginLoad;
