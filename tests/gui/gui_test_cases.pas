@@ -787,6 +787,10 @@ begin
   AssertTrue('StatusCard is assigned', Assigned(Helper.StatusCard));
   AssertTrue('ShadersCard is assigned', Assigned(Helper.ShadersCard));
   AssertTrue('ConfigCard is assigned', Assigned(Helper.ConfigCard));
+  AssertTrue('ConfigCard is positioned above ShadersCard', Helper.ConfigCard.Top < Helper.ShadersCard.Top);
+  AssertTrue('ShadersCard is positioned above StatusCard', Helper.ShadersCard.Top < Helper.StatusCard.Top);
+  AssertTrue('OpenShadersBtn is assigned', Assigned(Helper.OpenShadersBtn));
+  AssertTrue('OpenShadersBtn is parented to ShadersCard', Helper.OpenShadersBtn.Parent = Helper.ShadersCard);
   AssertTrue('EnableCheckBox is assigned', Assigned(Helper.EnableCheckBox));
   AssertTrue('ProxyComboBox is assigned', Assigned(Helper.ProxyComboBox));
   AssertTrue('HotkeyComboBox is assigned', Assigned(Helper.HotkeyComboBox));
