@@ -836,9 +836,10 @@ begin
 
   AssertTrue('UpdateBtn is assigned', Assigned(Helper.UpdateBtn));
   AssertEquals('UpdateBtn caption is Check updates', 'Check updates', Helper.UpdateBtn.Caption);
-  AssertTrue('VersionComboBox is assigned', Assigned(Helper.VersionComboBox));
-  AssertFalse('VersionComboBox is disabled', Helper.VersionComboBox.Enabled);
+  AssertEquals('UpdateBtn aligned with ReShade row', 36, Helper.UpdateBtn.Top);
+  AssertFalse('VersionComboBox is removed', Assigned(Helper.VersionComboBox));
   AssertTrue('VkStatDot is below StatDot', Helper.VkStatDot.Top > Helper.StatDot.Top);
+
   AssertTrue('OptionsCard is assigned', Assigned(Helper.OptionsCard));
 
   AssertTrue('dxgi.dll in proxy list', Pos('dxgi.dll', Helper.ProxyComboBox.Items.Text) > 0);

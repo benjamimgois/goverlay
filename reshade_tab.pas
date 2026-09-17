@@ -645,28 +645,22 @@ begin
   end;
 
   // ----------------------------------------------------
-  // Card 3: Software status (Top: 550, Height: 124)
+  // Card 3: Software status (Top: 550, Height: 100)
   // ----------------------------------------------------
-  FStatusCard := MkCard(550, 124);
+  FStatusCard := MkCard(550, 100);
 
   FStatusTitleLbl := TLabel.Create(FStatusCard);
   FStatusTitleLbl.Parent := FStatusCard;
   StyleMainCard(FStatusCard, FStatusTitleLbl, 'Software status');
 
-  FVersionComboBox := TComboBox.Create(FStatusCard);
-  FVersionComboBox.Parent := FStatusCard;
-  FVersionComboBox.Style := csDropDownList;
-  FVersionComboBox.Items.Add('Stable Channel');
-  FVersionComboBox.ItemIndex := 0;
-  FVersionComboBox.Enabled := False;
-  FVersionComboBox.SetBounds(CARD_P, 36, Max(80, FStatusCard.Width - (CARD_P * 2) - 8 - 130), 28);
+  FVersionComboBox := nil;
 
   FUpdateBtn := TBitBtn.Create(FStatusCard);
   FUpdateBtn.Parent := FStatusCard;
   FUpdateBtn.Caption := 'Check updates';
   FUpdateBtn.Cursor := crHandPoint;
   FUpdateBtn.OnClick := @OnUpdateBtnClick;
-  FUpdateBtn.SetBounds(CARD_P + FVersionComboBox.Width + 8, 36, 130, 28);
+  FUpdateBtn.SetBounds(FStatusCard.Width - CARD_P - 130, 36, 130, 28);
   StyleActionButton(FUpdateBtn);
 
   // Row 1: ReShade
@@ -675,7 +669,7 @@ begin
   FStatDot.Shape := stEllipse;
   FStatDot.Brush.Color := $00666666;
   FStatDot.Pen.Style := psClear;
-  FStatDot.SetBounds(CARD_P, 76, 8, 8);
+  FStatDot.SetBounds(CARD_P, 46, 8, 8);
 
   FStatNameLbl := TLabel.Create(FStatusCard);
   FStatNameLbl.Parent := FStatusCard;
@@ -686,7 +680,7 @@ begin
   FStatNameLbl.AutoSize := True;
   FStatNameLbl.Transparent := True;
   FStatNameLbl.Left := CARD_P + 14;
-  FStatNameLbl.Top := 72;
+  FStatNameLbl.Top := 42;
 
   FStatVerLbl := TLabel.Create(FStatusCard);
   FStatVerLbl.Parent := FStatusCard;
@@ -696,7 +690,7 @@ begin
   FStatVerLbl.AutoSize := True;
   FStatVerLbl.Transparent := True;
   FStatVerLbl.Left := FStatNameLbl.Left + 65;
-  FStatVerLbl.Top := 72;
+  FStatVerLbl.Top := 42;
 
   // Row 2: vkBasalt (below ReShade)
   FVkStatDot := TShape.Create(FStatusCard);
@@ -704,7 +698,7 @@ begin
   FVkStatDot.Shape := stEllipse;
   FVkStatDot.Brush.Color := $00666666;
   FVkStatDot.Pen.Style := psClear;
-  FVkStatDot.SetBounds(CARD_P, 100, 8, 8);
+  FVkStatDot.SetBounds(CARD_P, 72, 8, 8);
 
   FVkStatNameLbl := TLabel.Create(FStatusCard);
   FVkStatNameLbl.Parent := FStatusCard;
@@ -715,7 +709,7 @@ begin
   FVkStatNameLbl.AutoSize := True;
   FVkStatNameLbl.Transparent := True;
   FVkStatNameLbl.Left := CARD_P + 14;
-  FVkStatNameLbl.Top := 96;
+  FVkStatNameLbl.Top := 68;
 
   FVkStatVerLbl := TLabel.Create(FStatusCard);
   FVkStatVerLbl.Parent := FStatusCard;
@@ -725,7 +719,7 @@ begin
   FVkStatVerLbl.AutoSize := True;
   FVkStatVerLbl.Transparent := True;
   FVkStatVerLbl.Left := FVkStatNameLbl.Left + 65;
-  FVkStatVerLbl.Top := 96;
+  FVkStatVerLbl.Top := 68;
 
   FSelectedMethod := rmReshade;
   LoadConfig;
@@ -850,10 +844,10 @@ end;
 procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
 const
   TOP_ROW_H = 108;
-  STATUS_H  = 124;
+  STATUS_H  = 100;
   BOTTOM_M  = 10;
 var
-  TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW, ComboW: Integer;
+  TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW: Integer;
   ClientH, TotalH, ShadersH, CardBottomTop: Integer;
   FixedBelow, BuiltinH, PipelineH, ReshadeH, MinReshadeH, MinShadersH, MinTotalH: Integer;
   PackStep, PackH, PackY, OptLabelW: Integer;
@@ -899,39 +893,50 @@ begin
     FMethodCard.SetBounds(CARD_P, 10, HalfW, TOP_ROW_H);
     InnerW := HalfW - 2 * CARD_P;
     LogoW_None := 38;
-    LogoW_Reshade := 90;
-    LogoW_VkBasalt := 72;
+    LogoW_Reshade := 120;
+    LogoW_VkBasalt := 105;
 
     GroupW_None := 22 + LogoW_None;
     GroupW_Reshade := 22 + LogoW_Reshade;
     GroupW_VkBasalt := 22 + LogoW_VkBasalt;
     TotalGroupW := GroupW_None + GroupW_Reshade + GroupW_VkBasalt;
 
+    if InnerW < TotalGroupW then
+    begin
+      LogoW_Reshade := Max(80, (InnerW - GroupW_None - 44 - 8) * 120 div 225);
+      LogoW_VkBasalt := Max(70, (InnerW - GroupW_None - 44 - 8) * 105 div 225);
+      GroupW_Reshade := 22 + LogoW_Reshade;
+      GroupW_VkBasalt := 22 + LogoW_VkBasalt;
+      TotalGroupW := GroupW_None + GroupW_Reshade + GroupW_VkBasalt;
+    end;
+
     if InnerW > TotalGroupW then
-      GapBetween := (InnerW - TotalGroupW) div 3
+      GapBetween := (InnerW - TotalGroupW) div 2
     else
       GapBetween := 4;
 
     X1 := CARD_P;
     X2 := X1 + GroupW_None + GapBetween;
-    X3 := X2 + GroupW_Reshade + GapBetween;
+    X3 := HalfW - CARD_P - GroupW_VkBasalt;
+    if X3 < X2 + GroupW_Reshade + 4 then
+      X3 := X2 + GroupW_Reshade + 4;
 
-    RadioY := 34 + (TOP_ROW_H - 34 - 28) div 2;
+    RadioY := 30 + (TOP_ROW_H - 30 - 36) div 2;
 
     if Assigned(FNoneRadio) then
-      FNoneRadio.SetBounds(X1, RadioY + 4, 20, 20);
+      FNoneRadio.SetBounds(X1, RadioY + 8, 20, 20);
     if Assigned(FNoneLogoImg) then
-      FNoneLogoImg.SetBounds(X1 + 22, RadioY + 4, LogoW_None, 20);
+      FNoneLogoImg.SetBounds(X1 + 22, RadioY + 8, LogoW_None, 20);
 
     if Assigned(FReshadeRadio) then
-      FReshadeRadio.SetBounds(X2, RadioY + 4, 20, 20);
+      FReshadeRadio.SetBounds(X2, RadioY + 8, 20, 20);
     if Assigned(FReshadeLogoImg) then
-      FReshadeLogoImg.SetBounds(X2 + 22, RadioY - 4, LogoW_Reshade, 36);
+      FReshadeLogoImg.SetBounds(X2 + 22, RadioY, LogoW_Reshade, 36);
 
     if Assigned(FVkBasaltRadio) then
-      FVkBasaltRadio.SetBounds(X3, RadioY + 4, 20, 20);
+      FVkBasaltRadio.SetBounds(X3, RadioY + 8, 20, 20);
     if Assigned(FVkBasaltLogoImg) then
-      FVkBasaltLogoImg.SetBounds(X3 + 22, RadioY - 4, LogoW_VkBasalt, 36);
+      FVkBasaltLogoImg.SetBounds(X3 + 22, RadioY, LogoW_VkBasalt, 36);
   end;
 
   case FSelectedMethod of
@@ -1070,40 +1075,36 @@ begin
   begin
     FStatusCard.Width := TargetCardW;
     CheckW := 130;
-    ComboW := TargetCardW - (CARD_P * 2) - 8 - CheckW;
-    if ComboW < 80 then ComboW := 80;
 
-    if Assigned(FVersionComboBox) then
-      FVersionComboBox.SetBounds(CARD_P, 36, ComboW, 28);
     if Assigned(FUpdateBtn) then
-      FUpdateBtn.SetBounds(CARD_P + ComboW + 8, 36, CheckW, 28);
+      FUpdateBtn.SetBounds(TargetCardW - CARD_P - CheckW, 36, CheckW, 28);
 
     // Row 1: ReShade
     if Assigned(FStatDot) then
-      FStatDot.SetBounds(CARD_P, 76, 8, 8);
+      FStatDot.SetBounds(CARD_P, 46, 8, 8);
     if Assigned(FStatNameLbl) then
     begin
       FStatNameLbl.Left := CARD_P + 14;
-      FStatNameLbl.Top := 72;
+      FStatNameLbl.Top := 42;
     end;
     if Assigned(FStatVerLbl) and Assigned(FStatNameLbl) then
     begin
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
-      FStatVerLbl.Top := 72;
+      FStatVerLbl.Top := 42;
     end;
 
     // Row 2: vkBasalt (below ReShade)
     if Assigned(FVkStatDot) then
-      FVkStatDot.SetBounds(CARD_P, 100, 8, 8);
+      FVkStatDot.SetBounds(CARD_P, 72, 8, 8);
     if Assigned(FVkStatNameLbl) then
     begin
       FVkStatNameLbl.Left := CARD_P + 14;
-      FVkStatNameLbl.Top := 96;
+      FVkStatNameLbl.Top := 68;
     end;
     if Assigned(FVkStatVerLbl) and Assigned(FVkStatNameLbl) then
     begin
       FVkStatVerLbl.Left := FVkStatNameLbl.Left + FVkStatNameLbl.Width + 12;
-      FVkStatVerLbl.Top := 96;
+      FVkStatVerLbl.Top := 68;
     end;
   end;
 
@@ -1203,7 +1204,6 @@ begin
     if Assigned(FVkStatNameLbl) then
       FVkStatVerLbl.Left := FVkStatNameLbl.Left + FVkStatNameLbl.Width + 12;
   end;
-
   // Shaders status
   for i := 0 to RESHADE_PACK_COUNT - 1 do
   begin
