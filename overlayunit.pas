@@ -1235,6 +1235,7 @@ type
     FVkReshadeSyncBtn:      TBitBtn;  // Sync/update reshade shaders button
     FVkToggleCaptureBtn:    TBitBtn;
     FVkToggleTitleLbl:      TLabel;
+    FVkToggleLabel:         TLabel;
     FReshadeProgressBar: TProgressBar;
     FReshadePhaseLabel: TLabel;
     FReshadeDownloadedOnFirstShow: Boolean;

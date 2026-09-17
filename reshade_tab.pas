@@ -73,6 +73,7 @@ type
 
     // Card 3: Software Status
     FStatusTitleLbl: TLabel;
+    FVersionComboBox: TComboBox;
     FStatDot: TShape;
     FStatNameLbl: TLabel;
     FStatVerLbl: TLabel;
@@ -123,6 +124,8 @@ type
     property StatusCard: TPanel read FStatusCard;
     property ShadersCard: TPanel read FShadersCard;
     property ConfigCard: TPanel read FConfigCard;
+    property OptionsCard: TPanel read FConfigCard;
+    property VersionComboBox: TComboBox read FVersionComboBox;
     property UpdateBtn: TBitBtn read FUpdateBtn;
     property OpenShadersBtn: TBitBtn read FOpenShadersBtn;
     property ProxyComboBox: TComboBox read FProxyComboBox;
@@ -259,7 +262,14 @@ end;
 procedure TReshadeAsyncInstallThread.SyncDone;
 begin
   if Assigned(FHelper) then
+  begin
     FHelper.RefreshStatus;
+    if Assigned(FHelper.FUpdateBtn) then
+    begin
+      FHelper.FUpdateBtn.Enabled := True;
+      FHelper.FUpdateBtn.Caption := 'Check updates';
+    end;
+  end;
 end;
 
 procedure TReshadeAsyncInstallThread.Execute;
@@ -406,9 +416,9 @@ begin
   FBgPanel.Height := 580;
 
   // ----------------------------------------------------
-  // Card 0: Method (Top: 10, Height: 70)
+  // Card 0: Method (Top: 10, Height: 108)
   // ----------------------------------------------------
-  FMethodCard := MkCard(10, 70);
+  FMethodCard := MkCard(10, 108);
 
   FMethodTitleLbl := TLabel.Create(FMethodCard);
   FMethodTitleLbl.Parent := FMethodCard;
@@ -510,13 +520,13 @@ begin
   FNoneNoticeLbl.Visible := False;
 
   // ----------------------------------------------------
-  // Card 1: Config (Top: 90, Height: 110)
+  // Card 1: Options (Top: 10, Height: 108)
   // ----------------------------------------------------
-  FConfigCard := MkCard(90, 110);
+  FConfigCard := MkCard(10, 108);
 
   FConfigTitleLbl := TLabel.Create(FConfigCard);
   FConfigTitleLbl.Parent := FConfigCard;
-  StyleMainCard(FConfigCard, FConfigTitleLbl, 'Config');
+  StyleMainCard(FConfigCard, FConfigTitleLbl, 'Options');
 
   FToggleTitleLbl := TLabel.Create(FConfigCard);
   FToggleTitleLbl.Parent := FConfigCard;
@@ -550,7 +560,7 @@ begin
 
   FProxyTitleLbl := TLabel.Create(FConfigCard);
   FProxyTitleLbl.Parent := FConfigCard;
-  FProxyTitleLbl.Caption := 'Default Proxy DLL:';
+  FProxyTitleLbl.Caption := 'Proxy DLL:';
   FProxyTitleLbl.Font.Color := TxtClr;
   FProxyTitleLbl.SetBounds(CARD_P, 74, 180, 20);
 
@@ -635,29 +645,37 @@ begin
   end;
 
   // ----------------------------------------------------
-  // Card 3: Software status (Top: 550, Height: 68)
+  // Card 3: Software status (Top: 550, Height: 124)
   // ----------------------------------------------------
-  FStatusCard := MkCard(550, 68);
+  FStatusCard := MkCard(550, 124);
 
   FStatusTitleLbl := TLabel.Create(FStatusCard);
   FStatusTitleLbl.Parent := FStatusCard;
   StyleMainCard(FStatusCard, FStatusTitleLbl, 'Software status');
 
+  FVersionComboBox := TComboBox.Create(FStatusCard);
+  FVersionComboBox.Parent := FStatusCard;
+  FVersionComboBox.Style := csDropDownList;
+  FVersionComboBox.Items.Add('Stable Channel');
+  FVersionComboBox.ItemIndex := 0;
+  FVersionComboBox.Enabled := False;
+  FVersionComboBox.SetBounds(CARD_P, 36, Max(80, FStatusCard.Width - (CARD_P * 2) - 8 - 130), 28);
+
   FUpdateBtn := TBitBtn.Create(FStatusCard);
   FUpdateBtn.Parent := FStatusCard;
-  FUpdateBtn.Caption := 'Check / Update ReShade';
+  FUpdateBtn.Caption := 'Check updates';
   FUpdateBtn.Cursor := crHandPoint;
   FUpdateBtn.OnClick := @OnUpdateBtnClick;
-  FUpdateBtn.SetBounds(Max(300, FStatusCard.Width - CARD_P - 180), 6, 180, 26);
+  FUpdateBtn.SetBounds(CARD_P + FVersionComboBox.Width + 8, 36, 130, 28);
   StyleActionButton(FUpdateBtn);
 
-  // Col 1: ReShade
+  // Row 1: ReShade
   FStatDot := TShape.Create(FStatusCard);
   FStatDot.Parent := FStatusCard;
   FStatDot.Shape := stEllipse;
   FStatDot.Brush.Color := $00666666;
   FStatDot.Pen.Style := psClear;
-  FStatDot.SetBounds(CARD_P, 42, 8, 8);
+  FStatDot.SetBounds(CARD_P, 76, 8, 8);
 
   FStatNameLbl := TLabel.Create(FStatusCard);
   FStatNameLbl.Parent := FStatusCard;
@@ -668,7 +686,7 @@ begin
   FStatNameLbl.AutoSize := True;
   FStatNameLbl.Transparent := True;
   FStatNameLbl.Left := CARD_P + 14;
-  FStatNameLbl.Top := 37;
+  FStatNameLbl.Top := 72;
 
   FStatVerLbl := TLabel.Create(FStatusCard);
   FStatVerLbl.Parent := FStatusCard;
@@ -678,15 +696,15 @@ begin
   FStatVerLbl.AutoSize := True;
   FStatVerLbl.Transparent := True;
   FStatVerLbl.Left := FStatNameLbl.Left + 65;
-  FStatVerLbl.Top := 37;
+  FStatVerLbl.Top := 72;
 
-  // Col 2: vkBasalt
+  // Row 2: vkBasalt (below ReShade)
   FVkStatDot := TShape.Create(FStatusCard);
   FVkStatDot.Parent := FStatusCard;
   FVkStatDot.Shape := stEllipse;
   FVkStatDot.Brush.Color := $00666666;
   FVkStatDot.Pen.Style := psClear;
-  FVkStatDot.SetBounds(CARD_P + 240, 42, 8, 8);
+  FVkStatDot.SetBounds(CARD_P, 100, 8, 8);
 
   FVkStatNameLbl := TLabel.Create(FStatusCard);
   FVkStatNameLbl.Parent := FStatusCard;
@@ -696,8 +714,8 @@ begin
   FVkStatNameLbl.Font.Style := [fsBold];
   FVkStatNameLbl.AutoSize := True;
   FVkStatNameLbl.Transparent := True;
-  FVkStatNameLbl.Left := FVkStatDot.Left + 14;
-  FVkStatNameLbl.Top := 37;
+  FVkStatNameLbl.Left := CARD_P + 14;
+  FVkStatNameLbl.Top := 96;
 
   FVkStatVerLbl := TLabel.Create(FStatusCard);
   FVkStatVerLbl.Parent := FStatusCard;
@@ -707,7 +725,7 @@ begin
   FVkStatVerLbl.AutoSize := True;
   FVkStatVerLbl.Transparent := True;
   FVkStatVerLbl.Left := FVkStatNameLbl.Left + 65;
-  FVkStatVerLbl.Top := 37;
+  FVkStatVerLbl.Top := 96;
 
   FSelectedMethod := rmReshade;
   LoadConfig;
@@ -830,17 +848,30 @@ begin
 end;
 
 procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
+const
+  TOP_ROW_H = 108;
+  STATUS_H  = 124;
+  BOTTOM_M  = 10;
 var
-  TargetCardW, CurY, i: Integer;
+  TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW, ComboW: Integer;
+  ClientH, TotalH, ShadersH, CardBottomTop: Integer;
+  FixedBelow, BuiltinH, PipelineH, ReshadeH, MinReshadeH, MinShadersH, MinTotalH: Integer;
+  PackStep, PackH, PackY, OptLabelW: Integer;
   MainForm: Tgoverlayform;
   LogoW_None, LogoW_Reshade, LogoW_VkBasalt: Integer;
   GroupW_None, GroupW_Reshade, GroupW_VkBasalt: Integer;
-  TotalGroupW, GapBetween, InnerW, X1, X2, X3: Integer;
+  TotalGroupW, GapBetween, InnerW, X1, X2, X3, RadioY: Integer;
 begin
   if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
 
+  CurY := 0;
+  ShadersH := 0;
   FBgPanel.Width := FScrollBox.ClientWidth;
   TargetCardW := Max(200, FBgPanel.Width - (CARD_P * 2));
+  HalfW := (TargetCardW - CARD_GAP) div 2;
+  RightColW := TargetCardW - HalfW - CARD_GAP;
+  RightColLeft := CARD_P + HalfW + CARD_GAP;
+
   MainForm := Tgoverlayform(FForm);
 
   // Ensure vkBasalt cards are parented to FBgPanel if created
@@ -852,14 +883,24 @@ begin
     MainForm.FVkToggleCard.Parent := FBgPanel;
   end;
 
-  // 1. Method Card
+  // Determine available client height
+  ClientH := FScrollBox.ClientHeight;
+  if ClientH < 400 then
+  begin
+    if Assigned(FForm) and (FForm.ClientHeight > 150) then
+      ClientH := FForm.ClientHeight - 38
+    else
+      ClientH := 648;
+  end;
+
+  // 1. Method Card (occupies 50% of available horizontal space)
   if Assigned(FMethodCard) then
   begin
-    FMethodCard.SetBounds(CARD_P, 10, TargetCardW, 70);
-    InnerW := TargetCardW - 2 * CARD_P;
-    LogoW_None := 50;
-    LogoW_Reshade := 143;
-    LogoW_VkBasalt := 105;
+    FMethodCard.SetBounds(CARD_P, 10, HalfW, TOP_ROW_H);
+    InnerW := HalfW - 2 * CARD_P;
+    LogoW_None := 38;
+    LogoW_Reshade := 90;
+    LogoW_VkBasalt := 72;
 
     GroupW_None := 22 + LogoW_None;
     GroupW_Reshade := 22 + LogoW_Reshade;
@@ -869,102 +910,156 @@ begin
     if InnerW > TotalGroupW then
       GapBetween := (InnerW - TotalGroupW) div 3
     else
-      GapBetween := 8;
+      GapBetween := 4;
 
     X1 := CARD_P;
     X2 := X1 + GroupW_None + GapBetween;
     X3 := X2 + GroupW_Reshade + GapBetween;
 
+    RadioY := 34 + (TOP_ROW_H - 34 - 28) div 2;
+
     if Assigned(FNoneRadio) then
-      FNoneRadio.SetBounds(X1, 36, 20, 20);
+      FNoneRadio.SetBounds(X1, RadioY + 4, 20, 20);
     if Assigned(FNoneLogoImg) then
-      FNoneLogoImg.SetBounds(X1 + 22, 36, LogoW_None, 20);
+      FNoneLogoImg.SetBounds(X1 + 22, RadioY + 4, LogoW_None, 20);
 
     if Assigned(FReshadeRadio) then
-      FReshadeRadio.SetBounds(X2, 36, 20, 20);
+      FReshadeRadio.SetBounds(X2, RadioY + 4, 20, 20);
     if Assigned(FReshadeLogoImg) then
-      FReshadeLogoImg.SetBounds(X2 + 22, 28, LogoW_Reshade, 36);
+      FReshadeLogoImg.SetBounds(X2 + 22, RadioY - 4, LogoW_Reshade, 36);
 
     if Assigned(FVkBasaltRadio) then
-      FVkBasaltRadio.SetBounds(X3, 36, 20, 20);
+      FVkBasaltRadio.SetBounds(X3, RadioY + 4, 20, 20);
     if Assigned(FVkBasaltLogoImg) then
-      FVkBasaltLogoImg.SetBounds(X3 + 22, 28, LogoW_VkBasalt, 36);
+      FVkBasaltLogoImg.SetBounds(X3 + 22, RadioY - 4, LogoW_VkBasalt, 36);
   end;
-
-  CurY := 10 + 70 + CARD_GAP; // 92
 
   case FSelectedMethod of
     rmNone:
     begin
+      CurY := 10 + TOP_ROW_H + CARD_GAP;
       if Assigned(FNoneNoticeLbl) then
       begin
         FNoneNoticeLbl.SetBounds(CARD_P + 10, CurY + 10, TargetCardW - 20, 40);
         CurY := CurY + 60;
       end;
+      TotalH := Max(ClientH, CurY + STATUS_H + BOTTOM_M);
+      CardBottomTop := TotalH - BOTTOM_M - STATUS_H;
       if Assigned(FStatusCard) then
-      begin
-        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
-        CurY := CurY + 68 + 10;
-      end;
+        FStatusCard.SetBounds(CARD_P, CardBottomTop, TargetCardW, STATUS_H);
+      CurY := CardBottomTop + STATUS_H + BOTTOM_M;
     end;
 
     rmReshade:
     begin
+      // Options card to the right of Method card
       if Assigned(FConfigCard) then
       begin
-        FConfigCard.SetBounds(CARD_P, CurY, TargetCardW, 110);
-        CurY := CurY + 110 + CARD_GAP;
+        FConfigCard.SetBounds(RightColLeft, 10, RightColW, TOP_ROW_H);
+        OptLabelW := 80;
+        if Assigned(FToggleTitleLbl) then
+          FToggleTitleLbl.SetBounds(CARD_P, 38, OptLabelW, 20);
+        if Assigned(FToggleBtn) then
+          FToggleBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
+        if Assigned(FProxyTitleLbl) then
+          FProxyTitleLbl.SetBounds(CARD_P, 72, OptLabelW, 20);
+        if Assigned(FProxyComboBox) then
+          FProxyComboBox.SetBounds(CARD_P + OptLabelW + 8, 68, Max(100, RightColW - CARD_P * 2 - OptLabelW - 8), 28);
       end;
 
+      CurY := 10 + TOP_ROW_H + CARD_GAP; // 130
+      MinShadersH := 280;
+      MinTotalH := CurY + MinShadersH + CARD_GAP + STATUS_H + BOTTOM_M;
+      TotalH := Max(ClientH, MinTotalH);
+      CardBottomTop := TotalH - BOTTOM_M - STATUS_H;
+      ShadersH := CardBottomTop - CARD_GAP - CurY;
+
+      // Shaders card expands vertically to take available space
       if Assigned(FShadersCard) then
       begin
-        FShadersCard.SetBounds(CARD_P, CurY, TargetCardW, 330);
+        FShadersCard.SetBounds(CARD_P, CurY, TargetCardW, ShadersH);
         if Assigned(FOpenShadersBtn) then
           FOpenShadersBtn.Left := Max(150, TargetCardW - CARD_P - FOpenShadersBtn.Width);
-        CurY := CurY + 330 + CARD_GAP;
       end;
 
+      // Software status card anchored to bottom
       if Assigned(FStatusCard) then
-      begin
-        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
-        CurY := CurY + 68 + 10;
-      end;
+        FStatusCard.SetBounds(CARD_P, CardBottomTop, TargetCardW, STATUS_H);
+
+      CurY := CardBottomTop + STATUS_H + BOTTOM_M;
     end;
 
     rmVkBasalt:
     begin
+      // Options card to the right of Method card
+      if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
+      begin
+        MainForm.FVkToggleCard.SetBounds(RightColLeft, 10, RightColW, TOP_ROW_H);
+        OptLabelW := 80;
+        if Assigned(MainForm.FVkToggleTitleLbl) then
+        begin
+          MainForm.FVkToggleTitleLbl.Caption := 'Options';
+          MainForm.FVkToggleTitleLbl.SetBounds(CARD_P, 8, 120, 20);
+        end;
+
+        if Assigned(MainForm.FVkToggleLabel) then
+          MainForm.FVkToggleLabel.SetBounds(CARD_P, 38, OptLabelW, 20);
+
+        if Assigned(MainForm.FVkToggleCaptureBtn) then
+          MainForm.FVkToggleCaptureBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
+
+        if Assigned(MainForm.FVkRestoreBtn) then
+          MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
+      end;
+
+      CurY := 10 + TOP_ROW_H + CARD_GAP; // 130
+      BuiltinH := 145;
+      PipelineH := 72;
+      FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + CARD_GAP + STATUS_H + BOTTOM_M;
+      MinReshadeH := 110;
+      MinTotalH := CurY + MinReshadeH + FixedBelow;
+      TotalH := Max(ClientH, MinTotalH);
+      ReshadeH := TotalH - CurY - FixedBelow;
+
+      // Reshade effects card expands vertically to take available space
       if Assigned(MainForm) and Assigned(MainForm.FVkReshadeCard) then
       begin
-        MainForm.FVkReshadeCard.SetBounds(CARD_P, CurY, TargetCardW, 220);
-        CurY := CurY + 220 + CARD_GAP;
+        MainForm.FVkReshadeCard.SetBounds(CARD_P, CurY, TargetCardW, ReshadeH);
+        CurY := CurY + ReshadeH + CARD_GAP;
       end;
 
       if Assigned(MainForm) and Assigned(MainForm.FVkBuiltinCard) then
       begin
-        MainForm.FVkBuiltinCard.SetBounds(CARD_P, CurY, TargetCardW, 145);
-        CurY := CurY + 145 + CARD_GAP;
+        MainForm.FVkBuiltinCard.SetBounds(CARD_P, CurY, TargetCardW, BuiltinH);
+        CurY := CurY + BuiltinH + CARD_GAP;
       end;
 
       if Assigned(MainForm) and Assigned(MainForm.FVkPipelineCard) then
       begin
-        MainForm.FVkPipelineCard.SetBounds(CARD_P, CurY, TargetCardW, 72);
-        CurY := CurY + 72 + CARD_GAP;
+        MainForm.FVkPipelineCard.SetBounds(CARD_P, CurY, TargetCardW, PipelineH);
+        CurY := CurY + PipelineH + CARD_GAP;
       end;
 
-      if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
-      begin
-        MainForm.FVkToggleCard.SetBounds(CARD_P, CurY, TargetCardW, 75);
-        CurY := CurY + 75 + CARD_GAP;
-      end;
-
+      // Software status card anchored to bottom
       if Assigned(FStatusCard) then
       begin
-        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, 68);
-        CurY := CurY + 68 + 10;
+        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, STATUS_H);
+        CurY := CurY + STATUS_H + BOTTOM_M;
       end;
 
       if Assigned(MainForm) then
+      begin
         MainForm.ReflowVkBasaltTab(TargetCardW);
+
+        // Keep Options card controls properly positioned
+        OptLabelW := 80;
+        if Assigned(MainForm.FVkToggleLabel) then
+          MainForm.FVkToggleLabel.SetBounds(CARD_P, 38, OptLabelW, 20);
+        if Assigned(MainForm.FVkToggleCaptureBtn) then
+          MainForm.FVkToggleCaptureBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
+        if Assigned(MainForm.FVkRestoreBtn) then
+          MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
+      end;
     end;
   end;
 
@@ -974,34 +1069,81 @@ begin
   if Assigned(FStatusCard) then
   begin
     FStatusCard.Width := TargetCardW;
+    CheckW := 130;
+    ComboW := TargetCardW - (CARD_P * 2) - 8 - CheckW;
+    if ComboW < 80 then ComboW := 80;
+
+    if Assigned(FVersionComboBox) then
+      FVersionComboBox.SetBounds(CARD_P, 36, ComboW, 28);
     if Assigned(FUpdateBtn) then
-      FUpdateBtn.Left := Max(300, TargetCardW - CARD_P - FUpdateBtn.Width);
+      FUpdateBtn.SetBounds(CARD_P + ComboW + 8, 36, CheckW, 28);
 
-    // Col 1: ReShade
-    if Assigned(FStatNameLbl) and Assigned(FStatVerLbl) then
+    // Row 1: ReShade
+    if Assigned(FStatDot) then
+      FStatDot.SetBounds(CARD_P, 76, 8, 8);
+    if Assigned(FStatNameLbl) then
+    begin
+      FStatNameLbl.Left := CARD_P + 14;
+      FStatNameLbl.Top := 72;
+    end;
+    if Assigned(FStatVerLbl) and Assigned(FStatNameLbl) then
+    begin
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
+      FStatVerLbl.Top := 72;
+    end;
 
-    // Col 2: vkBasalt
+    // Row 2: vkBasalt (below ReShade)
     if Assigned(FVkStatDot) then
-      FVkStatDot.Left := Max(CARD_P + 240, TargetCardW div 2 - 40);
-    if Assigned(FVkStatNameLbl) and Assigned(FVkStatDot) then
-      FVkStatNameLbl.Left := FVkStatDot.Left + 14;
+      FVkStatDot.SetBounds(CARD_P, 100, 8, 8);
+    if Assigned(FVkStatNameLbl) then
+    begin
+      FVkStatNameLbl.Left := CARD_P + 14;
+      FVkStatNameLbl.Top := 96;
+    end;
     if Assigned(FVkStatVerLbl) and Assigned(FVkStatNameLbl) then
+    begin
       FVkStatVerLbl.Left := FVkStatNameLbl.Left + FVkStatNameLbl.Width + 12;
+      FVkStatVerLbl.Top := 96;
+    end;
   end;
 
   // Shader packs internal layout
-  for i := 0 to Length(FPackPanels) - 1 do
+  if Assigned(FShadersCard) and (FSelectedMethod = rmReshade) then
   begin
-    if Assigned(FPackPanels[i]) then
+    PackStep := (ShadersH - 36 - 8) div RESHADE_PACK_COUNT;
+    if PackStep > 62 then PackStep := 62;
+    if PackStep < 46 then PackStep := 46;
+    PackH := Min(52, PackStep - 6);
+    PackY := 36;
+
+    for i := 0 to Length(FPackPanels) - 1 do
     begin
-      FPackPanels[i].Width := TargetCardW - (CARD_P * 2);
-      if Assigned(FPackActionBtns[i]) then
-        FPackActionBtns[i].Left := FPackPanels[i].Width - 120;
-      if Assigned(FPackStatusLbls[i]) then
-        FPackStatusLbls[i].Left := FPackPanels[i].Width - 230;
-      if Assigned(FPackDescLbls[i]) then
-        FPackDescLbls[i].Width := Max(100, FPackPanels[i].Width - 250);
+      if Assigned(FPackPanels[i]) then
+      begin
+        FPackPanels[i].SetBounds(CARD_P, PackY, TargetCardW - (CARD_P * 2), PackH);
+        if Assigned(FPackActionBtns[i]) then
+        begin
+          FPackActionBtns[i].Left := FPackPanels[i].Width - 120;
+          FPackActionBtns[i].Top := (PackH - 28) div 2;
+        end;
+        if Assigned(FPackStatusLbls[i]) then
+        begin
+          FPackStatusLbls[i].Left := FPackPanels[i].Width - 230;
+          FPackStatusLbls[i].Top := (PackH - 20) div 2;
+        end;
+        if Assigned(FPackNameLbls[i]) then
+        begin
+          FPackNameLbls[i].Left := 10;
+          FPackNameLbls[i].Top := IfThen(PackH >= 48, 6, 3);
+        end;
+        if Assigned(FPackDescLbls[i]) then
+        begin
+          FPackDescLbls[i].Left := 10;
+          FPackDescLbls[i].Top := IfThen(PackH >= 48, 26, 20);
+          FPackDescLbls[i].Width := Max(100, FPackPanels[i].Width - 250);
+        end;
+        Inc(PackY, PackStep);
+      end;
     end;
   end;
 end;

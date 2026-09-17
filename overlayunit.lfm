@@ -13211,7 +13211,7 @@ object goverlayform: Tgoverlayform
               Width = 59
               BorderSpacing.Left = 10
               BorderSpacing.Top = 15
-              Caption = 'File name'
+              Caption = 'Proxy DLL'
             end
             object spoofCheckBox: TCheckBox
               AnchorSideLeft.Control = filenameComboBox

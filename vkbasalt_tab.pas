@@ -297,9 +297,18 @@ begin
 
   FVkToggleTitleLbl := TLabel.Create(FVkToggleCard);
   FVkToggleTitleLbl.Parent      := FVkToggleCard;
-  StyleLabel(FVkToggleTitleLbl, lrCardTitle);
-  FVkToggleTitleLbl.Caption     := 'Toggle key';
-  FVkToggleTitleLbl.SetBounds(12, 10, 100, 22);
+  StyleMainCard(FVkToggleCard, FVkToggleTitleLbl, 'Options');
+  FVkToggleTitleLbl.Caption     := 'Options';
+  FVkToggleTitleLbl.SetBounds(12, 8, 120, 20);
+
+  FVkToggleLabel := TLabel.Create(FVkToggleCard);
+  FVkToggleLabel.Parent      := FVkToggleCard;
+  FVkToggleLabel.Caption     := 'Toggle:';
+  if CurrentTheme = tmLight then
+    FVkToggleLabel.Font.Color := LightTextColor
+  else
+    FVkToggleLabel.Font.Color := CLR_WHITE;
+  FVkToggleLabel.SetBounds(12, 38, 80, 20);
 
   // Reparent combobox off the vkbasalt tab (hidden data store)
   vkbtogglekeyCombobox.Visible := False;
@@ -314,9 +323,10 @@ begin
   FVkToggleCaptureBtn.Cursor   := crHandPoint;
   FVkToggleCaptureBtn.OnClick  := @CaptureBtnClick;
   FVkToggleCaptureBtn.Caption  := '⌨ ' + vkbtogglekeyCombobox.Text;
+  FVkToggleCaptureBtn.SetBounds(100, 34, 110, 28);
   StyleActionButton(FVkToggleCaptureBtn);
 
-  // ── Restore defaults button (placed to the right of Toggle Key button)
+  // ── Restore defaults button (in place of Proxy DLL combobox)
   FVkRestoreBtn := TBitBtn.Create(FVkToggleCard);
   FVkRestoreBtn.Parent   := FVkToggleCard;
   FVkRestoreBtn.Caption  := 'Restore Defaults';
@@ -325,16 +335,10 @@ begin
   FVkRestoreBtn.Anchors  := [akLeft, akTop];
   FVkRestoreBtn.Cursor   := crHandPoint;
   FVkRestoreBtn.OnClick  := @VkRestoreBtnClick;
+  FVkRestoreBtn.SetBounds(100, 68, 140, 28);
   StyleActionButton(FVkRestoreBtn);
 
-  // ── Reshade sync button (placed to the right of Restore Defaults button)
-  FVkReshadeSyncBtn := TBitBtn.Create(FVkToggleCard);
-  FVkReshadeSyncBtn.Parent   := FVkToggleCard;
-  FVkReshadeSyncBtn.Anchors  := [akLeft, akTop];
-  FVkReshadeSyncBtn.Cursor   := crHandPoint;
-  FVkReshadeSyncBtn.Caption  := '↻ Sync Shaders';
-  FVkReshadeSyncBtn.OnClick  := @reshaderefreshBitBtnClick;
-  StyleActionButton(FVkReshadeSyncBtn);
+  FVkReshadeSyncBtn := nil;
   end;
 end;
 
@@ -437,18 +441,17 @@ begin
       FVkPipelineSB.SetBounds(PAD, 60, CW - 2 * PAD, 8);
   end;
 
-  // ── Card 4: Toggle Key (bottom area, right) ────────────────────────────
-  if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
-    FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
-                                   FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 4, 120, 28);
+  // ── Card 4: Options (bottom area when on legacy tab) ───────────────────
+  if not Assigned(FVkReshadeCard.Parent) or (FVkReshadeCard.Parent = vkbasaltTabSheet) then
+  begin
+    if Assigned(FVkToggleCaptureBtn) and Assigned(FVkToggleTitleLbl) then
+      FVkToggleCaptureBtn.SetBounds(FVkToggleTitleLbl.Left,
+                                     FVkToggleTitleLbl.Top + FVkToggleTitleLbl.Height + 4, 120, 28);
 
-  if Assigned(FVkRestoreBtn) and Assigned(FVkToggleCaptureBtn) then
-    FVkRestoreBtn.SetBounds(FVkToggleCaptureBtn.Left + FVkToggleCaptureBtn.Width + 12,
-                            FVkToggleCaptureBtn.Top, 140, 28);
-
-  if Assigned(FVkReshadeSyncBtn) and Assigned(FVkRestoreBtn) then
-    FVkReshadeSyncBtn.SetBounds(FVkRestoreBtn.Left + FVkRestoreBtn.Width + 12,
-                                FVkToggleCaptureBtn.Top, 130, 28);
+    if Assigned(FVkRestoreBtn) and Assigned(FVkToggleCaptureBtn) then
+      FVkRestoreBtn.SetBounds(FVkToggleCaptureBtn.Left + FVkToggleCaptureBtn.Width + 12,
+                              FVkToggleCaptureBtn.Top, 140, 28);
+  end;
   end;
 end;
 

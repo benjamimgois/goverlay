@@ -536,7 +536,7 @@ begin
     // --- Sub-card 1: Main controls ---
     filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
     filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
-    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Parent  := FOsMainSec;
+    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Caption := 'Proxy DLL'; filenameLabel.Parent  := FOsMainSec;
 
     filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
     filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
