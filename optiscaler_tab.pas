@@ -1159,7 +1159,7 @@ const
   IMARGIN = 4;
   IGAP    = 6;
 var
-  CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
+  W, CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
   StatH: Integer;
   IsCustom, IsUnmanaged: Boolean;
   MesaW, NvW: Integer;
@@ -1176,7 +1176,14 @@ begin
   with FForm do
   begin
     if not Assigned(FOsScrollBox) then Exit;
-    CW := FOsScrollBox.ClientWidth - 2 * MARGIN;
+
+    W := FOsScrollBox.ClientWidth;
+    if AContentW > 100 then
+      W := AContentW
+    else if W < 500 then
+      W := 500;
+
+    CW := W - 2 * MARGIN;
     if CW < 100 then Exit;
 
     TotalH := FOsScrollBox.ClientHeight;
@@ -1203,7 +1210,7 @@ begin
       OptH := CardTop - GAP - (MARGIN + GPU_H + GAP);
     end;
 
-    FOsBgPanel.SetBounds(0, 0, FOsScrollBox.ClientWidth, Max(FOsScrollBox.ClientHeight, TotalH));
+    FOsBgPanel.SetBounds(0, 0, W, Max(FOsScrollBox.ClientHeight, TotalH));
 
     CardW := (CW - GAP) div 2;
 
@@ -1294,7 +1301,7 @@ begin
       FOsImgSec.Visible := False;
 
     Y0 := 36;
-    ComboW := Min(ColW - 20, 165);
+    ComboW := ColW - 20;
 
     // Reflow Sub-card 1: Main
     if Assigned(FOsMainSec) then
@@ -1379,19 +1386,19 @@ begin
     // Reflow Sub-card 4: Reflex / Antilag
     if Assigned(FOsFakeSec) then
     begin
-      if Assigned(FOsFakeLbl) then FOsFakeLbl.SetBounds(10, 6, ColW - 20, 16);
+      if Assigned(FOsFakeLbl) then FOsFakeLbl.SetBounds(10, 6, FOsFakeSec.Width - 20, 16);
 
       if Assigned(FForceReflexToggle) then
-        FForceReflexToggle.SetBounds(10, Y0, ColW - 20, 20)
+        FForceReflexToggle.SetBounds(10, Y0, FOsFakeSec.Width - 20, 20)
       else
-        forcereflexCheckBox.SetBounds(10, Y0, ColW - 20, 20);
-      reflexComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+        forcereflexCheckBox.SetBounds(10, Y0, FOsFakeSec.Width - 20, 20);
+      reflexComboBox.SetBounds(10, Y0 + 22, FOsFakeSec.Width - 20, 26);
 
       if Assigned(FForceLatencyFlexToggle) then
-        FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, ColW - 20, 20)
+        FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, FOsFakeSec.Width - 20, 20)
       else
-        forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, ColW - 20, 20);
-      latencyflexComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+        forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FOsFakeSec.Width - 20, 20);
+      latencyflexComboBox.SetBounds(10, Y0 + 78, FOsFakeSec.Width - 20, 26);
 
       overrideCheckBox.Visible := False;
       tracelogCheckBox.Visible := False;

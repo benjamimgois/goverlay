@@ -543,7 +543,7 @@ var
   Is2Col: Boolean;
   ActiveStr: string;
 const
-  CARD_MARGIN_X      = 8;
+  CARD_MARGIN_X      = 4;
   CARD_GAP           = 10;
   CARD_HDR_H         = 32;
   CARD_PAD_BOTTOM    = 8;
@@ -743,7 +743,7 @@ var
   TweakHint: string;
   Is2Col: Boolean;
 const
-  CARD_MARGIN_X   = 8;
+  CARD_MARGIN_X   = 4;
   CARD_GAP        = 10;
   CARD_HDR_H      = 32;
   CARD_PAD_BOTTOM = 8;
@@ -881,7 +881,7 @@ var
   Chk: TCheckBox;
   Is2Col: Boolean;
 const
-  CARD_MARGIN_X   = 8;
+  CARD_MARGIN_X   = 4;
   CARD_GAP        = 10;
   CARD_HDR_H      = 32;
   CARD_PAD_BOTTOM = 8;

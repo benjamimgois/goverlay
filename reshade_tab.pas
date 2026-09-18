@@ -99,6 +99,7 @@ type
     destructor Destroy; override;
 
     procedure BuildReShadeTab;
+    procedure ReshadeScrollBoxResize(Sender: TObject);
     procedure ReflowReShadeTab(AContentW: Integer);
     procedure RefreshStatus;
     procedure LoadConfig;
@@ -185,8 +186,9 @@ uses
   overlayunit, optiscaler_tab, optiscaler_update, bgmod_resources, IniFiles, FileUtil;
 
 const
-  CARD_P = 16;
-  CARD_GAP = 12;
+  MARGIN   = 4;
+  CARD_GAP = 6;
+  CARD_P   = 14;
 
 function ReShadeKeyToDisplayName(const AKeyVal: string): string;
 var
@@ -369,8 +371,8 @@ begin
   Card.DoubleBuffered := True;
   Card.Top := ATop;
   Card.Height := AHeight;
-  Card.Left := CARD_P;
-  Card.Width := Max(200, FBgPanel.Width - (CARD_P * 2));
+  Card.Left := MARGIN;
+  Card.Width := Max(200, FBgPanel.Width - (MARGIN * 2));
   if Assigned(FForm) and (FForm is Tgoverlayform) then
     Card.OnPaint := @Tgoverlayform(FForm).SubCardPaint;
   Result := Card;
@@ -403,6 +405,7 @@ begin
   FScrollBox.HorzScrollBar.Visible := False;
   FScrollBox.Color := BgClr;
   FScrollBox.ParentColor := False;
+  FScrollBox.OnResize := @ReshadeScrollBoxResize;
 
   // Background Container
   FBgPanel := TPanel.Create(FScrollBox);
@@ -840,13 +843,19 @@ begin
     SaveConfig;
 end;
 
+procedure TReshadeTabHelper.ReshadeScrollBoxResize(Sender: TObject);
+begin
+  if Assigned(FScrollBox) then
+    ReflowReShadeTab(FScrollBox.ClientWidth);
+end;
+
 procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
 const
   TOP_ROW_H = 108;
   STATUS_H  = 100;
-  BOTTOM_M  = 10;
+  BOTTOM_M  = 4;
 var
-  TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW: Integer;
+  W, TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW: Integer;
   ClientH, TotalH, ShadersH, CardBottomTop: Integer;
   FixedBelow, BuiltinH, PipelineH, ReshadeH, MinReshadeH, MinShadersH, MinTotalH: Integer;
   PackStep, PackH, PackY, OptLabelW: Integer;
@@ -857,13 +866,20 @@ var
 begin
   if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
 
-  CurY := 0;
+  CurY := MARGIN;
   ShadersH := 0;
-  FBgPanel.Width := FScrollBox.ClientWidth;
-  TargetCardW := Max(200, FBgPanel.Width - (CARD_P * 2));
+
+  W := FScrollBox.ClientWidth;
+  if AContentW > 100 then
+    W := AContentW
+  else if W < 500 then
+    W := 500;
+
+  FBgPanel.Width := W;
+  TargetCardW := Max(200, W - (MARGIN * 2));
   HalfW := (TargetCardW - CARD_GAP) div 2;
   RightColW := TargetCardW - HalfW - CARD_GAP;
-  RightColLeft := CARD_P + HalfW + CARD_GAP;
+  RightColLeft := MARGIN + HalfW + CARD_GAP;
 
   MainForm := Tgoverlayform(FForm);
 
@@ -889,7 +905,7 @@ begin
   // 1. Method Card (occupies 50% of available horizontal space)
   if Assigned(FMethodCard) then
   begin
-    FMethodCard.SetBounds(CARD_P, 10, HalfW, TOP_ROW_H);
+    FMethodCard.SetBounds(MARGIN, CurY, HalfW, TOP_ROW_H);
     InnerW := HalfW - 2 * CARD_P;
     LogoW_None := 38;
     LogoW_Reshade := 120;
@@ -941,16 +957,16 @@ begin
   case FSelectedMethod of
     rmNone:
     begin
-      CurY := 10 + TOP_ROW_H + CARD_GAP;
+      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
       if Assigned(FNoneNoticeLbl) then
       begin
-        FNoneNoticeLbl.SetBounds(CARD_P + 10, CurY + 10, TargetCardW - 20, 40);
+        FNoneNoticeLbl.SetBounds(MARGIN + 10, CurY + 10, TargetCardW - 20, 40);
         CurY := CurY + 60;
       end;
       TotalH := Max(ClientH, CurY + STATUS_H + BOTTOM_M);
       CardBottomTop := TotalH - BOTTOM_M - STATUS_H;
       if Assigned(FStatusCard) then
-        FStatusCard.SetBounds(CARD_P, CardBottomTop, TargetCardW, STATUS_H);
+        FStatusCard.SetBounds(MARGIN, CardBottomTop, TargetCardW, STATUS_H);
       CurY := CardBottomTop + STATUS_H + BOTTOM_M;
     end;
 
@@ -959,7 +975,7 @@ begin
       // Options card to the right of Method card
       if Assigned(FConfigCard) then
       begin
-        FConfigCard.SetBounds(RightColLeft, 10, RightColW, TOP_ROW_H);
+        FConfigCard.SetBounds(RightColLeft, MARGIN, RightColW, TOP_ROW_H);
         OptLabelW := 80;
         if Assigned(FToggleTitleLbl) then
           FToggleTitleLbl.SetBounds(CARD_P, 38, OptLabelW, 20);
@@ -971,7 +987,7 @@ begin
           FProxyComboBox.SetBounds(CARD_P + OptLabelW + 8, 68, Max(100, RightColW - CARD_P * 2 - OptLabelW - 8), 28);
       end;
 
-      CurY := 10 + TOP_ROW_H + CARD_GAP; // 130
+      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
       MinShadersH := 280;
       MinTotalH := CurY + MinShadersH + CARD_GAP + STATUS_H + BOTTOM_M;
       TotalH := Max(ClientH, MinTotalH);
@@ -981,14 +997,14 @@ begin
       // Shaders card expands vertically to take available space
       if Assigned(FShadersCard) then
       begin
-        FShadersCard.SetBounds(CARD_P, CurY, TargetCardW, ShadersH);
+        FShadersCard.SetBounds(MARGIN, CurY, TargetCardW, ShadersH);
         if Assigned(FOpenShadersBtn) then
           FOpenShadersBtn.Left := Max(150, TargetCardW - CARD_P - FOpenShadersBtn.Width);
       end;
 
       // Software status card anchored to bottom
       if Assigned(FStatusCard) then
-        FStatusCard.SetBounds(CARD_P, CardBottomTop, TargetCardW, STATUS_H);
+        FStatusCard.SetBounds(MARGIN, CardBottomTop, TargetCardW, STATUS_H);
 
       CurY := CardBottomTop + STATUS_H + BOTTOM_M;
     end;
@@ -998,7 +1014,7 @@ begin
       // Options card to the right of Method card
       if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
       begin
-        MainForm.FVkToggleCard.SetBounds(RightColLeft, 10, RightColW, TOP_ROW_H);
+        MainForm.FVkToggleCard.SetBounds(RightColLeft, MARGIN, RightColW, TOP_ROW_H);
         OptLabelW := 80;
         if Assigned(MainForm.FVkToggleTitleLbl) then
         begin
@@ -1016,7 +1032,7 @@ begin
           MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
       end;
 
-      CurY := 10 + TOP_ROW_H + CARD_GAP; // 130
+      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
       BuiltinH := 145;
       PipelineH := 72;
       FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + CARD_GAP + STATUS_H + BOTTOM_M;
@@ -1028,26 +1044,26 @@ begin
       // Reshade effects card expands vertically to take available space
       if Assigned(MainForm) and Assigned(MainForm.FVkReshadeCard) then
       begin
-        MainForm.FVkReshadeCard.SetBounds(CARD_P, CurY, TargetCardW, ReshadeH);
+        MainForm.FVkReshadeCard.SetBounds(MARGIN, CurY, TargetCardW, ReshadeH);
         CurY := CurY + ReshadeH + CARD_GAP;
       end;
 
       if Assigned(MainForm) and Assigned(MainForm.FVkBuiltinCard) then
       begin
-        MainForm.FVkBuiltinCard.SetBounds(CARD_P, CurY, TargetCardW, BuiltinH);
+        MainForm.FVkBuiltinCard.SetBounds(MARGIN, CurY, TargetCardW, BuiltinH);
         CurY := CurY + BuiltinH + CARD_GAP;
       end;
 
       if Assigned(MainForm) and Assigned(MainForm.FVkPipelineCard) then
       begin
-        MainForm.FVkPipelineCard.SetBounds(CARD_P, CurY, TargetCardW, PipelineH);
+        MainForm.FVkPipelineCard.SetBounds(MARGIN, CurY, TargetCardW, PipelineH);
         CurY := CurY + PipelineH + CARD_GAP;
       end;
 
       // Software status card anchored to bottom
       if Assigned(FStatusCard) then
       begin
-        FStatusCard.SetBounds(CARD_P, CurY, TargetCardW, STATUS_H);
+        FStatusCard.SetBounds(MARGIN, CurY, TargetCardW, STATUS_H);
         CurY := CurY + STATUS_H + BOTTOM_M;
       end;
 
