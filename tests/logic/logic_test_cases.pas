@@ -79,6 +79,7 @@ type
     procedure TestSupervisorExitCodeTrue;
     procedure TestSupervisorExitCodeFalse;
     procedure TestSupervisorStderrClosure;
+    procedure TestBgmodLaunchSplashGameTitleAndReShade;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -97,7 +98,7 @@ type
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, bgmod_resources, Process;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, bgmod_resources, Process, BaseUnix;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -876,6 +877,99 @@ begin
     AssertEquals('bgmod running command with stderr output should return exit code 0 without hanging', 0, Proc.ExitStatus);
   finally
     Proc.Free;
+  end;
+end;
+
+function setenv(name: PChar; value: PChar; overwrite: Integer): Integer; cdecl; external 'c' name 'setenv';
+
+procedure TBgmodSupervisorTests.TestBgmodLaunchSplashGameTitleAndReShade;
+var
+  Proc: TProcess;
+  TestGameDir, MockSplashFile, OutFile: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content: string;
+  WaitCount: Integer;
+begin
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Control Ultimate Edition';
+  ForceDirectories(TestGameDir);
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'cp';
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Create mock bgmod-splash in TestGameDir that writes its arguments to a file
+  MockSplashFile := TestGameDir + '/bgmod-splash';
+  OutFile := TestGameDir + '/splash_args.txt';
+  if FileExists(OutFile) then DeleteFile(OutFile);
+
+  AssignFile(F, MockSplashFile);
+  Rewrite(F);
+  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, 'echo "$*" > "' + OutFile + '"');
+  CloseFile(F);
+  fpChmod(PChar(MockSplashFile), &755);
+
+  // Write bgmod.conf with ReShade enabled and envvars including VKSUMI_CONFIG_FILE
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=1');
+  WriteLn(F, '[Env]');
+  WriteLn(F, 'MANGOHUD_CONFIGFILE=' + TestGameDir + '/MangoHud.conf');
+  WriteLn(F, 'VKSUMI_CONFIG_FILE=' + TestGameDir + '/vkSumi.conf');
+  CloseFile(F);
+
+  // Ensure DISPLAY is set so SpawnLaunchSplashAsync does not exit early
+  if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then
+    setenv('DISPLAY', ':99', 1);
+
+  // Run bgmod /bin/true
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add('/bin/true');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod should return 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Wait for background grandchild to write args file (up to 2 seconds)
+  WaitCount := 0;
+  while not FileExists(OutFile) and (WaitCount < 20) do
+  begin
+    Sleep(100);
+    Inc(WaitCount);
+  end;
+
+  AssertTrue('Mock splash args file should exist', FileExists(OutFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutFile);
+    Content := Lines.Text;
+
+    AssertTrue('Splash args must include game title Control Ultimate Edition',
+      Pos('--game=Control Ultimate Edition', Content) > 0);
+    AssertFalse('Splash args must not be corrupted by VKSUMI_CONFIG_FILE',
+      Pos('--game=VKSUMI_CONFIG_FILE', Content) > 0);
+    AssertTrue('Splash args must include ReShade item',
+      Pos('--item=ReShade', Content) > 0);
+  finally
+    Lines.Free;
   end;
 end;
 

@@ -76,6 +76,7 @@ var
   BgmodPath: string;
   ConfigDir: string;
   SourceDir: string;
+  GameProfileName: string;
   UpscalerType: Integer;
   HasGamePerformance: Boolean;
   GOverlayReshade: Boolean;
@@ -2065,11 +2066,12 @@ begin
   if BgmodPath <> '' then
   begin
     TempStr := ExcludeTrailingPathDelimiter(BgmodPath);
-    Key := ExtractFileName(TempStr); // GameName or 'bgmod'
+    GameProfileName := ExtractFileName(TempStr); // GameName or 'bgmod'
+    Key := GameProfileName;
     Val := ExtractFilePath(TempStr); // Parent folder path (e.g. gameconfig/ or share/goverlay/)
     
     ConfigDir := BgmodPath;
-    if LowerCase(Key) = 'bgmod' then
+    if LowerCase(GameProfileName) = 'bgmod' then
     begin
       // Global mode: ConfigDir = gameconfig/global/ (full copy of bgmod/ with user configs)
       ConfigDir := IncludeTrailingPathDelimiter(Val) + 'gameconfig' + PathDelim + 'global' + PathDelim;
@@ -2089,10 +2091,10 @@ begin
     // Resolve the per-game backup folder for original DLLs. It lives outside
     // GameDir (in the per-game config dir) so it cannot be corrupted by
     // repeated installs, channel switches, or Steam "Verify integrity". Only
-    // create the folder when running in per-game mode (Key <> 'bgmod'): in
+    // create the folder when running in per-game mode (GameProfileName <> 'bgmod'): in
     // global-profile mode backups are skipped per design (collision risk
     // across games; the legacy global flow did not back up reliably anyway).
-    IsPerGameProfile := LowerCase(Key) <> 'bgmod';
+    IsPerGameProfile := (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global');
     BackupsDir := ConfigDir + 'backups' + PathDelim;
     if IsPerGameProfile and not DirectoryExists(BackupsDir) then
       ForceDirectories(BackupsDir);
@@ -2103,12 +2105,12 @@ begin
       CurrentOverrides := ExtractFilePath(ExcludeTrailingPathDelimiter(Val)); // GOverlay base path (e.g. ~/.local/share/goverlay/)
       if LowerCase(Line) = 'gameconfig' then
       begin
-        CentralLogDir := IncludeTrailingPathDelimiter(CurrentOverrides) + 'logs' + PathDelim + Key;
+        CentralLogDir := IncludeTrailingPathDelimiter(CurrentOverrides) + 'logs' + PathDelim + GameProfileName;
         CentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'bgmod.log';
         if not DirectoryExists(CentralLogDir) then
           ForceDirectories(CentralLogDir);
       end
-      else if LowerCase(Key) = 'bgmod' then
+      else if LowerCase(GameProfileName) = 'bgmod' then
       begin
         CentralLogDir := IncludeTrailingPathDelimiter(Val) + 'logs';
         CentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'bgmod.log';
@@ -3370,6 +3372,9 @@ begin
       if GOverlayVkBasalt then
         SplashItems.Add('vkBasalt');
 
+      if GOverlayReshade then
+        SplashItems.Add('ReShade');
+
       if GOverlayVkSumi then
         SplashItems.Add('vkSumi');
 
@@ -3382,8 +3387,8 @@ begin
         if SplashExe <> '' then
         begin
           SplashGameTitle := '';
-          if (LowerCase(Key) <> 'bgmod') and (LowerCase(Key) <> 'global') and (Key <> '') then
-            SplashGameTitle := Key
+          if (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global') and (GameProfileName <> '') then
+            SplashGameTitle := GameProfileName
           else if TargetExeName <> '' then
             SplashGameTitle := ChangeFileExt(TargetExeName, '');
 
