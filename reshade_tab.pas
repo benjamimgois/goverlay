@@ -653,16 +653,6 @@ begin
   FStatusTitleLbl.Parent := FStatusCard;
   StyleMainCard(FStatusCard, FStatusTitleLbl, 'Software status');
 
-  FVersionComboBox := nil;
-
-  FUpdateBtn := TBitBtn.Create(FStatusCard);
-  FUpdateBtn.Parent := FStatusCard;
-  FUpdateBtn.Caption := 'Check updates';
-  FUpdateBtn.Cursor := crHandPoint;
-  FUpdateBtn.OnClick := @OnUpdateBtnClick;
-  FUpdateBtn.SetBounds(FStatusCard.Width - CARD_P - 130, 36, 130, 28);
-  StyleActionButton(FUpdateBtn);
-
   // Row 1: ReShade
   FStatDot := TShape.Create(FStatusCard);
   FStatDot.Parent := FStatusCard;
@@ -691,6 +681,14 @@ begin
   FStatVerLbl.Transparent := True;
   FStatVerLbl.Left := FStatNameLbl.Left + 65;
   FStatVerLbl.Top := 42;
+
+  FUpdateBtn := TBitBtn.Create(FStatusCard);
+  FUpdateBtn.Parent := FStatusCard;
+  FUpdateBtn.Caption := 'Check updates';
+  FUpdateBtn.Cursor := crHandPoint;
+  FUpdateBtn.OnClick := @OnUpdateBtnClick;
+  FUpdateBtn.SetBounds(FStatVerLbl.Left + FStatVerLbl.Width + 16, 36, 130, 28);
+  StyleActionButton(FUpdateBtn);
 
   // Row 2: vkBasalt (below ReShade)
   FVkStatDot := TShape.Create(FStatusCard);
@@ -1076,9 +1074,6 @@ begin
     FStatusCard.Width := TargetCardW;
     CheckW := 130;
 
-    if Assigned(FUpdateBtn) then
-      FUpdateBtn.SetBounds(TargetCardW - CARD_P - CheckW, 36, CheckW, 28);
-
     // Row 1: ReShade
     if Assigned(FStatDot) then
       FStatDot.SetBounds(CARD_P, 46, 8, 8);
@@ -1092,6 +1087,8 @@ begin
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
       FStatVerLbl.Top := 42;
     end;
+    if Assigned(FUpdateBtn) and Assigned(FStatVerLbl) then
+      FUpdateBtn.SetBounds(FStatVerLbl.Left + FStatVerLbl.Width + 16, 36, CheckW, 28);
 
     // Row 2: vkBasalt (below ReShade)
     if Assigned(FVkStatDot) then
@@ -1180,6 +1177,8 @@ begin
     end;
     if Assigned(FStatNameLbl) then
       FStatVerLbl.Left := FStatNameLbl.Left + FStatNameLbl.Width + 12;
+    if Assigned(FUpdateBtn) then
+      FUpdateBtn.Left := FStatVerLbl.Left + FStatVerLbl.Width + 16;
   end;
 
   // vkBasalt status

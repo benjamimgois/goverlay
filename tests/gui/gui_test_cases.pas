@@ -837,6 +837,7 @@ begin
   AssertTrue('UpdateBtn is assigned', Assigned(Helper.UpdateBtn));
   AssertEquals('UpdateBtn caption is Check updates', 'Check updates', Helper.UpdateBtn.Caption);
   AssertEquals('UpdateBtn aligned with ReShade row', 36, Helper.UpdateBtn.Top);
+  AssertTrue('UpdateBtn positioned to the right of StatVerLbl', Helper.UpdateBtn.Left >= Helper.StatVerLbl.Left + Helper.StatVerLbl.Width);
   AssertFalse('VersionComboBox is removed', Assigned(Helper.VersionComboBox));
   AssertTrue('VkStatDot is below StatDot', Helper.VkStatDot.Top > Helper.StatDot.Top);
 
