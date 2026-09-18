@@ -14,6 +14,9 @@ procedure InitializeBGModDirectory;
 // (gameconfig/global/) from the active bgmod/ directory.
 procedure InitializeGlobalConfigDirectory;
 
+// Synchronize wrapper binaries across all existing per-game directories in gameconfig/
+procedure SyncAllGameConfigBinaries;
+
 // Check if bgmod directory exists and is properly initialized
 function IsBGModInitialized: Boolean;
 
@@ -667,6 +670,79 @@ begin
     fpChmod(PChar(GlobalCfgDir + 'bgmod'), &755);
   if FileExists(GlobalCfgDir + 'bgmod-uninstaller') then
     fpChmod(PChar(GlobalCfgDir + 'bgmod-uninstaller'), &755);
+
+  // Synchronize wrapper binaries to all per-game directories
+  SyncAllGameConfigBinaries;
+end;
+
+procedure SyncAllGameConfigBinaries;
+var
+  DataHomeEnv, BaseCfgDir, TargetDir, TemplateDir: string;
+  SearchRec: TSearchRec;
+  Proc: TProcess;
+begin
+  DataHomeEnv := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  if DataHomeEnv = '' then
+    DataHomeEnv := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHomeEnv = '' then
+    DataHomeEnv := GetUserDir + '.local/share';
+
+  BaseCfgDir := IncludeTrailingPathDelimiter(
+    IncludeTrailingPathDelimiter(DataHomeEnv) + 'goverlay' + PathDelim + 'gameconfig');
+
+  if not DirectoryExists(BaseCfgDir) then Exit;
+
+  TemplateDir := IncludeTrailingPathDelimiter(GetBGModPath);
+  if not FileExists(TemplateDir + 'bgmod') then Exit;
+
+  WriteLn('[BGMOD] Checking gameconfig subdirectories for wrapper binary updates...');
+
+  if FindFirst(BaseCfgDir + '*', faDirectory, SearchRec) = 0 then
+  begin
+    try
+      repeat
+        if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') and
+           ((SearchRec.Attr and faDirectory) <> 0) and
+           (LowerCase(SearchRec.Name) <> 'global') then
+        begin
+          TargetDir := IncludeTrailingPathDelimiter(BaseCfgDir + SearchRec.Name);
+
+          // Only sync folders that are game configs (e.g. contain bgmod, bgmod.conf, MangoHud.conf, or vkBasalt.conf)
+          if FileExists(TargetDir + 'bgmod') or FileExists(TargetDir + 'bgmod.conf') or
+             FileExists(TargetDir + 'MangoHud.conf') or FileExists(TargetDir + 'vkBasalt.conf') then
+          begin
+            WriteLn('[BGMOD] Updating wrapper binaries in ', TargetDir);
+            Proc := TProcess.Create(nil);
+            try
+              Proc.Executable := 'sh';
+              Proc.Parameters.Add('-c');
+              Proc.Parameters.Add('cp -f ' +
+                                  QuotedStr(TemplateDir + 'bgmod') + ' ' +
+                                  QuotedStr(TargetDir + 'bgmod') + ' 2>/dev/null && ' +
+                                  'chmod 755 ' + QuotedStr(TargetDir + 'bgmod') + ' 2>/dev/null && ' +
+                                  'ln -sf bgmod ' + QuotedStr(TargetDir + 'fgmod') + ' 2>/dev/null; ' +
+                                  'if [ -f ' + QuotedStr(TemplateDir + 'bgmod-uninstaller') + ' ]; then ' +
+                                  '  cp -f ' + QuotedStr(TemplateDir + 'bgmod-uninstaller') + ' ' +
+                                  '        ' + QuotedStr(TargetDir + 'bgmod-uninstaller') + ' 2>/dev/null && ' +
+                                  '  chmod 755 ' + QuotedStr(TargetDir + 'bgmod-uninstaller') + ' 2>/dev/null; ' +
+                                  'fi; ' +
+                                  'if [ -f ' + QuotedStr(TemplateDir + 'bgmod-splash') + ' ]; then ' +
+                                  '  cp -f ' + QuotedStr(TemplateDir + 'bgmod-splash') + ' ' +
+                                  '        ' + QuotedStr(TargetDir + 'bgmod-splash') + ' 2>/dev/null && ' +
+                                  '  chmod 755 ' + QuotedStr(TargetDir + 'bgmod-splash') + ' 2>/dev/null; ' +
+                                  'fi');
+              Proc.Options := [poWaitOnExit];
+              Proc.Execute;
+            finally
+              Proc.Free;
+            end;
+          end;
+        end;
+      until FindNext(SearchRec) <> 0;
+    finally
+      FindClose(SearchRec);
+    end;
+  end;
 end;
 
 function IsBGModInitialized: Boolean;

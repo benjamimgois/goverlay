@@ -65,6 +65,9 @@ begin
   Result := '';
 end;
 
+const
+  BGMOD_VERSION = '1.9.3';
+
 var
   GameDir: string;
   TargetExeName: string;
@@ -2113,7 +2116,7 @@ begin
     end;
   end;
   
-  Log('Executing bgmod: ' + ParamStr(0));
+  Log('Executing bgmod v' + BGMOD_VERSION + ': ' + ParamStr(0));
   
   // Default values
   GOverlayMangoHud := False;

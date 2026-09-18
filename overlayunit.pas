@@ -3408,6 +3408,9 @@ begin
   // populated (either from bundled templates or from the auto-install above).
   InitializeGlobalConfigDirectory;
 
+  // Synchronize wrapper binaries across all existing per-game directories
+  SyncAllGameConfigBinaries;
+
   //Set Window caption
   if GCHANNEL = 'stable' then
   begin

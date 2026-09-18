@@ -88,6 +88,12 @@ type
     procedure TestReShadeIniPathFormatting;
   end;
 
+  TSyncGameWrapperBinariesTests = class(TTestCase)
+  published
+    procedure TestSyncOutdatedWrappersPreservingConfigs;
+    procedure TestSyncPreservesMultipleGameDirectories;
+  end;
+
 implementation
 
 uses
@@ -917,6 +923,102 @@ begin
   AssertEquals('TextureSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', TexturePaths);
 end;
 
+procedure TSyncGameWrapperBinariesTests.TestSyncOutdatedWrappersPreservingConfigs;
+var
+  BaseDir, BgmodTemplateDir, GameDir: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  BgmodTemplateDir := BaseDir + '/bgmod';
+  GameDir := BaseDir + '/gameconfig/DyingLight2';
+
+  ForceDirectories(BgmodTemplateDir);
+  ForceDirectories(GameDir);
+
+  // 1. Create fresh template files
+  AssignFile(F, BgmodTemplateDir + '/bgmod'); Rewrite(F); WriteLn(F, 'NEW_BGMOD_BINARY_CONTENT'); CloseFile(F);
+  AssignFile(F, BgmodTemplateDir + '/bgmod-uninstaller'); Rewrite(F); WriteLn(F, 'NEW_UNINSTALLER_CONTENT'); CloseFile(F);
+  AssignFile(F, BgmodTemplateDir + '/bgmod-splash'); Rewrite(F); WriteLn(F, 'NEW_SPLASH_CONTENT'); CloseFile(F);
+
+  // 2. Create outdated wrapper in game folder, alongside user configs
+  AssignFile(F, GameDir + '/bgmod'); Rewrite(F); WriteLn(F, 'OLD_OUTDATED_BGMOD'); CloseFile(F);
+  AssignFile(F, GameDir + '/bgmod.conf'); Rewrite(F); WriteLn(F, 'USER_CUSTOM_CONFIG=1'); CloseFile(F);
+  AssignFile(F, GameDir + '/MangoHud.conf'); Rewrite(F); WriteLn(F, 'fps_limit=60'); CloseFile(F);
+
+  // Run the sync
+  SyncAllGameConfigBinaries;
+
+  // 3. Verify bgmod, uninstaller and splash were updated to the new content
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(GameDir + '/bgmod');
+    AssertEquals('bgmod should be updated to match template', 'NEW_BGMOD_BINARY_CONTENT', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/bgmod-uninstaller');
+    AssertEquals('bgmod-uninstaller should be updated to match template', 'NEW_UNINSTALLER_CONTENT', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/bgmod-splash');
+    AssertEquals('bgmod-splash should be copied from template', 'NEW_SPLASH_CONTENT', Trim(Lines.Text));
+
+    // 4. Verify user configs are preserved
+    Lines.LoadFromFile(GameDir + '/bgmod.conf');
+    AssertEquals('bgmod.conf user config must be preserved', 'USER_CUSTOM_CONFIG=1', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/MangoHud.conf');
+    AssertEquals('MangoHud.conf user config must be preserved', 'fps_limit=60', Trim(Lines.Text));
+
+    // 5. Verify fgmod symlink exists
+    AssertTrue('fgmod symlink must exist', FileExists(GameDir + '/fgmod'));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TSyncGameWrapperBinariesTests.TestSyncPreservesMultipleGameDirectories;
+var
+  BaseDir, BgmodTemplateDir, GameA, GameB: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  BgmodTemplateDir := BaseDir + '/bgmod';
+  GameA := BaseDir + '/gameconfig/GameA';
+  GameB := BaseDir + '/gameconfig/GameB';
+
+  ForceDirectories(BgmodTemplateDir);
+  ForceDirectories(GameA);
+  ForceDirectories(GameB);
+
+  // 1. Create fresh template files
+  AssignFile(F, BgmodTemplateDir + '/bgmod'); Rewrite(F); WriteLn(F, 'MASTER_BGMOD'); CloseFile(F);
+  AssignFile(F, BgmodTemplateDir + '/bgmod-uninstaller'); Rewrite(F); WriteLn(F, 'MASTER_UNINSTALLER'); CloseFile(F);
+
+  // 2. Set up two existing games with stale binaries
+  AssignFile(F, GameA + '/bgmod'); Rewrite(F); WriteLn(F, 'STALE_A'); CloseFile(F);
+  AssignFile(F, GameA + '/bgmod.conf'); Rewrite(F); WriteLn(F, 'GAME_A_CONFIG=1'); CloseFile(F);
+
+  AssignFile(F, GameB + '/bgmod'); Rewrite(F); WriteLn(F, 'STALE_B'); CloseFile(F);
+  AssignFile(F, GameB + '/bgmod.conf'); Rewrite(F); WriteLn(F, 'GAME_B_CONFIG=2'); CloseFile(F);
+
+  SyncAllGameConfigBinaries;
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(GameA + '/bgmod');
+    AssertEquals('GameA bgmod must be updated', 'MASTER_BGMOD', Trim(Lines.Text));
+    Lines.LoadFromFile(GameA + '/bgmod.conf');
+    AssertEquals('GameA config must be preserved', 'GAME_A_CONFIG=1', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameB + '/bgmod');
+    AssertEquals('GameB bgmod must be updated', 'MASTER_BGMOD', Trim(Lines.Text));
+    Lines.LoadFromFile(GameB + '/bgmod.conf');
+    AssertEquals('GameB config must be preserved', 'GAME_B_CONFIG=2', Trim(Lines.Text));
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -929,5 +1031,6 @@ initialization
   RegisterTest(TMakoLogicTests);
   RegisterTest(TBgmodSupervisorTests);
   RegisterTest(TReShadeLogicTests);
+  RegisterTest(TSyncGameWrapperBinariesTests);
 
 end.

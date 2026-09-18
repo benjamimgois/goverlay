@@ -38,6 +38,9 @@ begin
   setenv(PChar(Name), PChar(Value), 1);
 end;
 
+const
+  BGMOD_UNINSTALLER_VERSION = '1.9.3';
+
 var
   GameDir: string;
   CentralLogDir: string;
@@ -854,6 +857,8 @@ begin
       end;
     end;
   end;
+
+  Log('Executing bgmod-uninstaller v' + BGMOD_UNINSTALLER_VERSION + ': ' + ParamStr(0));
 
   IsGlobalUninstall := False;
   for i := 1 to ParamCount do
