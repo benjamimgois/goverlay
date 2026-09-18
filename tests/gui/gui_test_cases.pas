@@ -848,6 +848,14 @@ begin
   AssertTrue('d3d12.dll in proxy list', Pos('d3d12.dll', Helper.ProxyComboBox.Items.Text) > 0);
   AssertTrue('d3d9.dll in proxy list', Pos('d3d9.dll', Helper.ProxyComboBox.Items.Text) > 0);
   AssertTrue('opengl32.dll in proxy list', Pos('opengl32.dll', Helper.ProxyComboBox.Items.Text) > 0);
+
+  // Shader packs definition and check files
+  AssertEquals('5 shader packs defined', 5, RESHADE_PACK_COUNT);
+  AssertEquals('Pack 0 CheckFile is DisplayDepth.fx', 'DisplayDepth.fx', RESHADE_PACKS[0].CheckFile);
+  AssertEquals('Pack 1 CheckFile is SweetFX/ASCII.fx', 'SweetFX/ASCII.fx', RESHADE_PACKS[1].CheckFile);
+  AssertEquals('Pack 2 CheckFile is qUINT_bloom.fx', 'qUINT_bloom.fx', RESHADE_PACKS[2].CheckFile);
+  AssertEquals('Pack 3 CheckFile is Depth_Cues.fx', 'Depth_Cues.fx', RESHADE_PACKS[3].CheckFile);
+  AssertEquals('Pack 4 CheckFile is PD80_01B_RT_Correct_Color.fx', 'PD80_01B_RT_Correct_Color.fx', RESHADE_PACKS[4].CheckFile);
 end;
 
 procedure TGoverlayGuiTests.TestReShadeConfigSaveAndLoad;

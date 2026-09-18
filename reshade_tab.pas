@@ -167,14 +167,14 @@ const
       ID: 'astrayfx';
       Name: 'AstrayFX (BlueSkyDefender)';
       RepoUrl: 'https://github.com/BlueSkyDefender/AstrayFX/archive/refs/heads/master.tar.gz';
-      CheckFile: 'AstrayFX/Depth_Alpha.fx';
+      CheckFile: 'Depth_Cues.fx';
       Description: 'Cinematic depth effects, volumetric lighting, and advanced perspective controls.'
     ),
     (
       ID: 'prod80';
       Name: 'Prod80 Color Grading';
       RepoUrl: 'https://github.com/prod80/prod80-ReShade-Repository/archive/refs/heads/master.tar.gz';
-      CheckFile: 'prod80_01A_RT_Correct_Color.fx';
+      CheckFile: 'PD80_01B_RT_Correct_Color.fx';
       Description: 'Professional studio photography curves, saturation, film contrast, and balance filters.'
     )
   );
@@ -1209,7 +1209,19 @@ begin
   begin
     CheckPath := ShadersDir + 'Shaders' + PathDelim + RESHADE_PACKS[i].CheckFile;
     IsInstalled := FileExists(CheckPath) or (DirectoryExists(ShadersDir + 'Shaders') and (i = 0));
+    if not IsInstalled then
+    begin
+      case i of
+        3: IsInstalled := FileExists(ShadersDir + 'Shaders' + PathDelim + 'Clarity.fx') or
+                          FileExists(ShadersDir + 'Shaders' + PathDelim + 'BloomingHDR.fx') or
+                          FileExists(ShadersDir + 'Shaders' + PathDelim + 'RadiantGI.fx');
+        4: IsInstalled := FileExists(ShadersDir + 'Shaders' + PathDelim + 'PD80_01A_RT_Correct_Contrast.fx') or
+                          FileExists(ShadersDir + 'Shaders' + PathDelim + 'PD80_01_Color_Gamut.fx') or
+                          FileExists(ShadersDir + 'Shaders' + PathDelim + 'prod80_01A_RT_Correct_Color.fx');
+      end;
+    end;
 
+    FPackActionBtns[i].Enabled := True;
     if IsInstalled then
     begin
       FPackStatusLbls[i].Caption := '✔ Installed';
