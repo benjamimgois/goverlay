@@ -1016,6 +1016,12 @@ begin
   AssertTrue('vksumi tab is active',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.vksumiTabSheet);
   AssertTrue('vksumi trackbars were built', Assigned(goverlayform.FVsTrackbars[0]));
+  AssertEquals('vksumiTabSheet background matches dark tab color',
+    RGBToColor(22, 26, 40), goverlayform.vksumiTabSheet.Color);
+  AssertEquals('FVsScrollBox background matches dark tab color',
+    RGBToColor(22, 26, 40), goverlayform.FVsScrollBox.Color);
+  AssertEquals('FVsBgPanel background matches dark tab color',
+    RGBToColor(22, 26, 40), goverlayform.FVsBgPanel.Color);
 end;
 
 procedure TGoverlayGuiTests.TestVkSumiContrastSaveAndRestore;

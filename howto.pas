@@ -69,7 +69,7 @@ uses
 procedure ThowtoForm.FormCreate(Sender: TObject);
 begin
   // GOverlay dark blue theme
-  Color := RGBToColor(22, 25, 37);
+  Color := RGBToColor(22, 26, 40);
   BorderStyle := bsSingle;
   BorderIcons := [biSystemMenu];
 

@@ -4737,7 +4737,7 @@ begin
     if CurrentTheme = tmLight then
       vksumiTabSheet.Color := $00F0F0F0
     else
-      vksumiTabSheet.Color := RGBToColor(22, 25, 37);
+      vksumiTabSheet.Color := RGBToColor(22, 26, 40);
   end;
 
   if Assigned(FVsScrollBox) then
@@ -4745,7 +4745,7 @@ begin
     if CurrentTheme = tmLight then
       FVsScrollBox.Color := $00F0F0F0
     else
-      FVsScrollBox.Color := RGBToColor(22, 25, 37);
+      FVsScrollBox.Color := RGBToColor(22, 26, 40);
   end;
 
   if Assigned(FVsBgPanel) then
@@ -4753,7 +4753,7 @@ begin
     if CurrentTheme = tmLight then
       FVsBgPanel.Color := $00F0F0F0
     else
-      FVsBgPanel.Color := RGBToColor(22, 25, 37);
+      FVsBgPanel.Color := RGBToColor(22, 26, 40);
     FVsBgPanel.Invalidate;
   end;
 

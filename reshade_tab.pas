@@ -389,7 +389,7 @@ begin
   if not Assigned(MainForm) or not Assigned(MainForm.reshadeTabSheet) then Exit;
 
   IsLight := CurrentTheme = tmLight;
-  BgClr := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 25, 37));
+  BgClr := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 26, 40));
   TxtClr := IfThen(IsLight, LightTextColor, DarkTextColor);
 
   MainForm.reshadeTabSheet.Color := BgClr;
@@ -410,6 +410,7 @@ begin
   FBgPanel.BevelOuter := bvNone;
   FBgPanel.Color := BgClr;
   FBgPanel.Caption := '';
+  FBgPanel.OnPaint := @MainForm.PresetsWrapperPaint;
   FBgPanel.Left := 0;
   FBgPanel.Top := 0;
   FBgPanel.Width := FScrollBox.ClientWidth;

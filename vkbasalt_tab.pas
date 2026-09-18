@@ -595,7 +595,7 @@ begin
   with FForm do
   begin
     IsLight := CurrentTheme = tmLight;
-    BgClr   := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 25, 37));
+    BgClr   := IfThen(IsLight, $00F0F0F0, RGBToColor(22, 26, 40));
     CardBg  := IfThen(IsLight, clWhite, RGBToColor(26, 30, 46));
     TxtClr  := IfThen(IsLight, LightTextColor, DarkTextColor);
 
@@ -617,6 +617,7 @@ begin
     FVsBgPanel.BevelOuter := bvNone;
     FVsBgPanel.Color      := BgClr;
     FVsBgPanel.Caption    := '';
+    FVsBgPanel.OnPaint    := @FForm.PresetsWrapperPaint;
     FVsBgPanel.Left       := 0;
     FVsBgPanel.Top        := 0;
     FVsBgPanel.Width      := FVsScrollBox.ClientWidth;
@@ -1299,7 +1300,7 @@ begin
   with FForm do
   begin
     PB := Sender as TPaintBox;
-    PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+    PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
     PB.Canvas.FillRect(PB.ClientRect);
 
     {$IFDEF LCLqt6}
@@ -1346,7 +1347,7 @@ begin
       else if FVkReshadeHoverIdx = i then
         PB.Canvas.Brush.Color := RGBToColor(50, 55, 70)
       else
-        PB.Canvas.Brush.Color := RGBToColor(22, 25, 37);
+        PB.Canvas.Brush.Color := RGBToColor(22, 26, 40);
       PB.Canvas.FillRect(R);
 
       // Bottom separator
