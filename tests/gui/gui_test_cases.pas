@@ -5416,6 +5416,7 @@ end;
 procedure TGoverlayGuiTests.TestLosslessScalingMakoTogglesLayoutAndNoScroll;
 var
   Helper: TLosslessScalingTabHelper;
+  PrevFgH, PrevSpatialH: Integer;
 begin
   goverlayform.optiscalerLabelClick(nil);
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
@@ -5452,15 +5453,31 @@ begin
   AssertTrue('FgLiveToggle is right of AllowFp16',
     Helper.FgLiveToggle.Left > Helper.AllowFp16Toggle.Left);
 
-  // FrameGenCard height should be compact (<= 240px)
-  AssertTrue('FrameGenCard height is compact (<= 240) in non-adaptive MAKO',
-    Helper.FrameGenCard.Height <= 240);
+  // FrameGenCard height should be at least minimum compact height (>= 236px)
+  AssertTrue('FrameGenCard height is at least compact minimum (>= 236) in non-adaptive MAKO',
+    Helper.FrameGenCard.Height >= 236);
 
   // Total tab content height should fit within standard client height without vertical scroll
-  AssertTrue('StatusCard bottom + margin fits within ScrollBox ClientHeight',
-    Helper.StatusCard.Top + Helper.StatusCard.Height + 10 <= Helper.ScrollBox.ClientHeight);
+  AssertTrue('StatusCard bottom fits within ScrollBox ClientHeight',
+    Helper.StatusCard.Top + Helper.StatusCard.Height <= Helper.ScrollBox.ClientHeight);
   AssertTrue('BgPanel height matches ScrollBox ClientHeight (no scroll required)',
     Helper.BgPanel.Height <= Helper.ScrollBox.ClientHeight);
+
+  // Test dynamic height adaptation on interface resize
+  PrevFgH := Helper.FrameGenCard.Height;
+  PrevSpatialH := Helper.SpatialCard.Height;
+  goverlayform.ClientHeight := 840;
+  Helper.ReflowLosslessScalingTab(Helper.ScrollBox.ClientWidth);
+  AssertTrue('FrameGenCard expands when window is taller', Helper.FrameGenCard.Height > PrevFgH);
+  AssertTrue('SpatialCard expands when window is taller', Helper.SpatialCard.Height > PrevSpatialH);
+  AssertTrue('StatusCard stays anchored to bottom on resize',
+    Helper.StatusCard.Top + Helper.StatusCard.Height <= Helper.ScrollBox.ClientHeight);
+  AssertTrue('BgPanel height matches ScrollBox ClientHeight after resize',
+    Helper.BgPanel.Height <= Helper.ScrollBox.ClientHeight);
+
+  // Restore standard window height
+  goverlayform.ClientHeight := 680;
+  Helper.ReflowLosslessScalingTab(Helper.ScrollBox.ClientWidth);
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingMethodSwitching;

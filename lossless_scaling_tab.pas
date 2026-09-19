@@ -2767,6 +2767,9 @@ var
   X1, X2, X3: Integer;
   EditLeft, EditW, BrowseW, BtnLeft: Integer;
   Y0, Y1, Y2, Y3, StatusCardH: Integer;
+  TotalH, CardTop, TopCardsBottom, AvailMiddleH: Integer;
+  MinFgH, FgH, MinSpatialH, SpatialH, MinMiddleH: Integer;
+  ExtraH, ExtraFg, ExtraSpatial, SpatialTop: Integer;
   IsAdaptive: Boolean;
 begin
   if not Assigned(FLsScrollBox) or not Assigned(FLsMethodCard) then Exit;
@@ -2779,6 +2782,12 @@ begin
   
   CW := W - (MARGIN * 2);
   CurY := MARGIN;
+
+  TotalH := FLsScrollBox.ClientHeight;
+  if Assigned(FForm) and (FForm.ClientHeight > 150) and (FForm.ClientHeight - 35 > TotalH) then
+    TotalH := FForm.ClientHeight - 35;
+  if TotalH < 400 then
+    TotalH := 648;
   
   Col2W := (CW - (PAD * 2) - 20) div 2;
   RightColX := PAD + Col2W + 20;
@@ -2862,6 +2871,22 @@ begin
     CurY := CurY + 50 + GAP;
   end;
 
+  TopCardsBottom := CurY;
+
+  Y0 := 34;
+  Y1 := Y0 + ROW_H + 6;
+  Y2 := Y1 + ROW_H + 6;
+  if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
+  begin
+    Y3 := Y2 + ROW_H + 6;
+    StatusCardH := Y3 + 36;
+  end
+  else
+    StatusCardH := Y2 + ROW_H + 10;
+
+  CardTop := TotalH - MARGIN - StatusCardH;
+  AvailMiddleH := CardTop - GAP - TopCardsBottom;
+
   // ── Middle Area: Dynamic Configuration Cards ─────────────────────────────
   if FInterpolationMethod = imNone then
   begin
@@ -2908,8 +2933,17 @@ begin
     FLsDisabledNoticeLbl.Visible := True;
     FLsDisabledNoticeLbl.SetBounds(PAD, HDR + 14, CW - 2 * PAD, 20);
 
-    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 84);
-    CurY := CurY + 84 + GAP;
+    MinFgH := 84;
+    if AvailMiddleH < MinFgH then
+    begin
+      FgH := MinFgH;
+      CardTop := TopCardsBottom + FgH + GAP;
+      TotalH := CardTop + StatusCardH + MARGIN;
+    end
+    else
+      FgH := AvailMiddleH;
+
+    FLsFrameGenCard.SetBounds(MARGIN, TopCardsBottom, CW, FgH);
   end
   else if FInterpolationMethod = imLsfg then
   begin
@@ -2984,8 +3018,17 @@ begin
     FLsPacingComboBox.Visible := True;
     FLsPacingComboBox.SetBounds(PAD, 192, Col2W, ROW_H);
 
-    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 240);
-    CurY := CurY + 240 + GAP;
+    MinFgH := 240;
+    if AvailMiddleH < MinFgH then
+    begin
+      FgH := MinFgH;
+      CardTop := TopCardsBottom + FgH + GAP;
+      TotalH := CardTop + StatusCardH + MARGIN;
+    end
+    else
+      FgH := AvailMiddleH;
+
+    FLsFrameGenCard.SetBounds(MARGIN, TopCardsBottom, CW, FgH);
   end
   else // imMako
   begin
@@ -3091,18 +3134,35 @@ begin
     if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
 
     if IsAdaptive then
+      MinFgH := 276
+    else
+      MinFgH := 236;
+
+    MinSpatialH := 144;
+    MinMiddleH := MinFgH + GAP + MinSpatialH;
+
+    if AvailMiddleH < MinMiddleH then
     begin
-      FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
-      CurY := CurY + 276 + GAP;
+      FgH := MinFgH;
+      SpatialH := MinSpatialH;
+      SpatialTop := TopCardsBottom + FgH + GAP;
+      CardTop := SpatialTop + SpatialH + GAP;
+      TotalH := CardTop + StatusCardH + MARGIN;
     end
     else
     begin
-      FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 236);
-      CurY := CurY + 236 + GAP;
+      ExtraH := AvailMiddleH - MinMiddleH;
+      ExtraFg := (ExtraH * 6) div 10;
+      ExtraSpatial := ExtraH - ExtraFg;
+      FgH := MinFgH + ExtraFg;
+      SpatialH := MinSpatialH + ExtraSpatial;
+      SpatialTop := TopCardsBottom + FgH + GAP;
     end;
 
+    FLsFrameGenCard.SetBounds(MARGIN, TopCardsBottom, CW, FgH);
+
     // Spatial Scaling Card
-    FLsSpatialCard.SetBounds(MARGIN, CurY, CW, 144);
+    FLsSpatialCard.SetBounds(MARGIN, SpatialTop, CW, SpatialH);
     if Assigned(FLsScalingEnableToggle) then FLsScalingEnableToggle.Visible := False;
     FLsScalingMethodTitleLbl.SetBounds(PAD, 36, Col2W, 18);
     FLsScalingMethodComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
@@ -3116,12 +3176,9 @@ begin
     FLsScalingSharpnessTitleLbl.SetBounds(RightColX, 88, Col2W, 18);
     FLsScalingSharpnessTrackBar.SetBounds(RightColX, 108, Col2W - 65, ROW_H);
     FLsScalingSharpnessValueLabel.SetBounds(RightColX + Col2W - 60, 112, 60, 20);
-
-    CurY := CurY + 144 + GAP;
   end;
 
   // ── Card 3: Software Status (Anchored to Bottom) ─────────────────────────
-  Y0 := 34;
   EditLeft := PAD + 10 + 6 + 160;
   BrowseW := 32;
   EditW := CW - EditLeft - PAD - BrowseW - 6;
@@ -3138,7 +3195,6 @@ begin
     FLsBrowseDllBtn.SetBounds(EditLeft + EditW + 6, Y0, BrowseW, ROW_H);
 
   // Row 1: MAKO Renderer
-  Y1 := Y0 + ROW_H + 6;
   if Assigned(FLsStatDots[1]) then
     FLsStatDots[1].SetBounds(PAD, Y1 + (ROW_H - 10) div 2, 10, 10);
   if Assigned(FLsStatNameLbls[1]) then
@@ -3162,7 +3218,6 @@ begin
   end;
 
   // Row 2: lsfg-vk Vulkan Layer
-  Y2 := Y1 + ROW_H + 6;
   if Assigned(FLsStatDots[2]) then
     FLsStatDots[2].SetBounds(PAD, Y2 + (ROW_H - 10) div 2, 10, 10);
   if Assigned(FLsStatNameLbls[2]) then
@@ -3201,18 +3256,13 @@ begin
   // Row 3 (Optional): Progress bar during installation
   if Assigned(FLsProgressBar) and FLsProgressBar.Visible then
   begin
-    Y3 := Y2 + ROW_H + 6;
     FLsProgressBar.SetBounds(PAD, Y3, CW - 2 * PAD, 10);
     FLsProgressLabel.SetBounds(PAD, Y3 + 14, CW - 2 * PAD, 18);
-    StatusCardH := Y3 + 36;
-  end
-  else
-    StatusCardH := Y2 + ROW_H + 10;
+  end;
 
-  FLsStatusCard.SetBounds(MARGIN, CurY, CW, StatusCardH);
-  CurY := CurY + StatusCardH + MARGIN;
+  FLsStatusCard.SetBounds(MARGIN, CardTop, CW, StatusCardH);
 
-  FLsBgPanel.SetBounds(0, 0, W, Max(FLsScrollBox.ClientHeight, CurY));
+  FLsBgPanel.SetBounds(0, 0, W, Max(FLsScrollBox.ClientHeight, TotalH));
 end;
 
 procedure TLosslessScalingTabHelper.UpdateDllStatus;
