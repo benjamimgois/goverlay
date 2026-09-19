@@ -110,6 +110,95 @@ begin
   end;
 end;
 
+function IsPredefinedTweakKey(const AKey: string): Boolean;
+begin
+  Result := SameText(AKey, 'SteamDeck') or
+            SameText(AKey, 'PROTON_ENABLE_HDR') or
+            SameText(AKey, 'ENABLE_HDR_WSI') or
+            SameText(AKey, 'DXVK_HDR') or
+            SameText(AKey, 'PROTON_ENABLE_WAYLAND') or
+            SameText(AKey, 'PROTON_LOG') or
+            SameText(AKey, 'PROTON_USE_SDL') or
+            SameText(AKey, 'OBS_VKCAPTURE') or
+            SameText(AKey, 'RADV_PERFTEST') or
+            SameText(AKey, 'PROTON_HIDE_NVIDIA_GPU') or
+            SameText(AKey, 'PROTON_ENABLE_NVAPI') or
+            SameText(AKey, 'PROTON_USE_WINED3D') or
+            SameText(AKey, 'MESA_LOADER_DRIVER_OVERRIDE') or
+            SameText(AKey, '__GLX_VENDOR_LIBRARY_NAME') or
+            SameText(AKey, 'PROTON_FSR4_UPGRADE') or
+            SameText(AKey, 'PROTON_DLSS_UPGRADE') or
+            SameText(AKey, 'PROTON_XESS_UPGRADE') or
+            SameText(AKey, 'game-performance') or
+            SameText(AKey, 'game_performance') or
+            SameText(AKey, 'PROTON_USE_WOW64') or
+            SameText(AKey, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') or
+            SameText(AKey, 'STAGING_SHARED_MEMORY') or
+            SameText(AKey, 'PROTON_NO_NTSYNC') or
+            SameText(AKey, 'PROTON_HEAP_DELAY_FREE') or
+            SameText(AKey, 'ENABLE_LAYER_MESA_ANTI_LAG') or
+            SameText(AKey, 'RADV_DEBUG') or
+            SameText(AKey, 'LOW_LATENCY_LAYER') or
+            SameText(AKey, 'LOW_LATENCY_LAYER_REFLEX') or
+            SameText(AKey, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') or
+            SameText(AKey, 'DXVK_CONFIG') or
+            SameText(AKey, 'PROTON_VKD3D_LOWLATENCY') or
+            SameText(AKey, 'PROTON_LOCAL_SHADER_CACHE') or
+            SameText(AKey, 'PROTON_DISCORD_BRIDGE') or
+            SameText(AKey, 'DXIL_SPIRV_CONFIG') or
+            SameText(AKey, 'MANGOHUD_CONFIGFILE');
+end;
+
+procedure ParseTweakLine(const ALine: string; out AKey, AVal: string);
+var
+  p: Integer;
+  CleanLine: string;
+begin
+  CleanLine := Trim(ALine);
+  p := Pos('#customenv', CleanLine);
+  if p > 0 then
+    CleanLine := Trim(Copy(CleanLine, 1, p - 1));
+  p := Pos('=', CleanLine);
+  if p > 0 then
+  begin
+    AKey := Trim(Copy(CleanLine, 1, p - 1));
+    AVal := Trim(Copy(CleanLine, p + 1, MaxInt));
+  end
+  else
+  begin
+    AKey := CleanLine;
+    AVal := '';
+  end;
+end;
+
+function FormatTweakLine(const AKey, AVal: string): string;
+begin
+  if AVal <> '' then
+    Result := AKey + '=' + AVal
+  else
+    Result := AKey;
+end;
+
+function FindTweakInList(AList: TStringList; const AKey: string; out AVal: string): Boolean;
+var
+  idx: Integer;
+  K, V: string;
+begin
+  Result := False;
+  AVal := '';
+  if not Assigned(AList) then Exit;
+  for idx := 0 to AList.Count - 1 do
+  begin
+    ParseTweakLine(AList[idx], K, V);
+    if SameText(K, AKey) then
+    begin
+      AVal := V;
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
 begin
   case Index of
@@ -401,8 +490,8 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       ACanvas.RoundRect(ARect.Left, ARect.Top + 1, ARect.Right, ARect.Bottom - 1, 6, 6);
     end;
 
-    // Delete button for custom items
-    if AIsCustom then
+    // Delete button for custom items (hidden for Global items in game profile)
+    if AIsCustom and not ((FForm.FActiveGameName <> '') and (ADesc = 'Global')) then
     begin
       DelX := ARect.Left + 8;
       ACanvas.Font.Name   := 'DejaVu Sans';
@@ -420,6 +509,72 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     ToggleX := ARect.Right - 46;
     ToggleY := ARect.Top + (ARect.Height - 20) div 2;
     DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
+
+    if AIsCustom then
+    begin
+      HasBadge := False;
+      CleanDesc := '';
+      BadgeText := '';
+      if (FForm.FActiveGameName <> '') and (ADesc = 'Global') then
+      begin
+        HasBadge := True;
+        BadgeText := 'Global';
+        BadgeBg := RGBToColor(18, 42, 58);
+        BadgeBorder := RGBToColor(36, 110, 150);
+        BadgeTxtColor := RGBToColor(80, 195, 245);
+        CleanDesc := 'Global catalog preset';
+      end
+      else if (FForm.FActiveGameName <> '') and (ADesc = 'Local') then
+      begin
+        HasBadge := True;
+        BadgeText := 'Game';
+        BadgeBg := RGBToColor(48, 32, 58);
+        BadgeBorder := RGBToColor(130, 75, 160);
+        BadgeTxtColor := RGBToColor(215, 155, 255);
+        CleanDesc := 'Game-specific custom variable';
+      end
+      else
+        CleanDesc := 'Custom environment variable';
+
+      // Title line: AVar (monospace, bold)
+      DescTop := ARect.Top + 6;
+      ACanvas.Font.Name  := 'DejaVu Sans Mono';
+      ACanvas.Font.Size  := 9;
+      ACanvas.Font.Style := [fsBold];
+      ACanvas.Font.Color := clWhite;
+      ACanvas.Brush.Style := bsClear;
+
+      BadgeW := 0;
+      if HasBadge then
+      begin
+        ACanvas.Font.Name  := 'DejaVu Sans';
+        ACanvas.Font.Size  := 7;
+        ACanvas.Font.Style := [fsBold];
+        BadgeW := ACanvas.TextWidth(BadgeText) + 10;
+        ACanvas.Font.Name  := 'DejaVu Sans Mono';
+        ACanvas.Font.Size  := 9;
+        ACanvas.Font.Style := [fsBold];
+        DescRect := Rect(TextX, DescTop, ToggleX - BadgeW - 12, DescTop + 18);
+      end
+      else
+        DescRect := Rect(TextX, DescTop, ToggleX - 10, DescTop + 18);
+
+      ACanvas.TextRect(DescRect, TextX, DescTop, AVar);
+
+      if HasBadge then
+        DrawBadge(ACanvas, TextX + Min(ACanvas.TextWidth(AVar) + 8, ToggleX - TextX - BadgeW - 6), DescTop + 1, BadgeText, BadgeBg, BadgeBorder, BadgeTxtColor, BadgeW);
+
+      // Subtitle line (DejaVu Sans, muted slate)
+      VarTop := ARect.Top + 27;
+      ACanvas.Font.Name  := 'DejaVu Sans';
+      ACanvas.Font.Size  := 8;
+      ACanvas.Font.Style := [];
+      ACanvas.Font.Color := RGBToColor(135, 145, 165);
+      ACanvas.Brush.Style := bsClear;
+      VarRect := Rect(TextX, VarTop, ToggleX - 8, VarTop + 16);
+      ACanvas.TextRect(VarRect, TextX, VarTop, CleanDesc);
+      Exit;
+    end;
 
     // Prefix & Badge detection
     HasBadge := False;
@@ -990,6 +1145,18 @@ begin
         // Delete button hit (left 28px of the item)
         if X < ItemRect.Left + 28 then
         begin
+          if (FForm.FActiveGameName <> '') and (FForm.FTweaksGrid.Cells[3, i] = 'Global') then
+          begin
+            // Guard: Cannot delete global catalog entries from within a game profile; toggle instead
+            if FForm.FTweaksGrid.Cells[0, i] = '1' then
+              FForm.FTweaksGrid.Cells[0, i] := '0'
+            else
+              FForm.FTweaksGrid.Cells[0, i] := '1';
+            PB.Invalidate;
+            FForm.TriggerAutoSave;
+            Exit;
+          end;
+
           FForm.FTweaksGrid.DeleteRow(i);
           PB.Invalidate;
           FForm.TriggerAutoSave;
@@ -1046,7 +1213,10 @@ begin
   FForm.FTweaksGrid.Cells[0, Row] := '1';
   FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
   FForm.FTweaksGrid.Cells[2, Row] := Val;
-  FForm.FTweaksGrid.Cells[3, Row] := '';
+  if FForm.FActiveGameName = '' then
+    FForm.FTweaksGrid.Cells[3, Row] := 'Global'
+  else
+    FForm.FTweaksGrid.Cells[3, Row] := 'Local';
   FForm.FTweaksPaintBox.Invalidate;
   FForm.TriggerAutoSave;
 end;
@@ -1371,20 +1541,22 @@ begin
     // 4. Custom environment variables from grid
     if Assigned(FForm.FTweaksGrid) then
     begin
+      if FForm.FActiveGameName = '' then
+        Ini.EraseSection('CustomVariables');
+
       for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
       begin
-        if (FForm.FTweaksGrid.Cells[0, i] = '1') and (Trim(FForm.FTweaksGrid.Cells[2, i]) <> '') then
+        CustomLine := Trim(FForm.FTweaksGrid.Cells[2, i]);
+        if CustomLine <> '' then
         begin
-          CustomLine := Trim(FForm.FTweaksGrid.Cells[2, i]);
-          p := Pos('#customenv', CustomLine);
-          if p > 0 then
-            CustomLine := Trim(Copy(CustomLine, 1, p - 1));
-          p := Pos('=', CustomLine);
-          if p > 0 then
+          ParseTweakLine(CustomLine, CustomKey, CustomVal);
+          if CustomKey <> '' then
           begin
-            CustomKey := Trim(Copy(CustomLine, 1, p - 1));
-            CustomVal := Trim(Copy(CustomLine, p + 1, MaxInt));
-            Ini.WriteString('Env', CustomKey, CustomVal);
+            if FForm.FTweaksGrid.Cells[0, i] = '1' then
+              Ini.WriteString('Env', CustomKey, CustomVal);
+
+            if FForm.FActiveGameName = '' then
+              Ini.WriteString('CustomVariables', CustomKey, CustomVal);
           end;
         end;
       end;
@@ -1429,11 +1601,90 @@ end;
 
 procedure TTweaksMD3Helper.LoadTweaksFromFGMod;
 var
-  ConfigPath: string;
-  Ini: TIniFile;
-  EnvList: TStringList;
+  ConfigPath, GlobalConfigPath: string;
+  Ini, GlobalIni: TIniFile;
+  EnvList, CustomVarList, GlobalCustomList: TStringList;
   i, Row: Integer;
-  Key, Val: string;
+  Key, Val, MatchVal: string;
+
+  procedure ProcessPredefinedEnv(AIni: TIniFile; AEnvList: TStringList);
+  var
+    idx: Integer;
+    K, V: string;
+  begin
+    // Load gamemode state from Config
+    FForm.GetPerformanceCheckBox(0).Checked := AIni.ReadString('Config', 'gamemode', '0') = '1';
+
+    // Load winedetectionenable state from Config
+    FForm.FReEngineRTCheckBox.Checked := AIni.ReadString('Config', 'winedetectionenable', '1') = '0';
+
+    for idx := 0 to AEnvList.Count - 1 do
+    begin
+      K := AEnvList.Names[idx];
+      V := AEnvList.ValueFromIndex[idx];
+
+      if SameText(K, 'SteamDeck') then
+        FForm.GetGeneralCheckBox(0).Checked := V = '1'
+      else if SameText(K, 'PROTON_ENABLE_HDR') then
+        FForm.GetGeneralCheckBox(1).Checked := V = '1'
+      else if SameText(K, 'PROTON_ENABLE_WAYLAND') then
+        FForm.GetGeneralCheckBox(2).Checked := V = '1'
+      else if SameText(K, 'PROTON_LOG') then
+        FForm.GetGeneralCheckBox(3).Checked := V = '1'
+      else if SameText(K, 'PROTON_USE_SDL') then
+        FForm.GetGeneralCheckBox(4).Checked := V = '1'
+      else if SameText(K, 'OBS_VKCAPTURE') then
+        FForm.GetGeneralCheckBox(5).Checked := V = '1'
+      else if SameText(K, 'RADV_PERFTEST') and (Pos('rt', V) > 0) then
+        FForm.GetGraphicsCheckBox(0).Checked := True
+      else if SameText(K, 'PROTON_HIDE_NVIDIA_GPU') then
+        FForm.GetGraphicsCheckBox(1).Checked := V = '1'
+      else if SameText(K, 'PROTON_ENABLE_NVAPI') then
+        FForm.GetGraphicsCheckBox(2).Checked := V = '1'
+      else if SameText(K, 'PROTON_USE_WINED3D') then
+        FForm.GetGraphicsCheckBox(3).Checked := V = '1'
+      else if SameText(K, 'MESA_LOADER_DRIVER_OVERRIDE') and SameText(V, 'zink') then
+        FForm.GetGraphicsCheckBox(4).Checked := True
+      else if SameText(K, 'PROTON_FSR4_UPGRADE') then
+        FForm.FFSR4UpgradeCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_DLSS_UPGRADE') then
+        FForm.FDLSSUpgradeCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_XESS_UPGRADE') then
+        FForm.FXeSSUpgradeCheckBox.Checked := V = '1'
+      else if SameText(K, 'game-performance') or SameText(K, 'game_performance') or
+              SameText(Trim(AEnvList[idx]), 'game-performance') or SameText(Trim(AEnvList[idx]), 'game-performance=1') then
+        FForm.GetPerformanceCheckBox(1).Checked := True
+      else if SameText(K, 'PROTON_USE_WOW64') then
+        FForm.GetPerformanceCheckBox(2).Checked := V = '1'
+      else if SameText(K, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
+        FForm.GetPerformanceCheckBox(3).Checked := V = '1'
+      else if SameText(K, 'STAGING_SHARED_MEMORY') then
+        FForm.GetPerformanceCheckBox(4).Checked := V = '1'
+      else if SameText(K, 'PROTON_NO_NTSYNC') then
+        FForm.GetPerformanceCheckBox(5).Checked := V = '1'
+      else if SameText(K, 'PROTON_HEAP_DELAY_FREE') then
+        FForm.GetPerformanceCheckBox(6).Checked := V = '1'
+      else if SameText(K, 'ENABLE_LAYER_MESA_ANTI_LAG') then
+        FForm.FAntilagCheckBox.Checked := V = '1'
+      else if SameText(K, 'RADV_DEBUG') and SameText(V, 'nofastclears') then
+        FForm.nofastclearsCheckBox.Checked := True
+      else if SameText(K, 'LOW_LATENCY_LAYER') then
+        FForm.FLowLatencyCheckBox.Checked := V = '1'
+      else if SameText(K, 'LOW_LATENCY_LAYER_REFLEX') then
+        FForm.FLowLatencyReflexCheckBox.Checked := V = '1'
+      else if SameText(K, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') then
+        FForm.FLowLatencySpoofNvidiaCheckBox.Checked := V = '1'
+      else if SameText(K, 'DXVK_CONFIG') and (Pos('hideAmdGpu', V) > 0) then
+        FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
+      else if SameText(K, 'PROTON_VKD3D_LOWLATENCY') then
+        FForm.FProtonVkd3dLowLatencyCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_LOCAL_SHADER_CACHE') then
+        FForm.FProtonLocalShaderCacheCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_DISCORD_BRIDGE') then
+        FForm.FProtonDiscordBridgeCheckBox.Checked := V = '1';
+    end;
+  end;
+
 begin
   // Reset all tweaks checkboxes first
   FForm.GetGeneralCheckBox(0).Checked := False;
@@ -1480,112 +1731,167 @@ begin
   if Assigned(FForm.FTweaksGrid) then
     FForm.FTweaksGrid.RowCount := 1 + TWEAK_ROW_COUNT;
 
-  // Get bgmod config path
-  ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
-
-  // Check if bgmod.conf exists
-  if not FileExists(ConfigPath) then
-    Exit;
-
-  Ini := TIniFile.Create(ConfigPath);
-  EnvList := TStringList.Create;
-  try
-
-    // Load gamemode state from Config
-    FForm.GetPerformanceCheckBox(0).Checked := Ini.ReadString('Config', 'gamemode', '0') = '1';
-
-    // Load winedetectionenable state from Config
-    FForm.FReEngineRTCheckBox.Checked := Ini.ReadString('Config', 'winedetectionenable', '1') = '0';
-
-    // Load environment variables from Env section
-    Ini.ReadSectionValues('Env', EnvList);
-    for i := 0 to EnvList.Count - 1 do
+  if FForm.FActiveGameName = '' then
+  begin
+    // ==========================================
+    // GLOBAL MODE LOADING
+    // ==========================================
+    ConfigPath := FForm.GetGameConfigDir('') + 'bgmod.conf';
+    if FileExists(ConfigPath) then
     begin
-      Key := EnvList.Names[i];
-      Val := EnvList.ValueFromIndex[i];
+      Ini := TIniFile.Create(ConfigPath);
+      EnvList := TStringList.Create;
+      CustomVarList := TStringList.Create;
+      try
+        Ini.ReadSectionValues('Env', EnvList);
+        ProcessPredefinedEnv(Ini, EnvList);
 
-      // Handle predefined keys
-      if SameText(Key, 'SteamDeck') then
-        FForm.GetGeneralCheckBox(0).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_ENABLE_HDR') then
-        FForm.GetGeneralCheckBox(1).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_ENABLE_WAYLAND') then
-        FForm.GetGeneralCheckBox(2).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_LOG') then
-        FForm.GetGeneralCheckBox(3).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_USE_SDL') then
-        FForm.GetGeneralCheckBox(4).Checked := Val = '1'
-      else if SameText(Key, 'OBS_VKCAPTURE') then
-        FForm.GetGeneralCheckBox(5).Checked := Val = '1'
-      else if SameText(Key, 'RADV_PERFTEST') and (Pos('rt', Val) > 0) then
-        FForm.GetGraphicsCheckBox(0).Checked := True
-      else if SameText(Key, 'PROTON_HIDE_NVIDIA_GPU') then
-        FForm.GetGraphicsCheckBox(1).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_ENABLE_NVAPI') then
-        FForm.GetGraphicsCheckBox(2).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_USE_WINED3D') then
-        FForm.GetGraphicsCheckBox(3).Checked := Val = '1'
-      else if SameText(Key, 'MESA_LOADER_DRIVER_OVERRIDE') and SameText(Val, 'zink') then
-        FForm.GetGraphicsCheckBox(4).Checked := True
-      else if SameText(Key, 'PROTON_FSR4_UPGRADE') then
-        FForm.FFSR4UpgradeCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'PROTON_DLSS_UPGRADE') then
-        FForm.FDLSSUpgradeCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'PROTON_XESS_UPGRADE') then
-        FForm.FXeSSUpgradeCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'game-performance') or SameText(Key, 'game_performance') or
-              SameText(Trim(EnvList[i]), 'game-performance') or SameText(Trim(EnvList[i]), 'game-performance=1') then
-        FForm.GetPerformanceCheckBox(1).Checked := True
-      else if SameText(Key, 'PROTON_USE_WOW64') then
-        FForm.GetPerformanceCheckBox(2).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_FORCE_LARGE_ADDRESS_AWARE') then
-        FForm.GetPerformanceCheckBox(3).Checked := Val = '1'
-      else if SameText(Key, 'STAGING_SHARED_MEMORY') then
-        FForm.GetPerformanceCheckBox(4).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_NO_NTSYNC') then
-        FForm.GetPerformanceCheckBox(5).Checked := Val = '1'
-      else if SameText(Key, 'PROTON_HEAP_DELAY_FREE') then
-        FForm.GetPerformanceCheckBox(6).Checked := Val = '1'
-      else if SameText(Key, 'ENABLE_LAYER_MESA_ANTI_LAG') then
-        FForm.FAntilagCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'RADV_DEBUG') and SameText(Val, 'nofastclears') then
-        FForm.nofastclearsCheckBox.Checked := True
-      else if SameText(Key, 'LOW_LATENCY_LAYER') then
-        FForm.FLowLatencyCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'LOW_LATENCY_LAYER_REFLEX') then
-        FForm.FLowLatencyReflexCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') then
-        FForm.FLowLatencySpoofNvidiaCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'DXVK_CONFIG') and (Pos('hideAmdGpu', Val) > 0) then
-        FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
-      else if SameText(Key, 'PROTON_VKD3D_LOWLATENCY') then
-        FForm.FProtonVkd3dLowLatencyCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'PROTON_LOCAL_SHADER_CACHE') then
-        FForm.FProtonLocalShaderCacheCheckBox.Checked := Val = '1'
-      else if SameText(Key, 'PROTON_DISCORD_BRIDGE') then
-        FForm.FProtonDiscordBridgeCheckBox.Checked := Val = '1'
-      else if (Key <> '') and not SameText(Key, 'ENABLE_HDR_WSI') and not SameText(Key, '__GLX_VENDOR_LIBRARY_NAME') then
-      begin
-        // Treat as custom environment variable
-        if Assigned(FForm.FCustomListBox) then
-          FForm.FCustomListBox.Items.Add(Key + '=' + Val);
-        if Assigned(FForm.FTweaksGrid) then
+        Ini.ReadSectionValues('CustomVariables', CustomVarList);
+        for i := 0 to CustomVarList.Count - 1 do
         begin
-          Row := FForm.FTweaksGrid.RowCount;
-          FForm.FTweaksGrid.RowCount := Row + 1;
-          FForm.FTweaksGrid.Cells[0, Row] := '1';
-          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
-          FForm.FTweaksGrid.Cells[2, Row] := Key + '=' + Val;
-          FForm.FTweaksGrid.Cells[3, Row] := '';
+          ParseTweakLine(CustomVarList[i], Key, Val);
+          if Key <> '' then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            if FindTweakInList(EnvList, Key, MatchVal) and (MatchVal = Val) then
+            begin
+              FForm.FTweaksGrid.Cells[0, Row] := '1';
+              if Assigned(FForm.FCustomListBox) then
+                FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
+            end
+            else
+              FForm.FTweaksGrid.Cells[0, Row] := '0';
+
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+          end;
         end;
+
+        // Backward compatibility: Any non-predefined custom variable in [Env] not in [CustomVariables]
+        for i := 0 to EnvList.Count - 1 do
+        begin
+          ParseTweakLine(EnvList[i], Key, Val);
+          if (Key <> '') and not IsPredefinedTweakKey(Key) and not FindTweakInList(CustomVarList, Key, MatchVal) then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            FForm.FTweaksGrid.Cells[0, Row] := '1';
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+            if Assigned(FForm.FCustomListBox) then
+              FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
+          end;
+        end;
+
+      finally
+        CustomVarList.Free;
+        EnvList.Free;
+        Ini.Free;
       end;
     end;
-  finally
-    EnvList.Free;
-    Ini.Free;
+  end
+  else
+  begin
+    // ==========================================
+    // GAME PROFILE MODE LOADING
+    // ==========================================
+    GlobalConfigPath := FForm.GetGameConfigDir('') + 'bgmod.conf';
+    ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
+
+    // 1. Gather global custom catalog
+    GlobalCustomList := TStringList.Create;
+    try
+      if FileExists(GlobalConfigPath) then
+      begin
+        GlobalIni := TIniFile.Create(GlobalConfigPath);
+        EnvList := TStringList.Create;
+        try
+          GlobalIni.ReadSectionValues('CustomVariables', GlobalCustomList);
+          GlobalIni.ReadSectionValues('Env', EnvList);
+          for i := 0 to EnvList.Count - 1 do
+          begin
+            ParseTweakLine(EnvList[i], Key, Val);
+            if (Key <> '') and not IsPredefinedTweakKey(Key) and not FindTweakInList(GlobalCustomList, Key, MatchVal) then
+            begin
+              if Val <> '' then
+                GlobalCustomList.Add(Key + '=' + Val)
+              else
+                GlobalCustomList.Add(Key);
+            end;
+          end;
+        finally
+          EnvList.Free;
+          GlobalIni.Free;
+        end;
+      end;
+
+      // 2. Load game's config if exists
+      EnvList := TStringList.Create;
+      try
+        if FileExists(ConfigPath) then
+        begin
+          Ini := TIniFile.Create(ConfigPath);
+          try
+            Ini.ReadSectionValues('Env', EnvList);
+            ProcessPredefinedEnv(Ini, EnvList);
+          finally
+            Ini.Free;
+          end;
+        end;
+
+        // 3. Populate global custom variables into grid
+        for i := 0 to GlobalCustomList.Count - 1 do
+        begin
+          ParseTweakLine(GlobalCustomList[i], Key, Val);
+          if Key <> '' then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            if FindTweakInList(EnvList, Key, MatchVal) and (MatchVal = Val) then
+            begin
+              FForm.FTweaksGrid.Cells[0, Row] := '1';
+              if Assigned(FForm.FCustomListBox) then
+                FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
+            end
+            else
+              FForm.FTweaksGrid.Cells[0, Row] := '0';
+
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+          end;
+        end;
+
+        // 4. Populate any game-specific local custom variables into grid
+        for i := 0 to EnvList.Count - 1 do
+        begin
+          ParseTweakLine(EnvList[i], Key, Val);
+          if (Key <> '') and not IsPredefinedTweakKey(Key) and not FindTweakInList(GlobalCustomList, Key, MatchVal) then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            FForm.FTweaksGrid.Cells[0, Row] := '1';
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+            FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+            if Assigned(FForm.FCustomListBox) then
+              FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
+          end;
+        end;
+
+      finally
+        EnvList.Free;
+      end;
+    finally
+      GlobalCustomList.Free;
+    end;
   end;
 
   // Also check raw lines for game-performance in case ReadSectionValues omitted non-key lines
+  ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
   if not FForm.GetPerformanceCheckBox(1).Checked and FileExists(ConfigPath) then
   begin
     EnvList := TStringList.Create;

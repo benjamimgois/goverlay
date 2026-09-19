@@ -4815,7 +4815,10 @@ begin
     FTweaksGrid.Cells[0, Row] := '1';         // checked by default
     FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
     FTweaksGrid.Cells[2, Row] := Val;
-    FTweaksGrid.Cells[3, Row] := '';
+    if FActiveGameName = '' then
+      FTweaksGrid.Cells[3, Row] := 'Global'
+    else
+      FTweaksGrid.Cells[3, Row] := 'Local';
   end;
 end;
 
@@ -4828,6 +4831,8 @@ begin
   // Only allow deleting custom rows (below predefined)
   if Row > TWEAK_ROW_COUNT then
   begin
+    if (FActiveGameName <> '') and (FTweaksGrid.Cells[3, Row] = 'Global') then
+      Exit;
     FTweaksGrid.DeleteRow(Row);
     // Keep row selection valid
     if FTweaksGrid.RowCount > 1 then

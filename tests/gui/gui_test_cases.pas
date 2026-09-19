@@ -102,6 +102,7 @@ type
     procedure TestProtonDiscordBridgeTweak;
     procedure TestGamePerformanceTweak;
     procedure TestTweaksCardLayoutAndClick;
+    procedure TestGlobalCustomVariablesReuseAndInheritance;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -149,7 +150,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix;
+  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -4030,6 +4031,172 @@ begin
   // Trigger hover and paint
   goverlayform.TweaksMD3MouseMove(goverlayform.FTweaksPaintBox, [], 30, 50);
   goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+end;
+
+procedure TGoverlayGuiTests.TestGlobalCustomVariablesReuseAndInheritance;
+var
+  GlobalConf, GameConf: string;
+  Ini: TIniFile;
+  Row, i, CustomRow, LocalRow: Integer;
+  Found: Boolean;
+begin
+  NavigateTweaksTab;
+  goverlayform.FActiveGameName := '';
+
+  // Ensure clean starting state
+  goverlayform.LoadTweaksFromFGMod;
+
+  // 1. Add a custom variable in Global mode
+  Row := goverlayform.FTweaksGrid.RowCount;
+  goverlayform.FTweaksGrid.RowCount := Row + 1;
+  goverlayform.FTweaksGrid.Cells[0, Row] := '0'; // Set toggle OFF
+  goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+  goverlayform.FTweaksGrid.Cells[2, Row] := 'TEST_GLOBAL_CUSTOM=world';
+  goverlayform.FTweaksGrid.Cells[3, Row] := 'Global';
+
+  // Save global tweaks
+  goverlayform.SaveTweaksConfig;
+
+  // Verify global bgmod.conf has [CustomVariables] TEST_GLOBAL_CUSTOM=world, but NOT in [Env]
+  GlobalConf := BgmodConfPath;
+  Ini := TIniFile.Create(GlobalConf);
+  try
+    AssertEquals('Custom variable present in [CustomVariables] even when toggled OFF',
+                 'world', Ini.ReadString('CustomVariables', 'TEST_GLOBAL_CUSTOM', ''));
+    AssertEquals('Custom variable NOT present in [Env] when toggled OFF',
+                 '', Ini.ReadString('Env', 'TEST_GLOBAL_CUSTOM', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Reload in global mode to verify round-trip
+  goverlayform.LoadTweaksFromFGMod;
+  Found := False;
+  for i := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+  begin
+    if goverlayform.FTweaksGrid.Cells[2, i] = 'TEST_GLOBAL_CUSTOM=world' then
+    begin
+      Found := True;
+      AssertEquals('Loaded toggle state is 0 in global mode', '0', goverlayform.FTweaksGrid.Cells[0, i]);
+      AssertEquals('Loaded origin is Global in global mode', 'Global', goverlayform.FTweaksGrid.Cells[3, i]);
+    end;
+  end;
+  AssertTrue('TEST_GLOBAL_CUSTOM found after global reload', Found);
+
+  // 2. Switch to game profile mode: should inherit global custom variable with toggle OFF
+  goverlayform.FActiveGameName := 'TestGameCustomReuse';
+  try
+    goverlayform.LoadTweaksFromFGMod;
+
+    Found := False;
+    CustomRow := -1;
+    for i := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+    begin
+      if goverlayform.FTweaksGrid.Cells[2, i] = 'TEST_GLOBAL_CUSTOM=world' then
+      begin
+        Found := True;
+        CustomRow := i;
+        AssertEquals('Inherited global custom var toggle defaults to 0 in game profile', '0', goverlayform.FTweaksGrid.Cells[0, i]);
+        AssertEquals('Inherited global custom var origin is Global in game profile', 'Global', goverlayform.FTweaksGrid.Cells[3, i]);
+      end;
+    end;
+    AssertTrue('TEST_GLOBAL_CUSTOM found in game profile grid', Found);
+
+    // Test Paint with inherited Global item (verifies [Global] badge rendering and no crash)
+    goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+    // 3. Test deletion guard: Deleting a Global custom var in a game profile must be blocked
+    goverlayform.FTweaksGrid.Row := CustomRow;
+    goverlayform.CustomEnvRemoveClick(nil);
+    AssertEquals('Row preserved against CustomEnvRemoveClick in game profile',
+                 'TEST_GLOBAL_CUSTOM=world', goverlayform.FTweaksGrid.Cells[2, CustomRow]);
+
+    // Test MouseDown on the item delete area in MD3 mode - should toggle instead of deleting
+    goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 20, 1050);
+    AssertTrue('Row not deleted via delete zone in game profile',
+               goverlayform.FTweaksGrid.RowCount > CustomRow);
+
+    // 4. Activate the inherited global variable in the game profile
+    goverlayform.FTweaksGrid.Cells[0, CustomRow] := '1';
+
+    // Also add a game-specific local custom variable
+    Row := goverlayform.FTweaksGrid.RowCount;
+    goverlayform.FTweaksGrid.RowCount := Row + 1;
+    goverlayform.FTweaksGrid.Cells[0, Row] := '1';
+    goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+    goverlayform.FTweaksGrid.Cells[2, Row] := 'GAME_LOCAL_VAR=123';
+    goverlayform.FTweaksGrid.Cells[3, Row] := 'Local';
+    LocalRow := Row;
+
+    // Test Paint with both Global and Local items
+    goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+    // Save in game profile
+    goverlayform.SaveTweaksConfig;
+
+    // Check game's bgmod.conf
+    GameConf := goverlayform.GetGameConfigDir('TestGameCustomReuse') + 'bgmod.conf';
+    AssertTrue('Game bgmod.conf exists', FileExists(GameConf));
+    Ini := TIniFile.Create(GameConf);
+    try
+      AssertEquals('Game [Env] contains active inherited variable', 'world', Ini.ReadString('Env', 'TEST_GLOBAL_CUSTOM', ''));
+      AssertEquals('Game [Env] contains active local variable', '123', Ini.ReadString('Env', 'GAME_LOCAL_VAR', ''));
+      AssertEquals('Game config does not have [CustomVariables] section', '', Ini.ReadString('CustomVariables', 'TEST_GLOBAL_CUSTOM', ''));
+    finally
+      Ini.Free;
+    end;
+
+    // Verify global config was not corrupted or modified by game profile save
+    Ini := TIniFile.Create(GlobalConf);
+    try
+      AssertEquals('Global [Env] still does NOT have TEST_GLOBAL_CUSTOM', '', Ini.ReadString('Env', 'TEST_GLOBAL_CUSTOM', ''));
+      AssertEquals('Global [CustomVariables] still has TEST_GLOBAL_CUSTOM', 'world', Ini.ReadString('CustomVariables', 'TEST_GLOBAL_CUSTOM', ''));
+      AssertEquals('Global config does NOT have GAME_LOCAL_VAR', '', Ini.ReadString('Env', 'GAME_LOCAL_VAR', ''));
+    finally
+      Ini.Free;
+    end;
+
+    // 5. Reload in game profile mode and verify state
+    goverlayform.LoadTweaksFromFGMod;
+    Found := False;
+    for i := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+    begin
+      if goverlayform.FTweaksGrid.Cells[2, i] = 'TEST_GLOBAL_CUSTOM=world' then
+      begin
+        Found := True;
+        AssertEquals('Active inherited variable reloaded as 1 in game profile', '1', goverlayform.FTweaksGrid.Cells[0, i]);
+        AssertEquals('Inherited variable origin reloaded as Global', 'Global', goverlayform.FTweaksGrid.Cells[3, i]);
+      end;
+    end;
+    AssertTrue('TEST_GLOBAL_CUSTOM found active in game profile reload', Found);
+
+    // 6. Test that local variable can be deleted in game profile
+    LocalRow := -1;
+    for i := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+    begin
+      if goverlayform.FTweaksGrid.Cells[2, i] = 'GAME_LOCAL_VAR=123' then
+      begin
+        LocalRow := i;
+        AssertEquals('Local variable origin is Local', 'Local', goverlayform.FTweaksGrid.Cells[3, i]);
+        Break;
+      end;
+    end;
+    AssertTrue('GAME_LOCAL_VAR found before deletion', LocalRow > 0);
+
+    goverlayform.FTweaksGrid.Row := LocalRow;
+    goverlayform.CustomEnvRemoveClick(nil);
+
+    Found := False;
+    for i := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+      if goverlayform.FTweaksGrid.Cells[2, i] = 'GAME_LOCAL_VAR=123' then
+        Found := True;
+    AssertFalse('Local variable deleted successfully in game profile', Found);
+
+  finally
+    // Cleanup: Reset active game name back to global and reload
+    goverlayform.FActiveGameName := '';
+    goverlayform.LoadTweaksFromFGMod;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;
