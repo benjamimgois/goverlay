@@ -128,6 +128,7 @@ type
     procedure TestMangoHudPerformanceCompactToggles;
     procedure TestMangoHudExtrasCompactToggles;
     procedure TestLosslessScalingCompactToggles;
+    procedure TestLosslessScalingMakoTogglesLayoutAndNoScroll;
     procedure TestLosslessScalingMethodSwitching;
     procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
     procedure TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
@@ -5410,6 +5411,56 @@ begin
     Helper.HdrModeToggle.Left > Helper.PerfModeToggle.Left);
   AssertTrue('NoFp16Toggle is to the right of HdrModeToggle',
     Helper.NoFp16Toggle.Left > Helper.HdrModeToggle.Left);
+end;
+
+procedure TGoverlayGuiTests.TestLosslessScalingMakoTogglesLayoutAndNoScroll;
+var
+  Helper: TLosslessScalingTabHelper;
+begin
+  goverlayform.optiscalerLabelClick(nil);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertTrue('Lossless Scaling Helper is assigned', Assigned(Helper));
+
+  // Select MAKO method
+  Helper.SetInterpolationMethod(imMako);
+  Helper.FgModeComboBox.ItemIndex := 0; // Standard / non-adaptive mode
+  Helper.ControlStateChange(Helper.FgModeComboBox);
+  Helper.ReflowLosslessScalingTab(Helper.ScrollBox.ClientWidth);
+
+  // Assert toggles are visible and placed in single row
+  AssertTrue('PerfModeToggle is visible in MAKO', Helper.PerfModeToggle.Visible);
+  AssertTrue('UltraPerfToggle is visible in MAKO', Helper.UltraPerfToggle.Visible);
+  AssertTrue('AllowFp16Toggle is visible in MAKO', Helper.AllowFp16Toggle.Visible);
+  AssertTrue('FgLiveToggle is visible in MAKO', Helper.FgLiveToggle.Visible);
+
+  // Assert all 4 toggles share the same Y position
+  AssertEquals('PerfModeToggle and UltraPerfToggle share same Y',
+    Helper.PerfModeToggle.Top, Helper.UltraPerfToggle.Top);
+  AssertEquals('PerfModeToggle and AllowFp16Toggle share same Y',
+    Helper.PerfModeToggle.Top, Helper.AllowFp16Toggle.Top);
+  AssertEquals('PerfModeToggle and FgLiveToggle share same Y',
+    Helper.PerfModeToggle.Top, Helper.FgLiveToggle.Top);
+
+  // Assert horizontal arrangement from left to right
+  AssertTrue('UltraPerf is right of PerfMode',
+    Helper.UltraPerfToggle.Left > Helper.PerfModeToggle.Left);
+  AssertTrue('AllowFp16 is right of UltraPerf',
+    Helper.AllowFp16Toggle.Left > Helper.UltraPerfToggle.Left);
+  AssertTrue('FgLiveToggle is right of AllowFp16',
+    Helper.FgLiveToggle.Left > Helper.AllowFp16Toggle.Left);
+
+  // FrameGenCard height should be compact (<= 240px)
+  AssertTrue('FrameGenCard height is compact (<= 240) in non-adaptive MAKO',
+    Helper.FrameGenCard.Height <= 240);
+
+  // Total tab content height should fit within standard client height without vertical scroll
+  AssertTrue('StatusCard bottom + margin fits within ScrollBox ClientHeight',
+    Helper.StatusCard.Top + Helper.StatusCard.Height + 10 <= Helper.ScrollBox.ClientHeight);
+  AssertTrue('BgPanel height matches ScrollBox ClientHeight (no scroll required)',
+    Helper.BgPanel.Height <= Helper.ScrollBox.ClientHeight);
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingMethodSwitching;

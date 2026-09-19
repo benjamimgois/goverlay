@@ -270,6 +270,8 @@ type
     property FrameGenCard: TPanel read FLsFrameGenCard;
     property StatusCard: TPanel read FLsStatusCard;
     property MigrationAlertCard: TPanel read FLsMigrationAlertCard;
+    property ScrollBox: TScrollBox read FLsScrollBox;
+    property BgPanel: TPanel read FLsBgPanel;
     property MigrationAlertBtn: TBitBtn read FLsMigrationAlertBtn;
     property MigrationAlertDescLbl: TLabel read FLsMigrationAlertDescLbl;
     property NoneRadio: TRadioButton read FLsNoneRadio;
@@ -3046,72 +3048,80 @@ begin
     if Assigned(FLsPerfModeToggle) then
     begin
       FLsPerfModeToggle.Visible := True;
-      FLsPerfModeToggle.SetBounds(PAD, 206, Col3W, 24);
+      FLsPerfModeToggle.SetBounds(PAD, 202, Col4W, 24);
     end;
     if Assigned(FLsUltraPerfToggle) then
     begin
       FLsUltraPerfToggle.Visible := True;
-      FLsUltraPerfToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
+      FLsUltraPerfToggle.SetBounds(PAD + Col4W + 12, 202, Col4W, 24);
     end;
     if Assigned(FLsAllowFp16Toggle) then
     begin
       FLsAllowFp16Toggle.Visible := True;
-      FLsAllowFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
+      FLsAllowFp16Toggle.SetBounds(PAD + (Col4W + 12) * 2, 202, Col4W, 24);
+    end;
+    if Assigned(FLsFgLiveToggle) then
+    begin
+      FLsFgLiveToggle.Visible := True;
+      FLsFgLiveToggle.SetBounds(PAD + (Col4W + 12) * 3, 202, Col4W, 24);
     end;
 
     // Keep hidden compatibility toggles valid for test assertion compatibility
     if Assigned(FLsHdrModeToggle) then
     begin
-      FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 206, Col3W, 24);
+      FLsHdrModeToggle.SetBounds(PAD + Col4W + 12, 202, Col4W, 24);
       FLsHdrModeToggle.Visible := False;
     end;
     if Assigned(FLsNoFp16Toggle) then
     begin
-      FLsNoFp16Toggle.SetBounds(PAD + (Col3W + 12) * 2, 206, Col3W, 24);
+      FLsNoFp16Toggle.SetBounds(PAD + (Col4W + 12) * 2, 202, Col4W, 24);
       FLsNoFp16Toggle.Visible := False;
     end;
 
-    if Assigned(FLsFgLiveToggle) then
-    begin
-      FLsFgLiveToggle.Visible := True;
-      FLsFgLiveToggle.SetBounds(PAD, 238, Col3W, 24);
-    end;
     FLsSteady2xCapToggle.Visible := IsAdaptive;
     if IsAdaptive then
-      FLsSteady2xCapToggle.SetBounds(PAD + Col3W + 12, 238, Col3W, 24);
+      FLsSteady2xCapToggle.SetBounds(PAD, 238, Col2W, 24);
     FLsSmoothCadenceToggle.Visible := IsAdaptive;
     if IsAdaptive then
-      FLsSmoothCadenceToggle.SetBounds(PAD + (Col3W + 12) * 2, 238, Col3W, 24);
+      FLsSmoothCadenceToggle.SetBounds(RightColX, 238, Col2W, 24);
 
     if Assigned(FLsOverridePresentModeToggle) then FLsOverridePresentModeToggle.Visible := False;
     if Assigned(FLsPreserveSwapchainToggle) then FLsPreserveSwapchainToggle.Visible := False;
     if Assigned(FLsPacingTitleLbl) then FLsPacingTitleLbl.Visible := False;
     if Assigned(FLsPacingComboBox) then FLsPacingComboBox.Visible := False;
 
-    FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
-    CurY := CurY + 276 + GAP;
+    if IsAdaptive then
+    begin
+      FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 276);
+      CurY := CurY + 276 + GAP;
+    end
+    else
+    begin
+      FLsFrameGenCard.SetBounds(MARGIN, CurY, CW, 236);
+      CurY := CurY + 236 + GAP;
+    end;
 
     // Spatial Scaling Card
-    FLsSpatialCard.SetBounds(MARGIN, CurY, CW, 154);
+    FLsSpatialCard.SetBounds(MARGIN, CurY, CW, 144);
     if Assigned(FLsScalingEnableToggle) then FLsScalingEnableToggle.Visible := False;
     FLsScalingMethodTitleLbl.SetBounds(PAD, 36, Col2W, 18);
     FLsScalingMethodComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
     if Assigned(FLsScalingSupersamplingToggle) then
       FLsScalingSupersamplingToggle.SetBounds(RightColX, 58, Col2W, 24);
 
-    FLsScalingFactorTitleLbl.SetBounds(PAD, 94, Col2W, 18);
-    FLsScalingFactorTrackBar.SetBounds(PAD, 114, Col2W - 65, ROW_H);
-    FLsScalingFactorValueLabel.SetBounds(PAD + Col2W - 60, 118, 60, 20);
+    FLsScalingFactorTitleLbl.SetBounds(PAD, 88, Col2W, 18);
+    FLsScalingFactorTrackBar.SetBounds(PAD, 108, Col2W - 65, ROW_H);
+    FLsScalingFactorValueLabel.SetBounds(PAD + Col2W - 60, 112, 60, 20);
 
-    FLsScalingSharpnessTitleLbl.SetBounds(RightColX, 94, Col2W, 18);
-    FLsScalingSharpnessTrackBar.SetBounds(RightColX, 114, Col2W - 65, ROW_H);
-    FLsScalingSharpnessValueLabel.SetBounds(RightColX + Col2W - 60, 118, 60, 20);
+    FLsScalingSharpnessTitleLbl.SetBounds(RightColX, 88, Col2W, 18);
+    FLsScalingSharpnessTrackBar.SetBounds(RightColX, 108, Col2W - 65, ROW_H);
+    FLsScalingSharpnessValueLabel.SetBounds(RightColX + Col2W - 60, 112, 60, 20);
 
-    CurY := CurY + 154 + GAP;
+    CurY := CurY + 144 + GAP;
   end;
 
   // ── Card 3: Software Status (Anchored to Bottom) ─────────────────────────
-  Y0 := 36;
+  Y0 := 34;
   EditLeft := PAD + 10 + 6 + 160;
   BrowseW := 32;
   EditW := CW - EditLeft - PAD - BrowseW - 6;
@@ -3128,7 +3138,7 @@ begin
     FLsBrowseDllBtn.SetBounds(EditLeft + EditW + 6, Y0, BrowseW, ROW_H);
 
   // Row 1: MAKO Renderer
-  Y1 := Y0 + ROW_H + 8;
+  Y1 := Y0 + ROW_H + 6;
   if Assigned(FLsStatDots[1]) then
     FLsStatDots[1].SetBounds(PAD, Y1 + (ROW_H - 10) div 2, 10, 10);
   if Assigned(FLsStatNameLbls[1]) then
@@ -3152,7 +3162,7 @@ begin
   end;
 
   // Row 2: lsfg-vk Vulkan Layer
-  Y2 := Y1 + ROW_H + 8;
+  Y2 := Y1 + ROW_H + 6;
   if Assigned(FLsStatDots[2]) then
     FLsStatDots[2].SetBounds(PAD, Y2 + (ROW_H - 10) div 2, 10, 10);
   if Assigned(FLsStatNameLbls[2]) then
@@ -3197,7 +3207,7 @@ begin
     StatusCardH := Y3 + 36;
   end
   else
-    StatusCardH := Y2 + ROW_H + 12;
+    StatusCardH := Y2 + ROW_H + 10;
 
   FLsStatusCard.SetBounds(MARGIN, CurY, CW, StatusCardH);
   CurY := CurY + StatusCardH + MARGIN;
