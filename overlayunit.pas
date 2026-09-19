@@ -5769,19 +5769,68 @@ end;
 procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
 var
   ConfigLines: TStringList;
+  GlobalMangoHudFile, FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
+  FGModFilePath: string;
+  Ini: TIniFile;
 begin
-
-  //Set all checkboxes to false
-  SetAllCheckBoxesToFalse;
+  // Guard FLoadingConfig so SetAllCheckBoxesToFalse does not trigger
+  // spurious auto-saves while we are about to overwrite the file ourselves.
+  FLoadingConfig := True;
+  try
+    SetAllCheckBoxesToFalse;
+  finally
+    FLoadingConfig := False;
+  end;
 
   ConfigLines := TStringList.Create;
   try
     ConfigLines.Add('fps_only');
     ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+
+    // Mirror fps_only to ~/.config/MangoHud/MangoHud.conf so both files stay
+    // in sync — the same mirror that SaveMangoHudConfigCore performs for every
+    // other save. Without this, EnsureDefaultConfigFiles on the next launch
+    // sees a stale full config in ~/.config/MangoHud/ and may overwrite the
+    // gameconfig/global/MangoHud.conf that we just wrote.
+    if FActiveGameName = '' then
+    begin
+      GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+      CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
+      ConfigLines.SaveToFile(GlobalMangoHudFile);
+
+      // Also keep the Steam Flatpak location in sync when it exists.
+      try
+        FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+        FlatpakMangoHudFile   := FlatpakSteamConfigDir + '/MangoHud.conf';
+        if DirectoryExists(GetUserDir + '.var') then
+        begin
+          if not DirectoryExists(FlatpakSteamConfigDir) then
+            ForceDirectories(FlatpakSteamConfigDir);
+          if DirectoryExists(FlatpakSteamConfigDir) then
+            ConfigLines.SaveToFile(FlatpakMangoHudFile);
+        end;
+      except
+        on E: Exception do
+          WriteLn('[WARN] fpsonlyBitBtnClick: Could not save to Steam Flatpak location: ', E.Message);
+      end;
+    end;
+
+    // Keep bgmod.conf pointing at the correct config file.
+    FGModFilePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
+    ForceDirectories(ExtractFilePath(FGModFilePath));
+    Ini := TIniFile.Create(FGModFilePath);
+    try
+      if Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '') <> '0' then
+        Ini.WriteString('Config', 'GOVERLAY_MANGOHUD', '1');
+      Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', MANGOHUDCFGFILE);
+    finally
+      Ini.Free;
+    end;
   finally
     ConfigLines.Free;
   end;
 
+  ShowSavedStatus;
   // Popup a notification
   // SendNotification('MangoHud', 'Configuration saved', GetIconFile);
   SyncAllToggles;
