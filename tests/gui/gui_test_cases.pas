@@ -84,6 +84,7 @@ type
     procedure TestSafeUninstallChangesRestoresStreamlineBackups;
     procedure TestThirdPartyProxyDllPreservedDuringLaunchAndUninstall;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
+    procedure TestOptiScalerOptionsCardHeightAndNoScroll;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
     procedure TestMangoVisualTab;
@@ -3153,6 +3154,27 @@ begin
   AssertFalse('DLSS Enabler unchecked when None is selected', goverlayform.dlssenablerRadioButton.Checked);
   AssertTrue('None is checked', goverlayform.noneUpscalerRadioButton.Checked);
   AssertFalse('optversionComboBox disabled when None is selected', goverlayform.optversionComboBox.Enabled);
+end;
+
+procedure TGoverlayGuiTests.TestOptiScalerOptionsCardHeightAndNoScroll;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  // Exercise reflow with current scroll box width
+  goverlayform.ReflowOptiScalerTabNew(goverlayform.FOsScrollBox.ClientWidth);
+
+  // Options card height should be reduced from previous 410px and fit comfortably
+  AssertTrue('FOsOptionsCard height is reduced (< 410)', goverlayform.FOsOptionsCard.Height < 410);
+  AssertTrue('FOsOptionsCard height accommodates controls (>= 290)', goverlayform.FOsOptionsCard.Height >= 290);
+
+  // Total background height should not exceed scroll box client height at standard size
+  AssertTrue('FOsBgPanel height does not exceed FOsScrollBox client height',
+    goverlayform.FOsBgPanel.Height <= goverlayform.FOsScrollBox.ClientHeight);
+
+  // Software status card bottom must be fully within client height (no vertical scroll needed)
+  AssertTrue('FOsStatusCard fits within FOsScrollBox client height without vertical scrolling',
+    goverlayform.FOsStatusCard.Top + goverlayform.FOsStatusCard.Height <= goverlayform.FOsScrollBox.ClientHeight);
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────

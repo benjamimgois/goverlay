@@ -1187,7 +1187,15 @@ begin
     if CW < 100 then Exit;
 
     TotalH := FOsScrollBox.ClientHeight;
-    if TotalH < 100 then TotalH := 600;
+    if TotalH < 400 then
+    begin
+      if Assigned(optiscalerTabSheet) and (optiscalerTabSheet.ClientHeight > 150) then
+        TotalH := optiscalerTabSheet.ClientHeight
+      else if Assigned(FForm) and (FForm.ClientHeight > 150) then
+        TotalH := FForm.ClientHeight - 35
+      else
+        TotalH := 648;
+    end;
 
     IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
@@ -1197,7 +1205,7 @@ begin
     else
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
-    MinOptH := 410;
+    MinOptH := 290;
     CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -1339,9 +1347,9 @@ begin
         FOsShortcutCaptureBtn.SetBounds(10, Y0 + 166, Min(ColW - 20, 120), 28);
 
       if Assigned(dlssenablerToggleLabel) then
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 204, ColW - 20, 16);
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 200, ColW - 20, 16);
       if Assigned(dlssenablerToggleBtn) then
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 222, Min(ColW - 20, 120), 28);
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 218, Min(ColW - 20, 120), 28);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
