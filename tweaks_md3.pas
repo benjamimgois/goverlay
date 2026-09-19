@@ -17,6 +17,11 @@ type
     Description: string;
   end;
 
+  TPredefinedArg = record
+    Arg: string;
+    Description: string;
+  end;
+
 const
   TWEAK_CAT_GENERAL  = 0;
   TWEAK_CAT_GRAPHICS = 1;
@@ -25,6 +30,16 @@ const
   // Custom rows are added by the user at run time; they are not part of
   // TWEAK_ROWS but share the category column of the backing grid.
   TWEAK_CAT_CUSTOM   = 4;
+  TWEAK_CAT_ARGS     = 5;
+
+  PREDEFINED_ARG_COUNT = 5;
+  PREDEFINED_ARGS: array[0..PREDEFINED_ARG_COUNT - 1] of TPredefinedArg = (
+    (Arg: '-novid';  Description: 'Skip intro videos and logos'),
+    (Arg: '-vulkan'; Description: 'Force native Vulkan renderer'),
+    (Arg: '-dx11';   Description: 'Force DirectX 11 backend'),
+    (Arg: '-dx12';   Description: 'Force DirectX 12 backend'),
+    (Arg: '-nojoy';  Description: 'Disable joystick subsystem')
+  );
 
   TWEAK_ROW_COUNT = 31;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
@@ -85,6 +100,8 @@ function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
 // Header caption for a TWEAK_CAT_* value. Display only: nothing branches on
 // the string it returns.
 function TweakCategoryName(ACategory: Integer): string;
+function FindPredefinedArg(const AArg: string; out ADesc: string): Boolean;
+function IsLaunchArgument(const AText: string): Boolean;
 
 implementation
 
@@ -105,9 +122,36 @@ begin
     TWEAK_CAT_PERF:     Result := 'Performance';
     TWEAK_CAT_LATENCY:  Result := 'Latency reduction';
     TWEAK_CAT_CUSTOM:   Result := 'Custom';
+    TWEAK_CAT_ARGS:     Result := 'Launch Arguments';
   else
     Result := '';
   end;
+end;
+
+function FindPredefinedArg(const AArg: string; out ADesc: string): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  ADesc := '';
+  for i := 0 to PREDEFINED_ARG_COUNT - 1 do
+  begin
+    if SameText(PREDEFINED_ARGS[i].Arg, AArg) then
+    begin
+      ADesc := PREDEFINED_ARGS[i].Description;
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function IsLaunchArgument(const AText: string): Boolean;
+var
+  Trimmed: string;
+begin
+  Trimmed := Trim(AText);
+  Result := (Pos('-', Trimmed) = 1) or
+            (Pos('+', Trimmed) = 1);
 end;
 
 function IsPredefinedTweakKey(const AKey: string): Boolean;
@@ -194,6 +238,24 @@ begin
     begin
       AVal := V;
       Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function FindArgInList(AList: TStringList; const AArg: string): Boolean;
+var
+  idx: Integer;
+  K, V: string;
+begin
+  Result := False;
+  if not Assigned(AList) then Exit;
+  for idx := 0 to AList.Count - 1 do
+  begin
+    ParseTweakLine(AList[idx], K, V);
+    if SameText(K, AArg) then
+    begin
+      Result := (V = '1') or (V = '');
       Exit;
     end;
   end;
@@ -464,12 +526,12 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
   end;
 
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
-                     AChecked, AHover: Boolean; AIsCustom: Boolean);
+                     AChecked, AHover: Boolean; AIsCustom: Boolean; AIsArg: Boolean = False);
   var
     ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW, p: Integer;
-    CleanDesc, Prefix, BadgeText: string;
+    CleanDesc, Prefix, BadgeText, PredefinedDesc: string;
     BadgeBg, BadgeBorder, BadgeTxtColor: TColor;
-    HasBadge: Boolean;
+    HasBadge, IsPredefined, HasDelBtn: Boolean;
     VarRect, DescRect: TRect;
   const
     DEL_W = 22;
@@ -490,8 +552,11 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       ACanvas.RoundRect(ARect.Left, ARect.Top + 1, ARect.Right, ARect.Bottom - 1, 6, 6);
     end;
 
-    // Delete button for custom items (hidden for Global items in game profile)
-    if AIsCustom and not ((FForm.FActiveGameName <> '') and (ADesc = 'Global')) then
+    IsPredefined := AIsArg and FindPredefinedArg(AVar, PredefinedDesc);
+    HasDelBtn := AIsCustom and not ((FForm.FActiveGameName <> '') and (ADesc = 'Global')) and not IsPredefined;
+
+    // Delete button for custom items (hidden for Global items in game profile and predefined args)
+    if HasDelBtn then
     begin
       DelX := ARect.Left + 8;
       ACanvas.Font.Name   := 'DejaVu Sans';
@@ -515,14 +580,22 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       HasBadge := False;
       CleanDesc := '';
       BadgeText := '';
-      if (FForm.FActiveGameName <> '') and (ADesc = 'Global') then
+
+      if AIsArg and IsPredefined then
+      begin
+        CleanDesc := PredefinedDesc;
+      end
+      else if (FForm.FActiveGameName <> '') and (ADesc = 'Global') then
       begin
         HasBadge := True;
         BadgeText := 'Global';
         BadgeBg := RGBToColor(18, 42, 58);
         BadgeBorder := RGBToColor(36, 110, 150);
         BadgeTxtColor := RGBToColor(80, 195, 245);
-        CleanDesc := 'Global catalog preset';
+        if AIsArg then
+          CleanDesc := 'Global catalog argument'
+        else
+          CleanDesc := 'Global catalog preset';
       end
       else if (FForm.FActiveGameName <> '') and (ADesc = 'Local') then
       begin
@@ -531,10 +604,18 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
         BadgeBg := RGBToColor(48, 32, 58);
         BadgeBorder := RGBToColor(130, 75, 160);
         BadgeTxtColor := RGBToColor(215, 155, 255);
-        CleanDesc := 'Game-specific custom variable';
+        if AIsArg then
+          CleanDesc := 'Game-specific launch argument'
+        else
+          CleanDesc := 'Game-specific custom variable';
       end
       else
-        CleanDesc := 'Custom environment variable';
+      begin
+        if AIsArg then
+          CleanDesc := 'Custom launch argument'
+        else
+          CleanDesc := 'Custom environment variable';
+      end;
 
       // Title line: AVar (monospace, bold)
       DescTop := ARect.Top + 6;
@@ -691,6 +772,7 @@ var
   PB: TPaintBox;
   Y, RowIdx, i, CatIdx, ItemCount, ActiveCount, CustomCount, Rows, CardH, TotalContentH: Integer;
   CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
+  CustomVarCount, ActiveCustomCount, LaunchArgCount, ActiveArgCount, ArgItemCount: Integer;
   CatNames: array[0..3] of string;
   HoverIdx: Integer;
   R: TRect;
@@ -714,20 +796,13 @@ begin
   begin
     TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
     TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterSmoothPixmapTransform, True);
-    TQtDeviceContext(PB.Canvas.Handle).setRenderHint(QPainterTextAntialiasing, True);
   end;
   {$ENDIF}
 
-  CatNames[0] := TweakCategoryName(TWEAK_CAT_GENERAL);
-  CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
-  CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
-  CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
-
-  Y := -FForm.FTweaksScrollPos + CARD_GAP;
-  RowIdx := 0;
   HoverIdx := FForm.FTweaksHoverIdx;
-  Is2Col := PB.Width >= 700;
-  CardLeft := CARD_MARGIN_X;
+  Is2Col   := PB.Width >= 700;
+
+  CardLeft  := CARD_MARGIN_X;
   CardRight := PB.Width - CARD_MARGIN_X;
   InnerLeft := CardLeft + 8;
   InnerRight := CardRight - 8;
@@ -735,9 +810,17 @@ begin
   ColGap := 8;
   ColW := (InnerW - ColGap) div 2;
 
+  Y := -FForm.FTweaksScrollPos + CARD_GAP;
+  RowIdx := 0;
+
+  CatNames[0] := TweakCategoryName(TWEAK_CAT_GENERAL);
+  CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
+  CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
+  CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
+
+  // Draw 4 predefined category cards
   for CatIdx := 0 to 3 do
   begin
-    // Count items and active tweaks in this category
     ItemCount := 0;
     ActiveCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
@@ -746,16 +829,16 @@ begin
       begin
         Inc(ItemCount);
         Chk := GetTweakRowCheckBox(FForm, i);
-        if Assigned(Chk) and Chk.Checked then
-          Inc(ActiveCount);
+        if Assigned(Chk) and Chk.Checked then Inc(ActiveCount);
       end;
     end;
+
+    if ItemCount = 0 then Continue;
 
     if Is2Col then
       Rows := (ItemCount + 1) div 2
     else
       Rows := ItemCount;
-
     CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
     // Draw Card Container
@@ -809,29 +892,45 @@ begin
     Inc(Y, CardH + CARD_GAP);
   end;
 
-  // Custom Card
-  CustomCount := 0;
+  // Count custom variables and launch arguments
+  CustomVarCount := 0;
+  ActiveCustomCount := 0;
+  LaunchArgCount := 0;
+  ActiveArgCount := 0;
   if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
-    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
+  begin
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+    begin
+      if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then
+      begin
+        Inc(LaunchArgCount);
+        if FForm.FTweaksGrid.Cells[0, i] = '1' then Inc(ActiveArgCount);
+      end
+      else
+      begin
+        Inc(CustomVarCount);
+        if FForm.FTweaksGrid.Cells[0, i] = '1' then Inc(ActiveCustomCount);
+      end;
+    end;
+  end;
 
-  if CustomCount > 0 then
+  // 1. Custom Variables Card
+  if CustomVarCount > 0 then
   begin
     if Is2Col then
-      Rows := (CustomCount + 1) div 2
+      Rows := (CustomVarCount + 1) div 2
     else
-      Rows := CustomCount;
+      Rows := CustomVarCount;
     CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
   end
   else
     CardH := CARD_HDR_H + 36;
 
-  // Draw Custom Card Container
   PB.Canvas.Brush.Color := DARK_CARD_BG;
   PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
   PB.Canvas.Pen.Width   := 1;
   PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
 
-  // Draw Custom Card Header
   PB.Canvas.Font.Name  := 'DejaVu Sans';
   PB.Canvas.Font.Size  := 10;
   PB.Canvas.Font.Style := [fsBold];
@@ -839,11 +938,22 @@ begin
   PB.Canvas.Brush.Style := bsClear;
   PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_CUSTOM) + ' Variables');
 
-  if CustomCount > 0 then
+  if ActiveCustomCount > 0 then
+  begin
+    ActiveStr := IntToStr(ActiveCustomCount) + ' active';
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 8;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
+    PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+  end;
+
+  if CustomVarCount > 0 then
   begin
     CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
+      if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
       if Is2Col then
       begin
         Col := CustomItemCount mod 2;
@@ -857,7 +967,7 @@ begin
         R := Rect(InnerLeft, Y + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
 
       DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
-               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True);
+               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True, False);
       Inc(CustomItemCount);
       Inc(RowIdx);
     end;
@@ -870,6 +980,76 @@ begin
     PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
     PB.Canvas.Brush.Style := bsClear;
     PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No custom variables. Use the + Add button below to create one.');
+  end;
+
+  Inc(Y, CardH + CARD_GAP);
+
+  // 2. Launch Arguments Card
+  if LaunchArgCount > 0 then
+  begin
+    if Is2Col then
+      Rows := (LaunchArgCount + 1) div 2
+    else
+      Rows := LaunchArgCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+  end
+  else
+    CardH := CARD_HDR_H + 36;
+
+  PB.Canvas.Brush.Color := DARK_CARD_BG;
+  PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+  PB.Canvas.Font.Name  := 'DejaVu Sans';
+  PB.Canvas.Font.Size  := 10;
+  PB.Canvas.Font.Style := [fsBold];
+  PB.Canvas.Font.Color := clWhite;
+  PB.Canvas.Brush.Style := bsClear;
+  PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_ARGS));
+
+  if ActiveArgCount > 0 then
+  begin
+    ActiveStr := IntToStr(ActiveArgCount) + ' active';
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 8;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
+    PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+  end;
+
+  if LaunchArgCount > 0 then
+  begin
+    ArgItemCount := 0;
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+    begin
+      if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
+      if Is2Col then
+      begin
+        Col := ArgItemCount mod 2;
+        Row := ArgItemCount div 2;
+        if Col = 0 then
+          R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
+        else
+          R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        R := Rect(InnerLeft, Y + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+      DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
+               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True, True);
+      Inc(ArgItemCount);
+      Inc(RowIdx);
+    end;
+  end
+  else
+  begin
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 8;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No launch arguments. Use the + Add button below to create one.');
   end;
 
   Inc(Y, CardH + CARD_GAP);
@@ -893,6 +1073,7 @@ procedure TTweaksMD3Helper.MouseMove(Sender: TObject; Shift: TShiftState; X, Y: 
 var
   PB: TPaintBox;
   OldHover, RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
+  CustomVarCount, LaunchArgCount, ArgItemCount: Integer;
   YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   ItemRect: TRect;
   TweakHint: string;
@@ -973,37 +1154,97 @@ begin
     Inc(YPos, CardH + CARD_GAP);
   end;
 
-  // Custom section
-  if (FForm.FTweaksHoverIdx < 0) and Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+  // Custom Variables and Launch Arguments sections
+  CustomVarCount := 0;
+  LaunchArgCount := 0;
+  if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
   begin
-    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
-    if Is2Col then Rows := (CustomCount + 1) div 2 else Rows := CustomCount;
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then
+        Inc(LaunchArgCount)
+      else
+        Inc(CustomVarCount);
+  end;
+
+  // Custom Variables card hover
+  if CustomVarCount > 0 then
+  begin
+    if Is2Col then Rows := (CustomVarCount + 1) div 2 else Rows := CustomVarCount;
     CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
-    CustomItemCount := 0;
-    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+    if FForm.FTweaksHoverIdx < 0 then
     begin
-      if Is2Col then
+      CustomItemCount := 0;
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
       begin
-        Col := CustomItemCount mod 2;
-        Row := CustomItemCount div 2;
-        if Col = 0 then
-          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+        if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
+        if Is2Col then
+        begin
+          Col := CustomItemCount mod 2;
+          Row := CustomItemCount div 2;
+          if Col = 0 then
+            ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          else
+            ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+        end
         else
-          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
-      end
-      else
-        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CustomItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CustomItemCount + 1) * ITEM_H));
 
-      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
-      begin
-        FForm.FTweaksHoverIdx := RowIdx;
-        Break;
+        if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+        begin
+          FForm.FTweaksHoverIdx := RowIdx;
+          Break;
+        end;
+        Inc(CustomItemCount);
+        Inc(RowIdx);
       end;
-      Inc(CustomItemCount);
-      Inc(RowIdx);
-    end;
-  end;
+    end
+    else
+      Inc(RowIdx, CustomVarCount);
+  end
+  else
+    CardH := CARD_HDR_H + 36;
+
+  Inc(YPos, CardH + CARD_GAP);
+
+  // Launch Arguments card hover
+  if LaunchArgCount > 0 then
+  begin
+    if Is2Col then Rows := (LaunchArgCount + 1) div 2 else Rows := LaunchArgCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    if FForm.FTweaksHoverIdx < 0 then
+    begin
+      ArgItemCount := 0;
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
+        if Is2Col then
+        begin
+          Col := ArgItemCount mod 2;
+          Row := ArgItemCount div 2;
+          if Col = 0 then
+            ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          else
+            ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+        end
+        else
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+        if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+        begin
+          FForm.FTweaksHoverIdx := RowIdx;
+          Break;
+        end;
+        Inc(ArgItemCount);
+        Inc(RowIdx);
+      end;
+    end
+    else
+      Inc(RowIdx, LaunchArgCount);
+  end
+  else
+    CardH := CARD_HDR_H + 36;
 
   if TweakHint <> '' then
   begin
@@ -1031,10 +1272,12 @@ procedure TTweaksMD3Helper.MouseDown(Sender: TObject; Button: TMouseButton; Shif
 var
   PB: TPaintBox;
   RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
+  CustomVarCount, LaunchArgCount, ArgItemCount: Integer;
   YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   ItemRect: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
+  DummyDesc: string;
 const
   CARD_MARGIN_X   = 4;
   CARD_GAP        = 10;
@@ -1118,16 +1361,28 @@ begin
     Inc(YPos, CardH + CARD_GAP);
   end;
 
-  // Custom section
+  // Custom Variables and Launch Arguments sections
+  CustomVarCount := 0;
+  LaunchArgCount := 0;
   if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
   begin
-    CustomCount := FForm.FTweaksGrid.RowCount - 1 - TWEAK_ROW_COUNT;
-    if Is2Col then Rows := (CustomCount + 1) div 2 else Rows := CustomCount;
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then
+        Inc(LaunchArgCount)
+      else
+        Inc(CustomVarCount);
+  end;
+
+  // Custom Variables card click
+  if CustomVarCount > 0 then
+  begin
+    if Is2Col then Rows := (CustomVarCount + 1) div 2 else Rows := CustomVarCount;
     CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
     CustomItemCount := 0;
     for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
     begin
+      if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
       if Is2Col then
       begin
         Col := CustomItemCount mod 2;
@@ -1175,6 +1430,81 @@ begin
       Inc(CustomItemCount);
       Inc(RowIdx);
     end;
+  end
+  else
+    CardH := CARD_HDR_H + 36;
+
+  Inc(YPos, CardH + CARD_GAP);
+
+  // Launch Arguments card click
+  if LaunchArgCount > 0 then
+  begin
+    if Is2Col then Rows := (LaunchArgCount + 1) div 2 else Rows := LaunchArgCount;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    ArgItemCount := 0;
+    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+    begin
+      if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
+      if Is2Col then
+      begin
+        Col := ArgItemCount mod 2;
+        Row := ArgItemCount div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+        else
+          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        // Predefined arguments have no delete button: entire item toggles
+        if FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], DummyDesc) then
+        begin
+          if FForm.FTweaksGrid.Cells[0, i] = '1' then
+            FForm.FTweaksGrid.Cells[0, i] := '0'
+          else
+            FForm.FTweaksGrid.Cells[0, i] := '1';
+          PB.Invalidate;
+          FForm.TriggerAutoSave;
+          Exit;
+        end;
+
+        // Delete button hit (left 28px of the item) for custom arguments
+        if X < ItemRect.Left + 28 then
+        begin
+          if (FForm.FActiveGameName <> '') and (FForm.FTweaksGrid.Cells[3, i] = 'Global') then
+          begin
+            // Guard: Cannot delete global catalog entries from within a game profile; toggle instead
+            if FForm.FTweaksGrid.Cells[0, i] = '1' then
+              FForm.FTweaksGrid.Cells[0, i] := '0'
+            else
+              FForm.FTweaksGrid.Cells[0, i] := '1';
+            PB.Invalidate;
+            FForm.TriggerAutoSave;
+            Exit;
+          end;
+
+          FForm.FTweaksGrid.DeleteRow(i);
+          PB.Invalidate;
+          FForm.TriggerAutoSave;
+          Exit;
+        end;
+
+        // Otherwise toggle argument
+        if FForm.FTweaksGrid.Cells[0, i] = '1' then
+          FForm.FTweaksGrid.Cells[0, i] := '0'
+        else
+          FForm.FTweaksGrid.Cells[0, i] := '1';
+        PB.Invalidate;
+        FForm.TriggerAutoSave;
+        Exit;
+      end;
+      Inc(ArgItemCount);
+      Inc(RowIdx);
+    end;
   end;
 end;
 
@@ -1202,21 +1532,40 @@ procedure TTweaksMD3Helper.FABClick(Sender: TObject);
 var
   Val: string;
   Row: Integer;
+  IsArg: Boolean;
+  ArgDesc: string;
 begin
-  Val := Trim(InputBox('Custom Environment Variable',
-                       'Enter the variable (e.g. MY_VAR=1):', ''));
+  Val := Trim(InputBox('Add Environment Variable or Launch Argument',
+                       'Enter variable (KEY=VAL) or argument (-arg / +arg):', ''));
   if Val = '' then Exit;
 
   if not Assigned(FForm.FTweaksGrid) then Exit;
   Row := FForm.FTweaksGrid.RowCount;
   FForm.FTweaksGrid.RowCount := Row + 1;
   FForm.FTweaksGrid.Cells[0, Row] := '1';
-  FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
-  FForm.FTweaksGrid.Cells[2, Row] := Val;
-  if FForm.FActiveGameName = '' then
-    FForm.FTweaksGrid.Cells[3, Row] := 'Global'
+
+  IsArg := IsLaunchArgument(Val);
+  if IsArg then
+  begin
+    FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+    FForm.FTweaksGrid.Cells[2, Row] := Val;
+    if FindPredefinedArg(Val, ArgDesc) then
+      FForm.FTweaksGrid.Cells[3, Row] := ArgDesc
+    else if FForm.FActiveGameName = '' then
+      FForm.FTweaksGrid.Cells[3, Row] := 'Global'
+    else
+      FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+  end
   else
-    FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+  begin
+    FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+    FForm.FTweaksGrid.Cells[2, Row] := Val;
+    if FForm.FActiveGameName = '' then
+      FForm.FTweaksGrid.Cells[3, Row] := 'Global'
+    else
+      FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+  end;
+
   FForm.FTweaksPaintBox.Invalidate;
   FForm.TriggerAutoSave;
 end;
@@ -1385,6 +1734,7 @@ var
   DMangoCfgVal: string;
   CustomLine: string;
   CustomKey, CustomVal: string;
+  ArgStr, DummyDesc: string;
   p: Integer;
   FileLines: TStringList;
   Modified: Boolean;
@@ -1538,25 +1888,44 @@ begin
     if FForm.FProtonDiscordBridgeCheckBox.Checked then
       Ini.WriteString('Env', 'PROTON_DISCORD_BRIDGE', '1');
 
-    // 4. Custom environment variables from grid
+    // 4. Custom environment variables and launch arguments from grid
     if Assigned(FForm.FTweaksGrid) then
     begin
       if FForm.FActiveGameName = '' then
+      begin
         Ini.EraseSection('CustomVariables');
+        Ini.EraseSection('CustomArguments');
+      end;
+      Ini.EraseSection('Args');
 
       for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
       begin
-        CustomLine := Trim(FForm.FTweaksGrid.Cells[2, i]);
-        if CustomLine <> '' then
+        if FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS) then
         begin
-          ParseTweakLine(CustomLine, CustomKey, CustomVal);
-          if CustomKey <> '' then
+          ArgStr := Trim(FForm.FTweaksGrid.Cells[2, i]);
+          if ArgStr <> '' then
           begin
             if FForm.FTweaksGrid.Cells[0, i] = '1' then
-              Ini.WriteString('Env', CustomKey, CustomVal);
+              Ini.WriteString('Args', ArgStr, '1');
 
-            if FForm.FActiveGameName = '' then
-              Ini.WriteString('CustomVariables', CustomKey, CustomVal);
+            if (FForm.FActiveGameName = '') and not FindPredefinedArg(ArgStr, DummyDesc) then
+              Ini.WriteString('CustomArguments', ArgStr, '1');
+          end;
+        end
+        else
+        begin
+          CustomLine := Trim(FForm.FTweaksGrid.Cells[2, i]);
+          if CustomLine <> '' then
+          begin
+            ParseTweakLine(CustomLine, CustomKey, CustomVal);
+            if CustomKey <> '' then
+            begin
+              if FForm.FTweaksGrid.Cells[0, i] = '1' then
+                Ini.WriteString('Env', CustomKey, CustomVal);
+
+              if FForm.FActiveGameName = '' then
+                Ini.WriteString('CustomVariables', CustomKey, CustomVal);
+            end;
           end;
         end;
       end;
@@ -1604,8 +1973,9 @@ var
   ConfigPath, GlobalConfigPath: string;
   Ini, GlobalIni: TIniFile;
   EnvList, CustomVarList, GlobalCustomList: TStringList;
-  i, Row: Integer;
-  Key, Val, MatchVal: string;
+  ArgsList, CustomArgList, GlobalCustomArgList: TStringList;
+  i, Row, p: Integer;
+  Key, Val, MatchVal, DummyDesc: string;
 
   procedure ProcessPredefinedEnv(AIni: TIniFile; AEnvList: TStringList);
   var
@@ -1737,60 +2107,116 @@ begin
     // GLOBAL MODE LOADING
     // ==========================================
     ConfigPath := FForm.GetGameConfigDir('') + 'bgmod.conf';
-    if FileExists(ConfigPath) then
-    begin
-      Ini := TIniFile.Create(ConfigPath);
-      EnvList := TStringList.Create;
-      CustomVarList := TStringList.Create;
-      try
+    Ini := nil;
+    EnvList := TStringList.Create;
+    CustomVarList := TStringList.Create;
+    ArgsList := TStringList.Create;
+    CustomArgList := TStringList.Create;
+    try
+      if FileExists(ConfigPath) then
+      begin
+        Ini := TIniFile.Create(ConfigPath);
         Ini.ReadSectionValues('Env', EnvList);
         ProcessPredefinedEnv(Ini, EnvList);
-
         Ini.ReadSectionValues('CustomVariables', CustomVarList);
-        for i := 0 to CustomVarList.Count - 1 do
-        begin
-          ParseTweakLine(CustomVarList[i], Key, Val);
-          if Key <> '' then
-          begin
-            Row := FForm.FTweaksGrid.RowCount;
-            FForm.FTweaksGrid.RowCount := Row + 1;
-            if FindTweakInList(EnvList, Key, MatchVal) and (MatchVal = Val) then
-            begin
-              FForm.FTweaksGrid.Cells[0, Row] := '1';
-              if Assigned(FForm.FCustomListBox) then
-                FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
-            end
-            else
-              FForm.FTweaksGrid.Cells[0, Row] := '0';
+        Ini.ReadSectionValues('Args', ArgsList);
+        Ini.ReadSectionValues('CustomArguments', CustomArgList);
+      end;
 
-            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
-            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
-            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
-          end;
-        end;
+      // 1. Predefined launch arguments
+      for p := 0 to PREDEFINED_ARG_COUNT - 1 do
+      begin
+        Row := FForm.FTweaksGrid.RowCount;
+        FForm.FTweaksGrid.RowCount := Row + 1;
+        if FindArgInList(ArgsList, PREDEFINED_ARGS[p].Arg) then
+          FForm.FTweaksGrid.Cells[0, Row] := '1'
+        else
+          FForm.FTweaksGrid.Cells[0, Row] := '0';
+        FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+        FForm.FTweaksGrid.Cells[2, Row] := PREDEFINED_ARGS[p].Arg;
+        FForm.FTweaksGrid.Cells[3, Row] := PREDEFINED_ARGS[p].Description;
+      end;
 
-        // Backward compatibility: Any non-predefined custom variable in [Env] not in [CustomVariables]
-        for i := 0 to EnvList.Count - 1 do
+      // 2. Custom environment variables from [CustomVariables]
+      for i := 0 to CustomVarList.Count - 1 do
+      begin
+        ParseTweakLine(CustomVarList[i], Key, Val);
+        if Key <> '' then
         begin
-          ParseTweakLine(EnvList[i], Key, Val);
-          if (Key <> '') and not IsPredefinedTweakKey(Key) and not FindTweakInList(CustomVarList, Key, MatchVal) then
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          if FindTweakInList(EnvList, Key, MatchVal) and (MatchVal = Val) then
           begin
-            Row := FForm.FTweaksGrid.RowCount;
-            FForm.FTweaksGrid.RowCount := Row + 1;
             FForm.FTweaksGrid.Cells[0, Row] := '1';
-            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
-            FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
-            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
             if Assigned(FForm.FCustomListBox) then
               FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
-          end;
-        end;
+          end
+          else
+            FForm.FTweaksGrid.Cells[0, Row] := '0';
 
-      finally
-        CustomVarList.Free;
-        EnvList.Free;
-        Ini.Free;
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+          FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+          FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+        end;
       end;
+
+      // Backward compatibility: Any non-predefined custom variable in [Env] not in [CustomVariables]
+      for i := 0 to EnvList.Count - 1 do
+      begin
+        ParseTweakLine(EnvList[i], Key, Val);
+        if (Key <> '') and not IsPredefinedTweakKey(Key) and not FindTweakInList(CustomVarList, Key, MatchVal) then
+        begin
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          FForm.FTweaksGrid.Cells[0, Row] := '1';
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+          FForm.FTweaksGrid.Cells[2, Row] := FormatTweakLine(Key, Val);
+          FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+          if Assigned(FForm.FCustomListBox) then
+            FForm.FCustomListBox.Items.Add(FormatTweakLine(Key, Val));
+        end;
+      end;
+
+      // 3. Custom launch arguments from [CustomArguments]
+      for i := 0 to CustomArgList.Count - 1 do
+      begin
+        ParseTweakLine(CustomArgList[i], Key, Val);
+        if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) then
+        begin
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          if FindArgInList(ArgsList, Key) then
+            FForm.FTweaksGrid.Cells[0, Row] := '1'
+          else
+            FForm.FTweaksGrid.Cells[0, Row] := '0';
+
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+          FForm.FTweaksGrid.Cells[2, Row] := Key;
+          FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+        end;
+      end;
+
+      // Backward compatibility: Any non-predefined argument in [Args] not in [CustomArguments]
+      for i := 0 to ArgsList.Count - 1 do
+      begin
+        ParseTweakLine(ArgsList[i], Key, Val);
+        if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(CustomArgList, Key) then
+        begin
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          FForm.FTweaksGrid.Cells[0, Row] := '1';
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+          FForm.FTweaksGrid.Cells[2, Row] := Key;
+          FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+        end;
+      end;
+
+    finally
+      CustomArgList.Free;
+      ArgsList.Free;
+      CustomVarList.Free;
+      EnvList.Free;
+      if Assigned(Ini) then Ini.Free;
     end;
   end
   else
@@ -1801,13 +2227,15 @@ begin
     GlobalConfigPath := FForm.GetGameConfigDir('') + 'bgmod.conf';
     ConfigPath := FForm.GetGameConfigDir(FForm.FActiveGameName) + 'bgmod.conf';
 
-    // 1. Gather global custom catalog
+    // 1. Gather global custom catalogs (variables and arguments)
     GlobalCustomList := TStringList.Create;
+    GlobalCustomArgList := TStringList.Create;
     try
       if FileExists(GlobalConfigPath) then
       begin
         GlobalIni := TIniFile.Create(GlobalConfigPath);
         EnvList := TStringList.Create;
+        ArgsList := TStringList.Create;
         try
           GlobalIni.ReadSectionValues('CustomVariables', GlobalCustomList);
           GlobalIni.ReadSectionValues('Env', EnvList);
@@ -1822,7 +2250,17 @@ begin
                 GlobalCustomList.Add(Key);
             end;
           end;
+
+          GlobalIni.ReadSectionValues('CustomArguments', GlobalCustomArgList);
+          GlobalIni.ReadSectionValues('Args', ArgsList);
+          for i := 0 to ArgsList.Count - 1 do
+          begin
+            ParseTweakLine(ArgsList[i], Key, Val);
+            if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(GlobalCustomArgList, Key) then
+              GlobalCustomArgList.Add(Key);
+          end;
         finally
+          ArgsList.Free;
           EnvList.Free;
           GlobalIni.Free;
         end;
@@ -1830,6 +2268,7 @@ begin
 
       // 2. Load game's config if exists
       EnvList := TStringList.Create;
+      ArgsList := TStringList.Create;
       try
         if FileExists(ConfigPath) then
         begin
@@ -1837,12 +2276,27 @@ begin
           try
             Ini.ReadSectionValues('Env', EnvList);
             ProcessPredefinedEnv(Ini, EnvList);
+            Ini.ReadSectionValues('Args', ArgsList);
           finally
             Ini.Free;
           end;
         end;
 
-        // 3. Populate global custom variables into grid
+        // 3. Predefined launch arguments (checked if in game's [Args])
+        for p := 0 to PREDEFINED_ARG_COUNT - 1 do
+        begin
+          Row := FForm.FTweaksGrid.RowCount;
+          FForm.FTweaksGrid.RowCount := Row + 1;
+          if FindArgInList(ArgsList, PREDEFINED_ARGS[p].Arg) then
+            FForm.FTweaksGrid.Cells[0, Row] := '1'
+          else
+            FForm.FTweaksGrid.Cells[0, Row] := '0';
+          FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+          FForm.FTweaksGrid.Cells[2, Row] := PREDEFINED_ARGS[p].Arg;
+          FForm.FTweaksGrid.Cells[3, Row] := PREDEFINED_ARGS[p].Description;
+        end;
+
+        // 4. Populate global custom variables into grid
         for i := 0 to GlobalCustomList.Count - 1 do
         begin
           ParseTweakLine(GlobalCustomList[i], Key, Val);
@@ -1865,7 +2319,7 @@ begin
           end;
         end;
 
-        // 4. Populate any game-specific local custom variables into grid
+        // 5. Populate any game-specific local custom variables into grid
         for i := 0 to EnvList.Count - 1 do
         begin
           ParseTweakLine(EnvList[i], Key, Val);
@@ -1882,10 +2336,46 @@ begin
           end;
         end;
 
+        // 6. Populate global custom arguments into grid (checked if in game's [Args], default '0')
+        for i := 0 to GlobalCustomArgList.Count - 1 do
+        begin
+          ParseTweakLine(GlobalCustomArgList[i], Key, Val);
+          if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            if FindArgInList(ArgsList, Key) then
+              FForm.FTweaksGrid.Cells[0, Row] := '1'
+            else
+              FForm.FTweaksGrid.Cells[0, Row] := '0';
+
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+            FForm.FTweaksGrid.Cells[2, Row] := Key;
+            FForm.FTweaksGrid.Cells[3, Row] := 'Global';
+          end;
+        end;
+
+        // 7. Populate any game-specific local custom arguments into grid
+        for i := 0 to ArgsList.Count - 1 do
+        begin
+          ParseTweakLine(ArgsList[i], Key, Val);
+          if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(GlobalCustomArgList, Key) then
+          begin
+            Row := FForm.FTweaksGrid.RowCount;
+            FForm.FTweaksGrid.RowCount := Row + 1;
+            FForm.FTweaksGrid.Cells[0, Row] := '1';
+            FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+            FForm.FTweaksGrid.Cells[2, Row] := Key;
+            FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+          end;
+        end;
+
       finally
+        ArgsList.Free;
         EnvList.Free;
       end;
     finally
+      GlobalCustomArgList.Free;
       GlobalCustomList.Free;
     end;
   end;

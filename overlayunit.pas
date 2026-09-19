@@ -4802,9 +4802,11 @@ procedure Tgoverlayform.CustomEnvAddClick(Sender: TObject);
 var
   Val: string;
   Row: Integer;
+  IsArg: Boolean;
+  ArgDesc: string;
 begin
-  Val := Trim(InputBox('Custom Environment Variable',
-                       'Enter the variable (e.g. MY_VAR=1):', ''));
+  Val := Trim(InputBox('Add Environment Variable or Launch Argument',
+                       'Enter variable (KEY=VAL) or argument (-arg / +arg):', ''));
   if Val = '' then Exit;
 
   // Add as a new row in the grid (after predefined rows)
@@ -4813,24 +4815,44 @@ begin
     Row := FTweaksGrid.RowCount;
     FTweaksGrid.RowCount := Row + 1;
     FTweaksGrid.Cells[0, Row] := '1';         // checked by default
-    FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
-    FTweaksGrid.Cells[2, Row] := Val;
-    if FActiveGameName = '' then
-      FTweaksGrid.Cells[3, Row] := 'Global'
+    IsArg := IsLaunchArgument(Val);
+    if IsArg then
+    begin
+      FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+      FTweaksGrid.Cells[2, Row] := Val;
+      if FindPredefinedArg(Val, ArgDesc) then
+        FTweaksGrid.Cells[3, Row] := ArgDesc
+      else if FActiveGameName = '' then
+        FTweaksGrid.Cells[3, Row] := 'Global'
+      else
+        FTweaksGrid.Cells[3, Row] := 'Local';
+    end
     else
-      FTweaksGrid.Cells[3, Row] := 'Local';
+    begin
+      FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
+      FTweaksGrid.Cells[2, Row] := Val;
+      if FActiveGameName = '' then
+        FTweaksGrid.Cells[3, Row] := 'Global'
+      else
+        FTweaksGrid.Cells[3, Row] := 'Local';
+    end;
   end;
 end;
 
 procedure Tgoverlayform.CustomEnvRemoveClick(Sender: TObject);
 var
   Row: Integer;
+  ArgDesc: string;
 begin
   if not Assigned(FTweaksGrid) then Exit;
   Row := FTweaksGrid.Row;
   // Only allow deleting custom rows (below predefined)
   if Row > TWEAK_ROW_COUNT then
   begin
+    // Guard against deleting predefined arguments
+    if (FTweaksGrid.Cells[1, Row] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+       FindPredefinedArg(FTweaksGrid.Cells[2, Row], ArgDesc) then
+      Exit;
     if (FActiveGameName <> '') and (FTweaksGrid.Cells[3, Row] = 'Global') then
       Exit;
     FTweaksGrid.DeleteRow(Row);

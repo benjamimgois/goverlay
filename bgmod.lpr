@@ -65,6 +65,51 @@ begin
   Result := '';
 end;
 
+procedure SplitCommandLineArgs(const AStr: string; AList: TStrings);
+var
+  i, len: Integer;
+  InQuote: Boolean;
+  QuoteChar: Char;
+  Token: string;
+begin
+  Token := '';
+  InQuote := False;
+  QuoteChar := #0;
+  i := 1;
+  len := Length(AStr);
+  while i <= len do
+  begin
+    if InQuote then
+    begin
+      if AStr[i] = QuoteChar then
+        InQuote := False
+      else
+        Token := Token + AStr[i];
+    end
+    else
+    begin
+      if (AStr[i] = '"') or (AStr[i] = '''') then
+      begin
+        InQuote := True;
+        QuoteChar := AStr[i];
+      end
+      else if (AStr[i] <= ' ') then
+      begin
+        if Token <> '' then
+        begin
+          AList.Add(Token);
+          Token := '';
+        end;
+      end
+      else
+        Token := Token + AStr[i];
+    end;
+    Inc(i);
+  end;
+  if Token <> '' then
+    AList.Add(Token);
+end;
+
 const
   BGMOD_VERSION = '1.9.3';
 
@@ -2013,10 +2058,10 @@ var
   GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni, UnmanagedIni: Boolean;
   InstalledUpscaler: Integer;
   Ini: TIniFile;
-  EnvList, EnvStrings: TStringList;
+  EnvList, EnvStrings, ActiveArgsList, ArgsConfigList: TStringList;
   BackupsDir: string;
   IsPerGameProfile: Boolean;
-  i, p, StartArgIdx, EnvCount: Integer;
+  i, j, p, StartArgIdx, EnvCount: Integer;
   Key, Val, Line: string;
   ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
   ReShadeShadersDir, WineShaders, WineTextures, EffectPaths, TexturePaths, OverlayKey: string;
@@ -2136,6 +2181,7 @@ begin
   
   EnvList := TStringList.Create;
   EnvStrings := TStringList.Create;
+  ActiveArgsList := TStringList.Create;
   
   // Read configurations from bgmod.conf
   if FileExists(ConfigDir + 'bgmod.conf') then
@@ -2180,6 +2226,39 @@ begin
       LsfgPreserveSwapchain := Ini.ReadString('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT', Ini.ReadString('Env', 'LSFG_PRESERVE_SWAPCHAIN_IMAGE_COUNT', '0'));
       
       Ini.ReadSectionValues('Env', EnvList);
+
+      ArgsConfigList := TStringList.Create;
+      try
+        Ini.ReadSectionValues('Args', ArgsConfigList);
+        for i := 0 to ArgsConfigList.Count - 1 do
+        begin
+          Line := Trim(ArgsConfigList[i]);
+          if Line = '' then Continue;
+          p := 0;
+          for j := Length(Line) downto 1 do
+          begin
+            if Line[j] = '=' then
+            begin
+              p := j;
+              Break;
+            end;
+          end;
+          if p > 0 then
+          begin
+            Key := Trim(Copy(Line, 1, p - 1));
+            Val := Trim(Copy(Line, p + 1, Length(Line) - p));
+          end
+          else
+          begin
+            Key := Line;
+            Val := '1';
+          end;
+          if (Val = '1') or (Val = '') then
+            SplitCommandLineArgs(Key, ActiveArgsList);
+        end;
+      finally
+        ArgsConfigList.Free;
+      end;
     finally
       Ini.Free;
     end;
@@ -3089,6 +3168,7 @@ begin
   if StartArgIdx > ParamCount then
   begin
     Log('bgmod done (no command was specified).');
+    ActiveArgsList.Free;
     EnvStrings.Free;
     Exit;
   end;
@@ -3096,37 +3176,56 @@ begin
   if HasGamePerformance and GOverlayTweaks then
   begin
     Log('Using wrapper: game-performance');
-    SetLength(ArgsStrings, ParamCount - StartArgIdx + 2);
-    SetLength(Args, ParamCount - StartArgIdx + 3);
+    SetLength(ArgsStrings, 2 + ActiveArgsList.Count + (ParamCount - StartArgIdx));
+    SetLength(Args, Length(ArgsStrings) + 1);
     ArgsStrings[0] := 'game-performance';
     Args[0] := PChar(ArgsStrings[0]);
-    for i := StartArgIdx to ParamCount do
+    ArgsStrings[1] := ParamStr(StartArgIdx);
+    Args[1] := PChar(ArgsStrings[1]);
+    Log('Arg 1: ' + ArgsStrings[1]);
+    for j := 0 to ActiveArgsList.Count - 1 do
     begin
-      ArgsStrings[i - StartArgIdx + 1] := ParamStr(i);
-      Args[i - StartArgIdx + 1] := PChar(ArgsStrings[i - StartArgIdx + 1]);
-      Log('Arg ' + IntToStr(i - StartArgIdx + 1) + ': ' + ArgsStrings[i - StartArgIdx + 1]);
+      ArgsStrings[2 + j] := ActiveArgsList[j];
+      Args[2 + j] := PChar(ArgsStrings[2 + j]);
+      Log('Arg ' + IntToStr(2 + j) + ' (injected): ' + ArgsStrings[2 + j]);
     end;
-    Args[ParamCount - StartArgIdx + 2] := nil;
+    for i := StartArgIdx + 1 to ParamCount do
+    begin
+      p := 2 + ActiveArgsList.Count + (i - StartArgIdx - 1);
+      ArgsStrings[p] := ParamStr(i);
+      Args[p] := PChar(ArgsStrings[p]);
+      Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
+    end;
+    Args[Length(ArgsStrings)] := nil;
   end
   else
   begin
     TempStr := ParamStr(StartArgIdx);
     Log('Game Executable: ' + TempStr);
     
-    SetLength(ArgsStrings, ParamCount - StartArgIdx + 1);
-    SetLength(Args, ParamCount - StartArgIdx + 2);
+    SetLength(ArgsStrings, 1 + ActiveArgsList.Count + (ParamCount - StartArgIdx));
+    SetLength(Args, Length(ArgsStrings) + 1);
     
     ArgsStrings[0] := TempStr;
     Args[0] := PChar(ArgsStrings[0]);
     
+    for j := 0 to ActiveArgsList.Count - 1 do
+    begin
+      ArgsStrings[1 + j] := ActiveArgsList[j];
+      Args[1 + j] := PChar(ArgsStrings[1 + j]);
+      Log('Arg ' + IntToStr(1 + j) + ' (injected): ' + ArgsStrings[1 + j]);
+    end;
     for i := StartArgIdx + 1 to ParamCount do
     begin
-      ArgsStrings[i - StartArgIdx] := ParamStr(i);
-      Args[i - StartArgIdx] := PChar(ArgsStrings[i - StartArgIdx]);
-      Log('Arg ' + IntToStr(i - StartArgIdx) + ': ' + ArgsStrings[i - StartArgIdx]);
+      p := 1 + ActiveArgsList.Count + (i - StartArgIdx - 1);
+      ArgsStrings[p] := ParamStr(i);
+      Args[p] := PChar(ArgsStrings[p]);
+      Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
     end;
-    Args[ParamCount - StartArgIdx + 1] := nil;
+    Args[Length(ArgsStrings)] := nil;
   end;
+  
+  ActiveArgsList.Free;
   
   Log('------------------------------------------------------------------------');
   Log('Launching subprocess: ' + ArgsStrings[0]);

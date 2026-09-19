@@ -103,6 +103,7 @@ type
     procedure TestGamePerformanceTweak;
     procedure TestTweaksCardLayoutAndClick;
     procedure TestGlobalCustomVariablesReuseAndInheritance;
+    procedure TestLaunchArgumentsCardAndInheritance;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -4191,6 +4192,192 @@ begin
       if goverlayform.FTweaksGrid.Cells[2, i] = 'GAME_LOCAL_VAR=123' then
         Found := True;
     AssertFalse('Local variable deleted successfully in game profile', Found);
+
+  finally
+    // Cleanup: Reset active game name back to global and reload
+    goverlayform.FActiveGameName := '';
+    goverlayform.LoadTweaksFromFGMod;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestLaunchArgumentsCardAndInheritance;
+var
+  GlobalConf, GameConf: string;
+  Ini: TIniFile;
+  Row, CustomArgRow, LocalArgRow: Integer;
+
+  function FindGridItem(const AKey: string): Integer;
+  var
+    idx: Integer;
+  begin
+    Result := -1;
+    for idx := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+    begin
+      if goverlayform.FTweaksGrid.Cells[2, idx] = AKey then
+        Exit(idx);
+    end;
+  end;
+
+begin
+  // 1. Test IsLaunchArgument prefix classification helper
+  AssertTrue('IsLaunchArgument detects - prefix', IsLaunchArgument('-novid'));
+  AssertTrue('IsLaunchArgument detects -- prefix', IsLaunchArgument('--fullscreen'));
+  AssertTrue('IsLaunchArgument detects + prefix', IsLaunchArgument('+fps_max 0'));
+  AssertTrue('IsLaunchArgument trims whitespace', IsLaunchArgument('  -dx12  '));
+  AssertFalse('IsLaunchArgument rejects normal env var', IsLaunchArgument('MANGOHUD=1'));
+  AssertFalse('IsLaunchArgument rejects empty string', IsLaunchArgument(''));
+  AssertFalse('IsLaunchArgument rejects plain variable name', IsLaunchArgument('ENABLE_FEATURE'));
+
+  NavigateTweaksTab;
+  goverlayform.FActiveGameName := '';
+
+  // Ensure clean starting state
+  goverlayform.LoadTweaksFromFGMod;
+
+  // 2. Verify predefined launch arguments are loaded into FTweaksGrid
+  AssertTrue('Predefined arg -novid found', FindGridItem('-novid') >= 0);
+  AssertTrue('Predefined arg -vulkan found', FindGridItem('-vulkan') >= 0);
+  AssertTrue('Predefined arg -dx11 found', FindGridItem('-dx11') >= 0);
+  AssertTrue('Predefined arg -dx12 found', FindGridItem('-dx12') >= 0);
+  AssertTrue('Predefined arg -nojoy found', FindGridItem('-nojoy') >= 0);
+
+  // Verify predefined argument category name
+  Row := FindGridItem('-novid');
+  AssertEquals('Predefined arg category is Launch Arguments',
+               TweakCategoryName(TWEAK_CAT_ARGS), goverlayform.FTweaksGrid.Cells[1, Row]);
+
+  // 3. Toggle a predefined argument (-novid) to ON and save in Global mode
+  goverlayform.FTweaksGrid.Cells[0, Row] := '1';
+
+  // Add a custom launch argument in Global mode (+fps_max 144)
+  Row := goverlayform.FTweaksGrid.RowCount;
+  goverlayform.FTweaksGrid.RowCount := Row + 1;
+  goverlayform.FTweaksGrid.Cells[0, Row] := '1';
+  goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+  goverlayform.FTweaksGrid.Cells[2, Row] := '+fps_max 144';
+  goverlayform.FTweaksGrid.Cells[3, Row] := 'Global';
+
+  // Add an inactive custom launch argument in Global mode (-custom-inactive)
+  Row := goverlayform.FTweaksGrid.RowCount;
+  goverlayform.FTweaksGrid.RowCount := Row + 1;
+  goverlayform.FTweaksGrid.Cells[0, Row] := '0';
+  goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+  goverlayform.FTweaksGrid.Cells[2, Row] := '-custom-inactive';
+  goverlayform.FTweaksGrid.Cells[3, Row] := 'Global';
+
+  // Save global tweaks
+  goverlayform.SaveTweaksConfig;
+
+  // 4. Verify global bgmod.conf persistence
+  GlobalConf := BgmodConfPath;
+  Ini := TIniFile.Create(GlobalConf);
+  try
+    AssertEquals('Active predefined arg saved in [Args]', '1', Ini.ReadString('Args', '-novid', ''));
+    AssertEquals('Active custom arg saved in [Args]', '1', Ini.ReadString('Args', '+fps_max 144', ''));
+    AssertEquals('Inactive custom arg NOT saved in [Args]', '', Ini.ReadString('Args', '-custom-inactive', ''));
+    AssertEquals('Active custom arg saved in [CustomArguments]', '1', Ini.ReadString('CustomArguments', '+fps_max 144', ''));
+    AssertEquals('Inactive custom arg preserved in [CustomArguments]', '1', Ini.ReadString('CustomArguments', '-custom-inactive', ''));
+    AssertEquals('Predefined arg NOT stored in [CustomArguments]', '', Ini.ReadString('CustomArguments', '-novid', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Test MD3 Paint in global mode (ensures both Card 5 and Card 6 render cleanly)
+  goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+  // 5. Reload in global mode to verify round-trip
+  goverlayform.LoadTweaksFromFGMod;
+  Row := FindGridItem('-novid');
+  AssertTrue('-novid found after reload', Row >= 0);
+  AssertEquals('-novid is toggled ON', '1', goverlayform.FTweaksGrid.Cells[0, Row]);
+
+  Row := FindGridItem('+fps_max 144');
+  AssertTrue('+fps_max 144 found after reload', Row >= 0);
+  AssertEquals('+fps_max 144 is toggled ON', '1', goverlayform.FTweaksGrid.Cells[0, Row]);
+
+  Row := FindGridItem('-custom-inactive');
+  AssertTrue('-custom-inactive found after reload', Row >= 0);
+  AssertEquals('-custom-inactive is toggled OFF', '0', goverlayform.FTweaksGrid.Cells[0, Row]);
+
+  // 6. Switch to game profile mode: should inherit global custom arguments with toggle OFF by default
+  goverlayform.FActiveGameName := 'TestGameArgsReuse';
+  try
+    goverlayform.LoadTweaksFromFGMod;
+
+    // Verify predefined arguments are present and default to OFF in new profile
+    Row := FindGridItem('-novid');
+    AssertTrue('Predefined arg -novid present in game profile', Row >= 0);
+    AssertEquals('Predefined arg defaults to OFF in new game profile', '0', goverlayform.FTweaksGrid.Cells[0, Row]);
+
+    // Verify global custom arguments inherited with [Global] badge and toggle OFF
+    CustomArgRow := FindGridItem('+fps_max 144');
+    AssertTrue('+fps_max 144 found in game profile', CustomArgRow >= 0);
+    AssertEquals('Inherited global arg toggle defaults to 0 in game profile', '0', goverlayform.FTweaksGrid.Cells[0, CustomArgRow]);
+    AssertEquals('Inherited global arg origin is Global', 'Global', goverlayform.FTweaksGrid.Cells[3, CustomArgRow]);
+
+    // 7. Test deletion guard: Deleting an inherited global argument in game profile must be blocked
+    goverlayform.FTweaksGrid.Row := CustomArgRow;
+    goverlayform.CustomEnvRemoveClick(nil);
+    AssertEquals('Global argument preserved against CustomEnvRemoveClick in game profile',
+                 '+fps_max 144', goverlayform.FTweaksGrid.Cells[2, CustomArgRow]);
+
+    // 8. Activate the inherited argument in the game profile
+    goverlayform.FTweaksGrid.Cells[0, CustomArgRow] := '1';
+
+    // Add a game-specific local launch argument (-local-game-flag)
+    Row := goverlayform.FTweaksGrid.RowCount;
+    goverlayform.FTweaksGrid.RowCount := Row + 1;
+    goverlayform.FTweaksGrid.Cells[0, Row] := '1';
+    goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+    goverlayform.FTweaksGrid.Cells[2, Row] := '-local-game-flag';
+    goverlayform.FTweaksGrid.Cells[3, Row] := 'Local';
+    LocalArgRow := Row;
+
+    // Test Paint with both Global and Local argument chips
+    goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+    // Save game profile config
+    goverlayform.SaveTweaksConfig;
+
+    // Check game profile's bgmod.conf
+    GameConf := goverlayform.GetGameConfigDir('TestGameArgsReuse') + 'bgmod.conf';
+    AssertTrue('Game bgmod.conf exists', FileExists(GameConf));
+    Ini := TIniFile.Create(GameConf);
+    try
+      AssertEquals('Game [Args] contains active inherited argument', '1', Ini.ReadString('Args', '+fps_max 144', ''));
+      AssertEquals('Game [Args] contains active local argument', '1', Ini.ReadString('Args', '-local-game-flag', ''));
+      AssertEquals('Game [Args] does NOT contain inactive predefined argument', '', Ini.ReadString('Args', '-novid', ''));
+      AssertEquals('Game config does NOT create [CustomArguments]', '', Ini.ReadString('CustomArguments', '+fps_max 144', ''));
+    finally
+      Ini.Free;
+    end;
+
+    // Verify global config was not modified by game profile save
+    Ini := TIniFile.Create(GlobalConf);
+    try
+      AssertEquals('Global [Args] still has -novid', '1', Ini.ReadString('Args', '-novid', ''));
+      AssertEquals('Global [CustomArguments] still has +fps_max 144', '1', Ini.ReadString('CustomArguments', '+fps_max 144', ''));
+      AssertEquals('Global config does NOT have -local-game-flag', '', Ini.ReadString('Args', '-local-game-flag', ''));
+      AssertEquals('Global [CustomArguments] does NOT have -local-game-flag', '', Ini.ReadString('CustomArguments', '-local-game-flag', ''));
+    finally
+      Ini.Free;
+    end;
+
+    // 9. Reload in game profile mode and verify active state restored
+    goverlayform.LoadTweaksFromFGMod;
+    Row := FindGridItem('+fps_max 144');
+    AssertTrue('+fps_max 144 found on reload', Row >= 0);
+    AssertEquals('Inherited active argument restored as 1 in game profile', '1', goverlayform.FTweaksGrid.Cells[0, Row]);
+    AssertEquals('Inherited argument origin restored as Global', 'Global', goverlayform.FTweaksGrid.Cells[3, Row]);
+
+    Row := FindGridItem('-local-game-flag');
+    AssertTrue('-local-game-flag found on reload', Row >= 0);
+    AssertEquals('Local argument origin restored as Local', 'Local', goverlayform.FTweaksGrid.Cells[3, Row]);
+
+    // 10. Test that local argument CAN be deleted in game profile
+    goverlayform.FTweaksGrid.Row := Row;
+    goverlayform.CustomEnvRemoveClick(nil);
+    AssertEquals('Local argument deleted from grid', -1, FindGridItem('-local-game-flag'));
 
   finally
     // Cleanup: Reset active game name back to global and reload

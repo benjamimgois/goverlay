@@ -80,6 +80,7 @@ type
     procedure TestSupervisorExitCodeFalse;
     procedure TestSupervisorStderrClosure;
     procedure TestBgmodLaunchSplashGameTitleAndReShade;
+    procedure TestBgmodInjectsLaunchArguments;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -968,6 +969,91 @@ begin
       Pos('--game=VKSUMI_CONFIG_FILE', Content) > 0);
     AssertTrue('Splash args must include ReShade item',
       Pos('--item=ReShade', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodInjectsLaunchArguments;
+var
+  Proc: TProcess;
+  TestGameDir, MockGameFile, OutFile: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content: string;
+begin
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ArgsTestGame';
+  ForceDirectories(TestGameDir);
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'cp';
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Create mock game runner script in TestGameDir that writes each received argument on a new line
+  MockGameFile := TestGameDir + '/mockgame.sh';
+  OutFile := TestGameDir + '/received_args.txt';
+  if FileExists(OutFile) then DeleteFile(OutFile);
+
+  AssignFile(F, MockGameFile);
+  Rewrite(F);
+  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, 'for arg in "$@"; do echo "$arg" >> "' + OutFile + '"; done');
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockGameFile), &755);
+
+  // Write bgmod.conf with [Args] containing active, multi-word, and disabled arguments
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, '[Args]');
+  WriteLn(F, '-novid=1');
+  WriteLn(F, '+fps_max 0=1');
+  WriteLn(F, '-dx12=1');
+  WriteLn(F, '-disabled_arg=0');
+  CloseFile(F);
+
+  // Run bgmod with MockGameFile and an existing command-line argument
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockGameFile);
+    Proc.Parameters.Add('--existing-steam-flag');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Verify that arguments were properly injected and tokenized
+  AssertTrue('received_args.txt should be created', FileExists(OutFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutFile);
+    Content := Lines.Text;
+
+    AssertTrue('Should contain -novid', Pos('-novid', Content) > 0);
+    AssertTrue('Should contain +fps_max token', Pos('+fps_max', Content) > 0);
+    AssertTrue('Should contain 0 token from +fps_max 0', Pos(#10'0'#10, #10 + Content) > 0);
+    AssertTrue('Should contain -dx12', Pos('-dx12', Content) > 0);
+    AssertTrue('Should contain --existing-steam-flag', Pos('--existing-steam-flag', Content) > 0);
+    AssertFalse('Should not contain disabled argument', Pos('-disabled_arg', Content) > 0);
+
+    // Verify ordering: injected arguments appear before --existing-steam-flag
+    AssertTrue('Injected arguments appear before existing parameter',
+               Pos('-novid', Content) < Pos('--existing-steam-flag', Content));
   finally
     Lines.Free;
   end;
