@@ -40,6 +40,7 @@ type
     procedure TestPipelineEffectsSerializationOrder;
     procedure TestPipelineEffectsLoadOrder;
     procedure TestFallbackWhenPipelineEffectsNil;
+    procedure TestLutSerializationAndLoad;
   end;
 
   TGpuNameExtractionTests = class(TTestCase)
@@ -500,6 +501,75 @@ begin
     AssertEquals('Fallback serializes in default order cas:smaa:dls', 'effects = cas:smaa:dls', EffectsLine);
   finally
     Lines.Free;
+  end;
+end;
+
+procedure TVkBasaltLogicTests.TestLutSerializationAndLoad;
+var
+  Settings: TVkBasaltSettings;
+  LoadedSettings: TVkBasaltSettings;
+  ErrMsg: string;
+  Lines, AvEffects, ActEffects, PipelineList: TStringList;
+  EffectsLine, LutFileLine: string;
+  i: Integer;
+begin
+  Settings.BasaltFolder := IsolatedHome + '/.config/vkBasalt';
+  Settings.BasaltCfgFile := Settings.BasaltFolder + '/vkBasalt_lut.conf';
+  Settings.Version := '1.2.3';
+  Settings.Channel := 'stable';
+  Settings.ToggleKey := 'Home';
+  Settings.CasPosition := 4;
+  Settings.FxaaPosition := 0;
+  Settings.SmaaPosition := 0;
+  Settings.DlsPosition := 0;
+  Settings.LutEnabled := True;
+  Settings.LutFile := '/path/to/my custom lut.cube';
+  Settings.ReshadeEffects := nil;
+  Settings.PipelineEffects := TStringList.Create;
+  try
+    Settings.PipelineEffects.Add('cas');
+    Settings.PipelineEffects.Add('lut');
+
+    AssertTrue('SaveVkBasaltConfig succeeds with lut', SaveVkBasaltConfig(Settings, ErrMsg));
+
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(Settings.BasaltCfgFile);
+      EffectsLine := '';
+      LutFileLine := '';
+      for i := 0 to Lines.Count - 1 do
+      begin
+        if Pos('effects =', Lines[i]) = 1 then
+          EffectsLine := Lines[i]
+        else if Pos('lutFile =', Lines[i]) = 1 then
+          LutFileLine := Lines[i];
+      end;
+      AssertEquals('effects line includes lut', 'effects = cas:lut', EffectsLine);
+      AssertEquals('lutFile line has quotes', 'lutFile = "/path/to/my custom lut.cube"', LutFileLine);
+      AssertFalse('lut is not treated as a reshade shader file', Pos('lut = ', Lines.Text) > 0);
+    finally
+      Lines.Free;
+    end;
+
+    // Test loading
+    AvEffects := TStringList.Create;
+    ActEffects := TStringList.Create;
+    PipelineList := TStringList.Create;
+    try
+      AssertTrue('LoadVkBasaltConfig succeeds', LoadVkBasaltConfig(Settings.BasaltCfgFile, AvEffects, ActEffects, LoadedSettings, PipelineList));
+      AssertTrue('LutEnabled is true', LoadedSettings.LutEnabled);
+      AssertEquals('LutFile unquoted path loaded correctly', '/path/to/my custom lut.cube', LoadedSettings.LutFile);
+      AssertEquals('Pipeline has 2 effects', 2, PipelineList.Count);
+      AssertEquals('Effect 0 is cas', 'cas', PipelineList[0]);
+      AssertEquals('Effect 1 is lut', 'lut', PipelineList[1]);
+      AssertEquals('ActEffects does not contain lut', 0, ActEffects.Count);
+    finally
+      AvEffects.Free;
+      ActEffects.Free;
+      PipelineList.Free;
+    end;
+  finally
+    Settings.PipelineEffects.Free;
   end;
 end;
 

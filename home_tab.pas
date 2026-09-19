@@ -80,7 +80,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..6] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO');
+  MOD_NAMES: array[0..7] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -324,12 +324,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 7 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 8 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO)
-    for i := 0 to 6 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade)
+    for i := 0 to 7 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -431,7 +431,7 @@ const
   CLR_MISSING = $004444BB;  // red
 var
   Missing: TStringList;
-  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK: Boolean;
+  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK: Boolean;
   MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer: string;
 begin
   with FForm do
@@ -450,6 +450,7 @@ begin
                  (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
       LsfgOK  := IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0);
       MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
+      ReShadeOK := IsReShadeInstalled;
     finally
       Missing.Free;
     end;
@@ -461,6 +462,7 @@ begin
     FHomeModDots[4].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[5].Brush.Color := Math.IfThen(LsfgOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[6].Brush.Color := Math.IfThen(MakoOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[7].Brush.Color := Math.IfThen(ReShadeOK, CLR_OK, CLR_MISSING);
 
     MangoVer := Self.GetMangoHudVersion;
     if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
@@ -530,6 +532,12 @@ begin
       FHomeModVerLbls[6].Caption := MakoVer;
       FHomeModVerLbls[6].Font.Color := CLR_TEXT_MUTED;
     end;
+
+    if ReShadeOK then
+      FHomeModVerLbls[7].Caption := '6.4 (Add-on Edition)'
+    else
+      FHomeModVerLbls[7].Caption := 'not found';
+    FHomeModVerLbls[7].Font.Color := CLR_TEXT_MUTED;
   end;
 end;
 

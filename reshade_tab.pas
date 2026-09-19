@@ -803,6 +803,7 @@ begin
     case AMethod of
       rmNone:
       begin
+        if Assigned(FStatusCard) then FStatusCard.Visible := True;
         if Assigned(FConfigCard) then FConfigCard.Visible := False;
         if Assigned(FShadersCard) then FShadersCard.Visible := False;
         if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := False;
@@ -814,6 +815,7 @@ begin
 
       rmReshade:
       begin
+        if Assigned(FStatusCard) then FStatusCard.Visible := True;
         if Assigned(FConfigCard) then FConfigCard.Visible := True;
         if Assigned(FShadersCard) then FShadersCard.Visible := True;
         if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := False;
@@ -825,6 +827,7 @@ begin
 
       rmVkBasalt:
       begin
+        if Assigned(FStatusCard) then FStatusCard.Visible := False;
         if Assigned(FConfigCard) then FConfigCard.Visible := False;
         if Assigned(FShadersCard) then FShadersCard.Visible := False;
         if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := True;
@@ -957,6 +960,8 @@ begin
   case FSelectedMethod of
     rmNone:
     begin
+      if Assigned(FStatusCard) then
+        FStatusCard.Visible := True;
       CurY := MARGIN + TOP_ROW_H + CARD_GAP;
       if Assigned(FNoneNoticeLbl) then
       begin
@@ -972,6 +977,8 @@ begin
 
     rmReshade:
     begin
+      if Assigned(FStatusCard) then
+        FStatusCard.Visible := True;
       // Options card to the right of Method card
       if Assigned(FConfigCard) then
       begin
@@ -1011,6 +1018,9 @@ begin
 
     rmVkBasalt:
     begin
+      if Assigned(FStatusCard) then
+        FStatusCard.Visible := False;
+
       // Options card to the right of Method card
       if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
       begin
@@ -1033,9 +1043,9 @@ begin
       end;
 
       CurY := MARGIN + TOP_ROW_H + CARD_GAP;
-      BuiltinH := 145;
+      BuiltinH := 195;
       PipelineH := 72;
-      FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + CARD_GAP + STATUS_H + BOTTOM_M;
+      FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + BOTTOM_M;
       MinReshadeH := 110;
       MinTotalH := CurY + MinReshadeH + FixedBelow;
       TotalH := Max(ClientH, MinTotalH);
@@ -1054,17 +1064,11 @@ begin
         CurY := CurY + BuiltinH + CARD_GAP;
       end;
 
+      // Effect Pipeline card anchored at the bottom
       if Assigned(MainForm) and Assigned(MainForm.FVkPipelineCard) then
       begin
         MainForm.FVkPipelineCard.SetBounds(MARGIN, CurY, TargetCardW, PipelineH);
-        CurY := CurY + PipelineH + CARD_GAP;
-      end;
-
-      // Software status card anchored to bottom
-      if Assigned(FStatusCard) then
-      begin
-        FStatusCard.SetBounds(MARGIN, CurY, TargetCardW, STATUS_H);
-        CurY := CurY + STATUS_H + BOTTOM_M;
+        CurY := CurY + PipelineH + BOTTOM_M;
       end;
 
       if Assigned(MainForm) then

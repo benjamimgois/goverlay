@@ -1133,8 +1133,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..6] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO
-    FHomeModVerLbls:   array[0..6] of TLabel;   // version text
+    FHomeModDots:      array[0..7] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade
+    FHomeModVerLbls:   array[0..7] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -1212,6 +1212,11 @@ type
     FVkFxaaIcon:     TImage;
     FVkSmaaIcon:     TImage;
     FVkDlsIcon:      TImage;
+    FVkLutIcon:      TImage;
+    FVkLutLabel:     TLabel;
+    FVkLutPathEdit:  TEdit;
+    FVkLutBrowseBtn: TBitBtn;
+    FVkLutClearBtn:  TBitBtn;
     // vkBasalt Reshade effects MD3 list (replaces dual listboxes)
     FVkReshadePB:    TPaintBox;
     FVkReshadeSB:    TScrollBar;
@@ -1428,6 +1433,8 @@ type
     procedure LoadGlobalThumb;
     procedure ShowHomeTab(Sender: TObject = nil);
     procedure VkRestoreBtnClick(Sender: TObject);
+    procedure VkLutBrowseBtnClick(Sender: TObject);
+    procedure VkLutClearBtnClick(Sender: TObject);
     procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
     procedure SetNavActive(AIndex: Integer);
     procedure GameCardClick(Sender: TObject);
@@ -2439,6 +2446,7 @@ begin
 
     if not FileExists(VKBASALTCFGFILE) then
     begin
+      if Assigned(FVkLutPathEdit) then FVkLutPathEdit.Text := '';
       if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
       Exit;
     end;
@@ -2462,6 +2470,9 @@ begin
     dlsTrackBar.Position := Settings.DlsPosition;
     dlsvalueLabel.Caption := IntToStr(dlsTrackBar.Position);
     if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
+
+    if Assigned(FVkLutPathEdit) then
+      FVkLutPathEdit.Text := Settings.LutFile;
 
     if Settings.ToggleKey <> '' then
     begin
@@ -6416,6 +6427,18 @@ begin
     TVkBasaltTabHelper(FBasaltHelper).VkRestoreBtnClick(Sender);
 end;
 
+procedure Tgoverlayform.VkLutBrowseBtnClick(Sender: TObject);
+begin
+  if Assigned(FBasaltHelper) then
+    TVkBasaltTabHelper(FBasaltHelper).VkLutBrowseBtnClick(Sender);
+end;
+
+procedure Tgoverlayform.VkLutClearBtnClick(Sender: TObject);
+begin
+  if Assigned(FBasaltHelper) then
+    TVkBasaltTabHelper(FBasaltHelper).VkLutClearBtnClick(Sender);
+end;
+
 procedure Tgoverlayform.SaveVkBasaltConfig;
 var
   Settings: TVkBasaltSettings;
@@ -6439,6 +6462,12 @@ begin
   Settings.ReshadeEffects := acteffectsListbox.Items;
   Settings.PipelineEffects := FPipelineEffects;
   Settings.ActiveGameName := FActiveGameName;
+  if Assigned(FVkLutPathEdit) then
+    Settings.LutFile := FVkLutPathEdit.Text
+  else
+    Settings.LutFile := '';
+  Settings.LutEnabled := (Trim(Settings.LutFile) <> '') and
+    (Assigned(FPipelineEffects) and (FPipelineEffects.IndexOf('lut') >= 0));
 
   if not overlay_config.SaveVkBasaltConfig(Settings, ErrMsg) then
   begin

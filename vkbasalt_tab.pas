@@ -38,6 +38,8 @@ type
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
     procedure VkRestoreBtnClick(Sender: TObject);
+    procedure VkLutBrowseBtnClick(Sender: TObject);
+    procedure VkLutClearBtnClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
     procedure VkReshadeMD3Paint(Sender: TObject);
     procedure VkReshadeMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -251,6 +253,57 @@ begin
   if FileExists(GetAppBaseDir + 'assets/icons/vk_dls.png') then
     FVkDlsIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_dls.png');
 
+  // Color LUT controls
+  FVkLutIcon := TImage.Create(FForm);
+  FVkLutIcon.Parent := FVkBuiltinCard;
+  FVkLutIcon.AntialiasingMode := amOn;
+  FVkLutIcon.Proportional := True;
+  FVkLutIcon.Stretch := True;
+  if FileExists(GetAppBaseDir + 'assets/icons/vk_lut.png') then
+    FVkLutIcon.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/vk_lut.png');
+
+  FVkLutLabel := TLabel.Create(FForm);
+  FVkLutLabel.Parent := FVkBuiltinCard;
+  FVkLutLabel.Caption := 'Color LUT';
+  FVkLutLabel.Font.Color := $BB99FF;
+  FVkLutLabel.Font.Style := [fsBold];
+  FVkLutLabel.Font.Size := 9;
+  FVkLutLabel.Color := BG;
+  FVkLutLabel.Visible := True;
+  FVkLutLabel.Anchors := [akLeft, akTop];
+
+  FVkLutPathEdit := TEdit.Create(FForm);
+  FVkLutPathEdit.Parent := FVkBuiltinCard;
+  FVkLutPathEdit.ReadOnly := True;
+  FVkLutPathEdit.TextHint := 'Select a .cube or .png LUT file...';
+  FVkLutPathEdit.Anchors := [akLeft, akTop];
+  if CurrentTheme = tmLight then
+  begin
+    FVkLutPathEdit.Font.Color := LightTextColor;
+    FVkLutPathEdit.Color := LighterBackgroundColor;
+  end
+  else
+  begin
+    FVkLutPathEdit.Font.Color := clWhite;
+    FVkLutPathEdit.Color := RGBToColor(20, 24, 38);
+  end;
+
+  FVkLutBrowseBtn := TBitBtn.Create(FForm);
+  FVkLutBrowseBtn.Parent := FVkBuiltinCard;
+  FVkLutBrowseBtn.Caption := 'Browse...';
+  FVkLutBrowseBtn.Cursor := crHandPoint;
+  FVkLutBrowseBtn.OnClick := @VkLutBrowseBtnClick;
+  FVkLutBrowseBtn.Anchors := [akLeft, akTop];
+  StyleActionButton(FVkLutBrowseBtn);
+
+  FVkLutClearBtn := TBitBtn.Create(FForm);
+  FVkLutClearBtn.Parent := FVkBuiltinCard;
+  FVkLutClearBtn.Caption := '✕';
+  FVkLutClearBtn.Cursor := crHandPoint;
+  FVkLutClearBtn.OnClick := @VkLutClearBtnClick;
+  FVkLutClearBtn.Anchors := [akLeft, akTop];
+  StyleActionButton(FVkLutClearBtn);
+
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 3 — Effect Pipeline
   // ══════════════════════════════════════════════════════════════════════════
@@ -346,7 +399,7 @@ procedure TVkBasaltTabHelper.ReflowVkBasaltTab(AContentW: Integer);
 const
   MARGIN   = 4;   // outer margin each side
   GAP      = 8;    // gap between cards
-  BTIN_H   = 145;  // built-in effects card height
+  BTIN_H   = 195;  // built-in effects card height
   PIPE_H   = 72;   // effect pipeline card height
   TOGL_H   = 75;   // toggle key card height
   PAD      = 12;   // inner horizontal padding
@@ -362,6 +415,7 @@ var
   Col1:    Integer;
   Row0:    Integer;
   Row1:    Integer;
+  Row2:    Integer;
 begin
   with FForm do
   begin
@@ -430,6 +484,21 @@ begin
   dlsLabel.SetBounds(Col1 + 22, Row1 + 5, 45, 18);
   dlsTrackBar.SetBounds(Col1 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
   if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
+
+  Row2  := Row1 + 28 + 14;  // Row 2 Y-coordinate (Color LUT)
+
+  // Color LUT (Row 2, full width)
+  if Assigned(FVkLutIcon) then FVkLutIcon.SetBounds(Col0, Row2 + 6, 16, 16);
+  if Assigned(FVkLutLabel) then FVkLutLabel.SetBounds(Col0 + 22, Row2 + 5, 68, 18);
+
+  if Assigned(FVkLutClearBtn) then
+    FVkLutClearBtn.SetBounds(CW - PAD - 30, Row2, 30, 28);
+
+  if Assigned(FVkLutBrowseBtn) then
+    FVkLutBrowseBtn.SetBounds(CW - PAD - 30 - 6 - 85, Row2, 85, 28);
+
+  if Assigned(FVkLutPathEdit) then
+    FVkLutPathEdit.SetBounds(Col0 + 22 + 68 + 10, Row2, Max(80, (CW - PAD - 30 - 6 - 85 - 8) - (Col0 + 22 + 68 + 10)), 28);
 
   // ── Card 3: Effect Pipeline (Execution Order) ──────────────────────────
   if Assigned(FVkPipelineCard) then
@@ -921,6 +990,7 @@ begin
     if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.Caption := '0';
     if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.Caption := '0';
     if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+    if Assigned(FVkLutPathEdit) then FVkLutPathEdit.Text := '';
     FVkPipelineScrollPos := 0;
     if Assigned(FVkPipelineSB) then
     begin
@@ -934,6 +1004,40 @@ begin
     TriggerAutoSave;
     ShowStatusMessage('🔄 vkBasalt settings restored to defaults');
   end;
+end;
+
+procedure TVkBasaltTabHelper.VkLutBrowseBtnClick(Sender: TObject);
+var
+  Dlg: TOpenDialog;
+begin
+  Dlg := TOpenDialog.Create(nil);
+  try
+    Dlg.Title := 'Select 3D LUT File';
+    Dlg.Filter := 'All Supported LUT Files (*.cube;*.png)|*.cube;*.CUBE;*.png;*.PNG|Adobe 3D LUT (*.cube)|*.cube;*.CUBE|HaldCLUT PNG (*.png)|*.png;*.PNG|All Files (*)|*';
+    if Assigned(FForm.FVkLutPathEdit) and (Trim(FForm.FVkLutPathEdit.Text) <> '') and
+       DirectoryExists(ExtractFileDir(FForm.FVkLutPathEdit.Text)) then
+      Dlg.InitialDir := ExtractFileDir(FForm.FVkLutPathEdit.Text)
+    else
+      Dlg.InitialDir := GetUserDir;
+
+    if Dlg.Execute then
+    begin
+      if Assigned(FForm.FVkLutPathEdit) then
+        FForm.FVkLutPathEdit.Text := Dlg.FileName;
+      AddEffectToPipeline('lut');
+      FForm.StartAutoSaveTimer;
+    end;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VkLutClearBtnClick(Sender: TObject);
+begin
+  if Assigned(FForm.FVkLutPathEdit) then
+    FForm.FVkLutPathEdit.Text := '';
+  RemoveEffectFromPipeline('lut');
+  FForm.StartAutoSaveTimer;
 end;
 
 procedure TVkBasaltTabHelper.reshaderefreshBitBtnClick(Sender: TObject);
@@ -1604,7 +1708,7 @@ begin
     for i := 0 to TotalChips - 1 do
     begin
       EffName := FPipelineEffects[i];
-      if SameText(EffName, 'smaa') or SameText(EffName, 'fxaa') or SameText(EffName, 'cas') or SameText(EffName, 'dls') then
+      if SameText(EffName, 'smaa') or SameText(EffName, 'fxaa') or SameText(EffName, 'cas') or SameText(EffName, 'dls') or SameText(EffName, 'lut') then
         DispName := UpperCase(EffName)
       else
         DispName := EffName;
@@ -1660,7 +1764,7 @@ begin
         DotColor   := RGBToColor(16, 185, 129); // emerald green
         DispName   := UpperCase(EffName);
       end
-      else if SameText(EffName, 'cas') or SameText(EffName, 'dls') then
+      else if SameText(EffName, 'cas') or SameText(EffName, 'dls') or SameText(EffName, 'lut') then
       begin
         ChipBg     := RGBToColor(16, 36, 48);
         ChipBorder := RGBToColor(14, 110, 135);
@@ -2014,6 +2118,11 @@ begin
       dlsTrackBar.Position := 0;
       dlsvaluelabel.Caption := '0';
       if Assigned(FVkDlsValLbl) then FVkDlsValLbl.Caption := '0';
+    end
+    else if SameText(AEffectName, 'lut') then
+    begin
+      if Assigned(FVkLutPathEdit) then
+        FVkLutPathEdit.Text := '';
     end
     else
     begin

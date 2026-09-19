@@ -118,6 +118,7 @@ type
     procedure TestVkBasaltRestoreDefaults;
     procedure TestVkBasaltPipelineCardVisibleAndBounds;
     procedure TestVkBasaltPipelineInteractions;
+    procedure TestVkBasaltLutInteractions;
     procedure TestVkBasaltPipelineScrollOnManyEffects;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestMangoHudFrameTimingDetailed;
@@ -4444,6 +4445,9 @@ begin
   AssertTrue('MAKO status dot assigned', Assigned(goverlayform.FHomeModDots[6]));
   AssertTrue('MAKO version label assigned', Assigned(goverlayform.FHomeModVerLbls[6]));
   AssertTrue('MAKO version label text not empty', goverlayform.FHomeModVerLbls[6].Caption <> '');
+  AssertTrue('ReShade status dot assigned', Assigned(goverlayform.FHomeModDots[7]));
+  AssertTrue('ReShade version label assigned', Assigned(goverlayform.FHomeModVerLbls[7]));
+  AssertTrue('ReShade version label text not empty', goverlayform.FHomeModVerLbls[7].Caption <> '');
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
@@ -4647,11 +4651,20 @@ begin
   // Pipeline card is below Builtin card
   AssertTrue('PipelineCard is below BuiltinCard',
     goverlayform.FVkPipelineCard.Top >= goverlayform.FVkBuiltinCard.Top + goverlayform.FVkBuiltinCard.Height);
-  // StatusCard is below PipelineCard
-  AssertTrue('StatusCard is below PipelineCard',
-    TReshadeTabHelper(goverlayform.FReshadeHelper).StatusCard.Top >= goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height);
+  // StatusCard is hidden in vkBasalt mode
+  AssertFalse('StatusCard is hidden in vkBasalt mode',
+    TReshadeTabHelper(goverlayform.FReshadeHelper).StatusCard.Visible);
+  // PipelineCard is at the bottom of the tab view
+  AssertTrue('PipelineCard is at the bottom of the tab view',
+    goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height <= goverlayform.FVkPipelineCard.Parent.Height);
+  AssertTrue('BuiltinCard is expanded (Height >= 195)',
+    goverlayform.FVkBuiltinCard.Height >= 195);
   AssertTrue('ToggleCard is fully contained inside parent container',
     goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
+  AssertTrue('LUT controls assigned and visible',
+    Assigned(goverlayform.FVkLutPathEdit) and Assigned(goverlayform.FVkLutBrowseBtn) and Assigned(goverlayform.FVkLutClearBtn));
+  AssertTrue('LUT controls contained within BuiltinCard',
+    goverlayform.FVkLutPathEdit.Top + goverlayform.FVkLutPathEdit.Height <= goverlayform.FVkBuiltinCard.Height);
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltPipelineInteractions;
@@ -4692,6 +4705,56 @@ begin
   // Restore defaults
   Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
   AssertEquals('Pipeline cleared on restore defaults', 0, goverlayform.FPipelineEffects.Count);
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltLutInteractions;
+var
+  Helper: TVkBasaltTabHelper;
+  ConfPath, Content: string;
+begin
+  NavigateVkBasaltTab;
+  Helper := TVkBasaltTabHelper(goverlayform.FBasaltHelper);
+  AssertTrue('FBasaltHelper assigned', Assigned(Helper));
+  ConfPath := IsolatedHome + '/.config/vkBasalt/vkBasalt.conf';
+
+  // Start fresh
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+  AssertEquals('LUT path is empty after restore', '', goverlayform.FVkLutPathEdit.Text);
+  AssertEquals('lut not in pipeline after restore', -1, goverlayform.FPipelineEffects.IndexOf('lut'));
+
+  // Simulate setting a LUT file
+  goverlayform.FVkLutPathEdit.Text := '/path/to/my_grade.cube';
+  Helper.AddEffectToPipeline('lut');
+  AssertTrue('lut is in pipeline', goverlayform.FPipelineEffects.IndexOf('lut') >= 0);
+
+  // Verify pipeline chip painting renders 'LUT' without crashing
+  Helper.VkPipelineCardPaint(goverlayform.FVkPipelinePB);
+
+  // Save config and verify lutFile and effects = lut
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  Content := ReadFileText(ConfPath);
+  AssertTrue('vkBasalt.conf contains lutFile', Pos('lutFile = "/path/to/my_grade.cube"', Content) > 0);
+  AssertTrue('vkBasalt.conf contains lut effect', Pos('lut', Content) > 0);
+
+  // Disable via pipeline close button
+  Helper.DisablePipelineEffect('lut');
+  AssertEquals('LUT path cleared after disable', '', goverlayform.FVkLutPathEdit.Text);
+  AssertEquals('lut removed from pipeline after disable', -1, goverlayform.FPipelineEffects.IndexOf('lut'));
+
+  // Re-add and test Clear button
+  goverlayform.FVkLutPathEdit.Text := '/path/to/test.png';
+  Helper.AddEffectToPipeline('lut');
+  AssertEquals('lut in pipeline', 0, goverlayform.FPipelineEffects.IndexOf('lut'));
+  Helper.VkLutClearBtnClick(goverlayform.FVkLutClearBtn);
+  AssertEquals('LUT path cleared after ClearBtnClick', '', goverlayform.FVkLutPathEdit.Text);
+  AssertEquals('lut removed from pipeline after ClearBtnClick', -1, goverlayform.FPipelineEffects.IndexOf('lut'));
+
+  // Test Restore Defaults
+  goverlayform.FVkLutPathEdit.Text := '/path/to/another.cube';
+  Helper.AddEffectToPipeline('lut');
+  Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
+  AssertEquals('LUT path cleared on restore defaults', '', goverlayform.FVkLutPathEdit.Text);
+  AssertEquals('lut removed from pipeline on restore defaults', -1, goverlayform.FPipelineEffects.IndexOf('lut'));
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltPipelineScrollOnManyEffects;

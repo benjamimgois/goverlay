@@ -35,6 +35,8 @@ type
     ReshadeEffects: TStrings;
     PipelineEffects: TStrings;
     ActiveGameName: string;
+    LutEnabled: Boolean;
+    LutFile: string;
   end;
 
   TVkSumiSettings = record
@@ -494,7 +496,8 @@ end;
 function IsVkBasaltBuiltInEffect(const AName: string): Boolean;
 begin
   Result := SameText(AName, 'cas') or SameText(AName, 'fxaa') or
-            SameText(AName, 'smaa') or SameText(AName, 'dls');
+            SameText(AName, 'smaa') or SameText(AName, 'dls') or
+            SameText(AName, 'lut');
 end;
 
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
@@ -567,7 +570,14 @@ begin
           EffectsLine := EffectsLine + ':';
         EffectsLine := EffectsLine + 'dls';
       end;
-      // 5) reshade effects on the list
+      // 5) LUT (if active)
+      if (Trim(Settings.LutFile) <> '') and (Settings.LutEnabled or (Settings.PipelineEffects = nil)) then
+      begin
+        if EffectsLine <> '' then
+          EffectsLine := EffectsLine + ':';
+        EffectsLine := EffectsLine + 'lut';
+      end;
+      // 6) reshade effects on the list
       if Assigned(Settings.ReshadeEffects) then
       begin
         for i := 0 to Settings.ReshadeEffects.Count - 1 do
@@ -620,6 +630,11 @@ begin
       FS := DefaultFormatSettings;
       FS.DecimalSeparator := '.';
       Lines.Add('dlsSharpness = ' + FloatToStrF(DlsSharp, ffFixed, 3, 1, FS));
+    end;
+    // --- LUT file configuration ---
+    if Trim(Settings.LutFile) <> '' then
+    begin
+      Lines.Add('lutFile = "' + Trim(Settings.LutFile) + '"');
     end;
     // --- Map reshade effects ---
     if Assigned(Settings.PipelineEffects) and (Settings.PipelineEffects.Count > 0) then
@@ -1378,6 +1393,10 @@ begin
           if Settings.DlsPosition = 0 then
             Settings.DlsPosition := 5;
         end
+        else if SameText(EffectsList[j], 'lut') then
+        begin
+          Settings.LutEnabled := True;
+        end
         else if EffectsList[j] <> '' then
         begin
           FullEffectPath := '';
@@ -1416,6 +1435,17 @@ begin
     Value := Cfg.GetValue('toggleKey =', '');
     if Value <> '' then
       Settings.ToggleKey := Value;
+
+    Value := Cfg.GetValue('lutFile =', '');
+    if Value <> '' then
+    begin
+      Value := Trim(Value);
+      if (Length(Value) >= 2) and (Value[1] = '"') and (Value[Length(Value)] = '"') then
+        Value := Copy(Value, 2, Length(Value) - 2);
+      Settings.LutFile := Value;
+      if Value <> '' then
+        Settings.LutEnabled := True;
+    end;
 
     Result := True;
   finally
