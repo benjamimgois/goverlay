@@ -86,7 +86,7 @@ const
     (Icon: '󱁥'; Caption: 'MangoHud'),
     (Icon: '󰏘'; Caption: 'Post processing'),
     (Icon: '󰋮'; Caption: 'Upscalers'),
-    (Icon: '󰒓'; Caption: 'EnvVars')
+    (Icon: '󰒓'; Caption: 'Tweaks')
   );
   TOP_START = 108;
 var

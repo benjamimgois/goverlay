@@ -4042,6 +4042,7 @@ procedure TGoverlayGuiTests.TestTweaksCardLayoutAndClick;
 begin
   NavigateTweaksTab;
   AssertTrue('FTweaksPaintBox is created', Assigned(goverlayform.FTweaksPaintBox));
+  AssertEquals('Sidebar navigation item 4 caption is Tweaks', 'Tweaks', goverlayform.FNavLabels[4].Caption);
 
   // Verify that toggling via simulated mouse click updates checkbox state
   goverlayform.simdeckCheckBox.Checked := False;
@@ -4053,9 +4054,16 @@ begin
   goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 30, 50);
   AssertFalse('simdeckCheckBox is unchecked after second click', goverlayform.simdeckCheckBox.Checked);
 
-  // Trigger hover and paint
+  // Trigger hover and paint in global mode
+  goverlayform.FActiveGameName := '';
   goverlayform.TweaksMD3MouseMove(goverlayform.FTweaksPaintBox, [], 30, 50);
   goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+  // Trigger hover and paint in per-game profile mode
+  goverlayform.FActiveGameName := 'TestGame';
+  goverlayform.TweaksMD3MouseMove(goverlayform.FTweaksPaintBox, [], 30, 50);
+  goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+  goverlayform.FActiveGameName := '';
 end;
 
 procedure TGoverlayGuiTests.TestGlobalCustomVariablesReuseAndInheritance;

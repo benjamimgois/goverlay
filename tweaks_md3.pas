@@ -783,6 +783,7 @@ const
   CARD_MARGIN_X      = 4;
   CARD_GAP           = 10;
   CARD_HDR_H         = 32;
+  INFO_BANNER_H      = 34;
   CARD_PAD_BOTTOM    = 8;
   ITEM_H             = 50;
   CARD_CORNER_RADIUS = 6;
@@ -891,6 +892,31 @@ begin
 
     Inc(Y, CardH + CARD_GAP);
   end;
+
+  // Draw Info Chip Banner before custom cards
+  PB.Canvas.Brush.Color := RGBToColor(20, 26, 38);
+  PB.Canvas.Pen.Color   := RGBToColor(38, 52, 78);
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + INFO_BANNER_H, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+  PB.Canvas.Font.Name  := 'DejaVu Sans';
+  PB.Canvas.Font.Size  := 9;
+  PB.Canvas.Font.Style := [fsBold];
+  PB.Canvas.Font.Color := RGBToColor(56, 189, 201);
+  PB.Canvas.Brush.Style := bsClear;
+  PB.Canvas.TextOut(CardLeft + 12, Y + 9, 'ⓘ');
+
+  PB.Canvas.Font.Name  := 'DejaVu Sans';
+  PB.Canvas.Font.Size  := 8;
+  PB.Canvas.Font.Style := [];
+  PB.Canvas.Font.Color := RGBToColor(145, 160, 185);
+  PB.Canvas.Brush.Style := bsClear;
+  if FForm.FActiveGameName = '' then
+    PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Custom items added in Global mode are cataloged and can be toggled per game.')
+  else
+    PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Global catalog items are listed below. Toggling applies only to this game.');
+
+  Inc(Y, INFO_BANNER_H + CARD_GAP);
 
   // Count custom variables and launch arguments
   CustomVarCount := 0;
@@ -1079,11 +1105,12 @@ var
   TweakHint: string;
   Is2Col: Boolean;
 const
-  CARD_MARGIN_X   = 4;
-  CARD_GAP        = 10;
-  CARD_HDR_H      = 32;
-  CARD_PAD_BOTTOM = 8;
-  ITEM_H          = 50;
+  CARD_MARGIN_X      = 4;
+  CARD_GAP           = 10;
+  CARD_HDR_H         = 32;
+  INFO_BANNER_H      = 34;
+  CARD_PAD_BOTTOM    = 8;
+  ITEM_H             = 50;
 begin
   PB := Sender as TPaintBox;
   OldHover := FForm.FTweaksHoverIdx;
@@ -1153,6 +1180,9 @@ begin
     if FForm.FTweaksHoverIdx >= 0 then Break;
     Inc(YPos, CardH + CARD_GAP);
   end;
+
+  // Account for Info Chip Banner offset
+  Inc(YPos, INFO_BANNER_H + CARD_GAP);
 
   // Custom Variables and Launch Arguments sections
   CustomVarCount := 0;
@@ -1279,11 +1309,12 @@ var
   Is2Col: Boolean;
   DummyDesc: string;
 const
-  CARD_MARGIN_X   = 4;
-  CARD_GAP        = 10;
-  CARD_HDR_H      = 32;
-  CARD_PAD_BOTTOM = 8;
-  ITEM_H          = 50;
+  CARD_MARGIN_X      = 4;
+  CARD_GAP           = 10;
+  CARD_HDR_H         = 32;
+  INFO_BANNER_H      = 34;
+  CARD_PAD_BOTTOM    = 8;
+  ITEM_H             = 50;
 begin
   if Button <> mbLeft then Exit;
   PB := Sender as TPaintBox;
@@ -1360,6 +1391,9 @@ begin
 
     Inc(YPos, CardH + CARD_GAP);
   end;
+
+  // Account for Info Chip Banner offset
+  Inc(YPos, INFO_BANNER_H + CARD_GAP);
 
   // Custom Variables and Launch Arguments sections
   CustomVarCount := 0;
@@ -1505,7 +1539,9 @@ begin
       Inc(ArgItemCount);
       Inc(RowIdx);
     end;
-  end;
+  end
+  else
+    CardH := CARD_HDR_H + 36;
 end;
 
 procedure TTweaksMD3Helper.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
