@@ -4653,6 +4653,10 @@ begin
   // Ensure all UI controls fire auto-save
   WireAutoSaveEvents;
 
+  // Open MangoHud (Presets) as the default initial tab — it is by far the most
+  // used section and avoids an unnecessary extra click on every launch.
+  mangohudLabelClick(nil);
+
   // Auto-install OptiScaler & DLSS Enabler if missing — deferred via QueueAsyncCall so
   // the window is fully painted before the splash appears.
   // When startup downloads finish (or if none needed), ShowChangelogAsync is queued so "What's New"
