@@ -110,6 +110,8 @@ type
     procedure RefreshGameCards;
     procedure ReflowGamesGrid;
     procedure UpdateGameCardBadge(const AGameName: string);
+    function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
+    procedure GameCardCloneGlobalClick(Sender: TObject);
   end;
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
@@ -868,6 +870,22 @@ begin
     Bmp.Free;
   end;
 
+  // --- Icon 3: Clone / Copy (greyscale) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.Rectangle(5, 2, 14, 11);
+    Bmp.Canvas.Brush.Color := RGBToColor(22, 26, 40);
+    Bmp.Canvas.Rectangle(2, 5, 11, 14);
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
   FGameCardMenu.Images := FGameMenuImgList;
 
   OpenFolderItem := TMenuItem.Create(FGameCardMenu);
@@ -881,6 +899,12 @@ begin
   FOpenPrefixMenuItem.ImageIndex := 1;
   FOpenPrefixMenuItem.OnClick := @GameCardOpenPrefixClick;
   FGameCardMenu.Items.Add(FOpenPrefixMenuItem);
+
+  FCloneGlobalMenuItem := TMenuItem.Create(FGameCardMenu);
+  FCloneGlobalMenuItem.Caption := 'Clone global configs';
+  FCloneGlobalMenuItem.ImageIndex := 3;
+  FCloneGlobalMenuItem.OnClick := @GameCardCloneGlobalClick;
+  FGameCardMenu.Items.Add(FCloneGlobalMenuItem);
 
   FUninstallMenuItem := TMenuItem.Create(FGameCardMenu);
   FUninstallMenuItem.Caption := 'Uninstall changes';
@@ -2817,6 +2841,164 @@ begin
         ExecuteShellCommand('xdg-open ' + QuotedStr(PrefixPath));
     end;
   end;
+  end;
+end;
+
+function TGamesTabHelper.CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string): Boolean;
+var
+  GameCfgDir, GlobalCfgDir: string;
+  GlobalVkBasaltFile, GlobalVkSumiFile, GlobalMangoFile: string;
+  BGTemplate: string;
+  Ini: TIniFile;
+  OptiEnabled: Boolean;
+begin
+  Result := False;
+  if Trim(AGameName) = '' then Exit;
+
+  GameCfgDir := IncludeTrailingPathDelimiter(FForm.GetGameConfigDir(AGameName));
+  if not DirectoryExists(GameCfgDir) then
+    ForceDirectories(GameCfgDir);
+
+  GlobalCfgDir := IncludeTrailingPathDelimiter(FForm.GetGameConfigDir(''));
+
+  // 1. MangoHud.conf
+  GlobalMangoFile := GlobalCfgDir + 'MangoHud.conf';
+  if not FileExists(GlobalMangoFile) then
+    GlobalMangoFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  if FileExists(GlobalMangoFile) then
+    CopyFile(GlobalMangoFile, GameCfgDir + 'MangoHud.conf');
+
+  // 2. vkBasalt.conf
+  GlobalVkBasaltFile := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
+  if FileExists(GlobalVkBasaltFile) then
+    CopyFile(GlobalVkBasaltFile, GameCfgDir + 'vkBasalt.conf');
+
+  // 3. vkSumi.conf
+  GlobalVkSumiFile := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
+  if FileExists(GlobalVkSumiFile) then
+    CopyFile(GlobalVkSumiFile, GameCfgDir + 'vkSumi.conf');
+
+  // 4. OptiScaler.ini, fakenvapi.ini, goverlay.vars
+  if FileExists(GlobalCfgDir + 'OptiScaler.ini') then
+    CopyFile(GlobalCfgDir + 'OptiScaler.ini', GameCfgDir + 'OptiScaler.ini');
+  if FileExists(GlobalCfgDir + 'fakenvapi.ini') then
+    CopyFile(GlobalCfgDir + 'fakenvapi.ini', GameCfgDir + 'fakenvapi.ini');
+  if FileExists(GlobalCfgDir + 'goverlay.vars') then
+    CopyFile(GlobalCfgDir + 'goverlay.vars', GameCfgDir + 'goverlay.vars');
+
+  // 5. Lossless scaling configs (lsfg.toml, conf.toml)
+  if FileExists(GlobalCfgDir + 'lsfg.toml') then
+    CopyFile(GlobalCfgDir + 'lsfg.toml', GameCfgDir + 'lsfg.toml');
+  if FileExists(GlobalCfgDir + 'conf.toml') then
+    CopyFile(GlobalCfgDir + 'conf.toml', GameCfgDir + 'conf.toml');
+
+  // 6. bgmod.conf
+  OptiEnabled := False;
+  if FileExists(GlobalCfgDir + 'bgmod.conf') then
+  begin
+    CopyFile(GlobalCfgDir + 'bgmod.conf', GameCfgDir + 'bgmod.conf');
+    try
+      Ini := TIniFile.Create(GameCfgDir + 'bgmod.conf');
+      try
+        Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', GameCfgDir + 'MangoHud.conf');
+        OptiEnabled := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
+      finally
+        Ini.Free;
+      end;
+    except
+      on E: Exception do
+        DbgLog('[WARN] CloneGlobalConfigToGame: error updating bgmod.conf - ' + E.Message);
+    end;
+  end;
+
+  // 7. Base wrappers (bgmod, bgmod-uninstaller, fgmod link)
+  BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
+  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod'));
+  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod-uninstaller') + ' ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
+    QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
+  ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
+  FForm.EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
+
+  // 8. If OptiScaler enabled, deploy DLLs
+  if OptiEnabled then
+  begin
+    try
+      FForm.CopyOptiScalerGameFiles(GameCfgDir);
+    except
+      on E: Exception do
+        DbgLog('[WARN] CloneGlobalConfigToGame: error deploying OptiScaler files - ' + E.Message);
+    end;
+  end;
+
+  Result := True;
+end;
+
+procedure TGamesTabHelper.GameCardCloneGlobalClick(Sender: TObject);
+var
+  CardPanel: TPanel;
+  GameName, GamePath, GameCfgDir: string;
+  Lines, MarkerFiles: TStringList;
+  i: Integer;
+  HasMods: Boolean;
+begin
+  with FForm do
+  begin
+    CardPanel := FRightClickedCard;
+    if not Assigned(CardPanel) then Exit;
+
+    if CardPanel.Hint = '' then Exit;
+
+    Lines := TStringList.Create;
+    try
+      Lines.Text := CardPanel.Hint;
+      if Lines.Count < 2 then Exit;
+
+      i := Pos(') ', Lines[0]);
+      if i > 0 then
+        GameName := Copy(Lines[0], i + 2, MaxInt)
+      else
+        GameName := Lines[0];
+      GamePath := Lines[1];
+    finally
+      Lines.Free;
+    end;
+
+    GameCfgDir := IncludeTrailingPathDelimiter(GetGameConfigDir(GameName));
+    HasMods := FileExists(GameCfgDir + 'bgmod.conf') or
+               FileExists(GameCfgDir + 'goverlay.vars') or
+               FileExists(GameCfgDir + 'OptiScaler.ini') or
+               FileExists(GameCfgDir + 'MangoHud.conf') or
+               FileExists(GameCfgDir + 'vkBasalt.conf') or
+               FileExists(GameCfgDir + 'vkSumi.conf') or
+               FileExists(GameCfgDir + 'fakenvapi.ini');
+
+    if not HasMods and (GamePath <> '') and DirectoryExists(GamePath) then
+    begin
+      MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf', True);
+      try
+        if MarkerFiles.Count > 0 then
+          HasMods := True;
+      finally
+        MarkerFiles.Free;
+      end;
+    end;
+
+    if HasMods then
+    begin
+      if MessageDlg('Goverlay',
+                    Format('Overwrite existing configuration for "%s" with global settings?', [GameName]),
+                    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+        Exit;
+    end;
+
+    if CloneGlobalConfigToGame(GameName, GamePath) then
+    begin
+      UpdateGameCardBadge(GameName);
+      SendNotification('Goverlay', 'Global configurations cloned for ' + GameName, GetIconFile);
+    end;
   end;
 end;
 

@@ -149,6 +149,8 @@ type
     procedure TestDownloadProgressNoFloatingBanner;
     procedure TestLsfgSteamBetaNoticeDialog;
     procedure TestMethodLogoDimming;
+    procedure TestCloneGlobalConfigsToGameCard;
+    procedure TestCloneGlobalConfigsDockMenu;
   end;
 
 implementation
@@ -6206,6 +6208,145 @@ begin
   AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
   AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
   AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+end;
+
+procedure TGoverlayGuiTests.TestCloneGlobalConfigsToGameCard;
+var
+  GlobalConfDir, GameConfDir, GlobalMango, GlobalBgmod, BGTemplate: string;
+  CardPanel: TPanel;
+  Ini: TIniFile;
+  Lines: TStringList;
+  IdxPrefix, IdxClone: Integer;
+begin
+  GlobalConfDir := IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir(''));
+  ForceDirectories(GlobalConfDir);
+
+  // 1. Seed global MangoHud.conf and bgmod.conf
+  GlobalMango := GlobalConfDir + 'MangoHud.conf';
+  Lines := TStringList.Create;
+  try
+    Lines.Text := 'fps_limit=120' + LineEnding + 'hud_title=GlobalTitleTest';
+    Lines.SaveToFile(GlobalMango);
+
+    GlobalBgmod := GlobalConfDir + 'bgmod.conf';
+    Lines.Clear;
+    Lines.Add('[Config]');
+    Lines.Add('GOVERLAY_MANGOHUD=1');
+    Lines.Add('GOVERLAY_VKBASALT=0');
+    Lines.Add('GOVERLAY_OPTISCALER=0');
+    Lines.Add('GOVERLAY_TWEAKS=1');
+    Lines.Add('[Env]');
+    Lines.Add('MANGOHUD_CONFIGFILE=' + GlobalMango);
+    Lines.SaveToFile(GlobalBgmod);
+
+    // Seed bgmod template directory so wrappers can be copied
+    BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
+    ForceDirectories(BGTemplate);
+    Lines.Text := '#!/bin/sh' + LineEnding + 'exit 0';
+    Lines.SaveToFile(BGTemplate + 'bgmod');
+    Lines.SaveToFile(BGTemplate + 'bgmod-uninstaller');
+  finally
+    Lines.Free;
+  end;
+
+  // 2. Verify FCloneGlobalMenuItem exists in FGameCardMenu and order is below FOpenPrefixMenuItem
+  AssertNotNull('FGameCardMenu is initialized', goverlayform.FGameCardMenu);
+  AssertNotNull('FCloneGlobalMenuItem is initialized', goverlayform.FCloneGlobalMenuItem);
+  AssertNotNull('FOpenPrefixMenuItem is initialized', goverlayform.FOpenPrefixMenuItem);
+
+  IdxPrefix := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FOpenPrefixMenuItem);
+  IdxClone  := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FCloneGlobalMenuItem);
+  AssertTrue('FOpenPrefixMenuItem exists in menu', IdxPrefix >= 0);
+  AssertTrue('FCloneGlobalMenuItem exists in menu', IdxClone >= 0);
+  AssertEquals('FCloneGlobalMenuItem is immediately below FOpenPrefixMenuItem', IdxPrefix + 1, IdxClone);
+
+  // 3. Test Clone to unconfigured game
+  GameConfDir := IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('CloneCardTestGame'));
+  if DirectoryExists(GameConfDir) then
+    DeleteDirectory(GameConfDir, False);
+
+  CardPanel := TPanel.Create(nil);
+  try
+    CardPanel.Hint := '(99999) CloneCardTestGame' + LineEnding + '/fake/game/path';
+    goverlayform.FRightClickedCard := CardPanel;
+
+    goverlayform.GameCardCloneGlobalClick(nil);
+
+    // Verify cloned files exist in target game dir
+    AssertTrue('MangoHud.conf cloned to game dir', FileExists(GameConfDir + 'MangoHud.conf'));
+    AssertTrue('bgmod.conf cloned to game dir', FileExists(GameConfDir + 'bgmod.conf'));
+    AssertTrue('bgmod wrapper exists', FileExists(GameConfDir + 'bgmod'));
+    AssertTrue('bgmod-uninstaller exists', FileExists(GameConfDir + 'bgmod-uninstaller'));
+
+    // Verify MANGOHUD_CONFIGFILE was rewritten to target game dir
+    Ini := TIniFile.Create(GameConfDir + 'bgmod.conf');
+    try
+      AssertEquals('MANGOHUD_CONFIGFILE rewritten to game dir',
+                   GameConfDir + 'MangoHud.conf',
+                   Ini.ReadString('Env', 'MANGOHUD_CONFIGFILE', ''));
+      AssertEquals('GOVERLAY_MANGOHUD preserved as 1',
+                   '1',
+                   Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0'));
+    finally
+      Ini.Free;
+    end;
+  finally
+    CardPanel.Free;
+    goverlayform.FRightClickedCard := nil;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestCloneGlobalConfigsDockMenu;
+var
+  GlobalConfDir, GameConfDir, GlobalMango: string;
+  Lines: TStringList;
+begin
+  // 1. Verify cloneGlobalDockMenuItem exists in popsaveMenu
+  AssertNotNull('cloneGlobalDockMenuItem is created', goverlayform.cloneGlobalDockMenuItem);
+  AssertTrue('cloneGlobalDockMenuItem is in popsaveMenu',
+             goverlayform.popsaveMenu.Items.IndexOf(goverlayform.cloneGlobalDockMenuItem) >= 0);
+
+  // 2. In global mode (FActiveGameName = ''), verify cloneGlobalDockMenuItem is hidden
+  goverlayform.FActiveGameName := '';
+  goverlayform.UpdateDockMenuItemsVisibility;
+  AssertFalse('cloneGlobalDockMenuItem hidden in global mode',
+              goverlayform.cloneGlobalDockMenuItem.Visible);
+
+  // 3. In game mode (FActiveGameName <> ''), verify cloneGlobalDockMenuItem is visible
+  goverlayform.FActiveGameName := 'DockCloneGameTest';
+  goverlayform.UpdateDockMenuItemsVisibility;
+  AssertTrue('cloneGlobalDockMenuItem visible in game mode',
+             goverlayform.cloneGlobalDockMenuItem.Visible);
+
+  // 4. Test CloneGlobalConfigToGame directly and UI reloading
+  GlobalConfDir := IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir(''));
+  ForceDirectories(GlobalConfDir);
+  GlobalMango := GlobalConfDir + 'MangoHud.conf';
+  Lines := TStringList.Create;
+  try
+    Lines.Text := 'custom_text_center=ClonedDockHUD' + LineEnding + 'fps';
+    Lines.SaveToFile(GlobalMango);
+  finally
+    Lines.Free;
+  end;
+
+  GameConfDir := IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir('DockCloneGameTest'));
+  if DirectoryExists(GameConfDir) then
+    DeleteDirectory(GameConfDir, False);
+
+  AssertTrue('CloneGlobalConfigToGame succeeds',
+             goverlayform.CloneGlobalConfigToGame('DockCloneGameTest'));
+  AssertTrue('Cloned MangoHud.conf exists in game dir',
+             FileExists(GameConfDir + 'MangoHud.conf'));
+
+  // Switch to MangoHud tab and load config
+  MANGOHUDCFGFILE := GameConfDir + 'MangoHud.conf';
+  goverlayform.LoadMangoHudConfig;
+  AssertEquals('hudtitleEdit has cloned title', 'ClonedDockHUD', goverlayform.hudtitleEdit.Text);
+  AssertTrue('fpsCheckBox is checked', goverlayform.fpsCheckBox.Checked);
+
+  // Reset state
+  goverlayform.FActiveGameName := '';
 end;
 
 initialization

@@ -460,6 +460,7 @@ type
     openConfigFileMenuItem: TMenuItem;
     openLogFileMenuItem: TMenuItem;
     lsfgMigrationMenuItem: TMenuItem;
+    cloneGlobalDockMenuItem: TMenuItem;
     loadconfigMenuItem: TMenuItem;
     saveoptionsItem: TMenuItem;
     layoutImageList: TImageList;
@@ -595,6 +596,7 @@ type
     procedure openConfigFileMenuItemClick(Sender: TObject);
     procedure openLogFileMenuItemClick(Sender: TObject);
     procedure lsfgMigrationMenuItemClick(Sender: TObject);
+    procedure CloneGlobalDockMenuItemClick(Sender: TObject);
     procedure loadconfigMenuItemClick(Sender: TObject);
     procedure saveoptionsItemClick(Sender: TObject);
     procedure deckpreset1MenuItemClick(Sender: TObject);
@@ -607,6 +609,7 @@ type
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure optversionComboBoxChange(Sender: TObject);
     procedure plusSpeedButtonClick(Sender: TObject);
+    procedure UpdateDockMenuItemsVisibility;
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
     procedure savecustomMenuItemClick(Sender: TObject);
@@ -1339,6 +1342,7 @@ type
     FRemoveFoldersMenu: TPopupMenu;  // right-click context menu for Add Non-Steam Folder card
     FGamesPopupMenu: TPopupMenu;     // contextual menu for Games tab floating dock
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
+    FCloneGlobalMenuItem: TMenuItem;
     FUninstallMenuItem: TMenuItem;
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
@@ -1465,6 +1469,8 @@ type
     procedure optiscalerTabSheetShow(Sender: TObject);
     procedure losslessScalingTabSheetShow(Sender: TObject);
     procedure goverlayPageControlChange(Sender: TObject);
+    function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
+    procedure GameCardCloneGlobalClick(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
@@ -3554,6 +3560,13 @@ begin
     openConfigFileMenuItem.Caption := 'Open config folder';
   if Assigned(openLogFileMenuItem) then
     openLogFileMenuItem.Caption := 'Open log folder';
+
+  cloneGlobalDockMenuItem := TMenuItem.Create(popsaveMenu);
+  cloneGlobalDockMenuItem.Caption := 'Clone global configs';
+  cloneGlobalDockMenuItem.ImageIndex := 24;
+  cloneGlobalDockMenuItem.Visible := False;
+  cloneGlobalDockMenuItem.OnClick := @CloneGlobalDockMenuItemClick;
+  popsaveMenu.Items.Add(cloneGlobalDockMenuItem);
 
   savedStatusLabel := TLabel.Create(Self);
   savedStatusLabel.Parent := goverlaybarPanel;
@@ -6299,7 +6312,7 @@ begin
      end;
 end;
 
-procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
+procedure Tgoverlayform.UpdateDockMenuItemsVisibility;
 begin
   // Menu items: "Save options" and "Load config" (when available) come first, followed by "Open config folder" and "Open log folder"
   openConfigFileMenuItem.Caption := 'Open config folder';
@@ -6357,6 +6370,13 @@ begin
     blacklistMenuItem.Visible := True;
   end;
 
+  if Assigned(cloneGlobalDockMenuItem) then
+    cloneGlobalDockMenuItem.Visible := (FActiveGameName <> '');
+end;
+
+procedure Tgoverlayform.popupBitBtnClick(Sender: TObject);
+begin
+  UpdateDockMenuItemsVisibility;
   popsaveMenu.PopUp;
 end;
 
@@ -8842,6 +8862,77 @@ procedure Tgoverlayform.UpdateGameCardBadge(const AGameName: string);
 begin
   if Assigned(FGamesHelper) then
     TGamesTabHelper(FGamesHelper).UpdateGameCardBadge(AGameName);
+end;
+
+function Tgoverlayform.CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string): Boolean;
+begin
+  if Assigned(FGamesHelper) then
+    Result := TGamesTabHelper(FGamesHelper).CloneGlobalConfigToGame(AGameName, AGamePath)
+  else
+    Result := False;
+end;
+
+procedure Tgoverlayform.GameCardCloneGlobalClick(Sender: TObject);
+begin
+  if Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).GameCardCloneGlobalClick(Sender);
+end;
+
+procedure Tgoverlayform.CloneGlobalDockMenuItemClick(Sender: TObject);
+begin
+  if FActiveGameName = '' then Exit;
+
+  if MessageDlg('Goverlay',
+                Format('Overwrite current configuration for "%s" with global settings?', [FActiveGameName]),
+                mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
+  if CloneGlobalConfigToGame(FActiveGameName) then
+  begin
+    LoadGameToggleStates;
+
+    if (goverlayPageControl.ActivePage = presetTabSheet) or
+       (goverlayPageControl.ActivePage = visualTabSheet) or
+       (goverlayPageControl.ActivePage = performanceTabSheet) or
+       (goverlayPageControl.ActivePage = metricsTabSheet) or
+       (goverlayPageControl.ActivePage = extrasTabSheet) then
+    begin
+      LoadMangoHudConfig;
+    end
+    else if (goverlayPageControl.ActivePage = vkbasaltTabSheet) or
+            (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    begin
+      LoadVkBasaltConfig;
+    end
+    else if goverlayPageControl.ActivePage = optiscalerTabSheet then
+    begin
+      if Assigned(FOptiscalerUpdate) then
+      begin
+        FOptiscalerUpdate.FGModPath := GetGameConfigDir(FActiveGameName);
+        try
+          FOptiscalerUpdate.LoadVersionsFromFile;
+          FOptiscalerUpdate.InitializeTab;
+          RefreshOsStatusDots;
+        except
+        end;
+      end;
+      LoadOptiScalerConfig;
+    end
+    else if goverlayPageControl.ActivePage = tweaksTabSheet then
+    begin
+      LoadTweaksFromFGMod;
+    end
+    else if goverlayPageControl.ActivePage = losslessScalingTabSheet then
+    begin
+      losslessScalingTabSheetShow(nil);
+    end;
+
+    FLaunchCommand := GetLaunchCommand;
+    if Assigned(commandPaintBox) then
+      commandPaintBox.Invalidate;
+
+    SendNotification('Goverlay', 'Global configurations cloned successfully for ' + FActiveGameName, GetIconFile);
+  end;
 end;
 function Tgoverlayform.GetMangoHudVersion: string;
 begin
