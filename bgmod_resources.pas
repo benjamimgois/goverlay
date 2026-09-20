@@ -59,6 +59,18 @@ function GetAppBaseDir: string;
 // Migrate FGMOD/BGMOD from old location if needed
 function MigrateBGModToXDG: Boolean;
 
+// Resolve candidate master directory containing bgmod binaries
+function FindMasterBGModDir(const ARunningDir: string = ''): string;
+
+// Check if a target binary needs an update relative to the master binary
+function CheckBGModNeedsUpdate(const ARunningBgmod, AMasterBgmod: string): Boolean;
+
+// Atomically copy and replace a binary file avoiding ETXTBSY
+function PerformAtomicBinaryUpdate(const ASrcFile, ADstFile: string): Boolean;
+
+// Update bgmod, bgmod-uninstaller, bgmod-splash and fgmod symlink from master directory
+function PerformWrapperSelfUpdate(const ARunningDir, AMasterDir: string): Boolean;
+
 implementation
 
 uses
@@ -761,6 +773,129 @@ var
 begin
   OptiScalerDLL := IncludeTrailingPathDelimiter(ABGModPath) + 'OptiScaler.dll';
   Result := FileExists(OptiScalerDLL);
+end;
+
+function FindMasterBGModDir(const ARunningDir: string): string;
+var
+  DataHome, CleanRunningDir, HomeDir: string;
+  Candidates: array[0..11] of string;
+  idx: Integer;
+  CandDir: string;
+begin
+  Result := '';
+  CleanRunningDir := '';
+  if ARunningDir <> '' then
+    CleanRunningDir := IncludeTrailingPathDelimiter(ARunningDir);
+
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := GetUserDir;
+
+  DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := IncludeTrailingPathDelimiter(HomeDir) + '.local/share';
+
+  // 1. System packages
+  Candidates[0] := '/usr/libexec/goverlay/';
+  Candidates[1] := '/usr/local/libexec/goverlay/';
+  Candidates[2] := '/usr/lib/goverlay/';
+  Candidates[3] := '/usr/local/lib/goverlay/';
+  Candidates[4] := '/usr/libexec/';
+  Candidates[5] := '/usr/local/libexec/';
+
+  // 2. Flatpak system & user host paths
+  Candidates[6] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
+  Candidates[7] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+  Candidates[8] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
+  Candidates[9] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+
+  // 3. User template cache
+  Candidates[10] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/';
+
+  // 4. AppImage / Development
+  if GetEnvironmentVariable('APPDIR') <> '' then
+    Candidates[11] := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDIR')) + 'lib/'
+  else
+    Candidates[11] := '';
+
+  for idx := 0 to High(Candidates) do
+  begin
+    CandDir := Candidates[idx];
+    if (CandDir <> '') and FileExists(CandDir + 'bgmod') then
+    begin
+      if (CleanRunningDir = '') or (ExpandFileName(CandDir) <> ExpandFileName(CleanRunningDir)) then
+      begin
+        Result := CandDir;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function CheckBGModNeedsUpdate(const ARunningBgmod, AMasterBgmod: string): Boolean;
+var
+  RunningStat, MasterStat: Stat;
+begin
+  Result := False;
+  if (ARunningBgmod = '') or (AMasterBgmod = '') then Exit;
+  if not FileExists(ARunningBgmod) or not FileExists(AMasterBgmod) then Exit;
+  if ExpandFileName(ARunningBgmod) = ExpandFileName(AMasterBgmod) then Exit;
+
+  if (fpStat(PChar(ARunningBgmod), RunningStat) = 0) and (fpStat(PChar(AMasterBgmod), MasterStat) = 0) then
+  begin
+    // Same device and inode indicates the same physical file (e.g. hardlink)
+    if (RunningStat.st_dev = MasterStat.st_dev) and (RunningStat.st_ino = MasterStat.st_ino) then
+      Exit(False);
+
+    // If master is newer or differing in size, an update is needed
+    if (MasterStat.st_mtime > RunningStat.st_mtime) or (MasterStat.st_size <> RunningStat.st_size) then
+      Result := True;
+  end;
+end;
+
+function PerformAtomicBinaryUpdate(const ASrcFile, ADstFile: string): Boolean;
+var
+  TmpFile: string;
+begin
+  Result := False;
+  if not FileExists(ASrcFile) then Exit;
+
+  TmpFile := ADstFile + '.tmp.' + IntToStr(fpGetPid);
+  if FileExists(TmpFile) then
+    fpUnlink(PChar(TmpFile));
+
+  if CopyFile(ASrcFile, TmpFile) then
+  begin
+    fpChmod(PChar(TmpFile), &755);
+    if fpRename(PChar(TmpFile), PChar(ADstFile)) = 0 then
+      Result := True
+    else
+      fpUnlink(PChar(TmpFile));
+  end;
+end;
+
+function PerformWrapperSelfUpdate(const ARunningDir, AMasterDir: string): Boolean;
+var
+  CleanRunningDir, CleanMasterDir: string;
+  BgmodUpdated: Boolean;
+begin
+  Result := False;
+  CleanRunningDir := IncludeTrailingPathDelimiter(ARunningDir);
+  CleanMasterDir := IncludeTrailingPathDelimiter(AMasterDir);
+
+  BgmodUpdated := PerformAtomicBinaryUpdate(CleanMasterDir + 'bgmod', CleanRunningDir + 'bgmod');
+
+  if FileExists(CleanMasterDir + 'bgmod-uninstaller') then
+    PerformAtomicBinaryUpdate(CleanMasterDir + 'bgmod-uninstaller', CleanRunningDir + 'bgmod-uninstaller');
+
+  if FileExists(CleanMasterDir + 'bgmod-splash') then
+    PerformAtomicBinaryUpdate(CleanMasterDir + 'bgmod-splash', CleanRunningDir + 'bgmod-splash');
+
+  fpUnlink(PChar(CleanRunningDir + 'fgmod'));
+  fpSymlink(PChar('bgmod'), PChar(CleanRunningDir + 'fgmod'));
+
+  Result := BgmodUpdated;
 end;
 
 end.

@@ -97,6 +97,15 @@ type
     procedure TestSyncPreservesMultipleGameDirectories;
   end;
 
+  TBgmodSelfUpdateTests = class(TTestCase)
+  published
+    procedure TestFindMasterBGModDir;
+    procedure TestCheckBGModNeedsUpdate;
+    procedure TestPerformAtomicBinaryUpdate;
+    procedure TestPerformWrapperSelfUpdate;
+    procedure TestBgmodExecutableSelfUpdate;
+  end;
+
 implementation
 
 uses
@@ -1269,6 +1278,181 @@ begin
   end;
 end;
 
+procedure TBgmodSelfUpdateTests.TestFindMasterBGModDir;
+var
+  BaseDir, BgmodTemplateDir, GameDir, FoundMaster: string;
+  F: TextFile;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  BgmodTemplateDir := BaseDir + '/bgmod';
+  GameDir := BaseDir + '/gameconfig/GameTest';
+  ForceDirectories(BgmodTemplateDir);
+  ForceDirectories(GameDir);
+
+  AssignFile(F, BgmodTemplateDir + '/bgmod'); Rewrite(F); WriteLn(F, 'MASTER_BIN'); CloseFile(F);
+
+  FoundMaster := FindMasterBGModDir(GameDir);
+  AssertTrue('Master directory should be found', FoundMaster <> '');
+  AssertEquals('Master directory should match template dir',
+    IncludeTrailingPathDelimiter(ExpandFileName(BgmodTemplateDir)),
+    IncludeTrailingPathDelimiter(ExpandFileName(FoundMaster)));
+
+  // If running dir IS the master dir, it should not pick itself
+  FoundMaster := FindMasterBGModDir(BgmodTemplateDir);
+  AssertFalse('Master resolution should not pick running dir itself',
+    IncludeTrailingPathDelimiter(ExpandFileName(FoundMaster)) =
+    IncludeTrailingPathDelimiter(ExpandFileName(BgmodTemplateDir)));
+end;
+
+procedure TBgmodSelfUpdateTests.TestCheckBGModNeedsUpdate;
+var
+  FileA, FileB: string;
+  F: TextFile;
+begin
+  FileA := IsolatedHome + '/test_bgmod_running';
+  FileB := IsolatedHome + '/test_bgmod_master';
+
+  // 1. Different sizes
+  AssignFile(F, FileA); Rewrite(F); WriteLn(F, 'SHORT'); CloseFile(F);
+  AssignFile(F, FileB); Rewrite(F); WriteLn(F, 'MUCH_LONGER_CONTENT_IN_MASTER'); CloseFile(F);
+  AssertTrue('Different file sizes must require update', CheckBGModNeedsUpdate(FileA, FileB));
+
+  // 2. Same content and size
+  AssignFile(F, FileA); Rewrite(F); WriteLn(F, 'IDENTICAL_CONTENT'); CloseFile(F);
+  AssignFile(F, FileB); Rewrite(F); WriteLn(F, 'IDENTICAL_CONTENT'); CloseFile(F);
+  AssertFalse('Identical content and stat should not require update', CheckBGModNeedsUpdate(FileA, FileB));
+
+  // 3. Same path
+  AssertFalse('Same file path should not require update', CheckBGModNeedsUpdate(FileA, FileA));
+end;
+
+procedure TBgmodSelfUpdateTests.TestPerformAtomicBinaryUpdate;
+var
+  SrcFile, DstFile: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  SrcFile := IsolatedHome + '/test_src_binary';
+  DstFile := IsolatedHome + '/test_dst_binary';
+
+  AssignFile(F, SrcFile); Rewrite(F); WriteLn(F, 'NEW_BINARY_CONTENT'); CloseFile(F);
+  AssignFile(F, DstFile); Rewrite(F); WriteLn(F, 'OLD_BINARY_CONTENT'); CloseFile(F);
+
+  AssertTrue('PerformAtomicBinaryUpdate should succeed', PerformAtomicBinaryUpdate(SrcFile, DstFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(DstFile);
+    AssertEquals('Destination binary must have updated content', 'NEW_BINARY_CONTENT', Trim(Lines.Text));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSelfUpdateTests.TestPerformWrapperSelfUpdate;
+var
+  BaseDir, MasterDir, GameDir: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  MasterDir := BaseDir + '/bgmod';
+  GameDir := BaseDir + '/gameconfig/SelfUpdateGame';
+
+  ForceDirectories(MasterDir);
+  ForceDirectories(GameDir);
+
+  // 1. Create master binaries
+  AssignFile(F, MasterDir + '/bgmod'); Rewrite(F); WriteLn(F, 'MASTER_BGMOD_BIN'); CloseFile(F);
+  AssignFile(F, MasterDir + '/bgmod-uninstaller'); Rewrite(F); WriteLn(F, 'MASTER_UNINSTALLER_BIN'); CloseFile(F);
+  AssignFile(F, MasterDir + '/bgmod-splash'); Rewrite(F); WriteLn(F, 'MASTER_SPLASH_BIN'); CloseFile(F);
+
+  // 2. Create old game binaries and user config
+  AssignFile(F, GameDir + '/bgmod'); Rewrite(F); WriteLn(F, 'OLD_BGMOD'); CloseFile(F);
+  AssignFile(F, GameDir + '/bgmod-uninstaller'); Rewrite(F); WriteLn(F, 'OLD_UNINSTALLER'); CloseFile(F);
+  AssignFile(F, GameDir + '/bgmod-splash'); Rewrite(F); WriteLn(F, 'OLD_SPLASH'); CloseFile(F);
+  AssignFile(F, GameDir + '/bgmod.conf'); Rewrite(F); WriteLn(F, 'KEEP_MY_CONFIG=1'); CloseFile(F);
+
+  AssertTrue('PerformWrapperSelfUpdate should succeed', PerformWrapperSelfUpdate(GameDir, MasterDir));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(GameDir + '/bgmod');
+    AssertEquals('Game bgmod must be updated', 'MASTER_BGMOD_BIN', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/bgmod-uninstaller');
+    AssertEquals('Game bgmod-uninstaller must be updated', 'MASTER_UNINSTALLER_BIN', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/bgmod-splash');
+    AssertEquals('Game bgmod-splash must be updated', 'MASTER_SPLASH_BIN', Trim(Lines.Text));
+
+    Lines.LoadFromFile(GameDir + '/bgmod.conf');
+    AssertEquals('Game bgmod.conf must be preserved', 'KEEP_MY_CONFIG=1', Trim(Lines.Text));
+
+    AssertTrue('fgmod symlink must exist and point to bgmod', FileExists(GameDir + '/fgmod'));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSelfUpdateTests.TestBgmodExecutableSelfUpdate;
+var
+  BaseDir, MasterDir, GameDir, RepoBgmod, LogFile: string;
+  Proc: TProcess;
+  Lines: TStringList;
+begin
+  RepoBgmod := ExpandFileName('bgmod');
+  if not FileExists(RepoBgmod) then Exit;
+
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  MasterDir := BaseDir + '/bgmod';
+  GameDir := BaseDir + '/gameconfig/SelfUpdateExecGame';
+
+  ForceDirectories(MasterDir);
+  ForceDirectories(GameDir);
+
+  // 1. Copy repo bgmod to master directory
+  PerformAtomicBinaryUpdate(RepoBgmod, MasterDir + '/bgmod');
+
+  // 2. Copy to game directory, but modify size/stat
+  PerformAtomicBinaryUpdate(RepoBgmod, GameDir + '/bgmod');
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'sh';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('echo "X" >> ' + QuotedStr(GameDir + '/bgmod'));
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+
+  // 3. Execute the game wrapper with /bin/true
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := GameDir + '/bgmod';
+    Proc.Parameters.Add('/bin/true');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('Self-updating bgmod process should exit with code 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 4. Verify the log recorded self-update
+  LogFile := BaseDir + '/logs/SelfUpdateExecGame/bgmod.log';
+  AssertTrue('Central bgmod log should exist', FileExists(LogFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Log must record self-update trigger', Pos('Performing atomic self-update', Lines.Text) > 0);
+    AssertTrue('Log must record successful re-exec', Pos('BGMod active after wrapper self-update', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -1282,5 +1466,6 @@ initialization
   RegisterTest(TBgmodSupervisorTests);
   RegisterTest(TReShadeLogicTests);
   RegisterTest(TSyncGameWrapperBinariesTests);
+  RegisterTest(TBgmodSelfUpdateTests);
 
 end.

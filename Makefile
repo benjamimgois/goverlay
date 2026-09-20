@@ -103,7 +103,7 @@ tests:
 
 test: test-logic test-gui
 
-test-logic:
+test-logic: bgmod bgmod-uninstaller bgmod-splash
 	lazbuild tests/logic/logic_tests.lpi --widgetset=qt6 $(LAZBUILDOPTS)
 	./tests/logic/logic_tests
 
