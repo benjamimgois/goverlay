@@ -204,21 +204,6 @@ begin
     // ignore logging failures
   end;
   
-  // Append to game directory bgmod.log if resolved
-  if GameDir <> '' then
-  begin
-    try
-      AssignFile(F, IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
-      if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log') then
-        Append(F)
-      else
-        Rewrite(F);
-      WriteLn(F, LogMsg);
-      CloseFile(F);
-    except
-      // ignore logging failures
-    end;
-  end;
   
   // Append to central GOverlay logs directory if resolved
   if CentralLogFile <> '' then
@@ -274,8 +259,8 @@ begin
   try
     Ini := TIniFile.Create(AIniPath);
     try
-      if (Ini.ReadString('Log', 'LogToFile', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogToFile', 'false') = 'false') then
-        Ini.WriteString('Log', 'LogToFile', 'true');
+      if (Ini.ReadString('Log', 'LogToFile', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogToFile', '') = 'true') then
+        Ini.WriteString('Log', 'LogToFile', 'false');
       if Ini.ReadString('Log', 'LogToConsole', 'auto') = 'auto' then
         Ini.WriteString('Log', 'LogToConsole', 'true');
       if Ini.ReadString('Log', 'LogLevel', 'auto') = 'auto' then
@@ -436,19 +421,19 @@ begin
 end;
 
 procedure RunSubprocessLogger(ReadFd, OrigStderrFd: cint; 
-  const MakoCent, MakoGame, LsfgCent, LsfgGame, OptiCent, OptiGame,
-        SumiCent, SumiGame, BasaltCent, BasaltGame,
-        MangoCent, MangoGame, DlssCent, DlssGame,
+  const MakoCent, LsfgCent, OptiCent,
+        SumiCent, BasaltCent,
+        MangoCent, DlssCent,
         AGameDir, ACentralDir: string;
   LogMako, LogLsfg, LogOpti, LogSumi, LogBasalt, LogMango, LogDlss: Boolean);
 var
-  MakoCentFd, MakoGameFd: cint;
-  LsfgCentFd, LsfgGameFd: cint;
-  OptiCentFd, OptiGameFd: cint;
-  SumiCentFd, SumiGameFd: cint;
-  BasaltCentFd, BasaltGameFd: cint;
-  MangoCentFd, MangoGameFd: cint;
-  DlssCentFd, DlssGameFd: cint;
+  MakoCentFd: cint;
+  LsfgCentFd: cint;
+  OptiCentFd: cint;
+  SumiCentFd: cint;
+  BasaltCentFd: cint;
+  MangoCentFd: cint;
+  DlssCentFd: cint;
   Buf: array[0..4095] of char;
   N: TsSize;
   i: Integer;
@@ -471,48 +456,34 @@ begin
   // Initial sync at logger startup
   SyncGameDirLogsToCentral(AGameDir, ACentralDir);
 
-  MakoCentFd := -1; MakoGameFd := -1;
-  LsfgCentFd := -1; LsfgGameFd := -1;
-  OptiCentFd := -1; OptiGameFd := -1;
-  SumiCentFd := -1; SumiGameFd := -1;
-  BasaltCentFd := -1; BasaltGameFd := -1;
-  MangoCentFd := -1; MangoGameFd := -1;
-  DlssCentFd := -1; DlssGameFd := -1;
+  MakoCentFd := -1;
+  LsfgCentFd := -1;
+  OptiCentFd := -1;
+  SumiCentFd := -1;
+  BasaltCentFd := -1;
+  MangoCentFd := -1;
+  DlssCentFd := -1;
 
   if LogMako and (MakoCent <> '') then
     MakoCentFd := fpOpen(PChar(MakoCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogMako and (MakoGame <> '') then
-    MakoGameFd := fpOpen(PChar(MakoGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogLsfg and (LsfgCent <> '') then
     LsfgCentFd := fpOpen(PChar(LsfgCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogLsfg and (LsfgGame <> '') then
-    LsfgGameFd := fpOpen(PChar(LsfgGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogOpti and (OptiCent <> '') then
     OptiCentFd := fpOpen(PChar(OptiCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogOpti and (OptiGame <> '') then
-    OptiGameFd := fpOpen(PChar(OptiGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogSumi and (SumiCent <> '') then
     SumiCentFd := fpOpen(PChar(SumiCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogSumi and (SumiGame <> '') then
-    SumiGameFd := fpOpen(PChar(SumiGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogBasalt and (BasaltCent <> '') then
     BasaltCentFd := fpOpen(PChar(BasaltCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogBasalt and (BasaltGame <> '') then
-    BasaltGameFd := fpOpen(PChar(BasaltGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogMango and (MangoCent <> '') then
     MangoCentFd := fpOpen(PChar(MangoCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogMango and (MangoGame <> '') then
-    MangoGameFd := fpOpen(PChar(MangoGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   if LogDlss and (DlssCent <> '') then
     DlssCentFd := fpOpen(PChar(DlssCent), O_WRONLY or O_CREAT or O_APPEND, &644);
-  if LogDlss and (DlssGame <> '') then
-    DlssGameFd := fpOpen(PChar(DlssGame), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   LineBuf := '';
   LastSyncTick := GetTickCount64;
@@ -572,7 +543,6 @@ begin
             if IsMako then
             begin
               if MakoCentFd >= 0 then fpWrite(MakoCentFd, PChar(OutLine), Length(OutLine));
-              if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -583,7 +553,6 @@ begin
             if IsLsfg then
             begin
               if LsfgCentFd >= 0 then fpWrite(LsfgCentFd, PChar(OutLine), Length(OutLine));
-              if LsfgGameFd >= 0 then fpWrite(LsfgGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -595,7 +564,6 @@ begin
             if IsOpti then
             begin
               if OptiCentFd >= 0 then fpWrite(OptiCentFd, PChar(OutLine), Length(OutLine));
-              if OptiGameFd >= 0 then fpWrite(OptiGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -605,7 +573,6 @@ begin
             if IsSumi then
             begin
               if SumiCentFd >= 0 then fpWrite(SumiCentFd, PChar(OutLine), Length(OutLine));
-              if SumiGameFd >= 0 then fpWrite(SumiGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -615,7 +582,6 @@ begin
             if IsBasalt then
             begin
               if BasaltCentFd >= 0 then fpWrite(BasaltCentFd, PChar(OutLine), Length(OutLine));
-              if BasaltGameFd >= 0 then fpWrite(BasaltGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -626,7 +592,6 @@ begin
             if IsMango then
             begin
               if MangoCentFd >= 0 then fpWrite(MangoCentFd, PChar(OutLine), Length(OutLine));
-              if MangoGameFd >= 0 then fpWrite(MangoGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
 
@@ -638,7 +603,6 @@ begin
             if IsDlss then
             begin
               if DlssCentFd >= 0 then fpWrite(DlssCentFd, PChar(OutLine), Length(OutLine));
-              if DlssGameFd >= 0 then fpWrite(DlssGameFd, PChar(OutLine), Length(OutLine));
             end;
           end;
         end;
@@ -658,60 +622,46 @@ begin
     if LogMako and ((Pos('mako', LowLine) > 0) or (Pos('lsfg', LowLine) > 0) or (Pos('lossless', LowLine) > 0)) then
     begin
       if MakoCentFd >= 0 then fpWrite(MakoCentFd, PChar(OutLine), Length(OutLine));
-      if MakoGameFd >= 0 then fpWrite(MakoGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogLsfg and ((Pos('lsfg', LowLine) > 0) or (Pos('lossless', LowLine) > 0)) then
     begin
       if LsfgCentFd >= 0 then fpWrite(LsfgCentFd, PChar(OutLine), Length(OutLine));
-      if LsfgGameFd >= 0 then fpWrite(LsfgGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogOpti and ((Pos('optiscaler', LowLine) > 0) or (Pos('nvngx', LowLine) > 0) or (Pos('fakenvapi', LowLine) > 0)) then
     begin
       if OptiCentFd >= 0 then fpWrite(OptiCentFd, PChar(OutLine), Length(OutLine));
-      if OptiGameFd >= 0 then fpWrite(OptiGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogSumi and (Pos('vksumi', LowLine) > 0) then
     begin
       if SumiCentFd >= 0 then fpWrite(SumiCentFd, PChar(OutLine), Length(OutLine));
-      if SumiGameFd >= 0 then fpWrite(SumiGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogBasalt and (Pos('vkbasalt', LowLine) > 0) then
     begin
       if BasaltCentFd >= 0 then fpWrite(BasaltCentFd, PChar(OutLine), Length(OutLine));
-      if BasaltGameFd >= 0 then fpWrite(BasaltGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogMango and ((Pos('mangohud', LowLine) > 0) or (Pos('mangoapp', LowLine) > 0)) then
     begin
       if MangoCentFd >= 0 then fpWrite(MangoCentFd, PChar(OutLine), Length(OutLine));
-      if MangoGameFd >= 0 then fpWrite(MangoGameFd, PChar(OutLine), Length(OutLine));
     end;
 
     if LogDlss and ((Pos('dlss-enabler', LowLine) > 0) or (Pos('dlssenabler', LowLine) > 0) or (Pos('fakenvapi', LowLine) > 0)) then
     begin
       if DlssCentFd >= 0 then fpWrite(DlssCentFd, PChar(OutLine), Length(OutLine));
-      if DlssGameFd >= 0 then fpWrite(DlssGameFd, PChar(OutLine), Length(OutLine));
     end;
   end;
 
   if MakoCentFd >= 0 then fpClose(MakoCentFd);
-  if MakoGameFd >= 0 then fpClose(MakoGameFd);
   if LsfgCentFd >= 0 then fpClose(LsfgCentFd);
-  if LsfgGameFd >= 0 then fpClose(LsfgGameFd);
   if OptiCentFd >= 0 then fpClose(OptiCentFd);
-  if OptiGameFd >= 0 then fpClose(OptiGameFd);
   if SumiCentFd >= 0 then fpClose(SumiCentFd);
-  if SumiGameFd >= 0 then fpClose(SumiGameFd);
   if BasaltCentFd >= 0 then fpClose(BasaltCentFd);
-  if BasaltGameFd >= 0 then fpClose(BasaltGameFd);
   if MangoCentFd >= 0 then fpClose(MangoCentFd);
-  if MangoGameFd >= 0 then fpClose(MangoGameFd);
   if DlssCentFd >= 0 then fpClose(DlssCentFd);
-  if DlssGameFd >= 0 then fpClose(DlssGameFd);
   if ReadFd >= 0 then fpClose(ReadFd);
   if OrigStderrFd >= 0 then fpClose(OrigStderrFd);
 
@@ -2070,14 +2020,14 @@ var
   EnvArgs: array of PChar;
   Args: array of PChar;
   ArgsStrings: array of string;
-  MakoCentralLogFile, MakoGameLogFile: string;
-  LsfgCentralLogFile, LsfgGameLogFile: string;
-  OptiCentralLogFile, OptiGameLogFile, InternalOptiLogPath: string;
-  DlssCentralLogFile, DlssGameLogFile: string;
-  MangoCentralLogFile, MangoGameLogFile: string;
-  SumiCentralLogFile, SumiGameLogFile: string;
-  BasaltCentralLogFile, BasaltGameLogFile: string;
-  ReShadeCentralLogFile, ReShadeGameLogFile: string;
+  MakoCentralLogFile: string;
+  LsfgCentralLogFile: string;
+  OptiCentralLogFile, InternalOptiLogPath: string;
+  DlssCentralLogFile: string;
+  MangoCentralLogFile: string;
+  SumiCentralLogFile: string;
+  BasaltCentralLogFile: string;
+  ReShadeCentralLogFile: string;
   HasAnyToolLogging: Boolean;
   ShowLaunchSplash: Boolean;
   SplashExe, SplashGameTitle: string;
@@ -3231,21 +3181,15 @@ begin
   Log('Launching subprocess: ' + ArgsStrings[0]);
   Log('------------------------------------------------------------------------');
   
-  // Setup tool logging in CentralLogDir and GameDir
+  // Setup tool logging in CentralLogDir
   MakoCentralLogFile := '';
-  MakoGameLogFile := '';
   LsfgCentralLogFile := '';
-  LsfgGameLogFile := '';
   OptiCentralLogFile := '';
-  OptiGameLogFile := '';
   DlssCentralLogFile := '';
-  DlssGameLogFile := '';
   MangoCentralLogFile := '';
-  MangoGameLogFile := '';
   SumiCentralLogFile := '';
-  SumiGameLogFile := '';
   BasaltCentralLogFile := '';
-  BasaltGameLogFile := '';
+  ReShadeCentralLogFile := '';
   InternalOptiLogPath := '';
 
   if GOverlayMangoHud then
@@ -3255,12 +3199,6 @@ begin
       MangoCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'mangohud.log';
       InitToolLogFile(MangoCentralLogFile, 'MangoHud', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'MangoHud.conf');
       Log('MangoHud central log: ' + MangoCentralLogFile);
-    end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      MangoGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'mangohud.log';
-      InitToolLogFile(MangoGameLogFile, 'MangoHud', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'MangoHud.conf');
-      Log('MangoHud game log: ' + MangoGameLogFile);
     end;
   end;
 
@@ -3275,12 +3213,6 @@ begin
       InitToolLogFile(MakoCentralLogFile, 'MAKO', GameDir, TomlPath);
       Log('MAKO central log: ' + MakoCentralLogFile);
     end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      MakoGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'mako.log';
-      InitToolLogFile(MakoGameLogFile, 'MAKO', GameDir, TomlPath);
-      Log('MAKO game log: ' + MakoGameLogFile);
-    end;
   end;
 
   if GOverlayLossless and (InterpolationMethod = 'lsfg') then
@@ -3294,12 +3226,6 @@ begin
       InitToolLogFile(LsfgCentralLogFile, 'lsfg-vk', GameDir, TomlPath);
       Log('lsfg-vk central log: ' + LsfgCentralLogFile);
     end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      LsfgGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'lsfg.log';
-      InitToolLogFile(LsfgGameLogFile, 'lsfg-vk', GameDir, TomlPath);
-      Log('lsfg-vk game log: ' + LsfgGameLogFile);
-    end;
   end;
 
   if GOverlayOptiscaler then
@@ -3310,12 +3236,6 @@ begin
       InitToolLogFile(OptiCentralLogFile, 'OptiScaler', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini');
       Log('OptiScaler central log: ' + OptiCentralLogFile);
     end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      OptiGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'optiscaler.log';
-      InitToolLogFile(OptiGameLogFile, 'OptiScaler', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini');
-      Log('OptiScaler game log: ' + OptiGameLogFile);
-    end;
 
     if UpscalerType = 1 then
     begin
@@ -3324,12 +3244,6 @@ begin
         DlssCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'dlss-enabler.log';
         InitToolLogFile(DlssCentralLogFile, 'DLSS Enabler', GameDir, '');
         Log('DLSS Enabler central log: ' + DlssCentralLogFile);
-      end;
-      if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-      begin
-        DlssGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.log';
-        InitToolLogFile(DlssGameLogFile, 'DLSS Enabler', GameDir, '');
-        Log('DLSS Enabler game log: ' + DlssGameLogFile);
       end;
     end;
   end;
@@ -3342,12 +3256,6 @@ begin
       InitToolLogFile(SumiCentralLogFile, 'vkSumi', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkSumi.conf');
       Log('vkSumi central log: ' + SumiCentralLogFile);
     end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      SumiGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log';
-      InitToolLogFile(SumiGameLogFile, 'vkSumi', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkSumi.conf');
-      Log('vkSumi game log: ' + SumiGameLogFile);
-    end;
   end;
 
   if GOverlayVkBasalt then
@@ -3358,12 +3266,6 @@ begin
       InitToolLogFile(BasaltCentralLogFile, 'vkBasalt', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkBasalt.conf');
       Log('vkBasalt central log: ' + BasaltCentralLogFile);
     end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      BasaltGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log';
-      InitToolLogFile(BasaltGameLogFile, 'vkBasalt', GameDir, IncludeTrailingPathDelimiter(ConfigDir) + 'vkBasalt.conf');
-      Log('vkBasalt game log: ' + BasaltGameLogFile);
-    end;
   end;
 
   if GOverlayReshade then
@@ -3373,12 +3275,6 @@ begin
       ReShadeCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'reshade.log';
       InitToolLogFile(ReShadeCentralLogFile, 'ReShade', GameDir, IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini');
       Log('ReShade central log: ' + ReShadeCentralLogFile);
-    end;
-    if (GameDir <> '') and DirectoryExists(GameDir) and (fpAccess(PChar(GameDir), W_OK) = 0) then
-    begin
-      ReShadeGameLogFile := IncludeTrailingPathDelimiter(GameDir) + 'reshade.log';
-      InitToolLogFile(ReShadeGameLogFile, 'ReShade', GameDir, IncludeTrailingPathDelimiter(GameDir) + 'ReShade.ini');
-      Log('ReShade game log: ' + ReShadeGameLogFile);
     end;
   end;
 
@@ -3392,14 +3288,14 @@ begin
 
   // If any tool logging is enabled, spawn background stderr filter process
   if HasAnyToolLogging and (
-     (MakoCentralLogFile <> '') or (MakoGameLogFile <> '') or
-     (LsfgCentralLogFile <> '') or (LsfgGameLogFile <> '') or
-     (OptiCentralLogFile <> '') or (OptiGameLogFile <> '') or
-     (DlssCentralLogFile <> '') or (DlssGameLogFile <> '') or
-     (MangoCentralLogFile <> '') or (MangoGameLogFile <> '') or
-     (SumiCentralLogFile <> '') or (SumiGameLogFile <> '') or
-     (BasaltCentralLogFile <> '') or (BasaltGameLogFile <> '') or
-     (ReShadeCentralLogFile <> '') or (ReShadeGameLogFile <> '')
+     (MakoCentralLogFile <> '') or
+     (LsfgCentralLogFile <> '') or
+     (OptiCentralLogFile <> '') or
+     (DlssCentralLogFile <> '') or
+     (MangoCentralLogFile <> '') or
+     (SumiCentralLogFile <> '') or
+     (BasaltCentralLogFile <> '') or
+     (ReShadeCentralLogFile <> '')
   ) then
   begin
     if fpPipe(PipeFds) = 0 then
@@ -3411,13 +3307,13 @@ begin
         // Child: background logger process
         fpClose(PipeFds[1]);
         RunSubprocessLogger(PipeFds[0], OrigStderr,
-          MakoCentralLogFile, MakoGameLogFile,
-          LsfgCentralLogFile, LsfgGameLogFile,
-          OptiCentralLogFile, OptiGameLogFile,
-          SumiCentralLogFile, SumiGameLogFile,
-          BasaltCentralLogFile, BasaltGameLogFile,
-          MangoCentralLogFile, MangoGameLogFile,
-          DlssCentralLogFile, DlssGameLogFile,
+          MakoCentralLogFile,
+          LsfgCentralLogFile,
+          OptiCentralLogFile,
+          SumiCentralLogFile,
+          BasaltCentralLogFile,
+          MangoCentralLogFile,
+          DlssCentralLogFile,
           GameDir, CentralLogDir,
           (GOverlayLossless and (InterpolationMethod = 'mako')),
           (GOverlayLossless and (InterpolationMethod = 'lsfg')),

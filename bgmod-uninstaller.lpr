@@ -92,21 +92,6 @@ begin
     // ignore logging failures
   end;
   
-  // Append to game directory bgmod-uninstaller.log if resolved
-  if GameDir <> '' then
-  begin
-    try
-      AssignFile(F, IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log');
-      if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log') then
-        Append(F)
-      else
-        Rewrite(F);
-      WriteLn(F, LogMsg);
-      CloseFile(F);
-    except
-      // ignore logging failures
-    end;
-  end;
   
   // Append to central GOverlay logs directory if resolved
   if CentralLogFile <> '' then
@@ -1063,6 +1048,7 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mangohud.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
@@ -1078,10 +1064,6 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars');
       
       Log('Uninstallation from game directory completed.');
-
-      // Ensure bgmod-uninstaller.log is mirrored to CentralLogFile
-      if (CentralLogFile <> '') and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log') then
-        CopyFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod-uninstaller.log', CentralLogFile);
     end;
   end;
 

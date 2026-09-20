@@ -64,5 +64,6 @@ The uninstaller `bgmod-uninstaller` resolves the game directory, and:
 ## Logging
 Execution logs are written to:
 1. `/tmp/bgmod.log` (wrapper) and `/tmp/bgmod-uninstaller.log` (uninstaller).
-2. `bgmod.log` and `bgmod-uninstaller.log` inside the game directory.
-3. Central GOverlay logs directory: `~/.local/share/goverlay/logs/[Game Name]/bgmod.log`.
+2. Central GOverlay logs directory: `~/.local/share/goverlay/logs/[Game Name]/bgmod.log`.
+
+Game directories remain clean and free of log files to ensure compatibility with anti-cheat software and integrity checkers.

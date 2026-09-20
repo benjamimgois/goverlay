@@ -89,7 +89,7 @@ The bottom **launch command box** updates to show the game-specific `bgmod` comm
 - Sets up Wine DLL overrides.
 - Copies upscaler binaries/plugins into the game folder on launch.
 - Supports launcher EXE replacements and UE Shipping EXE auto-discovery.
-- Logs to `/tmp/bgmod.log`, the game directory, and `~/.local/share/goverlay/logs/[Game Name]/`.
+- Logs to `/tmp/bgmod.log` and `~/.local/share/goverlay/logs/[Game Name]/` (keeping game directories clean and anti-cheat safe).
 
 An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and restores original backups.
 
