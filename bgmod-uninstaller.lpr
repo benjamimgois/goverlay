@@ -136,6 +136,61 @@ begin
   Proc.Free;
 end;
 
+function IsElfBinary(const AFilePath: string): Boolean;
+var
+  F: TFileStream;
+  Magic: array[0..3] of Byte;
+begin
+  Result := False;
+  if (AFilePath = '') or not FileExists(AFilePath) or DirectoryExists(AFilePath) then Exit;
+  try
+    F := TFileStream.Create(AFilePath, fmOpenRead or fmShareDenyNone);
+    try
+      if F.Size >= 4 then
+      begin
+        F.ReadBuffer(Magic, 4);
+        Result := (Magic[0] = $7F) and (Magic[1] = Ord('E')) and
+                  (Magic[2] = Ord('L')) and (Magic[3] = Ord('F'));
+      end;
+    finally
+      F.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function IsKnownWrapper(const AName: string): Boolean;
+var
+  Low: string;
+begin
+  Low := LowerCase(AName);
+  Result := (Low = 'env') or
+            (Low = 'gamemoderun') or
+            (Low = 'mangohud') or
+            (Low = 'mangoapp') or
+            (Low = 'vkbasalt') or
+            (Low = 'vksumi') or
+            (Low = 'optirun') or
+            (Low = 'primrun') or
+            (Low = 'prime-run') or
+            (Low = 'gamescope') or
+            (Low = 'pressure-vessel-wrap') or
+            (Low = 'steam-runtime-launch-client') or
+            (Low = 'steam-launch-wrapper') or
+            (Low = '_v2-entry-point') or
+            (Low = 'sh') or
+            (Low = 'bash') or
+            (Low = 'zsh') or
+            (Low = 'python') or
+            (Low = 'python3') or
+            (Low = 'perl') or
+            (Low = 'flatpak-spawn') or
+            (Low = 'steam') or
+            (Low = 'bgmod') or
+            (Low = 'fgmod');
+end;
+
 function FindUEShippingExe(const BaseDir: string; Depth: Integer): string;
 var
   SR: TSearchRec;
@@ -155,6 +210,29 @@ begin
           begin
             Result := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Win64';
             Break;
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+      if Result <> '' then Exit;
+    end;
+  end;
+
+  if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux') then
+  begin
+    SearchPath := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux' + PathDelim + '*';
+    if FindFirst(SearchPath, faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Attr and faDirectory) = 0 then
+          begin
+            if IsElfBinary(IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux' + PathDelim + SR.Name) then
+            begin
+              Result := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux';
+              Break;
+            end;
           end;
         until FindNext(SR) <> 0;
       finally
@@ -192,13 +270,15 @@ end;
 
 procedure ResolveGameDirectory;
 var
-  Arg, ExePath, LutrisId, Cmd: string;
-  i, j, PosPipe: Integer;
+  Arg, ExePath, LutrisId, Cmd, Cand, FullPath, Ext: string;
+  i, j, PosPipe, LastDoubleDash, CandidateIdx: Integer;
   LauncherIni: TIniFile;
   LauncherList: TStringList;
-  KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey, ConfPath: string;
+  KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey, ConfPath, TargetExeName, ConfigDirEnv: string;
+  IsExecExt: Boolean;
 begin
   GameDir := '';
+  TargetExeName := '';
   
   // 1. Check command line arguments for .exe
   for i := 1 to ParamCount do
@@ -271,9 +351,78 @@ begin
         LauncherList.Free;
       end;
       
+      TargetExeName := ExtractFileName(Arg);
       GameDir := ExtractFilePath(Arg);
-      Log('Resolved GameDir from argument: ' + GameDir);
+      Log('Resolved GameDir from argument: ' + GameDir + ' (exe: ' + TargetExeName + ')');
       Break;
+    end;
+  end;
+
+  // 1b. If no .exe argument was found, check for native Linux game executables
+  if TargetExeName = '' then
+  begin
+    LastDoubleDash := 0;
+    for i := 1 to ParamCount do
+    begin
+      if (ParamStr(i) = '--') and (i > 1) then
+        LastDoubleDash := i;
+    end;
+
+    CandidateIdx := -1;
+    if LastDoubleDash > 0 then
+    begin
+      for i := LastDoubleDash + 1 to ParamCount do
+      begin
+        Cand := ParamStr(i);
+        if (Cand <> '') and (Cand[1] <> '-') and not IsKnownWrapper(ExtractFileName(Cand)) then
+        begin
+          CandidateIdx := i;
+          Break;
+        end;
+      end;
+    end;
+
+    if CandidateIdx < 0 then
+    begin
+      for i := 1 to ParamCount do
+      begin
+        Cand := ParamStr(i);
+        if (Cand <> '') and (Cand[1] <> '-') and not IsKnownWrapper(ExtractFileName(Cand)) then
+        begin
+          CandidateIdx := i;
+          Break;
+        end;
+      end;
+    end;
+
+    if CandidateIdx > 0 then
+    begin
+      Arg := ParamStr(CandidateIdx);
+      FullPath := Arg;
+      if not FileExists(FullPath) and FileExists(IncludeTrailingPathDelimiter(GetCurrentDir) + Arg) then
+        FullPath := IncludeTrailingPathDelimiter(GetCurrentDir) + Arg;
+
+      if FileExists(FullPath) and not DirectoryExists(FullPath) then
+      begin
+        Ext := LowerCase(ExtractFileExt(FullPath));
+        IsExecExt := (Ext = '.x86_64') or (Ext = '.x86') or (Ext = '.bin') or (Ext = '.sh');
+        if IsElfBinary(FullPath) or IsExecExt or (fpAccess(PChar(FullPath), X_OK) = 0) then
+        begin
+          TargetExeName := ExtractFileName(FullPath);
+          GameDir := ExtractFilePath(FullPath);
+          if GameDir = '' then
+            GameDir := GetCurrentDir;
+          Log('Resolved native Linux GameDir from argument: ' + GameDir + ' (exe: ' + TargetExeName + ')');
+        end;
+      end
+      else
+      begin
+        TargetExeName := ExtractFileName(Arg);
+        GameDir := ExtractFilePath(Arg);
+        if GameDir = '' then
+          GameDir := GetCurrentDir;
+        Log('Resolved native Linux executable from argument name: ' + GameDir + ' (exe: ' + TargetExeName + ')');
+      end;
     end;
   end;
   
@@ -292,8 +441,9 @@ begin
         ExePath := GetCommandOutput(Cmd);
         if ExePath <> '' then
         begin
+          TargetExeName := ExtractFileName(ExePath);
           GameDir := ExtractFilePath(ExePath);
-          Log('Resolved Lutris GameDir: ' + GameDir);
+          Log('Resolved Lutris GameDir: ' + GameDir + ' (exe: ' + TargetExeName + ')');
         end
         else
           Log('Failed to resolve Lutris slug or game configuration file');
@@ -308,6 +458,27 @@ begin
     GameDir := GetEnvironmentVariable('STEAM_COMPAT_INSTALL_PATH');
     if GameDir <> '' then
       Log('Resolved GameDir from STEAM_COMPAT_INSTALL_PATH: ' + GameDir);
+  end;
+
+  // 3b. Check cached TARGET_EXE/GAME_DIR from bgmod.conf
+  ConfigDirEnv := GetEnvironmentVariable('BGMOD_CONFIG_DIR');
+  if ConfigDirEnv = '' then
+    ConfigDirEnv := ExtractFilePath(ParamStr(0));
+  if (GameDir = '') and (ConfigDirEnv <> '') and FileExists(IncludeTrailingPathDelimiter(ConfigDirEnv) + 'bgmod.conf') then
+  begin
+    try
+      LauncherIni := TIniFile.Create(IncludeTrailingPathDelimiter(ConfigDirEnv) + 'bgmod.conf');
+      try
+        if TargetExeName = '' then
+          TargetExeName := LauncherIni.ReadString('Config', 'TARGET_EXE', '');
+        GameDir := LauncherIni.ReadString('Config', 'GAME_DIR', '');
+        if GameDir <> '' then
+          Log('Resolved GameDir from cached bgmod.conf: ' + GameDir + ' (exe: ' + TargetExeName + ')');
+      finally
+        LauncherIni.Free;
+      end;
+    except
+    end;
   end;
   
   // 4. Unreal Engine subfolder resolution

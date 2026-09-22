@@ -82,6 +82,7 @@ type
     procedure TestSupervisorStderrClosure;
     procedure TestBgmodLaunchSplashGameTitleAndReShade;
     procedure TestBgmodInjectsLaunchArguments;
+    procedure TestBgmodNativeLinuxResolution;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -1136,6 +1137,133 @@ begin
   finally
     Lines.Free;
   end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodNativeLinuxResolution;
+var
+  Proc: TProcess;
+  TestGameDir, MockBinDir, MockExe, ConfFile, TomlFile, LogFile, Content: string;
+  F: TextFile;
+  Lines: TStringList;
+  Ini: TIniFile;
+begin
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/EuroTruckNativeTest';
+  MockBinDir := IsolatedHome + '/games/ets2/bin/linux_x64';
+  ForceDirectories(TestGameDir);
+  ForceDirectories(MockBinDir);
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'cp';
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Create mock native Linux executable with valid ELF binary (copying /bin/true)
+  MockExe := MockBinDir + '/eurotrucks2';
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'cp';
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add('/bin/true');
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(MockExe), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Create mock container runtime entry point
+  ForceDirectories(IsolatedHome + '/runtime');
+  AssignFile(F, IsolatedHome + '/runtime/_v2-entry-point');
+  Rewrite(F);
+  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, 'shift 1'); // skip --verb
+  WriteLn(F, 'shift 1'); // skip --
+  WriteLn(F, '"$@"');    // execute remaining args
+  CloseFile(F);
+  fpChmod(PChar(IsolatedHome + '/runtime/_v2-entry-point'), &755);
+
+  // Setup bgmod.conf enabling OptiScaler and Lossless Scaling (lsfg)
+  ConfFile := TestGameDir + '/bgmod.conf';
+  AssignFile(F, ConfFile);
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'GOVERLAY_LOSSLESS=1');
+  WriteLn(F, 'INTERPOLATION_METHOD=lsfg');
+  WriteLn(F, 'LS_MULTIPLIER=2');
+  CloseFile(F);
+
+  // Launch bgmod simulating Steam Linux Runtime container:
+  // bgmod .../_v2-entry-point --verb=waitforexitandrun -- /path/to/MockExe -rdevice vk
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(IsolatedHome + '/runtime/_v2-entry-point');
+    Proc.Parameters.Add('--verb=waitforexitandrun');
+    Proc.Parameters.Add('--');
+    Proc.Parameters.Add(MockExe);
+    Proc.Parameters.Add('-rdevice');
+    Proc.Parameters.Add('vk');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod should exit 0 running mock native binary', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 1. Verify bgmod.conf cached TARGET_EXE and GAME_DIR
+  Ini := TIniFile.Create(ConfFile);
+  try
+    AssertEquals('Cached TARGET_EXE should be eurotrucks2', 'eurotrucks2', Ini.ReadString('Config', 'TARGET_EXE', ''));
+    AssertEquals('Cached GAME_DIR should match mock game dir', MockBinDir, ExcludeTrailingPathDelimiter(Ini.ReadString('Config', 'GAME_DIR', '')));
+  finally
+    Ini.Free;
+  end;
+
+  // 2. Verify conf.toml contains eurotrucks2 in active_in
+  TomlFile := TestGameDir + '/conf.toml';
+  AssertTrue('conf.toml should be generated for lsfg', FileExists(TomlFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(TomlFile);
+    Content := Lines.Text;
+    AssertTrue('conf.toml active_in must include eurotrucks2', Pos('"eurotrucks2"', Content) > 0);
+    AssertFalse('conf.toml should not include wine64-preloader for native games', Pos('wine64-preloader', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  // 3. Verify log recorded native detection and Windows DLL bypass
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/EuroTruckNativeTest/bgmod.log';
+  AssertTrue('bgmod.log should exist in central logs', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    Content := Lines.Text;
+    AssertTrue('Log must record native Linux executable detection',
+      Pos('Native Linux executable detected (eurotrucks2). Skipping OptiScaler Windows DLL deployment.', Content) > 0);
+    AssertTrue('Log must record ReShade Windows DLL skip',
+      Pos('Native Linux executable detected (eurotrucks2). Skipping ReShade Windows DLL deployment.', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  // 4. Verify no Windows DLLs were copied to MockBinDir
+  AssertFalse('dxgi.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/dxgi.dll'));
+  AssertFalse('OptiScaler.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/OptiScaler.dll'));
+  AssertFalse('ReShade64.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/ReShade64.dll'));
 end;
 
 procedure TReShadeLogicTests.TestUnixPathToWinePath;

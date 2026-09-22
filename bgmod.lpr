@@ -123,6 +123,7 @@ const
 var
   GameDir: string;
   TargetExeName: string;
+  NativeElfExeName: string;
   CentralLogDir: string;
   CentralLogFile: string;
   BgmodPath: string;
@@ -702,6 +703,142 @@ begin
   Proc.Free;
 end;
 
+function IsElfBinary(const AFilePath: string): Boolean;
+var
+  F: TFileStream;
+  Magic: array[0..3] of Byte;
+begin
+  Result := False;
+  if (AFilePath = '') or not FileExists(AFilePath) or DirectoryExists(AFilePath) then Exit;
+  try
+    F := TFileStream.Create(AFilePath, fmOpenRead or fmShareDenyNone);
+    try
+      if F.Size >= 4 then
+      begin
+        F.ReadBuffer(Magic, 4);
+        Result := (Magic[0] = $7F) and (Magic[1] = Ord('E')) and
+                  (Magic[2] = Ord('L')) and (Magic[3] = Ord('F'));
+      end;
+    finally
+      F.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function IsKnownWrapper(const AName: string): Boolean;
+var
+  Low: string;
+begin
+  Low := LowerCase(AName);
+  Result := (Low = 'env') or
+            (Low = 'gamemoderun') or
+            (Low = 'mangohud') or
+            (Low = 'mangoapp') or
+            (Low = 'vkbasalt') or
+            (Low = 'vksumi') or
+            (Low = 'optirun') or
+            (Low = 'primrun') or
+            (Low = 'prime-run') or
+            (Low = 'gamescope') or
+            (Low = 'pressure-vessel-wrap') or
+            (Low = 'steam-runtime-launch-client') or
+            (Low = 'steam-launch-wrapper') or
+            (Low = '_v2-entry-point') or
+            (Low = 'sh') or
+            (Low = 'bash') or
+            (Low = 'zsh') or
+            (Low = 'python') or
+            (Low = 'python3') or
+            (Low = 'perl') or
+            (Low = 'flatpak-spawn') or
+            (Low = 'steam') or
+            (Low = 'bgmod') or
+            (Low = 'fgmod');
+end;
+
+function IsNativeExecutable(const AExeName: string): Boolean;
+begin
+  Result := (AExeName <> '') and (LowerCase(ExtractFileExt(AExeName)) <> '.exe');
+end;
+
+function BuildActiveInList(const AExeName, ANativeElf: string): string;
+var
+  Prof: string;
+begin
+  Prof := ChangeFileExt(ExtractFileName(AExeName), '');
+  if Prof = '' then Prof := AExeName;
+  
+  if IsNativeExecutable(AExeName) then
+  begin
+    Result := '["' + AExeName + '"';
+    if Prof <> AExeName then
+      Result := Result + ', "' + Prof + '"';
+    if LowerCase(Prof) <> Prof then
+      Result := Result + ', "' + LowerCase(Prof) + '"';
+    if (ANativeElf <> '') and (ANativeElf <> AExeName) then
+      Result := Result + ', "' + ANativeElf + '"';
+    Result := Result + ']';
+  end
+  else
+  begin
+    Result := '["' + AExeName + '", "' + Prof + '", "' + Prof + '.exe", "' + Prof + '_dx12.exe", "' + Prof + '_dx11.exe", "' + LowerCase(Prof) + '_dx12.exe", "' + LowerCase(Prof) + '_dx11.exe", "wine64-preloader", "wine-preloader"]';
+  end;
+end;
+
+function FindElfInDirectory(const ADir: string; MaxDepth: Integer = 2): string;
+var
+  SR: TSearchRec;
+  CleanDir, Res: string;
+begin
+  Result := '';
+  if (ADir = '') or not DirectoryExists(ADir) or (MaxDepth < 0) then Exit;
+  CleanDir := IncludeTrailingPathDelimiter(ADir);
+  
+  // First pass: check direct files in ADir
+  if FindFirst(CleanDir + '*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) = 0) then
+        begin
+          if IsElfBinary(CleanDir + SR.Name) and not IsKnownWrapper(SR.Name) then
+          begin
+            Result := SR.Name;
+            Break;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+  
+  // Second pass: check subdirectories
+  if (Result = '') and (MaxDepth > 0) then
+  begin
+    if FindFirst(CleanDir + '*', faDirectory, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
+          begin
+            Res := FindElfInDirectory(CleanDir + SR.Name, MaxDepth - 1);
+            if Res <> '' then
+            begin
+              Result := Res;
+              Break;
+            end;
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+end;
+
 function FindUEShippingExe(const BaseDir: string; Depth: Integer): string;
 var
   SR: TSearchRec;
@@ -720,7 +857,32 @@ begin
           if (SR.Attr and faDirectory) = 0 then
           begin
             Result := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Win64';
+            TargetExeName := SR.Name;
             Break;
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+      if Result <> '' then Exit;
+    end;
+  end;
+
+  if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux') then
+  begin
+    SearchPath := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux' + PathDelim + '*';
+    if FindFirst(SearchPath, faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Attr and faDirectory) = 0 then
+          begin
+            if IsElfBinary(IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux' + PathDelim + SR.Name) then
+            begin
+              Result := IncludeTrailingPathDelimiter(BaseDir) + 'Binaries' + PathDelim + 'Linux';
+              TargetExeName := SR.Name;
+              Break;
+            end;
           end;
         until FindNext(SR) <> 0;
       finally
@@ -1780,13 +1942,15 @@ end;
 
 procedure ResolveGameDirectory;
 var
-  Arg, ExePath, LutrisId, Cmd: string;
-  i, j, PosPipe: Integer;
+  Arg, ExePath, LutrisId, Cmd, Cand, FullPath, Ext: string;
+  i, j, PosPipe, LastDoubleDash, CandidateIdx: Integer;
   LauncherIni: TIniFile;
   LauncherList: TStringList;
   KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey: string;
+  IsExecExt: Boolean;
 begin
   GameDir := '';
+  NativeElfExeName := '';
   
   // 1. Check command line arguments for .exe
   for i := 1 to ParamCount do
@@ -1861,6 +2025,82 @@ begin
       Break;
     end;
   end;
+
+  // 1b. If no .exe argument was found, check for native Linux game executables
+  if TargetExeName = '' then
+  begin
+    // Check if there is a container delimiter '--' (e.g. Steam Linux Runtime)
+    // If present (and not just index 1), start scanning from after the last '--'
+    LastDoubleDash := 0;
+    for i := 1 to ParamCount do
+    begin
+      if (ParamStr(i) = '--') and (i > 1) then
+        LastDoubleDash := i;
+    end;
+
+    CandidateIdx := -1;
+    if LastDoubleDash > 0 then
+    begin
+      for i := LastDoubleDash + 1 to ParamCount do
+      begin
+        Cand := ParamStr(i);
+        if (Cand <> '') and (Cand[1] <> '-') and not IsKnownWrapper(ExtractFileName(Cand)) then
+        begin
+          CandidateIdx := i;
+          Break;
+        end;
+      end;
+    end;
+
+    if CandidateIdx < 0 then
+    begin
+      for i := 1 to ParamCount do
+      begin
+        Cand := ParamStr(i);
+        if (Cand <> '') and (Cand[1] <> '-') and not IsKnownWrapper(ExtractFileName(Cand)) then
+        begin
+          CandidateIdx := i;
+          Break;
+        end;
+      end;
+    end;
+
+    if CandidateIdx > 0 then
+    begin
+      Arg := ParamStr(CandidateIdx);
+      FullPath := Arg;
+      if not FileExists(FullPath) and FileExists(IncludeTrailingPathDelimiter(GetCurrentDir) + Arg) then
+        FullPath := IncludeTrailingPathDelimiter(GetCurrentDir) + Arg;
+
+      if FileExists(FullPath) and not DirectoryExists(FullPath) then
+      begin
+        Ext := LowerCase(ExtractFileExt(FullPath));
+        IsExecExt := (Ext = '.x86_64') or (Ext = '.x86') or (Ext = '.bin') or (Ext = '.sh');
+        if IsElfBinary(FullPath) or IsExecExt or (fpAccess(PChar(FullPath), X_OK) = 0) then
+        begin
+          TargetExeName := ExtractFileName(FullPath);
+          GameDir := ExtractFilePath(FullPath);
+          if GameDir = '' then
+            GameDir := GetCurrentDir;
+          Log('Resolved native Linux GameDir from argument: ' + GameDir + ' (exe: ' + TargetExeName + ')');
+          if Ext = '.sh' then
+          begin
+            NativeElfExeName := FindElfInDirectory(GameDir, 2);
+            if NativeElfExeName <> '' then
+              Log('Discovered primary ELF binary in game directory: ' + NativeElfExeName);
+          end;
+        end;
+      end
+      else
+      begin
+        TargetExeName := ExtractFileName(Arg);
+        GameDir := ExtractFilePath(Arg);
+        if GameDir = '' then
+          GameDir := GetCurrentDir;
+        Log('Resolved native Linux executable from argument name: ' + GameDir + ' (exe: ' + TargetExeName + ')');
+      end;
+    end;
+  end;
   
   // 2. Check command line arguments for Lutris game run ID
   if GameDir = '' then
@@ -1894,6 +2134,24 @@ begin
     GameDir := GetEnvironmentVariable('STEAM_COMPAT_INSTALL_PATH');
     if GameDir <> '' then
       Log('Resolved GameDir from STEAM_COMPAT_INSTALL_PATH: ' + GameDir);
+  end;
+
+  // 3b. Check cached TARGET_EXE from bgmod.conf
+  if (TargetExeName = '') and (ConfigDir <> '') and FileExists(ConfigDir + 'bgmod.conf') then
+  begin
+    try
+      LauncherIni := TIniFile.Create(ConfigDir + 'bgmod.conf');
+      try
+        TargetExeName := LauncherIni.ReadString('Config', 'TARGET_EXE', '');
+        if (GameDir = '') then
+          GameDir := LauncherIni.ReadString('Config', 'GAME_DIR', '');
+        if TargetExeName <> '' then
+          Log('Resolved TargetExeName from cached bgmod.conf: ' + TargetExeName + ' (dir: ' + GameDir + ')');
+      finally
+        LauncherIni.Free;
+      end;
+    except
+    end;
   end;
   
   // 4. Unreal Engine subfolder resolution
@@ -2222,7 +2480,8 @@ begin
     // create the folder when running in per-game mode (GameProfileName <> 'bgmod'): in
     // global-profile mode backups are skipped per design (collision risk
     // across games; the legacy global flow did not back up reliably anyway).
-    IsPerGameProfile := (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global');
+    Line := ExtractFileName(ExcludeTrailingPathDelimiter(Val)); // 'gameconfig' or 'goverlay' or similar
+    IsPerGameProfile := (LowerCase(Line) = 'gameconfig') and (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global');
     BackupsDir := ConfigDir + 'backups' + PathDelim;
     if IsPerGameProfile and not DirectoryExists(BackupsDir) then
       ForceDirectories(BackupsDir);
@@ -2380,6 +2639,24 @@ begin
   // Resolve the game folder directory
   ResolveGameDirectory;
   
+  // Cache resolved TARGET_EXE and GAME_DIR into bgmod.conf for per-game profile
+  if IsPerGameProfile and (TargetExeName <> '') and (ConfigDir <> '') and FileExists(ConfigDir + 'bgmod.conf') then
+  begin
+    try
+      Ini := TIniFile.Create(ConfigDir + 'bgmod.conf');
+      try
+        Ini.WriteString('Config', 'TARGET_EXE', TargetExeName);
+        if GameDir <> '' then
+          Ini.WriteString('Config', 'GAME_DIR', GameDir);
+      finally
+        Ini.Free;
+      end;
+    except
+      on E: Exception do
+        Log('Warning: Failed to cache TARGET_EXE to bgmod.conf: ' + E.Message);
+    end;
+  end;
+
   Log('========================= bgmod initialization =========================');
   Log('bgmod location: ' + BgmodPath);
   Log('Game directory: ' + GameDir);
@@ -2406,7 +2683,11 @@ begin
     else
     begin
       // --- OptiScaler Copy and Configuration ---
-      if GOverlayOptiscaler then
+      if GOverlayOptiscaler and IsNativeExecutable(TargetExeName) then
+      begin
+        Log('Native Linux executable detected (' + TargetExeName + '). Skipping OptiScaler Windows DLL deployment.');
+      end
+      else if GOverlayOptiscaler then
       begin
         InstalledUpscaler := GetInstalledUpscalerType(GameDir);
         if (InstalledUpscaler >= 0) and (InstalledUpscaler <> UpscalerType) then
@@ -2667,7 +2948,11 @@ begin
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
 
       // --- ReShade Deployment and Configuration ---
-      if GOverlayReshade then
+      if GOverlayReshade and IsNativeExecutable(TargetExeName) then
+      begin
+        Log('Native Linux executable detected (' + TargetExeName + '). Skipping ReShade Windows DLL deployment.');
+      end
+      else if GOverlayReshade then
       begin
         Log('ReShade is enabled. Preparing deployment...');
         ReShadeDataDir := GetEnvironmentVariable('XDG_DATA_HOME');
@@ -2840,7 +3125,7 @@ begin
     SetEnvVarInList(EnvStrings, 'VKSUMI_DEBUG', '1');
     Log('Export: VKSUMI_DEBUG=1');
   end;
-  if GOverlayOptiscaler then
+  if GOverlayOptiscaler and not IsNativeExecutable(TargetExeName) then
   begin
     DllBase := ChangeFileExt(DllName, '');
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
@@ -2852,7 +3137,7 @@ begin
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
   end;
 
-  if GOverlayReshade and not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
+  if GOverlayReshade and not IsNativeExecutable(TargetExeName) and not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
   begin
     ReshadeDllBase := ChangeFileExt(ReshadeDllName, '');
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
@@ -2965,7 +3250,7 @@ begin
           TomlLines.Add('');
           TomlLines.Add('[[profile]]');
           TomlLines.Add('name = "' + ProfileName + '"');
-          TomlLines.Add('active_in = ["' + TargetExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
+          TomlLines.Add('active_in = ' + BuildActiveInList(TargetExeName, NativeElfExeName));
           TomlLines.Add('multiplier = ' + IntToStr(LsfgMult));
           TomlLines.Add('flow_scale = ' + LsfgFlow);
           TomlLines.Add('performance_mode = ' + LsfgPerfStr);
@@ -3191,7 +3476,7 @@ begin
           TomlLines.Add('');
           TomlLines.Add('[[profile]]');
           TomlLines.Add('name = "' + ProfileName + '"');
-          TomlLines.Add('active_in = ["' + TargetExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
+          TomlLines.Add('active_in = ' + BuildActiveInList(TargetExeName, NativeElfExeName));
           if MakoScalingEnabled = 'true' then
           begin
             TomlLines.Add('scaling_enabled = true');

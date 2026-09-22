@@ -3913,10 +3913,11 @@ function TLosslessScalingTabHelper.WriteMakoTomlConfig(const ATargetDir: string)
 var
   Lines, LegacyLines: TStringList;
   OutDir, OutPath, LegacyOutPath, PacingStr, DllP, ExeName, ProfileName: string;
-  ScalingMethodStr, FactorStr, SharpnessStr, FlowStr: string;
+  ScalingMethodStr, FactorStr, SharpnessStr, FlowStr, ConfFile, CachedTargetExe: string;
   MultVal, TargetFpsVal, MaxMultVal, RefreshVal, BaseCapVal: Integer;
   IsAdaptive, ScalingEn, ScalingSs, AllowFp16Val, PerfVal, UltraPerfVal, FgLiveVal, HdrVal: Boolean;
   AutoBaseCapVal: Boolean;
+  ConfIni: TIniFile;
 begin
   Result := '';
   DllP := Trim(FLsDllPathEdit.Text);
@@ -4087,12 +4088,36 @@ begin
     if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
     begin
       ExeName := Tgoverlayform(FForm).FActiveGameName;
+      CachedTargetExe := '';
+      ConfFile := IncludeTrailingPathDelimiter(OutDir) + 'bgmod.conf';
+      if FileExists(ConfFile) then
+      begin
+        ConfIni := TIniFile.Create(ConfFile);
+        try
+          CachedTargetExe := ConfIni.ReadString('Config', 'TARGET_EXE', '');
+        finally
+          ConfIni.Free;
+        end;
+      end;
+      if (CachedTargetExe <> '') and (LowerCase(ExtractFileExt(CachedTargetExe)) <> '.exe') then
+        ExeName := CachedTargetExe;
+
       ProfileName := ChangeFileExt(ExtractFileName(ExeName), '');
       if ProfileName = '' then ProfileName := ExeName;
       Lines.Add('');
       Lines.Add('[[profile]]');
       Lines.Add('name = "' + ProfileName + '"');
-      Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
+      if (LowerCase(ExtractFileExt(ExeName)) <> '.exe') then
+      begin
+        if ProfileName <> ExeName then
+          Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + LowerCase(ProfileName) + '"]')
+        else if LowerCase(ProfileName) <> ProfileName then
+          Lines.Add('active_in = ["' + ExeName + '", "' + LowerCase(ProfileName) + '"]')
+        else
+          Lines.Add('active_in = ["' + ExeName + '"]');
+      end
+      else
+        Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
       if ScalingEn then
       begin
         Lines.Add('scaling_enabled = true');
@@ -4192,7 +4217,8 @@ var
   Lines, LegacyLines: TStringList;
   OutDir, OutPath, LegacyOutPath, PacingStr, DllP, ExeName, ProfileName: string;
   MultVal: Integer;
-  FlowStr, PerfStr, HdrStr, AllowFp16Str, OverridePresentStr, PreserveSwapchainStr: string;
+  FlowStr, PerfStr, HdrStr, AllowFp16Str, OverridePresentStr, PreserveSwapchainStr, ConfFile, CachedTargetExe: string;
+  ConfIni: TIniFile;
 begin
   Result := '';
   if FLsMultiplierTrackBar.Position <= 1 then Exit;
@@ -4261,12 +4287,36 @@ begin
     if Assigned(FForm) and (FForm is Tgoverlayform) and (Tgoverlayform(FForm).FActiveGameName <> '') then
     begin
       ExeName := Tgoverlayform(FForm).FActiveGameName;
+      CachedTargetExe := '';
+      ConfFile := IncludeTrailingPathDelimiter(OutDir) + 'bgmod.conf';
+      if FileExists(ConfFile) then
+      begin
+        ConfIni := TIniFile.Create(ConfFile);
+        try
+          CachedTargetExe := ConfIni.ReadString('Config', 'TARGET_EXE', '');
+        finally
+          ConfIni.Free;
+        end;
+      end;
+      if (CachedTargetExe <> '') and (LowerCase(ExtractFileExt(CachedTargetExe)) <> '.exe') then
+        ExeName := CachedTargetExe;
+
       ProfileName := ChangeFileExt(ExtractFileName(ExeName), '');
       if ProfileName = '' then ProfileName := ExeName;
       Lines.Add('');
       Lines.Add('[[profile]]');
       Lines.Add('name = "' + ProfileName + '"');
-      Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
+      if (LowerCase(ExtractFileExt(ExeName)) <> '.exe') then
+      begin
+        if ProfileName <> ExeName then
+          Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + LowerCase(ProfileName) + '"]')
+        else if LowerCase(ProfileName) <> ProfileName then
+          Lines.Add('active_in = ["' + ExeName + '", "' + LowerCase(ProfileName) + '"]')
+        else
+          Lines.Add('active_in = ["' + ExeName + '"]');
+      end
+      else
+        Lines.Add('active_in = ["' + ExeName + '", "' + ProfileName + '", "' + ProfileName + '.exe", "' + ProfileName + '_dx12.exe", "' + ProfileName + '_dx11.exe", "' + LowerCase(ProfileName) + '_dx12.exe", "' + LowerCase(ProfileName) + '_dx11.exe", "wine64-preloader", "wine-preloader"]');
       Lines.Add('multiplier = ' + IntToStr(MultVal));
       Lines.Add('flow_scale = ' + FlowStr);
       Lines.Add('performance_mode = ' + PerfStr);
