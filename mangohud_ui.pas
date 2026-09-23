@@ -23,6 +23,9 @@ type
     FPerfToggles: TFPList;
     FMetricsToggles: TFPList;
     FExtrasToggles: TFPList;
+    // When True, the active MangoHud config is the fps_only preset.
+    // Any user control interaction (GenericControlChange/Click) clears this.
+    FFpsOnly: Boolean;
   public
     // Visual Tab Toggles
     FhudcompactToggle, FhorizontalstrechToggle, FhidehudToggle: TToggleSwitch;
@@ -49,6 +52,9 @@ type
     FhudversionToggle, FgamemodestatusToggle, FvkbasaltstatusToggle, FfcatToggle, FfsrToggle, FhdrToggle: TToggleSwitch;
     FbatteryToggle, FbatterywattToggle, FbatterytimeToggle, FdeviceToggle: TToggleSwitch;
     FmediaToggle, FnetworkToggle, FfahrenheitToggle: TToggleSwitch;
+
+    // fps_only preset flag accessor
+    procedure SetFpsOnly(AValue: Boolean);
 
     constructor Create(AForm: Tgoverlayform);
     destructor Destroy; override;
@@ -104,6 +110,11 @@ begin
   FreeAndNil(FMetricsToggles);
   FreeAndNil(FExtrasToggles);
   inherited Destroy;
+end;
+
+procedure TMangoHudUiHelper.SetFpsOnly(AValue: Boolean);
+begin
+  FFpsOnly := AValue;
 end;
 
 procedure TMangoHudUiHelper.BuildPresetsWrapper;
@@ -2941,6 +2952,8 @@ begin
   WasLoading := FForm.FLoadingConfig;
   FForm.FLoadingConfig := True;
   try
+    // Reset fps_only state — will be re-set by LoadMangoHudBoolFlag if present
+    FFpsOnly := False;
     with FForm do
     begin
       FActiveLayoutCard := -1;
@@ -3338,7 +3351,12 @@ begin
     else if SameText(ATrimmedLine, MANGO_FLAG_TIME + '#') then
       timeCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_VERSION + '#') then
-      hudversionCheckBox.Checked := True;
+      hudversionCheckBox.Checked := True
+    else if SameText(ATrimmedLine, 'fps_only') then
+      // fps_only is a MangoHud preset token with no direct checkbox counterpart.
+      // Record the state so SaveMangoHudConfig can write it back verbatim
+      // instead of overwriting it with a full config built from (empty) UI state.
+      FFpsOnly := True;
   end;
 end;
 
@@ -3741,6 +3759,9 @@ begin
     Settings.Version := GVERSION;
     Settings.Channel := GCHANNEL;
     Settings.ActiveGameName := FActiveGameName;
+    // Propagate fps_only preset state — when True, SaveMangoHudConfigCore writes
+    // only the fps_only token and skips the full config generation below.
+    Settings.FpsOnly := FFpsOnly;
 
     // Visual Tab
     Settings.HudTitle := hudtitleEdit.Text;
