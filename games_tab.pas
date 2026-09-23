@@ -20,6 +20,20 @@ const
   SEL_EXPAND  = 3;
 
 type
+  TGameKind = (gkSteam, gkNonSteam);
+
+  TGameDiscoveryItem = record
+    Kind:       TGameKind;
+    Name:       string;
+    AppID:      string;
+    InstallDir: string;
+    LibPath:    string;
+    SubPath:    string;
+    IsAppImage: Boolean;
+  end;
+
+  TGameDiscoveryArray = array of TGameDiscoveryItem;
+
   TNonSteamCoverItem = record
     GameName:  string;
     CachePath: string;
@@ -72,6 +86,9 @@ type
     constructor Create(AForm: Tgoverlayform);
     
     procedure InitGamesTab;
+    procedure DiscoverSteamGames(var AGames: TGameDiscoveryArray);
+    procedure DiscoverNonSteamGames(var AGames: TGameDiscoveryArray);
+    procedure SortDiscoveredGames(var AGames: TGameDiscoveryArray);
     procedure LoadSteamGames;
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
     procedure CoverThreadTerminated(Sender: TObject);
@@ -989,74 +1006,17 @@ begin
   end;
 end;
 
-
-
-procedure TGamesTabHelper.LoadSteamGames;
-const
-  // bit0=Mango(PNG), bit1=vkBasalt(glyph), bit2=OptiScaler(PNG), bit3=Tweaks(glyph)
-  BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
-  BDG_SZ    = 18;   // icon cell size
-  BDG_GAP   = 5;    // vertical gap between icons
-  BDG_PAD_V = 6;    // top/bottom padding inside strip
-  BDG_FONT  = 13;   // glyph font size
-  BDG_W     = 26;   // strip width (right edge)
+procedure TGamesTabHelper.DiscoverSteamGames(var AGames: TGameDiscoveryArray);
 var
   Libraries: TStringList;
-  PendingIDs: TStringList;
-  PendingImages: TList;
-  CacheDir: string;
-  i, j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
-  LibPath, AcfContent, AppID, GameName, ImagePath, HomeDir, InstallDir, IconPath: string;
+  i: Integer;
+  LibPath, AcfContent, AppID, GameName, InstallDir, LowerName: string;
   SR: TSearchRec;
   AcfFile: TStringList;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  BdgLbl: TLabel;
-  BdgImg: TImage;
-  BdgBg:  TShape;
-  NoGamesLabel: TLabel;
-  LowerName, GameCfgDir: string;
-  ScaledBmp: TBitmap;
-  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
-  TweakLines: TStringList;
-  k, BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
-  BdgHint: string;
 begin
-  with FForm do
-  begin
-  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
-    Exit;
-
-  if IsRunningInFlatpak then
-    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
-  else
-    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
-  CacheDir := HomeDir + '.cache/goverlay/covers/';
-  ForceDirectories(CacheDir);
-
-  Libraries     := TStringList.Create;
-  PendingIDs    := TStringList.Create;
-  PendingImages := TList.Create;
+  Libraries := TStringList.Create;
   try
-    GetSteamLibraries(Libraries);
-
-    if Libraries.Count = 0 then
-    begin
-      NoGamesLabel := TLabel.Create(FForm);
-      NoGamesLabel.Parent := FGamesPanel;
-      NoGamesLabel.Caption := 'Steam not found or no libraries detected.';
-      NoGamesLabel.Font.Color := clSilver;
-      NoGamesLabel.Font.Size := 10;
-      NoGamesLabel.Left := 16;
-      NoGamesLabel.Top := 16;
-      Exit;
-    end;
-
-    CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
-    RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
-    if RowMargin < 4 then RowMargin := 4;
-    j := 0;
-
+    FForm.GetSteamLibraries(Libraries);
     for i := 0 to Libraries.Count - 1 do
     begin
       LibPath := Libraries[i];
@@ -1071,9 +1031,9 @@ begin
             AcfFile.Free;
           end;
 
-          AppID      := ParseAcfValue(AcfContent, 'appid');
-          GameName   := ParseAcfValue(AcfContent, 'name');
-          InstallDir := ParseAcfValue(AcfContent, 'installdir');
+          AppID      := FForm.ParseAcfValue(AcfContent, 'appid');
+          GameName   := FForm.ParseAcfValue(AcfContent, 'name');
+          InstallDir := FForm.ParseAcfValue(AcfContent, 'installdir');
           if (AppID = '') or (GameName = '') then
             Continue;
 
@@ -1086,286 +1046,33 @@ begin
              (Pos('steam sdk', LowerName) > 0) then
             Continue;
 
-          // Look for local cover; if absent, queue for CDN download
-          ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-          if not FileExists(ImagePath) then
-            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-          // Also check the persistent cache from previous downloads
-          if not FileExists(ImagePath) then
-            ImagePath := CacheDir + AppID + '.jpg';
-
-          // Card position (dynamic margin distributes leftover space evenly)
-          CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
-          CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
-
-          CardPanel := TPanel.Create(FForm);
-          CardPanel.Parent := FGamesPanel;
-          CardPanel.SetBounds(CardX, CardY, CARD_W, CARD_H);
-          CardPanel.BevelOuter := bvNone;
-          CardPanel.BevelInner := bvNone;
-          CardPanel.BorderWidth := 0;
-          CardPanel.Caption := '';
-          CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
-          CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
-          CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
-          CardPanel.ShowHint := True;
-          CardPanel.OnMouseEnter := @GameCardMouseEnter;
-          CardPanel.OnMouseLeave := @GameCardMouseLeave;
-          CardPanel.OnClick := @GameCardClick;
-          CardPanel.OnMouseUp := @GameCardMouseUp;
-
-          CardImage := TImage.Create(CardPanel);
-          CardImage.Parent := CardPanel;
-          CardImage.Tag := 9995;
-          CardImage.SetBounds(0, 0, CARD_W, CARD_H);
-          CardImage.Stretch := True;
-          CardImage.Proportional := False;
-          CardImage.Center := False;
-          CardImage.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
-          CardImage.ShowHint := True;
-          CardImage.OnMouseEnter := @GameCardMouseEnter;
-          CardImage.OnMouseLeave := @GameCardMouseLeave;
-          CardImage.OnClick := @GameCardClick;
-          CardImage.OnMouseUp := @GameCardMouseUp;
-
-          // Steam icon badge (top-left corner, light gray)
-          BdgImg := TImage.Create(CardPanel);
-          BdgImg.Tag := 1;  // platform badge — preserve on uninstall
-          BdgImg.Parent      := CardPanel;
-          BdgImg.AutoSize    := False;
-          BdgImg.SetBounds(4, 4, 16, 16);
-          BdgImg.Stretch     := True;
-          BdgImg.Proportional := True;
-          BdgImg.Center      := True;
-          BdgImg.Transparent := True;
-          IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
-          if FileExists(IconPath) then
-            try BdgImg.Picture.LoadFromFile(IconPath); except end;
-          BdgImg.Hint        := 'Steam Game';
-          BdgImg.ShowHint    := True;
-          BdgImg.BringToFront;
-          BdgImg.OnMouseEnter := @GameCardMouseEnter;
-          BdgImg.OnMouseLeave := @GameCardMouseLeave;
-          BdgImg.OnClick      := @GameCardClick;
-          BdgImg.OnMouseUp    := @GameCardMouseUp;
-
-          // Load local image or queue for CDN download
-          if FileExists(ImagePath) and (FileSize(ImagePath) > 0) then
-          begin
-            if FileExists(ImagePath + '.fallback') then
-              GenerateFallbackCover(ImagePath, FForm);
-            try
-              CardImage.Picture.LoadFromFile(ImagePath);
-            except
-            end;
-          end
-          else
-          begin
-            // No local image — will be downloaded by background thread
-            PendingIDs.Add(AppID + '=' + GameName);
-            PendingImages.Add(CardImage);
-          end;
-
-          // Compute badge bitmask and store in Tag for use by download thread
-          GameCfgDir := GetGameConfigDir(GameName);
-          HasMango      := FileExists(GameCfgDir + 'MangoHud.conf');
-          HasVkBasalt   := FileExists(GameCfgDir + 'vkBasalt.conf') or FileExists(GameCfgDir + 'vkSumi.conf');
-          HasOptiScaler := FileExists(GameCfgDir + 'OptiScaler.ini');
-          HasTweaks := False;
-          if FileExists(GameCfgDir + 'bgmod.conf') then
-          begin
-            TweakLines := TStringList.Create;
-            try
-              TweakLines.LoadFromFile(GameCfgDir + 'bgmod.conf');
-              for k := 0 to TweakLines.Count - 1 do
-                if Pos('GOVERLAY_TWEAKS=1', StringReplace(TweakLines[k], ' ', '', [rfReplaceAll])) > 0 then
-                begin
-                  HasTweaks := True;
-                  Break;
-                end;
-            finally
-              TweakLines.Free;
-            end;
-          end;
-          // Badges — PNG for MangoHud/OptiScaler (matches nav rail), glyph for vkBasalt/Tweaks
-          BadgeCount := 0;
-          if HasMango      then Inc(BadgeCount, 1);
-          if HasVkBasalt   then Inc(BadgeCount, 2);
-          if HasOptiScaler then Inc(BadgeCount, 4);
-          if HasTweaks     then Inc(BadgeCount, 8);
-          CardPanel.Tag := BadgeCount;
-
-          if BadgeCount > 0 then
-          begin
-            BdgImg := TImage.Create(CardPanel);
-            BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall
-            BdgImg.Parent      := CardPanel;
-            BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
-            BdgImg.BorderSpacing.Right := 4;
-            BdgImg.BorderSpacing.Top   := 4;
-            BdgImg.AnchorSide[akRight].Control := CardPanel;
-            BdgImg.AnchorSide[akRight].Side    := asrBottom;
-            BdgImg.AnchorSide[akTop].Control   := CardPanel;
-            BdgImg.AnchorSide[akTop].Side      := asrTop;
-            BdgImg.Anchors                     := [akTop, akRight];
-            BdgImg.Stretch     := True;
-            BdgImg.Proportional := True;
-            BdgImg.Center      := True;
-            BdgImg.Transparent := True;
-
-            IconPath := GetAppBaseDir + 'assets/icons/goverlay.png';
-            if not FileExists(IconPath) then
-              IconPath := GetAppBaseDir + 'data/icons/128x128/goverlay.png';
-            if not FileExists(IconPath) then
-              IconPath := GetIconFile();
-
-            WriteLn(StdErr, '[GOverlayBadge] Steam Game="', GameName, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
-            if FileExists(IconPath) then
-              try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
-
-            BdgHint := 'Enabled Goverlay Tools:';
-            if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
-            if HasVkBasalt then BdgHint := BdgHint + LineEnding + '• vkBasalt: Enabled';
-            if HasOptiScaler then BdgHint := BdgHint + LineEnding + '• OptiScaler: Enabled';
-            if HasTweaks then BdgHint := BdgHint + LineEnding + '• Tweaks: Enabled';
-
-            CardPanel.Hint := CardPanel.Hint + LineEnding + LineEnding + BdgHint;
-            CardImage.Hint := CardPanel.Hint;
-            BdgImg.Hint := CardPanel.Hint;
-            BdgImg.ShowHint := True;
-
-            BdgImg.BringToFront;
-            BdgImg.OnMouseEnter := @GameCardMouseEnter;
-            BdgImg.OnMouseLeave := @GameCardMouseLeave;
-            BdgImg.OnClick      := @GameCardClick;
-            BdgImg.OnMouseUp    := @GameCardMouseUp;
-          end;
-
-          // Store card and original image; apply gradient
-          FCardPanels.Add(CardPanel);
-          if (CardImage.Picture.Graphic <> nil) and
-             (CardImage.Picture.Graphic.Width > 0) then
-          begin
-            ScaledBmp := TBitmap.Create;
-            try
-              ScaledBmp.SetSize(CARD_W, CARD_H);
-              ScaledBmp.Canvas.StretchDraw(
-                Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-              ProcessCoverBitmap(ScaledBmp, GRAD_H);
-              CardImage.Picture.Bitmap.Assign(ScaledBmp);
-              FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-            finally
-              ScaledBmp.Free;
-            end;
-            ApplyCardBrightness(CardPanel, 100);
-          end
-          else
-            FOrigCovers.Add(nil);
-
-          CreateActionPanel(CardPanel);
-          Inc(j);
+          SetLength(AGames, Length(AGames) + 1);
+          AGames[High(AGames)].Kind := gkSteam;
+          AGames[High(AGames)].Name := GameName;
+          AGames[High(AGames)].AppID := AppID;
+          AGames[High(AGames)].InstallDir := InstallDir;
+          AGames[High(AGames)].LibPath := LibPath;
+          AGames[High(AGames)].SubPath := '';
+          AGames[High(AGames)].IsAppImage := False;
         until FindNext(SR) <> 0;
         FindClose(SR);
       end;
     end;
-
-    // Load non-Steam game folders and append their cards
-    LoadNonSteamFolders(j, CardsPerRow, RowMargin);
-
-    // Recalculate panel size based on loaded game cards
-    if j > 0 then
-      TotalRows := (j + CardsPerRow - 1) div CardsPerRow
-    else
-      TotalRows := 0;
-    FGamesPanel.Width := FGamesScrollBox.Width;
-    FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
-
-    // Launch background thread to download missing covers from Steam CDN
-    if PendingIDs.Count > 0 then
-    begin
-      if Assigned(FCoverThread) then
-      begin
-        FCoverThread.Terminate;
-        FCoverThread := nil;
-      end;
-      // Thread takes ownership of PendingIDs and PendingImages
-      FCoverThread := TCoverDownloadThread.Create(
-        PendingIDs, PendingImages, CacheDir, FForm);
-      PendingIDs    := nil;
-      PendingImages := nil;
-      FCoverThread.Start;
-    end;
-
   finally
     Libraries.Free;
-    PendingIDs.Free;
-    PendingImages.Free;
-  end;
   end;
 end;
 
-
-
-procedure TGamesTabHelper.LoadNonSteamFolders(var ACardIndex: Integer;
-  const ACardsPerRow, ARowMargin: Integer);
+procedure TGamesTabHelper.DiscoverNonSteamGames(var AGames: TGameDiscoveryArray);
 var
-  NonSteamFile: string;
+  NonSteamFile, FolderPath, GameName, SubPath, LowerSubName: string;
   Lines: TStringList;
-  I, CardX, CardY: Integer;
-  FolderPath, GameName, SubPath: string;
-  CardPanel: TPanel;
-  CardImage: TImage;
-  BdgImg: TImage;
-  BdgLbl: TLabel;
-  ScaledBmp: TBitmap;
-  GameCfgDir: string;
-  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks: Boolean;
-  BadgeCount, BdgBit, BdgSlot, BdgX, BdgY: Integer;
-  BdgHint, IconPath: string;
-  BdgBg: TShape;
-  TweakLines: TStringList;
-  k: Integer;
+  I, k: Integer;
   SubSR: TSearchRec;
-  LowerSubName: string;
-  ShouldSkip: Boolean;
-  CacheDir, CachePath: string;
-  HasCover: Boolean;
-  IsAppImage: Boolean;
-  PendingItems: array of TNonSteamCoverItem;
-  PendingCount: Integer;
+  IsAppImage, ShouldSkip: Boolean;
 const
-  BDG_SZ    = 18;
-  BDG_GAP   = 5;
-  BDG_PAD_V = 6;
-  BDG_FONT  = 13;
-  BDG_W     = 26;
-  BADGE_GLYPHS: array[0..3] of string = ('', '󰏘', '', '󰒓');
   SKIP_NAMES: array[0..6] of string = ('prefixes', 'common', 'compatdata', 'shadercache', 'downloads', 'tmp', 'temp');
 begin
-  with FForm do
-  begin
-  PendingCount := 0;
   NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
   if not FileExists(NonSteamFile) then Exit;
 
@@ -1384,7 +1091,7 @@ begin
         try
           repeat
             if (SubSR.Name = '.') or (SubSR.Name = '..') then Continue;
-            
+
             IsAppImage := False;
             if (SubSR.Attr and faDirectory) = 0 then
             begin
@@ -1412,8 +1119,139 @@ begin
               GameName := SubSR.Name;
             if GameName = '' then Continue;
 
-      CardX := ARowMargin + (ACardIndex mod ACardsPerRow) * (CARD_W + ARowMargin);
-      CardY := ARowMargin + (ACardIndex div ACardsPerRow) * (CARD_H + ARowMargin);
+            SetLength(AGames, Length(AGames) + 1);
+            AGames[High(AGames)].Kind := gkNonSteam;
+            AGames[High(AGames)].Name := GameName;
+            AGames[High(AGames)].AppID := '';
+            AGames[High(AGames)].InstallDir := '';
+            AGames[High(AGames)].LibPath := FolderPath;
+            AGames[High(AGames)].SubPath := SubPath;
+            AGames[High(AGames)].IsAppImage := IsAppImage;
+          until FindNext(SubSR) <> 0;
+        finally
+          FindClose(SubSR);
+        end;
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function CompareGameDiscoveryItems(const ItemA, ItemB: TGameDiscoveryItem): Integer;
+begin
+  Result := AnsiCompareText(ItemA.Name, ItemB.Name);
+  if Result = 0 then
+  begin
+    if ItemA.Kind <> ItemB.Kind then
+    begin
+      if ItemA.Kind = gkSteam then Result := -1 else Result := 1;
+    end
+    else if ItemA.Kind = gkSteam then
+      Result := AnsiCompareText(ItemA.AppID, ItemB.AppID)
+    else
+      Result := AnsiCompareText(ItemA.SubPath, ItemB.SubPath);
+  end;
+end;
+
+procedure QuickSortGameDiscovery(var AList: TGameDiscoveryArray; L, R: Integer);
+var
+  I, J: Integer;
+  Pivot, Temp: TGameDiscoveryItem;
+begin
+  if L >= R then Exit;
+  I := L;
+  J := R;
+  Pivot := AList[L + (R - L) div 2];
+  repeat
+    while CompareGameDiscoveryItems(AList[I], Pivot) < 0 do Inc(I);
+    while CompareGameDiscoveryItems(AList[J], Pivot) > 0 do Dec(J);
+    if I <= J then
+    begin
+      Temp := AList[I];
+      AList[I] := AList[J];
+      AList[J] := Temp;
+      Inc(I);
+      Dec(J);
+    end;
+  until I > J;
+  if L < J then QuickSortGameDiscovery(AList, L, J);
+  if I < R then QuickSortGameDiscovery(AList, I, R);
+end;
+
+procedure TGamesTabHelper.SortDiscoveredGames(var AGames: TGameDiscoveryArray);
+begin
+  if Length(AGames) > 1 then
+    QuickSortGameDiscovery(AGames, 0, High(AGames));
+end;
+
+procedure TGamesTabHelper.LoadSteamGames;
+var
+  DiscoveredGames: TGameDiscoveryArray;
+  PendingIDs: TStringList;
+  PendingImages: TList;
+  PendingItems: array of TNonSteamCoverItem;
+  PendingCount: Integer;
+  CacheDir, NonSteamCacheDir, HomeDir: string;
+  j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
+  AppID, GameName, ImagePath, InstallDir, IconPath, SubPath: string;
+  LibPath, GameCfgDir, CachePath: string;
+  CardPanel: TPanel;
+  CardImage: TImage;
+  BdgLbl: TLabel;
+  BdgImg: TImage;
+  NoGamesLabel: TLabel;
+  ScaledBmp: TBitmap;
+  HasMango, HasVkBasalt, HasOptiScaler, HasTweaks, HasCover, IsAppImage: Boolean;
+  TweakLines: TStringList;
+  k, BadgeCount: Integer;
+  BdgHint: string;
+begin
+  with FForm do
+  begin
+  if not Assigned(FGamesScrollBox) or not Assigned(FGamesPanel) then
+    Exit;
+
+  if IsRunningInFlatpak then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
+  else
+    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
+  CacheDir := HomeDir + '.cache/goverlay/covers/';
+  ForceDirectories(CacheDir);
+  NonSteamCacheDir := GetUserDir + '.cache/goverlay/nonsteam_covers/';
+  ForceDirectories(NonSteamCacheDir);
+
+  SetLength(DiscoveredGames, 0);
+  DiscoverSteamGames(DiscoveredGames);
+  DiscoverNonSteamGames(DiscoveredGames);
+  SortDiscoveredGames(DiscoveredGames);
+
+  if Length(DiscoveredGames) = 0 then
+  begin
+    NoGamesLabel := TLabel.Create(FForm);
+    NoGamesLabel.Parent := FGamesPanel;
+    NoGamesLabel.Caption := 'No games detected in Steam or custom folders.';
+    NoGamesLabel.Font.Color := clSilver;
+    NoGamesLabel.Font.Size := 10;
+    NoGamesLabel.Left := 16;
+    NoGamesLabel.Top := 16;
+    Exit;
+  end;
+
+  CardsPerRow := Max(1, FGamesScrollBox.Width div (CARD_W + CARD_MARGIN));
+  RowMargin := (FGamesScrollBox.Width - CardsPerRow * CARD_W) div (CardsPerRow + 1);
+  if RowMargin < 4 then RowMargin := 4;
+
+  PendingIDs    := TStringList.Create;
+  PendingImages := TList.Create;
+  PendingCount  := 0;
+  SetLength(PendingItems, 0);
+  try
+    for j := 0 to High(DiscoveredGames) do
+    begin
+      // Card position (dynamic margin distributes leftover space evenly)
+      CardX := RowMargin + (j mod CardsPerRow) * (CARD_W + RowMargin);
+      CardY := RowMargin + (j div CardsPerRow) * (CARD_H + RowMargin);
 
       CardPanel := TPanel.Create(FForm);
       CardPanel.Parent := FGamesPanel;
@@ -1422,9 +1260,7 @@ begin
       CardPanel.BevelInner := bvNone;
       CardPanel.BorderWidth := 0;
       CardPanel.Caption := '';
-      CardPanel.Tag := 9997;  // marker: non-Steam card
-      CardPanel.Color := $303030;
-      CardPanel.Hint := GameName + LineEnding + SubPath;
+      CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
       CardPanel.ShowHint := True;
       CardPanel.OnMouseEnter := @GameCardMouseEnter;
       CardPanel.OnMouseLeave := @GameCardMouseLeave;
@@ -1438,51 +1274,172 @@ begin
       CardImage.Stretch := True;
       CardImage.Proportional := False;
       CardImage.Center := False;
-      CardImage.Hint := CardPanel.Hint;
       CardImage.ShowHint := True;
       CardImage.OnMouseEnter := @GameCardMouseEnter;
       CardImage.OnMouseLeave := @GameCardMouseLeave;
       CardImage.OnClick := @GameCardClick;
       CardImage.OnMouseUp := @GameCardMouseUp;
 
-      // Wine icon badge (top-left corner)
-      if Assigned(iconsImageList) then
+      if DiscoveredGames[j].Kind = gkSteam then
       begin
+        AppID      := DiscoveredGames[j].AppID;
+        GameName   := DiscoveredGames[j].Name;
+        InstallDir := DiscoveredGames[j].InstallDir;
+        LibPath    := DiscoveredGames[j].LibPath;
+
+        CardPanel.Tag := 9999;  // marker: game card — excluded from theme color override
+        CardPanel.Hint := '(' + AppID + ') ' + GameName + LineEnding + LibPath + '/common/' + InstallDir;
+        CardImage.Hint := CardPanel.Hint;
+
+        // Steam icon badge (top-left corner, light gray)
         BdgImg := TImage.Create(CardPanel);
         BdgImg.Tag := 1;  // platform badge — preserve on uninstall
-        BdgImg.Parent      := CardPanel;
-        BdgImg.AutoSize    := False;
+        BdgImg.Parent       := CardPanel;
+        BdgImg.AutoSize     := False;
         BdgImg.SetBounds(4, 4, 16, 16);
-        BdgImg.Stretch     := True;
+        BdgImg.Stretch      := True;
         BdgImg.Proportional := True;
-        BdgImg.Center      := True;
-        BdgImg.Transparent := True;
-        iconsImageList.GetBitmap(38, BdgImg.Picture.Bitmap);
+        BdgImg.Center       := True;
+        BdgImg.Transparent  := True;
+        IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
+        if FileExists(IconPath) then
+          try BdgImg.Picture.LoadFromFile(IconPath); except end;
+        BdgImg.Hint         := 'Steam Game';
+        BdgImg.ShowHint     := True;
         BdgImg.BringToFront;
         BdgImg.OnMouseEnter := @GameCardMouseEnter;
         BdgImg.OnMouseLeave := @GameCardMouseLeave;
         BdgImg.OnClick      := @GameCardClick;
         BdgImg.OnMouseUp    := @GameCardMouseUp;
-      end;
 
-      // Game name label at bottom
-      BdgLbl := TLabel.Create(CardPanel);
-      BdgLbl.Parent := CardPanel;
-      BdgLbl.AutoSize := False;
-      BdgLbl.SetBounds(4, CARD_H - 40, CARD_W - 8, 36);
-      BdgLbl.Caption := GameName;
-      BdgLbl.Font.Color := clWhite;
-      BdgLbl.Font.Size := 9;
-      BdgLbl.Font.Style := [fsBold];
-      BdgLbl.Alignment := taCenter;
-      BdgLbl.Layout := tlCenter;
-      BdgLbl.WordWrap := True;
-      BdgLbl.Transparent := True;
-      BdgLbl.OnMouseEnter := @GameCardMouseEnter;
-      BdgLbl.OnMouseLeave := @GameCardMouseLeave;
-      BdgLbl.OnClick := @GameCardClick;
-      BdgLbl.OnMouseUp := @GameCardMouseUp;
-      BdgLbl.Tag := 9991;  // marker: non-Steam card title label
+        // Look for local cover; if absent, queue for CDN download
+        ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/header.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/header.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/header.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+        if not FileExists(ImagePath) then
+          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+        // Also check the persistent cache from previous downloads
+        if not FileExists(ImagePath) then
+          ImagePath := CacheDir + AppID + '.jpg';
+
+        if FileExists(ImagePath) and (FileSize(ImagePath) > 0) then
+        begin
+          if FileExists(ImagePath + '.fallback') then
+            GenerateFallbackCover(ImagePath, FForm);
+          try
+            CardImage.Picture.LoadFromFile(ImagePath);
+          except
+          end;
+        end
+        else
+        begin
+          // No local image — will be downloaded by background thread
+          PendingIDs.Add(AppID + '=' + GameName);
+          PendingImages.Add(CardImage);
+        end;
+      end
+      else
+      begin
+        // Non-Steam Game
+        GameName   := DiscoveredGames[j].Name;
+        SubPath    := DiscoveredGames[j].SubPath;
+        IsAppImage := DiscoveredGames[j].IsAppImage;
+
+        CardPanel.Tag := 9997;  // marker: non-Steam card
+        CardPanel.Hint := GameName + LineEnding + SubPath;
+        CardImage.Hint := CardPanel.Hint;
+
+        // Wine icon badge (top-left corner)
+        if Assigned(iconsImageList) then
+        begin
+          BdgImg := TImage.Create(CardPanel);
+          BdgImg.Tag := 1;  // platform badge — preserve on uninstall
+          BdgImg.Parent       := CardPanel;
+          BdgImg.AutoSize     := False;
+          BdgImg.SetBounds(4, 4, 16, 16);
+          BdgImg.Stretch      := True;
+          BdgImg.Proportional := True;
+          BdgImg.Center       := True;
+          BdgImg.Transparent  := True;
+          iconsImageList.GetBitmap(38, BdgImg.Picture.Bitmap);
+          BdgImg.BringToFront;
+          BdgImg.OnMouseEnter := @GameCardMouseEnter;
+          BdgImg.OnMouseLeave := @GameCardMouseLeave;
+          BdgImg.OnClick      := @GameCardClick;
+          BdgImg.OnMouseUp    := @GameCardMouseUp;
+        end;
+
+        // Game name label at bottom
+        BdgLbl := TLabel.Create(CardPanel);
+        BdgLbl.Parent := CardPanel;
+        BdgLbl.AutoSize := False;
+        BdgLbl.SetBounds(4, CARD_H - 40, CARD_W - 8, 36);
+        BdgLbl.Caption := GameName;
+        BdgLbl.Font.Color := clWhite;
+        BdgLbl.Font.Size := 9;
+        BdgLbl.Font.Style := [fsBold];
+        BdgLbl.Alignment := taCenter;
+        BdgLbl.Layout := tlCenter;
+        BdgLbl.WordWrap := True;
+        BdgLbl.Transparent := True;
+        BdgLbl.OnMouseEnter := @GameCardMouseEnter;
+        BdgLbl.OnMouseLeave := @GameCardMouseLeave;
+        BdgLbl.OnClick := @GameCardClick;
+        BdgLbl.OnMouseUp := @GameCardMouseUp;
+        BdgLbl.Tag := 9991;  // marker: non-Steam card title label
+        BdgLbl.Hint := CardPanel.Hint;
+        BdgLbl.ShowHint := True;
+
+        // Try to load cached cover; if missing queue async download
+        CachePath := NonSteamCacheDir + SanitizeFileName(GameName) + '.jpg';
+        HasCover := False;
+
+        if FileExists(CachePath) and (FileSize(CachePath) > 0) then
+        begin
+          if FileExists(CachePath + '.fallback') then
+            GenerateFallbackCover(CachePath, FForm);
+          try
+            CardImage.Picture.LoadFromFile(CachePath);
+            HasCover := True;
+          except
+            HasCover := False;
+          end;
+        end;
+
+        if IsAppImage and not HasCover then
+        begin
+          GenerateFallbackCover(CachePath, FForm);
+          if FileExists(CachePath) and (FileSize(CachePath) > 0) then
+          begin
+            try
+              CardImage.Picture.LoadFromFile(CachePath);
+              HasCover := True;
+            except
+              HasCover := False;
+            end;
+          end;
+        end;
+
+        BdgLbl.Visible := not (HasCover and not FileExists(CachePath + '.fallback'));
+      end;
 
       // Compute badges from game-specific config dir (if user configured it)
       GameCfgDir := GetGameConfigDir(GameName);
@@ -1505,6 +1462,7 @@ begin
           TweakLines.Free;
         end;
       end;
+
       BadgeCount := 0;
       if HasMango      then Inc(BadgeCount, 1);
       if HasVkBasalt   then Inc(BadgeCount, 2);
@@ -1537,9 +1495,8 @@ begin
         if not FileExists(IconPath) then
           IconPath := GetIconFile();
 
-        WriteLn(StdErr, '[GOverlayBadge] NonSteam Game="', GameName, '" IconPath="', IconPath, '" exists=', FileExists(IconPath));
         if FileExists(IconPath) then
-          try BdgImg.Picture.LoadFromFile(IconPath); except on E: Exception do WriteLn(StdErr, '[GOverlayBadge] Load error: ', E.Message); end;
+          try BdgImg.Picture.LoadFromFile(IconPath); except end;
 
         BdgHint := 'Enabled Goverlay Tools:';
         if HasMango then BdgHint := BdgHint + LineEnding + '• MangoHud: Enabled';
@@ -1549,11 +1506,6 @@ begin
 
         CardPanel.Hint := CardPanel.Hint + LineEnding + LineEnding + BdgHint;
         CardImage.Hint := CardPanel.Hint;
-        if Assigned(BdgLbl) then
-        begin
-          BdgLbl.Hint := CardPanel.Hint;
-          BdgLbl.ShowHint := True;
-        end;
         BdgImg.Hint := CardPanel.Hint;
         BdgImg.ShowHint := True;
 
@@ -1564,88 +1516,94 @@ begin
         BdgImg.OnMouseUp    := @GameCardMouseUp;
       end;
 
-            // Try to load cached cover; if missing queue async download
-            CacheDir := GetUserDir + '.cache/goverlay/nonsteam_covers/';
-            ForceDirectories(CacheDir);
-            CachePath := CacheDir + SanitizeFileName(GameName) + '.jpg';
-            HasCover := False;
-
-            if FileExists(CachePath) and (FileSize(CachePath) > 0) then
-            begin
-              if FileExists(CachePath + '.fallback') then
-                GenerateFallbackCover(CachePath, FForm);
-              try
-                CardImage.Picture.LoadFromFile(CachePath);
-                HasCover := True;
-              except
-                HasCover := False;
-              end;
-            end;
-
-            if IsAppImage and not HasCover then
-            begin
-              GenerateFallbackCover(CachePath, FForm);
-              if FileExists(CachePath) and (FileSize(CachePath) > 0) then
-              begin
-                try
-                  CardImage.Picture.LoadFromFile(CachePath);
-                  HasCover := True;
-                except
-                  HasCover := False;
-                end;
-              end;
-            end;
-
-            FCardPanels.Add(CardPanel);
-            for k := 0 to CardPanel.ControlCount - 1 do
-              if (CardPanel.Controls[k] is TLabel) and (CardPanel.Controls[k].Tag = 9991) then
-              begin
-                CardPanel.Controls[k].Visible := not (HasCover and not FileExists(CachePath + '.fallback'));
-                Break;
-              end;
-            if HasCover then
-            begin
-              ScaledBmp := TBitmap.Create;
-              try
-                ScaledBmp.SetSize(CARD_W, CARD_H);
-                ScaledBmp.Canvas.StretchDraw(Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
-                ProcessCoverBitmap(ScaledBmp, GRAD_H);
-                CardImage.Picture.Bitmap.Assign(ScaledBmp);
-                FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-              finally
-                ScaledBmp.Free;
-              end;
-            end
-            else
-            begin
-              // Solid-colour fallback immediately so UI stays responsive
-              ScaledBmp := TBitmap.Create;
-              try
-                ScaledBmp.SetSize(CARD_W, CARD_H);
-                ScaledBmp.Canvas.Brush.Color := $303030;
-                ScaledBmp.Canvas.FillRect(Rect(0, 0, CARD_W, CARD_H));
-                ProcessCoverBitmap(ScaledBmp, GRAD_H);
-                CardImage.Picture.Bitmap.Assign(ScaledBmp);
-                FOrigCovers.Add(ScaledBmp.CreateIntfImage);
-              finally
-                ScaledBmp.Free;
-              end;
-              // Queue for background cover download thread
-              SetLength(PendingItems, PendingCount + 1);
-              PendingItems[PendingCount].GameName  := GameName;
-              PendingItems[PendingCount].CachePath := CachePath;
-              PendingItems[PendingCount].CardIndex := FCardPanels.Count - 1;
-              Inc(PendingCount);
-            end;
-            ApplyCardBrightness(CardPanel, 100);
-            CreateActionPanel(CardPanel);
-
-            Inc(ACardIndex);
-          until FindNext(SubSR) <> 0;
-        finally
-          FindClose(SubSR);
+      // Store card and original image; apply gradient
+      FCardPanels.Add(CardPanel);
+      if (DiscoveredGames[j].Kind = gkSteam) then
+      begin
+        if (CardImage.Picture.Graphic <> nil) and
+           (CardImage.Picture.Graphic.Width > 0) then
+        begin
+          ScaledBmp := TBitmap.Create;
+          try
+            ScaledBmp.SetSize(CARD_W, CARD_H);
+            ScaledBmp.Canvas.StretchDraw(
+              Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+            ProcessCoverBitmap(ScaledBmp, GRAD_H);
+            CardImage.Picture.Bitmap.Assign(ScaledBmp);
+            FOrigCovers.Add(ScaledBmp.CreateIntfImage);
+          finally
+            ScaledBmp.Free;
+          end;
+          ApplyCardBrightness(CardPanel, 100);
+        end
+        else
+          FOrigCovers.Add(nil);
+      end
+      else
+      begin
+        // Non-Steam
+        if HasCover then
+        begin
+          ScaledBmp := TBitmap.Create;
+          try
+            ScaledBmp.SetSize(CARD_W, CARD_H);
+            ScaledBmp.Canvas.StretchDraw(Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+            ProcessCoverBitmap(ScaledBmp, GRAD_H);
+            CardImage.Picture.Bitmap.Assign(ScaledBmp);
+            FOrigCovers.Add(ScaledBmp.CreateIntfImage);
+          finally
+            ScaledBmp.Free;
+          end;
+        end
+        else
+        begin
+          // Solid-colour fallback immediately so UI stays responsive
+          ScaledBmp := TBitmap.Create;
+          try
+            ScaledBmp.SetSize(CARD_W, CARD_H);
+            ScaledBmp.Canvas.Brush.Color := $303030;
+            ScaledBmp.Canvas.FillRect(Rect(0, 0, CARD_W, CARD_H));
+            ProcessCoverBitmap(ScaledBmp, GRAD_H);
+            CardImage.Picture.Bitmap.Assign(ScaledBmp);
+            FOrigCovers.Add(ScaledBmp.CreateIntfImage);
+          finally
+            ScaledBmp.Free;
+          end;
+          // Queue for background cover download thread
+          SetLength(PendingItems, PendingCount + 1);
+          PendingItems[PendingCount].GameName  := GameName;
+          PendingItems[PendingCount].CachePath := CachePath;
+          PendingItems[PendingCount].CardIndex := FCardPanels.Count - 1;
+          Inc(PendingCount);
         end;
+        ApplyCardBrightness(CardPanel, 100);
       end;
+
+      CreateActionPanel(CardPanel);
+    end;
+
+    // Recalculate panel size based on loaded game cards
+    if Length(DiscoveredGames) > 0 then
+      TotalRows := (Length(DiscoveredGames) + CardsPerRow - 1) div CardsPerRow
+    else
+      TotalRows := 0;
+    FGamesPanel.Width := FGamesScrollBox.Width;
+    FGamesPanel.Height := RowMargin + TotalRows * (CARD_H + RowMargin);
+
+    // Launch background thread to download missing covers from Steam CDN
+    if PendingIDs.Count > 0 then
+    begin
+      if Assigned(FCoverThread) then
+      begin
+        FCoverThread.Terminate;
+        FCoverThread := nil;
+      end;
+      // Thread takes ownership of PendingIDs and PendingImages
+      FCoverThread := TCoverDownloadThread.Create(
+        PendingIDs, PendingImages, CacheDir, FForm);
+      PendingIDs    := nil;
+      PendingImages := nil;
+      FCoverThread.Start;
     end;
 
     // Launch background thread to download missing non-Steam covers
@@ -1659,10 +1617,18 @@ begin
       FNonSteamCoverThread := TNonSteamCoverThread.Create(PendingItems, FForm);
       FNonSteamCoverThread.Start;
     end;
+
   finally
-    Lines.Free;
+    PendingIDs.Free;
+    PendingImages.Free;
   end;
   end;
+end;
+
+procedure TGamesTabHelper.LoadNonSteamFolders(var ACardIndex: Integer;
+  const ACardsPerRow, ARowMargin: Integer);
+begin
+  // Deprecated: Steam and non-Steam games are now discovered and sorted together in LoadSteamGames.
 end;
 
 // ============================================================================

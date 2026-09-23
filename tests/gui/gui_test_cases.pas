@@ -151,12 +151,13 @@ type
     procedure TestMethodLogoDimming;
     procedure TestCloneGlobalConfigsToGameCard;
     procedure TestCloneGlobalConfigsDockMenu;
+    procedure TestGameCardsAlphabeticalSorting;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -702,26 +703,26 @@ begin
   // When on Lossless Scaling tab and lsfg-vk is selected -> visible below Open log file
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
   Helper.InterpolationMethod := imLsfg;
-  goverlayform.popupBitBtnClick(nil);
+  goverlayform.UpdateDockMenuItemsVisibility;
   AssertTrue('Migration menu item is visible in hamburger menu when on Lossless tab and lsfg-vk selected',
     goverlayform.lsfgMigrationMenuItem.Visible);
 
   // When on Lossless Scaling tab and MAKO is selected -> hidden
   Helper.InterpolationMethod := imMako;
-  goverlayform.popupBitBtnClick(nil);
+  goverlayform.UpdateDockMenuItemsVisibility;
   AssertFalse('Migration menu item is hidden in hamburger menu when MAKO selected',
     goverlayform.lsfgMigrationMenuItem.Visible);
 
   // When on Lossless Scaling tab and None is selected -> hidden
   Helper.InterpolationMethod := imNone;
-  goverlayform.popupBitBtnClick(nil);
+  goverlayform.UpdateDockMenuItemsVisibility;
   AssertFalse('Migration menu item is hidden in hamburger menu when None selected',
     goverlayform.lsfgMigrationMenuItem.Visible);
 
   // When on another tab (e.g. OptiScaler tab) even if lsfg-vk selected -> hidden
   Helper.InterpolationMethod := imLsfg;
   goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
-  goverlayform.popupBitBtnClick(nil);
+  goverlayform.UpdateDockMenuItemsVisibility;
   AssertFalse('Migration menu item is hidden in hamburger menu when on another tab',
     goverlayform.lsfgMigrationMenuItem.Visible);
 
@@ -6347,6 +6348,144 @@ begin
 
   // Reset state
   goverlayform.FActiveGameName := '';
+end;
+
+procedure TGoverlayGuiTests.TestGameCardsAlphabeticalSorting;
+var
+  SteamAppsDir, NonSteamDir, NonSteamFile, ConfDir: string;
+  SteamCacheDir, NonSteamCacheDir: string;
+  Lines: TStringList;
+  GamesHelper: TGamesTabHelper;
+
+  procedure CreateDummyCover(const APath: string);
+  var
+    Bmp: TBitmap;
+  begin
+    ForceDirectories(ExtractFilePath(APath));
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(16, 16);
+      Bmp.Canvas.Brush.Color := clBlack;
+      Bmp.Canvas.FillRect(Rect(0, 0, 16, 16));
+      Bmp.SaveToFile(APath);
+    finally
+      Bmp.Free;
+    end;
+  end;
+
+  function GetCardTitle(APanel: TPanel): string;
+  var
+    L1: string;
+    p: Integer;
+  begin
+    L1 := APanel.Hint;
+    p := Pos(#10, L1);
+    if p > 0 then L1 := Copy(L1, 1, p - 1);
+    p := Pos(#13, L1);
+    if p > 0 then L1 := Copy(L1, 1, p - 1);
+    L1 := Trim(L1);
+    if (Length(L1) > 0) and (L1[1] = '(') then
+    begin
+      p := Pos(') ', L1);
+      if p > 0 then
+        Result := Copy(L1, p + 2, Length(L1))
+      else
+        Result := L1;
+    end
+    else
+      Result := L1;
+  end;
+
+  procedure WriteManifest(const AAppID, AName: string);
+  var
+    M: TStringList;
+  begin
+    M := TStringList.Create;
+    try
+      M.Add('"AppState"');
+      M.Add('{');
+      M.Add('  "appid" "' + AAppID + '"');
+      M.Add('  "name" "' + AName + '"');
+      M.Add('  "installdir" "' + AName + '"');
+      M.Add('}');
+      M.SaveToFile(SteamAppsDir + '/appmanifest_' + AAppID + '.acf');
+    finally
+      M.Free;
+    end;
+  end;
+
+begin
+  // Set up mock Steam library
+  SteamAppsDir := IsolatedHome + '/.local/share/Steam/steamapps';
+  ForceDirectories(SteamAppsDir);
+
+  // Set up mock non-Steam games directory
+  NonSteamDir := IsolatedHome + '/MockNonSteamGames';
+  ForceDirectories(NonSteamDir + '/Zelda');
+  ForceDirectories(NonSteamDir + '/Baldur''s Gate 3');
+  ForceDirectories(NonSteamDir + '/Ark');
+
+  ConfDir := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder);
+  ForceDirectories(ConfDir);
+  NonSteamFile := ConfDir + 'nonsteam_folders.txt';
+  Lines := TStringList.Create;
+  try
+    Lines.Add(NonSteamDir);
+    Lines.SaveToFile(NonSteamFile);
+  finally
+    Lines.Free;
+  end;
+
+  // Create Steam manifests with mixed casing, digits, and "The" prefix
+  WriteManifest('292030', 'The Witcher 3');
+  WriteManifest('620', 'Portal 2');
+  WriteManifest('282800', '100% Orange Juice');
+  WriteManifest('70', 'half-life');
+  WriteManifest('1091500', 'Cyberpunk 2077');
+
+  // Seed dummy cover files so no background download threads run
+  SteamCacheDir := IsolatedHome + '/.cache/goverlay/covers/';
+  NonSteamCacheDir := IsolatedHome + '/.cache/goverlay/nonsteam_covers/';
+  CreateDummyCover(SteamCacheDir + '292030.jpg');
+  CreateDummyCover(SteamCacheDir + '620.jpg');
+  CreateDummyCover(SteamCacheDir + '282800.jpg');
+  CreateDummyCover(SteamCacheDir + '70.jpg');
+  CreateDummyCover(SteamCacheDir + '1091500.jpg');
+
+  CreateDummyCover(NonSteamCacheDir + SanitizeFileName('Zelda') + '.jpg');
+  CreateDummyCover(NonSteamCacheDir + SanitizeFileName('Baldur''s Gate 3') + '.jpg');
+  CreateDummyCover(NonSteamCacheDir + SanitizeFileName('Ark') + '.jpg');
+
+  GamesHelper := TGamesTabHelper(goverlayform.FGamesHelper);
+  GamesHelper.RefreshGameCards;
+
+  AssertEquals('8 game cards loaded', 8, goverlayform.FCardPanels.Count);
+
+  // Verify unified alphabetical order:
+  // 1: 100% Orange Juice (number first)
+  // 2: Ark (A)
+  // 3: Baldur's Gate 3 (B)
+  // 4: Cyberpunk 2077 (C)
+  // 5: half-life (case-insensitive H)
+  // 6: Portal 2 (P)
+  // 7: The Witcher 3 (T, "The" kept on T)
+  // 8: Zelda (Z)
+  AssertEquals('Card 0 is 100% Orange Juice', '100% Orange Juice', GetCardTitle(TPanel(goverlayform.FCardPanels[0])));
+  AssertEquals('Card 1 is Ark', 'Ark', GetCardTitle(TPanel(goverlayform.FCardPanels[1])));
+  AssertEquals('Card 2 is Baldur''s Gate 3', 'Baldur''s Gate 3', GetCardTitle(TPanel(goverlayform.FCardPanels[2])));
+  AssertEquals('Card 3 is Cyberpunk 2077', 'Cyberpunk 2077', GetCardTitle(TPanel(goverlayform.FCardPanels[3])));
+  AssertEquals('Card 4 is half-life', 'half-life', GetCardTitle(TPanel(goverlayform.FCardPanels[4])));
+  AssertEquals('Card 5 is Portal 2', 'Portal 2', GetCardTitle(TPanel(goverlayform.FCardPanels[5])));
+  AssertEquals('Card 6 is The Witcher 3', 'The Witcher 3', GetCardTitle(TPanel(goverlayform.FCardPanels[6])));
+  AssertEquals('Card 7 is Zelda', 'Zelda', GetCardTitle(TPanel(goverlayform.FCardPanels[7])));
+
+  // Cleanup files created by test
+  DeleteFile(NonSteamFile);
+  DeleteDirectory(NonSteamDir, False);
+  DeleteDirectory(SteamAppsDir, False);
+  DeleteDirectory(SteamCacheDir, False);
+  DeleteDirectory(NonSteamCacheDir, False);
+  GamesHelper.RefreshGameCards;
 end;
 
 initialization
