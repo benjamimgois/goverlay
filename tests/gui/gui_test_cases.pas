@@ -4691,8 +4691,8 @@ begin
   // PipelineCard is at the bottom of the tab view
   AssertTrue('PipelineCard is at the bottom of the tab view',
     goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height <= goverlayform.FVkPipelineCard.Parent.Height);
-  AssertTrue('BuiltinCard is expanded (Height >= 195)',
-    goverlayform.FVkBuiltinCard.Height >= 195);
+  AssertTrue('BuiltinCard is compact (Height >= 148)',
+    goverlayform.FVkBuiltinCard.Height >= 148);
   AssertTrue('ToggleCard is fully contained inside parent container',
     goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
   AssertTrue('LUT controls assigned and visible',

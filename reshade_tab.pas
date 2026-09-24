@@ -1043,7 +1043,7 @@ begin
       end;
 
       CurY := MARGIN + TOP_ROW_H + CARD_GAP;
-      BuiltinH := 195;
+      BuiltinH := 148;
       PipelineH := 72;
       FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + BOTTOM_M;
       MinReshadeH := 110;

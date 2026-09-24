@@ -399,7 +399,7 @@ procedure TVkBasaltTabHelper.ReflowVkBasaltTab(AContentW: Integer);
 const
   MARGIN   = 4;   // outer margin each side
   GAP      = 8;    // gap between cards
-  BTIN_H   = 195;  // built-in effects card height
+  BTIN_H   = 148;  // built-in effects card height
   PIPE_H   = 72;   // effect pipeline card height
   TOGL_H   = 75;   // toggle key card height
   PAD      = 12;   // inner horizontal padding
@@ -457,7 +457,7 @@ begin
   ColW  := (CW - 3 * PAD) div 2;
   Col0  := PAD;
   Col1  := PAD + ColW + PAD;
-  Row0  := 44;              // Row 0 Y-coordinate (CAS / FXAA)
+  Row0  := 38;             // Row 0 Y-coordinate (CAS / FXAA)
 
   // CAS (Column 0, Row 0)
   if Assigned(FVkCasIcon) then FVkCasIcon.SetBounds(Col0, Row0 + 6, 16, 16);
@@ -471,7 +471,7 @@ begin
   fxaaTrackBar.SetBounds(Col1 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
-  Row1  := Row0 + 28 + 14;  // Row 1 Y-coordinate (SMAA / DLS)
+  Row1  := Row0 + 28 + 8;  // Row 1 Y-coordinate (SMAA / DLS)
 
   // SMAA (Column 0, Row 1)
   if Assigned(FVkSmaaIcon) then FVkSmaaIcon.SetBounds(Col0, Row1 + 6, 16, 16);
@@ -485,7 +485,7 @@ begin
   dlsTrackBar.SetBounds(Col1 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
   if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
-  Row2  := Row1 + 28 + 14;  // Row 2 Y-coordinate (Color LUT)
+  Row2  := Row1 + 28 + 8;  // Row 2 Y-coordinate (Color LUT)
 
   // Color LUT (Row 2, full width)
   if Assigned(FVkLutIcon) then FVkLutIcon.SetBounds(Col0, Row2 + 6, 16, 16);
