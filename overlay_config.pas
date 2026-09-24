@@ -257,6 +257,7 @@ function IsDirectoryEmpty(const ADir: string): Boolean;
 function CleanDirectoryPreservingBackups(const ADir: string): Boolean;
 
 function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
+function IsVkBasaltBuiltInEffect(const AName: string): Boolean;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
 function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;

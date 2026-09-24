@@ -2315,6 +2315,8 @@ end;
 procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
   const FilterExts: array of string; const Recursive: Boolean;
   const SkipDotDirs: Boolean);
+var
+  SeenNames: TStringList;
 
   function HasAllowedExt(const FileName: string): Boolean;
   var
@@ -2344,7 +2346,7 @@ procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
   procedure Scan(const Dir: string);
   var
     SR: TSearchRec;
-    Path, Child: String;
+    Path, Child, BaseName: String;
   begin
     Path := IncludeTrailingPathDelimiter(Dir);
     if FindFirst(Path + '*', faAnyFile, SR) = 0 then
@@ -2367,7 +2369,19 @@ procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
           else
           begin
             if HasAllowedExt(SR.Name) then
+            begin
+              BaseName := ChangeFileExt(SR.Name, '');
+              // Exclude built-in effects that have dedicated native implementations (cas, fxaa, smaa, dls, lut)
+              if IsVkBasaltBuiltInEffect(BaseName) then
+                Continue;
+
+              // Ensure each effect name is listed only once (no duplicates)
+              if SeenNames.IndexOf(BaseName) >= 0 then
+                Continue;
+
+              SeenNames.Add(BaseName);
               ListBox.Items.Add(RelativeToBase(Child, BaseDir));
+            end;
           end;
         until FindNext(SR) <> 0;
       finally
@@ -2378,6 +2392,8 @@ procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox;
 
 begin
   ListBox.Items.BeginUpdate;
+  SeenNames := TStringList.Create;
+  SeenNames.CaseSensitive := False;
   try
     ListBox.Items.Clear;
     Scan(BaseDir);
@@ -2385,6 +2401,7 @@ begin
     // Note: if you want to keep natural hierarchy, comment out the line below.
     ListBox.Sorted := True;
   finally
+    SeenNames.Free;
     ListBox.Items.EndUpdate;
   end;
 end;
@@ -3820,7 +3837,7 @@ begin
   if DirectoryExists(RepoDir) then
   begin
    //ShowMessage('diretorio existe".');
-  ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+  ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.glsl']);
   if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
   //Enable elements

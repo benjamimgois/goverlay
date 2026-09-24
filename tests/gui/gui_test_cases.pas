@@ -121,6 +121,7 @@ type
     procedure TestVkBasaltPipelineInteractions;
     procedure TestVkBasaltLutInteractions;
     procedure TestVkBasaltPipelineScrollOnManyEffects;
+    procedure TestVkBasaltShadersListDeduplicationAndExclusions;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestMangoHudFrameTimingDetailed;
     procedure TestMangoHudMetricsCompactToggles;
@@ -157,7 +158,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -4824,6 +4825,63 @@ begin
   Helper.VkRestoreBtnClick(goverlayform.FVkRestoreBtn);
   AssertEquals('Pipeline scroll pos reset to 0', 0, goverlayform.FVkPipelineScrollPos);
   AssertFalse('FVkPipelineSB hidden after restore defaults', goverlayform.FVkPipelineSB.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestVkBasaltShadersListDeduplicationAndExclusions;
+var
+  MockRepo: string;
+  LB: TListBox;
+  SL: TStringList;
+  i, BloomCount, AsciiCount: Integer;
+  ItemName: string;
+begin
+  MockRepo := IsolatedHome + '/mock_reshade_shaders';
+  ForceDirectories(MockRepo + '/Shaders');
+  ForceDirectories(MockRepo + '/Custom');
+
+  SL := TStringList.Create;
+  try
+    SL.Text := '// test';
+    SL.SaveToFile(MockRepo + '/Shaders/ASCII.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/Bloom.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/Bloom.fxh');
+    SL.SaveToFile(MockRepo + '/Custom/Bloom.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/ReShade.fxh');
+    SL.SaveToFile(MockRepo + '/Shaders/DrawText.fxh');
+    SL.SaveToFile(MockRepo + '/Shaders/FXAA.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/FXAA.fxh');
+    SL.SaveToFile(MockRepo + '/Shaders/SMAA.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/SMAA.fxh');
+    SL.SaveToFile(MockRepo + '/Shaders/LUT.fx');
+    SL.SaveToFile(MockRepo + '/Shaders/MultiLUT.fx');
+  finally
+    SL.Free;
+  end;
+
+  LB := TListBox.Create(nil);
+  try
+    ListFilesToListBox(MockRepo, LB, ['.fx', '.glsl']);
+
+    BloomCount := 0;
+    AsciiCount := 0;
+    for i := 0 to LB.Items.Count - 1 do
+    begin
+      ItemName := ChangeFileExt(ExtractFileName(LB.Items[i]), '');
+      AssertFalse('FXAA must be excluded from ReShade effects list', SameText(ItemName, 'fxaa'));
+      AssertFalse('SMAA must be excluded from ReShade effects list', SameText(ItemName, 'smaa'));
+      AssertFalse('LUT must be excluded from ReShade effects list', SameText(ItemName, 'lut'));
+      AssertFalse('ReShade header must be excluded', SameText(ItemName, 'reshade'));
+      AssertFalse('DrawText header must be excluded', SameText(ItemName, 'drawtext'));
+      if SameText(ItemName, 'bloom') then Inc(BloomCount);
+      if SameText(ItemName, 'ascii') then Inc(AsciiCount);
+    end;
+
+    AssertEquals('Bloom appears exactly once', 1, BloomCount);
+    AssertEquals('ASCII appears exactly once', 1, AsciiCount);
+    AssertTrue('MultiLUT is preserved', LB.Items.IndexOf('Shaders/MultiLUT.fx') >= 0);
+  finally
+    LB.Free;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestPerformanceFiltersLayoutOnResize;

@@ -1303,8 +1303,8 @@ begin
         end;
       end;
 
-      // List ALL repository files:
-      ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.fxh', '.h', '.glsl']);
+      // List repository shader files:
+      ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.glsl']);
       if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
 
       //Enable elements
