@@ -122,6 +122,7 @@ type
     procedure TestVkBasaltLutInteractions;
     procedure TestVkBasaltPipelineScrollOnManyEffects;
     procedure TestVkBasaltShadersListDeduplicationAndExclusions;
+    procedure TestMissingDependencyWarningBanners;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestMangoHudFrameTimingDetailed;
     procedure TestMangoHudMetricsCompactToggles;
@@ -964,6 +965,7 @@ begin
   // Switching pages fires vkSumiTabSheetShow -> LoadVkSumiConfig.
   NavigateReshadeTab;
   goverlayform.goverlayPageControl.ActivePage := goverlayform.vksumiTabSheet;
+  goverlayform.UpdateToolMissingDependencyBanners;
 end;
 
 procedure TGoverlayGuiTests.TestNavigateVkBasaltTab;
@@ -4881,6 +4883,109 @@ begin
     AssertTrue('MultiLUT is preserved', LB.Items.IndexOf('Shaders/MultiLUT.fx') >= 0);
   finally
     LB.Free;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestMissingDependencyWarningBanners;
+begin
+  try
+    // 1. Test MangoHud missing banner and control deactivation
+    goverlayform.FMockMangoHudInstalled := 0; // force missing
+    goverlayform.mangohudLabelClick(nil);
+
+    AssertTrue('FMangoHudMissingBanner is assigned when MangoHud is missing',
+      Assigned(goverlayform.FMangoHudMissingBanner));
+    AssertTrue('FMangoHudMissingBanner is visible when MangoHud is missing',
+      goverlayform.FMangoHudMissingBanner.Visible);
+    AssertFalse('Save button is disabled when MangoHud is missing',
+      goverlayform.saveBitBtn.Enabled);
+    AssertFalse('presetTabSheet is disabled when MangoHud is missing',
+      goverlayform.presetTabSheet.Enabled);
+    AssertTrue('FMangoHudMissingBanner remains enabled',
+      goverlayform.FMangoHudMissingBanner.Enabled);
+
+    // 2. Test Re-check restores enabled state when MangoHud is installed
+    goverlayform.FMockMangoHudInstalled := 1; // force installed
+    goverlayform.RecheckDependenciesClick(nil);
+
+    AssertFalse('FMangoHudMissingBanner is hidden after re-check detects MangoHud',
+      goverlayform.FMangoHudMissingBanner.Visible);
+    AssertTrue('Save button is re-enabled when MangoHud is installed',
+      goverlayform.saveBitBtn.Enabled);
+    AssertTrue('presetTabSheet is re-enabled when MangoHud is installed',
+      goverlayform.presetTabSheet.Enabled);
+
+    // 3. Test vkBasalt missing banner on Post processing rmVkBasalt method
+    goverlayform.FMockVkBasaltInstalled := 0; // force missing
+    goverlayform.vkbasaltLabelClick(nil);
+    TReshadeTabHelper(goverlayform.FReshadeHelper).SelectMethod(rmVkBasalt);
+
+    AssertTrue('FVkBasaltMissingBanner is assigned when vkBasalt is missing',
+      Assigned(goverlayform.FVkBasaltMissingBanner));
+    AssertTrue('FVkBasaltMissingBanner is visible when vkBasalt method is selected and missing',
+      goverlayform.FVkBasaltMissingBanner.Visible);
+    AssertFalse('Save button is disabled when vkBasalt is missing',
+      goverlayform.saveBitBtn.Enabled);
+    AssertFalse('FVkReshadeCard is disabled when vkBasalt is missing',
+      goverlayform.FVkReshadeCard.Enabled);
+
+    // 4. Test switching away to ReShade method hides vkBasalt banner
+    TReshadeTabHelper(goverlayform.FReshadeHelper).SelectMethod(rmReshade);
+    AssertFalse('FVkBasaltMissingBanner is hidden when switching to ReShade method',
+      goverlayform.FVkBasaltMissingBanner.Visible);
+    AssertTrue('Save button is enabled for ReShade method',
+      goverlayform.saveBitBtn.Enabled);
+
+    // 5. Test View Status navigation
+    goverlayform.ViewStatusClick(nil);
+    AssertTrue('ViewStatus navigates to HomeTabSheet',
+      goverlayform.goverlayPageControl.ActivePage = goverlayform.FHomeTabSheet);
+
+    // 6. Test vkSumi missing banner on Post processing vkSumi tab
+    goverlayform.FMockVkSumiInstalled := 0; // force missing
+    NavigateVkSumiTab;
+
+    AssertTrue('FVkSumiMissingBanner is assigned when vkSumi is missing',
+      Assigned(goverlayform.FVkSumiMissingBanner));
+    AssertTrue('FVkSumiMissingBanner is visible when vkSumi is missing',
+      goverlayform.FVkSumiMissingBanner.Visible);
+    AssertFalse('Save button is disabled when vkSumi is missing',
+      goverlayform.saveBitBtn.Enabled);
+
+    // Recheck restores when vkSumi is installed
+    goverlayform.FMockVkSumiInstalled := 1;
+    goverlayform.RecheckDependenciesClick(nil);
+    AssertFalse('FVkSumiMissingBanner is hidden after re-check detects vkSumi',
+      goverlayform.FVkSumiMissingBanner.Visible);
+    AssertTrue('Save button is re-enabled when vkSumi is installed',
+      goverlayform.saveBitBtn.Enabled);
+
+    // 7. Test Tweaks banner is hidden by default and only shows on hover over missing items
+    goverlayform.FMockLowLatencyInstalled := 0; // force missing
+    goverlayform.tweaksLabelClick(nil);
+
+    // Initial state on Tweaks tab: banner is hidden
+    if Assigned(goverlayform.FTweaksMissingBanner) then
+      AssertFalse('FTweaksMissingBanner is hidden by default when navigating to Tweaks tab',
+        goverlayform.FTweaksMissingBanner.Visible);
+
+    // Simulate hovering over Korthos low latency item
+    goverlayform.ShowTweaksMissingBanner('Korthos Low Latency is not installed', 'Test desc');
+    AssertTrue('FTweaksMissingBanner is assigned when hover triggers banner',
+      Assigned(goverlayform.FTweaksMissingBanner));
+    AssertTrue('FTweaksMissingBanner is visible on hover',
+      goverlayform.FTweaksMissingBanner.Visible);
+
+    // Mouse leave / moving away hides banner
+    goverlayform.TweaksMD3MouseLeave(nil);
+    AssertFalse('FTweaksMissingBanner is hidden on mouse leave',
+      goverlayform.FTweaksMissingBanner.Visible);
+  finally
+    goverlayform.FMockMangoHudInstalled := -1;
+    goverlayform.FMockVkBasaltInstalled := -1;
+    goverlayform.FMockVkSumiInstalled := -1;
+    goverlayform.FMockLowLatencyInstalled := -1;
+    goverlayform.UpdateToolMissingDependencyBanners;
   end;
 end;
 

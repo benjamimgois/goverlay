@@ -1351,6 +1351,19 @@ type
   public
     FLosslessScalingHelper: TObject;
     FReshadeHelper: TObject;
+    FMangoHudMissingBanner: TPanel;
+    FVkBasaltMissingBanner: TPanel;
+    FVkSumiMissingBanner: TPanel;
+    FTweaksMissingBanner: TPanel;
+    FCachedMissingDeps: TStringList;
+    FCachedDepsValid: Boolean;
+    FMockMangoHudInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
+    FMockVkBasaltInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
+    FMockVkSumiInstalled: Integer;   // -1 = real detection, 0 = mock missing, 1 = mock installed
+    FMockLowLatencyInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
+    destructor Destroy; override;
+    procedure InvalidateDependenciesCache;
+    function GetCachedMissingDeps: TStringList;
     function GetActiveTabConfigFile: string;
     function GetActiveTabLogFile: string;
     procedure RefreshOsStatusDots;
@@ -1369,6 +1382,20 @@ type
     procedure TweaksMD3BuildItems;
     procedure TweaksMD3ToggleItem(Index: Integer);
     procedure TweaksMD3FABClick(Sender: TObject);
+    procedure TweaksMD3MouseLeave(Sender: TObject);
+
+    function IsMangoHudInstalled: Boolean;
+    function IsVkBasaltInstalled: Boolean;
+    function IsVkSumiInstalled: Boolean;
+    function IsLowLatencyInstalled: Boolean;
+    function IsGamemodeInstalled: Boolean;
+    procedure UpdateToolMissingDependencyBanners;
+    procedure RecheckDependenciesClick(Sender: TObject);
+    procedure ViewStatusClick(Sender: TObject);
+    function CreateDependencyWarningBanner(AParent: TWinControl; const AToolName, AFlatpakCmd, ANativePkg: string; AOnRecheck, AOnStatus: TNotifyEvent): TPanel;
+    procedure EnsureTweaksMissingBanner;
+    procedure ShowTweaksMissingBanner(const ATitle, ADesc: string);
+    procedure HideTweaksMissingBanner;
 
     function IsOptiScalerInstalled: Boolean;
     procedure ShowStatusMessage(const AMessage: string; ADuration: Integer = 3000);
@@ -1889,6 +1916,7 @@ UpdateGlobalEnableMenuItemVisibility;
 // depending on the current context. Without this, the UI always shows the
 // global state loaded at startup, even when a game is selected.
 LoadTweaksFromFGMod;
+UpdateToolMissingDependencyBanners;
 
 end;
 
@@ -2034,8 +2062,7 @@ begin
   //Update geSpeedButton state for vkBasalt
   UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
-  ApplyToolEnabledState(1, FNavToolEnabled[1]);
-  SetSaveBtnEnabled(FNavToolEnabled[1]);
+  UpdateToolMissingDependencyBanners;
 
 end;
 
@@ -2591,6 +2618,8 @@ begin
         if Card.Controls[gi] is TPanel then
           TPanel(Card.Controls[gi]).Invalidate;
   end;
+
+  UpdateToolMissingDependencyBanners;
 end;
 
 procedure Tgoverlayform.performanceTabSheetShow(Sender: TObject);
@@ -2628,6 +2657,7 @@ end;
 procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
 begin
   LoadTweaksFromFGMod;
+  UpdateToolMissingDependencyBanners;
 end;
 
 // ============================================================================
@@ -2917,8 +2947,17 @@ begin
   FreeAndNil(FGamesHelper);
   FreeAndNil(FBasaltHelper);
   FreeAndNil(FMangoHelper);
+  if Assigned(FCachedMissingDeps) then
+    FreeAndNil(FCachedMissingDeps);
   ExecuteGUICommand('killall pascube');
   ExecuteGUICommand('killall vkcube');
+end;
+
+destructor Tgoverlayform.Destroy;
+begin
+  if Assigned(FCachedMissingDeps) then
+    FreeAndNil(FCachedMissingDeps);
+  inherited Destroy;
 end;
 
 procedure Tgoverlayform.UnanchorControl(Ctrl: TControl);
@@ -3414,6 +3453,12 @@ begin
   FReshadeDownloadedOnFirstShow := False;
   FAutoDownloadingReshade := False;
   FOsDriverLoading := False;
+  FMockMangoHudInstalled := -1;
+  FMockVkBasaltInstalled := -1;
+  FMockVkSumiInstalled := -1;
+  FMockLowLatencyInstalled := -1;
+  FCachedMissingDeps := nil;
+  FCachedDepsValid := False;
 
   // Test mode (GOVERLAY_TEST=1): skip network update checks and background
   // download/install work so automated tests start deterministically.
@@ -3867,7 +3912,8 @@ begin
   dependenciesLabel.Visible      := False;
 
   //Check for dependencies
-   if CheckDependencies(Missing) then
+   Missing := GetCachedMissingDeps;
+   if Missing.Count = 0 then
    begin
     dependencieSpeedbutton.ImageIndex := 0 ; //green icon
     dependenciesLabel.Caption := 'Status' ;
@@ -3895,7 +3941,6 @@ begin
       gamemodeCheckBox.ShowHint := True;
     end;
   end;
-  Missing.Free;
 
   // Connect GameMode checkbox click event
   gamemodeCheckBox.OnClick := @gamemodeCheckBoxClick;
@@ -4491,6 +4536,12 @@ procedure Tgoverlayform.TweaksMD3FABClick(Sender: TObject);
 begin
   TTweaksMD3Helper(FTweaksHelper).FABClick(Sender);
 end;
+
+procedure Tgoverlayform.TweaksMD3MouseLeave(Sender: TObject);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).MouseLeave(Sender);
+end;
 procedure Tgoverlayform.ApplyImageAntialiasing;
   procedure ScanImages(AParent: TWinControl);
   var
@@ -4682,6 +4733,8 @@ begin
     Application.QueueAsyncCall(@StartupDownloadsAsync, 0)
   else
     Application.QueueAsyncCall(@ShowChangelogAsync, 0);
+
+  UpdateToolMissingDependencyBanners;
 end;
 
 procedure Tgoverlayform.frametimetypeBitBtnClick(Sender: TObject);
@@ -4704,6 +4757,352 @@ end;
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
 begin
   // Obsolete: global enable button is no longer used
+end;
+
+function Tgoverlayform.GetCachedMissingDeps: TStringList;
+begin
+  if (not FCachedDepsValid) or (FCachedMissingDeps = nil) then
+  begin
+    if Assigned(FCachedMissingDeps) then
+      FreeAndNil(FCachedMissingDeps);
+    CheckDependencies(FCachedMissingDeps);
+    FCachedDepsValid := True;
+  end;
+  Result := FCachedMissingDeps;
+end;
+
+procedure Tgoverlayform.InvalidateDependenciesCache;
+begin
+  FCachedDepsValid := False;
+end;
+
+function Tgoverlayform.IsMangoHudInstalled: Boolean;
+var
+  Missing: TStringList;
+begin
+  if FMockMangoHudInstalled = 0 then Exit(False);
+  if FMockMangoHudInstalled = 1 then Exit(True);
+  Missing := GetCachedMissingDeps;
+  Result := (Missing.IndexOf(DEP_MANGOHUD) < 0) and
+            (Missing.IndexOf(DEP_MANGOHUD_RUNTIME) < 0);
+end;
+
+function Tgoverlayform.IsVkBasaltInstalled: Boolean;
+var
+  Missing: TStringList;
+begin
+  if FMockVkBasaltInstalled = 0 then Exit(False);
+  if FMockVkBasaltInstalled = 1 then Exit(True);
+  Missing := GetCachedMissingDeps;
+  Result := (Missing.IndexOf(DEP_VKBASALT) < 0) and
+            (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
+end;
+
+function Tgoverlayform.IsVkSumiInstalled: Boolean;
+var
+  Missing: TStringList;
+begin
+  if FMockVkSumiInstalled = 0 then Exit(False);
+  if FMockVkSumiInstalled = 1 then Exit(True);
+  Missing := GetCachedMissingDeps;
+  Result := (Missing.IndexOf(DEP_VKSUMI) < 0) and
+            (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
+end;
+
+function Tgoverlayform.IsLowLatencyInstalled: Boolean;
+var
+  Missing: TStringList;
+begin
+  if FMockLowLatencyInstalled = 0 then Exit(False);
+  if FMockLowLatencyInstalled = 1 then Exit(True);
+  Missing := GetCachedMissingDeps;
+  Result := (Missing.IndexOf(DEP_LOW_LATENCY_LAYER) < 0);
+end;
+
+function Tgoverlayform.IsGamemodeInstalled: Boolean;
+var
+  Missing: TStringList;
+begin
+  Missing := GetCachedMissingDeps;
+  Result := (Missing.IndexOf(DEP_GAMEMODE) < 0);
+end;
+
+function Tgoverlayform.CreateDependencyWarningBanner(
+  AParent: TWinControl;
+  const AToolName, AFlatpakCmd, ANativePkg: string;
+  AOnRecheck, AOnStatus: TNotifyEvent
+): TPanel;
+var
+  Banner: TPanel;
+  AccentBar: TShape;
+  IconLbl, TitleLbl, DescLbl: TLabel;
+  RecheckBtn, StatusBtn: TBitBtn;
+  BgClr, BorderClr, TextClr, SubTextClr: TColor;
+begin
+  if CurrentTheme = tmLight then
+  begin
+    BgClr      := $00DDF4FF; // warm amber/yellow tint in BGR (R=255, G=244, B=221)
+    BorderClr  := $0000A5FF; // amber accent (R=255, G=165, B=0)
+    TextClr    := clBlack;
+    SubTextClr := $00444444;
+  end
+  else
+  begin
+    BgClr      := $001A2433; // dark navy/amber tint in BGR (R=51, G=36, B=26)
+    BorderClr  := $0000A5FF; // amber accent
+    TextClr    := clWhite;
+    SubTextClr := $00CCCCCC;
+  end;
+
+  Banner := TPanel.Create(Self);
+  Banner.Parent := AParent;
+  Banner.Tag := 9995;
+  Banner.BevelOuter := bvNone;
+  Banner.Color := BgClr;
+  Banner.Caption := '';
+  Banner.Height := 72;
+
+  // Left amber accent bar
+  AccentBar := TShape.Create(Self);
+  AccentBar.Parent := Banner;
+  AccentBar.Tag := 9995;
+  AccentBar.Shape := stRectangle;
+  AccentBar.Brush.Color := BorderClr;
+  AccentBar.Pen.Style := psClear;
+  AccentBar.SetBounds(0, 0, 4, Banner.Height);
+  AccentBar.Anchors := [akLeft, akTop, akBottom];
+
+  // Warning icon
+  IconLbl := TLabel.Create(Self);
+  IconLbl.Parent := Banner;
+  IconLbl.Tag := 9995;
+  IconLbl.Caption := '⚠️';
+  IconLbl.Font.Size := 16;
+  IconLbl.Transparent := True;
+  IconLbl.SetBounds(14, 22, 24, 24);
+
+  // Title label
+  TitleLbl := TLabel.Create(Self);
+  TitleLbl.Parent := Banner;
+  TitleLbl.Tag := 9995;
+  TitleLbl.Caption := AToolName + ' is not installed';
+  TitleLbl.Font.Bold := True;
+  TitleLbl.Font.Size := 10;
+  TitleLbl.Font.Color := TextClr;
+  TitleLbl.Transparent := True;
+  TitleLbl.SetBounds(46, 14, 380, 20);
+
+  // Description / instruction label
+  DescLbl := TLabel.Create(Self);
+  DescLbl.Parent := Banner;
+  DescLbl.Tag := 9995;
+  if IsRunningInFlatpak then
+    DescLbl.Caption := 'Missing Flatpak extension. Run:  ' + AFlatpakCmd
+  else
+    DescLbl.Caption := 'System package not found. Please install ''' + ANativePkg + ''' using your package manager.';
+  DescLbl.Font.Size := 9;
+  DescLbl.Font.Color := SubTextClr;
+  DescLbl.Transparent := True;
+  DescLbl.SetBounds(46, 38, 480, 20);
+
+  // Action button: Re-check (far right)
+  RecheckBtn := TBitBtn.Create(Self);
+  RecheckBtn.Parent := Banner;
+  RecheckBtn.Tag := 9995;
+  RecheckBtn.Caption := 'Re-check';
+  RecheckBtn.Cursor := crHandPoint;
+  RecheckBtn.OnClick := AOnRecheck;
+  RecheckBtn.Width := 96;
+  RecheckBtn.Height := 28;
+  RecheckBtn.Top := 22;
+  RecheckBtn.AnchorSideRight.Control := Banner;
+  RecheckBtn.AnchorSideRight.Side := asrRight;
+  RecheckBtn.BorderSpacing.Right := 12;
+  RecheckBtn.Anchors := [akTop, akRight];
+
+  // Action button: View Status (left of Re-check)
+  StatusBtn := TBitBtn.Create(Self);
+  StatusBtn.Parent := Banner;
+  StatusBtn.Tag := 9995;
+  StatusBtn.Caption := 'View Status';
+  StatusBtn.Cursor := crHandPoint;
+  StatusBtn.OnClick := AOnStatus;
+  StatusBtn.Width := 104;
+  StatusBtn.Height := 28;
+  StatusBtn.Top := 22;
+  StatusBtn.AnchorSideRight.Control := RecheckBtn;
+  StatusBtn.AnchorSideRight.Side := asrLeft;
+  StatusBtn.BorderSpacing.Right := 8;
+  StatusBtn.Anchors := [akTop, akRight];
+
+  Result := Banner;
+end;
+
+procedure Tgoverlayform.RecheckDependenciesClick(Sender: TObject);
+begin
+  InvalidateDependenciesCache;
+  UpdateToolMissingDependencyBanners;
+  if IsMangoHudInstalled and IsVkBasaltInstalled then
+    SendNotification('GOverlay', 'All required dependencies detected.', GetIconFile);
+end;
+
+procedure Tgoverlayform.ViewStatusClick(Sender: TObject);
+begin
+  ShowHomeTab(Sender);
+end;
+
+procedure Tgoverlayform.UpdateToolMissingDependencyBanners;
+var
+  MangoInstalled, VkInstalled, SumiInstalled, LowLatencyInstalled, GamemodeInstalled: Boolean;
+  IsMangoActivePage: Boolean;
+  CurToolIdx, j: Integer;
+  BannerTitle, BannerDesc: string;
+  Lbl: TLabel;
+begin
+  MangoInstalled := IsMangoHudInstalled;
+  VkInstalled := IsVkBasaltInstalled;
+  SumiInstalled := IsVkSumiInstalled;
+  LowLatencyInstalled := IsLowLatencyInstalled;
+  GamemodeInstalled := IsGamemodeInstalled;
+  CurToolIdx := ActiveToolIndex;
+
+  IsMangoActivePage := (CurToolIdx = 0);
+
+  // 1. MangoHud Banner
+  if not MangoInstalled then
+  begin
+    if not Assigned(FMangoHudMissingBanner) then
+      FMangoHudMissingBanner := CreateDependencyWarningBanner(
+        presetTabSheet,
+        'MangoHud',
+        'flatpak install org.freedesktop.Platform.VulkanLayer.MangoHud',
+        'mangohud',
+        @RecheckDependenciesClick,
+        @ViewStatusClick
+      );
+
+    if IsMangoActivePage and Assigned(goverlayPageControl.ActivePage) then
+    begin
+      FMangoHudMissingBanner.Parent := goverlayPageControl.ActivePage;
+      FMangoHudMissingBanner.SetBounds(16, 12, Max(200, goverlayPageControl.ActivePage.ClientWidth - 32), 72);
+      FMangoHudMissingBanner.Visible := True;
+      FMangoHudMissingBanner.BringToFront;
+      SetControlTreeEnabled(goverlayPageControl.ActivePage, False);
+      SetSaveBtnEnabled(False);
+    end;
+  end
+  else
+  begin
+    if Assigned(FMangoHudMissingBanner) then
+      FMangoHudMissingBanner.Visible := False;
+    if IsMangoActivePage and Assigned(goverlayPageControl.ActivePage) then
+    begin
+      SetControlTreeEnabled(goverlayPageControl.ActivePage, FNavToolEnabled[0]);
+      SetSaveBtnEnabled(FNavToolEnabled[0]);
+    end;
+  end;
+
+  if (goverlayPageControl.ActivePage = presetTabSheet) and (presetTabSheet.ClientWidth > 0) then
+    ReflowPresetTab(presetTabSheet.ClientWidth);
+
+  // 2. vkBasalt Banner
+  if Assigned(FReshadeHelper) then
+    TReshadeTabHelper(FReshadeHelper).UpdateVkBasaltBanner(VkInstalled);
+
+  // 3. vkSumi Banner
+  if not SumiInstalled then
+  begin
+    if not Assigned(FVkSumiMissingBanner) then
+      FVkSumiMissingBanner := CreateDependencyWarningBanner(
+        FVsBgPanel,
+        'vkSumi',
+        'flatpak install org.freedesktop.Platform.VulkanLayer.vkSumi',
+        'vksumi',
+        @RecheckDependenciesClick,
+        @ViewStatusClick
+      );
+
+    if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    begin
+      if Assigned(FVsBgPanel) then
+        FVkSumiMissingBanner.Parent := FVsBgPanel;
+      FVkSumiMissingBanner.Visible := True;
+      FVkSumiMissingBanner.BringToFront;
+      if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], False);
+      if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], False);
+      if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], False);
+      SetSaveBtnEnabled(False);
+    end;
+  end
+  else
+  begin
+    if Assigned(FVkSumiMissingBanner) then
+      FVkSumiMissingBanner.Visible := False;
+    if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    begin
+      if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], FNavToolEnabled[1]);
+      if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], FNavToolEnabled[1]);
+      if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], FNavToolEnabled[1]);
+      SetSaveBtnEnabled(FNavToolEnabled[1]);
+    end;
+  end;
+
+  if (goverlayPageControl.ActivePage = vksumiTabSheet) and (vksumiTabSheet.ClientWidth > 0) then
+    ReflowVkSumiTab(vksumiTabSheet.ClientWidth);
+
+  // 4. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
+  HideTweaksMissingBanner;
+
+  if (goverlayPageControl.ActivePage = tweaksTabSheet) and Assigned(FTweaksPaintBox) then
+    FTweaksPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.EnsureTweaksMissingBanner;
+begin
+  if not Assigned(FTweaksMissingBanner) then
+  begin
+    FTweaksMissingBanner := CreateDependencyWarningBanner(
+      tweaksTabSheet,
+      'Korthos Low Latency',
+      '',
+      'vulkan-low-latency-layer',
+      @RecheckDependenciesClick,
+      @ViewStatusClick
+    );
+    FTweaksMissingBanner.Align := alNone;
+    FTweaksMissingBanner.SetBounds(8, 8, Max(200, tweaksTabSheet.ClientWidth - 16), 68);
+    FTweaksMissingBanner.Visible := False;
+  end;
+end;
+
+procedure Tgoverlayform.ShowTweaksMissingBanner(const ATitle, ADesc: string);
+var
+  j: Integer;
+  Lbl: TLabel;
+begin
+  EnsureTweaksMissingBanner;
+  FTweaksMissingBanner.Parent := tweaksTabSheet;
+  FTweaksMissingBanner.SetBounds(8, 8, Max(200, tweaksTabSheet.ClientWidth - 16), 68);
+  for j := 0 to FTweaksMissingBanner.ControlCount - 1 do
+    if FTweaksMissingBanner.Controls[j] is TLabel then
+    begin
+      Lbl := TLabel(FTweaksMissingBanner.Controls[j]);
+      if Lbl.Font.Bold then
+        Lbl.Caption := ATitle
+      else if Lbl.Caption <> '⚠️' then
+        Lbl.Caption := ADesc;
+    end;
+  if not FTweaksMissingBanner.Visible then
+  begin
+    FTweaksMissingBanner.Visible := True;
+    FTweaksMissingBanner.BringToFront;
+  end;
+end;
+
+procedure Tgoverlayform.HideTweaksMissingBanner;
+begin
+  if Assigned(FTweaksMissingBanner) and FTweaksMissingBanner.Visible then
+    FTweaksMissingBanner.Visible := False;
 end;
 
 // Check if OptiScaler is installed by looking for goverlay.vars file in cache folders
@@ -5065,8 +5464,7 @@ UpdateGlobalEnableMenuItemVisibility;
 
 // Reload config when entering the MangoHud tab (global or game-specific)
 LoadMangoHudConfig;
-  ApplyToolEnabledState(0, FNavToolEnabled[0]);
-  SetSaveBtnEnabled(FNavToolEnabled[0]);
+  UpdateToolMissingDependencyBanners;
 
 DbgLog('<< mangohudLabelClick END');
 end;
@@ -6539,7 +6937,6 @@ var
   GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
   BlacklistCfg: TConfigFile;
 begin
-
   // ################### SAVE TWEAKS TAB SETTINGS
   if goverlayPageControl.ActivePage = tweaksTabSheet then
   begin
@@ -7928,6 +8325,11 @@ begin
 
   // Vertically centre the content block in the tab
   TopPad := Max(MIN_TOP_PAD, (presetTabSheet.ClientHeight - CONTENT_H) div 2 - 40);
+  if Assigned(FMangoHudMissingBanner) and FMangoHudMissingBanner.Visible and (FMangoHudMissingBanner.Parent = presetTabSheet) then
+  begin
+    FMangoHudMissingBanner.SetBounds(16, 12, Max(200, presetTabSheet.ClientWidth - 32), 72);
+    TopPad := Max(FMangoHudMissingBanner.Top + FMangoHudMissingBanner.Height + 16, TopPad);
+  end;
 
   // ── Section 1: Layouts ───────────────────────────────────────────────────
   layoutsLabel.Left := 4;
@@ -8506,6 +8908,8 @@ begin
     performanceTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = metricsTabSheet then
     metricsTabSheetShow(nil);
+
+  UpdateToolMissingDependencyBanners;
 end;
 
 procedure Tgoverlayform.optiscalerTabSheetShow(Sender: TObject);
@@ -9016,6 +9420,7 @@ end;
 
 procedure Tgoverlayform.RefreshHomeDeps;
 begin
+  InvalidateDependenciesCache;
   THomeTabHelper(FHomeHelper).RefreshHomeDeps;
 end;
 

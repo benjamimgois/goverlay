@@ -109,6 +109,7 @@ type
     procedure ApplyCapturedKey(AKey: Word; AShift: TShiftState);
     procedure SyncHotkeyUI;
     procedure SelectMethod(AMethod: TReshadeMethod);
+    procedure UpdateVkBasaltBanner(AVkInstalled: Boolean);
 
     property BgPanel: TPanel read FBgPanel;
     property ScrollBox: TScrollBox read FScrollBox;
@@ -837,6 +838,8 @@ begin
         if Assigned(FNoneNoticeLbl) then FNoneNoticeLbl.Visible := False;
       end;
     end;
+
+    UpdateVkBasaltBanner(MainForm.IsVkBasaltInstalled);
   end;
 
   if Assigned(FScrollBox) then
@@ -844,6 +847,63 @@ begin
 
   if ASave and not FLoading then
     SaveConfig;
+end;
+
+procedure TReshadeTabHelper.UpdateVkBasaltBanner(AVkInstalled: Boolean);
+var
+  MainForm: Tgoverlayform;
+  IsPostProcessingActive: Boolean;
+begin
+  MainForm := Tgoverlayform(FForm);
+  if not Assigned(MainForm) then Exit;
+
+  IsPostProcessingActive := (MainForm.ActiveToolIndex = 1);
+
+  if FSelectedMethod = rmVkBasalt then
+  begin
+    if not AVkInstalled then
+    begin
+      if not Assigned(MainForm.FVkBasaltMissingBanner) then
+        MainForm.FVkBasaltMissingBanner := MainForm.CreateDependencyWarningBanner(
+          FBgPanel,
+          'vkBasalt',
+          'flatpak install org.freedesktop.Platform.VulkanLayer.vkBasalt',
+          'vkbasalt',
+          @MainForm.RecheckDependenciesClick,
+          @MainForm.ViewStatusClick
+        );
+      MainForm.FVkBasaltMissingBanner.Parent := FBgPanel;
+      MainForm.FVkBasaltMissingBanner.Visible := True;
+      MainForm.FVkBasaltMissingBanner.BringToFront;
+      if Assigned(MainForm.FVkReshadeCard) then MainForm.SetControlTreeEnabled(MainForm.FVkReshadeCard, False);
+      if Assigned(MainForm.FVkBuiltinCard) then MainForm.SetControlTreeEnabled(MainForm.FVkBuiltinCard, False);
+      if Assigned(MainForm.FVkPipelineCard) then MainForm.SetControlTreeEnabled(MainForm.FVkPipelineCard, False);
+      if Assigned(MainForm.FVkToggleCard) then MainForm.SetControlTreeEnabled(MainForm.FVkToggleCard, False);
+      if IsPostProcessingActive then
+        MainForm.SetSaveBtnEnabled(False);
+    end
+    else
+    begin
+      if Assigned(MainForm.FVkBasaltMissingBanner) then
+        MainForm.FVkBasaltMissingBanner.Visible := False;
+      if Assigned(MainForm.FVkReshadeCard) then MainForm.SetControlTreeEnabled(MainForm.FVkReshadeCard, True);
+      if Assigned(MainForm.FVkBuiltinCard) then MainForm.SetControlTreeEnabled(MainForm.FVkBuiltinCard, True);
+      if Assigned(MainForm.FVkPipelineCard) then MainForm.SetControlTreeEnabled(MainForm.FVkPipelineCard, True);
+      if Assigned(MainForm.FVkToggleCard) then MainForm.SetControlTreeEnabled(MainForm.FVkToggleCard, True);
+      if IsPostProcessingActive then
+        MainForm.SetSaveBtnEnabled(MainForm.FNavToolEnabled[1]);
+    end;
+  end
+  else
+  begin
+    if Assigned(MainForm.FVkBasaltMissingBanner) then
+      MainForm.FVkBasaltMissingBanner.Visible := False;
+    if IsPostProcessingActive and ((FSelectedMethod = rmReshade) or (FSelectedMethod = rmNone)) then
+      MainForm.SetSaveBtnEnabled(MainForm.FNavToolEnabled[1]);
+  end;
+
+  if Assigned(FScrollBox) then
+    ReflowReShadeTab(FScrollBox.ClientWidth);
 end;
 
 procedure TReshadeTabHelper.ReshadeScrollBoxResize(Sender: TObject);
@@ -1043,6 +1103,11 @@ begin
       end;
 
       CurY := MARGIN + TOP_ROW_H + CARD_GAP;
+      if Assigned(MainForm) and Assigned(MainForm.FVkBasaltMissingBanner) and MainForm.FVkBasaltMissingBanner.Visible then
+      begin
+        MainForm.FVkBasaltMissingBanner.SetBounds(MARGIN, CurY, TargetCardW, 72);
+        CurY := CurY + 72 + CARD_GAP;
+      end;
       BuiltinH := 148;
       PipelineH := 72;
       FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + BOTTOM_M;

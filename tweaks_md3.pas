@@ -87,6 +87,7 @@ type
     procedure MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure MouseLeave(Sender: TObject);
     procedure ScrollChange(Sender: TObject);
     procedure FABClick(Sender: TObject);
     function ItemHeight: Integer;
@@ -343,6 +344,7 @@ begin
   FForm.FTweaksPaintBox.OnMouseMove := @FForm.TweaksMD3MouseMove;
   FForm.FTweaksPaintBox.OnMouseDown := @FForm.TweaksMD3MouseDown;
   FForm.FTweaksPaintBox.OnMouseWheel:= @FForm.TweaksMD3MouseWheel;
+  FForm.FTweaksPaintBox.OnMouseLeave:= @FForm.TweaksMD3MouseLeave;
   
   // Vertical scrollbar (right edge)
   FForm.FTweaksScrollBar := TScrollBar.Create(FForm);
@@ -450,7 +452,7 @@ end;
 
 procedure TTweaksMD3Helper.Paint(Sender: TObject);
 
-  procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean);
+  procedure DrawToggle(ACanvas: TCanvas; AX, AY: Integer; AOn: Boolean; AEnabled: Boolean = True);
   var
     TrackColor, BorderColor, ThumbColor: TColor;
     ThumbLeft, ThumbTop, ThumbRight, ThumbBottom: Integer;
@@ -461,7 +463,13 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     RADIUS  = 10;
     PAD     = 3;
   begin
-    if AOn then
+    if not AEnabled then
+    begin
+      TrackColor  := RGBToColor(32, 36, 48);    // dimmed disabled track
+      BorderColor := RGBToColor(42, 48, 62);
+      ThumbColor  := RGBToColor(90, 95, 110);
+    end
+    else if AOn then
     begin
       TrackColor  := RGBToColor(52, 175, 90);   // vibrant clean green
       BorderColor := RGBToColor(42, 150, 75);
@@ -526,7 +534,8 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
   end;
 
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
-                     AChecked, AHover: Boolean; AIsCustom: Boolean; AIsArg: Boolean = False);
+                     AChecked, AHover: Boolean; AIsCustom: Boolean; AIsArg: Boolean = False;
+                     AEnabled: Boolean = True);
   var
     ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW, p: Integer;
     CleanDesc, Prefix, BadgeText, PredefinedDesc: string;
@@ -573,7 +582,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     // Toggle switch (aligned right)
     ToggleX := ARect.Right - 46;
     ToggleY := ARect.Top + (ARect.Height - 20) div 2;
-    DrawToggle(ACanvas, ToggleX, ToggleY, AChecked);
+    DrawToggle(ACanvas, ToggleX, ToggleY, AChecked, AEnabled);
 
     if AIsCustom then
     begin
@@ -728,7 +737,9 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     ACanvas.Font.Name  := 'DejaVu Sans';
     ACanvas.Font.Size  := 9;
     ACanvas.Font.Style := [];
-    if AIsCustom then
+    if not AEnabled then
+      ACanvas.Font.Color := RGBToColor(120, 130, 145)
+    else if AIsCustom then
       ACanvas.Font.Color := RGBToColor(170, 180, 195)
     else
       ACanvas.Font.Color := clWhite;
@@ -762,7 +773,10 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     ACanvas.Font.Name  := 'DejaVu Sans Mono';
     ACanvas.Font.Size  := 8;
     ACanvas.Font.Style := [];
-    ACanvas.Font.Color := RGBToColor(135, 145, 165);
+    if not AEnabled then
+      ACanvas.Font.Color := RGBToColor(85, 95, 110)
+    else
+      ACanvas.Font.Color := RGBToColor(135, 145, 165);
     ACanvas.Brush.Style := bsClear;
     VarRect := Rect(TextX, VarTop, ToggleX - 8, VarTop + 16);
     ACanvas.TextRect(VarRect, TextX, VarTop, AVar);
@@ -778,6 +792,8 @@ var
   R: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
+  IsRowEnabled: Boolean;
+  LowLatencyInstalled, GamemodeInstalled: Boolean;
   ActiveStr: string;
 const
   CARD_MARGIN_X      = 4;
@@ -802,6 +818,8 @@ begin
 
   HoverIdx := FForm.FTweaksHoverIdx;
   Is2Col   := PB.Width >= 700;
+  LowLatencyInstalled := FForm.IsLowLatencyInstalled;
+  GamemodeInstalled   := FForm.IsGamemodeInstalled;
 
   CardLeft  := CARD_MARGIN_X;
   CardRight := PB.Width - CARD_MARGIN_X;
@@ -884,8 +902,19 @@ begin
       else
         R := Rect(InnerLeft, Y + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
 
+      IsRowEnabled := True;
+      if ((TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1') or
+          (TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1') or
+          (TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1') or
+          (TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"')) and
+         (not LowLatencyInstalled) then
+        IsRowEnabled := False;
+
+      if (TWEAK_ROWS[i].VarName = '#gamemode') and (not GamemodeInstalled) then
+        IsRowEnabled := False;
+
       DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
-               Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False);
+               Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False, False, IsRowEnabled);
       Inc(CatItemCount);
       Inc(RowIdx);
     end;
@@ -1164,6 +1193,8 @@ begin
           TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)'
         else if TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"' then
           TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)'
+        else if TWEAK_ROWS[i].VarName = '#gamemode' then
+          TweakHint := 'Use Feral Gamemode set of optimisations'
         else if TWEAK_ROWS[i].VarName = 'ENABLE_LAYER_MESA_ANTI_LAG=1' then
           TweakHint := ''
         else if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
@@ -1171,6 +1202,21 @@ begin
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
            (TWEAK_ROWS[i].VarName = 'game-performance') then
           TweakHint := 'Works only with CachyOS';
+
+        if (Pos('Needs Korthos low latency', TweakHint) > 0) and (not FForm.IsLowLatencyInstalled) then
+        begin
+          TweakHint := TweakHint + ' (NOT INSTALLED)';
+          FForm.ShowTweaksMissingBanner('Korthos Low Latency is not installed',
+            'System package not found. Please install ''vulkan-low-latency-layer'' using your package manager.');
+        end
+        else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
+        begin
+          TweakHint := TweakHint + ' (NOT INSTALLED)';
+          FForm.ShowTweaksMissingBanner('GameMode is not installed',
+            'System package not found. Please install ''gamemode'' using your package manager.');
+        end
+        else
+          FForm.HideTweaksMissingBanner;
         Break;
       end;
       Inc(CatItemCount);
@@ -1294,8 +1340,19 @@ begin
     end;
   end;
 
+  if FForm.FTweaksHoverIdx < 0 then
+    FForm.HideTweaksMissingBanner;
+
   if OldHover <> FForm.FTweaksHoverIdx then
     PB.Invalidate;
+end;
+
+procedure TTweaksMD3Helper.MouseLeave(Sender: TObject);
+begin
+  FForm.FTweaksHoverIdx := -1;
+  FForm.HideTweaksMissingBanner;
+  if Assigned(FForm.FTweaksPaintBox) then
+    FForm.FTweaksPaintBox.Invalidate;
 end;
 
 procedure TTweaksMD3Helper.MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -1376,6 +1433,16 @@ begin
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
           else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
+          else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
+                   (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+                  (not FForm.IsLowLatencyInstalled) then
+          begin
+            ShowMessage('vulkan-low-latency-layer is not installed. Please install Korthos low latency layer first.');
+          end
+          else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
+          begin
+            ShowMessage('gamemode is not installed. Please install the gamemode package first.');
+          end
           else
           begin
             Chk.Checked := not Chk.Checked;

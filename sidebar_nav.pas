@@ -820,10 +820,22 @@ var
   i: Integer;
   Child: TControl;
 begin
+  if (ACtrl = FForm.FMangoHudMissingBanner) or (ACtrl = FForm.FVkBasaltMissingBanner) or
+     (ACtrl = FForm.FVkSumiMissingBanner) or (ACtrl = FForm.FTweaksMissingBanner) or (ACtrl.Tag = 9995) then
+  begin
+    ACtrl.Enabled := True;
+    Exit;
+  end;
   ACtrl.Enabled := AEnabled;
   for i := 0 to ACtrl.ControlCount - 1 do
   begin
     Child := ACtrl.Controls[i];
+    if (Child = FForm.FMangoHudMissingBanner) or (Child = FForm.FVkBasaltMissingBanner) or
+       (Child = FForm.FVkSumiMissingBanner) or (Child = FForm.FTweaksMissingBanner) or (Child.Tag = 9995) then
+    begin
+      Child.Enabled := True;
+      Continue;
+    end;
     Child.Enabled := AEnabled;
     if Child is TWinControl then
       SetControlTreeEnabled(TWinControl(Child), AEnabled);

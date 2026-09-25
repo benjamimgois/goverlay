@@ -793,7 +793,7 @@ const
   LBL_W    = 100;
   ROW_H    = 32;
 var
-  CW, CardWidth, i: Integer;
+  CW, CardWidth, i, BannerOffset: Integer;
   R0_H, R1_H: Integer;
   Col0_X: Integer;
   Card: TPanel;
@@ -862,9 +862,16 @@ begin
   R0_H := CARD_P + 30 + 160 + CARD_P; // 218
   R1_H := CARD_P + 30 + 192 + CARD_P; // 250
 
+  BannerOffset := 0;
+  if Assigned(FVkSumiMissingBanner) and FVkSumiMissingBanner.Visible then
+  begin
+    FVkSumiMissingBanner.SetBounds(Col0_X, MARGIN, CardWidth, 72);
+    BannerOffset := 72 + GAP;
+  end;
+
   // Position Card 1 and its sections side-by-side
   Card := FVsCards[1];
-  Card.SetBounds(Col0_X, MARGIN, CardWidth, R0_H);
+  Card.SetBounds(Col0_X, MARGIN + BannerOffset, CardWidth, R0_H);
   if Assigned(ToneSec) then
     ToneSec.SetBounds(CARD_P, CARD_P + 30, HalfW, 160);
   if Assigned(BandSec) then
@@ -872,7 +879,7 @@ begin
 
   // Position Card 2 and its sections side-by-side
   Card := FVsCards[2];
-  Card.SetBounds(Col0_X, MARGIN + R0_H + GAP, CardWidth, R1_H);
+  Card.SetBounds(Col0_X, MARGIN + BannerOffset + R0_H + GAP, CardWidth, R1_H);
   if Assigned(ColorSec) then
     ColorSec.SetBounds(CARD_P, CARD_P + 30, HalfW, 192);
   if Assigned(GainSec) then
@@ -882,7 +889,7 @@ begin
   if Assigned(FVsCards[0]) then
   begin
     FVsCards[0].Visible := True;
-    FVsCards[0].SetBounds(Col0_X, MARGIN + R0_H + GAP + R1_H + GAP, CardWidth, 85);
+    FVsCards[0].SetBounds(Col0_X, MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP, CardWidth, 85);
     if Assigned(FVsRestoreBtn) then
       FVsRestoreBtn.Left := CardWidth - CARD_P - FVsRestoreBtn.Width;
   end;
@@ -924,7 +931,7 @@ begin
   if Assigned(FVsBgPanel) then
   begin
     FVsBgPanel.Width  := CW;
-    FVsBgPanel.Height := MARGIN + R0_H + GAP + R1_H + GAP + 85 + MARGIN;
+    FVsBgPanel.Height := MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP + 85 + MARGIN;
   end;
   end;
 end;

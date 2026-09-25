@@ -438,22 +438,18 @@ begin
   begin
     if not Assigned(FHomeModDots[0]) then Exit;
 
-    CheckDependencies(Missing);
-    try
-      MangoOK := (Missing.IndexOf(DEP_MANGOHUD) < 0) and
-                 (Missing.IndexOf(DEP_MANGOHUD_RUNTIME) < 0);
-      VkOK    := (Missing.IndexOf(DEP_VKBASALT) < 0) and
-                 (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
-      OptiOK  := FForm.IsOptiScalerInstalled;
-      DlssOK  := Self.IsDlssEnablerInstalled;
-      SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
-                 (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
-      LsfgOK  := IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0);
-      MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
-      ReShadeOK := IsReShadeInstalled;
-    finally
-      Missing.Free;
-    end;
+    Missing := FForm.GetCachedMissingDeps;
+    MangoOK := (Missing.IndexOf(DEP_MANGOHUD) < 0) and
+               (Missing.IndexOf(DEP_MANGOHUD_RUNTIME) < 0);
+    VkOK    := (Missing.IndexOf(DEP_VKBASALT) < 0) and
+               (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
+    OptiOK  := FForm.IsOptiScalerInstalled;
+    DlssOK  := Self.IsDlssEnablerInstalled;
+    SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
+               (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
+    LsfgOK  := IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0);
+    MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
+    ReShadeOK := IsReShadeInstalled;
 
     FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
     FHomeModDots[1].Brush.Color := Math.IfThen(VkOK,    CLR_OK, CLR_MISSING);
@@ -734,30 +730,26 @@ begin
   with FForm do
   begin
     if not Assigned(FHomeDepDots[0]) then Exit;
-    CheckDependencies(Missing);
-    try
-      for i := 0 to 6 do
+    Missing := FForm.GetCachedMissingDeps;
+    for i := 0 to 6 do
+    begin
+      FHomeDepDots[i].Hint := DEP_HINTS[i];
+      FHomeDepLbls[i].Hint := DEP_HINTS[i];
+      if Missing.IndexOf(DEP_KEYS[i]) >= 0 then
       begin
-        FHomeDepDots[i].Hint := DEP_HINTS[i];
-        FHomeDepLbls[i].Hint := DEP_HINTS[i];
-        if Missing.IndexOf(DEP_KEYS[i]) >= 0 then
-        begin
-          FHomeDepDots[i].Brush.Color := CLR_MISSING;
-          FHomeDepDots[i].Pen.Color   := CLR_MISSING;
-          FHomeDepLbls[i].Font.Color  := $00888888;
-        end
+        FHomeDepDots[i].Brush.Color := CLR_MISSING;
+        FHomeDepDots[i].Pen.Color   := CLR_MISSING;
+        FHomeDepLbls[i].Font.Color  := $00888888;
+      end
+      else
+      begin
+        FHomeDepDots[i].Brush.Color := CLR_OK;
+        FHomeDepDots[i].Pen.Color   := CLR_OK;
+        if CurrentTheme = tmLight then
+          FHomeDepLbls[i].Font.Color := LightTextColor
         else
-        begin
-          FHomeDepDots[i].Brush.Color := CLR_OK;
-          FHomeDepDots[i].Pen.Color   := CLR_OK;
-          if CurrentTheme = tmLight then
-            FHomeDepLbls[i].Font.Color := LightTextColor
-          else
-            FHomeDepLbls[i].Font.Color := clWhite;
-        end;
+          FHomeDepLbls[i].Font.Color := clWhite;
       end;
-    finally
-      Missing.Free;
     end;
   end;
 end;
