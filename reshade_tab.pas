@@ -918,7 +918,7 @@ const
   STATUS_H  = 100;
   BOTTOM_M  = 4;
 var
-  W, TargetCardW, HalfW, RightColW, RightColLeft, CurY, i, CheckW: Integer;
+  W, TargetCardW, HalfW, RightColW, RightColLeft, CurY, TopRowY, i, CheckW: Integer;
   ClientH, TotalH, ShadersH, CardBottomTop: Integer;
   FixedBelow, BuiltinH, PipelineH, ReshadeH, MinReshadeH, MinShadersH, MinTotalH: Integer;
   PackStep, PackH, PackY, OptLabelW: Integer;
@@ -965,10 +965,20 @@ begin
       ClientH := 648;
   end;
 
+  // vkBasalt warning banner at top of page (matching vkSumi tab style)
+  if (FSelectedMethod = rmVkBasalt) and Assigned(MainForm) and
+     Assigned(MainForm.FVkBasaltMissingBanner) and MainForm.FVkBasaltMissingBanner.Visible then
+  begin
+    MainForm.FVkBasaltMissingBanner.SetBounds(MARGIN, CurY, TargetCardW, 72);
+    CurY := CurY + 72 + CARD_GAP;
+  end;
+
+  TopRowY := CurY;
+
   // 1. Method Card (occupies 50% of available horizontal space)
   if Assigned(FMethodCard) then
   begin
-    FMethodCard.SetBounds(MARGIN, CurY, HalfW, TOP_ROW_H);
+    FMethodCard.SetBounds(MARGIN, TopRowY, HalfW, TOP_ROW_H);
     InnerW := HalfW - 2 * CARD_P;
     LogoW_None := 38;
     LogoW_Reshade := 120;
@@ -1022,7 +1032,7 @@ begin
     begin
       if Assigned(FStatusCard) then
         FStatusCard.Visible := True;
-      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
+      CurY := TopRowY + TOP_ROW_H + CARD_GAP;
       if Assigned(FNoneNoticeLbl) then
       begin
         FNoneNoticeLbl.SetBounds(MARGIN + 10, CurY + 10, TargetCardW - 20, 40);
@@ -1042,7 +1052,7 @@ begin
       // Options card to the right of Method card
       if Assigned(FConfigCard) then
       begin
-        FConfigCard.SetBounds(RightColLeft, MARGIN, RightColW, TOP_ROW_H);
+        FConfigCard.SetBounds(RightColLeft, TopRowY, RightColW, TOP_ROW_H);
         OptLabelW := 80;
         if Assigned(FToggleTitleLbl) then
           FToggleTitleLbl.SetBounds(CARD_P, 38, OptLabelW, 20);
@@ -1054,7 +1064,7 @@ begin
           FProxyComboBox.SetBounds(CARD_P + OptLabelW + 8, 68, Max(100, RightColW - CARD_P * 2 - OptLabelW - 8), 28);
       end;
 
-      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
+      CurY := TopRowY + TOP_ROW_H + CARD_GAP;
       MinShadersH := 280;
       MinTotalH := CurY + MinShadersH + CARD_GAP + STATUS_H + BOTTOM_M;
       TotalH := Max(ClientH, MinTotalH);
@@ -1084,7 +1094,7 @@ begin
       // Options card to the right of Method card
       if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
       begin
-        MainForm.FVkToggleCard.SetBounds(RightColLeft, MARGIN, RightColW, TOP_ROW_H);
+        MainForm.FVkToggleCard.SetBounds(RightColLeft, TopRowY, RightColW, TOP_ROW_H);
         OptLabelW := 80;
         if Assigned(MainForm.FVkToggleTitleLbl) then
         begin
@@ -1102,12 +1112,7 @@ begin
           MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
       end;
 
-      CurY := MARGIN + TOP_ROW_H + CARD_GAP;
-      if Assigned(MainForm) and Assigned(MainForm.FVkBasaltMissingBanner) and MainForm.FVkBasaltMissingBanner.Visible then
-      begin
-        MainForm.FVkBasaltMissingBanner.SetBounds(MARGIN, CurY, TargetCardW, 72);
-        CurY := CurY + 72 + CARD_GAP;
-      end;
+      CurY := TopRowY + TOP_ROW_H + CARD_GAP;
       BuiltinH := 148;
       PipelineH := 72;
       FixedBelow := CARD_GAP + BuiltinH + CARD_GAP + PipelineH + BOTTOM_M;

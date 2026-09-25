@@ -4924,6 +4924,8 @@ begin
       Assigned(goverlayform.FVkBasaltMissingBanner));
     AssertTrue('FVkBasaltMissingBanner is visible when vkBasalt method is selected and missing',
       goverlayform.FVkBasaltMissingBanner.Visible);
+    AssertTrue('FVkBasaltMissingBanner is positioned above MethodCard at top of tab',
+      goverlayform.FVkBasaltMissingBanner.Top < TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Top);
     AssertFalse('Save button is disabled when vkBasalt is missing',
       goverlayform.saveBitBtn.Enabled);
     AssertFalse('FVkReshadeCard is disabled when vkBasalt is missing',

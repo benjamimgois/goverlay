@@ -60,6 +60,43 @@
     </screenshots>
 
     <releases>
+        <release version="1.9.3" date="2026-09-24">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Added native ReShade Windows DLL deployment and injection via bgmod, with interactive shader pack management and hotkey capture</li>
+                    <li>Unified ReShade and vkBasalt post-processing under a single tab with an intuitive method selector</li>
+                    <li>Added 3D Color LUT support (.cube and .png formats) for vkBasalt</li>
+                    <li>Added ability to clone global tool configurations directly into individual game profiles from the game card context menu</li>
+                    <li>Added custom launch arguments and global custom environment variable support in the Tweaks tab</li>
+                    <li>Added native Linux game executable resolution in bgmod, intelligently bypassing Windows DLL injection for native games</li>
+                    <li>Added dedicated Ray Tracing benchmark and hardware comparison scoring to the PasCube test suite</li>
+                    <li>Added non-blocking game launch confirmation splash screen (bgmod-splash)</li>
+                    <li>Added support for importing and using custom experimental OptiScaler builds</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Modernized Environment tab into a streamlined MD3-styled Tweaks tab</li>
+                    <li>Steam and non-Steam game cards are now automatically sorted alphabetically</li>
+                    <li>Set MangoHud Presets as the default initial view upon application startup</li>
+                    <li>Compacted vkBasalt built-in effects card to expand visible area for ReShade shaders</li>
+                    <li>Positioned missing dependency warning banners at the top of tabs and added caching to eliminate check latency</li>
+                    <li>Automatically synchronized master wrapper binaries across all game profiles on startup and during game launch</li>
+                    <li>Relocated diagnostic and execution logs from game directories to centralized user storage (~/.local/share/goverlay/logs/)</li>
+                    <li>Preserved third-party proxy DLLs during game launch and uninstallation</li>
+                    <li>Harmonized card padding, margins, and layouts across all tabs to eliminate unwanted vertical scrolling</li>
+                    <li>Added dimmed visual indicators for unselected scaling methods in OptiScaler and Lossless Scaling</li>
+                </ul>
+                <p>Bug Fixes</p>
+                <ul>
+                    <li>Fixed an issue where the fps_only preset failed to persist across load and save cycles in MangoHud</li>
+                    <li>Decoupled hardware telemetry in PasCube to a background thread to prevent a 5 FPS cap on NVIDIA GPUs</li>
+                    <li>Deduplicated ReShade shaders and excluded built-in effects (FXAA, SMAA, LUT) and header includes (.fxh, .h) from the shader list</li>
+                    <li>Fixed SteamOS boot loops caused by implicit Vulkan layer pollution from the host</li>
+                    <li>Updated Turkish translations</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.9.2" date="2026-09-11">
             <description>
                 <p>Bug Fixes</p>
