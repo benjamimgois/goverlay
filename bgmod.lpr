@@ -2167,6 +2167,19 @@ begin
   end;
 end;
 
+function FindGameArgInsertPos(AStart: Integer): Integer;
+var
+  i: Integer;
+begin
+  Result := AStart;
+  for i := AStart to ParamCount do
+    if LowerCase(ExtractFileExt(ParamStr(i))) = '.exe' then
+    begin
+      Result := i;
+      Exit;
+    end;
+end;
+
 function FindSplashBinary(const ABgmodPath, ASourceDir: string): string;
 var
   DataHome: string;
@@ -2400,6 +2413,7 @@ var
   BackupsDir: string;
   IsPerGameProfile: Boolean;
   i, j, p, StartArgIdx, EnvCount: Integer;
+  InsertAfter, ArgBase: Integer;
   Key, Val, Line: string;
   ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
   ReShadeShadersDir, WineShaders, WineTextures, EffectPaths, TexturePaths, OverlayKey: string;
@@ -3571,58 +3585,51 @@ begin
     Exit;
   end;
   
+  InsertAfter := FindGameArgInsertPos(StartArgIdx);
+
   if HasGamePerformance and GOverlayTweaks then
   begin
     Log('Using wrapper: game-performance');
-    SetLength(ArgsStrings, 2 + ActiveArgsList.Count + (ParamCount - StartArgIdx));
-    SetLength(Args, Length(ArgsStrings) + 1);
-    ArgsStrings[0] := 'game-performance';
-    Args[0] := PChar(ArgsStrings[0]);
-    ArgsStrings[1] := ParamStr(StartArgIdx);
-    Args[1] := PChar(ArgsStrings[1]);
-    Log('Arg 1: ' + ArgsStrings[1]);
-    for j := 0 to ActiveArgsList.Count - 1 do
-    begin
-      ArgsStrings[2 + j] := ActiveArgsList[j];
-      Args[2 + j] := PChar(ArgsStrings[2 + j]);
-      Log('Arg ' + IntToStr(2 + j) + ' (injected): ' + ArgsStrings[2 + j]);
-    end;
-    for i := StartArgIdx + 1 to ParamCount do
-    begin
-      p := 2 + ActiveArgsList.Count + (i - StartArgIdx - 1);
-      ArgsStrings[p] := ParamStr(i);
-      Args[p] := PChar(ArgsStrings[p]);
-      Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
-    end;
-    Args[Length(ArgsStrings)] := nil;
+    ArgBase := 1;
   end
   else
   begin
-    TempStr := ParamStr(StartArgIdx);
-    Log('Game Executable: ' + TempStr);
-    
-    SetLength(ArgsStrings, 1 + ActiveArgsList.Count + (ParamCount - StartArgIdx));
-    SetLength(Args, Length(ArgsStrings) + 1);
-    
-    ArgsStrings[0] := TempStr;
-    Args[0] := PChar(ArgsStrings[0]);
-    
-    for j := 0 to ActiveArgsList.Count - 1 do
-    begin
-      ArgsStrings[1 + j] := ActiveArgsList[j];
-      Args[1 + j] := PChar(ArgsStrings[1 + j]);
-      Log('Arg ' + IntToStr(1 + j) + ' (injected): ' + ArgsStrings[1 + j]);
-    end;
-    for i := StartArgIdx + 1 to ParamCount do
-    begin
-      p := 1 + ActiveArgsList.Count + (i - StartArgIdx - 1);
-      ArgsStrings[p] := ParamStr(i);
-      Args[p] := PChar(ArgsStrings[p]);
-      Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
-    end;
-    Args[Length(ArgsStrings)] := nil;
+    Log('Game Executable: ' + ParamStr(StartArgIdx));
+    ArgBase := 0;
   end;
-  
+
+  SetLength(ArgsStrings, ArgBase + ActiveArgsList.Count + (ParamCount - StartArgIdx + 1));
+  SetLength(Args, Length(ArgsStrings) + 1);
+  if ArgBase = 1 then
+    ArgsStrings[0] := 'game-performance';
+
+  p := ArgBase;
+  // Command up to and including the game executable
+  for i := StartArgIdx to InsertAfter do
+  begin
+    ArgsStrings[p] := ParamStr(i);
+    Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
+    Inc(p);
+  end;
+  // Injected launch arguments
+  for j := 0 to ActiveArgsList.Count - 1 do
+  begin
+    ArgsStrings[p] := ActiveArgsList[j];
+    Log('Arg ' + IntToStr(p) + ' (injected): ' + ArgsStrings[p]);
+    Inc(p);
+  end;
+  // Remaining arguments after the game executable
+  for i := InsertAfter + 1 to ParamCount do
+  begin
+    ArgsStrings[p] := ParamStr(i);
+    Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
+    Inc(p);
+  end;
+
+  for i := 0 to High(ArgsStrings) do
+    Args[i] := PChar(ArgsStrings[i]);
+  Args[Length(ArgsStrings)] := nil;
+
   ActiveArgsList.Free;
   
   Log('------------------------------------------------------------------------');
