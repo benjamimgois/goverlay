@@ -224,6 +224,31 @@ begin
     Result := AKey;
 end;
 
+procedure ParseArgLine(const ALine: string; out AArg, AToggle: string);
+var
+  p, j: Integer;
+  CleanLine: string;
+begin
+  CleanLine := Trim(ALine);
+  p := 0;
+  for j := Length(CleanLine) downto 1 do
+    if CleanLine[j] = '=' then
+    begin
+      p := j;
+      Break;
+    end;
+  if p > 0 then
+  begin
+    AArg := Trim(Copy(CleanLine, 1, p - 1));
+    AToggle := Trim(Copy(CleanLine, p + 1, MaxInt));
+  end
+  else
+  begin
+    AArg := CleanLine;
+    AToggle := '';
+  end;
+end;
+
 function FindTweakInList(AList: TStringList; const AKey: string; out AVal: string): Boolean;
 var
   idx: Integer;
@@ -253,7 +278,7 @@ begin
   if not Assigned(AList) then Exit;
   for idx := 0 to AList.Count - 1 do
   begin
-    ParseTweakLine(AList[idx], K, V);
+    ParseArgLine(AList[idx], K, V);
     if SameText(K, AArg) then
     begin
       Result := (V = '1') or (V = '');
@@ -2283,7 +2308,7 @@ begin
       // 3. Custom launch arguments from [CustomArguments]
       for i := 0 to CustomArgList.Count - 1 do
       begin
-        ParseTweakLine(CustomArgList[i], Key, Val);
+        ParseArgLine(CustomArgList[i], Key, Val);
         if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) then
         begin
           Row := FForm.FTweaksGrid.RowCount;
@@ -2302,7 +2327,7 @@ begin
       // Backward compatibility: Any non-predefined argument in [Args] not in [CustomArguments]
       for i := 0 to ArgsList.Count - 1 do
       begin
-        ParseTweakLine(ArgsList[i], Key, Val);
+        ParseArgLine(ArgsList[i], Key, Val);
         if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(CustomArgList, Key) then
         begin
           Row := FForm.FTweaksGrid.RowCount;
@@ -2358,9 +2383,9 @@ begin
           GlobalIni.ReadSectionValues('Args', ArgsList);
           for i := 0 to ArgsList.Count - 1 do
           begin
-            ParseTweakLine(ArgsList[i], Key, Val);
+            ParseArgLine(ArgsList[i], Key, Val);
             if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(GlobalCustomArgList, Key) then
-              GlobalCustomArgList.Add(Key);
+              GlobalCustomArgList.Add(Key + '=1');
           end;
         finally
           ArgsList.Free;
@@ -2442,7 +2467,7 @@ begin
         // 6. Populate global custom arguments into grid (checked if in game's [Args], default '0')
         for i := 0 to GlobalCustomArgList.Count - 1 do
         begin
-          ParseTweakLine(GlobalCustomArgList[i], Key, Val);
+          ParseArgLine(GlobalCustomArgList[i], Key, Val);
           if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) then
           begin
             Row := FForm.FTweaksGrid.RowCount;
@@ -2461,7 +2486,7 @@ begin
         // 7. Populate any game-specific local custom arguments into grid
         for i := 0 to ArgsList.Count - 1 do
         begin
-          ParseTweakLine(ArgsList[i], Key, Val);
+          ParseArgLine(ArgsList[i], Key, Val);
           if (Key <> '') and not FindPredefinedArg(Key, DummyDesc) and not FindArgInList(GlobalCustomArgList, Key) then
           begin
             Row := FForm.FTweaksGrid.RowCount;
