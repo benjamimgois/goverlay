@@ -892,7 +892,7 @@ begin
   Ver := GetMakoLatestRemoteVersion(Url);
   if Ver <> '' then
   begin
-    AssertTrue('Remote version is v3.x or higher', Pos('3.', Ver) > 0);
+    AssertTrue('Remote version is v3.x or higher', (Pos('3.', Ver) > 0) or (Pos('4.', Ver) > 0) or (Pos('5.', Ver) > 0));
     AssertTrue('Download URL targets native linux archive', Pos('-linux.tar.xz', Url) > 0);
     AssertFalse('Download URL strictly excludes flatpaks', Pos('flatpak', LowerCase(Url)) > 0);
   end;

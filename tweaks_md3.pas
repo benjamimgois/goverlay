@@ -23,14 +23,15 @@ type
   end;
 
 const
-  TWEAK_CAT_GENERAL  = 0;
-  TWEAK_CAT_GRAPHICS = 1;
-  TWEAK_CAT_PERF     = 2;
-  TWEAK_CAT_LATENCY  = 3;
+  TWEAK_CAT_GENERAL      = 0;
+  TWEAK_CAT_GRAPHICS     = 1;
+  TWEAK_CAT_PERF         = 2;
+  TWEAK_CAT_LATENCY      = 3;
+  TWEAK_CAT_EXPERIMENTAL = 4;
   // Custom rows are added by the user at run time; they are not part of
   // TWEAK_ROWS but share the category column of the backing grid.
-  TWEAK_CAT_CUSTOM   = 4;
-  TWEAK_CAT_ARGS     = 5;
+  TWEAK_CAT_CUSTOM       = 5;
+  TWEAK_CAT_ARGS         = 6;
 
   PREDEFINED_ARG_COUNT = 5;
   PREDEFINED_ARGS: array[0..PREDEFINED_ARG_COUNT - 1] of TPredefinedArg = (
@@ -41,7 +42,7 @@ const
     (Arg: '-nojoy';  Description: 'Disable joystick subsystem')
   );
 
-  TWEAK_ROW_COUNT = 31;
+  TWEAK_ROW_COUNT = 34;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
@@ -54,7 +55,7 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: 'Uses OpenGL over Vulkan translation (ZINK)'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: '[MESA] Uses OpenGL over Vulkan translation (ZINK)'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
@@ -65,7 +66,7 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU'),
@@ -73,7 +74,10 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY'; Description: '[proton-cachyos] low-latency frame pacing (DX11 & DX12)'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.')
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap / PROTON_VKD3D_HEAP=1'; Description: 'Alternative descriptor heap (fixes RT in Control Resonant)'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                         Description: '[nvidia] Activates Ray Reconstruction'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                            Description: 'Multiplier for Ray Tracing Acceleration Structures size')
   );
 
 type
@@ -118,12 +122,13 @@ uses
 function TweakCategoryName(ACategory: Integer): string;
 begin
   case ACategory of
-    TWEAK_CAT_GENERAL:  Result := 'General';
-    TWEAK_CAT_GRAPHICS: Result := 'Graphics';
-    TWEAK_CAT_PERF:     Result := 'Performance';
-    TWEAK_CAT_LATENCY:  Result := 'Latency reduction';
-    TWEAK_CAT_CUSTOM:   Result := 'Custom';
-    TWEAK_CAT_ARGS:     Result := 'Launch Arguments';
+    TWEAK_CAT_GENERAL:      Result := 'General';
+    TWEAK_CAT_GRAPHICS:     Result := 'Graphics';
+    TWEAK_CAT_PERF:         Result := 'Performance';
+    TWEAK_CAT_LATENCY:      Result := 'Latency reduction';
+    TWEAK_CAT_EXPERIMENTAL: Result := 'Experimental';
+    TWEAK_CAT_CUSTOM:       Result := 'Custom';
+    TWEAK_CAT_ARGS:         Result := 'Launch Arguments';
   else
     Result := '';
   end;
@@ -191,6 +196,10 @@ begin
             SameText(AKey, 'PROTON_DXVK_LOWLATENCY') or
             SameText(AKey, 'PROTON_LOCAL_SHADER_CACHE') or
             SameText(AKey, 'PROTON_DISCORD_BRIDGE') or
+            SameText(AKey, 'VKD3D_CONFIG') or
+            SameText(AKey, 'PROTON_VKD3D_HEAP') or
+            SameText(AKey, 'NGX_DLSS_RR_OVERRIDE') or
+            SameText(AKey, 'VKD3D_RTAS_SIZE_MULT') or
             SameText(AKey, 'DXIL_SPIRV_CONFIG') or
             SameText(AKey, 'MANGOHUD_CONFIGFILE');
 end;
@@ -322,6 +331,9 @@ begin
     28: Result := Form.FProtonVkd3dLowLatencyCheckBox;
     29: Result := Form.FProtonLocalShaderCacheCheckBox;
     30: Result := Form.FProtonDiscordBridgeCheckBox;
+    31: Result := Form.FProtonVkd3dHeapCheckBox;
+    32: Result := Form.FNvidiaDlssRROverrideCheckBox;
+    33: Result := Form.FVkd3dRtasSizeMultCheckBox;
   else
     Result := nil;
   end;
@@ -459,6 +471,25 @@ begin
   FForm.FProtonDiscordBridgeCheckBox.Visible := False;
   FForm.FProtonDiscordBridgeCheckBox.Name    := 'protonDiscordBridgeCheckBox';
   FForm.FProtonDiscordBridgeCheckBox.Caption := 'Enable PROTON_DISCORD_BRIDGE';
+
+  FForm.FProtonVkd3dHeapCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonVkd3dHeapCheckBox.Parent  := FForm;
+  FForm.FProtonVkd3dHeapCheckBox.Visible := False;
+  FForm.FProtonVkd3dHeapCheckBox.Name    := 'protonVkd3dHeapCheckBox';
+  FForm.FProtonVkd3dHeapCheckBox.Caption := 'Enable VKD3D_CONFIG=descriptor_heap / PROTON_VKD3D_HEAP';
+
+  FForm.FNvidiaDlssRROverrideCheckBox := TCheckBox.Create(FForm);
+  FForm.FNvidiaDlssRROverrideCheckBox.Parent  := FForm;
+  FForm.FNvidiaDlssRROverrideCheckBox.Visible := False;
+  FForm.FNvidiaDlssRROverrideCheckBox.Name    := 'nvidiaDlssRROverrideCheckBox';
+  FForm.FNvidiaDlssRROverrideCheckBox.Caption := 'Enable NGX_DLSS_RR_OVERRIDE';
+
+  FForm.FVkd3dRtasSizeMultCheckBox := TCheckBox.Create(FForm);
+  FForm.FVkd3dRtasSizeMultCheckBox.Parent  := FForm;
+  FForm.FVkd3dRtasSizeMultCheckBox.Visible := False;
+  FForm.FVkd3dRtasSizeMultCheckBox.Name    := 'vkd3dRtasSizeMultCheckBox';
+  FForm.FVkd3dRtasSizeMultCheckBox.Caption := 'Enable VKD3D_RTAS_SIZE_MULT';
+  FForm.FVkd3dRtasSizeMultValue := '8';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FForm.FTweaksGrid := TStringGrid.Create(FForm);
@@ -813,14 +844,15 @@ var
   Y, RowIdx, i, CatIdx, ItemCount, ActiveCount, CustomCount, Rows, CardH, TotalContentH: Integer;
   CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   CustomVarCount, ActiveCustomCount, LaunchArgCount, ActiveArgCount, ArgItemCount: Integer;
-  CatNames: array[0..3] of string;
+  BannerH, ItemTopY: Integer;
+  CatNames: array[0..4] of string;
   HoverIdx: Integer;
   R: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
   IsRowEnabled: Boolean;
   LowLatencyInstalled, GamemodeInstalled: Boolean;
-  ActiveStr: string;
+  ActiveStr, ItemVarName: string;
 const
   CARD_MARGIN_X      = 4;
   CARD_GAP           = 10;
@@ -862,9 +894,10 @@ begin
   CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
   CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
   CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
+  CatNames[4] := TweakCategoryName(TWEAK_CAT_EXPERIMENTAL);
 
-  // Draw 4 predefined category cards
-  for CatIdx := 0 to 3 do
+  // Draw 5 predefined category cards
+  for CatIdx := 0 to 4 do
   begin
     ItemCount := 0;
     ActiveCount := 0;
@@ -880,11 +913,15 @@ begin
 
     if ItemCount = 0 then Continue;
 
+    BannerH := 0;
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+      BannerH := INFO_BANNER_H + CARD_PAD_BOTTOM;
+
     if Is2Col then
       Rows := (ItemCount + 1) div 2
     else
       Rows := ItemCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+    CardH := CARD_HDR_H + BannerH + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
     // Draw Card Container
     PB.Canvas.Brush.Color := DARK_CARD_BG;
@@ -896,9 +933,15 @@ begin
     PB.Canvas.Font.Name  := 'DejaVu Sans';
     PB.Canvas.Font.Size  := 10;
     PB.Canvas.Font.Style := [fsBold];
-    PB.Canvas.Font.Color := clWhite;
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+      PB.Canvas.Font.Color := RGBToColor(245, 158, 11)
+    else
+      PB.Canvas.Font.Color := clWhite;
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(CardLeft + 12, Y + 8, CatNames[CatIdx]);
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+      PB.Canvas.TextOut(CardLeft + 12, Y + 8, '⚠ ' + CatNames[CatIdx])
+    else
+      PB.Canvas.TextOut(CardLeft + 12, Y + 8, CatNames[CatIdx]);
 
     if ActiveCount > 0 then
     begin
@@ -910,23 +953,47 @@ begin
       PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
     end;
 
+    // Draw Warning Banner for Experimental category
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+    begin
+      PB.Canvas.Brush.Color := RGBToColor(42, 30, 15);
+      PB.Canvas.Pen.Color   := RGBToColor(120, 80, 20);
+      PB.Canvas.Pen.Width   := 1;
+      PB.Canvas.RoundRect(InnerLeft, Y + CARD_HDR_H, InnerRight, Y + CARD_HDR_H + INFO_BANNER_H, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+      PB.Canvas.Font.Name  := 'DejaVu Sans';
+      PB.Canvas.Font.Size  := 9;
+      PB.Canvas.Font.Style := [fsBold];
+      PB.Canvas.Font.Color := RGBToColor(245, 158, 11);
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(InnerLeft + 10, Y + CARD_HDR_H + 9, '⚠');
+
+      PB.Canvas.Font.Name  := 'DejaVu Sans';
+      PB.Canvas.Font.Size  := 8;
+      PB.Canvas.Font.Style := [];
+      PB.Canvas.Font.Color := RGBToColor(220, 200, 170);
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(InnerLeft + 26, Y + CARD_HDR_H + 10, 'Experimental options can cause instability or crashes. Use with caution.');
+    end;
+
     // Draw Items
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
       if TWEAK_ROWS[i].Category <> CatIdx then Continue;
       Chk := GetTweakRowCheckBox(FForm, i);
+      ItemTopY := Y + CARD_HDR_H + BannerH;
       if Is2Col then
       begin
         Col := CatItemCount mod 2;
         Row := CatItemCount div 2;
         if Col = 0 then
-          R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          R := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
         else
-          R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
+          R := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
       end
       else
-        R := Rect(InnerLeft, Y + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+        R := Rect(InnerLeft, ItemTopY + (CatItemCount * ITEM_H), InnerRight, ItemTopY + ((CatItemCount + 1) * ITEM_H));
 
       IsRowEnabled := True;
       if ((TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1') or
@@ -939,7 +1006,16 @@ begin
       if (TWEAK_ROWS[i].VarName = '#gamemode') and (not GamemodeInstalled) then
         IsRowEnabled := False;
 
-      DrawItem(PB.Canvas, R, TWEAK_ROWS[i].VarName, TWEAK_ROWS[i].Description,
+      ItemVarName := TWEAK_ROWS[i].VarName;
+      if (Chk = FForm.FVkd3dRtasSizeMultCheckBox) then
+      begin
+        if FForm.FVkd3dRtasSizeMultValue <> '' then
+          ItemVarName := 'VKD3D_RTAS_SIZE_MULT=' + FForm.FVkd3dRtasSizeMultValue
+        else
+          ItemVarName := 'VKD3D_RTAS_SIZE_MULT=8';
+      end;
+
+      DrawItem(PB.Canvas, R, ItemVarName, TWEAK_ROWS[i].Description,
                Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False, False, IsRowEnabled);
       Inc(CatItemCount);
       Inc(RowIdx);
@@ -1155,6 +1231,7 @@ var
   PB: TPaintBox;
   OldHover, RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
   CustomVarCount, LaunchArgCount, ArgItemCount: Integer;
+  BannerH, ItemTopY: Integer;
   YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   ItemRect: TRect;
   TweakHint: string;
@@ -1183,30 +1260,35 @@ begin
   ColGap := 8;
   ColW := (InnerW - ColGap) div 2;
 
-  for CatIdx := 0 to 3 do
+  for CatIdx := 0 to 4 do
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
       if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
 
+    BannerH := 0;
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+      BannerH := INFO_BANNER_H + CARD_PAD_BOTTOM;
+
     if Is2Col then Rows := (ItemCount + 1) div 2 else Rows := ItemCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+    CardH := CARD_HDR_H + BannerH + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
       if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      ItemTopY := YPos + CARD_HDR_H + BannerH;
       if Is2Col then
       begin
         Col := CatItemCount mod 2;
         Row := CatItemCount div 2;
         if Col = 0 then
-          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          ItemRect := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
         else
-          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+          ItemRect := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
       end
       else
-        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+        ItemRect := Rect(InnerLeft, ItemTopY + (CatItemCount * ITEM_H), InnerRight, ItemTopY + ((CatItemCount + 1) * ITEM_H));
 
       if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
       begin
@@ -1227,7 +1309,17 @@ begin
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
            (TWEAK_ROWS[i].VarName = 'game-performance') then
-          TweakHint := 'Works only with CachyOS';
+          TweakHint := 'Works only with CachyOS'
+        else if Pos('descriptor_heap', TWEAK_ROWS[i].VarName) > 0 then
+          TweakHint := 'Alternative descriptor heap for D3D12. Fixes ray tracing in Control Resonant and similar titles, but may decrease performance or crash in other games.'
+        else if TWEAK_ROWS[i].VarName = 'NGX_DLSS_RR_OVERRIDE=on' then
+          TweakHint := 'Forces NVIDIA DLSS Ray Reconstruction on supported hardware and titles.'
+        else if TWEAK_ROWS[i].VarName = 'VKD3D_RTAS_SIZE_MULT=8' then
+          TweakHint := 'Multiplies Ray Tracing Acceleration Structures buffer size by 8 to prevent RT out-of-memory crashes.'
+        else if TWEAK_ROWS[i].VarName = 'MESA_LOADER_DRIVER_OVERRIDE=zink' then
+          TweakHint := 'Forces OpenGL to run over Vulkan via Mesa Zink driver (experimental).'
+        else if TWEAK_ROWS[i].VarName = '#winedetectionenable=false' then
+          TweakHint := 'Disables Wine detection in RE Engine games to avoid crashes or black screens.';
 
         if (Pos('Needs Korthos low latency', TweakHint) > 0) and (not FForm.IsLowLatencyInstalled) then
         begin
@@ -1386,11 +1478,12 @@ var
   PB: TPaintBox;
   RowIdx, i, CatIdx, ItemCount, CustomCount, Rows, CardH: Integer;
   CustomVarCount, LaunchArgCount, ArgItemCount: Integer;
+  BannerH, ItemTopY: Integer;
   YPos, CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   ItemRect: TRect;
   Chk: TCheckBox;
   Is2Col: Boolean;
-  DummyDesc: string;
+  DummyDesc, PromptVal: string;
 const
   CARD_MARGIN_X      = 4;
   CARD_GAP           = 10;
@@ -1413,30 +1506,35 @@ begin
   ColGap := 8;
   ColW := (InnerW - ColGap) div 2;
 
-  for CatIdx := 0 to 3 do
+  for CatIdx := 0 to 4 do
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
       if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
 
+    BannerH := 0;
+    if CatIdx = TWEAK_CAT_EXPERIMENTAL then
+      BannerH := INFO_BANNER_H + CARD_PAD_BOTTOM;
+
     if Is2Col then Rows := (ItemCount + 1) div 2 else Rows := ItemCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+    CardH := CARD_HDR_H + BannerH + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
 
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
       if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      ItemTopY := YPos + CARD_HDR_H + BannerH;
       if Is2Col then
       begin
         Col := CatItemCount mod 2;
         Row := CatItemCount div 2;
         if Col = 0 then
-          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          ItemRect := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
         else
-          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+          ItemRect := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
       end
       else
-        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (CatItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((CatItemCount + 1) * ITEM_H));
+        ItemRect := Rect(InnerLeft, ItemTopY + (CatItemCount * ITEM_H), InnerRight, ItemTopY + ((CatItemCount + 1) * ITEM_H));
 
       if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
       begin
@@ -1471,6 +1569,21 @@ begin
           end
           else
           begin
+            if (Chk = FForm.FVkd3dRtasSizeMultCheckBox) and (not Chk.Checked) then
+            begin
+              PromptVal := FForm.FVkd3dRtasSizeMultValue;
+              if PromptVal = '' then PromptVal := '8';
+              if InputQuery('VKD3D RTAS Size Multiplier', 'Enter multiplier for Ray Tracing Acceleration Structures size:', PromptVal) then
+              begin
+                PromptVal := Trim(PromptVal);
+                if PromptVal = '' then PromptVal := '8';
+                FForm.FVkd3dRtasSizeMultValue := PromptVal;
+                Chk.Checked := True;
+                PB.Invalidate;
+                FForm.TriggerAutoSave;
+              end;
+              Exit;
+            end;
             Chk.Checked := not Chk.Checked;
             PB.Invalidate;
             FForm.TriggerAutoSave;
@@ -2020,6 +2133,23 @@ begin
     if FForm.FProtonDiscordBridgeCheckBox.Checked then
       Ini.WriteString('Env', 'PROTON_DISCORD_BRIDGE', '1');
 
+    if FForm.FProtonVkd3dHeapCheckBox.Checked then
+    begin
+      Ini.WriteString('Env', 'VKD3D_CONFIG', 'descriptor_heap');
+      Ini.WriteString('Env', 'PROTON_VKD3D_HEAP', '1');
+    end;
+
+    if FForm.FNvidiaDlssRROverrideCheckBox.Checked then
+      Ini.WriteString('Env', 'NGX_DLSS_RR_OVERRIDE', 'on');
+
+    if FForm.FVkd3dRtasSizeMultCheckBox.Checked then
+    begin
+      if FForm.FVkd3dRtasSizeMultValue <> '' then
+        Ini.WriteString('Env', 'VKD3D_RTAS_SIZE_MULT', FForm.FVkd3dRtasSizeMultValue)
+      else
+        Ini.WriteString('Env', 'VKD3D_RTAS_SIZE_MULT', '8');
+    end;
+
     // 4. Custom environment variables and launch arguments from grid
     if Assigned(FForm.FTweaksGrid) then
     begin
@@ -2186,7 +2316,19 @@ var
       else if SameText(K, 'PROTON_LOCAL_SHADER_CACHE') then
         FForm.FProtonLocalShaderCacheCheckBox.Checked := V = '1'
       else if SameText(K, 'PROTON_DISCORD_BRIDGE') then
-        FForm.FProtonDiscordBridgeCheckBox.Checked := V = '1';
+        FForm.FProtonDiscordBridgeCheckBox.Checked := V = '1'
+      else if (SameText(K, 'VKD3D_CONFIG') and (Pos('descriptor_heap', V) > 0)) or
+              (SameText(K, 'PROTON_VKD3D_HEAP') and (V = '1')) then
+      begin
+        FForm.FProtonVkd3dHeapCheckBox.Checked := True;
+      end
+      else if SameText(K, 'NGX_DLSS_RR_OVERRIDE') and (SameText(V, 'on') or (V = '1')) then
+        FForm.FNvidiaDlssRROverrideCheckBox.Checked := True
+      else if SameText(K, 'VKD3D_RTAS_SIZE_MULT') and (V <> '') then
+      begin
+        FForm.FVkd3dRtasSizeMultValue := V;
+        FForm.FVkd3dRtasSizeMultCheckBox.Checked := True;
+      end;
     end;
   end;
 
@@ -2226,6 +2368,10 @@ begin
   FForm.FProtonVkd3dLowLatencyCheckBox.Checked := False;
   FForm.FProtonLocalShaderCacheCheckBox.Checked := False;
   FForm.FProtonDiscordBridgeCheckBox.Checked := False;
+  FForm.FProtonVkd3dHeapCheckBox.Checked := False;
+  FForm.FNvidiaDlssRROverrideCheckBox.Checked := False;
+  FForm.FVkd3dRtasSizeMultCheckBox.Checked := False;
+  FForm.FVkd3dRtasSizeMultValue := '8';
 
   // Reset custom env list
   FForm.customenvEdit.Text := '';

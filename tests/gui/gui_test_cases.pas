@@ -102,6 +102,7 @@ type
     procedure TestProtonLowLatencyBundlingTweak;
     procedure TestProtonLocalShaderCacheTweak;
     procedure TestProtonDiscordBridgeTweak;
+    procedure TestExperimentalTweaksCard;
     procedure TestGamePerformanceTweak;
     procedure TestTweaksCardLayoutAndClick;
     procedure TestGlobalCustomVariablesReuseAndInheritance;
@@ -4015,6 +4016,72 @@ begin
   goverlayform.FProtonDiscordBridgeCheckBox.Checked := False;
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   AssertEquals('PROTON_DISCORD_BRIDGE removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_DISCORD_BRIDGE'));
+end;
+
+procedure TGoverlayGuiTests.TestExperimentalTweaksCard;
+var
+  i, ExpCount: Integer;
+begin
+  NavigateTweaksTab;
+  AssertTrue('FProtonVkd3dHeapCheckBox created', Assigned(goverlayform.FProtonVkd3dHeapCheckBox));
+  AssertTrue('FNvidiaDlssRROverrideCheckBox created', Assigned(goverlayform.FNvidiaDlssRROverrideCheckBox));
+  AssertTrue('FVkd3dRtasSizeMultCheckBox created', Assigned(goverlayform.FVkd3dRtasSizeMultCheckBox));
+
+  // Verify rows assigned to TWEAK_CAT_EXPERIMENTAL
+  ExpCount := 0;
+  for i := 0 to TWEAK_ROW_COUNT - 1 do
+  begin
+    if TWEAK_ROWS[i].Category = TWEAK_CAT_EXPERIMENTAL then
+      Inc(ExpCount);
+  end;
+  AssertEquals('Experimental card has 5 items', 5, ExpCount);
+
+  // Paint triggers without error with 5 cards and warning banner
+  goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+
+  // Activate experimental tweaks and verify bundling & persistence
+  goverlayform.FProtonVkd3dHeapCheckBox.Checked := True;
+  goverlayform.FNvidiaDlssRROverrideCheckBox.Checked := True;
+  goverlayform.FVkd3dRtasSizeMultCheckBox.Checked := True;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  AssertEquals('VKD3D_CONFIG descriptor_heap persisted', 'descriptor_heap', ReadBgmodConf('Env', 'VKD3D_CONFIG'));
+  AssertEquals('PROTON_VKD3D_HEAP persisted', '1', ReadBgmodConf('Env', 'PROTON_VKD3D_HEAP'));
+  AssertEquals('NGX_DLSS_RR_OVERRIDE persisted', 'on', ReadBgmodConf('Env', 'NGX_DLSS_RR_OVERRIDE'));
+  AssertEquals('VKD3D_RTAS_SIZE_MULT persisted', '8', ReadBgmodConf('Env', 'VKD3D_RTAS_SIZE_MULT'));
+
+  // Ensure no leakage into CustomVariables
+  AssertEquals('VKD3D_CONFIG not in CustomVariables', '', ReadBgmodConf('CustomVariables', 'VKD3D_CONFIG'));
+  AssertEquals('PROTON_VKD3D_HEAP not in CustomVariables', '', ReadBgmodConf('CustomVariables', 'PROTON_VKD3D_HEAP'));
+  AssertEquals('NGX_DLSS_RR_OVERRIDE not in CustomVariables', '', ReadBgmodConf('CustomVariables', 'NGX_DLSS_RR_OVERRIDE'));
+  AssertEquals('VKD3D_RTAS_SIZE_MULT not in CustomVariables', '', ReadBgmodConf('CustomVariables', 'VKD3D_RTAS_SIZE_MULT'));
+
+  // Reload config into UI and assert states
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('FProtonVkd3dHeapCheckBox reloaded as true', goverlayform.FProtonVkd3dHeapCheckBox.Checked);
+  AssertTrue('FNvidiaDlssRROverrideCheckBox reloaded as true', goverlayform.FNvidiaDlssRROverrideCheckBox.Checked);
+  AssertTrue('FVkd3dRtasSizeMultCheckBox reloaded as true', goverlayform.FVkd3dRtasSizeMultCheckBox.Checked);
+  AssertEquals('FVkd3dRtasSizeMultValue restored as 8', '8', goverlayform.FVkd3dRtasSizeMultValue);
+
+  // Test custom multiplier value round-trip
+  goverlayform.FVkd3dRtasSizeMultValue := '16';
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  AssertEquals('VKD3D_RTAS_SIZE_MULT custom value 16 persisted', '16', ReadBgmodConf('Env', 'VKD3D_RTAS_SIZE_MULT'));
+
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('FVkd3dRtasSizeMultCheckBox reloaded as true with custom value', goverlayform.FVkd3dRtasSizeMultCheckBox.Checked);
+  AssertEquals('FVkd3dRtasSizeMultValue restored as 16', '16', goverlayform.FVkd3dRtasSizeMultValue);
+
+  // Reset / uncheck
+  goverlayform.FProtonVkd3dHeapCheckBox.Checked := False;
+  goverlayform.FNvidiaDlssRROverrideCheckBox.Checked := False;
+  goverlayform.FVkd3dRtasSizeMultCheckBox.Checked := False;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  AssertEquals('VKD3D_CONFIG removed when unchecked', '', ReadBgmodConf('Env', 'VKD3D_CONFIG'));
+  AssertEquals('PROTON_VKD3D_HEAP removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_VKD3D_HEAP'));
+  AssertEquals('NGX_DLSS_RR_OVERRIDE removed when unchecked', '', ReadBgmodConf('Env', 'NGX_DLSS_RR_OVERRIDE'));
+  AssertEquals('VKD3D_RTAS_SIZE_MULT removed when unchecked', '', ReadBgmodConf('Env', 'VKD3D_RTAS_SIZE_MULT'));
 end;
 
 procedure TGoverlayGuiTests.TestGamePerformanceTweak;

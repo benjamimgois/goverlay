@@ -1272,6 +1272,10 @@ type
     FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1 and PROTON_DXVK_LOWLATENCY=1
     FProtonLocalShaderCacheCheckBox: TCheckBox; // PROTON_LOCAL_SHADER_CACHE=1
     FProtonDiscordBridgeCheckBox: TCheckBox;   // PROTON_DISCORD_BRIDGE=1
+    FProtonVkd3dHeapCheckBox: TCheckBox;       // VKD3D_CONFIG=descriptor_heap and PROTON_VKD3D_HEAP=1
+    FNvidiaDlssRROverrideCheckBox: TCheckBox;  // NGX_DLSS_RR_OVERRIDE=on
+    FVkd3dRtasSizeMultCheckBox: TCheckBox;     // VKD3D_RTAS_SIZE_MULT
+    FVkd3dRtasSizeMultValue: string;
     FGamesHelper:      TObject;
     FBasaltHelper:     TObject;
     FMangoHelper:      TObject;
