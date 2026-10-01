@@ -118,7 +118,7 @@ begin
 end;
 
 const
-  BGMOD_VERSION = '1.9.3';
+  BGMOD_VERSION = '1.9.4';
 
 var
   GameDir: string;
@@ -2170,14 +2170,18 @@ end;
 function FindGameArgInsertPos(AStart: Integer): Integer;
 var
   i: Integer;
+  Param: string;
 begin
   Result := AStart;
   for i := AStart to ParamCount do
-    if LowerCase(ExtractFileExt(ParamStr(i))) = '.exe' then
+  begin
+    Param := ParamStr(i);
+    if (Param <> '') and (Param[1] <> '-') and (LowerCase(ExtractFileExt(Param)) = '.exe') then
     begin
       Result := i;
       Exit;
     end;
+  end;
 end;
 
 function FindSplashBinary(const ABgmodPath, ASourceDir: string): string;
@@ -3593,10 +3597,12 @@ begin
     ArgBase := 1;
   end
   else
-  begin
-    Log('Game Executable: ' + ParamStr(StartArgIdx));
     ArgBase := 0;
-  end;
+
+  if InsertAfter <> StartArgIdx then
+    Log('Game Executable: ' + ParamStr(InsertAfter) + ' (via ' + ParamStr(StartArgIdx) + ')')
+  else
+    Log('Game Executable: ' + ParamStr(StartArgIdx));
 
   SetLength(ArgsStrings, ArgBase + ActiveArgsList.Count + (ParamCount - StartArgIdx + 1));
   SetLength(Args, Length(ArgsStrings) + 1);

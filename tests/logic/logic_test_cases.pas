@@ -82,6 +82,7 @@ type
     procedure TestSupervisorStderrClosure;
     procedure TestBgmodLaunchSplashGameTitleAndReShade;
     procedure TestBgmodInjectsLaunchArguments;
+    procedure TestBgmodProtonArgsInjection;
     procedure TestBgmodNativeLinuxResolution;
   end;
 
@@ -1134,6 +1135,100 @@ begin
     // Verify ordering: injected arguments appear before --existing-steam-flag
     AssertTrue('Injected arguments appear before existing parameter',
                Pos('-novid', Content) < Pos('--existing-steam-flag', Content));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodProtonArgsInjection;
+var
+  Proc: TProcess;
+  TestGameDir, MockRunner, MockExe, OutFile: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content: string;
+begin
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ProtonArgsTestGame';
+  ForceDirectories(TestGameDir);
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'cp';
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Create mock runner script (simulating umu-run or proton wrapper)
+  MockRunner := TestGameDir + '/mock_runner.sh';
+  OutFile := TestGameDir + '/received_args.txt';
+  if FileExists(OutFile) then DeleteFile(OutFile);
+
+  AssignFile(F, MockRunner);
+  Rewrite(F);
+  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, 'for arg in "$@"; do echo "$arg" >> "' + OutFile + '"; done');
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRunner), &755);
+
+  MockExe := TestGameDir + '/game.exe';
+
+  // Write bgmod.conf with [Args] containing custom launch arguments (including key-value with '=')
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, '[Args]');
+  WriteLn(F, '-NoLauncher=1');
+  WriteLn(F, '-FPS=144=1');
+  CloseFile(F);
+
+  // Run bgmod with:
+  // 1. MockRunner (the wrapper, e.g. umu-run)
+  // 2. --runner-opt=dummy.exe (flag starting with '-' ending in .exe: must NOT be treated as executable)
+  // 3. MockExe (game.exe: actual target executable)
+  // 4. -epicapp=Dodo (trailing game argument)
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockRunner);
+    Proc.Parameters.Add('--runner-opt=dummy.exe');
+    Proc.Parameters.Add(MockExe);
+    Proc.Parameters.Add('-epicapp=Dodo');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Verify that arguments were injected after game.exe and before game options
+  AssertTrue('received_args.txt should be created', FileExists(OutFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutFile);
+    Content := Lines.Text;
+
+    AssertTrue('Runner should receive --runner-opt=dummy.exe', Pos('--runner-opt=dummy.exe', Content) > 0);
+    AssertTrue('Runner should receive MockExe', Pos(MockExe, Content) > 0);
+    AssertTrue('Runner should receive injected -NoLauncher', Pos('-NoLauncher', Content) > 0);
+    AssertTrue('Runner should receive injected -FPS=144', Pos('-FPS=144', Content) > 0);
+    AssertTrue('Runner should receive trailing -epicapp=Dodo', Pos('-epicapp=Dodo', Content) > 0);
+
+    // Verify ordering: runner opt < game.exe < injected args < trailing game args
+    AssertTrue('Runner opt comes before game.exe',
+               Pos('--runner-opt=dummy.exe', Content) < Pos(MockExe, Content));
+    AssertTrue('Injected arguments appear AFTER game.exe',
+               Pos(MockExe, Content) < Pos('-NoLauncher', Content));
+    AssertTrue('Injected arguments appear BEFORE trailing game argument',
+               Pos('-FPS=144', Content) < Pos('-epicapp=Dodo', Content));
   finally
     Lines.Free;
   end;

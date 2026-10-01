@@ -4243,6 +4243,7 @@ var
   GlobalConf, GameConf: string;
   Ini: TIniFile;
   Row, CustomArgRow, LocalArgRow: Integer;
+  CustomList: TStringList;
 
   function FindGridItem(const AKey: string): Integer;
   var
@@ -4295,6 +4296,14 @@ begin
   goverlayform.FTweaksGrid.Cells[2, Row] := '+fps_max 144';
   goverlayform.FTweaksGrid.Cells[3, Row] := 'Global';
 
+  // Add a custom launch argument containing an '=' sign in Global mode (-FPS=144)
+  Row := goverlayform.FTweaksGrid.RowCount;
+  goverlayform.FTweaksGrid.RowCount := Row + 1;
+  goverlayform.FTweaksGrid.Cells[0, Row] := '1';
+  goverlayform.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
+  goverlayform.FTweaksGrid.Cells[2, Row] := '-FPS=144';
+  goverlayform.FTweaksGrid.Cells[3, Row] := 'Global';
+
   // Add an inactive custom launch argument in Global mode (-custom-inactive)
   Row := goverlayform.FTweaksGrid.RowCount;
   goverlayform.FTweaksGrid.RowCount := Row + 1;
@@ -4320,6 +4329,16 @@ begin
     Ini.Free;
   end;
 
+  // Verify that key-value custom args with '=' (e.g. -FPS=144) are correctly stored as -FPS=144=1
+  CustomList := TStringList.Create;
+  try
+    CustomList.LoadFromFile(GlobalConf);
+    AssertTrue('Active custom arg with equals saved in [Args] as -FPS=144=1',
+               CustomList.IndexOf('-FPS=144=1') >= 0);
+  finally
+    CustomList.Free;
+  end;
+
   // Test MD3 Paint in global mode (ensures both Card 5 and Card 6 render cleanly)
   goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
 
@@ -4332,6 +4351,10 @@ begin
   Row := FindGridItem('+fps_max 144');
   AssertTrue('+fps_max 144 found after reload', Row >= 0);
   AssertEquals('+fps_max 144 is toggled ON', '1', goverlayform.FTweaksGrid.Cells[0, Row]);
+
+  Row := FindGridItem('-FPS=144');
+  AssertTrue('-FPS=144 found after reload (value not stripped by =)', Row >= 0);
+  AssertEquals('-FPS=144 is toggled ON', '1', goverlayform.FTweaksGrid.Cells[0, Row]);
 
   Row := FindGridItem('-custom-inactive');
   AssertTrue('-custom-inactive found after reload', Row >= 0);
