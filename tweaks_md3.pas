@@ -71,7 +71,7 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU'),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY=1';      Description: '[proton-cachyos] low-latency frame pacing capabilities'),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY'; Description: '[proton-cachyos] low-latency frame pacing (DX11 & DX12)'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.')
   );
@@ -188,6 +188,7 @@ begin
             SameText(AKey, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') or
             SameText(AKey, 'DXVK_CONFIG') or
             SameText(AKey, 'PROTON_VKD3D_LOWLATENCY') or
+            SameText(AKey, 'PROTON_DXVK_LOWLATENCY') or
             SameText(AKey, 'PROTON_LOCAL_SHADER_CACHE') or
             SameText(AKey, 'PROTON_DISCORD_BRIDGE') or
             SameText(AKey, 'DXIL_SPIRV_CONFIG') or
@@ -445,7 +446,7 @@ begin
   FForm.FProtonVkd3dLowLatencyCheckBox.Parent  := FForm;
   FForm.FProtonVkd3dLowLatencyCheckBox.Visible := False;
   FForm.FProtonVkd3dLowLatencyCheckBox.Name    := 'protonVkd3dLowLatencyCheckBox';
-  FForm.FProtonVkd3dLowLatencyCheckBox.Caption := 'Enable PROTON_VKD3D_LOWLATENCY';
+  FForm.FProtonVkd3dLowLatencyCheckBox.Caption := 'Enable PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY';
 
   FForm.FProtonLocalShaderCacheCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonLocalShaderCacheCheckBox.Parent  := FForm;
@@ -1222,7 +1223,7 @@ begin
           TweakHint := 'Use Feral Gamemode set of optimisations'
         else if TWEAK_ROWS[i].VarName = 'ENABLE_LAYER_MESA_ANTI_LAG=1' then
           TweakHint := ''
-        else if (TWEAK_ROWS[i].VarName = 'PROTON_VKD3D_LOWLATENCY=1') or
+        else if (Pos('PROTON_VKD3D_LOWLATENCY', TWEAK_ROWS[i].VarName) > 0) or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
            (TWEAK_ROWS[i].VarName = 'game-performance') then
@@ -2008,7 +2009,10 @@ begin
       Ini.WriteString('Env', 'DXVK_CONFIG', 'dxgi.customDeviceDescription=10de:2204,dxgi.hideAmdGpu=True');
 
     if FForm.FProtonVkd3dLowLatencyCheckBox.Checked then
+    begin
       Ini.WriteString('Env', 'PROTON_VKD3D_LOWLATENCY', '1');
+      Ini.WriteString('Env', 'PROTON_DXVK_LOWLATENCY', '1');
+    end;
 
     if FForm.FProtonLocalShaderCacheCheckBox.Checked then
       Ini.WriteString('Env', 'PROTON_LOCAL_SHADER_CACHE', '1');
@@ -2174,8 +2178,11 @@ var
         FForm.FLowLatencySpoofNvidiaCheckBox.Checked := V = '1'
       else if SameText(K, 'DXVK_CONFIG') and (Pos('hideAmdGpu', V) > 0) then
         FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
-      else if SameText(K, 'PROTON_VKD3D_LOWLATENCY') then
-        FForm.FProtonVkd3dLowLatencyCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_VKD3D_LOWLATENCY') or SameText(K, 'PROTON_DXVK_LOWLATENCY') then
+      begin
+        if V = '1' then
+          FForm.FProtonVkd3dLowLatencyCheckBox.Checked := True;
+      end
       else if SameText(K, 'PROTON_LOCAL_SHADER_CACHE') then
         FForm.FProtonLocalShaderCacheCheckBox.Checked := V = '1'
       else if SameText(K, 'PROTON_DISCORD_BRIDGE') then

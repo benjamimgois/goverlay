@@ -1269,7 +1269,7 @@ type
     FLowLatencyReflexCheckBox: TCheckBox;
     FLowLatencySpoofNvidiaCheckBox: TCheckBox;
     FLowLatencyHideAmdGpuCheckBox: TCheckBox;
-    FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1
+    FProtonVkd3dLowLatencyCheckBox: TCheckBox; // PROTON_VKD3D_LOWLATENCY=1 and PROTON_DXVK_LOWLATENCY=1
     FProtonLocalShaderCacheCheckBox: TCheckBox; // PROTON_LOCAL_SHADER_CACHE=1
     FProtonDiscordBridgeCheckBox: TCheckBox;   // PROTON_DISCORD_BRIDGE=1
     FGamesHelper:      TObject;

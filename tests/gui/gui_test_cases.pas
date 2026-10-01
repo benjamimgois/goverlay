@@ -99,6 +99,7 @@ type
     procedure TestVkBasaltRoundTrip;
     procedure TestVkSumiRoundTrip;
     procedure TestTweaksTabRoundTrip;
+    procedure TestProtonLowLatencyBundlingTweak;
     procedure TestProtonLocalShaderCacheTweak;
     procedure TestProtonDiscordBridgeTweak;
     procedure TestGamePerformanceTweak;
@@ -3951,6 +3952,31 @@ begin
   AssertTrue('simdeckCheckBox reloaded', goverlayform.simdeckCheckBox.Checked);
   AssertTrue('enhdrCheckBox reloaded', goverlayform.enhdrCheckBox.Checked);
   AssertTrue('obs_vkcaptureCheckBox reloaded', goverlayform.obs_vkcaptureCheckBox.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestProtonLowLatencyBundlingTweak;
+begin
+  NavigateTweaksTab;
+  AssertTrue('FProtonVkd3dLowLatencyCheckBox created', Assigned(goverlayform.FProtonVkd3dLowLatencyCheckBox));
+
+  goverlayform.FProtonVkd3dLowLatencyCheckBox.Checked := True;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+
+  AssertEquals('PROTON_VKD3D_LOWLATENCY persisted in bgmod.conf', '1', ReadBgmodConf('Env', 'PROTON_VKD3D_LOWLATENCY'));
+  AssertEquals('PROTON_DXVK_LOWLATENCY persisted in bgmod.conf', '1', ReadBgmodConf('Env', 'PROTON_DXVK_LOWLATENCY'));
+
+  // Reload config from bgmod.conf into UI and assert state is loaded
+  goverlayform.LoadTweaksFromFGMod;
+  AssertTrue('FProtonVkd3dLowLatencyCheckBox reloaded as true', goverlayform.FProtonVkd3dLowLatencyCheckBox.Checked);
+
+  // Assert neither variable leaked into custom variables
+  AssertEquals('PROTON_DXVK_LOWLATENCY not leaked to custom variables', '', ReadBgmodConf('CustomVariables', 'PROTON_DXVK_LOWLATENCY'));
+  AssertEquals('PROTON_VKD3D_LOWLATENCY not leaked to custom variables', '', ReadBgmodConf('CustomVariables', 'PROTON_VKD3D_LOWLATENCY'));
+
+  goverlayform.FProtonVkd3dLowLatencyCheckBox.Checked := False;
+  goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
+  AssertEquals('PROTON_VKD3D_LOWLATENCY removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_VKD3D_LOWLATENCY'));
+  AssertEquals('PROTON_DXVK_LOWLATENCY removed when unchecked', '', ReadBgmodConf('Env', 'PROTON_DXVK_LOWLATENCY'));
 end;
 
 procedure TGoverlayGuiTests.TestProtonLocalShaderCacheTweak;
