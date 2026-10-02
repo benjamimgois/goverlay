@@ -16,6 +16,28 @@ uses
   qtwidgets, configkeys, toggle_switch;
 
 type
+  TTimeFormatApplyEvent = procedure(const AFormat: string) of object;
+
+  { TMangoHudTimeFormatDialog }
+  TMangoHudTimeFormatDialog = class(TForm)
+  private
+    FFormatEdit: TEdit;
+    FPresetCombo: TComboBox;
+    FPreviewLabel: TLabel;
+    FUpdating: Boolean;
+    FOnApply: TTimeFormatApplyEvent;
+    procedure PresetComboChange(Sender: TObject);
+    procedure FormatEditChange(Sender: TObject);
+    procedure FormatEditEditingDone(Sender: TObject);
+    procedure FormatEditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure UpdatePreview;
+    procedure DoApply;
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+  public
+    constructor Create(AOwner: TComponent; const AInitialFormat: string; AOnApply: TTimeFormatApplyEvent = nil); reintroduce;
+    function GetFormatString: string;
+  end;
+
   TMangoHudUiHelper = class
   private
     FForm: Tgoverlayform;
@@ -26,6 +48,7 @@ type
     // When True, the active MangoHud config is the fps_only preset.
     // Any user control interaction (GenericControlChange/Click) clears this.
     FFpsOnly: Boolean;
+    procedure ApplyTimeFormat(const AFormat: string);
   public
     // Visual Tab Toggles
     FhudcompactToggle, FhorizontalstrechToggle, FhidehudToggle: TToggleSwitch;
@@ -52,6 +75,11 @@ type
     FhudversionToggle, FgamemodestatusToggle, FvkbasaltstatusToggle, FfcatToggle, FfsrToggle, FhdrToggle: TToggleSwitch;
     FbatteryToggle, FbatterywattToggle, FbatterytimeToggle, FdeviceToggle: TToggleSwitch;
     FmediaToggle, FnetworkToggle, FfahrenheitToggle: TToggleSwitch;
+    FTimeFormat: string;
+    FTimeConfigBtn: TBitBtn;
+
+    procedure TimeToggleChanged(Sender: TObject);
+    procedure TimeConfigBtnClick(Sender: TObject);
 
     // fps_only preset flag accessor
     procedure SetFpsOnly(AValue: Boolean);
@@ -94,6 +122,258 @@ type
 
 implementation
 
+type
+  Ptm = Pointer;
+
+function c_time(tloc: Pointer): Int64; cdecl; external 'c' name 'time';
+function c_localtime(const timer: PInt64): Ptm; cdecl; external 'c' name 'localtime';
+function c_strftime(s: PChar; max: SizeUInt; const format: PChar; const tm: Ptm): SizeUInt; cdecl; external 'c' name 'strftime';
+
+function FormatTimePreview(const AFormat: string): string;
+var
+  t: Int64;
+  tmPtr: Ptm;
+  buf: array[0..255] of Char;
+  len: SizeUInt;
+begin
+  if Trim(AFormat) = '' then
+    Exit('');
+  t := c_time(nil);
+  tmPtr := c_localtime(@t);
+  if tmPtr = nil then
+    Exit('');
+  buf[0] := #0;
+  len := c_strftime(buf, SizeOf(buf), PChar(AFormat), tmPtr);
+  if len > 0 then
+    SetString(Result, buf, len)
+  else
+    Result := '(invalid or unsupported format)';
+end;
+
+{ TMangoHudTimeFormatDialog }
+
+constructor TMangoHudTimeFormatDialog.Create(AOwner: TComponent; const AInitialFormat: string; AOnApply: TTimeFormatApplyEvent = nil);
+var
+  IsLight: Boolean;
+  HeaderPanel, PrevPanel: TPanel;
+  TitleLabel, SubLabel, PresetLabel, FormatLabel, PrevTitle, HintLbl: TLabel;
+begin
+  inherited CreateNew(AOwner);
+  FOnApply := AOnApply;
+  IsLight := CurrentTheme = tmLight;
+  Position := poMainFormCenter;
+  Width := 460;
+  Height := 240;
+  BorderStyle := bsDialog;
+  BorderIcons := [biSystemMenu];
+  Caption := 'MangoHud - Time Format';
+  Color := IfThen(IsLight, clWhite, RGBToColor(22, 26, 40));
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
+
+  HeaderPanel := TPanel.Create(Self);
+  HeaderPanel.Parent := Self;
+  HeaderPanel.Align := alTop;
+  HeaderPanel.Height := 52;
+  HeaderPanel.BevelOuter := bvNone;
+  HeaderPanel.Color := IfThen(IsLight, $00F2F2F2, RGBToColor(28, 34, 52));
+
+  TitleLabel := TLabel.Create(HeaderPanel);
+  TitleLabel.Parent := HeaderPanel;
+  TitleLabel.Caption := 'Time Format Configuration';
+  TitleLabel.Font.Style := [fsBold];
+  TitleLabel.Font.Size := 11;
+  TitleLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  TitleLabel.Left := 16;
+  TitleLabel.Top := 8;
+
+  SubLabel := TLabel.Create(HeaderPanel);
+  SubLabel.Parent := HeaderPanel;
+  SubLabel.Caption := 'Select a preset or customize the std::put_time / strftime format string.';
+  SubLabel.Font.Size := 8;
+  SubLabel.Font.Color := IfThen(IsLight, $00606060, $00A0A0A0);
+  SubLabel.Left := 16;
+  SubLabel.Top := 30;
+
+  PresetLabel := TLabel.Create(Self);
+  PresetLabel.Parent := Self;
+  PresetLabel.Caption := 'Preset:';
+  PresetLabel.Font.Size := 9;
+  PresetLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  PresetLabel.Left := 16;
+  PresetLabel.Top := 62;
+
+  FPresetCombo := TComboBox.Create(Self);
+  FPresetCombo.Parent := Self;
+  FPresetCombo.Style := csDropDownList;
+  FPresetCombo.Left := 16;
+  FPresetCombo.Top := 80;
+  FPresetCombo.Width := 428;
+  FPresetCombo.Color := IfThen(IsLight, clWhite, RGBToColor(22, 26, 40));
+  FPresetCombo.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  FPresetCombo.Items.Add('24-hour with seconds (%T) — Default');
+  FPresetCombo.Items.Add('24-hour without seconds (%R)');
+  FPresetCombo.Items.Add('12-hour AM/PM with seconds (%r)');
+  FPresetCombo.Items.Add('12-hour AM/PM without seconds (%I:%M %p)');
+  FPresetCombo.Items.Add('Date and 24-hour time (%d/%m/%Y %H:%M)');
+  FPresetCombo.Items.Add('ISO 8601 date and time (%Y-%m-%d %H:%M:%S)');
+  FPresetCombo.Items.Add('Custom format...');
+  FPresetCombo.OnChange := @PresetComboChange;
+
+  FormatLabel := TLabel.Create(Self);
+  FormatLabel.Parent := Self;
+  FormatLabel.Caption := 'Format string:';
+  FormatLabel.Font.Size := 9;
+  FormatLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  FormatLabel.Left := 16;
+  FormatLabel.Top := 112;
+
+  FFormatEdit := TEdit.Create(Self);
+  FFormatEdit.Parent := Self;
+  FFormatEdit.Font.Name := 'DejaVu Sans Mono';
+  FFormatEdit.Font.Size := 9;
+  FFormatEdit.Left := 16;
+  FFormatEdit.Top := 130;
+  FFormatEdit.Width := 428;
+  FFormatEdit.Color := IfThen(IsLight, clWhite, RGBToColor(22, 26, 40));
+  FFormatEdit.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  FFormatEdit.Text := AInitialFormat;
+  FFormatEdit.OnChange := @FormatEditChange;
+  FFormatEdit.OnEditingDone := @FormatEditEditingDone;
+  FFormatEdit.OnKeyDown := @FormatEditKeyDown;
+
+  PrevPanel := TPanel.Create(Self);
+  PrevPanel.Parent := Self;
+  PrevPanel.BevelOuter := bvNone;
+  PrevPanel.Left := 16;
+  PrevPanel.Top := 164;
+  PrevPanel.Width := 428;
+  PrevPanel.Height := 34;
+  PrevPanel.Color := IfThen(IsLight, $00E8E8E8, RGBToColor(16, 18, 28));
+
+  PrevTitle := TLabel.Create(PrevPanel);
+  PrevTitle.Parent := PrevPanel;
+  PrevTitle.Caption := 'Preview:';
+  PrevTitle.Font.Style := [fsBold];
+  PrevTitle.Font.Size := 9;
+  PrevTitle.Font.Color := IfThen(IsLight, clBlack, clWhite);
+  PrevTitle.Left := 12;
+  PrevTitle.Top := 9;
+
+  FPreviewLabel := TLabel.Create(PrevPanel);
+  FPreviewLabel.Parent := PrevPanel;
+  FPreviewLabel.Font.Name := 'DejaVu Sans Mono';
+  FPreviewLabel.Font.Style := [fsBold];
+  FPreviewLabel.Font.Size := 10;
+  FPreviewLabel.Font.Color := IfThen(IsLight, $00007A00, clLime);
+  FPreviewLabel.Left := 75;
+  FPreviewLabel.Top := 8;
+
+  HintLbl := TLabel.Create(Self);
+  HintLbl.Parent := Self;
+  HintLbl.Caption := 'std::put_time reference: %T (HH:MM:SS), %R (HH:MM), %p (AM/PM), %d (day), %m (month), %Y (year)';
+  HintLbl.Font.Size := 7;
+  HintLbl.Font.Color := IfThen(IsLight, $00707070, $008E9CA8);
+  HintLbl.Left := 16;
+  HintLbl.Top := 204;
+
+  FormatEditChange(FFormatEdit);
+end;
+
+procedure TMangoHudTimeFormatDialog.DoApply;
+begin
+  if Assigned(FOnApply) then
+    FOnApply(GetFormatString);
+end;
+
+procedure TMangoHudTimeFormatDialog.FormatEditEditingDone(Sender: TObject);
+begin
+  if not FUpdating then
+    DoApply;
+end;
+
+procedure TMangoHudTimeFormatDialog.FormatEditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_RETURN then
+  begin
+    DoApply;
+    Key := 0;
+  end;
+end;
+
+procedure TMangoHudTimeFormatDialog.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+    ModalResult := mrCancel;
+end;
+
+procedure TMangoHudTimeFormatDialog.PresetComboChange(Sender: TObject);
+begin
+  if FUpdating then Exit;
+  FUpdating := True;
+  try
+    case FPresetCombo.ItemIndex of
+      0: FFormatEdit.Text := '%T';
+      1: FFormatEdit.Text := '%R';
+      2: FFormatEdit.Text := '%r';
+      3: FFormatEdit.Text := '%I:%M %p';
+      4: FFormatEdit.Text := '%d/%m/%Y %H:%M';
+      5: FFormatEdit.Text := '%Y-%m-%d %H:%M:%S';
+    end;
+    UpdatePreview;
+  finally
+    FUpdating := False;
+  end;
+  if FPresetCombo.ItemIndex in [0..5] then
+    DoApply;
+end;
+
+procedure TMangoHudTimeFormatDialog.FormatEditChange(Sender: TObject);
+var
+  Txt: string;
+begin
+  if FUpdating then Exit;
+  FUpdating := True;
+  try
+    Txt := Trim(FFormatEdit.Text);
+    if Txt = '%T' then
+      FPresetCombo.ItemIndex := 0
+    else if Txt = '%R' then
+      FPresetCombo.ItemIndex := 1
+    else if Txt = '%r' then
+      FPresetCombo.ItemIndex := 2
+    else if Txt = '%I:%M %p' then
+      FPresetCombo.ItemIndex := 3
+    else if Txt = '%d/%m/%Y %H:%M' then
+      FPresetCombo.ItemIndex := 4
+    else if Txt = '%Y-%m-%d %H:%M:%S' then
+      FPresetCombo.ItemIndex := 5
+    else
+      FPresetCombo.ItemIndex := 6; // Custom format...
+    UpdatePreview;
+  finally
+    FUpdating := False;
+  end;
+end;
+
+procedure TMangoHudTimeFormatDialog.UpdatePreview;
+var
+  S: string;
+begin
+  S := FormatTimePreview(FFormatEdit.Text);
+  if S <> '' then
+    FPreviewLabel.Caption := S
+  else
+    FPreviewLabel.Caption := '(empty)';
+end;
+
+function TMangoHudTimeFormatDialog.GetFormatString: string;
+begin
+  Result := Trim(FFormatEdit.Text);
+  if Result = '' then
+    Result := '%T';
+end;
+
 constructor TMangoHudUiHelper.Create(AForm: Tgoverlayform);
 begin
   FForm := AForm;
@@ -101,6 +381,51 @@ begin
   FPerfToggles    := TFPList.Create;
   FMetricsToggles := TFPList.Create;
   FExtrasToggles  := TFPList.Create;
+  FTimeFormat     := '%T';
+end;
+
+procedure TMangoHudUiHelper.TimeToggleChanged(Sender: TObject);
+begin
+  if Assigned(FTimeConfigBtn) and Assigned(FForm.timeCheckBox) then
+    FTimeConfigBtn.Enabled := FForm.timeCheckBox.Checked;
+end;
+
+procedure TMangoHudUiHelper.ApplyTimeFormat(const AFormat: string);
+var
+  WasRunning: Boolean;
+  NewFmt: string;
+begin
+  NewFmt := Trim(AFormat);
+  if NewFmt = '' then
+    NewFmt := '%T';
+  if FTimeFormat = NewFmt then
+    Exit;
+
+  FTimeFormat := NewFmt;
+  SaveMangoHudConfig;
+
+  WasRunning := IsProcessRunningPure('pascube');
+  if WasRunning then
+  begin
+    ExecuteGUICommand('killall pascube 2>/dev/null; true');
+    Sleep(100);
+    FForm.PreviewBtnClick(nil);
+  end;
+
+  if Assigned(FForm.FFloatingToast) then
+    FForm.FFloatingToast.ShowToast('Time format applied');
+end;
+
+procedure TMangoHudUiHelper.TimeConfigBtnClick(Sender: TObject);
+var
+  Dlg: TMangoHudTimeFormatDialog;
+begin
+  Dlg := TMangoHudTimeFormatDialog.Create(FForm, FTimeFormat, @ApplyTimeFormat);
+  try
+    Dlg.ShowModal;
+  finally
+    Dlg.Free;
+  end;
 end;
 
 destructor TMangoHudUiHelper.Destroy;
@@ -2590,6 +2915,20 @@ begin
   FresolutionToggle    := PlaceExtToggle(resolutionCheckBox,    FExtSysCard, 254, 32 + HDR);
   FdisplayserverToggle := PlaceExtToggle(displayserverCheckBox, FExtSysCard, 372, 32 + HDR);
   FtimeToggle          := PlaceExtToggle(timeCheckBox,          FExtSysCard, 513, 32 + HDR);
+  FtimeToggle.OnChange := @TimeToggleChanged;
+
+  FTimeConfigBtn := TBitBtn.Create(FExtSysCard);
+  FTimeConfigBtn.Parent := FExtSysCard;
+  FTimeConfigBtn.Caption := '⚙';
+  FTimeConfigBtn.Font.Name := 'DejaVu Sans';
+  FTimeConfigBtn.Font.Size := 9;
+  FTimeConfigBtn.Cursor := crHandPoint;
+  FTimeConfigBtn.SetBounds(FtimeToggle.Left + FtimeToggle.Width + 4, FtimeToggle.Top, 22, 20);
+  FTimeConfigBtn.Hint := 'Configure time format';
+  FTimeConfigBtn.ShowHint := True;
+  FTimeConfigBtn.Enabled := timeCheckBox.Checked;
+  FTimeConfigBtn.OnClick := @TimeConfigBtnClick;
+
   FarchToggle          := PlaceExtToggle(archCheckBox,          FExtSysCard, 597, 32 + HDR);
 
   Place(wineLabel,             FExtSysCard, 11,  68 + HDR);  DarkLabel(wineLabel);
@@ -2766,7 +3105,16 @@ begin
   if Assigned(FrefreshrateToggle) then begin FrefreshrateToggle.Left := X1; FrefreshrateToggle.Top := 32 + HDR; end;
   if Assigned(FresolutionToggle) then begin FresolutionToggle.Left := X2; FresolutionToggle.Top := 32 + HDR; end;
   if Assigned(FdisplayserverToggle) then begin FdisplayserverToggle.Left := X3; FdisplayserverToggle.Top := 32 + HDR; end;
-  if Assigned(FtimeToggle) then begin FtimeToggle.Left := X4; FtimeToggle.Top := 32 + HDR; end;
+  if Assigned(FtimeToggle) then
+  begin
+    FtimeToggle.Left := X4;
+    FtimeToggle.Top := 32 + HDR;
+    if Assigned(FTimeConfigBtn) then
+    begin
+      FTimeConfigBtn.Left := FtimeToggle.Left + FtimeToggle.Width + 4;
+      FTimeConfigBtn.Top := FtimeToggle.Top;
+    end;
+  end;
   if Assigned(FarchToggle) then begin FarchToggle.Left := X5; FarchToggle.Top := 32 + HDR; end;
 
   wineLabel.Top              := 60 + HDR + SysYOff1;
@@ -2863,6 +3211,8 @@ begin
   if Assigned(FExtrasToggles) then
     for i := 0 to FExtrasToggles.Count - 1 do
       TToggleSwitch(FExtrasToggles[i]).SyncFromLinked;
+  if Assigned(FTimeConfigBtn) and Assigned(FForm.timeCheckBox) then
+    FTimeConfigBtn.Enabled := FForm.timeCheckBox.Checked;
 end;
 
 procedure TMangoHudUiHelper.SyncAllToggles;
@@ -2884,6 +3234,7 @@ const
   LIGHT_BG  = $00FFFFFF;
 var
   CardBg, TextColor: TColor;
+  SS: string;
 begin
   with FForm do
   begin
@@ -2900,6 +3251,17 @@ begin
 
   UpdateGenericCardTheme(FExtSysCard);
   UpdateGenericCardTheme(FExtLogCard);
+
+  if Assigned(FTimeConfigBtn) and FTimeConfigBtn.HandleAllocated then
+  begin
+    if CurrentTheme = tmLight then
+      SS := 'QPushButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 3px; font-weight: normal; padding: 0px; }'
+    else
+      SS := 'QPushButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 3px; font-weight: normal; padding: 0px; } ' +
+            'QPushButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+            'QPushButton:disabled { color: rgb(120,120,130); border: 1px solid rgb(45,50,70); background-color: rgb(26,30,46); }';
+    QWidget_setStyleSheet(TQtWidget(FTimeConfigBtn.Handle).Widget, @SS);
+  end;
 
   if Assigned(logtoggleLabel) then
     logtoggleLabel.Font.Color := TextColor;
@@ -3009,6 +3371,9 @@ begin
     glvsyncComboBox.ItemIndex := 4;
     logtoggleComboBox.ItemIndex := 0;
     networkComboBox.ItemIndex := 0;
+    FTimeFormat := '%T';
+    if Assigned(FTimeConfigBtn) and Assigned(timeCheckBox) then
+      FTimeConfigBtn.Enabled := timeCheckBox.Checked;
 
     // RadioButtons
     verticalRadioButton.Checked := True;
@@ -3707,6 +4072,11 @@ begin
         end;
       end;
     end
+    else if SameText(AKey, MANGO_KEY_TIME_FORMAT) then
+    begin
+      if AValue <> '' then
+        FTimeFormat := AValue;
+    end
     else if SameText(AKey, MANGO_KEY_EXEC) then
     begin
       if (Pos('uname -r', AValue) > 0) or (Pos('goverlay/distro', AValue) > 0) then
@@ -3952,6 +4322,7 @@ begin
     Settings.DistroInfo := distroinfoCheckBox.Checked;
     Settings.DisplayServer := displayserverCheckBox.Checked;
     Settings.Time := timeCheckBox.Checked;
+    Settings.TimeFormat := FTimeFormat;
     Settings.HudVersion := hudversionCheckBox.Checked;
     Settings.Media := mediaCheckBox.Checked;
     Settings.MediaColor := mediaColorButton.ButtonColor;

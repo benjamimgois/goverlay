@@ -214,6 +214,7 @@ type
     DistroInfo: Boolean;
     DisplayServer: Boolean;
     Time: Boolean;
+    TimeFormat: string;
     HudVersion: Boolean;
     Media: Boolean;
     MediaColor: TColor;
@@ -2412,6 +2413,10 @@ begin
     begin
       ConfigLines.Add('time');
       ConfigLines.Add('time_no_label');
+      if Trim(Settings.TimeFormat) <> '' then
+        ConfigLines.Add('time_format=' + Trim(Settings.TimeFormat))
+      else
+        ConfigLines.Add('time_format=%T');
     end;
 
     // HUD version

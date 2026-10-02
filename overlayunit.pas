@@ -1705,15 +1705,15 @@ var
   // Light theme nav colors
   NAV_LIGHT_BG        = $00E8E8E8;
   NAV_LIGHT_HOVER     = $00D0D0D0;
-  NAV_LIGHT_ACTIVE    = $00C0C0C0;
   NAV_W_EXPANDED  = 211;
   NAV_W_COLLAPSED = 60;
+
+function IsProcessRunningPure(const ProcName: string): Boolean;
+
 implementation
 
 uses
   xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit, reshade_tab;
-
-function IsProcessRunningPure(const ProcName: string): Boolean; forward;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -9931,6 +9931,8 @@ begin
     if GetLosslessScalingLaunchEnv <> '' then
       DbgLog('[LosslessScaling] ' + Trim(GetLosslessScalingLaunchEnv));
     RestoreIfMaximized;
+    ExecuteGUICommand('killall pascube vkcube 2>/dev/null; true');
+    Sleep(100);
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
