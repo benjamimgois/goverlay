@@ -68,6 +68,9 @@ const
   // ReShade Shaders Repository
   URL_RESHADE_SHADERS_REPO = 'https://github.com/benjamimgois/reshade-shaders.git';
   URL_RESHADE_SHADERS_CROSIRE = 'https://github.com/crosire/reshade-shaders.git';
+  URL_RESHADE_TAGS_API = 'https://api.github.com/repos/crosire/reshade/tags';
+  URL_RESHADE_HOME = 'https://reshade.me';
+  FALLBACK_RESHADE_VERSION = '6.8.0';
 
   // OptiScaler / Decky Framegen
   URL_DECKY_FRAMEGEN_API = 'https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest';

@@ -91,6 +91,8 @@ type
     procedure TestUnixPathToWinePath;
     procedure TestReShadeDirectoryLayout;
     procedure TestReShadeIniPathFormatting;
+    procedure TestReShadeInstalledVersionFallbackAndMetadata;
+    procedure TestParseReShadeMeHtml;
   end;
 
   TSyncGameWrapperBinariesTests = class(TTestCase)
@@ -1403,6 +1405,72 @@ begin
 
   AssertEquals('EffectSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', EffectPaths);
   AssertEquals('TextureSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', TexturePaths);
+end;
+
+procedure TReShadeLogicTests.TestReShadeInstalledVersionFallbackAndMetadata;
+var
+  BaseDir, BinDir, VerFile: string;
+  SL: TStringList;
+begin
+  BaseDir := GetReShadeBasePath;
+  BinDir := GetReShadeBinPath;
+  VerFile := IncludeTrailingPathDelimiter(BaseDir) + 'version.txt';
+
+  // 1. Initially nothing exists -> empty string
+  if FileExists(VerFile) then DeleteFile(VerFile);
+  if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
+  AssertEquals('Not installed returns empty', '', GetReShadeInstalledVersion);
+
+  // 2. DLL exists but no version.txt -> fallback to 6.4.0
+  EnsureReShadeDirectories;
+  SL := TStringList.Create;
+  try
+    SL.SaveToFile(BinDir + '/ReShade64.dll');
+  finally
+    SL.Free;
+  end;
+  AssertEquals('Fallback to 6.4.0 when DLL present without version.txt', '6.4.0', GetReShadeInstalledVersion);
+
+  // 3. version.txt exists -> returns version.txt content
+  SL := TStringList.Create;
+  try
+    SL.Add('6.8.0');
+    SL.SaveToFile(VerFile);
+  finally
+    SL.Free;
+  end;
+  AssertEquals('Returns version from version.txt', '6.8.0', GetReShadeInstalledVersion);
+
+  // 4. version.txt with leading v -> stripped
+  SL := TStringList.Create;
+  try
+    SL.Add('v6.8.0');
+    SL.SaveToFile(VerFile);
+  finally
+    SL.Free;
+  end;
+  AssertEquals('Leading v stripped from version.txt', '6.8.0', GetReShadeInstalledVersion);
+
+  // Cleanup
+  if FileExists(VerFile) then DeleteFile(VerFile);
+  if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
+end;
+
+procedure TReShadeLogicTests.TestParseReShadeMeHtml;
+var
+  Html, Url, Ver: string;
+begin
+  // Valid link in HTML
+  Html := '<p><a href="/downloads/ReShade_Setup_6.8.0_Addon.exe" class="button">Download ReShade 6.8.0</a></p>';
+  Ver := ParseReShadeMeHtml(Html, Url);
+  AssertEquals('Parsed version', '6.8.0', Ver);
+  AssertEquals('Generated Addon URL', 'https://reshade.me/downloads/ReShade_Setup_6.8.0_Addon.exe', Url);
+
+  // No match
+  Html := '<html><body>No downloads here</body></html>';
+  Ver := ParseReShadeMeHtml(Html, Url);
+  AssertEquals('Empty on no match', '', Ver);
+  AssertEquals('Empty URL on no match', '', Url);
 end;
 
 procedure TSyncGameWrapperBinariesTests.TestSyncOutdatedWrappersPreservingConfigs;

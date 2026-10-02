@@ -530,7 +530,7 @@ begin
     end;
 
     if ReShadeOK then
-      FHomeModVerLbls[7].Caption := '6.4 (Add-on Edition)'
+      FHomeModVerLbls[7].Caption := GetReShadeInstalledVersion + ' (Add-on Edition)'
     else
       FHomeModVerLbls[7].Caption := 'not found';
     FHomeModVerLbls[7].Font.Color := CLR_TEXT_MUTED;

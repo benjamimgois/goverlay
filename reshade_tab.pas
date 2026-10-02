@@ -272,6 +272,8 @@ begin
       FHelper.FUpdateBtn.Enabled := True;
       FHelper.FUpdateBtn.Caption := 'Check updates';
     end;
+    if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+      Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
   end;
 end;
 
@@ -1257,7 +1259,7 @@ begin
     if HasDll then
     begin
       FStatDot.Brush.Color := CLR_OK;
-      FStatVerLbl.Caption := '6.4 (Add-on Edition)';
+      FStatVerLbl.Caption := GetReShadeInstalledVersion + ' (Add-on Edition)';
       FStatVerLbl.Font.Color := PURPLE;
     end
     else

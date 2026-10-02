@@ -41,6 +41,7 @@ type
     procedure TestNavigateReshadeTab;
     procedure TestReShadeTabOrderingAndCardControls;
     procedure TestReShadeConfigSaveAndLoad;
+    procedure TestReShadeDynamicVersionStatus;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -949,6 +950,61 @@ begin
   finally
     Ini.Free;
   end;
+end;
+
+procedure TGoverlayGuiTests.TestReShadeDynamicVersionStatus;
+var
+  Helper: TReshadeTabHelper;
+  BaseDir, BinDir, VerFile: string;
+  SL: TStringList;
+begin
+  NavigateReshadeTab;
+  Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
+  AssertTrue('Helper assigned', Assigned(Helper));
+
+  BaseDir := GetReShadeBasePath;
+  BinDir := GetReShadeBinPath;
+  VerFile := IncludeTrailingPathDelimiter(BaseDir) + 'version.txt';
+
+  // 1. When version.txt contains 6.8.0 and binary exists
+  EnsureReShadeDirectories;
+  ForceDirectories(GetReShadeShadersPath + '/Shaders');
+  SL := TStringList.Create;
+  try
+    SL.SaveToFile(BinDir + '/ReShade64.dll');
+    SL.SaveToFile(BinDir + '/ReShade32.dll');
+    SL.Clear;
+    SL.Add('6.8.0');
+    SL.SaveToFile(VerFile);
+  finally
+    SL.Free;
+  end;
+
+  Helper.RefreshStatus;
+  AssertEquals('ReShade tab shows 6.8.0', '6.8.0 (Add-on Edition)', Helper.StatVerLbl.Caption);
+
+  goverlayform.RefreshHomeModuleStatus;
+  AssertEquals('Home tab shows 6.8.0', '6.8.0 (Add-on Edition)', goverlayform.FHomeModVerLbls[7].Caption);
+
+  // 2. When version.txt contains 6.4.0
+  SL := TStringList.Create;
+  try
+    SL.Add('6.4.0');
+    SL.SaveToFile(VerFile);
+  finally
+    SL.Free;
+  end;
+
+  Helper.RefreshStatus;
+  AssertEquals('ReShade tab shows 6.4.0', '6.4.0 (Add-on Edition)', Helper.StatVerLbl.Caption);
+
+  goverlayform.RefreshHomeModuleStatus;
+  AssertEquals('Home tab shows 6.4.0', '6.4.0 (Add-on Edition)', goverlayform.FHomeModVerLbls[7].Caption);
+
+  // Cleanup
+  if FileExists(VerFile) then DeleteFile(VerFile);
+  if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
+  if FileExists(BinDir + '/ReShade32.dll') then DeleteFile(BinDir + '/ReShade32.dll');
 end;
 
 procedure TGoverlayGuiTests.NavigateVkBasaltTab;

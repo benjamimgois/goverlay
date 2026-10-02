@@ -65,6 +65,9 @@ function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadPr
 function ExtractArchive7z(const A7zFile, ADestPath: string): Boolean;
 function ExtractTarArchive(const ATarFile, ADestPath: string; AStripComponents: Integer = 0): Boolean;
 function IsReShadeInstalled: Boolean;
+function GetReShadeInstalledVersion: string;
+function ParseReShadeMeHtml(const AHtml: string; out AUrl: string): string;
+function GetReShadeLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
@@ -5588,6 +5591,7 @@ begin
     Process.Parameters.Add('-o' + ADestPath);
     Process.Parameters.Add(A7zFile);
     Process.Options := [poWaitOnExit];
+    Flush(Output);
     Process.Execute;
     Result := (Process.ExitStatus = 0);
   finally
@@ -5634,14 +5638,205 @@ begin
             DirectoryExists(ShadersDir + 'Shaders');
 end;
 
+function GetReShadeInstalledVersion: string;
+var
+  VerFile, BinDir: string;
+  SL: TStringList;
+begin
+  Result := '';
+  VerFile := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'version.txt';
+  if FileExists(VerFile) then
+  begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(VerFile);
+      if SL.Count > 0 then
+        Result := Trim(SL[0]);
+    finally
+      SL.Free;
+    end;
+  end;
+
+  if (Length(Result) > 0) and (Result[1] in ['v', 'V']) then
+    Delete(Result, 1, 1);
+
+  if Result = '' then
+  begin
+    BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
+    if FileExists(BinDir + 'ReShade64.dll') or FileExists(BinDir + 'ReShade32.dll') then
+      Result := '6.4.0';
+  end;
+end;
+
+function ParseReShadeMeHtml(const AHtml: string; out AUrl: string): string;
+var
+  pStart, pEnd: Integer;
+  Ver: string;
+  UpperHtml: string;
+const
+  PREFIX = 'ReShade_Setup_';
+  SUFFIX = '_Addon.exe';
+begin
+  Result := '';
+  AUrl := '';
+  pStart := Pos(PREFIX, AHtml);
+  if pStart > 0 then
+  begin
+    pStart := pStart + Length(PREFIX);
+    pEnd := Pos(SUFFIX, Copy(AHtml, pStart, MaxInt));
+    if pEnd <= 0 then
+    begin
+      UpperHtml := UpperCase(Copy(AHtml, pStart, MaxInt));
+      pEnd := Pos('_ADDON.EXE', UpperHtml);
+    end;
+    if pEnd > 0 then
+    begin
+      Ver := Copy(AHtml, pStart, pEnd - 1);
+      if (Ver <> '') and (Ver[1] in ['0'..'9']) then
+      begin
+        Result := Ver;
+        AUrl := 'https://reshade.me/downloads/ReShade_Setup_' + Ver + '_Addon.exe';
+      end;
+    end;
+  end;
+end;
+
+function GetReShadeLatestRemoteVersion(out AUrl: string): string;
+var
+  RespFile, RespText, TagName: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  JsonData: TJSONData;
+  TagsArray: TJSONArray;
+  TagObj: TJSONObject;
+  i: Integer;
+begin
+  Result := '';
+  AUrl := '';
+
+  // 1. Try querying GitHub tags API
+  RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_tags_' + IntToStr(fpgetpid) + '.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('10');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(RespFile);
+    Process.Parameters.Add(URL_RESHADE_TAGS_API);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+
+    if FileExists(RespFile) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(RespFile);
+        RespText := OutputList.Text;
+      finally
+        OutputList.Free;
+        DeleteFile(RespFile);
+      end;
+
+      if RespText <> '' then
+      begin
+        try
+          JsonData := GetJSON(RespText);
+          try
+            if Assigned(JsonData) and (JsonData is TJSONArray) then
+            begin
+              TagsArray := TJSONArray(JsonData);
+              if TagsArray.Count > 0 then
+              begin
+                for i := 0 to TagsArray.Count - 1 do
+                begin
+                  if TagsArray.Types[i] = jtObject then
+                  begin
+                    TagObj := TJSONObject(TagsArray[i]);
+                    TagName := TagObj.Get('name', '');
+                    if TagName <> '' then
+                    begin
+                      if TagName[1] in ['v', 'V'] then
+                        Delete(TagName, 1, 1);
+                      if (TagName <> '') and (TagName[1] in ['0'..'9']) then
+                      begin
+                        Result := TagName;
+                        AUrl := 'https://reshade.me/downloads/ReShade_Setup_' + Result + '_Addon.exe';
+                        Break;
+                      end;
+                    end;
+                  end;
+                end;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        except
+          // ignore json parse error (e.g. rate limit response)
+        end;
+      end;
+    end;
+  finally
+    Process.Free;
+  end;
+
+  // 2. If GitHub tags API didn't return a version, try parsing reshade.me homepage
+  if Result = '' then
+  begin
+    RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_home_' + IntToStr(fpgetpid) + '.html';
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('--max-time');
+      Process.Parameters.Add('10');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(RespFile);
+      Process.Parameters.Add(URL_RESHADE_HOME);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+
+      if FileExists(RespFile) then
+      begin
+        OutputList := TStringList.Create;
+        try
+          OutputList.LoadFromFile(RespFile);
+          Result := ParseReShadeMeHtml(OutputList.Text, AUrl);
+        finally
+          OutputList.Free;
+          DeleteFile(RespFile);
+        end;
+      end;
+    finally
+      Process.Free;
+    end;
+  end;
+
+  // 3. Fallback to known safe baseline version
+  if Result = '' then
+  begin
+    Result := FALLBACK_RESHADE_VERSION;
+    AUrl := 'https://reshade.me/downloads/ReShade_Setup_' + Result + '_Addon.exe';
+  end;
+  if AUrl = '' then
+    AUrl := 'https://reshade.me/downloads/ReShade_Setup_' + Result + '_Addon.exe';
+end;
+
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   StartPct, EndPct: Integer;
   ChanLabel: string;
   ReShadeExeUrl, ShadersTarUrl: string;
   TempExe, TempExtractDir, TempTar: string;
-  BinDir, ShadersDir, PresetsDir, IniTemplatePath: string;
+  BinDir, ShadersDir, PresetsDir, IniTemplatePath, VerFilePath: string;
   IniLines: TStringList;
+  RemoteVer: string;
 begin
   Result := False;
   StartPct := 88;
@@ -5654,7 +5849,8 @@ begin
 
   if not AForce and IsReShadeInstalled then
   begin
-    WriteLn('[AUTO-INSTALL] ReShade runtime is already installed');
+    WriteLn('[AUTO-INSTALL] ReShade runtime is already installed (version: ', GetReShadeInstalledVersion, ')');
+    Flush(Output);
     if Assigned(AOnProgress) then
       AOnProgress(EndPct, 'ReShade runtime ready');
     Result := True;
@@ -5668,15 +5864,22 @@ begin
   WriteLn('[AUTO-INSTALL] ========================================');
   WriteLn('[AUTO-INSTALL] Installing ReShade (Add-on) in user space...');
   WriteLn('[AUTO-INSTALL] ========================================');
+  Flush(Output);
 
   try
-    // Step 1: Download and extract ReShade Add-on installer
-    ReShadeExeUrl := 'https://reshade.me/downloads/ReShade_Setup_6.4.0_Addon.exe';
+    // Step 1: Discover latest remote version and download installer
+    RemoteVer := GetReShadeLatestRemoteVersion(ReShadeExeUrl);
+    if ReShadeExeUrl = '' then
+      ReShadeExeUrl := 'https://reshade.me/downloads/ReShade_Setup_' + RemoteVer + '_Addon.exe';
+
     TempExe := IncludeTrailingPathDelimiter(GetTempDir) + 'ReShade_Setup_Addon.exe';
     TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_ext_' + IntToStr(fpgetpid) + PathDelim;
 
     if Assigned(AOnProgress) then
-      AOnProgress(StartPct + 2, 'Downloading ReShade (Add-on)...');
+      AOnProgress(StartPct + 2, 'Downloading ReShade ' + RemoteVer + ' (Add-on)...');
+
+    WriteLn('[AUTO-INSTALL] Downloading ReShade version: ', RemoteVer, ' from ', ReShadeExeUrl);
+    Flush(Output);
 
     if RunCurlWithProgress(ReShadeExeUrl, TempExe, StartPct + 2, StartPct + 5, 'Downloading ReShade...', AOnProgress) = 0 then
     begin
@@ -5686,6 +5889,7 @@ begin
           AOnProgress(StartPct + 6, 'Extracting ReShade runtime...');
 
         ForceDirectories(TempExtractDir);
+        Flush(Output);
         if ExtractArchive7z(TempExe, TempExtractDir) then
         begin
           if FileExists(TempExtractDir + 'ReShade64.dll') then
@@ -5696,10 +5900,21 @@ begin
             CopyFile(TempExtractDir + 'ReShade64.json', BinDir + 'ReShade64.json');
           if FileExists(TempExtractDir + 'ReShade32.json') then
             CopyFile(TempExtractDir + 'ReShade32.json', BinDir + 'ReShade32.json');
+
+          // Persist installed version metadata
+          VerFilePath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'version.txt';
+          IniLines := TStringList.Create;
+          try
+            IniLines.Add(RemoteVer);
+            IniLines.SaveToFile(VerFilePath);
+          finally
+            IniLines.Free;
+          end;
         end
         else
         begin
           WriteLn('[AUTO-INSTALL] 7z extraction of ReShade setup failed');
+          Flush(Output);
           if Assigned(AFailedFiles) then
             AFailedFiles.Add('ReShade runtime (7z extraction failed)');
         end;
@@ -5711,8 +5926,9 @@ begin
     else
     begin
       WriteLn('[AUTO-INSTALL] Download of ReShade setup failed');
+      Flush(Output);
       if Assigned(AFailedFiles) then
-        AFailedFiles.Add('ReShade_Setup_6.4.0_Addon.exe');
+        AFailedFiles.Add('ReShade_Setup_' + RemoteVer + '_Addon.exe');
     end;
 
     // Step 2: Download standard shaders if missing
@@ -5731,6 +5947,7 @@ begin
           if Assigned(AOnProgress) then
             AOnProgress(StartPct + 10, 'Extracting Standard Shaders...');
 
+          Flush(Output);
           ExtractTarArchive(TempTar, ShadersDir, 1);
           DeleteFile(TempTar);
         end;
@@ -5738,6 +5955,7 @@ begin
       else
       begin
         WriteLn('[AUTO-INSTALL] Download of standard shaders failed');
+        Flush(Output);
         if Assigned(AFailedFiles) then
           AFailedFiles.Add('ReShade Standard Shaders');
       end;
@@ -5767,12 +5985,17 @@ begin
     Result := IsReShadeInstalled;
     if Result then
     begin
+      WriteLn('[AUTO-INSTALL] ReShade runtime (Add-on) installed successfully (version: ', GetReShadeInstalledVersion, ')');
+      Flush(Output);
       if Assigned(AOnProgress) then
         AOnProgress(EndPct, 'ReShade runtime ready');
     end;
   except
     on E: Exception do
+    begin
       WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallReShade: ', E.Message);
+      Flush(Output);
+    end;
   end;
 end;
 
