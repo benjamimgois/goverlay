@@ -911,7 +911,7 @@ begin
   else if FileExists('../../data/bgmod/bgmod') then
     Result := '../../data/bgmod/bgmod'
   else
-    Result := 'bgmod';
+    Result := FindTestHelperExecutable('bgmod');
 end;
 
 procedure TBgmodSupervisorTests.TestSupervisorExitCodeTrue;
@@ -921,10 +921,10 @@ begin
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
-    Proc.Parameters.Add('/bin/true');
+    Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
-    AssertEquals('bgmod /bin/true should return exit code 0', 0, Proc.ExitStatus);
+    AssertEquals('bgmod true should return exit code 0', 0, Proc.ExitStatus);
   finally
     Proc.Free;
   end;
@@ -937,10 +937,10 @@ begin
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
-    Proc.Parameters.Add('/bin/false');
+    Proc.Parameters.Add(FindTestHelperExecutable('false'));
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
-    AssertEquals('bgmod /bin/false should return exit code 1', 1, Proc.ExitStatus);
+    AssertEquals('bgmod false should return exit code 1', 1, Proc.ExitStatus);
   finally
     Proc.Free;
   end;
@@ -953,7 +953,7 @@ begin
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
-    Proc.Parameters.Add('/bin/sh');
+    Proc.Parameters.Add(FindTestHelperExecutable('sh'));
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add('echo "testing stderr output" >&2; exit 0');
     Proc.Options := [poWaitOnExit];
@@ -1019,11 +1019,11 @@ begin
   if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then
     setenv('DISPLAY', ':99', 1);
 
-  // Run bgmod /bin/true
+  // Run bgmod true
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := TestGameDir + '/bgmod';
-    Proc.Parameters.Add('/bin/true');
+    Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
     AssertEquals('bgmod should return 0', 0, Proc.ExitStatus);
@@ -1263,13 +1263,13 @@ begin
     Proc.Free;
   end;
 
-  // Create mock native Linux executable with valid ELF binary (copying /bin/true)
+  // Create mock native Linux executable with valid ELF binary (copying true)
   MockExe := MockBinDir + '/eurotrucks2';
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := 'cp';
     Proc.Parameters.Add('-f');
-    Proc.Parameters.Add('/bin/true');
+    Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Parameters.Add(MockExe);
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
@@ -1718,11 +1718,11 @@ begin
     Proc.Free;
   end;
 
-  // 3. Execute the game wrapper with /bin/true
+  // 3. Execute the game wrapper with true
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GameDir + '/bgmod';
-    Proc.Parameters.Add('/bin/true');
+    Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
     AssertEquals('Self-updating bgmod process should exit with code 0', 0, Proc.ExitStatus);

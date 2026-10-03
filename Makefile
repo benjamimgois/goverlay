@@ -104,11 +104,11 @@ tests:
 test: test-logic test-gui
 
 test-logic: bgmod bgmod-uninstaller bgmod-splash
-	lazbuild tests/logic/logic_tests.lpi --widgetset=qt6 $(LAZBUILDOPTS)
+	lazbuild tests/logic/logic_tests.lpi $(LAZBUILDOPTS)
 	./tests/logic/logic_tests
 
 test-gui:
-	lazbuild tests/gui/gui_tests.lpi --widgetset=qt6 $(LAZBUILDOPTS)
+	lazbuild tests/gui/gui_tests.lpi $(LAZBUILDOPTS)
 	./tests/gui/gui_tests
 
 tarball: goverlay start_goverlay.sh

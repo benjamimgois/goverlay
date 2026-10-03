@@ -2864,7 +2864,7 @@ begin
   try
     Proc.Executable := '/bin/sh';
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
-      GameCfgDir + 'bgmod" /bin/true "' + GameDir + 'StreamlineGame.exe"';
+      GameCfgDir + 'bgmod" "' + FindTestHelperExecutable('true') + '" "' + GameDir + 'StreamlineGame.exe"';
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add(ExecCmd);
     Proc.Options := [poWaitOnExit];
@@ -3135,7 +3135,7 @@ begin
   try
     Proc.Executable := '/bin/sh';
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
-      GameCfgDir + 'bgmod" /bin/true "' + GameDir + 'Game.exe"';
+      GameCfgDir + 'bgmod" "' + FindTestHelperExecutable('true') + '" "' + GameDir + 'Game.exe"';
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add(ExecCmd);
     Proc.Options := [poWaitOnExit];

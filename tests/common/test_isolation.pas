@@ -8,6 +8,7 @@ procedure EnsureIsolatedEnvironment(const ASeedDriver: string);
 function IsolatedHome: string;
 function IsSafeSandboxDir(const ADir: string): Boolean;
 procedure CleanupIsolatedEnvironment(ASuccess: Boolean);
+function FindTestHelperExecutable(const AName: string): string;
 
 implementation
 
@@ -131,6 +132,20 @@ begin
   end
   else
     WriteLn('[test] FAILURES detected - preserved isolated HOME at: ', FHome);
+end;
+
+function FindTestHelperExecutable(const AName: string): string;
+begin
+  Result := FileSearch(AName, GetEnvironmentVariable('PATH'));
+  if Result = '' then
+  begin
+    if FileExists('/usr/bin/' + AName) then
+      Result := '/usr/bin/' + AName
+    else if FileExists('/bin/' + AName) then
+      Result := '/bin/' + AName
+    else
+      Result := AName;
+  end;
 end;
 
 end.
