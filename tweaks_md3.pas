@@ -75,7 +75,7 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY'; Description: '[proton-cachyos] low-latency frame pacing (DX11 & DX12)'),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap / PROTON_VKD3D_HEAP=1'; Description: 'Alternative descriptor heap (fixes RT in Control Resonant)'),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap'; Description: 'Alternative descriptor heap'),
     (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                         Description: '[nvidia] Activates Ray Reconstruction'),
     (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                            Description: 'Multiplier for Ray Tracing Acceleration Structures size')
   );
@@ -476,7 +476,7 @@ begin
   FForm.FProtonVkd3dHeapCheckBox.Parent  := FForm;
   FForm.FProtonVkd3dHeapCheckBox.Visible := False;
   FForm.FProtonVkd3dHeapCheckBox.Name    := 'protonVkd3dHeapCheckBox';
-  FForm.FProtonVkd3dHeapCheckBox.Caption := 'Enable VKD3D_CONFIG=descriptor_heap / PROTON_VKD3D_HEAP';
+  FForm.FProtonVkd3dHeapCheckBox.Caption := 'Enable VKD3D_CONFIG=descriptor_heap';
 
   FForm.FNvidiaDlssRROverrideCheckBox := TCheckBox.Create(FForm);
   FForm.FNvidiaDlssRROverrideCheckBox.Parent  := FForm;
@@ -2134,10 +2134,7 @@ begin
       Ini.WriteString('Env', 'PROTON_DISCORD_BRIDGE', '1');
 
     if FForm.FProtonVkd3dHeapCheckBox.Checked then
-    begin
       Ini.WriteString('Env', 'VKD3D_CONFIG', 'descriptor_heap');
-      Ini.WriteString('Env', 'PROTON_VKD3D_HEAP', '1');
-    end;
 
     if FForm.FNvidiaDlssRROverrideCheckBox.Checked then
       Ini.WriteString('Env', 'NGX_DLSS_RR_OVERRIDE', 'on');

@@ -4102,7 +4102,7 @@ begin
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
 
   AssertEquals('VKD3D_CONFIG descriptor_heap persisted', 'descriptor_heap', ReadBgmodConf('Env', 'VKD3D_CONFIG'));
-  AssertEquals('PROTON_VKD3D_HEAP persisted', '1', ReadBgmodConf('Env', 'PROTON_VKD3D_HEAP'));
+  AssertEquals('PROTON_VKD3D_HEAP not persisted', '', ReadBgmodConf('Env', 'PROTON_VKD3D_HEAP'));
   AssertEquals('NGX_DLSS_RR_OVERRIDE persisted', 'on', ReadBgmodConf('Env', 'NGX_DLSS_RR_OVERRIDE'));
   AssertEquals('VKD3D_RTAS_SIZE_MULT persisted', '8', ReadBgmodConf('Env', 'VKD3D_RTAS_SIZE_MULT'));
 
