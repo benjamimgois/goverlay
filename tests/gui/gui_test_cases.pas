@@ -5226,6 +5226,11 @@ begin
     AssertTrue('Dialog has no native border icons', Dlg.BorderIcons = []);
     AssertTrue('Dialog height is optimized', Dlg.Height <= 500);
     AssertTrue('Dialog KeyPreview is enabled for Escape key', Dlg.KeyPreview);
+    AssertTrue('Platform switcher image list is created', Assigned(Dlg.PlatformImages));
+    AssertTrue('Platform switcher has 3 icons', Dlg.PlatformImages.Count >= 3);
+    AssertTrue('Steam button has icon assigned', (Dlg.SteamBtn.Images <> nil) or (not Dlg.SteamBtn.Glyph.Empty));
+    AssertTrue('Heroic button has icon assigned', (Dlg.HeroicBtn.Images <> nil) or (not Dlg.HeroicBtn.Glyph.Empty));
+    AssertTrue('Lutris button has icon assigned', (Dlg.LutrisBtn.Images <> nil) or (not Dlg.LutrisBtn.Glyph.Empty));
 
     Bmp.SetSize(540, 180);
     // Exercise Steam painting and initial instructions

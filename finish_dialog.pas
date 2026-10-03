@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
-  Buttons, LCLIntf, LCLType, Clipbrd, Math, StrUtils;
+  Buttons, ImgList, LCLIntf, LCLType, Clipbrd, Math, StrUtils;
 
 type
 
@@ -30,6 +30,7 @@ type
     FDragStart:       TPoint;
 
     // Platform switcher
+    FPlatformImages:  TImageList;
     FSteamBtn:        TSpeedButton;
     FHeroicBtn:       TSpeedButton;
     FLutrisBtn:       TSpeedButton;
@@ -76,6 +77,10 @@ type
     procedure SteamBtnClick(Sender: TObject);
     procedure HeroicBtnClick(Sender: TObject);
     procedure LutrisBtnClick(Sender: TObject);
+    property SteamBtn:       TSpeedButton read FSteamBtn;
+    property HeroicBtn:      TSpeedButton read FHeroicBtn;
+    property LutrisBtn:      TSpeedButton read FLutrisBtn;
+    property PlatformImages: TImageList   read FPlatformImages;
   end;
 
 procedure ShowFinishDialog(AOwner: TComponent; const ALaunchCommand: string; const AGameTitle: string = ''; AIsNonSteam: Boolean = False);
@@ -95,6 +100,58 @@ const
   CLR_MUTED    = $7A726A;   // #6A727A
   CLR_BTN_BG   = $3D332A;   // #2A333D
   CLR_BTN_HV   = $503F30;   // #303F50
+
+// ---------------------------------------------------------------------------
+function FindAssetIcon(const AFileName: string): string;
+var
+  AppDir, BaseDir: string;
+begin
+  Result := '';
+  AppDir := GetEnvironmentVariable('APPDIR');
+  if AppDir <> '' then
+  begin
+    Result := IncludeTrailingPathDelimiter(AppDir) + 'bin/assets/icons/' + AFileName;
+    if FileExists(Result) then Exit;
+  end;
+  BaseDir := ExtractFilePath(ParamStr(0));
+  Result := BaseDir + 'assets/icons/' + AFileName;
+  if FileExists(Result) then Exit;
+  Result := ExtractFilePath(ExtractFileDir(ParamStr(0))) + 'share/goverlay/assets/icons/' + AFileName;
+  if FileExists(Result) then Exit;
+  Result := 'assets/icons/' + AFileName;
+  if FileExists(Result) then Exit;
+  Result := '';
+end;
+
+procedure LoadPlatformIcon(ABtn: TSpeedButton; const AFileName: string; AImageList: TImageList = nil);
+var
+  P: string;
+  Png: TPortableNetworkGraphic;
+  Idx: Integer;
+begin
+  P := FindAssetIcon(AFileName);
+  if (P <> '') and FileExists(P) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(P);
+      if Assigned(AImageList) then
+      begin
+        Idx := AImageList.AddMultipleResolutions([TRasterImage(Png)]);
+        ABtn.Images     := AImageList;
+        ABtn.ImageIndex := Idx;
+        ABtn.ImageWidth := 20;
+      end
+      else
+        ABtn.Glyph.Assign(Png);
+      ABtn.Layout  := blGlyphLeft;
+      ABtn.Spacing := 8;
+      ABtn.Margin  := -1;
+    finally
+      Png.Free;
+    end;
+  end;
+end;
 
 // ---------------------------------------------------------------------------
 // ShowFinishDialog helper
@@ -224,9 +281,13 @@ begin
   Y := 68;
 
   // --- Platform switcher ---
+  FPlatformImages := TImageList.Create(Self);
+  FPlatformImages.Width  := 20;
+  FPlatformImages.Height := 20;
+
   FSteamBtn             := TSpeedButton.Create(Self);
   FSteamBtn.Parent      := Self;
-  FSteamBtn.Caption     := '  Steam';
+  FSteamBtn.Caption     := 'Steam';
   FSteamBtn.Font.Name   := 'Noto Sans';
   FSteamBtn.Font.Size   := 10;
   FSteamBtn.Font.Style  := [fsBold];
@@ -239,10 +300,11 @@ begin
   FSteamBtn.GroupIndex  := 1;
   FSteamBtn.Down        := True;
   FSteamBtn.OnClick     := @SteamBtnClick;
+  LoadPlatformIcon(FSteamBtn, 'steam-gray.png', FPlatformImages);
 
   FHeroicBtn            := TSpeedButton.Create(Self);
   FHeroicBtn.Parent     := Self;
-  FHeroicBtn.Caption    := '  Heroic';
+  FHeroicBtn.Caption    := 'Heroic';
   FHeroicBtn.Font.Name  := 'Noto Sans';
   FHeroicBtn.Font.Size  := 10;
   FHeroicBtn.Font.Style := [fsBold];
@@ -255,10 +317,11 @@ begin
   FHeroicBtn.GroupIndex := 1;
   FHeroicBtn.Down       := False;
   FHeroicBtn.OnClick    := @HeroicBtnClick;
+  LoadPlatformIcon(FHeroicBtn, 'heroic-gray.png', FPlatformImages);
 
   FLutrisBtn            := TSpeedButton.Create(Self);
   FLutrisBtn.Parent     := Self;
-  FLutrisBtn.Caption    := '  Lutris';
+  FLutrisBtn.Caption    := 'Lutris';
   FLutrisBtn.Font.Name  := 'Noto Sans';
   FLutrisBtn.Font.Size  := 10;
   FLutrisBtn.Font.Style := [fsBold];
@@ -271,6 +334,7 @@ begin
   FLutrisBtn.GroupIndex := 1;
   FLutrisBtn.Down       := False;
   FLutrisBtn.OnClick    := @LutrisBtnClick;
+  LoadPlatformIcon(FLutrisBtn, 'lutris-gray.png', FPlatformImages);
 
   Inc(Y, BTN_H + 12);
 
