@@ -5216,7 +5216,7 @@ end;
 
 procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;
 var
-  Dlg, Dlg2, DlgNonSteam: TFinishDialogForm;
+  Dlg, Dlg2, Dlg3, DlgNonSteam: TFinishDialogForm;
   Bmp: TBitmap;
 begin
   Dlg := TFinishDialogForm.Create(goverlayform, 'MANGOHUD=1 %command%', 'Control Ultimate Edition');
@@ -5262,10 +5262,18 @@ begin
     try
       AssertEquals('Heroic command for custom game config strips quotes and %command%',
         '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildHeroicCommand);
-      AssertEquals('Lutris command for custom game config strips quotes and %command%',
-        '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildLutrisCommand);
+      AssertEquals('Lutris command for custom game config preserves quotes and strips %command%',
+        '"/home/user/.local/share/goverlay/gameconfig/God of War/bgmod"', Dlg2.BuildLutrisCommand);
     finally
       Dlg2.Free;
+    end;
+
+    Dlg3 := TFinishDialogForm.Create(goverlayform, '/home/user/.local/share/goverlay/gameconfig/Mortal Shell 2/bgmod', 'Mortal Shell 2', True);
+    try
+      AssertEquals('Lutris command quotes unquoted path containing spaces',
+        '"/home/user/.local/share/goverlay/gameconfig/Mortal Shell 2/bgmod"', Dlg3.BuildLutrisCommand);
+    finally
+      Dlg3.Free;
     end;
 
     // Switch to Lutris and exercise Lutris painting and System options instructions
@@ -5389,8 +5397,15 @@ begin
     AssertEquals('FActiveGameName matches', 'BatmanArkhamKnight', goverlayform.FActiveGameName);
 
     NonSteamExpected := goverlayform.GetGameConfigDir('BatmanArkhamKnight') + 'bgmod ';
-    AssertEquals('Non-Steam game launch command resolves to unquoted wrapper path',
+    AssertEquals('Non-Steam game launch command resolves to unquoted wrapper path when no spaces',
       NonSteamExpected, goverlayform.GetLaunchCommand);
+
+    // Non-Steam game with spaces in name must have quoted path
+    TestPanel.Hint := 'Mortal Shell 2' + LineEnding + '/path/to/lutris';
+    goverlayform.GameCardClick(TestPanel);
+    AssertTrue('Mortal Shell 2 is non-steam', goverlayform.FActiveGameIsNonSteam);
+    AssertEquals('Non-Steam game launch command quotes wrapper path when name contains spaces',
+      '"' + goverlayform.GetGameConfigDir('Mortal Shell 2') + 'bgmod" ', goverlayform.GetLaunchCommand);
 
     // 4. Test Gamemode integration
     goverlayform.GetPerformanceCheckBox(0).Checked := True;

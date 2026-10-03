@@ -1322,7 +1322,7 @@ begin
   // Build launch command
   if Settings.ActiveGameName <> '' then
   begin
-    if ActiveGameIsNonSteam then
+    if ActiveGameIsNonSteam and (Pos(' ', GetGameConfigDir(Settings.ActiveGameName)) = 0) then
       LaunchCommand := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod '
     else
       LaunchCommand := '"' + GetGameConfigDir(Settings.ActiveGameName) + 'bgmod" ';

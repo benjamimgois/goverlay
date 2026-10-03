@@ -9874,7 +9874,7 @@ var
 begin
   if FActiveGameName <> '' then
   begin
-    if FActiveGameIsNonSteam then
+    if FActiveGameIsNonSteam and (Pos(' ', GetGameConfigDir(FActiveGameName)) = 0) then
       Cmd := GetGameConfigDir(FActiveGameName) + 'bgmod '
     else
       Cmd := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';

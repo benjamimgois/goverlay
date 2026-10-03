@@ -492,9 +492,29 @@ begin
 end;
 
 function TFinishDialogForm.BuildLutrisCommand: string;
+var
+  S, WrapperPath, Suffix: string;
+  BgmodIdx: Integer;
 begin
-  // Lutris "Command prefix" field expects the executable path without %command% suffix and unquoted
-  Result := BuildHeroicCommand;
+  S := Trim(FLaunchCommand);
+  // Lutris "Command prefix" field expects the command line without %command% suffix.
+  // Quoting is preserved or applied so paths with spaces survive Lutris's shlex argument parser.
+  if EndsText('%command%', S) then
+    S := Trim(Copy(S, 1, Length(S) - Length('%command%')));
+  if EndsText('%COMMAND%', S) then
+    S := Trim(Copy(S, 1, Length(S) - Length('%COMMAND%')));
+
+  // If the command is unquoted and contains a bgmod path with spaces, quote the wrapper path
+  BgmodIdx := Pos('bgmod', S);
+  if (BgmodIdx > 0) and (not StartsStr('"', S)) then
+  begin
+    WrapperPath := Copy(S, 1, BgmodIdx + Length('bgmod') - 1);
+    Suffix := Copy(S, BgmodIdx + Length('bgmod'), MaxInt);
+    if Pos(' ', WrapperPath) > 0 then
+      S := '"' + WrapperPath + '"' + Suffix;
+  end;
+
+  Result := Trim(S);
 end;
 
 procedure TFinishDialogForm.UpdateForPlatform;
