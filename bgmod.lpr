@@ -2407,6 +2407,9 @@ var
   MakoScalingEnabled, MakoScalingMethod, MakoScalingFactor, MakoScalingSharpness, MakoScalingSs: string;
   MakoAdaptive, MakoTargetFps, MakoAdaptiveMaxMult, MakoSteady2xCap, MakoAllowFp16: string;
   MakoBaseFpsCap, MakoRefreshThreshold, MakoFgLive, MakoUltraPerf: string;
+  AfmfPerfMode, AfmfSearchMode, AfmfFastMotion, AfmfPacing, AfmfGovernor, AfmfPresentMode: string;
+  AfmfMinFps, AfmfHudDetect, AfmfGamescope, AfmfDirectIngest, AfmfDirectOutput, AfmfAsync: string;
+  AfmfStaticSad, AfmfLog, AfmfProfile: string;
   ProfileName, CurProfile: string;
   LsfgMult: Integer;
   TomlLines: TStringList;
@@ -2614,6 +2617,22 @@ begin
       LsfgGpu := Ini.ReadString('Config', 'LS_GPU', Ini.ReadString('Env', 'LSFG_GPU', ''));
       LsfgOverridePresent := Ini.ReadString('Config', 'LS_OVERRIDE_PRESENT_MODE', Ini.ReadString('Env', 'LSFG_OVERRIDE_PRESENT_MODE', '1'));
       LsfgPreserveSwapchain := Ini.ReadString('Config', 'LS_PRESERVE_SWAPCHAIN_IMAGE_COUNT', Ini.ReadString('Env', 'LSFG_PRESERVE_SWAPCHAIN_IMAGE_COUNT', '0'));
+      
+      AfmfPerfMode := Ini.ReadString('Config', 'AFMF_PERFORMANCE_MODE', 'auto');
+      AfmfSearchMode := Ini.ReadString('Config', 'AFMF_SEARCH_MODE', 'auto');
+      AfmfFastMotion := Ini.ReadString('Config', 'AFMF_FAST_MOTION_RESPONSE', 'blend');
+      AfmfPacing := Ini.ReadString('Config', 'AFMF_PACING', '1');
+      AfmfGovernor := Ini.ReadString('Config', 'AFMF_GOVERNOR', '0');
+      AfmfPresentMode := Ini.ReadString('Config', 'AFMF_PRESENT_MODE', 'auto');
+      AfmfMinFps := Ini.ReadString('Config', 'AFMF_MIN_FPS', '30');
+      AfmfHudDetect := Ini.ReadString('Config', 'AFMF_HUD_DETECT', '1');
+      AfmfGamescope := Ini.ReadString('Config', 'AFMF_GAMESCOPE', '0');
+      AfmfDirectIngest := Ini.ReadString('Config', 'AFMF_DIRECT_INGEST', '0');
+      AfmfDirectOutput := Ini.ReadString('Config', 'AFMF_DIRECT_OUTPUT', '0');
+      AfmfAsync := Ini.ReadString('Config', 'AFMF_ASYNC', '0');
+      AfmfStaticSad := Ini.ReadString('Config', 'AFMF_STATIC_SAD', '0');
+      AfmfLog := Ini.ReadString('Config', 'AFMF_LOG', 'none');
+      AfmfProfile := Ini.ReadString('Config', 'AFMF_PROFILE', '0');
       
       Ini.ReadSectionValues('Env', EnvList);
 
@@ -3294,7 +3313,7 @@ begin
         TomlLines.Free;
       end;
     end
-    else // mako
+    else if (InterpolationMethod = 'mako') or (InterpolationMethod = '') then
     begin
       TomlPath := IncludeTrailingPathDelimiter(ConfigDir) + 'conf.toml';
       TomlLines := TStringList.Create;
@@ -3565,6 +3584,105 @@ begin
       finally
         TomlLines.Free;
       end;
+    end
+    else if InterpolationMethod = 'afmf' then
+    begin
+      SetEnvVarInList(EnvStrings, 'AFMF_ENABLE', '1');
+      SetEnvVarInList(EnvStrings, 'DISABLE_LSFGVK', '1');
+      Log('Export: AFMF_ENABLE=1');
+      Log('Export: DISABLE_LSFGVK=1');
+
+      if AfmfPerfMode <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_PERFORMANCE_MODE', AfmfPerfMode);
+        Log('Export: AFMF_PERFORMANCE_MODE=' + AfmfPerfMode);
+      end;
+
+      if AfmfSearchMode <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_SEARCH_MODE', AfmfSearchMode);
+        Log('Export: AFMF_SEARCH_MODE=' + AfmfSearchMode);
+      end;
+
+      if AfmfFastMotion <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_FAST_MOTION_RESPONSE', AfmfFastMotion);
+        Log('Export: AFMF_FAST_MOTION_RESPONSE=' + AfmfFastMotion);
+      end;
+
+      if AfmfPacing <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_PACING', AfmfPacing);
+        Log('Export: AFMF_PACING=' + AfmfPacing);
+      end;
+
+      if AfmfGovernor <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_GOVERNOR', AfmfGovernor);
+        Log('Export: AFMF_GOVERNOR=' + AfmfGovernor);
+      end;
+
+      if AfmfPresentMode <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_PRESENT_MODE', AfmfPresentMode);
+        Log('Export: AFMF_PRESENT_MODE=' + AfmfPresentMode);
+      end;
+
+      if (AfmfMinFps <> '') and (AfmfMinFps <> '0') then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_MIN_FPS', AfmfMinFps);
+        Log('Export: AFMF_MIN_FPS=' + AfmfMinFps);
+      end;
+
+      if AfmfHudDetect <> '' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_HUD_DETECT', AfmfHudDetect);
+        Log('Export: AFMF_HUD_DETECT=' + AfmfHudDetect);
+      end;
+
+      if AfmfGamescope = '1' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_GAMESCOPE', '1');
+        SetEnvVarInList(EnvStrings, 'AFMF_EXTRA_IMAGES', '5');
+        Log('Export: AFMF_GAMESCOPE=1');
+        Log('Export: AFMF_EXTRA_IMAGES=5');
+      end;
+
+      if AfmfDirectIngest = '1' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_DIRECT_INGEST', '1');
+        Log('Export: AFMF_DIRECT_INGEST=1');
+      end;
+
+      if AfmfDirectOutput = '1' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_DIRECT_OUTPUT', '1');
+        Log('Export: AFMF_DIRECT_OUTPUT=1');
+      end;
+
+      if AfmfAsync = '1' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_ASYNC', '1');
+        Log('Export: AFMF_ASYNC=1');
+      end;
+
+      if (AfmfStaticSad <> '') and (AfmfStaticSad <> '0') then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_STATIC_SAD', AfmfStaticSad);
+        Log('Export: AFMF_STATIC_SAD=' + AfmfStaticSad);
+      end;
+
+      if (AfmfLog <> '') and (AfmfLog <> 'none') then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_LOG', AfmfLog);
+        Log('Export: AFMF_LOG=' + AfmfLog);
+      end;
+
+      if AfmfProfile = '1' then
+      begin
+        SetEnvVarInList(EnvStrings, 'AFMF_PROFILE', '1');
+        Log('Export: AFMF_PROFILE=1');
+      end;
     end;
   end;
   
@@ -3817,7 +3935,9 @@ begin
 
       if GOverlayLossless then
       begin
-        if InterpolationMethod = 'lsfg' then
+        if InterpolationMethod = 'afmf' then
+          SplashItems.Add('AMD Fluid Motion Frames (AFMF)')
+        else if InterpolationMethod = 'lsfg' then
           SplashItems.Add('Lossless Scaling (lsfg-vk)')
         else if InterpolationMethod = 'mako' then
           SplashItems.Add('Lossless Scaling (Mako)')

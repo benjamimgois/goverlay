@@ -61,6 +61,13 @@ function ParseLsfgVkBuildsHtml(const AHtml: string; out AUrl: string): string;
 function GetLsfgVkLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Check and automatically install AFMF Vulkan layer if not present
+function IsAfmfInstalled: Boolean;
+function GetAfmfLibraryPath: string;
+function GetAfmfInstalledVersion: string;
+function GetAfmfLatestRemoteVersion(out AUrl: string): string;
+function CheckAndInstallAfmf(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+
 // Check and automatically install ReShade runtime and standard shaders
 function ExtractArchive7z(const A7zFile, ADestPath: string): Boolean;
 function ExtractTarArchive(const ATarFile, ADestPath: string; AStripComponents: Integer = 0): Boolean;
@@ -3926,6 +3933,10 @@ begin
   if not DirectoryExists(ReShadeShaders + 'Shaders') then
     AMissingList.Add('ReShade Standard Shaders');
 
+  // AFMF Vulkan layer
+  if not IsAfmfInstalled and not IsRunningInFlatpak then
+    AMissingList.Add('afmf-linux layer');
+
   Result := AMissingList.Count > 0;
 end;
 
@@ -5563,6 +5574,354 @@ begin
   except
     on E: Exception do
       WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallLsfgVk: ', E.Message);
+  end;
+end;
+
+function IsAfmfInstalled: Boolean;
+var
+  HomeDir, UserLayerDir: string;
+begin
+  HomeDir := GetUserDir;
+  UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
+
+  Result := FileExists(UserLayerDir + 'afmf-linux.json') or
+            FileExists('/usr/share/vulkan/implicit_layer.d/afmf-linux.json') or
+            FileExists('/usr/local/share/vulkan/implicit_layer.d/afmf-linux.json') or
+            FileExists('/etc/vulkan/implicit_layer.d/afmf-linux.json') or
+            FileExists('/app/share/vulkan/implicit_layer.d/afmf-linux.json');
+end;
+
+function GetAfmfLibraryPath: string;
+var
+  Candidate: string;
+begin
+  Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/afmf-linux/libafmf-linux.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
+  if FileExists('/usr/lib/afmf-linux/libafmf-linux.so') then Exit('/usr/lib/afmf-linux/libafmf-linux.so');
+  if FileExists('/usr/lib/libafmf-linux.so') then Exit('/usr/lib/libafmf-linux.so');
+  if FileExists('/usr/lib/x86_64-linux-gnu/afmf-linux/libafmf-linux.so') then Exit('/usr/lib/x86_64-linux-gnu/afmf-linux/libafmf-linux.so');
+  if FileExists('/usr/lib/x86_64-linux-gnu/libafmf-linux.so') then Exit('/usr/lib/x86_64-linux-gnu/libafmf-linux.so');
+  if FileExists('/usr/local/lib/afmf-linux/libafmf-linux.so') then Exit('/usr/local/lib/afmf-linux/libafmf-linux.so');
+  if FileExists('/usr/local/lib/libafmf-linux.so') then Exit('/usr/local/lib/libafmf-linux.so');
+  if FileExists('/app/lib/afmf-linux/libafmf-linux.so') then Exit('/app/lib/afmf-linux/libafmf-linux.so');
+end;
+
+function GetAfmfInstalledVersion: string;
+var
+  LayerPath, Line, RawVer, SubStr: string;
+  S: TStringList;
+  i, p1, p2: Integer;
+  Proc: TProcess;
+begin
+  Result := '';
+  RawVer := '';
+
+  LayerPath := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/afmf-linux.json';
+  if not FileExists(LayerPath) then
+    LayerPath := '/usr/local/share/vulkan/implicit_layer.d/afmf-linux.json';
+  if not FileExists(LayerPath) then
+    LayerPath := '/usr/share/vulkan/implicit_layer.d/afmf-linux.json';
+  if not FileExists(LayerPath) then
+    LayerPath := '/etc/vulkan/implicit_layer.d/afmf-linux.json';
+  if not FileExists(LayerPath) then
+    LayerPath := '/app/share/vulkan/implicit_layer.d/afmf-linux.json';
+
+  if FileExists(LayerPath) then
+  begin
+    S := TStringList.Create;
+    try
+      S.LoadFromFile(LayerPath);
+      for i := 0 to S.Count - 1 do
+      begin
+        Line := Trim(S[i]);
+        p1 := Pos('afmf-linux ', Line);
+        if p1 > 0 then
+        begin
+          SubStr := Copy(Line, p1 + Length('afmf-linux '), MaxInt);
+          p2 := Pos(':', SubStr);
+          if p2 > 0 then
+            RawVer := Trim(Copy(SubStr, 1, p2 - 1))
+          else
+          begin
+            p2 := Pos('"', SubStr);
+            if p2 > 0 then
+              RawVer := Trim(Copy(SubStr, 1, p2 - 1));
+          end;
+          if RawVer <> '' then Break;
+        end;
+      end;
+    finally
+      S.Free;
+    end;
+  end;
+
+  // Fallback: query package manager via TProcess
+  if (RawVer = '') and not IsRunningInFlatpak then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := FindDefaultExecutablePath('sh');
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('pacman -Q afmf-linux 2>/dev/null | awk ''{print $2}'' || ' +
+                          'pacman -Q afmf-linux-bin 2>/dev/null | awk ''{print $2}'' || ' +
+                          'dpkg-query -W -f=''${Version}'' afmf-linux 2>/dev/null || ' +
+                          'rpm -q --qf ''%{VERSION}'' afmf-linux 2>/dev/null || echo ""');
+      Proc.Options := [poUsePipes, poWaitOnExit];
+      try
+        Proc.Execute;
+        S := TStringList.Create;
+        try
+          S.LoadFromStream(Proc.Output);
+          if S.Count > 0 then RawVer := Trim(S[0]);
+        finally
+          S.Free;
+        end;
+      except
+      end;
+    finally
+      Proc.Free;
+    end;
+  end;
+
+  if RawVer <> '' then
+  begin
+    if Pos(':', RawVer) > 0 then
+      RawVer := Copy(RawVer, Pos(':', RawVer) + 1, MaxInt);
+    while (RawVer <> '') and (RawVer[1] in ['v', 'V']) do
+      Delete(RawVer, 1, 1);
+  end;
+
+  if (RawVer = '') and IsAfmfInstalled then
+    RawVer := 'Installed';
+
+  Result := RawVer;
+end;
+
+function GetAfmfLatestRemoteVersion(out AUrl: string): string;
+var
+  RespFile, RespText, TagName, DownloadUrl, AssetName: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  JsonData, AssetData: TJSONData;
+  ReleaseObj, AssetObj: TJSONObject;
+  AssetsArray: TJSONArray;
+  i: Integer;
+begin
+  Result := '';
+  AUrl := '';
+  DownloadUrl := '';
+  TagName := '';
+
+  RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'afmf_api_' + IntToStr(fpgetpid) + '.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('10');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(RespFile);
+    Process.Parameters.Add(URL_AFMF_API_RELEASES);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+
+    if FileExists(RespFile) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(RespFile);
+        RespText := OutputList.Text;
+      finally
+        OutputList.Free;
+        DeleteFile(RespFile);
+      end;
+
+      if RespText <> '' then
+      begin
+        try
+          JsonData := GetJSON(RespText);
+          try
+            if Assigned(JsonData) and (JsonData is TJSONObject) then
+            begin
+              ReleaseObj := TJSONObject(JsonData);
+              if ReleaseObj.IndexOfName('tag_name') <> -1 then
+                TagName := ReleaseObj.Get('tag_name', '');
+
+              if ReleaseObj.IndexOfName('assets') <> -1 then
+              begin
+                AssetData := ReleaseObj.FindPath('assets');
+                if Assigned(AssetData) and (AssetData is TJSONArray) then
+                begin
+                  AssetsArray := TJSONArray(AssetData);
+                  for i := 0 to AssetsArray.Count - 1 do
+                  begin
+                    AssetObj := TJSONObject(AssetsArray.Items[i]);
+                    AssetName := AssetObj.Get('name', '');
+                    if (Pos('.tar.xz', AssetName) > 0) and
+                       (Pos('x86_64', AssetName) > 0) and
+                       (Pos('.asc', AssetName) = 0) and
+                       (Pos('.sha256', AssetName) = 0) and
+                       (Pos('debug', AssetName) = 0) then
+                    begin
+                      DownloadUrl := AssetObj.Get('browser_download_url', '');
+                      Break;
+                    end;
+                  end;
+                end;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        except
+        end;
+      end;
+    end;
+  finally
+    Process.Free;
+  end;
+
+  if TagName <> '' then
+  begin
+    while (TagName <> '') and (TagName[1] in ['v', 'V']) do
+      Delete(TagName, 1, 1);
+    Result := TagName;
+    AUrl := DownloadUrl;
+  end;
+
+  if Result = '' then
+  begin
+    Result := '1.3.1';
+    AUrl := URL_AFMF_TARBALL;
+  end;
+  if AUrl = '' then
+    AUrl := URL_AFMF_TARBALL;
+end;
+
+function CheckAndInstallAfmf(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  ChanLabel: string;
+  StartPct, EndPct: Integer;
+  DownloadUrl, RemoteVer, TempTarFile, LocalLibDir, LocalLayerDir, TempExtractDir: string;
+  Process: TProcess;
+begin
+  Result := False;
+  StartPct := 88;
+  EndPct := 94;
+
+  if IsRunningInFlatpak then
+  begin
+    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping afmf-linux user layer installation');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'AFMF Flatpak layer check ready');
+    Result := True;
+    Exit;
+  end;
+
+  if not AForce and IsAfmfInstalled then
+  begin
+    WriteLn('[AUTO-INSTALL] afmf-linux layer is already available');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'AFMF runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  ChanLabel := 'Downloading AFMF runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct + 1, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing afmf-linux layer in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    DownloadUrl := '';
+    RemoteVer := GetAfmfLatestRemoteVersion(DownloadUrl);
+    if DownloadUrl = '' then
+      DownloadUrl := URL_AFMF_TARBALL;
+    TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'afmf_linux_download_' + IntToStr(fpgetpid) + '.tar.xz';
+    TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'afmf_unpack_' + IntToStr(fpgetpid);
+
+    RunCurlWithProgress(DownloadUrl, TempTarFile, StartPct + 2, StartPct + 4, ChanLabel, AOnProgress);
+
+    if FileExists(TempTarFile) then
+    begin
+      ForceDirectories(TempExtractDir);
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 4, 'Extracting AFMF runtime...');
+
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := 'tar';
+        Process.Parameters.Add('-xf');
+        Process.Parameters.Add(TempTarFile);
+        Process.Parameters.Add('-C');
+        Process.Parameters.Add(TempExtractDir);
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 5, 'Installing AFMF runtime...');
+
+      Process := TProcess.Create(nil);
+      try
+        Process.Executable := FindDefaultExecutablePath('bash');
+        if Process.Executable = '' then
+          Process.Executable := FindDefaultExecutablePath('sh');
+        Process.Parameters.Add('-c');
+        Process.Parameters.Add('for d in "' + TempExtractDir + '"/afmf-linux*; do ' +
+                               'if [ -f "$d/install.sh" ]; then chmod +x "$d/install.sh" && (cd "$d" && ./install.sh); break; fi; done');
+        Process.Options := [poWaitOnExit];
+        Process.Execute;
+      finally
+        Process.Free;
+      end;
+
+      // Ensure destination files exist; fallback manual install if install.sh did not complete
+      LocalLibDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/afmf-linux/';
+      LocalLayerDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/';
+      if not FileExists(LocalLibDir + 'libafmf-linux.so') or not FileExists(LocalLayerDir + 'afmf-linux.json') then
+      begin
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := FindDefaultExecutablePath('sh');
+          Process.Parameters.Add('-c');
+          Process.Parameters.Add('mkdir -p "' + LocalLibDir + '" "' + LocalLayerDir + '" && ' +
+                                 'find "' + TempExtractDir + '" -name "libafmf-linux.so" -exec cp -f {} "' + LocalLibDir + '" \; && ' +
+                                 'find "' + TempExtractDir + '" -name "afmf-linux.json" -exec cp -f {} "' + LocalLayerDir + '" \; && ' +
+                                 'sed -i "s|\"library_path\": *\"[^\"]*\"|\"library_path\": \"' + LocalLibDir + 'libafmf-linux.so\"|" "' + LocalLayerDir + 'afmf-linux.json" 2>/dev/null; true');
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
+        end;
+      end;
+
+      DeleteFile(TempTarFile);
+      if DirectoryExists(TempExtractDir) then
+        DeleteDirectory(TempExtractDir, False);
+    end;
+
+    if IsAfmfInstalled then
+    begin
+      WriteLn('[AUTO-INSTALL] afmf-linux runtime installed successfully');
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'AFMF runtime ready');
+      Result := True;
+    end
+    else
+      WriteLn('[AUTO-INSTALL] ERROR: afmf-linux layer not detected after installation');
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallAfmf: ', E.Message);
   end;
 end;
 

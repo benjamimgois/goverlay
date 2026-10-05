@@ -311,6 +311,8 @@ begin
     DarkRadio(optiscalerRadioButton);
     optiscalerRadioButton.Checked := True;
     optiscalerRadioButton.OnClick := @optiscalerRadioButtonClick;
+    optiscalerRadioButton.Hint := 'Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends';
+    optiscalerRadioButton.ShowHint := True;
 
     dlssenablerRadioButton := TRadioButton.Create(FForm);
     dlssenablerRadioButton.Parent := FOsUpscalerCard;
@@ -318,6 +320,8 @@ begin
     DarkRadio(dlssenablerRadioButton);
     dlssenablerRadioButton.Checked := False;
     dlssenablerRadioButton.OnClick := @dlssenablerRadioButtonClick;
+    dlssenablerRadioButton.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
+    dlssenablerRadioButton.ShowHint := True;
 
     optiscalerLogoImage := TImage.Create(FForm);
     optiscalerLogoImage.AntialiasingMode := amOn;
@@ -330,6 +334,8 @@ begin
     optiscalerLogoImage.Stretch := True;
     optiscalerLogoImage.Cursor := crHandPoint;
     optiscalerLogoImage.OnClick := @optiscalerLogoImageClick;
+    optiscalerLogoImage.Hint := 'Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends';
+    optiscalerLogoImage.ShowHint := True;
 
     dlssEnablerLogoImage := TImage.Create(FForm);
     dlssEnablerLogoImage.AntialiasingMode := amOn;
@@ -342,6 +348,8 @@ begin
     dlssEnablerLogoImage.Stretch := True;
     dlssEnablerLogoImage.Cursor := crHandPoint;
     dlssEnablerLogoImage.OnClick := @dlssEnablerLogoImageClick;
+    dlssEnablerLogoImage.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
+    dlssEnablerLogoImage.ShowHint := True;
 
     dlssEnablerVersionLabel := TLabel.Create(FForm);
     dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
@@ -357,6 +365,8 @@ begin
     DarkRadio(noneUpscalerRadioButton);
     noneUpscalerRadioButton.Checked := False;
     noneUpscalerRadioButton.OnClick := @noneUpscalerRadioButtonClick;
+    noneUpscalerRadioButton.Hint := 'Disable upscaling middleware and run games with native rendering';
+    noneUpscalerRadioButton.ShowHint := True;
 
     noneUpscalerLogoImage := TImage.Create(FForm);
     noneUpscalerLogoImage.AntialiasingMode := amOn;
@@ -369,6 +379,8 @@ begin
     noneUpscalerLogoImage.Stretch := True;
     noneUpscalerLogoImage.Cursor := crHandPoint;
     noneUpscalerLogoImage.OnClick := @noneUpscalerLogoImageClick;
+    noneUpscalerLogoImage.Hint := 'Disable upscaling middleware and run games with native rendering';
+    noneUpscalerLogoImage.ShowHint := True;
 
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;

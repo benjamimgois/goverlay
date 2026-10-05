@@ -5863,7 +5863,9 @@ begin
   AssertTrue('Lossless helper is assigned', Assigned(Helper));
   AssertTrue('Method card is assigned', Assigned(Helper.MethodCard));
   AssertTrue('GPU card is assigned', Assigned(Helper.GpuCard));
+  AssertFalse('GPU card is hidden', Helper.GpuCard.Visible);
   AssertTrue('Status card is assigned', Assigned(Helper.StatusCard));
+  AssertTrue('GpuComboBox parent is FrameGenCard', Helper.GpuComboBox.Parent = Helper.FrameGenCard);
 
   DummyDll := IsolatedHome + '/.local/share/goverlay/test_method_switching.dll';
   ForceDirectories(ExtractFilePath(DummyDll));
@@ -5878,6 +5880,7 @@ begin
     AssertTrue('DisabledNoticeLbl is visible for imNone', Helper.DisabledNoticeLbl.Visible);
     AssertFalse('SpatialCard is hidden for imNone', Helper.SpatialCard.Visible);
     AssertFalse('MultiplierTrackBar is hidden for imNone', Helper.MultiplierTrackBar.Visible);
+    AssertFalse('GpuComboBox is hidden for imNone', Helper.GpuComboBox.Visible);
     AssertEquals('Multiplier is 1 for imNone', 1, Helper.MultiplierTrackBar.Position);
     AssertEquals('Active env vars empty for imNone', '', Helper.GetActiveEnvVars);
 
@@ -5904,6 +5907,7 @@ begin
     AssertTrue('PreserveSwapchainToggle is visible for imLsfg', Helper.PreserveSwapchainToggle.Visible);
     AssertTrue('AllowFp16Toggle is visible for imLsfg', Helper.AllowFp16Toggle.Visible);
     AssertTrue('PacingComboBox is visible for imLsfg', Helper.PacingComboBox.Visible);
+    AssertTrue('GpuComboBox is visible for imLsfg', Helper.GpuComboBox.Visible);
 
     // Verify ControlStateChange preserves lsfg-vk toggle visibility
     Helper.ControlStateChange(nil);
@@ -5913,6 +5917,7 @@ begin
     AssertTrue('PreserveSwapchainToggle remains visible after ControlStateChange', Helper.PreserveSwapchainToggle.Visible);
     AssertTrue('AllowFp16Toggle remains visible after ControlStateChange', Helper.AllowFp16Toggle.Visible);
     AssertTrue('PacingComboBox remains visible after ControlStateChange', Helper.PacingComboBox.Visible);
+    AssertTrue('GpuComboBox remains visible after ControlStateChange', Helper.GpuComboBox.Visible);
 
     Helper.MultiplierTrackBar.Position := 2;
     AssertTrue('Active env vars contain LSFG_CONFIG for imLsfg', Pos('LSFG_CONFIG', Helper.GetActiveEnvVars) > 0);
@@ -5923,6 +5928,7 @@ begin
     AssertEquals('Method is imMako', Ord(imMako), Ord(Helper.InterpolationMethod));
     AssertFalse('DisabledNoticeLbl is hidden for imMako', Helper.DisabledNoticeLbl.Visible);
     AssertTrue('SpatialCard is visible for imMako', Helper.SpatialCard.Visible);
+    AssertTrue('GpuComboBox is visible for imMako', Helper.GpuComboBox.Visible);
     AssertTrue('Active env vars contain ENABLE_MAKO for imMako', Pos('ENABLE_MAKO=1', Helper.GetActiveEnvVars) > 0);
 
     // Save MAKO and check bgmod.conf
@@ -5942,6 +5948,21 @@ begin
     AssertEquals('LoadLosslessConfig restored imMako', Ord(imMako), Ord(Helper.InterpolationMethod));
     AssertTrue('SpatialCard restored visible after loading imMako', Helper.SpatialCard.Visible);
 
+    // 4b. Test AFMF method saving and loading
+    Helper.SetInterpolationMethod(imAfmf);
+    AssertEquals('Method set to imAfmf', Ord(imAfmf), Ord(Helper.InterpolationMethod));
+    Helper.SaveLosslessConfig;
+    Ini := TIniFile.Create(TargetConfPath);
+    try
+      AssertEquals('INTERPOLATION_METHOD is afmf in bgmod.conf', 'afmf', Ini.ReadString('Config', 'INTERPOLATION_METHOD', ''));
+      AssertEquals('GOVERLAY_LOSSLESS is 1 for imAfmf', '1', Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '0'));
+    finally
+      Ini.Free;
+    end;
+    Helper.SetInterpolationMethod(imNone);
+    Helper.LoadLosslessConfig;
+    AssertEquals('LoadLosslessConfig restored imAfmf', Ord(imAfmf), Ord(Helper.InterpolationMethod));
+
     // 5. Test Method icon size and label positioning (to the right of icon)
     AssertTrue('lsfg-vk image width is at least 30px', Helper.MethodLsfgImage.Width >= 30);
     AssertTrue('lsfg-vk image height is at least 30px', Helper.MethodLsfgImage.Height >= 30);
@@ -5954,6 +5975,8 @@ begin
     AssertEquals('Row 0 name is Lossless Scaling', 'Lossless Scaling', Helper.StatNameLabel[0].Caption);
     AssertEquals('Row 1 name is MAKO', 'MAKO', Helper.StatNameLabel[1].Caption);
     AssertEquals('Row 2 name is lsfg-vk', 'lsfg-vk', Helper.StatNameLabel[2].Caption);
+    AssertEquals('Row 3 name is AFMF', 'AFMF', Helper.StatNameLabel[3].Caption);
+    AssertTrue('AFMF status label is assigned', Assigned(Helper.AfmfStatusLabel));
 
     if (Helper.EngineStatusLabel.Caption <> '') and (Helper.EngineStatusLabel.Caption <> 'Not installed') then
     begin
@@ -6536,6 +6559,8 @@ begin
   AssertNotNull('FLsfgPngDimmed initialized', Helper.LsfgPngDimmed);
   AssertNotNull('FMakoPngLogo initialized', Helper.MakoPngLogo);
   AssertNotNull('FMakoPngDimmed initialized', Helper.MakoPngDimmed);
+  AssertNotNull('FAfmfPngLogo initialized', Helper.AfmfPngLogo);
+  AssertNotNull('FAfmfPngDimmed initialized', Helper.AfmfPngDimmed);
 
   // Clicking None image
   Helper.NoneImage.OnClick(Helper.NoneImage);
@@ -6543,9 +6568,11 @@ begin
   AssertTrue('NoneRadio is checked', Helper.NoneRadio.Checked);
   AssertFalse('LsfgRadio is unchecked', Helper.LsfgRadio.Checked);
   AssertFalse('MakoRadio is unchecked', Helper.MakoRadio.Checked);
+  AssertFalse('AfmfRadio is unchecked', Helper.AfmfRadio.Checked);
   AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
   AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
   AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+  AssertTrue('AfmfImage is enabled', Helper.AfmfImage.Enabled);
 
   // Clicking Lsfg image
   Helper.LsfgImage.OnClick(Helper.LsfgImage);
@@ -6553,9 +6580,11 @@ begin
   AssertFalse('NoneRadio is unchecked', Helper.NoneRadio.Checked);
   AssertTrue('LsfgRadio is checked', Helper.LsfgRadio.Checked);
   AssertFalse('MakoRadio is unchecked', Helper.MakoRadio.Checked);
+  AssertFalse('AfmfRadio is unchecked', Helper.AfmfRadio.Checked);
   AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
   AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
   AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+  AssertTrue('AfmfImage is enabled', Helper.AfmfImage.Enabled);
 
   // Clicking Mako image
   Helper.MakoImage.OnClick(Helper.MakoImage);
@@ -6563,9 +6592,24 @@ begin
   AssertFalse('NoneRadio is unchecked', Helper.NoneRadio.Checked);
   AssertFalse('LsfgRadio is unchecked', Helper.LsfgRadio.Checked);
   AssertTrue('MakoRadio is checked', Helper.MakoRadio.Checked);
+  AssertFalse('AfmfRadio is unchecked', Helper.AfmfRadio.Checked);
   AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
   AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
   AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+  AssertTrue('AfmfImage is enabled', Helper.AfmfImage.Enabled);
+
+  // Clicking AFMF image
+  Helper.AfmfImage.OnClick(Helper.AfmfImage);
+  AssertEquals('InterpolationMethod is imAfmf', Ord(imAfmf), Ord(Helper.InterpolationMethod));
+  AssertFalse('NoneRadio is unchecked', Helper.NoneRadio.Checked);
+  AssertFalse('LsfgRadio is unchecked', Helper.LsfgRadio.Checked);
+  AssertFalse('MakoRadio is unchecked', Helper.MakoRadio.Checked);
+  AssertTrue('AfmfRadio is checked', Helper.AfmfRadio.Checked);
+  AssertTrue('NoneImage is enabled', Helper.NoneImage.Enabled);
+  AssertTrue('LsfgImage is enabled', Helper.LsfgImage.Enabled);
+  AssertTrue('MakoImage is enabled', Helper.MakoImage.Enabled);
+  AssertTrue('AfmfImage is enabled', Helper.AfmfImage.Enabled);
+  AssertFalse('GpuComboBox is hidden for imAfmf', Helper.GpuComboBox.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestCloneGlobalConfigsToGameCard;

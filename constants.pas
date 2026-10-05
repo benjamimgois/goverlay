@@ -62,6 +62,11 @@ const
   URL_LSFGVK_BUILDS = 'https://builds.lsfg-vk.dev/';
   URL_LSFGVK_TARBALL = 'https://builds.lsfg-vk.dev/lsfg-vk-2.0.0.tar.xz';
 
+  // AFMF Linux
+  URL_AFMF_REPO = 'https://github.com/serialexperimentslainnnn/afmf-linux';
+  URL_AFMF_API_RELEASES = 'https://api.github.com/repos/serialexperimentslainnnn/afmf-linux/releases/latest';
+  URL_AFMF_TARBALL = 'https://github.com/serialexperimentslainnnn/afmf-linux/releases/download/v1.3.1/afmf-linux-1.3.1-x86_64.tar.xz';
+
   // ReplaySorcery Repository
   URL_REPLAYSORCERY_REPO = 'https://github.com/matanui159/ReplaySorcery';
 

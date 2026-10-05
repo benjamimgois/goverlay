@@ -3566,10 +3566,10 @@ begin
   vksumiTabSheet.TabVisible  := False;
   vksumiTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex + 1;
 
-  // Create Lossless Scaling tab sheet
+  // Create Frame Interpolation tab sheet
   losslessScalingTabSheet := TTabSheet.Create(goverlayPageControl);
   losslessScalingTabSheet.PageControl := goverlayPageControl;
-  losslessScalingTabSheet.Caption     := 'Lossless Scaling';
+  losslessScalingTabSheet.Caption     := 'Frame Interpolation';
   losslessScalingTabSheet.TabVisible  := False;
   losslessScalingTabSheet.PageIndex   := optiscalertabsheet.PageIndex + 1;
   losslessScalingTabSheet.OnShow      := @losslessScalingTabSheetShow;
@@ -5531,6 +5531,29 @@ var
 begin
   if Assigned(optiscalerRadioButton) and not optiscalerRadioButton.Checked then Exit;
 
+  // Conflict check with AFMF
+  if not FLoadingConfig and Assigned(FLosslessScalingHelper) and
+     (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
+  begin
+    if MessageDlg('Frame Interpolation Conflict',
+         'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
+         'Do you want to disable Frame Interpolation and activate OptiScaler?',
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SetInterpolationMethod(imNone);
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+    end
+    else
+    begin
+      if Assigned(noneUpscalerRadioButton) then
+        noneUpscalerRadioButton.Checked := True;
+      if Assigned(optiscalerRadioButton) then
+        optiscalerRadioButton.Checked := False;
+      UpdateUpscalerImageOpacity;
+      Exit;
+    end;
+  end;
+
   if Assigned(optiscalerRadioButton) then
   begin
     optiscalerRadioButton.Checked := True;
@@ -5580,6 +5603,7 @@ begin
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+  SaveOptiScalerConfig(True);
   StartAutoSaveTimer;
 end;
 
@@ -5588,6 +5612,29 @@ var
   Idx: Integer;
 begin
   if Assigned(dlssenablerRadioButton) and not dlssenablerRadioButton.Checked then Exit;
+
+  // Conflict check with AFMF
+  if not FLoadingConfig and Assigned(FLosslessScalingHelper) and
+     (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
+  begin
+    if MessageDlg('Frame Interpolation Conflict',
+         'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
+         'Do you want to disable Frame Interpolation and activate DLSS Enabler?',
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SetInterpolationMethod(imNone);
+      TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
+    end
+    else
+    begin
+      if Assigned(noneUpscalerRadioButton) then
+        noneUpscalerRadioButton.Checked := True;
+      if Assigned(dlssenablerRadioButton) then
+        dlssenablerRadioButton.Checked := False;
+      UpdateUpscalerImageOpacity;
+      Exit;
+    end;
+  end;
 
   if Assigned(dlssenablerRadioButton) then
   begin
@@ -5622,6 +5669,7 @@ begin
   begin
     optversionComboBox.Enabled := True;
   end;
+  SaveOptiScalerConfig(True);
   StartAutoSaveTimer;
 end;
 
@@ -5649,6 +5697,7 @@ begin
   RefreshOsStatusDots;
   ApplyToolEnabledState(2, FNavToolEnabled[2]);
   SetSaveBtnEnabled(FNavToolEnabled[2]);
+  SaveOptiScalerConfig(True);
   StartAutoSaveTimer;
 end;
 
@@ -8784,6 +8833,11 @@ var
         // Recurse into sub-panels (e.g. FOsOptiSec, FOsImguiSec)
         TPanel(Container.Controls[k]).Color := CardBg;
         ApplyToContainer(TPanel(Container.Controls[k]));
+      end
+      else if Container.Controls[k] is TToggleSwitch then
+      begin
+        TToggleSwitch(Container.Controls[k]).ParentColor := True;
+        TToggleSwitch(Container.Controls[k]).Color := CardBg;
       end;
     end;
   end;
@@ -10377,7 +10431,8 @@ begin
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
     CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
     CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
-    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (88% - 99%)
+    CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 94%)
+    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (94% - 99%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except
