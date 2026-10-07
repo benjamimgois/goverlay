@@ -946,6 +946,11 @@ begin
     FHelper.FLsAfmfInstallBtn.Enabled := True;
   FHelper.FAfmfVersionCached := '';
   FHelper.UpdateStatusCard;
+  if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+  begin
+    Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
+    Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
+  end;
   FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
 end;
 
@@ -1003,6 +1008,11 @@ begin
         FHelper.FLsAfmfInstallBtn.Enabled := True;
       end;
       FHelper.UpdateStatusCard;
+      if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
+      begin
+        Tgoverlayform(FHelper.FForm).RefreshHomeMakoStatus;
+        Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
+      end;
       FHelper.ReflowLosslessScalingTab(FHelper.FLsScrollBox.ClientWidth);
     end;
   end;
@@ -1035,7 +1045,18 @@ procedure TLosslessScalingTabHelper.SetAfmfUpdateState(const ARemoteVer: string;
 begin
   FAfmfRemoteVer := ARemoteVer;
   FAfmfUpdateAvailable := AAvailable;
+  if AAvailable then
+  begin
+    FLsfgUpdateAvailable := False;
+    FMakoUpdateAvailable := False;
+    FInterpolationMethod := imAfmf;
+  end;
   UpdateStatusCard;
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
+    Tgoverlayform(FForm).RefreshHomeMakoStatus;
+    Tgoverlayform(FForm).RefreshHomeModuleStatus;
+  end;
 end;
 
 procedure TLosslessScalingTabHelper.SetMakoUpdateState(const ARemoteVer: string; AAvailable: Boolean);

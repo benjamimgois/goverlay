@@ -57,7 +57,7 @@ function OsHexToKeyStr(const HexStr: string): string;
 
 implementation
 
-uses bgmod_resources;
+uses bgmod_resources, goverlay_system;
 
 constructor TOptiScalerTabHelper.Create(AForm: Tgoverlayform);
 begin
@@ -418,6 +418,7 @@ begin
     GbSS := 'QRadioButton::indicator { width:14px; height:14px; background-color:rgb(26,30,46); border:1px solid rgb(130,140,170); border-radius:7px; }'
           + 'QRadioButton::indicator:checked { background-color:rgb(48,190,240); border-color:rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(FOsGpuCard.Handle).Widget, @GbSS);
+    FOsGpuCard.Visible := False;
 
     nvidiaRadioButton.AnchorSideLeft.Control   := nil;
     nvidiaRadioButton.AnchorSideTop.Control    := nil;
@@ -553,6 +554,42 @@ begin
     filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
     filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
     filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Parent  := FOsMainSec;
+
+    if gpudriverLabel = nil then
+    begin
+      gpudriverLabel := TLabel.Create(FForm);
+      gpudriverLabel.Name := 'gpudriverLabel';
+      gpudriverLabel.Caption := 'GPU Driver';
+    end;
+    gpudriverLabel.AnchorSideLeft.Control   := nil; gpudriverLabel.AnchorSideTop.Control    := nil;
+    gpudriverLabel.AnchorSideRight.Control  := nil; gpudriverLabel.AnchorSideBottom.Control := nil;
+    gpudriverLabel.Anchors := [akLeft, akTop];
+    gpudriverLabel.Parent  := FOsMainSec;
+
+    if gpudriverComboBox = nil then
+    begin
+      gpudriverComboBox := TComboBox.Create(FForm);
+      gpudriverComboBox.Name := 'gpudriverComboBox';
+      gpudriverComboBox.Style := csDropDownList;
+      if IsNvidiaModuleLoaded then
+      begin
+        gpudriverComboBox.Items.Add('Mesa');
+        gpudriverComboBox.Items.Add('NVIDIA (Auto)');
+      end
+      else
+      begin
+        gpudriverComboBox.Items.Add('Mesa (Auto)');
+        gpudriverComboBox.Items.Add('NVIDIA');
+      end;
+      gpudriverComboBox.ItemIndex := 0;
+      gpudriverComboBox.Hint := 'GPU driver backend for OptiScaler (DLSS spoofing, Reflex, and LatencyFlex)';
+      gpudriverComboBox.ShowHint := True;
+      gpudriverComboBox.OnChange := @gpudriverComboBoxChange;
+    end;
+    gpudriverComboBox.AnchorSideLeft.Control   := nil; gpudriverComboBox.AnchorSideTop.Control    := nil;
+    gpudriverComboBox.AnchorSideRight.Control  := nil; gpudriverComboBox.AnchorSideBottom.Control := nil;
+    gpudriverComboBox.Anchors := [akLeft, akTop];
+    gpudriverComboBox.Parent  := FOsMainSec;
 
     menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
     menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
@@ -833,6 +870,13 @@ begin
     // DLL & Options section
     DarkLbl(filenameLabel,    PURPLE); filenameLabel.Transparent    := True;
     DarkCombo(filenameComboBox);
+    if Assigned(gpudriverLabel) then
+    begin
+      DarkLbl(gpudriverLabel, PURPLE);
+      gpudriverLabel.Transparent := True;
+    end;
+    if Assigned(gpudriverComboBox) then
+      DarkCombo(gpudriverComboBox);
     DarkCheck(spoofCheckBox);
     DarkCheck(emufp8CheckBox);
     DarkCheck(forceFsr4Int8CheckBox);
@@ -1183,7 +1227,7 @@ var
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
   LogoH, LogoW_None, LogoW_Opti, LogoW_De: Integer;
-  GroupW_None, GroupW_Opti, GroupW_De, TotalGroupW, GapBetween: Integer;
+  GroupW_None, GroupW_Opti, GroupW_De, TotalGroupW, GapBetween, SlotW: Integer;
 begin
   with FForm do
   begin
@@ -1232,13 +1276,12 @@ begin
 
     FOsBgPanel.SetBounds(0, 0, W, Max(FOsScrollBox.ClientHeight, TotalH));
 
-    CardW := (CW - GAP) div 2;
-
-    // ── Card 0a: Upscaler (Left 50%) ────────────────────────────────────
+    // ── Card 0: Upscaler Method (Full Width) ────────────────────────────
     if Assigned(FOsUpscalerCard) then
     begin
-      FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CardW, GPU_H);
-      InnerW := CardW - 2 * PAD;
+      FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
+      InnerW := CW - 2 * PAD;
+      SlotW  := InnerW div 3;
 
       LogoW_None := 48;
       LogoW_Opti := 84;
@@ -1247,51 +1290,33 @@ begin
       GroupW_None := 22 + LogoW_None;
       GroupW_Opti := 22 + LogoW_Opti;
       GroupW_De   := 22 + LogoW_De;
-      TotalGroupW := GroupW_None + GroupW_Opti + GroupW_De;
 
-      if InnerW > TotalGroupW then
-        GapBetween := (InnerW - TotalGroupW) div 2
-      else
-        GapBetween := 2;
+      X1 := PAD + (SlotW - GroupW_None) div 2;
+      X2 := PAD + SlotW + (SlotW - GroupW_Opti) div 2;
+      X3 := PAD + 2 * SlotW + (SlotW - GroupW_De) div 2;
 
-      X1 := PAD;
-      X2 := X1 + GroupW_None + GapBetween;
-      X3 := CardW - PAD - GroupW_De;
-      if X3 < X2 + GroupW_Opti + 2 then
-        X3 := X2 + GroupW_Opti + 2;
-
-      // Column 1: None (leftmost)
+      // Column 1: None (left slot)
       if Assigned(noneUpscalerRadioButton) then
         noneUpscalerRadioButton.SetBounds(X1, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(noneUpscalerLogoImage) then
         noneUpscalerLogoImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
 
-      // Column 2: OptiScaler (middle, 2-lines stacked)
+      // Column 2: OptiScaler (middle slot)
       if Assigned(optiscalerRadioButton) then
         optiscalerRadioButton.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(optiscalerLogoImage) then
         optiscalerLogoImage.SetBounds(X2 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Opti, 36);
 
-      // Column 3: DLSS Enabler (rightmost, 2-lines stacked)
+      // Column 3: DLSS Enabler (right slot)
       if Assigned(dlssenablerRadioButton) then
         dlssenablerRadioButton.SetBounds(X3, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(dlssEnablerLogoImage) then
         dlssEnablerLogoImage.SetBounds(X3 + 22, HDR + (GPU_GH - 36) div 2, LogoW_De, 36);
     end;
 
-    // ── Card 0b: GPU Driver (Right 50%) ─────────────────────────────────
-    FOsGpuCard.SetBounds(MARGIN + CardW + GAP, MARGIN, CW - CardW - GAP, GPU_H);
-    ItemW := (CardW - 2 * PAD) div 2;
-
-    MesaW := Min(144, ItemW - 24);
-    mesaRadioButton.SetBounds(PAD, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
-    mesaImage.SetBounds(PAD + 22, HDR + (GPU_GH - 58) div 2 - 2, MesaW, 58);
-    autodetectmesaLabel.SetBounds(PAD + 22 + (MesaW - autodetectmesaLabel.Width) div 2, HDR + GPU_GH - autodetectmesaLabel.Height - 2, autodetectmesaLabel.Width, autodetectmesaLabel.Height);
-
-    NvW := Min(185, ItemW - 24);
-    nvidiaRadioButton.SetBounds(PAD + ItemW, HDR + (GPU_GH - 20) div 2 - 2, 20, 20);
-    nvidiaImage.SetBounds(PAD + ItemW + 22, HDR + (GPU_GH - 42) div 2 - 2, NvW, 42);
-    autodetectnvLabel.SetBounds(PAD + ItemW + 22 + (NvW - autodetectnvLabel.Width) div 2, HDR + GPU_GH - autodetectnvLabel.Height - 2, autodetectnvLabel.Width, autodetectnvLabel.Height);
+    // ── Card 0b: Standalone GPU Driver Card (Hidden) ─────────────────────
+    if Assigned(FOsGpuCard) then
+      FOsGpuCard.Visible := False;
 
     // ── Card 1: Options (4 Equal Columns: Main 25%, Spatial 25%, Temporal 25%, Reflex/Antilag 25%) ──
     FOsOptionsCard.SetBounds(MARGIN, MARGIN + GPU_H + GAP, CW, OptH);
@@ -1328,13 +1353,24 @@ begin
     begin
       if Assigned(FOsMainLbl) then FOsMainLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      filenameLabel.SetBounds(10, Y0, ColW - 20, 16);
-      filenameComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+      if Assigned(gpudriverLabel) then
+      begin
+        gpudriverLabel.Visible := True;
+        gpudriverLabel.SetBounds(10, Y0, ColW - 20, 16);
+      end;
+      if Assigned(gpudriverComboBox) then
+      begin
+        gpudriverComboBox.Visible := True;
+        gpudriverComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+      end;
+
+      filenameLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      filenameComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       menuLabel.Caption := 'Menu scale';
-      menuLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      menuLabel.SetBounds(10, Y0 + 112, ColW - 20, 16);
       if Assigned(menuscaleComboBox) then
-        menuscaleComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+        menuscaleComboBox.SetBounds(10, Y0 + 134, ComboW, 26);
 
       if Assigned(loglevelLabel) then
         loglevelLabel.Visible := False;
@@ -1343,25 +1379,25 @@ begin
 
       if Assigned(FOptiPatcherToggle) then
       begin
-        FOptiPatcherToggle.SetBounds(10, Y0 + 116, FOptiPatcherToggle.GetOptimalWidth, 20);
+        FOptiPatcherToggle.SetBounds(10, Y0 + 168, FOptiPatcherToggle.GetOptimalWidth, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 114, 22, 22);
+          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 166, 22, 22);
       end
       else
       begin
-        optipatcherCheckBox.SetBounds(10, Y0 + 116, 95, 20);
+        optipatcherCheckBox.SetBounds(10, Y0 + 168, 95, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(108, Y0 + 114, 22, 22);
+          FOsPatcherListBtn.SetBounds(108, Y0 + 166, 22, 22);
       end;
 
-      shortcutkeyLabel.SetBounds(10, Y0 + 148, ColW - 20, 16);
+      shortcutkeyLabel.SetBounds(10, Y0 + 194, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
-        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 166, Min(ColW - 20, 120), 28);
+        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 212, Min(ColW - 20, 120), 26);
 
       if Assigned(dlssenablerToggleLabel) then
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 200, ColW - 20, 16);
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 242, ColW - 20, 16);
       if Assigned(dlssenablerToggleBtn) then
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 218, Min(ColW - 20, 120), 28);
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 260, Min(ColW - 20, 120), 26);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler

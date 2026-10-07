@@ -39,6 +39,7 @@ type
     function  GetVkSumiVersion: string;
     function  GetLsfgVkVersion: string;
     function  GetMakoVersion: string;
+    function  GetAfmfVersion: string;
     function  IsDlssEnablerInstalled: Boolean;
     function  GetDlssEnablerVersion: string;
     function  FindBinPath(const BinName: string): string;
@@ -80,7 +81,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..7] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade');
+  MOD_NAMES: array[0..8] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'AFMF');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -324,12 +325,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 8 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 9 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade)
-    for i := 0 to 7 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, AFMF)
+    for i := 0 to 8 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -431,8 +432,8 @@ const
   CLR_MISSING = $004444BB;  // red
 var
   Missing: TStringList;
-  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK: Boolean;
-  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer: string;
+  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK: Boolean;
+  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer: string;
 begin
   with FForm do
   begin
@@ -450,6 +451,7 @@ begin
     LsfgOK  := IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0);
     MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
     ReShadeOK := IsReShadeInstalled;
+    AfmfOK  := IsAfmfInstalled;
 
     FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
     FHomeModDots[1].Brush.Color := Math.IfThen(VkOK,    CLR_OK, CLR_MISSING);
@@ -459,6 +461,7 @@ begin
     FHomeModDots[5].Brush.Color := Math.IfThen(LsfgOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[6].Brush.Color := Math.IfThen(MakoOK,  CLR_OK, CLR_MISSING);
     FHomeModDots[7].Brush.Color := Math.IfThen(ReShadeOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[8].Brush.Color := Math.IfThen(AfmfOK,  CLR_OK, CLR_MISSING);
 
     MangoVer := Self.GetMangoHudVersion;
     if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
@@ -534,6 +537,29 @@ begin
     else
       FHomeModVerLbls[7].Caption := 'not found';
     FHomeModVerLbls[7].Font.Color := CLR_TEXT_MUTED;
+
+    AfmfVer := Self.GetAfmfVersion;
+    if AfmfVer = '' then AfmfVer := StrUtils.IfThen(AfmfOK, 'installed', 'not found');
+    while (AfmfVer <> '') and (AfmfVer[1] in ['v', 'V']) do
+      Delete(AfmfVer, 1, 1);
+
+    AfmfRemoteVer := '';
+    if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfUpdateAvailable then
+      AfmfRemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfRemoteVer;
+
+    while (AfmfRemoteVer <> '') and (AfmfRemoteVer[1] in ['v', 'V']) do
+      Delete(AfmfRemoteVer, 1, 1);
+
+    if (AfmfRemoteVer <> '') and (AfmfVer <> '') and (AfmfRemoteVer <> AfmfVer) then
+    begin
+      FHomeModVerLbls[8].Caption := AfmfVer + ' → ' + AfmfRemoteVer;
+      FHomeModVerLbls[8].Font.Color := $0044AAFF;
+    end
+    else
+    begin
+      FHomeModVerLbls[8].Caption := AfmfVer;
+      FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
+    end;
   end;
 end;
 
@@ -591,6 +617,8 @@ var
   LsfgHasUpdate: Boolean;
   MakoLocalVer, MakoRemoteVer: string;
   MakoHasUpdate: Boolean;
+  AfmfLocalVer, AfmfRemoteVer: string;
+  AfmfHasUpdate: Boolean;
 begin
   with FForm do
   begin
@@ -685,6 +713,53 @@ begin
         FHomeModVerLbls[6].Font.Color := CLR_TEXT_MUTED;
         if Assigned(FHomeModDots[6]) then
           FHomeModDots[6].Brush.Color := $004444BB;
+      end;
+    end;
+
+    // 3. Update AFMF (index 8)
+    if Assigned(FHomeModVerLbls[8]) then
+    begin
+      AfmfLocalVer := Self.GetAfmfVersion;
+      while (AfmfLocalVer <> '') and (AfmfLocalVer[1] in ['v', 'V']) do
+        Delete(AfmfLocalVer, 1, 1);
+
+      AfmfRemoteVer := '';
+      AfmfHasUpdate := False;
+      if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfUpdateAvailable then
+      begin
+        AfmfRemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfRemoteVer;
+        AfmfHasUpdate := True;
+      end;
+      while (AfmfRemoteVer <> '') and (AfmfRemoteVer[1] in ['v', 'V']) do
+        Delete(AfmfRemoteVer, 1, 1);
+
+      if AfmfHasUpdate and (AfmfRemoteVer <> '') and (AfmfLocalVer <> '') and (AfmfRemoteVer <> AfmfLocalVer) then
+      begin
+        FHomeModVerLbls[8].Caption := AfmfLocalVer + ' → ' + AfmfRemoteVer;
+        FHomeModVerLbls[8].Font.Color := $0044AAFF;
+        if Assigned(FHomeModDots[8]) then
+          FHomeModDots[8].Brush.Color := $0044BB44;
+      end
+      else if AfmfLocalVer <> '' then
+      begin
+        FHomeModVerLbls[8].Caption := AfmfLocalVer;
+        FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
+        if Assigned(FHomeModDots[8]) then
+          FHomeModDots[8].Brush.Color := $0044BB44;
+      end
+      else if IsAfmfInstalled then
+      begin
+        FHomeModVerLbls[8].Caption := 'installed';
+        FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
+        if Assigned(FHomeModDots[8]) then
+          FHomeModDots[8].Brush.Color := $0044BB44;
+      end
+      else
+      begin
+        FHomeModVerLbls[8].Caption := 'not found';
+        FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
+        if Assigned(FHomeModDots[8]) then
+          FHomeModDots[8].Brush.Color := $004444BB;
       end;
     end;
   end;
@@ -1032,6 +1107,19 @@ begin
   if MakoVer <> '' then
     Exit(MakoVer);
   if IsMakoInstalled then
+    Exit('installed');
+
+  Result := '';
+end;
+
+function THomeTabHelper.GetAfmfVersion: string;
+var
+  AfmfVer: string;
+begin
+  AfmfVer := GetAfmfInstalledVersion;
+  if AfmfVer <> '' then
+    Exit(AfmfVer);
+  if IsAfmfInstalled then
     Exit('installed');
 
   Result := '';

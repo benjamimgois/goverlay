@@ -137,6 +137,7 @@ type
     procedure TestLosslessScalingMethodSwitching;
     procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
     procedure TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
+    procedure TestAfmfUpdateNotificationPersistenceAndHomeSync;
     procedure TestLsfgVkBuildsHtmlParsingIgnoresGitVersion;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
@@ -201,16 +202,31 @@ begin
   // Harness seeds GpuDriver=nvidia before the form is created. Both
   // transitions below are asserted, so the test is falsifiable.
   AssertEquals('seed state must be nvidia', 'nvidia', ReadGpuDriver);
+  AssertTrue('gpudriverComboBox is assigned', Assigned(goverlayform.gpudriverComboBox));
+  AssertTrue('gpudriverLabel is assigned', Assigned(goverlayform.gpudriverLabel));
 
   goverlayform.mesaRadioButton.Checked := True;
   AssertEquals('mesa persisted after checking mesa', 'mesa', ReadGpuDriver);
+  AssertEquals('gpudriverComboBox synced to 0 (mesa)', 0, goverlayform.gpudriverComboBox.ItemIndex);
   AssertTrue('forcereflex enabled on mesa', goverlayform.forcereflexCheckBox.Enabled);
   AssertFalse('forcereflex unchecked by default on mesa', goverlayform.forcereflexCheckBox.Checked);
 
   goverlayform.nvidiaRadioButton.Checked := True;
   AssertEquals('nvidia persisted after checking nvidia', 'nvidia', ReadGpuDriver);
+  AssertEquals('gpudriverComboBox synced to 1 (nvidia)', 1, goverlayform.gpudriverComboBox.ItemIndex);
   AssertFalse('forcereflex disabled on nvidia', goverlayform.forcereflexCheckBox.Enabled);
   AssertFalse('spoof unchecked on nvidia', goverlayform.spoofCheckBox.Checked);
+
+  // Exercise dropdown change directly
+  goverlayform.gpudriverComboBox.ItemIndex := 0;
+  goverlayform.gpudriverComboBoxChange(goverlayform.gpudriverComboBox);
+  AssertEquals('mesa persisted after selecting via dropdown', 'mesa', ReadGpuDriver);
+  AssertTrue('mesaRadioButton checked after selecting dropdown', goverlayform.mesaRadioButton.Checked);
+
+  goverlayform.gpudriverComboBox.ItemIndex := 1;
+  goverlayform.gpudriverComboBoxChange(goverlayform.gpudriverComboBox);
+  AssertEquals('nvidia persisted after selecting via dropdown', 'nvidia', ReadGpuDriver);
+  AssertTrue('nvidiaRadioButton checked after selecting dropdown', goverlayform.nvidiaRadioButton.Checked);
 end;
 
 procedure TGoverlayGuiTests.TestNavigateOptiScalerTab;
@@ -3229,6 +3245,12 @@ begin
   // Exercise reflow with current scroll box width
   goverlayform.ReflowOptiScalerTabNew(goverlayform.FOsScrollBox.ClientWidth);
 
+  // Method card should span full content width (matching FOsOptionsCard width)
+  AssertEquals('FOsUpscalerCard width matches FOsOptionsCard width',
+    goverlayform.FOsOptionsCard.Width, goverlayform.FOsUpscalerCard.Width);
+  AssertFalse('FOsGpuCard is hidden', goverlayform.FOsGpuCard.Visible);
+  AssertTrue('gpudriverComboBox is visible in Options', goverlayform.gpudriverComboBox.Visible);
+
   // Options card height should be reduced from previous 410px and fit comfortably
   AssertTrue('FOsOptionsCard height is reduced (< 410)', goverlayform.FOsOptionsCard.Height < 410);
   AssertTrue('FOsOptionsCard height accommodates controls (>= 290)', goverlayform.FOsOptionsCard.Height >= 290);
@@ -4657,6 +4679,9 @@ begin
   AssertTrue('ReShade status dot assigned', Assigned(goverlayform.FHomeModDots[7]));
   AssertTrue('ReShade version label assigned', Assigned(goverlayform.FHomeModVerLbls[7]));
   AssertTrue('ReShade version label text not empty', goverlayform.FHomeModVerLbls[7].Caption <> '');
+  AssertTrue('AFMF status dot assigned', Assigned(goverlayform.FHomeModDots[8]));
+  AssertTrue('AFMF version label assigned', Assigned(goverlayform.FHomeModVerLbls[8]));
+  AssertTrue('AFMF version label text not empty', goverlayform.FHomeModVerLbls[8].Caption <> '');
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
@@ -6113,6 +6138,53 @@ begin
   finally
     // Reset state
     Helper.SetLsfgUpdateState('', False);
+    if FileExists(LayerFile) then DeleteFile(LayerFile);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestAfmfUpdateNotificationPersistenceAndHomeSync;
+var
+  Helper: TLosslessScalingTabHelper;
+  LayerDir, LayerFile: string;
+  SL: TStringList;
+begin
+  LayerDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d';
+  ForceDirectories(LayerDir);
+  LayerFile := LayerDir + '/afmf-linux.json';
+  SL := TStringList.Create;
+  try
+    SL.Add('{"file_format_version": "1.0.0", "layer": {"name": "VK_LAYER_AFMF_linux", "type": "GLOBAL", "library_path": "libafmf.so", "api_version": "1.3.0", "implementation_version": "1.0.0", "description": "afmf-linux 1.0.0"}}');
+    SL.SaveToFile(LayerFile);
+  finally
+    SL.Free;
+  end;
+
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Helper exists', Helper);
+
+  try
+    // Simulate detecting a newer version 1.1.0 (local is 1.0.0)
+    Helper.SetAfmfUpdateState('1.1.0', True);
+
+    // 1. Check Lossless Scaling tab display
+    AssertTrue('AfmfUpdateAvailable is True', Helper.AfmfUpdateAvailable);
+    AssertEquals('AfmfRemoteVer is 1.1.0', '1.1.0', Helper.AfmfRemoteVer);
+
+    // 2. Check Home tab synchronization
+    goverlayform.ShowHomeTab;
+    goverlayform.RefreshHomeMakoStatus;
+    AssertTrue('Home tab module 8 shows arrow indicator', Pos('→ 1.1.0', goverlayform.FHomeModVerLbls[8].Caption) > 0);
+    AssertEquals('Home tab module 8 has accent update color ($0044AAFF)', $0044AAFF, goverlayform.FHomeModVerLbls[8].Font.Color);
+
+    // 3. Switch back to Lossless Scaling tab and ensure update state persists
+    goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+    AssertTrue('After switching back, update state persists on label', Pos('→ 1.1.0', Helper.AfmfStatusLabel.Caption) > 0);
+    AssertTrue('After switching back, install button remains visible', Helper.AfmfInstallBtn.Visible);
+  finally
+    // Reset state
+    Helper.SetAfmfUpdateState('', False);
     if FileExists(LayerFile) then DeleteFile(LayerFile);
   end;
 end;

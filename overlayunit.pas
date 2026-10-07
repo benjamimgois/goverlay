@@ -584,6 +584,7 @@ type
     procedure menuscaleTrackBarChange(Sender: TObject);
     procedure mesaRadioButtonChange(Sender: TObject);
     procedure nvidiaRadioButtonChange(Sender: TObject);
+    procedure gpudriverComboBoxChange(Sender: TObject);
     procedure optiscalerRadioButtonClick(Sender: TObject);
     procedure dlssenablerRadioButtonClick(Sender: TObject);
     procedure noneUpscalerRadioButtonClick(Sender: TObject);
@@ -1095,6 +1096,8 @@ type
     FOsBgPanel:      TPanel;
     FOsUpscalerCard: TPanel;
     FOsGpuCard:      TPanel;
+    gpudriverComboBox: TComboBox;
+    gpudriverLabel:  TLabel;
     FOsOptionsCard:  TPanel;
     FOsStatusCard:   TPanel;
     FOsMainSec:      TPanel;
@@ -1136,8 +1139,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..7] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade
-    FHomeModVerLbls:   array[0..7] of TLabel;   // version text
+    FHomeModDots:      array[0..8] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, AFMF
+    FHomeModVerLbls:   array[0..8] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -4149,18 +4152,47 @@ begin
         autodetectnvLabel.Visible := False;
       end;
 
+      if Assigned(gpudriverComboBox) then
+      begin
+        gpudriverComboBox.Items.Clear;
+        if IsNvidiaModuleLoaded then
+        begin
+          gpudriverComboBox.Items.Add('Mesa');
+          gpudriverComboBox.Items.Add('NVIDIA (Auto)');
+        end
+        else
+        begin
+          gpudriverComboBox.Items.Add('Mesa (Auto)');
+          gpudriverComboBox.Items.Add('NVIDIA');
+        end;
+        gpudriverComboBox.Hint := 'GPU driver backend for OptiScaler (DLSS spoofing, Reflex, and LatencyFlex)';
+        gpudriverComboBox.ShowHint := True;
+      end;
+
       SavedDriver := LoadOptiScalerDriverPreference;
       if SameText(SavedDriver, 'nvidia') then
-        nvidiaRadioButton.Checked := True
+      begin
+        nvidiaRadioButton.Checked := True;
+        if Assigned(gpudriverComboBox) then gpudriverComboBox.ItemIndex := 1;
+      end
       else if SameText(SavedDriver, 'mesa') then
-        mesaRadioButton.Checked := True
+      begin
+        mesaRadioButton.Checked := True;
+        if Assigned(gpudriverComboBox) then gpudriverComboBox.ItemIndex := 0;
+      end
       else
       begin
         // First launch (no preference saved yet): run auto-detection
         if IsNvidiaModuleLoaded then
-          nvidiaRadioButton.Checked := True
+        begin
+          nvidiaRadioButton.Checked := True;
+          if Assigned(gpudriverComboBox) then gpudriverComboBox.ItemIndex := 1;
+        end
         else
+        begin
           mesaRadioButton.Checked := True;
+          if Assigned(gpudriverComboBox) then gpudriverComboBox.ItemIndex := 0;
+        end;
       end;
     finally
       FOsDriverLoading := False;
@@ -5500,6 +5532,8 @@ procedure Tgoverlayform.mesaRadioButtonChange(Sender: TObject);
 begin
   if mesaRadioButton.Checked then
   begin
+      if Assigned(gpudriverComboBox) and (gpudriverComboBox.ItemIndex <> 0) then
+        gpudriverComboBox.ItemIndex := 0;
       //Enable reflex options
       forcereflexCheckBox.Enabled := true;
       reflexComboBox.Enabled := forcereflexCheckBox.Checked;
@@ -5514,6 +5548,8 @@ procedure Tgoverlayform.nvidiaRadioButtonChange(Sender: TObject);
 begin
   if nvidiaRadioButton.Checked then
   begin
+      if Assigned(gpudriverComboBox) and (gpudriverComboBox.ItemIndex <> 1) then
+        gpudriverComboBox.ItemIndex := 1;
       //disable reflex options
       forcereflexCheckBox.Enabled := false;
       reflexComboBox.Enabled := false;
@@ -5521,6 +5557,15 @@ begin
       SaveOptiScalerDriverPreference('nvidia');
       if not FOsDriverLoading then
         SaveOptiScalerConfig(True);
+  end;
+end;
+
+procedure Tgoverlayform.gpudriverComboBoxChange(Sender: TObject);
+begin
+  if gpudriverComboBox = nil then Exit;
+  case gpudriverComboBox.ItemIndex of
+    0: if Assigned(mesaRadioButton) then mesaRadioButton.Checked := True;
+    1: if Assigned(nvidiaRadioButton) then nvidiaRadioButton.Checked := True;
   end;
 end;
 
