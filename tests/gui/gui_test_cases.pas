@@ -838,8 +838,8 @@ begin
   AssertTrue('StatusCard is assigned', Assigned(Helper.StatusCard));
   AssertTrue('ShadersCard is assigned', Assigned(Helper.ShadersCard));
   AssertTrue('ConfigCard is assigned', Assigned(Helper.ConfigCard));
-  AssertTrue('ConfigCard is positioned to the right of MethodCard', Helper.MethodCard.Left < Helper.ConfigCard.Left);
-  AssertEquals('MethodCard and ConfigCard share top row', Helper.MethodCard.Top, Helper.ConfigCard.Top);
+  AssertTrue('MethodCard spans full width', Helper.MethodCard.Width >= goverlayform.reshadeTabSheet.ClientWidth - 20);
+  AssertTrue('ConfigCard is positioned below MethodCard', Helper.MethodCard.Top < Helper.ConfigCard.Top);
   AssertTrue('ConfigCard is positioned above ShadersCard', Helper.ConfigCard.Top < Helper.ShadersCard.Top);
   AssertTrue('ShadersCard is positioned above StatusCard', Helper.ShadersCard.Top < Helper.StatusCard.Top);
   AssertTrue('OpenShadersBtn is assigned', Assigned(Helper.OpenShadersBtn));
@@ -1055,29 +1055,14 @@ begin
     goverlayform.vksumiTabSheet.TabVisible);
   AssertTrue('FVkToggleCard assigned',
     Assigned(goverlayform.FVkToggleCard));
-  AssertTrue('FVkToggleCard is visible when vkBasalt method selected',
+  AssertFalse('FVkToggleCard is hidden when vkBasalt method selected',
     goverlayform.FVkToggleCard.Visible);
-  AssertTrue('FVkToggleCard is to the right of MethodCard',
-    goverlayform.FVkToggleCard.Left > TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Left);
-  AssertEquals('FVkToggleCard shares top row with MethodCard',
-    TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Top, goverlayform.FVkToggleCard.Top);
-  AssertTrue('FVkToggleCard fully contained within parent container',
-    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
-  AssertTrue('FVkToggleCaptureBtn visible within toggle card',
-    Assigned(goverlayform.FVkToggleCaptureBtn) and
-    (goverlayform.FVkToggleCaptureBtn.Top + goverlayform.FVkToggleCaptureBtn.Height <= goverlayform.FVkToggleCard.Height));
-  AssertTrue('FVkRestoreBtn visible within toggle card',
-    Assigned(goverlayform.FVkRestoreBtn) and
-    (goverlayform.FVkRestoreBtn.Top + goverlayform.FVkRestoreBtn.Height <= goverlayform.FVkToggleCard.Height));
+  AssertTrue('MethodCard spans full width',
+    TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Width >= goverlayform.reshadeTabSheet.ClientWidth - 20);
+  AssertTrue('FVkReshadeCard is below MethodCard',
+    goverlayform.FVkReshadeCard.Top >= TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Top + TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Height);
   AssertFalse('FVkReshadeSyncBtn is removed',
     Assigned(goverlayform.FVkReshadeSyncBtn));
-  AssertEquals('FVkToggleTitleLbl caption is Options', 'Options', goverlayform.FVkToggleTitleLbl.Caption);
-  AssertTrue('FVkToggleLabel is assigned', Assigned(goverlayform.FVkToggleLabel));
-  AssertEquals('FVkToggleLabel caption is Toggle:', 'Toggle:', goverlayform.FVkToggleLabel.Caption);
-  AssertEquals('FVkToggleCaptureBtn and FVkRestoreBtn are left-aligned',
-    goverlayform.FVkToggleCaptureBtn.Left, goverlayform.FVkRestoreBtn.Left);
-  AssertTrue('FVkRestoreBtn is below FVkToggleCaptureBtn',
-    goverlayform.FVkRestoreBtn.Top > goverlayform.FVkToggleCaptureBtn.Top);
 end;
 
 procedure TGoverlayGuiTests.TestVkBasaltCasToggleSave;
@@ -4877,11 +4862,11 @@ begin
   AssertTrue('FVkPipelinePB is assigned', Assigned(goverlayform.FVkPipelinePB));
 
   // Assert cards layout for vkBasalt method:
-  // Toggle card is on the top row beside Method card
-  AssertTrue('ToggleCard is to the right of MethodCard',
-    goverlayform.FVkToggleCard.Left > TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Left);
-  AssertEquals('ToggleCard shares top row with MethodCard',
-    TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Top, goverlayform.FVkToggleCard.Top);
+  AssertFalse('ToggleCard is hidden in vkBasalt mode', goverlayform.FVkToggleCard.Visible);
+  AssertTrue('MethodCard spans full width',
+    TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Width >= goverlayform.reshadeTabSheet.ClientWidth - 20);
+  AssertTrue('ReshadeCard is below MethodCard',
+    goverlayform.FVkReshadeCard.Top >= TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Top + TReshadeTabHelper(goverlayform.FReshadeHelper).MethodCard.Height);
   // Pipeline card is below Builtin card
   AssertTrue('PipelineCard is below BuiltinCard',
     goverlayform.FVkPipelineCard.Top >= goverlayform.FVkBuiltinCard.Top + goverlayform.FVkBuiltinCard.Height);
@@ -4893,8 +4878,6 @@ begin
     goverlayform.FVkPipelineCard.Top + goverlayform.FVkPipelineCard.Height <= goverlayform.FVkPipelineCard.Parent.Height);
   AssertTrue('BuiltinCard is compact (Height >= 148)',
     goverlayform.FVkBuiltinCard.Height >= 148);
-  AssertTrue('ToggleCard is fully contained inside parent container',
-    goverlayform.FVkToggleCard.Top + goverlayform.FVkToggleCard.Height <= goverlayform.FVkToggleCard.Parent.Height);
   AssertTrue('LUT controls assigned and visible',
     Assigned(goverlayform.FVkLutPathEdit) and Assigned(goverlayform.FVkLutBrowseBtn) and Assigned(goverlayform.FVkLutClearBtn));
   AssertTrue('LUT controls contained within BuiltinCard',

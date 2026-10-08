@@ -527,9 +527,10 @@ begin
   FNoneNoticeLbl.Visible := False;
 
   // ----------------------------------------------------
-  // Card 1: Options (Top: 10, Height: 108)
   // ----------------------------------------------------
-  FConfigCard := MkCard(10, 108);
+  // Card 1: Options (Top: 120, Height: 72)
+  // ----------------------------------------------------
+  FConfigCard := MkCard(120, 72);
 
   FConfigTitleLbl := TLabel.Create(FConfigCard);
   FConfigTitleLbl.Parent := FConfigCard;
@@ -539,7 +540,7 @@ begin
   FToggleTitleLbl.Parent := FConfigCard;
   FToggleTitleLbl.Caption := 'Toggle:';
   FToggleTitleLbl.Font.Color := TxtClr;
-  FToggleTitleLbl.SetBounds(CARD_P, 40, 180, 20);
+  FToggleTitleLbl.SetBounds(CARD_P, 38, 55, 20);
 
   FToggleBtn := TBitBtn.Create(FConfigCard);
   FToggleBtn.Parent := FConfigCard;
@@ -547,7 +548,7 @@ begin
   FToggleBtn.Anchors := [akLeft, akTop];
   FToggleBtn.Cursor := crHandPoint;
   FToggleBtn.OnClick := @MainForm.CaptureBtnClick;
-  FToggleBtn.SetBounds(210, 36, 120, 28);
+  FToggleBtn.SetBounds(CARD_P + 63, 34, 110, 28);
   FToggleBtn.Caption := '⌨ Home';
   StyleActionButton(FToggleBtn);
 
@@ -563,13 +564,13 @@ begin
   FHotkeyComboBox.Items.Add('F11 (VK 122)');
   FHotkeyComboBox.ItemIndex := 0;
   FHotkeyComboBox.OnChange := @OnHotkeyChange;
-  FHotkeyComboBox.SetBounds(210, 36, 220, 28);
+  FHotkeyComboBox.SetBounds(CARD_P + 63, 34, 110, 28);
 
   FProxyTitleLbl := TLabel.Create(FConfigCard);
   FProxyTitleLbl.Parent := FConfigCard;
   FProxyTitleLbl.Caption := 'Proxy DLL:';
   FProxyTitleLbl.Font.Color := TxtClr;
-  FProxyTitleLbl.SetBounds(CARD_P, 74, 180, 20);
+  FProxyTitleLbl.SetBounds(250, 38, 75, 20);
 
   FProxyComboBox := TComboBox.Create(FConfigCard);
   FProxyComboBox.Parent := FConfigCard;
@@ -581,7 +582,7 @@ begin
   FProxyComboBox.Items.Add('opengl32.dll (OpenGL)');
   FProxyComboBox.ItemIndex := 0;
   FProxyComboBox.OnChange := @OnProxyChange;
-  FProxyComboBox.SetBounds(210, 70, 220, 28);
+  FProxyComboBox.SetBounds(330, 34, 220, 28);
   FProxyComboBox.Hint := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
   FProxyComboBox.ShowHint := True;
 
@@ -836,7 +837,7 @@ begin
         if Assigned(MainForm.FVkReshadeCard) then MainForm.FVkReshadeCard.Visible := True;
         if Assigned(MainForm.FVkBuiltinCard) then MainForm.FVkBuiltinCard.Visible := True;
         if Assigned(MainForm.FVkPipelineCard) then MainForm.FVkPipelineCard.Visible := True;
-        if Assigned(MainForm.FVkToggleCard) then MainForm.FVkToggleCard.Visible := True;
+        if Assigned(MainForm.FVkToggleCard) then MainForm.FVkToggleCard.Visible := False;
         if Assigned(FNoneNoticeLbl) then FNoneNoticeLbl.Visible := False;
       end;
     end;
@@ -917,17 +918,19 @@ end;
 procedure TReshadeTabHelper.ReflowReShadeTab(AContentW: Integer);
 const
   TOP_ROW_H = 108;
+  OPTIONS_H = 72;
   STATUS_H  = 100;
   BOTTOM_M  = 4;
 var
-  W, TargetCardW, HalfW, RightColW, RightColLeft, CurY, TopRowY, i, CheckW: Integer;
+  W, TargetCardW, CurY, TopRowY, i, CheckW: Integer;
   ClientH, TotalH, ShadersH, CardBottomTop: Integer;
   FixedBelow, BuiltinH, PipelineH, ReshadeH, MinReshadeH, MinShadersH, MinTotalH: Integer;
   PackStep, PackH, PackY, OptLabelW: Integer;
+  SlotW, ProxyLeft, ProxyTitleW, ProxyComboLeft, ProxyComboW: Integer;
   MainForm: Tgoverlayform;
   LogoW_None, LogoW_Reshade, LogoW_VkBasalt: Integer;
   GroupW_None, GroupW_Reshade, GroupW_VkBasalt: Integer;
-  TotalGroupW, GapBetween, InnerW, X1, X2, X3, RadioY: Integer;
+  InnerW, X1, X2, X3, RadioY: Integer;
 begin
   if not Assigned(FBgPanel) or not Assigned(FScrollBox) then Exit;
 
@@ -942,9 +945,6 @@ begin
 
   FBgPanel.Width := W;
   TargetCardW := Max(200, W - (MARGIN * 2));
-  HalfW := (TargetCardW - CARD_GAP) div 2;
-  RightColW := TargetCardW - HalfW - CARD_GAP;
-  RightColLeft := MARGIN + HalfW + CARD_GAP;
 
   MainForm := Tgoverlayform(FForm);
 
@@ -977,11 +977,12 @@ begin
 
   TopRowY := CurY;
 
-  // 1. Method Card (occupies 50% of available horizontal space)
+  // 1. Method Card (occupies full available horizontal space, 3 equal slots)
   if Assigned(FMethodCard) then
   begin
-    FMethodCard.SetBounds(MARGIN, TopRowY, HalfW, TOP_ROW_H);
-    InnerW := HalfW - 2 * CARD_P;
+    FMethodCard.SetBounds(MARGIN, TopRowY, TargetCardW, TOP_ROW_H);
+    InnerW := TargetCardW - 2 * CARD_P;
+    SlotW  := InnerW div 3;
     LogoW_None := 38;
     LogoW_Reshade := 120;
     LogoW_VkBasalt := 105;
@@ -989,27 +990,10 @@ begin
     GroupW_None := 22 + LogoW_None;
     GroupW_Reshade := 22 + LogoW_Reshade;
     GroupW_VkBasalt := 22 + LogoW_VkBasalt;
-    TotalGroupW := GroupW_None + GroupW_Reshade + GroupW_VkBasalt;
 
-    if InnerW < TotalGroupW then
-    begin
-      LogoW_Reshade := Max(80, (InnerW - GroupW_None - 44 - 8) * 120 div 225);
-      LogoW_VkBasalt := Max(70, (InnerW - GroupW_None - 44 - 8) * 105 div 225);
-      GroupW_Reshade := 22 + LogoW_Reshade;
-      GroupW_VkBasalt := 22 + LogoW_VkBasalt;
-      TotalGroupW := GroupW_None + GroupW_Reshade + GroupW_VkBasalt;
-    end;
-
-    if InnerW > TotalGroupW then
-      GapBetween := (InnerW - TotalGroupW) div 2
-    else
-      GapBetween := 4;
-
-    X1 := CARD_P;
-    X2 := X1 + GroupW_None + GapBetween;
-    X3 := HalfW - CARD_P - GroupW_VkBasalt;
-    if X3 < X2 + GroupW_Reshade + 4 then
-      X3 := X2 + GroupW_Reshade + 4;
+    X1 := CARD_P + (SlotW - GroupW_None) div 2;
+    X2 := CARD_P + SlotW + (SlotW - GroupW_Reshade) div 2;
+    X3 := CARD_P + 2 * SlotW + (SlotW - GroupW_VkBasalt) div 2;
 
     RadioY := 30 + (TOP_ROW_H - 30 - 36) div 2;
 
@@ -1034,6 +1018,8 @@ begin
     begin
       if Assigned(FStatusCard) then
         FStatusCard.Visible := True;
+      if Assigned(FConfigCard) then
+        FConfigCard.Visible := False;
       CurY := TopRowY + TOP_ROW_H + CARD_GAP;
       if Assigned(FNoneNoticeLbl) then
       begin
@@ -1051,22 +1037,38 @@ begin
     begin
       if Assigned(FStatusCard) then
         FStatusCard.Visible := True;
-      // Options card to the right of Method card
+      CurY := TopRowY + TOP_ROW_H + CARD_GAP;
+
+      // Options card: compact horizontal bar below Method card
       if Assigned(FConfigCard) then
       begin
-        FConfigCard.SetBounds(RightColLeft, TopRowY, RightColW, TOP_ROW_H);
-        OptLabelW := 80;
+        FConfigCard.Visible := True;
+        FConfigCard.SetBounds(MARGIN, CurY, TargetCardW, OPTIONS_H);
+        if Assigned(FConfigTitleLbl) then
+        begin
+          FConfigTitleLbl.Caption := 'Options';
+          FConfigTitleLbl.SetBounds(CARD_P, 8, 120, 20);
+        end;
+
+        OptLabelW := 55;
         if Assigned(FToggleTitleLbl) then
           FToggleTitleLbl.SetBounds(CARD_P, 38, OptLabelW, 20);
         if Assigned(FToggleBtn) then
           FToggleBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
+
+        ProxyLeft := CARD_P + OptLabelW + 8 + 110 + 36;
+        ProxyTitleW := 75;
         if Assigned(FProxyTitleLbl) then
-          FProxyTitleLbl.SetBounds(CARD_P, 72, OptLabelW, 20);
+          FProxyTitleLbl.SetBounds(ProxyLeft, 38, ProxyTitleW, 20);
         if Assigned(FProxyComboBox) then
-          FProxyComboBox.SetBounds(CARD_P + OptLabelW + 8, 68, Max(100, RightColW - CARD_P * 2 - OptLabelW - 8), 28);
+        begin
+          ProxyComboLeft := ProxyLeft + ProxyTitleW + 8;
+          ProxyComboW := Min(350, Max(160, TargetCardW - CARD_P - ProxyComboLeft));
+          FProxyComboBox.SetBounds(ProxyComboLeft, 34, ProxyComboW, 28);
+        end;
       end;
 
-      CurY := TopRowY + TOP_ROW_H + CARD_GAP;
+      CurY := CurY + OPTIONS_H + CARD_GAP;
       MinShadersH := 280;
       MinTotalH := CurY + MinShadersH + CARD_GAP + STATUS_H + BOTTOM_M;
       TotalH := Max(ClientH, MinTotalH);
@@ -1092,27 +1094,10 @@ begin
     begin
       if Assigned(FStatusCard) then
         FStatusCard.Visible := False;
-
-      // Options card to the right of Method card
+      if Assigned(FConfigCard) then
+        FConfigCard.Visible := False;
       if Assigned(MainForm) and Assigned(MainForm.FVkToggleCard) then
-      begin
-        MainForm.FVkToggleCard.SetBounds(RightColLeft, TopRowY, RightColW, TOP_ROW_H);
-        OptLabelW := 80;
-        if Assigned(MainForm.FVkToggleTitleLbl) then
-        begin
-          MainForm.FVkToggleTitleLbl.Caption := 'Options';
-          MainForm.FVkToggleTitleLbl.SetBounds(CARD_P, 8, 120, 20);
-        end;
-
-        if Assigned(MainForm.FVkToggleLabel) then
-          MainForm.FVkToggleLabel.SetBounds(CARD_P, 38, OptLabelW, 20);
-
-        if Assigned(MainForm.FVkToggleCaptureBtn) then
-          MainForm.FVkToggleCaptureBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
-
-        if Assigned(MainForm.FVkRestoreBtn) then
-          MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
-      end;
+        MainForm.FVkToggleCard.Visible := False;
 
       CurY := TopRowY + TOP_ROW_H + CARD_GAP;
       BuiltinH := 148;
@@ -1123,7 +1108,7 @@ begin
       TotalH := Max(ClientH, MinTotalH);
       ReshadeH := TotalH - CurY - FixedBelow;
 
-      // Reshade effects card expands vertically to take available space
+      // Reshade effects card expands vertically to take available space directly below Method
       if Assigned(MainForm) and Assigned(MainForm.FVkReshadeCard) then
       begin
         MainForm.FVkReshadeCard.SetBounds(MARGIN, CurY, TargetCardW, ReshadeH);
@@ -1144,18 +1129,7 @@ begin
       end;
 
       if Assigned(MainForm) then
-      begin
         MainForm.ReflowVkBasaltTab(TargetCardW);
-
-        // Keep Options card controls properly positioned
-        OptLabelW := 80;
-        if Assigned(MainForm.FVkToggleLabel) then
-          MainForm.FVkToggleLabel.SetBounds(CARD_P, 38, OptLabelW, 20);
-        if Assigned(MainForm.FVkToggleCaptureBtn) then
-          MainForm.FVkToggleCaptureBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
-        if Assigned(MainForm.FVkRestoreBtn) then
-          MainForm.FVkRestoreBtn.SetBounds(CARD_P + OptLabelW + 8, 68, 140, 28);
-      end;
     end;
   end;
 
