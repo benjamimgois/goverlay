@@ -3554,19 +3554,19 @@ begin
   aRefs[0].Name := 'Raspberry Pi 5'; aRefs[0].Score := 400; aRefs[0].RTScore := 0; aRefs[0].IsCurrent := false;
   aRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
 
-  aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 2087; aRefs[1].RTScore := 920; aRefs[1].IsCurrent := false;
+  aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 2087; aRefs[1].RTScore := 1250; aRefs[1].IsCurrent := false;
   aRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
 
   aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 750; aRefs[2].RTScore := 240; aRefs[2].IsCurrent := false;
   aRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
 
-  aRefs[3].Name := 'Steam Deck'; aRefs[3].Score := 818; aRefs[3].RTScore := 180; aRefs[3].IsCurrent := false;
+  aRefs[3].Name := 'Steam Deck'; aRefs[3].Score := 818; aRefs[3].RTScore := 174; aRefs[3].IsCurrent := false;
   aRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
 
   aRefs[4].Name := 'ROG Ally X'; aRefs[4].Score := 1212; aRefs[4].RTScore := 340; aRefs[4].IsCurrent := false;
   aRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
 
-  aRefs[5].Name := 'Entry Gamer PC'; aRefs[5].Score := 1580; aRefs[5].RTScore := 520; aRefs[5].IsCurrent := false;
+  aRefs[5].Name := 'Entry Gamer PC'; aRefs[5].Score := 1580; aRefs[5].RTScore := 761; aRefs[5].IsCurrent := false;
   aRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
 
   aRefs[6].Name := 'PlayStation 5';     aRefs[6].Score := 1800; aRefs[6].RTScore := 680; aRefs[6].IsCurrent := false;
@@ -3578,7 +3578,7 @@ begin
   aRefs[8].Name := 'PlayStation 5 Pro'; aRefs[8].Score := 2700; aRefs[8].RTScore := 1450; aRefs[8].IsCurrent := false;
   aRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
 
-  aRefs[9].Name := 'Mid-Range Gamer PC'; aRefs[9].Score := 2898; aRefs[9].RTScore := 2100; aRefs[9].IsCurrent := false;
+  aRefs[9].Name := 'Mid-Range Gamer PC'; aRefs[9].Score := 2751; aRefs[9].RTScore := 1713; aRefs[9].IsCurrent := false;
   aRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
 
   aRefs[10].Name := 'High-End Gamer PC'; aRefs[10].Score := 8062; aRefs[10].RTScore := 7450; aRefs[10].IsCurrent := false;
