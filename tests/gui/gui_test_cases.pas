@@ -42,6 +42,7 @@ type
     procedure TestReShadeTabOrderingAndCardControls;
     procedure TestReShadeConfigSaveAndLoad;
     procedure TestReShadeDynamicVersionStatus;
+    procedure TestProxyDllMutualExclusionAndResolution;
     procedure TestNavigateVkBasaltTab;
     procedure TestVkBasaltCasToggleSave;
     procedure TestNavigateVkSumiTab;
@@ -943,6 +944,14 @@ begin
   AssertTrue('ToggleBtn caption updated to Home', Pos('Home', Helper.ToggleBtn.Caption) > 0);
   AssertEquals('HotkeyComboBox synced to index 0 (Home)', 0, Helper.HotkeyComboBox.ItemIndex);
 
+  // Test Proxy DLL change triggers auto-save timer when ReShade is selected
+  goverlayform.autoSaveTimer.Enabled := False;
+  Helper.ProxyComboBox.ItemIndex := 2; // d3d12.dll
+  if Assigned(Helper.ProxyComboBox.OnChange) then
+    Helper.ProxyComboBox.OnChange(Helper.ProxyComboBox);
+  AssertTrue('autoSaveTimer enabled after ProxyComboBox change', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+
   // Select vkBasalt and verify mutual exclusion
   Helper.SelectMethod(rmVkBasalt);
   Helper.SaveConfig;
@@ -1021,6 +1030,87 @@ begin
   if FileExists(VerFile) then DeleteFile(VerFile);
   if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
   if FileExists(BinDir + '/ReShade32.dll') then DeleteFile(BinDir + '/ReShade32.dll');
+end;
+
+procedure TGoverlayGuiTests.TestProxyDllMutualExclusionAndResolution;
+var
+  Helper: TReshadeTabHelper;
+  Idx: Integer;
+begin
+  SeedOptiScalerFiles;
+  NavigateReshadeTab;
+  Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
+  AssertNotNull('ReShade helper exists', Helper);
+
+  // Setup: ReShade is active and OptiScaler is active
+  Helper.SelectMethod(rmReshade);
+  goverlayform.noneUpscalerRadioButton.Checked := False;
+  goverlayform.optiscalerRadioButton.Checked := True;
+
+  // Set OptiScaler proxy to dxgi.dll (index 0)
+  goverlayform.filenameComboBox.ItemIndex := 0;
+  goverlayform.FPreviousFilenameIndex := 0;
+
+  // Set ReShade proxy to d3d11.dll (index 1)
+  Helper.ProxyComboBox.ItemIndex := 1;
+  Helper.PreviousProxyIndex := 1;
+
+  // --- Scenario 1: ReShade selects dxgi.dll, user declines resolution (mrNo) ---
+  Helper.AutoConfirmProxyResolution := mrNo;
+  Helper.ProxyComboBox.ItemIndex := 0; // attempt selecting dxgi.dll
+  if Assigned(Helper.ProxyComboBox.OnChange) then
+    Helper.ProxyComboBox.OnChange(Helper.ProxyComboBox);
+
+  AssertEquals('ReShade ProxyComboBox reverted to previous index 1 (d3d11.dll)', 1, Helper.ProxyComboBox.ItemIndex);
+  AssertEquals('OptiScaler remains on dxgi.dll', 0, goverlayform.filenameComboBox.ItemIndex);
+
+  // --- Scenario 2: ReShade selects dxgi.dll, user accepts resolution (mrYes) ---
+  Helper.AutoConfirmProxyResolution := mrYes;
+  Helper.ProxyComboBox.ItemIndex := 0; // select dxgi.dll
+  if Assigned(Helper.ProxyComboBox.OnChange) then
+    Helper.ProxyComboBox.OnChange(Helper.ProxyComboBox);
+
+  AssertEquals('ReShade ProxyComboBox accepted index 0 (dxgi.dll)', 0, Helper.ProxyComboBox.ItemIndex);
+  AssertEquals('OptiScaler switched to version.dll (index 1)', 1, goverlayform.filenameComboBox.ItemIndex);
+  AssertEquals('OptiScaler DLL persisted as version.dll', 'version.dll', ReadBgmodConf('Config', 'DLL'));
+
+  // Reset AutoConfirmProxyResolution
+  Helper.AutoConfirmProxyResolution := 0;
+
+  // --- Scenario 3: OptiScaler tries to select dxgi.dll while ReShade is on dxgi.dll ---
+  // Currently ReShade has dxgi.dll (index 0). OptiScaler has version.dll (index 1).
+  goverlayform.filenameComboBox.ItemIndex := 0; // try dxgi.dll
+  if Assigned(goverlayform.filenameComboBox.OnChange) then
+    goverlayform.filenameComboBox.OnChange(goverlayform.filenameComboBox);
+
+  AssertEquals('OptiScaler selection blocked and reverted to version.dll', 1, goverlayform.filenameComboBox.ItemIndex);
+
+  // --- Scenario 4: OptiScaler tries to select d3d12.dll while ReShade is on d3d12.dll ---
+  Helper.ProxyComboBox.ItemIndex := 2; // d3d12.dll
+  Helper.PreviousProxyIndex := 2;
+  // OptiScaler has d3d12.dll at index 3 ('d3d12.dll')
+  Idx := goverlayform.filenameComboBox.Items.IndexOf('d3d12.dll');
+  AssertTrue('OptiScaler has d3d12.dll item', Idx >= 0);
+  goverlayform.filenameComboBox.ItemIndex := Idx;
+  if Assigned(goverlayform.filenameComboBox.OnChange) then
+    goverlayform.filenameComboBox.OnChange(goverlayform.filenameComboBox);
+
+  AssertEquals('OptiScaler selection of d3d12.dll blocked and reverted', 1, goverlayform.filenameComboBox.ItemIndex);
+
+  // --- Scenario 5: ReShade is active on dxgi.dll, user clicks OptiScaler method button ---
+  Helper.ProxyComboBox.ItemIndex := 0; // dxgi.dll
+  Helper.PreviousProxyIndex := 0;
+  // User activates OptiScaler via optiscalerRadioButtonClick
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertEquals('OptiScaler defaulted to version.dll when ReShade is on dxgi.dll',
+    goverlayform.filenameComboBox.Items.IndexOf('version.dll'), goverlayform.filenameComboBox.ItemIndex);
+
+  // --- Scenario 6: ReShade is None, OptiScaler CAN select dxgi.dll without block ---
+  Helper.SelectMethod(rmNone);
+  goverlayform.filenameComboBox.ItemIndex := 0; // dxgi.dll
+  if Assigned(goverlayform.filenameComboBox.OnChange) then
+    goverlayform.filenameComboBox.OnChange(goverlayform.filenameComboBox);
+  AssertEquals('OptiScaler allowed to select dxgi.dll when ReShade is None', 0, goverlayform.filenameComboBox.ItemIndex);
 end;
 
 procedure TGoverlayGuiTests.NavigateVkBasaltTab;

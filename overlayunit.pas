@@ -575,6 +575,7 @@ type
     procedure fsrversionComboBoxChange(Sender: TObject);
     procedure preferredUpscalerComboBoxChange(Sender: TObject);
     procedure loglevelComboBoxChange(Sender: TObject);
+    procedure filenameComboBoxChange(Sender: TObject);
     procedure gputempCheckBoxChange(Sender: TObject);
     procedure cputempCheckBoxChange(Sender: TObject);
     procedure geSpeedButtonClick(Sender: TObject);
@@ -1084,8 +1085,13 @@ type
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
     procedure LoadMangoHudKeyValue(const AKey, AValue: string);
     procedure RestoreIfMaximized;
+    function  IsOptiScalerActive: Boolean;
+    function  GetOptiScalerProxyDll: string;
+    function  IsReshadeActive: Boolean;
+    function  GetReshadeProxyDll: string;
   public
     FLoadingConfig: Boolean;
+    FPreviousFilenameIndex: Integer;
     FLastLosslessShowTick: QWord;
     FLastLosslessGame: string;
     autoSaveTimer: TTimer;
@@ -3466,6 +3472,7 @@ begin
   FMockLowLatencyInstalled := -1;
   FCachedMissingDeps := nil;
   FCachedDepsValid := False;
+  FPreviousFilenameIndex := 0;
 
   // Test mode (GOVERLAY_TEST=1): skip network update checks and background
   // download/install work so automated tests start deterministically.
@@ -5609,9 +5616,20 @@ begin
 
     if Assigned(filenameComboBox) then
     begin
-      Idx := filenameComboBox.Items.IndexOf('dxgi.dll');
-      if Idx >= 0 then
-        filenameComboBox.ItemIndex := Idx;
+      if IsReshadeActive and SameText(GetReshadeProxyDll, 'dxgi.dll') then
+      begin
+        Idx := filenameComboBox.Items.IndexOf('version.dll');
+        if Idx >= 0 then
+          filenameComboBox.ItemIndex := Idx;
+        ShowToast(ntInfo, 'dxgi.dll is in use by ReShade. OptiScaler proxy set to version.dll.', 4000);
+      end
+      else
+      begin
+        Idx := filenameComboBox.Items.IndexOf('dxgi.dll');
+        if Idx >= 0 then
+          filenameComboBox.ItemIndex := Idx;
+      end;
+      FPreviousFilenameIndex := filenameComboBox.ItemIndex;
     end;
     if Assigned(optlabel2) then
     begin
@@ -5694,6 +5712,7 @@ begin
       Idx := filenameComboBox.Items.IndexOf('version.dll');
       if Idx >= 0 then
         filenameComboBox.ItemIndex := Idx;
+      FPreviousFilenameIndex := filenameComboBox.ItemIndex;
     end;
     if Assigned(optlabel2) then
     begin
@@ -6719,6 +6738,62 @@ procedure Tgoverlayform.loglevelComboBoxChange(Sender: TObject);
 begin
   if (Sender <> nil) and not FLoadingConfig then
     StartAutoSaveTimer;
+end;
+
+procedure Tgoverlayform.filenameComboBoxChange(Sender: TObject);
+var
+  NewDll, ReshadeDll: string;
+begin
+  if FLoadingConfig then Exit;
+
+  if Assigned(filenameComboBox) and (filenameComboBox.ItemIndex >= 0) and (filenameComboBox.ItemIndex < filenameComboBox.Items.Count) then
+    NewDll := filenameComboBox.Items[filenameComboBox.ItemIndex]
+  else
+    Exit;
+
+  if IsReshadeActive then
+  begin
+    ReshadeDll := GetReshadeProxyDll;
+    if (ReshadeDll <> '') and SameText(NewDll, ReshadeDll) then
+    begin
+      filenameComboBox.ItemIndex := FPreviousFilenameIndex;
+      if SameText(NewDll, 'dxgi.dll') then
+        ShowToast(ntWarning, 'dxgi.dll is already in use by ReShade (DX11/DX12). We recommend using version.dll for OptiScaler.', 4000)
+      else
+        ShowToast(ntWarning, Format('Proxy DLL "%s" is already in use by ReShade. Choose a different Proxy DLL.', [NewDll]), 4000);
+      Exit;
+    end;
+  end;
+
+  FPreviousFilenameIndex := filenameComboBox.ItemIndex;
+  SaveOptiScalerConfig(True);
+  StartAutoSaveTimer;
+end;
+
+function Tgoverlayform.IsOptiScalerActive: Boolean;
+begin
+  Result := Assigned(noneUpscalerRadioButton) and not noneUpscalerRadioButton.Checked;
+end;
+
+function Tgoverlayform.GetOptiScalerProxyDll: string;
+begin
+  if Assigned(filenameComboBox) and (filenameComboBox.ItemIndex >= 0) and (filenameComboBox.ItemIndex < filenameComboBox.Items.Count) then
+    Result := filenameComboBox.Items[filenameComboBox.ItemIndex]
+  else
+    Result := '';
+end;
+
+function Tgoverlayform.IsReshadeActive: Boolean;
+begin
+  Result := Assigned(FReshadeHelper) and (TReshadeTabHelper(FReshadeHelper).SelectedMethod = rmReshade);
+end;
+
+function Tgoverlayform.GetReshadeProxyDll: string;
+begin
+  if Assigned(FReshadeHelper) then
+    Result := TReshadeTabHelper(FReshadeHelper).GetCurrentProxyDll
+  else
+    Result := '';
 end;
 
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);

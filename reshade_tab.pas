@@ -60,6 +60,8 @@ type
     FHotkeyValue: string;
     FProxyTitleLbl: TLabel;
     FProxyComboBox: TComboBox;
+    FPreviousProxyIndex: Integer;
+    FAutoConfirmProxyResolution: Integer;
     FLoading: Boolean;
 
     // Card 2: Shader Packages
@@ -83,6 +85,7 @@ type
     FUpdateBtn: TBitBtn;
 
     function IsLoading: Boolean;
+    function PromptDxgiResolution: Integer;
     procedure OnPackActionClick(Sender: TObject);
     procedure OnUpdateBtnClick(Sender: TObject);
     procedure OnOpenShadersBtnClick(Sender: TObject);
@@ -110,6 +113,7 @@ type
     procedure SyncHotkeyUI;
     procedure SelectMethod(AMethod: TReshadeMethod);
     procedure UpdateVkBasaltBanner(AVkInstalled: Boolean);
+    function GetCurrentProxyDll: string;
 
     property BgPanel: TPanel read FBgPanel;
     property ScrollBox: TScrollBox read FScrollBox;
@@ -131,6 +135,8 @@ type
     property UpdateBtn: TBitBtn read FUpdateBtn;
     property OpenShadersBtn: TBitBtn read FOpenShadersBtn;
     property ProxyComboBox: TComboBox read FProxyComboBox;
+    property PreviousProxyIndex: Integer read FPreviousProxyIndex write FPreviousProxyIndex;
+    property AutoConfirmProxyResolution: Integer read FAutoConfirmProxyResolution write FAutoConfirmProxyResolution;
     property HotkeyComboBox: TComboBox read FHotkeyComboBox;
     property ToggleBtn: TBitBtn read FToggleBtn;
     property StatDot: TShape read FStatDot;
@@ -184,7 +190,7 @@ const
 implementation
 
 uses
-  overlayunit, optiscaler_tab, optiscaler_update, bgmod_resources, IniFiles, FileUtil;
+  overlayunit, optiscaler_tab, optiscaler_update, bgmod_resources, IniFiles, FileUtil, notificationunit;
 
 const
   MARGIN   = 4;
@@ -299,6 +305,8 @@ constructor TReshadeTabHelper.Create(AForm: TForm);
 begin
   FForm := AForm;
   FSelectedMethod := rmReshade;
+  FPreviousProxyIndex := 0;
+  FAutoConfirmProxyResolution := 0;
 end;
 
 destructor TReshadeTabHelper.Destroy;
@@ -337,7 +345,11 @@ begin
   FHotkeyValue := Format('%d,%d,%d,%d', [AKey, CtrlVal, ShiftVal, AltVal]);
   SyncHotkeyUI;
   if not FLoading then
+  begin
     SaveConfig;
+    if Assigned(FForm) and (FForm is Tgoverlayform) and not Tgoverlayform(FForm).FLoadingConfig then
+      Tgoverlayform(FForm).StartAutoSaveTimer;
+  end;
 end;
 
 procedure TReshadeTabHelper.SyncHotkeyUI;
@@ -581,9 +593,10 @@ begin
   FProxyComboBox.Items.Add('d3d9.dll (DirectX 9)');
   FProxyComboBox.Items.Add('opengl32.dll (OpenGL)');
   FProxyComboBox.ItemIndex := 0;
+  FPreviousProxyIndex := 0;
   FProxyComboBox.OnChange := @OnProxyChange;
   FProxyComboBox.SetBounds(330, 34, 220, 28);
-  FProxyComboBox.Hint := 'OptiScaler Co-existence: When OptiScaler is active on dxgi.dll, ReShade is chained via OptiScaler.ini [ReShade] loader automatically.';
+  FProxyComboBox.Hint := 'OptiScaler Co-existence: ReShade and OptiScaler cannot share the same Proxy DLL. Choose a different DLL (e.g. d3d11.dll or version.dll).';
   FProxyComboBox.ShowHint := True;
 
   // ----------------------------------------------------
@@ -785,6 +798,8 @@ end;
 procedure TReshadeTabHelper.ApplyMethodSelection(AMethod: TReshadeMethod; ASave: Boolean);
 var
   MainForm: Tgoverlayform;
+  OptiDll: string;
+  OptIdx, Res: Integer;
 begin
   FSelectedMethod := AMethod;
   if Assigned(FNoneRadio) then FNoneRadio.Checked := (AMethod = rmNone);
@@ -819,6 +834,44 @@ begin
 
       rmReshade:
       begin
+        if Assigned(MainForm) and MainForm.IsOptiScalerActive and ASave and not FLoading then
+        begin
+          OptiDll := MainForm.GetOptiScalerProxyDll;
+          if (OptiDll <> '') and SameText(GetCurrentProxyDll, OptiDll) then
+          begin
+            if SameText(GetCurrentProxyDll, 'dxgi.dll') then
+            begin
+              Res := PromptDxgiResolution;
+              if Res = mrYes then
+              begin
+                if Assigned(MainForm.filenameComboBox) then
+                begin
+                  OptIdx := MainForm.filenameComboBox.Items.IndexOf('version.dll');
+                  if OptIdx >= 0 then
+                    MainForm.filenameComboBox.ItemIndex := OptIdx;
+                  MainForm.FPreviousFilenameIndex := MainForm.filenameComboBox.ItemIndex;
+                end;
+                MainForm.SaveOptiScalerConfig(True);
+                ShowToast(ntSuccess, 'OptiScaler switched to version.dll. ReShade configured with dxgi.dll.', 4000);
+              end
+              else
+              begin
+                FProxyComboBox.ItemIndex := 1; // d3d11.dll fallback
+                FPreviousProxyIndex := 1;
+                ShowToast(ntWarning, 'OptiScaler kept on dxgi.dll. ReShade proxy set to d3d11.dll.', 4000);
+              end;
+            end
+            else
+            begin
+              FProxyComboBox.ItemIndex := 0;
+              if SameText(GetCurrentProxyDll, OptiDll) then
+                FProxyComboBox.ItemIndex := 1;
+              FPreviousProxyIndex := FProxyComboBox.ItemIndex;
+              ShowToast(ntWarning, Format('Proxy DLL conflict resolved: ReShade set to %s.', [GetCurrentProxyDll]), 4000);
+            end;
+          end;
+        end;
+
         if Assigned(FStatusCard) then FStatusCard.Visible := True;
         if Assigned(FConfigCard) then FConfigCard.Visible := True;
         if Assigned(FShadersCard) then FShadersCard.Visible := True;
@@ -849,7 +902,11 @@ begin
     ReflowReShadeTab(FScrollBox.ClientWidth);
 
   if ASave and not FLoading then
+  begin
     SaveConfig;
+    if Assigned(FForm) and (FForm is Tgoverlayform) and not Tgoverlayform(FForm).FLoadingConfig then
+      Tgoverlayform(FForm).StartAutoSaveTimer;
+  end;
 end;
 
 procedure TReshadeTabHelper.UpdateVkBasaltBanner(AVkInstalled: Boolean);
@@ -1349,12 +1406,106 @@ begin
     FToggleBtn.Caption := '⌨ ' + ReShadeKeyToDisplayName(FHotkeyValue);
   if FLoading then Exit;
   SaveConfig;
+  if Assigned(FForm) and (FForm is Tgoverlayform) and not Tgoverlayform(FForm).FLoadingConfig then
+    Tgoverlayform(FForm).StartAutoSaveTimer;
+end;
+
+function GetReshadeProxyDllName(Index: Integer): string;
+begin
+  case Index of
+    0: Result := 'dxgi.dll';
+    1: Result := 'd3d11.dll';
+    2: Result := 'd3d12.dll';
+    3: Result := 'd3d9.dll';
+    4: Result := 'opengl32.dll';
+  else
+    Result := 'dxgi.dll';
+  end;
+end;
+
+function TReshadeTabHelper.GetCurrentProxyDll: string;
+begin
+  if not Assigned(FProxyComboBox) or (FProxyComboBox.ItemIndex < 0) then
+  begin
+    Result := 'dxgi.dll';
+    Exit;
+  end;
+  Result := GetReshadeProxyDllName(FProxyComboBox.ItemIndex);
+end;
+
+function TReshadeTabHelper.PromptDxgiResolution: Integer;
+begin
+  if FAutoConfirmProxyResolution <> 0 then
+    Result := FAutoConfirmProxyResolution
+  else
+    Result := MessageDlg('Proxy DLL Conflict',
+      'OptiScaler is currently using "dxgi.dll".' + LineEnding + LineEnding +
+      'ReShade works best with "dxgi.dll" because it supports both DirectX 11 and DirectX 12 games, whereas other ReShade proxies are tied to a specific DirectX version.' + LineEnding + LineEnding +
+      'OptiScaler works reliably with "version.dll".' + LineEnding + LineEnding +
+      'Would you like to switch OptiScaler to "version.dll" so ReShade can use "dxgi.dll"?',
+      mtConfirmation, [mbYes, mbNo], 0);
 end;
 
 procedure TReshadeTabHelper.OnProxyChange(Sender: TObject);
+var
+  NewDll, OptiDll: string;
+  MainForm: Tgoverlayform;
+  OptIdx, Res: Integer;
 begin
   if FLoading then Exit;
+
+  MainForm := Tgoverlayform(FForm);
+  NewDll := GetReshadeProxyDllName(FProxyComboBox.ItemIndex);
+
+  if Assigned(MainForm) and MainForm.IsOptiScalerActive then
+  begin
+    OptiDll := MainForm.GetOptiScalerProxyDll;
+    if (OptiDll <> '') and SameText(NewDll, OptiDll) then
+    begin
+      if SameText(NewDll, 'dxgi.dll') then
+      begin
+        Res := PromptDxgiResolution;
+        if Res = mrYes then
+        begin
+          if Assigned(MainForm.filenameComboBox) then
+          begin
+            OptIdx := MainForm.filenameComboBox.Items.IndexOf('version.dll');
+            if OptIdx >= 0 then
+              MainForm.filenameComboBox.ItemIndex := OptIdx;
+            MainForm.FPreviousFilenameIndex := MainForm.filenameComboBox.ItemIndex;
+          end;
+          MainForm.SaveOptiScalerConfig(True);
+          if not MainForm.FLoadingConfig then
+            MainForm.StartAutoSaveTimer;
+
+          FPreviousProxyIndex := FProxyComboBox.ItemIndex;
+          SaveConfig;
+          if not MainForm.FLoadingConfig then
+            MainForm.StartAutoSaveTimer;
+
+          ShowToast(ntSuccess, 'OptiScaler switched to version.dll. ReShade configured with dxgi.dll.', 4000);
+          Exit;
+        end
+        else
+        begin
+          FProxyComboBox.ItemIndex := FPreviousProxyIndex;
+          ShowToast(ntWarning, 'ReShade cannot use dxgi.dll while OptiScaler is using it. Please select a different proxy DLL.', 4000);
+          Exit;
+        end;
+      end
+      else
+      begin
+        FProxyComboBox.ItemIndex := FPreviousProxyIndex;
+        ShowToast(ntWarning, Format('Proxy DLL "%s" is already in use by OptiScaler. Choose a different Proxy DLL.', [NewDll]), 4000);
+        Exit;
+      end;
+    end;
+  end;
+
+  FPreviousProxyIndex := FProxyComboBox.ItemIndex;
   SaveConfig;
+  if Assigned(FForm) and (FForm is Tgoverlayform) and not Tgoverlayform(FForm).FLoadingConfig then
+    Tgoverlayform(FForm).StartAutoSaveTimer;
 end;
 
 procedure TReshadeTabHelper.LoadConfig;
@@ -1429,6 +1580,7 @@ begin
       end;
     end;
 
+    FPreviousProxyIndex := FProxyComboBox.ItemIndex;
     ApplyMethodSelection(LoadedMethod, False);
   finally
     FLoading := False;

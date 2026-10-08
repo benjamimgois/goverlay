@@ -554,6 +554,7 @@ begin
     filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
     filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
     filenameComboBox.Anchors := [akLeft, akTop]; filenameComboBox.Parent  := FOsMainSec;
+    filenameComboBox.OnChange := @FForm.filenameComboBoxChange;
 
     if gpudriverLabel = nil then
     begin
@@ -1555,6 +1556,7 @@ var
   SavedOptOnChange: TNotifyEvent;
   SavedPreferredUpscalerOnChange: TNotifyEvent;
   SavedLogLevelOnChange: TNotifyEvent;
+  SavedFilenameOnChange: TNotifyEvent;
   Idx: Integer;
 begin
   with FForm do
@@ -1570,14 +1572,17 @@ begin
       SavedLogLevelOnChange := loglevelComboBox.OnChange
     else
       SavedLogLevelOnChange := nil;
+    SavedFilenameOnChange := filenameComboBox.OnChange;
 
     fsrversionComboBox.OnChange := nil;
     optversionComboBox.OnChange := nil;
     preferredUpscalerComboBox.OnChange := nil;
     if Assigned(loglevelComboBox) then
       loglevelComboBox.OnChange := nil;
+    filenameComboBox.OnChange := nil;
     try
       filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
+      FPreviousFilenameIndex := filenameComboBox.ItemIndex;
       emufp8CheckBox.Checked := Settings.EmuFp8Checked;
       forceFsr4Int8CheckBox.Checked := Settings.ForceFsr4Int8Checked;
       shortcutkeyComboBox.Text := Settings.ShortcutKey;
@@ -1682,6 +1687,7 @@ begin
       preferredUpscalerComboBox.OnChange := SavedPreferredUpscalerOnChange;
       if Assigned(loglevelComboBox) then
         loglevelComboBox.OnChange := SavedLogLevelOnChange;
+      filenameComboBox.OnChange := SavedFilenameOnChange;
     end;
 
     if Assigned(FOptiscalerUpdate) then
