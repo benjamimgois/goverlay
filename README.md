@@ -333,6 +333,12 @@ Tooling that expands compatibility layers for DLSS and NVAPI-based features.
 
 https://github.com/artur-graniszewski/DLSS-Enabler
 
+### serialexperimentslainnnn
+
+Special thanks to **serialexperimentslainnnn**, creator of **afmf-linux**, bringing AMD Fluid Motion Frames frame generation to Linux.
+
+- https://github.com/serialexperimentslainnnn/afmf-linux
+
 ### Lazarus IDE
 
 This project was built using the [Lazarus IDE](https://www.lazarus-ide.org/).

@@ -203,6 +203,7 @@ begin
   // Update description and credits captions dynamically at runtime
   descLabel.Caption := 'Open-source tool providing a unified interface to configure different gaming tools';
   creditsHeaderLabel.Caption := 'Credits:';
+  creditsLabel.Height := 160;
   creditsLabel.Caption := 
     'FlightlessMango – MangoHud'#10 +
     'DadSchoorse – vkBasalt'#10 +
@@ -210,7 +211,8 @@ begin
     'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10 +
     'THS – Lossless Scaling'#10 +
     'PancakeTAS – lsfg-vk'#10 +
-    'eugeniosegala – MAKO';
+    'eugeniosegala – MAKO'#10 +
+    'serialexperimentslainnnn – afmf-linux';
   linksHeaderLabel.Caption := 'Project links:';
   linksLabel.Caption := 'github.com/benjamimgois/goverlay';
 

@@ -81,7 +81,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..8] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'AFMF');
+  MOD_NAMES: array[0..8] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -329,7 +329,7 @@ begin
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, AFMF)
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux)
     for i := 0 to 8 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
@@ -716,7 +716,7 @@ begin
       end;
     end;
 
-    // 3. Update AFMF (index 8)
+    // 3. Update afmf-linux (index 8)
     if Assigned(FHomeModVerLbls[8]) then
     begin
       AfmfLocalVer := Self.GetAfmfVersion;
