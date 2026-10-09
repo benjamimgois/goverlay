@@ -8958,6 +8958,17 @@ var
       begin
         TToggleSwitch(Container.Controls[k]).ParentColor := True;
         TToggleSwitch(Container.Controls[k]).Color := CardBg;
+      end
+      else if Container.Controls[k] is TBitBtn then
+      begin
+        TBitBtn(Container.Controls[k]).Font.Color := TextColor;
+        if CurrentTheme = tmLight then
+          SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
+        else
+          SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+                'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+                'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
+        QWidget_setStyleSheet(TQtWidget(TBitBtn(Container.Controls[k]).Handle).Widget, @SS);
       end;
     end;
   end;
@@ -8981,11 +8992,11 @@ begin
 
   ApplyToContainer(Card);
 
-  // Force QCheckBox background transparent via Qt stylesheet
+  // Force QCheckBox and QRadioButton background transparent via Qt stylesheet
   if CurrentTheme = tmLight then
-    SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
+    SS := 'QCheckBox, QRadioButton { color: rgb(0,0,0); background-color: transparent; }'
   else
-    SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
+    SS := 'QCheckBox, QRadioButton { color: rgb(255,255,255); background-color: transparent; }';
   QWidget_setStyleSheet(TQtWidget(Card.Handle).Widget, @SS);
 end;
 

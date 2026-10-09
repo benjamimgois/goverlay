@@ -1047,6 +1047,7 @@ begin
   FColumnsMinusBtn.Caption := '-';
   FColumnsMinusBtn.Font.Size := 13;
   FColumnsMinusBtn.Font.Style := [fsBold];
+  FColumnsMinusBtn.Font.Color := TextColor;
   FColumnsMinusBtn.OnClick := @FForm.minusButtonClick;
   FColumnsMinusBtn.Cursor := crHandPoint;
   FColumnsMinusBtn.SetBounds(64, 162, 24, 24);
@@ -1056,6 +1057,7 @@ begin
   FColumnsPlusBtn.Caption := '+';
   FColumnsPlusBtn.Font.Size := 13;
   FColumnsPlusBtn.Font.Style := [fsBold];
+  FColumnsPlusBtn.Font.Color := TextColor;
   FColumnsPlusBtn.OnClick := @FForm.plusSpeedButtonClick;
   FColumnsPlusBtn.Cursor := crHandPoint;
   FColumnsPlusBtn.SetBounds(91, 162, 24, 24);
@@ -1163,6 +1165,7 @@ begin
   FVisualCaptureBtn.SetBounds(11, 24, 140, 28);
   FVisualCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FVisualCaptureBtn.Cursor  := crHandPoint;
+  FVisualCaptureBtn.Font.Color := TextColor;
   if Trim(hudonoffComboBox.Text) <> '' then
     FVisualCaptureBtn.Caption := '⌨ ' + hudonoffComboBox.Text
   else
@@ -1513,16 +1516,21 @@ begin
   end;
 
   // Style Columns minus/plus TBitBtn controls
-  if CurrentTheme = tmLight then
-    SS := 'QPushButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; font-weight: bold; padding: 0px; }'
-  else
-    SS := 'QPushButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; font-weight: bold; padding: 0px; } ' +
-          'QPushButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-          'QPushButton:pressed { background-color: rgb(28,34,54); }';
+  if Assigned(FColumnsMinusBtn) then
+    FColumnsMinusBtn.Font.Color := TextColor;
+  if Assigned(FColumnsPlusBtn) then
+    FColumnsPlusBtn.Font.Color := TextColor;
 
-  if Assigned(FColumnsMinusBtn) and FColumnsMinusBtn.HandleAllocated then
+  if CurrentTheme = tmLight then
+    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; font-weight: bold; padding: 0px; }'
+  else
+    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; font-weight: bold; padding: 0px; } ' +
+          'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
+
+  if Assigned(FColumnsMinusBtn) then
     QWidget_setStyleSheet(TQtWidget(FColumnsMinusBtn.Handle).Widget, @SS);
-  if Assigned(FColumnsPlusBtn) and FColumnsPlusBtn.HandleAllocated then
+  if Assigned(FColumnsPlusBtn) then
     QWidget_setStyleSheet(TQtWidget(FColumnsPlusBtn.Handle).Widget, @SS);
 
   // Style Position offset spin edits
@@ -1591,6 +1599,19 @@ begin
     else
       SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
     QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
+
+    // Style HUD toggle capture button
+    if Assigned(FVisualCaptureBtn) then
+    begin
+      FVisualCaptureBtn.Font.Color := TextColor;
+      if CurrentTheme = tmLight then
+        SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
+      else
+        SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+              'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+              'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
+      QWidget_setStyleSheet(TQtWidget(FVisualCaptureBtn.Handle).Widget, @SS);
+    end;
   end;
 
   alphavalueLabel.Font.Color    := CLR_TEXT_ACCENT;
@@ -1879,6 +1900,7 @@ const
         FLimitCaptureBtn.Tag     := 2;
         FLimitCaptureBtn.OnClick := @FForm.CaptureBtnClick;
         FLimitCaptureBtn.Cursor  := crHandPoint;
+        FLimitCaptureBtn.Font.Color := TextColor;
         if Trim(fpslimtoggleComboBox.Text) <> '' then
           FLimitCaptureBtn.Caption := '⌨ ' + fpslimtoggleComboBox.Text
         else
@@ -1937,9 +1959,11 @@ const
 var
   BgBox: TPaintBox;
   SS: WideString;
+  TextColor: TColor;
 begin
   with FForm do
   begin
+  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
   BgBox := TPaintBox.Create(FForm);
   BgBox.Parent  := performanceTabSheet;
   BgBox.Align   := alClient;
@@ -2022,7 +2046,11 @@ begin
   mipmapvalueLabel.Font.Style := [fsBold];
   mipmapvalueLabel.Transparent := True;
 
-  SS := 'QGroupBox { border: none; }';
+  filterRadioGroup.Font.Color := TextColor;
+  if CurrentTheme = tmLight then
+    SS := 'QGroupBox { border: none; } QRadioButton { color: rgb(0,0,0); background-color: transparent; }'
+  else
+    SS := 'QGroupBox { border: none; } QRadioButton { color: rgb(255,255,255); background-color: transparent; }';
   QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
   filterRadioGroup.OnClick := @FForm.filterRadioGroupClick;
   filterRadioGroup.OnSelectionChanged := @FForm.filterRadioGroupClick;
@@ -2412,6 +2440,35 @@ begin
     fpscolor3SpinEdit.Color := IfThen(CurrentTheme = tmLight, $00F5F5F5, RGBToColor(38, 46, 72));
     SS := GetSpinBoxStyleSheet(CurrentTheme = tmDark);
     QWidget_setStyleSheet(TQtWidget(fpscolor3SpinEdit.Handle).Widget, @SS);
+  end;
+
+  // Filter radio buttons: update colors for theme
+  if Assigned(filterRadioGroup) then
+  begin
+    filterRadioGroup.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      SS := 'QGroupBox { border: none; } QRadioButton { color: rgb(0,0,0); background-color: transparent; }'
+    else
+      SS := 'QGroupBox { border: none; } QRadioButton { color: rgb(255,255,255); background-color: transparent; }';
+    QWidget_setStyleSheet(TQtWidget(filterRadioGroup.Handle).Widget, @SS);
+  end;
+
+  // Limit toggle capture button & labels
+  if Assigned(methodLabel) then
+    methodLabel.Font.Color := TextColor;
+  if Assigned(limtoggleLabel) then
+    limtoggleLabel.Font.Color := TextColor;
+
+  if Assigned(FLimitCaptureBtn) then
+  begin
+    FLimitCaptureBtn.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
+    else
+      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
+    QWidget_setStyleSheet(TQtWidget(FLimitCaptureBtn.Handle).Widget, @SS);
   end;
   end;
 end;
@@ -3014,6 +3071,7 @@ begin
   FLoggingCaptureBtn.SetBounds(356, 127 + HDR, 140, 28);
   FLoggingCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FLoggingCaptureBtn.Cursor  := crHandPoint;
+  FLoggingCaptureBtn.Font.Color := WHITE;
   if Trim(logtoggleComboBox.Text) <> '' then
     FLoggingCaptureBtn.Caption := '⌨ ' + logtoggleComboBox.Text
   else
@@ -3265,6 +3323,18 @@ begin
 
   if Assigned(logtoggleLabel) then
     logtoggleLabel.Font.Color := TextColor;
+
+  if Assigned(FLoggingCaptureBtn) then
+  begin
+    FLoggingCaptureBtn.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
+    else
+      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
+    QWidget_setStyleSheet(TQtWidget(FLoggingCaptureBtn.Handle).Widget, @SS);
+  end;
     
   if Assigned(logfolderEdit) then
   begin
