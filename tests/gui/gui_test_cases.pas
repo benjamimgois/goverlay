@@ -160,12 +160,13 @@ type
     procedure TestCloneGlobalConfigsDockMenu;
     procedure TestGameCardsAlphabeticalSorting;
     procedure TestRichChangelogViewerRender;
+    procedure TestStartupHasMissingLibrariesChecksVkBasaltShaders;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2835,7 +2836,7 @@ begin
   AssignFile(F, OptiStableDir + 'fakenvapi.dll'); Rewrite(F); WriteLn(F, 'fakenvapi'); CloseFile(F);
   AssignFile(F, OptiStableDir + 'D3D12_Optiscaler/sample.dll'); Rewrite(F); WriteLn(F, 'd3d12_sample'); CloseFile(F);
   AssignFile(F, OptiStableDir + 'plugins/OptiPatcher.asi'); Rewrite(F); WriteLn(F, 'patcher'); CloseFile(F);
-  AssignFile(F, OptiStableDir + 'bgmod'); Rewrite(F); WriteLn(F, '#!/bin/sh'); CloseFile(F);
+  AssignFile(F, OptiStableDir + 'bgmod'); Rewrite(F); WriteLn(F, '#!' + FindTestHelperExecutable('sh')); CloseFile(F);
 
   // 2. Seed DLSS Enabler native files in dlssenabler-stable
   ForceDirectories(DlssStableDir);
@@ -2954,7 +2955,7 @@ begin
   // 4. Run bgmod to perform installation
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
       GameCfgDir + 'bgmod" "' + FindTestHelperExecutable('true') + '" "' + GameDir + 'StreamlineGame.exe"';
     Proc.Parameters.Add('-c');
@@ -3016,7 +3017,7 @@ begin
 
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     Proc.Parameters.Add('-c');
     Proc.Parameters.Add(ExecCmd);
     Proc.Options := [poWaitOnExit];
@@ -3095,7 +3096,7 @@ begin
   // 3. Execute uninstaller with BGMOD_CONFIG_DIR and BGMOD_BACKUPS_DIR (mirroring GameCardUninstallClick)
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
       'BGMOD_CONFIG_DIR="' + GameCfgDir + '" ' +
       'BGMOD_BACKUPS_DIR="' + BackupsDir + '" ' +
@@ -3137,7 +3138,7 @@ begin
   AssignFile(F, GameDir + 'sl.common.dll'); Rewrite(F); WriteLn(F, 'NATIVE_WITHOUT_BACKUP'); CloseFile(F);
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
       'STEAM_COMPAT_INSTALL_PATH="' + GameDir + '" "' +
       UninstallerBin + '" -- 2>/dev/null';
@@ -3225,7 +3226,7 @@ begin
   // 4. Run bgmod to perform installation
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" "' +
       GameCfgDir + 'bgmod" "' + FindTestHelperExecutable('true') + '" "' + GameDir + 'Game.exe"';
     Proc.Parameters.Add('-c');
@@ -3257,7 +3258,7 @@ begin
   // 7. Run uninstaller to clean up OptiScaler
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := '/bin/sh';
+    Proc.Executable := FindTestHelperExecutable('sh');
     ExecCmd := 'HOME="' + IsolatedHome + '" XDG_DATA_HOME="' + IsolatedHome + '/.local/share" ' +
       'STEAM_COMPAT_INSTALL_PATH="' + GameDir + '" "' +
       UninstallerBin + '" -- 2>/dev/null';
@@ -6790,7 +6791,7 @@ begin
     // Seed bgmod template directory so wrappers can be copied
     BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
     ForceDirectories(BGTemplate);
-    Lines.Text := '#!/bin/sh' + LineEnding + 'exit 0';
+    Lines.Text := '#!' + FindTestHelperExecutable('sh') + LineEnding + 'exit 0';
     Lines.SaveToFile(BGTemplate + 'bgmod');
     Lines.SaveToFile(BGTemplate + 'bgmod-uninstaller');
   finally
@@ -7073,6 +7074,59 @@ begin
   finally
     Dlg.Free;
   end;
+end;
+
+procedure TGoverlayGuiTests.TestStartupHasMissingLibrariesChecksVkBasaltShaders;
+var
+  Missing: TStringList;
+  VkShadersDir: string;
+  DummyHandle: THandle;
+begin
+  VkShadersDir := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders';
+
+  // 1. When shaders folder is absent, HasMissingMandatoryLibraries reports it
+  if DirectoryExists(VkShadersDir) then
+    DeleteDirectory(VkShadersDir, False);
+
+  Missing := nil;
+  try
+    AssertTrue('HasMissingMandatoryLibraries returns true when shaders missing',
+      HasMissingMandatoryLibraries(Missing));
+    AssertNotNull('Missing list is created', Missing);
+    AssertTrue('Missing list contains vkBasalt ReShade Shaders',
+      Missing.IndexOf('vkBasalt ReShade Shaders') >= 0);
+  finally
+    Missing.Free;
+  end;
+
+  // 2. When shaders folder is present, HasMissingMandatoryLibraries does not report it
+  ForceDirectories(VkShadersDir);
+  Missing := nil;
+  try
+    HasMissingMandatoryLibraries(Missing);
+    if Assigned(Missing) then
+      AssertTrue('Missing list does NOT contain vkBasalt ReShade Shaders when directory exists',
+        Missing.IndexOf('vkBasalt ReShade Shaders') = -1);
+  finally
+    Missing.Free;
+  end;
+
+  // 3. CheckAndInstallVkBasaltShaders returns True immediately if folder already exists
+  AssertTrue('CheckAndInstallVkBasaltShaders returns True when directory exists',
+    CheckAndInstallVkBasaltShaders(False));
+
+  // 4. Test that reshadeTabSheetShow populates aveffectsListBox if files exist
+  DummyHandle := FileCreate(VkShadersDir + '/TestStartupEffect.fx');
+  if DummyHandle <> THandle(-1) then
+    FileClose(DummyHandle);
+
+  goverlayform.aveffectsListBox.Items.Clear;
+  goverlayform.reshadeTabSheetShow(nil);
+  AssertTrue('aveffectsListBox populated after reshadeTabSheetShow',
+    goverlayform.aveffectsListBox.Items.IndexOf('TestStartupEffect.fx') >= 0);
+
+  // Cleanup dummy shader
+  DeleteFile(VkShadersDir + '/TestStartupEffect.fx');
 end;
 
 initialization

@@ -2552,7 +2552,22 @@ begin
 end;
 
 procedure Tgoverlayform.reshadeTabSheetShow(Sender: TObject);
+var
+  VkShadersDir: string;
 begin
+  VkShadersDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
+  if DirectoryExists(VkShadersDir) and (aveffectsListbox.Items.Count = 0) then
+  begin
+    ListFilesToListBox(VkShadersDir, aveffectsListbox, ['.fx', '.glsl']);
+    aveffectsListbox.Enabled := True;
+    acteffectsListbox.Enabled := True;
+    addBitbtn.Enabled := True;
+    subBitbtn.Enabled := True;
+    reshaderefreshBitbtn.Enabled := True;
+    if Assigned(FVkReshadePB) then
+      FVkReshadePB.Invalidate;
+  end;
+
   if Assigned(FReshadeHelper) then
   begin
     TReshadeTabHelper(FReshadeHelper).RefreshStatus;
@@ -3379,6 +3394,7 @@ var
   DownloadThread: TStartupDownloadThread;
   FailedNotice: string;
   i: Integer;
+  RepoDir: string;
 begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
@@ -3430,6 +3446,20 @@ begin
   HideBootSplash;
   Self.Show;
   RefreshOsStatusDots;
+
+  // Ensure vkBasalt available effects listbox is populated if shaders directory was downloaded
+  RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
+  if DirectoryExists(RepoDir) and (aveffectsListbox.Items.Count = 0) then
+  begin
+    ListFilesToListBox(RepoDir, aveffectsListbox, ['.fx', '.glsl']);
+    aveffectsListbox.Enabled := True;
+    acteffectsListbox.Enabled := True;
+    addBitbtn.Enabled := True;
+    subBitbtn.Enabled := True;
+    reshaderefreshBitbtn.Enabled := True;
+    if Assigned(FVkReshadePB) then
+      FVkReshadePB.Invalidate;
+  end;
 
   if FailedNotice <> '' then
     ShowToast(ntWarning, FailedNotice, 6000);
@@ -10555,8 +10585,9 @@ begin
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
     CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
     CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
-    CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 94%)
-    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (94% - 99%)
+    CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 90%)
+    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (90% - 95%)
+    CheckAndInstallVkBasaltShaders(False, @OnDownloadProgress, FFailedFiles); // vkBasalt ReShade Shaders (95% - 99%)
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

@@ -77,6 +77,7 @@ function ParseReShadeMeHtml(const AHtml: string; out AUrl: string): string;
 function GetReShadeLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 type
   TOptiscalerTab = class
@@ -3933,6 +3934,10 @@ begin
   if not DirectoryExists(ReShadeShaders + 'Shaders') then
     AMissingList.Add('ReShade Standard Shaders');
 
+  // vkBasalt ReShade shaders repository
+  if not DirectoryExists(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders') then
+    AMissingList.Add('vkBasalt ReShade Shaders');
+
   // AFMF Vulkan layer
   if not IsAfmfInstalled and not IsRunningInFlatpak then
     AMissingList.Add('afmf-linux layer');
@@ -6198,8 +6203,8 @@ var
   RemoteVer: string;
 begin
   Result := False;
-  StartPct := 88;
-  EndPct := 99;
+  StartPct := 90;
+  EndPct := 95;
 
   EnsureReShadeDirectories;
   BinDir := IncludeTrailingPathDelimiter(GetReShadeBinPath);
@@ -6235,17 +6240,17 @@ begin
     TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade_ext_' + IntToStr(fpgetpid) + PathDelim;
 
     if Assigned(AOnProgress) then
-      AOnProgress(StartPct + 2, 'Downloading ReShade ' + RemoteVer + ' (Add-on)...');
+      AOnProgress(StartPct + 1, 'Downloading ReShade ' + RemoteVer + ' (Add-on)...');
 
     WriteLn('[AUTO-INSTALL] Downloading ReShade version: ', RemoteVer, ' from ', ReShadeExeUrl);
     Flush(Output);
 
-    if RunCurlWithProgress(ReShadeExeUrl, TempExe, StartPct + 2, StartPct + 5, 'Downloading ReShade...', AOnProgress) = 0 then
+    if RunCurlWithProgress(ReShadeExeUrl, TempExe, StartPct + 1, StartPct + 3, 'Downloading ReShade...', AOnProgress) = 0 then
     begin
       if FileExists(TempExe) then
       begin
         if Assigned(AOnProgress) then
-          AOnProgress(StartPct + 6, 'Extracting ReShade runtime...');
+          AOnProgress(StartPct + 3, 'Extracting ReShade runtime...');
 
         ForceDirectories(TempExtractDir);
         Flush(Output);
@@ -6297,14 +6302,14 @@ begin
       TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade-shaders-slim.tar.gz';
 
       if Assigned(AOnProgress) then
-        AOnProgress(StartPct + 7, 'Downloading Standard Shaders...');
+        AOnProgress(StartPct + 3, 'Downloading Standard Shaders...');
 
-      if RunCurlWithProgress(ShadersTarUrl, TempTar, StartPct + 7, StartPct + 9, 'Downloading Standard Shaders...', AOnProgress) = 0 then
+      if RunCurlWithProgress(ShadersTarUrl, TempTar, StartPct + 3, StartPct + 4, 'Downloading Standard Shaders...', AOnProgress) = 0 then
       begin
         if FileExists(TempTar) then
         begin
           if Assigned(AOnProgress) then
-            AOnProgress(StartPct + 10, 'Extracting Standard Shaders...');
+            AOnProgress(StartPct + 4, 'Extracting Standard Shaders...');
 
           Flush(Output);
           ExtractTarArchive(TempTar, ShadersDir, 1);
@@ -6380,6 +6385,74 @@ begin
       DeleteFile(TempTar);
       if Result and Assigned(AOnProgress) then
         AOnProgress(100, APackName + ' installed');
+    end;
+  end;
+end;
+
+function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  DestDir, TempTar, ShadersTarUrl: string;
+  StartPct, EndPct: Integer;
+begin
+  Result := False;
+  DestDir := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders';
+  if DirectoryExists(DestDir) and not AForce then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  StartPct := 95;
+  EndPct := 99;
+
+  try
+    ForceDirectories(DestDir);
+    ShadersTarUrl := 'https://github.com/benjamimgois/reshade-shaders/archive/refs/heads/master.tar.gz';
+    TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'vkbasalt-reshade-shaders-master.tar.gz';
+
+    if Assigned(AOnProgress) then
+      AOnProgress(StartPct, 'Downloading vkBasalt Shaders...');
+
+    if RunCurlWithProgress(ShadersTarUrl, TempTar, StartPct, StartPct + 3, 'Downloading vkBasalt Shaders...', AOnProgress) = 0 then
+    begin
+      if FileExists(TempTar) then
+      begin
+        if Assigned(AOnProgress) then
+          AOnProgress(StartPct + 3, 'Extracting vkBasalt Shaders...');
+
+        Result := ExtractTarArchive(TempTar, DestDir, 1);
+        DeleteFile(TempTar);
+
+        if Result then
+        begin
+          WriteLn('[AUTO-INSTALL] vkBasalt ReShade shaders installed successfully to: ', DestDir);
+          Flush(Output);
+          if Assigned(AOnProgress) then
+            AOnProgress(EndPct, 'vkBasalt Shaders ready');
+        end
+        else
+        begin
+          WriteLn('[AUTO-INSTALL] Tar extraction of vkBasalt shaders failed');
+          Flush(Output);
+          if Assigned(AFailedFiles) then
+            AFailedFiles.Add('vkBasalt ReShade Shaders (extraction failed)');
+        end;
+      end;
+    end
+    else
+    begin
+      WriteLn('[AUTO-INSTALL] Download of vkBasalt shaders failed');
+      Flush(Output);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('vkBasalt ReShade Shaders');
+    end;
+  except
+    on E: Exception do
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallVkBasaltShaders: ', E.Message);
+      Flush(Output);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('vkBasalt ReShade Shaders: ' + E.Message);
     end;
   end;
 end;

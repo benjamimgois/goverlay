@@ -3102,6 +3102,14 @@ begin
     EnvStrings.Add(StrPas(envp[EnvCount]));
     Inc(EnvCount);
   end;
+
+  // Guarantee PATH is present in EnvStrings for subprocesses and detached helpers
+  if GetEnvVarFromList(EnvStrings, 'PATH') = '' then
+  begin
+    Val := GetEnvironmentVariable('PATH');
+    if Val <> '' then
+      SetEnvVarInList(EnvStrings, 'PATH', Val);
+  end;
   
   // Export environment variables read from bgmod.conf [Env] section
   HasGamePerformance := False;

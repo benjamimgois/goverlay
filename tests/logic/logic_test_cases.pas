@@ -981,7 +981,7 @@ begin
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := 'cp';
+    Proc.Executable := FindTestHelperExecutable('cp');
     Proc.Parameters.Add('-f');
     Proc.Parameters.Add(GetBgmodBinaryPath);
     Proc.Parameters.Add(TestGameDir + '/bgmod');
@@ -999,7 +999,7 @@ begin
 
   AssignFile(F, MockSplashFile);
   Rewrite(F);
-  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
   WriteLn(F, 'echo "$*" > "' + OutFile + '"');
   CloseFile(F);
   fpChmod(PChar(MockSplashFile), &755);
@@ -1071,7 +1071,7 @@ begin
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := 'cp';
+    Proc.Executable := FindTestHelperExecutable('cp');
     Proc.Parameters.Add('-f');
     Proc.Parameters.Add(GetBgmodBinaryPath);
     Proc.Parameters.Add(TestGameDir + '/bgmod');
@@ -1089,7 +1089,7 @@ begin
 
   AssignFile(F, MockGameFile);
   Rewrite(F);
-  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
   WriteLn(F, 'for arg in "$@"; do echo "$arg" >> "' + OutFile + '"; done');
   WriteLn(F, 'exit 0');
   CloseFile(F);
@@ -1156,7 +1156,7 @@ begin
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := 'cp';
+    Proc.Executable := FindTestHelperExecutable('cp');
     Proc.Parameters.Add('-f');
     Proc.Parameters.Add(GetBgmodBinaryPath);
     Proc.Parameters.Add(TestGameDir + '/bgmod');
@@ -1174,7 +1174,7 @@ begin
 
   AssignFile(F, MockRunner);
   Rewrite(F);
-  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
   WriteLn(F, 'for arg in "$@"; do echo "$arg" >> "' + OutFile + '"; done');
   WriteLn(F, 'exit 0');
   CloseFile(F);
@@ -1252,7 +1252,7 @@ begin
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := 'cp';
+    Proc.Executable := FindTestHelperExecutable('cp');
     Proc.Parameters.Add('-f');
     Proc.Parameters.Add(GetBgmodBinaryPath);
     Proc.Parameters.Add(TestGameDir + '/bgmod');
@@ -1267,7 +1267,7 @@ begin
   MockExe := MockBinDir + '/eurotrucks2';
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := 'cp';
+    Proc.Executable := FindTestHelperExecutable('cp');
     Proc.Parameters.Add('-f');
     Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Parameters.Add(MockExe);
@@ -1282,7 +1282,7 @@ begin
   ForceDirectories(IsolatedHome + '/runtime');
   AssignFile(F, IsolatedHome + '/runtime/_v2-entry-point');
   Rewrite(F);
-  WriteLn(F, '#!/bin/sh');
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
   WriteLn(F, 'shift 1'); // skip --verb
   WriteLn(F, 'shift 1'); // skip --
   WriteLn(F, '"$@"');    // execute remaining args
