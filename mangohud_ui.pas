@@ -1062,6 +1062,9 @@ begin
   FColumnsPlusBtn.Cursor := crHandPoint;
   FColumnsPlusBtn.SetBounds(91, 162, 24, 24);
 
+  StyleBitBtnTheme(FColumnsMinusBtn, TextColor, BarBg);
+  StyleBitBtnTheme(FColumnsPlusBtn, TextColor, BarBg);
+
   Place(columvalueLabel, FVisualSections[5], 124, 164);
   columvalueLabel.Font.Color := TextColor; columvalueLabel.Transparent := True;
   columShape.Height  := 100; columShape1.Height := 100; columShape2.Height := 100;
@@ -1170,6 +1173,8 @@ begin
     FVisualCaptureBtn.Caption := '⌨ ' + hudonoffComboBox.Text
   else
     FVisualCaptureBtn.Caption := '⌨ Capture';
+
+  StyleBitBtnTheme(FVisualCaptureBtn, TextColor, BarBg);
 
   // Create and link Compact HUD toggle switch
   FhudcompactToggle := TToggleSwitch.Create(FForm);
@@ -1517,21 +1522,9 @@ begin
 
   // Style Columns minus/plus TBitBtn controls
   if Assigned(FColumnsMinusBtn) then
-    FColumnsMinusBtn.Font.Color := TextColor;
+    StyleBitBtnTheme(FColumnsMinusBtn, TextColor, CardBg);
   if Assigned(FColumnsPlusBtn) then
-    FColumnsPlusBtn.Font.Color := TextColor;
-
-  if CurrentTheme = tmLight then
-    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; font-weight: bold; padding: 0px; }'
-  else
-    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; font-weight: bold; padding: 0px; } ' +
-          'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
-
-  if Assigned(FColumnsMinusBtn) then
-    QWidget_setStyleSheet(TQtWidget(FColumnsMinusBtn.Handle).Widget, @SS);
-  if Assigned(FColumnsPlusBtn) then
-    QWidget_setStyleSheet(TQtWidget(FColumnsPlusBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FColumnsPlusBtn, TextColor, CardBg);
 
   // Style Position offset spin edits
   if Assigned(offsetxSpinEdit) and offsetxSpinEdit.HandleAllocated then
@@ -1602,16 +1595,7 @@ begin
 
     // Style HUD toggle capture button
     if Assigned(FVisualCaptureBtn) then
-    begin
-      FVisualCaptureBtn.Font.Color := TextColor;
-      if CurrentTheme = tmLight then
-        SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
-      else
-        SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
-              'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-              'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
-      QWidget_setStyleSheet(TQtWidget(FVisualCaptureBtn.Handle).Widget, @SS);
-    end;
+      StyleBitBtnTheme(FVisualCaptureBtn, TextColor, CardBg);
   end;
 
   alphavalueLabel.Font.Color    := CLR_TEXT_ACCENT;
@@ -1791,6 +1775,7 @@ end;
 procedure TMangoHudUiHelper.InitPerformanceTab;
 const
   GB_OFFSET = 24;
+  CARD_BG   = $002E1E1A;  // rgb(26, 30, 46)
 
   // Vertical layout: 2 full-width cards
   ROW1_TOP = 0;
@@ -1905,6 +1890,8 @@ const
           FLimitCaptureBtn.Caption := '⌨ ' + fpslimtoggleComboBox.Text
         else
           FLimitCaptureBtn.Caption := '⌨ Capture';
+
+        StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CARD_BG);
       end;
     end;
   end;
@@ -1994,6 +1981,9 @@ begin
   ftraceCheckBox.Parent             := FPerfInfoSec;
   showfpslimCheckBox.Parent         := FPerfInfoSec;
   vpsCheckBox.Parent                := FPerfInfoSec;
+
+  StyleBitBtnTheme(frametimetypeBitBtn, TextColor, CARD_BG);
+  StyleBitBtnTheme(fpsavgBitBtn, TextColor, CARD_BG);
 
   // Create and link Performance Information toggles
   FfpsToggle               := PlacePerfToggle(fpsCheckBox, FPerfInfoSec);
@@ -2459,17 +2449,12 @@ begin
   if Assigned(limtoggleLabel) then
     limtoggleLabel.Font.Color := TextColor;
 
+  if Assigned(frametimetypeBitBtn) then
+    StyleBitBtnTheme(frametimetypeBitBtn, TextColor, CardBg);
+  if Assigned(fpsavgBitBtn) then
+    StyleBitBtnTheme(fpsavgBitBtn, TextColor, CardBg);
   if Assigned(FLimitCaptureBtn) then
-  begin
-    FLimitCaptureBtn.Font.Color := TextColor;
-    if CurrentTheme = tmLight then
-      SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
-    else
-      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
-            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
-    QWidget_setStyleSheet(TQtWidget(FLimitCaptureBtn.Handle).Widget, @SS);
-  end;
+    StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CardBg);
   end;
 end;
 
@@ -2892,6 +2877,9 @@ const
   WHITE    = clWhite;
   HDR      = 34;
 
+var
+  TextColor: TColor;
+
   procedure MakeCard(out Card: TPanel; const ATitle: string);
   var
     Lbl: TLabel;
@@ -2948,6 +2936,7 @@ const
 begin
   with FForm do
   begin
+  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
   FExtScrollBox := TScrollBox.Create(FForm);
   FExtScrollBox.Parent      := extrasTabSheet;
   FExtScrollBox.Align       := alClient;
@@ -2985,6 +2974,8 @@ begin
   FTimeConfigBtn.ShowHint := True;
   FTimeConfigBtn.Enabled := timeCheckBox.Checked;
   FTimeConfigBtn.OnClick := @TimeConfigBtnClick;
+
+  StyleBitBtnTheme(FTimeConfigBtn, TextColor, CARD_BG);
 
   FarchToggle          := PlaceExtToggle(archCheckBox,          FExtSysCard, 597, 32 + HDR);
 
@@ -3055,6 +3046,7 @@ begin
   logfolderEdit.Font.Color := WHITE;
   logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
   Place(logfolderBitBtn, FExtLogCard, 783, 61 + HDR);
+  StyleBitBtnTheme(logfolderBitBtn, TextColor, CARD_BG);
 
   // Bottom row: Logging toggle
   Place(logtoggleLabel, FExtLogCard, 356, 106 + HDR);
@@ -3076,6 +3068,8 @@ begin
     FLoggingCaptureBtn.Caption := '⌨ ' + logtoggleComboBox.Text
   else
     FLoggingCaptureBtn.Caption := '⌨ Capture';
+
+  StyleBitBtnTheme(FLoggingCaptureBtn, TextColor, CARD_BG);
 
   Place(autouploadCheckBox, FExtLogCard, 530, 67 + HDR); DarkCheck(autouploadCheckBox);
   autouploadCheckBox.Visible := False;
@@ -3292,7 +3286,6 @@ const
   LIGHT_BG  = $00FFFFFF;
 var
   CardBg, TextColor: TColor;
-  SS: string;
 begin
   with FForm do
   begin
@@ -3310,31 +3303,16 @@ begin
   UpdateGenericCardTheme(FExtSysCard);
   UpdateGenericCardTheme(FExtLogCard);
 
-  if Assigned(FTimeConfigBtn) and FTimeConfigBtn.HandleAllocated then
-  begin
-    if CurrentTheme = tmLight then
-      SS := 'QPushButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 3px; font-weight: normal; padding: 0px; }'
-    else
-      SS := 'QPushButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 3px; font-weight: normal; padding: 0px; } ' +
-            'QPushButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-            'QPushButton:disabled { color: rgb(120,120,130); border: 1px solid rgb(45,50,70); background-color: rgb(26,30,46); }';
-    QWidget_setStyleSheet(TQtWidget(FTimeConfigBtn.Handle).Widget, @SS);
-  end;
+  if Assigned(FTimeConfigBtn) then
+    StyleBitBtnTheme(FTimeConfigBtn, TextColor, CardBg);
 
   if Assigned(logtoggleLabel) then
     logtoggleLabel.Font.Color := TextColor;
 
   if Assigned(FLoggingCaptureBtn) then
-  begin
-    FLoggingCaptureBtn.Font.Color := TextColor;
-    if CurrentTheme = tmLight then
-      SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; }'
-    else
-      SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
-            'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-            'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); }';
-    QWidget_setStyleSheet(TQtWidget(FLoggingCaptureBtn.Handle).Widget, @SS);
-  end;
+    StyleBitBtnTheme(FLoggingCaptureBtn, TextColor, CardBg);
+  if Assigned(logfolderBitBtn) then
+    StyleBitBtnTheme(logfolderBitBtn, TextColor, CardBg);
     
   if Assigned(logfolderEdit) then
   begin

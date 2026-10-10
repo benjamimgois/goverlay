@@ -90,6 +90,12 @@ procedure StyleToggleControl(AControl: TControl);
 procedure StyleActionButton(AButton: TControl);
 
 /// <summary>
+/// Applies QSS stylesheet and synchronizes the Qt widget palette
+/// (QPaletteButtonText and QPaletteWindowText) for a TBitBtn
+/// </summary>
+procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
+
+/// <summary>
 /// Recursively applies dark theme colors to all controls in a form
 /// </summary>
 /// <param name="AControl">The parent control to apply dark theme to</param>
@@ -441,30 +447,7 @@ begin
          (ctrl.Name = 'gupdateBitBtn') or
          (ctrl.Name = 'updateBitBtn') then
         Continue;
-      if ATheme = tmDark then
-      begin
-        TBitBtn(ctrl).Color := RGBToColor(38, 46, 72);
-        TBitBtn(ctrl).Font.Color := TextColor;
-        if TBitBtn(ctrl).HandleAllocated then
-        begin
-          SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
-                'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
-                'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-                'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
-          QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
-        end;
-      end
-      else
-      begin
-        TBitBtn(ctrl).Color := BtnColor;
-        TBitBtn(ctrl).Font.Color := TextColor;
-        if TBitBtn(ctrl).HandleAllocated then
-        begin
-          SS := 'QPushButton, QToolButton { background-color: ' + ColorToRGBString(TBitBtn(ctrl).Color) +
-                '; color: ' + ColorToRGBString(TBitBtn(ctrl).Font.Color) + '; }';
-          QWidget_setStyleSheet(TQtWidget(TBitBtn(ctrl).Handle).Widget, @SS);
-        end;
-      end;
+      StyleBitBtnTheme(TBitBtn(ctrl), TextColor, BtnColor);
     end
     else if ctrl is TSpeedButton then
       TSpeedButton(ctrl).Font.Color := TextColor
@@ -857,6 +840,47 @@ begin
   begin
     AButton.Color := LightButtonColor;
     AButton.Font.Color := LightTextColor;
+  end;
+end;
+
+procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
+var
+  Wdgt: QWidgetH;
+  Pal: QPaletteH;
+  QC: TQColor;
+  CR: Longint;
+  SS: WideString;
+  IsLight: Boolean;
+begin
+  if not Assigned(ABtn) then Exit;
+  ABtn.Font.Color := ATextColor;
+  ABtn.Color := ABgColor;
+
+  if (ABtn.Parent = nil) and not ABtn.HandleAllocated then Exit;
+  Wdgt := TQtWidget(ABtn.Handle).Widget;
+  if Wdgt = nil then Exit;
+
+  IsLight := (CurrentTheme = tmLight);
+  if IsLight then
+    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; } ' +
+          'QPushButton:hover, QToolButton:hover { background-color: rgb(225,225,225); } ' +
+          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(210,210,210); }'
+  else
+    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+          'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
+          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
+          'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
+
+  QWidget_setStyleSheet(Wdgt, @SS);
+
+  CR := ColorToRGB(ATextColor);
+  QColor_fromRgb(@QC, Red(CR), Green(CR), Blue(CR));
+  Pal := QWidget_palette(Wdgt);
+  if Pal <> nil then
+  begin
+    QPalette_setColor(Pal, QPaletteButtonText, @QC);
+    QPalette_setColor(Pal, QPaletteWindowText, @QC);
+    QWidget_setPalette(Wdgt, Pal);
   end;
 end;
 
