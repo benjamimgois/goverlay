@@ -31,18 +31,18 @@ msgstr ""
 #: goverlay_strings.rsclearconfigdone
 msgid ""
 "Configuration cleared successfully.\n"
-"Please restart GOverlay."
+"Please restart Goverlay."
 msgstr ""
 
 #: goverlay_strings.rsclearconfigpartial
 msgid ""
 "Some configuration folders could not be removed.\n"
-"Please check file permissions and restart GOverlay."
+"Please check file permissions and restart Goverlay."
 msgstr ""
 
 #: goverlay_strings.rsclearconfigprompt
 msgid ""
-"All files and settings will be removed and GOverlay will return to its initial configuration. Original game backup files will be preserved.\n"
+"All files and settings will be removed and Goverlay will return to its initial configuration. Original game backup files will be preserved.\n"
 "\n"
 "Do you want to continue?"
 msgstr ""
@@ -61,7 +61,7 @@ msgid ""
 "No custom configuration was found to load.\n"
 "\n"
 "To create your custom preset:\n"
-"1. Customize your desired elements and colors in GOverlay.\n"
+"1. Customize your desired elements and colors in Goverlay.\n"
 "2. Click the menu button in the bottom bar.\n"
 "3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
 "\n"
@@ -121,7 +121,7 @@ msgstr ""
 
 #: goverlay_strings.rsgamemodeflatpakprompt
 msgid ""
-"You are running GOverlay in Flatpak. GameMode must be installed on your host system for this feature to work.\n"
+"You are running Goverlay in Flatpak. GameMode must be installed on your host system for this feature to work.\n"
 "\n"
 "If GameMode is not installed, games may fail to launch.\n"
 "\n"
@@ -290,6 +290,16 @@ msgstr ""
 msgid "You cannot enable both 'LOW_LATENCY_LAYER_SPOOF_NVIDIA' and 'DXVK_CONFIG=\"dxgi.hideAmdGpu = True\"' at the same time."
 msgstr ""
 
+#: goverlay_strings.rsstartupdownloadfaileddetails
+#, object-pascal-format
+msgid "Could not download required libraries: %s. Check your internet connection."
+msgstr ""
+
+#: goverlay_strings.rsstartupdownloadfailedsummary
+#, object-pascal-format
+msgid "Could not download %d required libraries. Check your internet connection."
+msgstr ""
+
 #: goverlay_strings.rssteamhelpermissing
 #, object-pascal-format
 msgid "Steam shortcut helper script not found: %s"
@@ -308,17 +318,17 @@ msgstr ""
 
 #: goverlay_strings.rssteamshortcutflatpakinfo
 msgid ""
-"To add GOverlay to your Steam Library in Desktop Mode:\n"
+"To add Goverlay to your Steam Library in Desktop Mode:\n"
 "\n"
 "Method 1 (Application Menu):\n"
 "1. Open the Application Launcher (bottom-left corner).\n"
-"2. Locate GOverlay under System, Utilities, or Games.\n"
-"3. Right-click on GOverlay and select \"Add to Steam\".\n"
+"2. Locate Goverlay under System, Utilities, or Games.\n"
+"3. Right-click on Goverlay and select \"Add to Steam\".\n"
 "\n"
 "Method 2 (Steam Client):\n"
 "1. In Steam, click \"Games\" in the top menu.\n"
 "2. Select \"Add a Non-Steam Game to My Library...\".\n"
-"3. Choose GOverlay from the list and click \"Add Selected Programs\"."
+"3. Choose Goverlay from the list and click \"Add Selected Programs\"."
 msgstr ""
 
 #: goverlay_strings.rsuninstallchangesprompt
@@ -877,7 +887,7 @@ msgid "dxgi.dll"
 msgstr ""
 
 #: tgoverlayform.filenamelabel.caption
-msgid "File name"
+msgid "Proxy DLL"
 msgstr ""
 
 #: tgoverlayform.filtersgroupbox.caption

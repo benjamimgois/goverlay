@@ -266,7 +266,7 @@
 {"hash":250810691,"name":"tgoverlayform.optionsgroupbox.caption","sourcebytes":[66,97,115,105,99,32,79,112,116,105,111,110,115],"value":"Basic Options"},
 {"hash":245114210,"name":"tgoverlayform.optiscalergroupbox.caption","sourcebytes":[79,112,116,105,83,99,97,108,101,114],"value":"OptiScaler"},
 {"hash":249318812,"name":"tgoverlayform.filenamecombobox.text","sourcebytes":[100,120,103,105,46,100,108,108],"value":"dxgi.dll"},
-{"hash":41356085,"name":"tgoverlayform.filenamelabel.caption","sourcebytes":[70,105,108,101,32,110,97,109,101],"value":"File name"},
+{"hash":117121180,"name":"tgoverlayform.filenamelabel.caption","sourcebytes":[80,114,111,120,121,32,68,76,76],"value":"Proxy DLL"},
 {"hash":92354275,"name":"tgoverlayform.spoofcheckbox.caption","sourcebytes":[83,112,111,111,102,32,68,76,83,83],"value":"Spoof DLSS"},
 {"hash":209853454,"name":"tgoverlayform.fsrversionlabel.caption","sourcebytes":[70,83,82,32,86,101,114,115,105,111,110],"value":"FSR Version"},
 {"hash":19697379,"name":"tgoverlayform.fsrversioncombobox.hint","sourcebytes":[76,97,116,101,115,116,32,70,83,82,32,118,101,114,115,105,111,110,115,32,97,114,101,32,99,111,109,112,97,116,105,98,108,101,32,119,105,116,104,32,82,68,78,65,52,43,32,97,110,100,32,110,101,119,101,114,46,10,65,108,115,111,32,115,101,116,115,32,34,70,115,114,52,85,112,100,97,116,101,61,97,117,116,111,34,32,105,110,32,79,112,116,105,115,99,97,108,101,114,46,105,110,105,10,10,52,46,48,46,50,99,32,73,78,84,56,32,70,83,82,32,105,115,32,99,111,109,112,97,116,105,98,108,101,32,119,105,116,104,32,82,68,78,65,50,32,97,110,100,32,82,68,78,65,51],"value":"Latest FSR versions are compatible with RDNA4+ and newer.\nAlso sets \"Fsr4Update=auto\" in Optiscaler.ini\n\n4.0.2c INT8 FSR is compatible with RDNA2 and RDNA3"},

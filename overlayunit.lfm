@@ -13208,7 +13208,7 @@ object goverlayform: Tgoverlayform
               Left = 10
               Height = 18
               Top = 15
-              Width = 59
+              Width = 61
               BorderSpacing.Left = 10
               BorderSpacing.Top = 15
               Caption = 'Proxy DLL'
