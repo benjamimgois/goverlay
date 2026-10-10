@@ -159,12 +159,13 @@ type
     procedure TestCloneGlobalConfigsToGameCard;
     procedure TestCloneGlobalConfigsDockMenu;
     procedure TestGameCardsAlphabeticalSorting;
+    procedure TestRichChangelogViewerRender;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -7032,6 +7033,46 @@ begin
   DeleteDirectory(SteamCacheDir, False);
   DeleteDirectory(NonSteamCacheDir, False);
   GamesHelper.RefreshGameCards;
+end;
+
+procedure TGoverlayGuiTests.TestRichChangelogViewerRender;
+var
+  Dlg: TChangelogForm;
+  SampleNotes: string;
+  Block0, Block1, Block2, Block3: TChangelogBlock;
+begin
+  SampleNotes :=
+    '### Post-Processing & ReShade Integration' + sLineBreak +
+    '- Native ReShade Support.' + sLineBreak +
+    '<img width="664" height="542" alt="image" src="https://example.com/asset.png" />' + sLineBreak +
+    'Some general notes about the release.';
+
+  Dlg := TChangelogForm.CreateNew(nil);
+  try
+    Dlg.SetChangelogText('1.9.4', SampleNotes);
+    AssertEquals('Changelog dialog width should be 680', 680, Dlg.Width);
+    AssertEquals('Changelog dialog height should be 520', 520, Dlg.Height);
+    AssertNotNull('ScrollBox should be created', Dlg.ScrollBox);
+    AssertTrue('Blocks should be populated', Dlg.Blocks.Count >= 4);
+
+    Block0 := TChangelogBlock(Dlg.Blocks[0]);
+    AssertEquals('First block should be header', Ord(cbtHeader), Ord(Block0.BlockType));
+    AssertEquals('Header text matches', 'Post-Processing & ReShade Integration', Block0.TextContent);
+
+    Block1 := TChangelogBlock(Dlg.Blocks[1]);
+    AssertEquals('Second block should be bullet', Ord(cbtBullet), Ord(Block1.BlockType));
+    AssertEquals('Bullet text matches', 'Native ReShade Support.', Block1.TextContent);
+
+    Block2 := TChangelogBlock(Dlg.Blocks[2]);
+    AssertEquals('Third block should be image', Ord(cbtImage), Ord(Block2.BlockType));
+    AssertEquals('Image URL matches', 'https://example.com/asset.png', Block2.ImageUrl);
+
+    Block3 := TChangelogBlock(Dlg.Blocks[3]);
+    AssertEquals('Fourth block should be paragraph', Ord(cbtParagraph), Ord(Block3.BlockType));
+    AssertEquals('Paragraph text matches', 'Some general notes about the release.', Block3.TextContent);
+  finally
+    Dlg.Free;
+  end;
 end;
 
 initialization
