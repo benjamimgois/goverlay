@@ -2987,6 +2987,7 @@ const
 
 var
   TextColor: TColor;
+  SS: String;
 
   procedure MakeCard(out Card: TPanel; const ATitle: string);
   var
@@ -3038,7 +3039,9 @@ var
   procedure DarkLabel(L: TLabel);
   begin
     if L = nil then Exit;
-    StyleLabel(L, lrSectionTitle);
+    L.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+    L.Font.Style  := [fsBold];
+    L.Transparent := True;
   end;
 
 begin
@@ -3153,13 +3156,24 @@ begin
   logfolderEdit.Color      := OUTER_BG;
   logfolderEdit.Font.Color := WHITE;
   logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
+  if CurrentTheme = tmLight then
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 6px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
+  else
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 6px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
+  if logfolderEdit.HandleAllocated then
+    QWidget_setStyleSheet(TQtWidget(logfolderEdit.Handle).Widget, @SS);
   Place(logfolderBitBtn, FExtLogCard, 783, 61 + HDR);
   StyleBitBtnTheme(logfolderBitBtn, TextColor, CARD_BG);
 
   // Bottom row: Logging toggle
   Place(logtoggleLabel, FExtLogCard, 356, 106 + HDR);
   logtoggleLabel.Caption     := 'Logging toggle';
-  logtoggleLabel.Font.Color  := WHITE;
+  logtoggleLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+  logtoggleLabel.Font.Style  := [fsBold];
   logtoggleLabel.Transparent := True;
 
   Place(logtoggleComboBox, FExtLogCard, 356, 127 + HDR);
@@ -3192,6 +3206,9 @@ begin
 
   loggingGroupBox.Visible := False;
   end;
+
+  // Apply the initial theme so the tab is styled from the first paint
+  UpdateExtrasCardTheme;
 end;
 
 
