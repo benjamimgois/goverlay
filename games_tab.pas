@@ -737,16 +737,31 @@ end;
 
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
+const
+  CORNER_R = 8;
 var
   IntfImg: TLazIntfImage;
   ResultBmp: TBitmap;
   Stride, BPP, W, H: Integer;
   Row: PByte;
-  x, y, px, DimPct, Bright: Integer;
+  x, y, px, DimPct, distSq, dx, dy: Integer;
+  dist, factor: Double;
+  ThemeBg: TColor;
+  BgR, BgG, BgB: Byte;
+  IsCorner: Boolean;
 begin
   W := Bmp.Width;
   H := Bmp.Height;
   if (W = 0) or (H = 0) then Exit;
+
+  if CurrentTheme = tmLight then
+    ThemeBg := LightBackgroundColor
+  else
+    ThemeBg := RGBToColor(22, 26, 40);
+  BgR := Red(ThemeBg);
+  BgG := Green(ThemeBg);
+  BgB := Blue(ThemeBg);
+
   IntfImg := TLazIntfImage.Create(W, H);
   try
     IntfImg.LoadFromBitmap(Bmp.Handle, 0);
@@ -762,14 +777,66 @@ begin
         DimPct := Round((32 - y) / 32 * 50)
       else
         DimPct := 0;
-      if DimPct <= 0 then Continue;
+
       Row := IntfImg.PixelData + PtrUInt(y * Stride);
       for x := 0 to W - 1 do
       begin
         px := x * BPP;
-        Row[px]   := Byte(Integer(Row[px])   * (100 - DimPct) div 100);
-        Row[px+1] := Byte(Integer(Row[px+1]) * (100 - DimPct) div 100);
-        Row[px+2] := Byte(Integer(Row[px+2]) * (100 - DimPct) div 100);
+
+        if DimPct > 0 then
+        begin
+          Row[px]   := Byte(Integer(Row[px])   * (100 - DimPct) div 100);
+          Row[px+1] := Byte(Integer(Row[px+1]) * (100 - DimPct) div 100);
+          Row[px+2] := Byte(Integer(Row[px+2]) * (100 - DimPct) div 100);
+        end;
+
+        IsCorner := False;
+        dx := 0; dy := 0;
+        if (x < CORNER_R) and (y < CORNER_R) then
+        begin
+          dx := (CORNER_R - 1) - x;
+          dy := (CORNER_R - 1) - y;
+          IsCorner := True;
+        end
+        else if (x >= W - CORNER_R) and (y < CORNER_R) then
+        begin
+          dx := x - (W - CORNER_R);
+          dy := (CORNER_R - 1) - y;
+          IsCorner := True;
+        end
+        else if (x < CORNER_R) and (y >= H - CORNER_R) then
+        begin
+          dx := (CORNER_R - 1) - x;
+          dy := y - (H - CORNER_R);
+          IsCorner := True;
+        end
+        else if (x >= W - CORNER_R) and (y >= H - CORNER_R) then
+        begin
+          dx := x - (W - CORNER_R);
+          dy := y - (H - CORNER_R);
+          IsCorner := True;
+        end;
+
+        if IsCorner then
+        begin
+          distSq := dx * dx + dy * dy;
+          if distSq >= CORNER_R * CORNER_R then
+          begin
+            Row[px]   := BgB;
+            Row[px+1] := BgG;
+            Row[px+2] := BgR;
+          end
+          else if distSq >= (CORNER_R - 1) * (CORNER_R - 1) then
+          begin
+            dist := Sqrt(distSq);
+            factor := dist - (CORNER_R - 1);
+            if factor > 1.0 then factor := 1.0;
+            if factor < 0.0 then factor := 0.0;
+            Row[px]   := Byte(Round(Row[px]   * (1.0 - factor) + BgB * factor));
+            Row[px+1] := Byte(Round(Row[px+1] * (1.0 - factor) + BgG * factor));
+            Row[px+2] := Byte(Round(Row[px+2] * (1.0 - factor) + BgR * factor));
+          end;
+        end;
       end;
     end;
 
@@ -1269,7 +1336,7 @@ begin
       CardPanel.BevelInner := bvNone;
       CardPanel.BorderWidth := 0;
       CardPanel.Caption := '';
-      CardPanel.Color := RGBToColor(27, 32, 46);  // modern card elevation
+      CardPanel.Color := RGBToColor(22, 26, 40);  // modern card elevation (matches rounded-corner bg)
       CardPanel.ShowHint := True;
       CardPanel.OnMouseEnter := @GameCardMouseEnter;
       CardPanel.OnMouseLeave := @GameCardMouseLeave;
