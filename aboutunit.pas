@@ -97,12 +97,12 @@ begin
 end;
 
 procedure TaboutForm.FormCreate(Sender: TObject);
-const
-  NewDarkBg = $002E1E1A;
-  ColorSkyBlue = $00F8BD38;
 var
   LogoFile: string;
+  NewDarkBg: TColor;
 begin
+  NewDarkBg := RGBToColor(22, 26, 40);
+
   //Set initial TAB
   aboutPageControl.ActivePage:=aboutTabsheet;
 
@@ -224,20 +224,49 @@ begin
     aboutPageControl.Color := NewDarkBg;
     aboutTabSheet.Color := NewDarkBg;
     licenseTabSheet.Color := NewDarkBg;
-    descLabel.Font.Color := $00F0E8E2;
+    descLabel.Font.Color := RGBToColor(200, 208, 224);
     descLabel.Transparent := True;
-    creditsHeaderLabel.Font.Color := ColorSkyBlue;
+    creditsHeaderLabel.Font.Color := clWhite;
+    creditsHeaderLabel.Font.Style := [fsBold];
     creditsHeaderLabel.Transparent := True;
-    creditsLabel.Font.Color := clWhite;
+    creditsLabel.Font.Color := RGBToColor(220, 226, 238);
     creditsLabel.Transparent := True;
-    linksHeaderLabel.Font.Color := ColorSkyBlue;
+    linksHeaderLabel.Font.Color := clWhite;
+    linksHeaderLabel.Font.Style := [fsBold];
     linksHeaderLabel.Transparent := True;
-    linksLabel.Font.Color := clWhite;
+    linksLabel.Font.Color := $0044AAFF;
+    linksLabel.Cursor := crHandPoint;
     linksLabel.Transparent := True;
     meLabel.Font.Color := clWhite;
+    meLabel.Font.Style := [fsBold];
     meLabel.Transparent := True;
-    gplMemo.Color := NewDarkBg;
+    gplMemo.Color := RGBToColor(27, 32, 46);
     gplMemo.Font.Color := clWhite;
+  end
+  else if CurrentTheme = tmLight then
+  begin
+    Self.Color := LightBackgroundColor;
+    aboutPageControl.Color := LightBackgroundColor;
+    aboutTabSheet.Color := LightBackgroundColor;
+    licenseTabSheet.Color := LightBackgroundColor;
+    descLabel.Font.Color := RGBToColor(70, 75, 85);
+    descLabel.Transparent := True;
+    creditsHeaderLabel.Font.Color := clBlack;
+    creditsHeaderLabel.Font.Style := [fsBold];
+    creditsHeaderLabel.Transparent := True;
+    creditsLabel.Font.Color := RGBToColor(40, 45, 55);
+    creditsLabel.Transparent := True;
+    linksHeaderLabel.Font.Color := clBlack;
+    linksHeaderLabel.Font.Style := [fsBold];
+    linksHeaderLabel.Transparent := True;
+    linksLabel.Font.Color := $00CC6600;
+    linksLabel.Cursor := crHandPoint;
+    linksLabel.Transparent := True;
+    meLabel.Font.Color := clBlack;
+    meLabel.Font.Style := [fsBold];
+    meLabel.Transparent := True;
+    gplMemo.Color := RGBToColor(245, 246, 248);
+    gplMemo.Font.Color := clBlack;
   end;
 end;
 

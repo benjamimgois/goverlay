@@ -22,6 +22,8 @@ type
     procedure RefreshHomeMakoStatus;
     procedure RefreshHomeDeps;
     procedure HomeDiagramPaint(Sender: TObject);
+    procedure HomeCardPaint(Sender: TObject);
+    procedure ClearConfigBtnPaint(Sender: TObject);
     procedure HomeBtnRowResize(Sender: TObject);
     procedure HomeGlobalBtnClick(Sender: TObject);
     procedure HomeGameBtnClick(Sender: TObject);
@@ -58,10 +60,10 @@ end;
 
 procedure THomeTabHelper.InitHomeTab;
 const
-  CARD_M     = 4;
+  CARD_M     = 8;
   CARD_P     = 14;   // padding inside card (left content margin)
   ROW_H      = 26;
-  DOT_SZ     = 14;
+  DOT_SZ     = 12;
   SEC_GAP    = 10;
   COL_W      = 200;
   ACCENT_W   = 4;    // left accent bar width
@@ -91,7 +93,6 @@ var
   Lbl:       StdCtrls.TLabel;
   Ico:       ExtCtrls.TImage;
   IconFile:  string;
-  Sep:       ExtCtrls.TBevel;
   i, Row, Y, ColX: Integer;
   Dot:       ExtCtrls.TShape;
 
@@ -103,6 +104,7 @@ var
     Result.Color      := CARD_BG;
     Result.Caption    := '';
     Result.Tag        := 9998;
+    Result.OnPaint    := @HomeCardPaint;
     Result.Left       := CARD_M;
     Result.Top        := AY;
     Result.Height     := AH;
@@ -141,18 +143,24 @@ var
   end;
 
   procedure MkSep(AParent: Controls.TWinControl; AY: Integer);
+  var
+    Line: ExtCtrls.TShape;
   begin
-    Sep := ExtCtrls.TBevel.Create(FForm);
-    Sep.Parent  := AParent;
-    Sep.Style   := bsLowered;
-    Sep.Shape   := bsTopLine;
-    Sep.Left    := CARD_P;
-    Sep.Top     := AY;
-    Sep.Height  := 2;
-    Sep.Anchors := [akLeft, akTop, akRight];
-    Sep.AnchorSideRight.Control := AParent;
-    Sep.AnchorSideRight.Side    := asrRight;
-    Sep.BorderSpacing.Right     := CARD_P;
+    Line := ExtCtrls.TShape.Create(FForm);
+    Line.Parent := AParent;
+    Line.Shape := stRectangle;
+    Line.Pen.Style := psClear;
+    if CurrentTheme = tmLight then
+      Line.Brush.Color := RGBToColor(220, 224, 232)
+    else
+      Line.Brush.Color := RGBToColor(42, 50, 72);
+    Line.Left := CARD_P;
+    Line.Top := AY;
+    Line.Height := 1;
+    Line.Anchors := [akLeft, akTop, akRight];
+    Line.AnchorSideRight.Control := AParent;
+    Line.AnchorSideRight.Side := asrRight;
+    Line.BorderSpacing.Right := CARD_P;
   end;
 
   function MkDot(AParent: Controls.TWinControl; AX, AY: Integer): ExtCtrls.TShape;
@@ -186,17 +194,17 @@ begin
     // ── Theme-aware colors ──────────────────────────────────────────────────
     if CurrentTheme = tmLight then
     begin
-      BG       := LightBackgroundColor;    // clWhite
-      CARD_BG  := LightBackgroundColor;    // clWhite
-      TXT_CLR  := LightTextColor;          // clBlack
-      MUTED_CLR := $00606060;              // grey
+      BG        := LightBackgroundColor;
+      CARD_BG   := RGBToColor(245, 246, 248);
+      TXT_CLR   := LightTextColor;
+      MUTED_CLR := $00606060;
     end
     else
     begin
-      BG       := DarkBackgroundColor;     // $0045403A
-      CARD_BG  := DarkBackgroundColor;     // $0045403A
-      TXT_CLR  := clWhite;
-      MUTED_CLR := clSilver;
+      BG        := RGBToColor(22, 26, 40);
+      CARD_BG   := RGBToColor(27, 32, 46);
+      TXT_CLR   := clWhite;
+      MUTED_CLR := RGBToColor(145, 155, 175);
     end;
 
     // ── Tab sheet ────────────────────────────────────────────────────────────
@@ -204,13 +212,13 @@ begin
     FHomeTabSheet.PageControl := goverlayPageControl;
     FHomeTabSheet.Caption     := 'Home';
     FHomeTabSheet.TabVisible  := False;
-    FHomeTabSheet.Color       := CARD_BG;
+    FHomeTabSheet.Color       := BG;
 
     // ── Content panel fills the tab — no ScrollBox needed ────────────────────
     Content := ExtCtrls.TPanel.Create(FForm);
     Content.Parent    := FHomeTabSheet;
     Content.BevelOuter := bvNone;
-    Content.Color     := CARD_BG;
+    Content.Color     := BG;
     Content.Caption   := '';
     Content.Align     := alClient;
 
@@ -233,8 +241,9 @@ begin
     FClearConfigBtn.Alignment   := taCenter;
     FClearConfigBtn.Cursor      := crHandPoint;
     FClearConfigBtn.Anchors     := [akTop, akRight];
-    FClearConfigBtn.SetBounds(Card.Width - 140 - CARD_P, CARD_P, 140, 22);
+    FClearConfigBtn.SetBounds(Card.Width - 146 - CARD_P, CARD_P - 2, 146, 24);
     FClearConfigBtn.OnClick     := @ClearConfigBtnClick;
+    FClearConfigBtn.OnPaint     := @ClearConfigBtnPaint;
     FClearConfigBtn.OnMouseEnter:= @ClearConfigBtnEnter;
     FClearConfigBtn.OnMouseLeave:= @ClearConfigBtnLeave;
 
@@ -428,8 +437,8 @@ end;
 
 procedure THomeTabHelper.RefreshHomeModuleStatus;
 const
-  CLR_OK      = $0044BB44;  // green
-  CLR_MISSING = $004444BB;  // red
+  CLR_OK      = $0044CC55;  // vibrant emerald green
+  CLR_MISSING = $005555EE;  // vibrant rose/coral red
 var
   Missing: TStringList;
   MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK: Boolean;
@@ -454,14 +463,23 @@ begin
     AfmfOK  := IsAfmfInstalled;
 
     FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[0].Pen.Color   := FHomeModDots[0].Brush.Color;
     FHomeModDots[1].Brush.Color := Math.IfThen(VkOK,    CLR_OK, CLR_MISSING);
+    FHomeModDots[1].Pen.Color   := FHomeModDots[1].Brush.Color;
     FHomeModDots[2].Brush.Color := Math.IfThen(OptiOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[2].Pen.Color   := FHomeModDots[2].Brush.Color;
     FHomeModDots[3].Brush.Color := Math.IfThen(DlssOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[3].Pen.Color   := FHomeModDots[3].Brush.Color;
     FHomeModDots[4].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[4].Pen.Color   := FHomeModDots[4].Brush.Color;
     FHomeModDots[5].Brush.Color := Math.IfThen(LsfgOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[5].Pen.Color   := FHomeModDots[5].Brush.Color;
     FHomeModDots[6].Brush.Color := Math.IfThen(MakoOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[6].Pen.Color   := FHomeModDots[6].Brush.Color;
     FHomeModDots[7].Brush.Color := Math.IfThen(ReShadeOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[7].Pen.Color   := FHomeModDots[7].Brush.Color;
     FHomeModDots[8].Brush.Color := Math.IfThen(AfmfOK,  CLR_OK, CLR_MISSING);
+    FHomeModDots[8].Pen.Color   := FHomeModDots[8].Brush.Color;
 
     MangoVer := Self.GetMangoHudVersion;
     if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
@@ -796,8 +814,8 @@ const
     'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons',
     'Vulkan Low Latency layer — latency reduction layer');
   {$ENDIF}
-  CLR_OK      = $0044BB44;
-  CLR_MISSING = $004444BB;  // RGB(187,68,68) — red in Lazarus BGR format
+  CLR_OK      = $0044CC55;  // vibrant emerald green
+  CLR_MISSING = $005555EE;  // vibrant rose/coral red
 var
   Missing: TStringList;
   i: Integer;
@@ -902,6 +920,82 @@ begin
   DrawCircle(PBR.X,  PBR.Y,  $002266BB, 'intel.', 'XeSS');
 end;
 
+procedure THomeTabHelper.HomeCardPaint(Sender: TObject);
+var
+  P: TPanel;
+  BgColor, BorderColor, ParentBg: TColor;
+  R: TRect;
+begin
+  P := TPanel(Sender);
+  if CurrentTheme = tmLight then
+  begin
+    ParentBg    := LightBackgroundColor;
+    BgColor     := RGBToColor(245, 246, 248);
+    BorderColor := RGBToColor(218, 222, 230);
+  end
+  else
+  begin
+    ParentBg    := RGBToColor(22, 26, 40);
+    BgColor     := RGBToColor(27, 32, 46);
+    BorderColor := RGBToColor(46, 56, 80);
+  end;
+  P.Canvas.Brush.Color := ParentBg;
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.FillRect(P.ClientRect);
+
+  R := Rect(0, 0, P.ClientWidth, P.ClientHeight);
+  P.Canvas.Brush.Color := BgColor;
+  P.Canvas.Pen.Color   := BorderColor;
+  P.Canvas.Pen.Width   := 1;
+  P.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 12, 12);
+end;
+
+procedure THomeTabHelper.ClearConfigBtnPaint(Sender: TObject);
+var
+  P: TPanel;
+  BgColor, BorderColor, TextColor: TColor;
+  R: TRect;
+begin
+  P := TPanel(Sender);
+  if P.Tag = 1 then
+  begin
+    BgColor     := RGBToColor(120, 36, 44);
+    BorderColor := RGBToColor(180, 50, 60);
+    TextColor   := clWhite;
+  end
+  else
+  begin
+    if CurrentTheme = tmLight then
+    begin
+      BgColor     := RGBToColor(235, 238, 245);
+      BorderColor := RGBToColor(200, 205, 218);
+      TextColor   := RGBToColor(60, 70, 90);
+    end
+    else
+    begin
+      BgColor     := RGBToColor(36, 44, 62);
+      BorderColor := RGBToColor(55, 66, 92);
+      TextColor   := RGBToColor(180, 190, 210);
+    end;
+  end;
+  P.Canvas.Brush.Color := IfThen(CurrentTheme = tmLight, RGBToColor(245, 246, 248), RGBToColor(27, 32, 46));
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.FillRect(P.ClientRect);
+
+  R := Rect(0, 0, P.ClientWidth, P.ClientHeight);
+  P.Canvas.Brush.Color := BgColor;
+  P.Canvas.Pen.Color   := BorderColor;
+  P.Canvas.Pen.Width   := 1;
+  P.Canvas.RoundRect(R.Left, R.Top, R.Right, R.Bottom, 8, 8);
+
+  P.Canvas.Font.Name   := 'Noto Sans';
+  P.Canvas.Font.Size   := 8;
+  P.Canvas.Font.Color  := TextColor;
+  P.Canvas.Brush.Style := bsClear;
+  P.Canvas.TextOut((P.ClientWidth - P.Canvas.TextWidth(P.Caption)) div 2,
+                   (P.ClientHeight - P.Canvas.TextHeight(P.Caption)) div 2, P.Caption);
+end;
+
 procedure THomeTabHelper.HomeBtnRowResize(Sender: TObject);
 begin
   with FForm do
@@ -994,15 +1088,18 @@ procedure THomeTabHelper.ClearConfigBtnEnter(Sender: TObject);
 begin
   if Sender is ExtCtrls.TPanel then
   begin
-    ExtCtrls.TPanel(Sender).ParentColor := False;
-    ExtCtrls.TPanel(Sender).Color := $001A1A88;  // dark red on hover
+    ExtCtrls.TPanel(Sender).Tag := 1;
+    ExtCtrls.TPanel(Sender).Invalidate;
   end;
 end;
 
 procedure THomeTabHelper.ClearConfigBtnLeave(Sender: TObject);
 begin
   if Sender is ExtCtrls.TPanel then
-    ExtCtrls.TPanel(Sender).ParentColor := True;  // transparent (back to card background)
+  begin
+    ExtCtrls.TPanel(Sender).Tag := 0;
+    ExtCtrls.TPanel(Sender).Invalidate;
+  end;
 end;
 
 procedure THomeTabHelper.HomeChannelComboChange(Sender: TObject);
