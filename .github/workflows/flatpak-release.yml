@@ -71,4 +71,4 @@ jobs:
         with:
           name: flatpak-bundle-${{ matrix.arch }}
           path: goverlay-${{ github.ref_name }}-${{ matrix.arch }}.flatpak
-          retention-days: 90
+          retention-days: 1

@@ -61,6 +61,7 @@ jobs:
         with:
           name: AppImage-${{ matrix.arch }}
           path: "dist"
+          retention-days: 1
 
   build-flatpak:
     name: Build Flatpak Bundle (${{ matrix.arch }})
@@ -116,13 +117,13 @@ jobs:
         with:
           name: flatpak-bundle-${{ matrix.arch }}
           path: goverlay-nightly-${{ matrix.arch }}.flatpak
-          retention-days: 90
+          retention-days: 1
 
   release_nightly:
     name: "nightly release"
     needs: [build, build-flatpak]
     permissions:
-      actions: read
+      actions: write
       security-events: write
       contents: write
     runs-on: ubuntu-latest
@@ -169,3 +170,12 @@ jobs:
             *.deb
             *.rpm
             *.flatpak
+
+      - name: Clean up temporary artifacts
+        if: always()
+        run: |
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts \
+            --jq '.artifacts[].id' | xargs -r -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true

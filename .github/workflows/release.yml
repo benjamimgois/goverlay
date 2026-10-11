@@ -70,6 +70,7 @@ jobs:
         with:
           name: stable-packages-x86_64
           path: "dist"
+          retention-days: 1
 
   build-flatpak:
     name: Build Flatpak Bundle (${{ matrix.arch }})
@@ -144,12 +145,13 @@ jobs:
         with:
           name: stable-flatpak-${{ matrix.arch }}
           path: "dist"
-          retention-days: 90
+          retention-days: 1
 
   release:
     name: "Create GitHub Release"
     needs: [build, build-flatpak]
     permissions:
+      actions: write
       contents: write
     runs-on: ubuntu-latest
     steps:
@@ -188,3 +190,12 @@ jobs:
             *.flatpak
         env:
           GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Clean up temporary artifacts
+        if: always()
+        run: |
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts \
+            --jq '.artifacts[].id' | xargs -r -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        continue-on-error: true
