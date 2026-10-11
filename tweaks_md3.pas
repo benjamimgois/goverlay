@@ -592,7 +592,7 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
 
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
                      AChecked, AHover: Boolean; AIsCustom: Boolean; AIsArg: Boolean = False;
-                     AEnabled: Boolean = True);
+                     AEnabled: Boolean = True; ACategory: Integer = -1);
   var
     ToggleX, ToggleY, DelX, TextX, DescTop, VarTop, BadgeW, p: Integer;
     CleanDesc, Prefix, BadgeText, PredefinedDesc: string;
@@ -727,7 +727,26 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     HasBadge := False;
     CleanDesc := ADesc;
     BadgeText := '';
-    if Pos('[low_latency_layer]', ADesc) = 1 then
+    if (AVar = 'PROTON_ENABLE_NVAPI=1') or
+       (AVar = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1') or
+       (AVar = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"') or
+       (Pos('SPOOF', UpperCase(AVar)) > 0) or
+       (Pos('ANTI-CHEAT', UpperCase(ADesc)) > 0) or
+       (Pos('ANTICHEAT', UpperCase(ADesc)) > 0) then
+    begin
+      HasBadge := True;
+      BadgeText := 'EAC/Anti-Cheat';
+      BadgeBg := RGBToColor(55, 30, 20);
+      BadgeBorder := RGBToColor(200, 110, 40);
+      BadgeTxtColor := RGBToColor(255, 175, 70);
+      if Pos('[', CleanDesc) = 1 then
+      begin
+        p := Pos(']', CleanDesc);
+        if p > 0 then
+          CleanDesc := Trim(Copy(CleanDesc, p + 1, MaxInt));
+      end;
+    end
+    else if Pos('[low_latency_layer]', ADesc) = 1 then
     begin
       Prefix := '[low_latency_layer]';
       HasBadge := True;
@@ -1016,7 +1035,7 @@ begin
       end;
 
       DrawItem(PB.Canvas, R, ItemVarName, TWEAK_ROWS[i].Description,
-               Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False, False, IsRowEnabled);
+               Assigned(Chk) and Chk.Checked, HoverIdx = RowIdx, False, False, IsRowEnabled, CatIdx);
       Inc(CatItemCount);
       Inc(RowIdx);
     end;
@@ -1136,7 +1155,7 @@ begin
     PB.Canvas.Font.Style := [];
     PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No custom variables. Use the + Add button below to create one.');
+    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No custom variables. Use the + Add button in the bottom dock to create one.');
   end;
 
   Inc(Y, CardH + CARD_GAP);
@@ -1206,7 +1225,7 @@ begin
     PB.Canvas.Font.Style := [];
     PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No launch arguments. Use the + Add button below to create one.');
+    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No launch arguments. Use the + Add button in the bottom dock to create one.');
   end;
 
   Inc(Y, CardH + CARD_GAP);

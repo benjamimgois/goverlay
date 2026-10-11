@@ -8334,6 +8334,8 @@ begin
   if FLoadingConfig or FClosing then Exit;
   saveBitBtnClick(nil);
   ShowSavedStatus;
+  if Assigned(FFADock) then
+    FFADock.TriggerSyncPulse;
 end;
 
 procedure Tgoverlayform.StartAutoSaveTimer;
@@ -10128,7 +10130,21 @@ begin
 end;
 
 procedure Tgoverlayform.PreviewBtnClick(Sender: TObject);
+var
+  AlreadyRunning: Boolean;
 begin
+  AlreadyRunning := IsProcessRunningPure('pascube') or IsProcessRunningPure('vkcube');
+  if AlreadyRunning then
+  begin
+    StopCube;
+    FBenchmarkTimer.Enabled := False;
+    FBenchmarkWasRunning := False;
+    FBenchmarkStarted := False;
+    if Assigned(FFADock) then
+      FFADock.PreviewRunning := False;
+    Exit;
+  end;
+
   if IsPasCubeAvailable then
   begin
     try
@@ -10146,11 +10162,19 @@ begin
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
     FBenchmarkTimer.Enabled := True;
+    if Assigned(FFADock) then
+      FFADock.PreviewRunning := True;
   end
   else if IsCommandAvailable('vkcube') then
   begin
     RestoreIfMaximized;
     ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
+    FBenchmarkWasRunning := True;
+    FBenchmarkStarted := False;
+    FBenchmarkStartTicks := 0;
+    FBenchmarkTimer.Enabled := True;
+    if Assigned(FFADock) then
+      FFADock.PreviewRunning := True;
   end
   else
     SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);
@@ -10804,9 +10828,13 @@ begin
       FBenchmarkStarted := True;
       DbgLog('BenchmarkTimerTick: pascube started successfully in process table.');
     end;
+    if Assigned(FFADock) and not FFADock.PreviewRunning then
+      FFADock.PreviewRunning := True;
   end
   else
   begin
+     if Assigned(FFADock) and FFADock.PreviewRunning then
+       FFADock.PreviewRunning := False;
      if FBenchmarkStarted then
      begin
        FBenchmarkTimer.Enabled := False;

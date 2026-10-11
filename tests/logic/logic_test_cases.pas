@@ -76,6 +76,8 @@ type
   end;
 
   TBgmodSupervisorTests = class(TTestCase)
+  public
+    procedure EnsureBgmodBinary;
   published
     procedure TestSupervisorExitCodeTrue;
     procedure TestSupervisorExitCodeFalse;
@@ -901,23 +903,80 @@ begin
 end;
 
 function GetBgmodBinaryPath: string;
+var
+  Proc: TProcess;
+  SourceDir, CompileTarget: string;
+
+  function ExistingBinaryPath: string;
+  begin
+    if FileExists('./bgmod') then
+      Result := './bgmod'
+    else if FileExists('../../bgmod') then
+      Result := '../../bgmod'
+    else if FileExists('data/bgmod/bgmod') then
+      Result := 'data/bgmod/bgmod'
+    else if FileExists('../../data/bgmod/bgmod') then
+      Result := '../../data/bgmod/bgmod'
+    else
+      Result := '';
+  end;
 begin
-  if FileExists('./bgmod') then
-    Result := './bgmod'
-  else if FileExists('../../bgmod') then
-    Result := '../../bgmod'
-  else if FileExists('data/bgmod/bgmod') then
-    Result := 'data/bgmod/bgmod'
-  else if FileExists('../../data/bgmod/bgmod') then
-    Result := '../../data/bgmod/bgmod'
+  Result := ExistingBinaryPath;
+  if Result <> '' then
+    Exit;
+
+  if FileExists('bgmod.lpr') then
+  begin
+    SourceDir := '.';
+    CompileTarget := 'bgmod.lpr';
+  end
+  else if FileExists('../../bgmod.lpr') then
+  begin
+    SourceDir := '../..';
+    CompileTarget := 'bgmod.lpr';
+  end
   else
-    Result := FindTestHelperExecutable('bgmod');
+  begin
+    SourceDir := '';
+    CompileTarget := '';
+  end;
+
+  if SourceDir <> '' then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := FindTestHelperExecutable('fpc');
+      Proc.CurrentDirectory := SourceDir;
+      Proc.Parameters.Add('-O3');
+      Proc.Parameters.Add(CompileTarget);
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+
+    Result := ExistingBinaryPath;
+    if Result <> '' then
+      Exit;
+  end;
+
+  Result := FindTestHelperExecutable('bgmod');
+end;
+
+procedure TBgmodSupervisorTests.EnsureBgmodBinary;
+var
+  BinPath: string;
+begin
+  BinPath := GetBgmodBinaryPath;
+  if not FileExists(BinPath) then
+    Fail('bgmod binary not found at "' + BinPath + '". Please compile with "fpc -O3 bgmod.lpr" or run "make test-logic".');
 end;
 
 procedure TBgmodSupervisorTests.TestSupervisorExitCodeTrue;
 var
   Proc: TProcess;
 begin
+  EnsureBgmodBinary;
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
@@ -934,6 +993,7 @@ procedure TBgmodSupervisorTests.TestSupervisorExitCodeFalse;
 var
   Proc: TProcess;
 begin
+  EnsureBgmodBinary;
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
@@ -950,6 +1010,7 @@ procedure TBgmodSupervisorTests.TestSupervisorStderrClosure;
 var
   Proc: TProcess;
 begin
+  EnsureBgmodBinary;
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := GetBgmodBinaryPath;
@@ -975,6 +1036,7 @@ var
   Content: string;
   WaitCount: Integer;
 begin
+  EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Control Ultimate Edition';
   ForceDirectories(TestGameDir);
 
@@ -1065,6 +1127,7 @@ var
   Lines: TStringList;
   Content: string;
 begin
+  EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ArgsTestGame';
   ForceDirectories(TestGameDir);
 
@@ -1150,6 +1213,7 @@ var
   Lines: TStringList;
   Content: string;
 begin
+  EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ProtonArgsTestGame';
   ForceDirectories(TestGameDir);
 
@@ -1244,6 +1308,7 @@ var
   Lines: TStringList;
   Ini: TIniFile;
 begin
+  EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/EuroTruckNativeTest';
   MockBinDir := IsolatedHome + '/games/ets2/bin/linux_x64';
   ForceDirectories(TestGameDir);

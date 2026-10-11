@@ -44,6 +44,9 @@ type
     FAddVisible:     Boolean;
     FFinishVisible:  Boolean;
     FAddCaption:     string;
+    FPreviewRunning: Boolean;
+    FSyncPulseActive: Boolean;
+    FSyncPulseTimer: TTimer;
 
     // Computed button hit-test rects
     FMenuRect:       TRect;
@@ -56,8 +59,10 @@ type
     FOnAddClick:     TNotifyEvent;
     FOnFinishClick:  TNotifyEvent;
 
+    procedure SyncPulseTick(Sender: TObject);
     function  GetVisible: Boolean;
     procedure SetVisible(AValue: Boolean);
+    procedure SetPreviewRunning(AValue: Boolean);
     function  GetFinishFillColor: TColor;
     function  GetFinishBorderColor: TColor;
     function  GetButtonAt(AX, AY: Integer): TDockButton;
@@ -103,9 +108,11 @@ type
     procedure PerformPreviewClick;
     procedure PerformAddClick;
     procedure PerformFinishClick;
+    procedure TriggerSyncPulse;
 
     property Visible:        Boolean      read GetVisible write SetVisible;
     property PreviewVisible: Boolean      read FPreviewVisible;
+    property PreviewRunning: Boolean      read FPreviewRunning write SetPreviewRunning;
     property MenuVisible:    Boolean      read FMenuVisible;
     property AddVisible:     Boolean      read FAddVisible;
     property FinishVisible:  Boolean      read FFinishVisible;
@@ -164,6 +171,13 @@ begin
   FAddVisible     := False;
   FFinishVisible  := True;
   FAddCaption     := '+ Add';
+  FPreviewRunning := False;
+  FSyncPulseActive := False;
+
+  FSyncPulseTimer          := TTimer.Create(nil);
+  FSyncPulseTimer.Enabled  := False;
+  FSyncPulseTimer.Interval := 350;
+  FSyncPulseTimer.OnTimer  := @SyncPulseTick;
 
   FMenuHovered    := False;
   FMenuPressed    := False;
@@ -213,6 +227,8 @@ end;
 
 destructor TFloatingActionDock.Destroy;
 begin
+  if Assigned(FSyncPulseTimer) then
+    FreeAndNil(FSyncPulseTimer);
   if Assigned(FDockPanel) then
     FDockPanel.Visible := False;
   inherited;
@@ -246,13 +262,46 @@ begin
   SetVisible(False);
 end;
 
+procedure TFloatingActionDock.SetPreviewRunning(AValue: Boolean);
+begin
+  if FPreviewRunning <> AValue then
+  begin
+    FPreviewRunning := AValue;
+    LayoutButtons;
+    if Assigned(FPillBox) then
+      FPillBox.Invalidate;
+  end;
+end;
+
+procedure TFloatingActionDock.TriggerSyncPulse;
+begin
+  if (not FPreviewVisible) or (not FPreviewRunning) then Exit;
+  FSyncPulseActive := True;
+  if Assigned(FSyncPulseTimer) then
+  begin
+    FSyncPulseTimer.Enabled := False;
+    FSyncPulseTimer.Enabled := True;
+  end;
+  if Assigned(FPillBox) then
+    FPillBox.Invalidate;
+end;
+
+procedure TFloatingActionDock.SyncPulseTick(Sender: TObject);
+begin
+  if Assigned(FSyncPulseTimer) then
+    FSyncPulseTimer.Enabled := False;
+  FSyncPulseActive := False;
+  if Assigned(FPillBox) then
+    FPillBox.Invalidate;
+end;
+
 // ---------------------------------------------------------------------------
 // Layout & Hit-testing
 // ---------------------------------------------------------------------------
 
 procedure TFloatingActionDock.LayoutButtons;
 var
-  X, TotalPillW, AddW, VisibleBtnCount: Integer;
+  X, TotalPillW, AddW, PrevW, VisibleBtnCount: Integer;
 begin
   if Length(FAddCaption) > 6 then
     AddW := 104
@@ -269,7 +318,10 @@ begin
   end;
   if FPreviewVisible then
   begin
-    Inc(TotalPillW, PREVIEW_W);
+    if FPreviewRunning then
+      Inc(TotalPillW, 96)
+    else
+      Inc(TotalPillW, PREVIEW_W);
     Inc(VisibleBtnCount);
   end;
   if FAddVisible then
@@ -310,8 +362,12 @@ begin
 
   if FPreviewVisible then
   begin
-    FPreviewRect := Rect(X, INNER_PAD_Y, X + PREVIEW_W, INNER_PAD_Y + BTN_H);
-    Inc(X, PREVIEW_W + BTN_GAP);
+    if FPreviewRunning then
+      PrevW := 96
+    else
+      PrevW := PREVIEW_W;
+    FPreviewRect := Rect(X, INNER_PAD_Y, X + PrevW, INNER_PAD_Y + BTN_H);
+    Inc(X, PrevW + BTN_GAP);
   end
   else
     FPreviewRect := Rect(0, 0, 0, 0);
@@ -501,11 +557,46 @@ begin
       PB.Canvas.TextOut(TextX, TextY, '☰');
     end;
 
-    // 3. Preview button (eye icon + "Preview")
+    // 3. Preview button (eye icon + "Preview" or live sync indicator)
     if FPreviewVisible then
     begin
       SubR := FPreviewRect;
-      if FPreviewPressed then
+      if FSyncPulseActive then
+      begin
+        PB.Canvas.Brush.Color := RGBToColor(28, 70, 52);    // Flash bright emerald sync pulse
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(46, 204, 113);  // #2ECC71 neon emerald glow border
+        PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+        FGColor := RGBToColor(240, 255, 245);
+      end
+      else if FPreviewRunning then
+      begin
+        if FPreviewPressed then
+        begin
+          PB.Canvas.Brush.Color := RGBToColor(20, 55, 40);
+          PB.Canvas.Brush.Style := bsSolid;
+          PB.Canvas.Pen.Color   := RGBToColor(35, 120, 80);
+          PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+          FGColor := RGBToColor(200, 245, 220);
+        end
+        else if FPreviewHovered then
+        begin
+          PB.Canvas.Brush.Color := RGBToColor(25, 75, 54);
+          PB.Canvas.Brush.Style := bsSolid;
+          PB.Canvas.Pen.Color   := RGBToColor(46, 204, 113);
+          PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+          FGColor := clWhite;
+        end
+        else
+        begin
+          PB.Canvas.Brush.Color := RGBToColor(18, 50, 36);
+          PB.Canvas.Brush.Style := bsSolid;
+          PB.Canvas.Pen.Color   := RGBToColor(38, 140, 90);
+          PB.Canvas.RoundRect(SubR.Left, SubR.Top, SubR.Right, SubR.Bottom, 6, 6);
+          FGColor := RGBToColor(160, 235, 190);
+        end;
+      end
+      else if FPreviewPressed then
       begin
         PB.Canvas.Brush.Color := RGBToColor(30, 38, 52);
         PB.Canvas.Brush.Style := bsSolid;
@@ -530,49 +621,78 @@ begin
       PB.Canvas.Font.Color  := FGColor;
       PB.Canvas.Brush.Style := bsClear;
 
-      TextW := PB.Canvas.TextWidth('Preview');
-      TextH := PB.Canvas.TextHeight('Preview');
+      if FPreviewRunning then
+      begin
+        // Draw glowing dot + 'Stop Cube' / live status
+        TextW := PB.Canvas.TextWidth('Stop Cube');
+        TextH := PB.Canvas.TextHeight('Stop Cube');
+        IconW := 8;
+        IconH := 8;
+        Gap   := 6;
+        TotalW := IconW + Gap + TextW;
+        ContentX := SubR.Left + (SubR.Right - SubR.Left - TotalW) div 2;
 
-      IconW := 14;
-      IconH := 8;
-      Gap   := 6;
-      TotalW := IconW + Gap + TextW;
-      ContentX := SubR.Left + (SubR.Right - SubR.Left - TotalW) div 2;
+        IconX := ContentX;
+        IconY := SubR.Top + (SubR.Bottom - SubR.Top - IconH) div 2;
 
-      IconX := ContentX;
-      IconY := SubR.Top + (SubR.Bottom - SubR.Top - IconH) div 2;
-      CX    := IconX + IconW div 2;
-      CY    := IconY + IconH div 2;
+        // Glowing live dot
+        PB.Canvas.Brush.Color := RGBToColor(46, 204, 113); // Emerald dot
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Pen.Color   := RGBToColor(46, 204, 113);
+        PB.Canvas.Ellipse(IconX, IconY, IconX + IconW, IconY + IconH);
 
-      // Draw eye outline
-      PB.Canvas.Pen.Color := FGColor;
-      PB.Canvas.Pen.Width := 1;
+        // Text
+        PB.Canvas.Brush.Style := bsClear;
+        TextX := ContentX + IconW + Gap;
+        TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+        PB.Canvas.TextOut(TextX, TextY, 'Stop Cube');
+      end
+      else
+      begin
+        TextW := PB.Canvas.TextWidth('Preview');
+        TextH := PB.Canvas.TextHeight('Preview');
 
-      PtsTop[0] := Point(IconX, CY);
-      PtsTop[1] := Point(IconX + 3, IconY + 1);
-      PtsTop[2] := Point(CX, IconY);
-      PtsTop[3] := Point(IconX + IconW - 3, IconY + 1);
-      PtsTop[4] := Point(IconX + IconW, CY);
+        IconW := 14;
+        IconH := 8;
+        Gap   := 6;
+        TotalW := IconW + Gap + TextW;
+        ContentX := SubR.Left + (SubR.Right - SubR.Left - TotalW) div 2;
 
-      PtsBot[0] := Point(IconX, CY);
-      PtsBot[1] := Point(IconX + 3, IconY + IconH - 1);
-      PtsBot[2] := Point(CX, IconY + IconH);
-      PtsBot[3] := Point(IconX + IconW - 3, IconY + IconH - 1);
-      PtsBot[4] := Point(IconX + IconW, CY);
+        IconX := ContentX;
+        IconY := SubR.Top + (SubR.Bottom - SubR.Top - IconH) div 2;
+        CX    := IconX + IconW div 2;
+        CY    := IconY + IconH div 2;
 
-      PB.Canvas.Polyline(PtsTop);
-      PB.Canvas.Polyline(PtsBot);
+        // Draw eye outline
+        PB.Canvas.Pen.Color := FGColor;
+        PB.Canvas.Pen.Width := 1;
 
-      // Pupil center
-      PB.Canvas.Brush.Color := FGColor;
-      PB.Canvas.Brush.Style := bsSolid;
-      PB.Canvas.Ellipse(CX - 1, CY - 1, CX + 2, CY + 2);
+        PtsTop[0] := Point(IconX, CY);
+        PtsTop[1] := Point(IconX + 3, IconY + 1);
+        PtsTop[2] := Point(CX, IconY);
+        PtsTop[3] := Point(IconX + IconW - 3, IconY + 1);
+        PtsTop[4] := Point(IconX + IconW, CY);
 
-      // Draw text
-      PB.Canvas.Brush.Style := bsClear;
-      TextX := ContentX + IconW + Gap;
-      TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
-      PB.Canvas.TextOut(TextX, TextY, 'Preview');
+        PtsBot[0] := Point(IconX, CY);
+        PtsBot[1] := Point(IconX + 3, IconY + IconH - 1);
+        PtsBot[2] := Point(CX, IconY + IconH);
+        PtsBot[3] := Point(IconX + IconW - 3, IconY + IconH - 1);
+        PtsBot[4] := Point(IconX + IconW, CY);
+
+        PB.Canvas.Polyline(PtsTop);
+        PB.Canvas.Polyline(PtsBot);
+
+        // Pupil center
+        PB.Canvas.Brush.Color := FGColor;
+        PB.Canvas.Brush.Style := bsSolid;
+        PB.Canvas.Ellipse(CX - 1, CY - 1, CX + 2, CY + 2);
+
+        // Draw text
+        PB.Canvas.Brush.Style := bsClear;
+        TextX := ContentX + IconW + Gap;
+        TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+        PB.Canvas.TextOut(TextX, TextY, 'Preview');
+      end;
     end;
 
     // 4. Add button (e.g. "+ Add")
@@ -640,7 +760,11 @@ begin
 
     case Btn of
       btnMenu:    FPillBox.Hint := 'Options & presets menu';
-      btnPreview: FPillBox.Hint := 'Launch a quick 3D preview (pascube / vkcube)';
+      btnPreview:
+        if FPreviewRunning then
+          FPillBox.Hint := 'Stop 3D preview (PasCube running in live sync)'
+        else
+          FPillBox.Hint := 'Launch a quick 3D preview (PasCube / vkcube)';
       btnAdd:     FPillBox.Hint := 'Add action';
       btnFinish:  FPillBox.Hint := 'Get your Steam / Heroic launch command';
       else        FPillBox.Hint := '';
