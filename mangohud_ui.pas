@@ -1750,7 +1750,9 @@ begin
   FFpsLimitEdit.Text := '0';
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
-    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
   else
     SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
           'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
@@ -2423,13 +2425,29 @@ begin
     end;
   end;
 
+  // Anti-aliasing / mipmap value labels: keep accent styling across themes
+  if Assigned(afvalueLabel) then
+  begin
+    afvalueLabel.Font.Color  := CLR_TEXT_ACCENT;
+    afvalueLabel.Font.Style  := [fsBold];
+    afvalueLabel.Transparent := True;
+  end;
+  if Assigned(mipmapvalueLabel) then
+  begin
+    mipmapvalueLabel.Font.Color  := CLR_TEXT_ACCENT;
+    mipmapvalueLabel.Font.Style  := [fsBold];
+    mipmapvalueLabel.Transparent := True;
+  end;
+
   // FPS Limit edit: update colors for theme
   if Assigned(FFpsLimitEdit) then
   begin
     FFpsLimitEdit.Font.Color := TextColor;
     FFpsLimitEdit.Color := IfThen(CurrentTheme = tmLight, clWhite, RGBToColor(38, 46, 72));
     if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: none; }'
+      SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px; }' +
+            'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
+            'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
     else
       SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
             'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
@@ -3467,10 +3485,10 @@ begin
     fontsizevalueLabel.Caption := '24px';
     
     afTrackBar.Position := 0;
-    afvalueLabel.Caption := '0';
+    afvalueLabel.Caption := '0 (Off)';
     
     mipmapTrackBar.Position := 0;
-    mipmapvalueLabel.Caption := '0';
+    mipmapvalueLabel.Caption := IntToStr(mipmapTrackBar.Position);
     
     durationTrackBar.Position := 0;
     durationvalueLabel.Caption := '0s';
@@ -4052,7 +4070,10 @@ begin
       if TryStrToInt(AValue, IntValue) then
       begin
         afTrackBar.Position := IntValue;
-        afvalueLabel.Caption := IntToStr(IntValue);
+        if afTrackBar.Position = 0 then
+          afvalueLabel.Caption := '0 (Off)'
+        else
+          afvalueLabel.Caption := IntToStr(afTrackBar.Position) + 'x';
       end;
     end
     else if SameText(AKey, MANGO_KEY_PICMIP) then
@@ -4060,7 +4081,7 @@ begin
       if TryStrToInt(AValue, IntValue) then
       begin
         mipmapTrackBar.Position := IntValue;
-        mipmapvalueLabel.Caption := IntToStr(IntValue);
+        mipmapvalueLabel.Caption := IntToStr(mipmapTrackBar.Position);
       end;
     end
     // ============= EXTRAS TAB =============

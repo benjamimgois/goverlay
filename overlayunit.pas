@@ -4103,8 +4103,11 @@ begin
      alphavalueLabel.Caption:= FormatFloat('#0.0', transpTrackbar.Position/10);
      fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
      fontcombobox.ItemIndex:=0;
-     afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
-     mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+     if afTrackbar.Position = 0 then
+       afvalueLabel.Caption:= '0 (Off)'
+     else
+       afvalueLabel.Caption:= IntToStr(afTrackbar.Position) + 'x';
+     mipmapvalueLabel.Caption:= IntToStr(mipmapTrackbar.Position);
      // Set log folder path - use XDG-compliant data directory
      logfolderEdit.text := GetGOverlayDataDir();
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
@@ -6015,7 +6018,7 @@ end;
 procedure Tgoverlayform.mipmapTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
-  mipmapvalueLabel.Caption:= FormatFloat('#0', mipmapTrackbar.Position);
+  mipmapvalueLabel.Caption:= IntToStr(mipmapTrackbar.Position);
   StartAutoSaveTimer;
 end;
 
@@ -6151,7 +6154,10 @@ end;
 procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
-  afvalueLabel.Caption:= FormatFloat('#0', afTrackbar.Position);
+  if afTrackbar.Position = 0 then
+    afvalueLabel.Caption:= '0 (Off)'
+  else
+    afvalueLabel.Caption:= IntToStr(afTrackbar.Position) + 'x';
   StartAutoSaveTimer;
 end;
 
