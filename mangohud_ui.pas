@@ -1620,8 +1620,10 @@ begin
 
   alphavalueLabel.Font.Color    := CLR_TEXT_ACCENT;
   alphavalueLabel.Font.Style    := [fsBold];
+  alphavalueLabel.Transparent   := True;
   fontsizevalueLabel.Font.Color := CLR_TEXT_ACCENT;
   fontsizevalueLabel.Font.Style := [fsBold];
+  fontsizevalueLabel.Transparent := True;
   end;
 end;
 
@@ -3462,7 +3464,7 @@ begin
     alphavalueLabel.Caption := '0.6';
     
     fontsizeTrackBar.Position := 24;
-    fontsizevalueLabel.Caption := '24';
+    fontsizevalueLabel.Caption := '24px';
     
     afTrackBar.Position := 0;
     afvalueLabel.Caption := '0';
@@ -3832,7 +3834,7 @@ begin
       if TryStrToInt(AValue, IntValue) then
       begin
         fontsizeTrackBar.Position := IntValue;
-        fontsizevalueLabel.Caption := IntToStr(IntValue);
+        fontsizevalueLabel.Caption := IntToStr(IntValue) + 'px';
       end;
     end
     else if SameText(AKey, MANGO_KEY_TEXT_COLOR) then

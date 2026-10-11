@@ -1722,7 +1722,11 @@ function IsProcessRunningPure(const ProcName: string): Boolean;
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit, reshade_tab;
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit, reshade_tab
+  {$IFDEF LCLqt6}
+  , qtobjects
+  {$ENDIF}
+  ;
 
 // Shared constants for game card dimensions — used by LoadSteamGames,
 // ReflowGamesGrid, ApplyCardBrightness, and the cover download thread.
@@ -6019,7 +6023,7 @@ end;
 procedure Tgoverlayform.fontsizeTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
-  fontsizevalueLabel.Caption:= inttostr(fontsizeTrackbar.Position);
+  fontsizevalueLabel.Caption:= IntToStr(fontsizeTrackbar.Position) + 'px';
   StartAutoSaveTimer;
 end;
 
@@ -8668,36 +8672,61 @@ begin
 end;
 
 procedure Tgoverlayform.SubCardPaint(Sender: TObject);
-// Sub-section style: same blue-gray fill + very subtle border, no cyan accent.
+// Sub-section style: thick rounded blue-gray fill + soft border, no cyan accent.
 const
-  DARK_BG   = $002E1E1A;  // rgb(26, 30, 46)
-  DARK_BRD  = $00342620;  // rgb(32, 38, 52)
-  LIGHT_BG  = $00F0F0F0;  // rgb(240, 240, 240)
-  LIGHT_BRD = $00E0E0E0;  // rgb(224, 224, 224)
+  DARK_BG     = $002E1E1A;  // rgb(26, 30, 46)
+  DARK_BRD    = $00342620;  // rgb(32, 38, 52)
+  LIGHT_BG    = $00F0F0F0;  // rgb(240, 240, 240)
+  LIGHT_BRD   = $00E0E0E0;  // rgb(224, 224, 224)
+  DARK_CONT   = $00281A16;  // rgb(22, 26, 40) tab/container bg
+  LIGHT_CONT  = $00F5F5F5;  // rgb(245, 245, 245)
+  CORNER_R    = 6;
 var
   P: TPanel;
-  Bg, Brd: TColor;
+  Bg, Brd, Cont: TColor;
 begin
   if not (Sender is TPanel) then Exit;
   P := TPanel(Sender);
+
   if CurrentTheme = tmLight then
   begin
-    Bg  := LIGHT_BG;
-    Brd := LIGHT_BRD;
+    Bg   := LIGHT_BG;
+    Brd  := LIGHT_BRD;
+    Cont := LIGHT_CONT;
   end
   else
   begin
-    Bg  := DARK_BG;
-    Brd := DARK_BRD;
+    Bg   := DARK_BG;
+    Brd  := DARK_BRD;
+    Cont := DARK_CONT;
   end;
+
+  if P.Parent is TWinControl then
+    Cont := TWinControl(P.Parent).Color;
+
+  // 1. Wipe the client area with the container colour so the pixels outside the
+  //    rounded shape don't keep stale square corners.
+  P.Canvas.Brush.Color := Cont;
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.Pen.Color   := Cont;
+  P.Canvas.Pen.Width   := 1;
+  P.Canvas.FillRect(P.ClientRect);
+
+  {$IFDEF LCLqt6}
+  if P.Canvas.Handle <> 0 then
+    TQtDeviceContext(P.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
+
+  // 2. Rounded background fill (radius 6).
   P.Canvas.Brush.Color := Bg;
   P.Canvas.Brush.Style := bsSolid;
-  P.Canvas.FillRect(P.ClientRect);
+  P.Canvas.RoundRect(0, 0, P.Width, P.Height, CORNER_R * 2, CORNER_R * 2);
+
+  // 3. Soft border stroke hugging the rounded shape.
   P.Canvas.Brush.Style := bsClear;
   P.Canvas.Pen.Color   := Brd;
   P.Canvas.Pen.Width   := 1;
-  P.Canvas.Rectangle(0, 0, P.Width, P.Height);
-
+  P.Canvas.RoundRect(0, 0, P.Width, P.Height, CORNER_R * 2, CORNER_R * 2);
 end;
 
 procedure Tgoverlayform.UpdateVisualCardTheme;
@@ -10276,7 +10305,7 @@ procedure Tgoverlayform.commandPaintBoxClick(Sender: TObject);
 var
   T: TTimer;
 begin
-  Clipboard.AsText := GetLaunchCommand;
+  Clipbrd.Clipboard.AsText := GetLaunchCommand;
   FCommandCopiedTime := GetTickCount64;
   commandPaintBox.Invalidate;
   
