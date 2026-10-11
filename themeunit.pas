@@ -36,7 +36,7 @@ const
   CLR_TEXT_PRIMARY   = clWhite;   // Title & primary text
   CLR_TEXT_SECONDARY = $00CCAAAA; // Section / Sub-card titles (Cyan-Gray)
   CLR_TEXT_MUTED     = $00AAAAAA; // Secondary hints & muted labels
-  CLR_TEXT_HIGHLIGHT = $00FF99BB; // Version tags & key highlights (purple BGR)
+  CLR_TEXT_HIGHLIGHT = $00F0BE30; // Version tags & key highlights (cyan BGR)
   CLR_TEXT_ACCENT    = $00F0BE30; // Cyan accent
   CLR_TEXT_SUCCESS   = $0066CC44; // Green status
 

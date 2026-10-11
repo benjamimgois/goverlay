@@ -1274,7 +1274,7 @@ procedure TReshadeTabHelper.RefreshStatus;
 const
   CLR_OK   = $0044BB44;   // green — library found
   CLR_NONE = $00666666;   // gray  — not installed
-  PURPLE   = $BB99FF;
+  CYAN_VER = $00F0BE30;
 var
   BinDir, ShadersDir, CheckPath, VkVer: string;
   i: Integer;
@@ -1291,7 +1291,7 @@ begin
     begin
       FStatDot.Brush.Color := CLR_OK;
       FStatVerLbl.Caption := GetReShadeInstalledVersion + ' (Add-on Edition)';
-      FStatVerLbl.Font.Color := PURPLE;
+      FStatVerLbl.Font.Color := CYAN_VER;
     end
     else
     begin
@@ -1316,7 +1316,7 @@ begin
     begin
       FVkStatDot.Brush.Color := CLR_OK;
       FVkStatVerLbl.Caption := VkVer;
-      FVkStatVerLbl.Font.Color := PURPLE;
+      FVkStatVerLbl.Font.Color := CYAN_VER;
     end
     else
     begin

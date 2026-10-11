@@ -1456,7 +1456,7 @@ var
 const
   CLR_OK   = $0044BB44;
   CLR_NONE = $00666666;
-  PURPLE   = $BB99FF;
+  CYAN_VER = $00F0BE30;
 begin
   if not Assigned(FLsStatDots[0]) then Exit;
 
@@ -1515,7 +1515,7 @@ begin
       else
       begin
         FLsEngineStatusLabel.Caption := MakoVer;
-        FLsEngineStatusLabel.Font.Color := PURPLE;
+        FLsEngineStatusLabel.Font.Color := CYAN_VER;
       end;
       FLsEngineStatusLabel.Hint := MakoLib;
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
@@ -1527,7 +1527,7 @@ begin
     if Assigned(FLsEngineStatusLabel) then
     begin
       FLsEngineStatusLabel.Caption := 'Installed';
-      FLsEngineStatusLabel.Font.Color := PURPLE;
+      FLsEngineStatusLabel.Font.Color := CYAN_VER;
       FLsEngineStatusLabel.Hint := MakoLib;
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
     end;
@@ -1583,7 +1583,7 @@ begin
           FLsLsfgStatusLabel.Caption := LsfgVer
         else
           FLsLsfgStatusLabel.Caption := 'Installed';
-        FLsLsfgStatusLabel.Font.Color := PURPLE;
+        FLsLsfgStatusLabel.Font.Color := CYAN_VER;
       end;
       FLsLsfgStatusLabel.Hint := LsfgLib;
       FLsLsfgStatusLabel.ShowHint := (LsfgLib <> '');
@@ -1654,7 +1654,7 @@ begin
           FLsAfmfStatusLabel.Caption := AfmfVer
         else
           FLsAfmfStatusLabel.Caption := 'Installed';
-        FLsAfmfStatusLabel.Font.Color := PURPLE;
+        FLsAfmfStatusLabel.Font.Color := CYAN_VER;
       end;
       FLsAfmfStatusLabel.Hint := AfmfLib;
       FLsAfmfStatusLabel.ShowHint := (AfmfLib <> '');
@@ -4402,7 +4402,7 @@ begin
       if FMakoUpdateAvailable and (FMakoRemoteVer = InstalledVer) then
         FMakoUpdateAvailable := False;
       FLsEngineStatusLabel.Caption := InstalledVer;
-      FLsEngineStatusLabel.Font.Color := $BB99FF;
+      FLsEngineStatusLabel.Font.Color := $00F0BE30;
       FLsEngineStatusLabel.Hint := MakoLib;
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
       if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
@@ -4419,7 +4419,7 @@ begin
   else if IsMakoInstalled then
   begin
     FLsEngineStatusLabel.Caption := 'Installed';
-    FLsEngineStatusLabel.Font.Color := $BB99FF;
+    FLsEngineStatusLabel.Font.Color := $00F0BE30;
     FLsEngineStatusLabel.Hint := MakoLib;
     FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
     if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;

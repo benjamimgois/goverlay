@@ -199,7 +199,7 @@ const
   BG      = $002E1E1A;  // rgb(28, 33, 52) — Option B
   ACCENT  = $00F0BE30;  // rgb(48, 190, 240) — cyan
   WHITE   = clWhite;
-  PURPLE  = $BB99FF;
+  CYAN_VER = $00F0BE30;
   GRAY    = $AAAAAA;
   GREEN   = $66CC44;
   BLUELK  = $4499FF;
@@ -1053,7 +1053,7 @@ begin
       VLbl := TLabel.Create(FForm);
       VLbl.Parent      := FOsStatusCard;
       VLbl.Caption     := '—';
-      VLbl.Font.Color  := PURPLE;
+      VLbl.Font.Color  := CYAN_VER;
       VLbl.Font.Style  := [fsBold];
       VLbl.Font.Size   := 9;
       VLbl.AutoSize    := True;
@@ -1069,7 +1069,7 @@ procedure TOptiScalerTabHelper.RefreshOsStatusDots;
 const
   CLR_OK     = $0044BB44;   // green — library found
   CLR_NONE   = $00666666;   // gray  — not installed
-  PURPLE     = $BB99FF; // purple — version with no pending update
+  CYAN_VER   = $00F0BE30; // cyan — version with no pending update
   CLR_UPDATE = $0044AAFF;   // blue highlight — update available
 var
   i: Integer;
@@ -1109,7 +1109,7 @@ begin
             end;
 
             FOsStatVerLbls[0].Caption    := VerCaption;
-            FOsStatVerLbls[0].Font.Color := PURPLE;
+            FOsStatVerLbls[0].Font.Color := CYAN_VER;
             if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[0].Brush.Color := CLR_OK
             else
@@ -1128,7 +1128,7 @@ begin
 
             VerCaption := DlssV + ' / ' + FsrV + ' / ' + XessV;
             FOsStatVerLbls[1].Caption    := VerCaption;
-            FOsStatVerLbls[1].Font.Color := PURPLE;
+            FOsStatVerLbls[1].Font.Color := CYAN_VER;
 
             HasAnyUpscaler := (DlssV <> '—') or (FsrV <> '—') or (XessV <> '—');
             if HasAnyUpscaler then
@@ -1142,7 +1142,7 @@ begin
             if not IsDlssEnablerActive then
             begin
               FOsStatVerLbls[2].Caption    := '--';
-              FOsStatVerLbls[2].Font.Color := PURPLE;
+              FOsStatVerLbls[2].Font.Color := CYAN_VER;
               FOsStatDots[2].Brush.Color   := CLR_NONE;
             end
             else
@@ -1164,7 +1164,7 @@ begin
               end;
 
               FOsStatVerLbls[2].Caption    := VerCaption;
-              FOsStatVerLbls[2].Font.Color := PURPLE;
+              FOsStatVerLbls[2].Font.Color := CYAN_VER;
               if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
                 FOsStatDots[2].Brush.Color := CLR_OK
               else
@@ -1177,7 +1177,7 @@ begin
             Ver := fakenvapi1.Caption;
             VerCaption := IfThen(Ver <> '', Ver, '—');
             FOsStatVerLbls[3].Caption    := VerCaption;
-            FOsStatVerLbls[3].Font.Color := PURPLE;
+            FOsStatVerLbls[3].Font.Color := CYAN_VER;
             if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[3].Brush.Color := CLR_OK
             else
@@ -1192,7 +1192,7 @@ begin
               Ver := '';
             VerCaption := IfThen(Ver <> '', Ver, '—');
             FOsStatVerLbls[4].Caption    := VerCaption;
-            FOsStatVerLbls[4].Font.Color := PURPLE;
+            FOsStatVerLbls[4].Font.Color := CYAN_VER;
             if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[4].Brush.Color := CLR_OK
             else
@@ -1204,7 +1204,7 @@ begin
             Ver := optipatcherLabel1.Caption;
             VerCaption := IfThen(Ver <> '', Ver, '—');
             FOsStatVerLbls[5].Caption    := VerCaption;
-            FOsStatVerLbls[5].Font.Color := PURPLE;
+            FOsStatVerLbls[5].Font.Color := CYAN_VER;
             if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
               FOsStatDots[5].Brush.Color := CLR_OK
             else

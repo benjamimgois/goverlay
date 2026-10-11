@@ -2798,7 +2798,7 @@ begin
   goverlayform.RefreshOsStatusDots;
   AssertFalse('OptiLabel2 is NOT visible on downgrade (4.8.13.6 < 4.9.0.6)', goverlayform.FOptiscalerUpdate.OptiLabel2.Visible);
   AssertEquals('DLSS Enabler status row shows installed 4.9.0.6 without update arrow', '4.9.0.6', goverlayform.FOsStatVerLbls[2].Caption);
-  AssertEquals('DLSS Enabler status row color is PURPLE', $BB99FF, goverlayform.FOsStatVerLbls[2].Font.Color);
+  AssertEquals('DLSS Enabler status row color is CYAN', $00F0BE30, goverlayform.FOsStatVerLbls[2].Font.Color);
 
   // 3. Remote check returns strictly newer version 4.9.0.7
   UpdateThread := TOptiUpdateThread.Create(goverlayform.FOptiscalerUpdate, False, False);
@@ -6083,7 +6083,7 @@ begin
       if Helper.MakoUpdateAvailable then
         AssertEquals('MAKO status label color is blue ($0044AAFF)', $0044AAFF, Helper.EngineStatusLabel.Font.Color)
       else
-        AssertEquals('MAKO status label color is purple ($BB99FF)', $BB99FF, Helper.EngineStatusLabel.Font.Color);
+        AssertEquals('MAKO status label color is cyan ($00F0BE30)', $00F0BE30, Helper.EngineStatusLabel.Font.Color);
       AssertFalse('MAKO status label does not repeat name', Pos('MAKO Renderer:', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (Found)', Pos('(Found)', Helper.EngineStatusLabel.Caption) > 0);
       AssertFalse('MAKO status label does not contain (found)', Pos('(found)', Helper.EngineStatusLabel.Caption) > 0);
@@ -6103,7 +6103,7 @@ begin
       if Helper.LsfgUpdateAvailable then
         AssertEquals('lsfg-vk status label color is blue ($0044AAFF)', $0044AAFF, Helper.LsfgStatusLabel.Font.Color)
       else
-        AssertEquals('lsfg-vk status label color is purple ($BB99FF)', $BB99FF, Helper.LsfgStatusLabel.Font.Color);
+        AssertEquals('lsfg-vk status label color is cyan ($00F0BE30)', $00F0BE30, Helper.LsfgStatusLabel.Font.Color);
       AssertFalse('lsfg-vk status label does not contain (Found)', Pos('(Found)', Helper.LsfgStatusLabel.Caption) > 0);
       AssertFalse('lsfg-vk status label does not contain (found)', Pos('(found)', Helper.LsfgStatusLabel.Caption) > 0);
       if (Helper.LsfgStatusLabel.Caption <> 'Installed') and not Helper.LsfgUpdateAvailable then
