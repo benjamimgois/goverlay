@@ -124,6 +124,10 @@ type
 
 implementation
 
+const
+  SECT_GPU = $66AAFF;
+  SECT_CPU = $FFAA55;
+
 type
   Ptm = Pointer;
 
@@ -2508,8 +2512,6 @@ const
   CARD_BG  = $002E1E1A;  // rgb(28, 33, 52) — Option B blue-gray
   OUTER_BG = $00281A16;  // navy bg
   WHITE    = clWhite;
-  SECT_GPU = $66AAFF;
-  SECT_CPU = $FFAA55;
   HDR      = 34;   // accent bar (3px) + title label area
 
   procedure MakeCard(out Card: TPanel; const ATitle: string);
@@ -2782,17 +2784,12 @@ begin
   if not Assigned(FMtGpuCard) and not Assigned(FMtCpuCard) then Exit;
 
   if CurrentTheme = tmLight then
-  begin
-    TextColor := LightTextColor;
-    GpuColor  := RGBToColor(0, 102, 204);    // blue — high contrast on white
-    CpuColor  := RGBToColor(178, 88, 0);     // warm dark orange — high contrast
-  end
+    TextColor := LightTextColor
   else
-  begin
     TextColor := DarkTextColor;
-    GpuColor  := RGBToColor(102, 170, 255);  // cool cyan/blue
-    CpuColor  := RGBToColor(255, 170, 85);   // warm amber
-  end;
+
+  GpuColor := SECT_GPU;
+  CpuColor := SECT_CPU;
 
   // Card backgrounds / generic control colors first
   UpdateGenericCardTheme(FMtGpuCard);
