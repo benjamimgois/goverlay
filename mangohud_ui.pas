@@ -107,6 +107,7 @@ type
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
     procedure SyncMetricsToggles;
+    procedure UpdateMetricsCardTheme;
     procedure InitExtrasTab;
     procedure ReflowExtrasTab(AContentW: Integer);
     procedure SyncExtrasToggles;
@@ -2743,6 +2744,80 @@ begin
   cpuImage.Anchors := [akLeft, akTop];
   cpuImage.Parent  := FMtCpuCard;
   cpuImage.Top     := 5 + HDR;
+  end;
+
+  // Apply the initial theme so the tab is styled from the first paint
+  UpdateMetricsCardTheme;
+end;
+
+
+procedure TMangoHudUiHelper.UpdateMetricsCardTheme;
+var
+  TextColor, GpuColor, CpuColor: TColor;
+  SS: WideString;
+
+  procedure ApplySectLabel(L: TLabel; AColor: TColor);
+  begin
+    if not Assigned(L) then Exit;
+    L.Font.Color  := AColor;
+    L.Font.Style  := [fsBold];
+    L.Transparent := True;
+  end;
+
+  procedure ApplyNameEdit(E: TEdit);
+  begin
+    if not Assigned(E) then Exit;
+    E.Font.Color := TextColor;
+    if CurrentTheme = tmLight then
+      E.Color := clWhite
+    else
+      E.Color := RGBToColor(38, 46, 72);
+    if E.HandleAllocated then
+      QWidget_setStyleSheet(TQtWidget(E.Handle).Widget, @SS);
+  end;
+
+begin
+  with FForm do
+  begin
+  if not Assigned(FMtGpuCard) and not Assigned(FMtCpuCard) then Exit;
+
+  if CurrentTheme = tmLight then
+  begin
+    TextColor := LightTextColor;
+    GpuColor  := RGBToColor(0, 102, 204);    // blue — high contrast on white
+    CpuColor  := RGBToColor(178, 88, 0);     // warm dark orange — high contrast
+  end
+  else
+  begin
+    TextColor := DarkTextColor;
+    GpuColor  := RGBToColor(102, 170, 255);  // cool cyan/blue
+    CpuColor  := RGBToColor(255, 170, 85);   // warm amber
+  end;
+
+  // Card backgrounds / generic control colors first
+  UpdateGenericCardTheme(FMtGpuCard);
+  UpdateGenericCardTheme(FMtCpuCard);
+
+  // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
+  if CurrentTheme = tmLight then
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 6px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
+  else
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 6px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
+  ApplyNameEdit(gpunameEdit);
+  ApplyNameEdit(cpunameEdit);
+
+  // Section labels: GPU uses the cool accent, CPU / Memory the warm one
+  ApplySectLabel(mainmetricLabel,     GpuColor);
+  ApplySectLabel(gputempLabel,        GpuColor);
+  ApplySectLabel(gpupowerLabel,       GpuColor);
+  ApplySectLabel(gpuinfoLabel,        GpuColor);
+  ApplySectLabel(cpumainmetricsLabel, CpuColor);
+  ApplySectLabel(cputempLabel,        CpuColor);
+  ApplySectLabel(memLabel,            CpuColor);
   end;
 end;
 

@@ -2674,10 +2674,11 @@ end;
 
 procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
 begin
-  UpdateGenericCardTheme(FMtGpuCard);
-  UpdateGenericCardTheme(FMtCpuCard);
   if Assigned(FMangoHelper) then
+  begin
+    TMangoHudUiHelper(FMangoHelper).UpdateMetricsCardTheme;
     TMangoHudUiHelper(FMangoHelper).SyncMetricsToggles;
+  end;
 end;
 
 procedure Tgoverlayform.extrasTabSheetShow(Sender: TObject);
@@ -5236,8 +5237,8 @@ begin
   UpdateExtrasCardTheme;
 
   // Update Metrics tab cards
-  UpdateGenericCardTheme(FMtGpuCard);
-  UpdateGenericCardTheme(FMtCpuCard);
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).UpdateMetricsCardTheme;
 
   // Update OptiScaler tab cards
   UpdateGenericCardTheme(FOsUpscalerCard);
