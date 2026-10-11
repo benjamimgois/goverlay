@@ -168,7 +168,7 @@ begin
   FForm.FNavToggleBtn.SetBounds(NAV_W_EXPANDED - 28, 68, 24, 20);
   FForm.FNavToggleBtn.Caption    := '«';
   FForm.FNavToggleBtn.Font.Size  := 11;
-  FForm.FNavToggleBtn.Font.Color := $00666666;
+  FForm.FNavToggleBtn.Font.Color := $00AAAAAA;
   FForm.FNavToggleBtn.Flat    := True;
   FForm.FNavToggleBtn.Cursor  := crHandPoint;
   FForm.FNavToggleBtn.Color   := $00221F1E;
@@ -200,7 +200,7 @@ begin
     // --- Item panel ---
     Item := TPanel.Create(FForm);
     Item.Parent  := FForm;
-    Item.SetBounds(FForm.goverlayPaintBox.Left, FForm.goverlayPaintBox.Top + TopY, NAV_ITEM_W, NAV_ITEM_H);
+    Item.SetBounds(FForm.goverlayPaintBox.Left, FForm.goverlayPaintBox.Top + TopY, NAV_ITEM_W - 1, NAV_ITEM_H);
     Item.BevelOuter := bvNone;
     Item.Caption := '';
     Item.Color   := NAV_COLOR_BG;
@@ -214,7 +214,7 @@ begin
     // --- Active indicator bar (left edge) ---
     Indicator := TShape.Create(FForm);
     Indicator.Parent := Item;
-    Indicator.SetBounds(0, 12, NAV_INDICATOR_W, NAV_ITEM_H - 24);
+    Indicator.SetBounds(8, 16, NAV_INDICATOR_W, NAV_ITEM_H - 32);
     Indicator.Brush.Color := NAV_COLOR_INDICATOR;
     Indicator.Pen.Color   := NAV_COLOR_INDICATOR;
     Indicator.Shape   := stRoundRect;
@@ -229,7 +229,7 @@ begin
     // --- PNG Icon Image ---
     FForm.FNavImgIcons[i] := TImage.Create(FForm);
     FForm.FNavImgIcons[i].Parent := Item;
-    FForm.FNavImgIcons[i].SetBounds(16, (NAV_ITEM_H - 32) div 2, 32, 32);
+    FForm.FNavImgIcons[i].SetBounds(18, (NAV_ITEM_H - 32) div 2, 32, 32);
     FForm.FNavImgIcons[i].Stretch := True;
     FForm.FNavImgIcons[i].Proportional := True;
     FForm.FNavImgIcons[i].Center := True;
@@ -256,7 +256,7 @@ begin
     // --- Caption label ---
     CaptionLbl := TLabel.Create(FForm);
     CaptionLbl.Parent := Item;
-    CaptionLbl.SetBounds(58, (NAV_ITEM_H - 16) div 2, NAV_ITEM_W - 66, 20);
+    CaptionLbl.SetBounds(54, (NAV_ITEM_H - 16) div 2, 104, 20);
     CaptionLbl.Caption   := ITEMS[i].Caption;
     CaptionLbl.Font.Size := 9;
     CaptionLbl.Font.Color := $00AAAAAA;
@@ -454,7 +454,7 @@ begin
     FForm.FNavToolEnabled[i] := True;
     Btn := TSpeedButton.Create(FForm);
     Btn.Parent    := FForm.FNavItems[i + 1];  // offset by 1: Games is at index 0
-    Btn.SetBounds(NAV_ITEM_W - BTN_SIZE - 6, (NAV_ITEM_H - BTN_SIZE) div 2, BTN_SIZE, BTN_SIZE);
+    Btn.SetBounds(162, (NAV_ITEM_H - BTN_SIZE) div 2, BTN_SIZE, BTN_SIZE);
     Btn.Flat      := True;
     Btn.Caption   := '';
     Btn.Images    := FForm.globalbuttonImageList;
@@ -588,7 +588,7 @@ begin
         begin
           // Expanded: full-size button on the right side of the nav item
           BtnW    := BTN_FULL;
-          BtnLeft := NAV_ITEM_W - BtnW - 6;
+          BtnLeft := 162;
           BtnTop  := (NAV_ITEM_H - BtnW) div 2;
           FForm.FNavToolBtns[i].Images := FForm.globalbuttonImageList;
         end
@@ -1022,7 +1022,10 @@ begin
     FForm.FNavItems[i].Invalidate;
   end;
   if Assigned(FForm.FNavToggleBtn) then
+  begin
     FForm.FNavToggleBtn.Color := ToggleColor;
+    FForm.FNavToggleBtn.Font.Color := IfThen(CurrentTheme = tmLight, $00555555, $00AAAAAA);
+  end;
   if Assigned(FForm.FSettingsIconLbl) then
     FForm.FSettingsIconLbl.Font.Color := TextInactive;
 end;
@@ -1097,35 +1100,87 @@ end;
 procedure TSidebarNavHelper.NavItemMouseLeave(Sender: TObject);
 var
   Idx: Integer;
+  Pt: TPoint;
 begin
   Idx := (Sender as TControl).Tag;
+  if (Idx >= 0) and (Idx < Length(FForm.FNavItems)) and Assigned(FForm.FNavItems[Idx]) then
+  begin
+    Pt := FForm.FNavItems[Idx].ScreenToClient(Mouse.CursorPos);
+    if PtInRect(FForm.FNavItems[Idx].ClientRect, Pt) then
+      Exit;
+  end;
   FForm.FNavHoveredIdx := -1;
-  FForm.FNavItems[Idx].Invalidate;
+  if (Idx >= 0) and (Idx < Length(FForm.FNavItems)) and Assigned(FForm.FNavItems[Idx]) then
+    FForm.FNavItems[Idx].Invalidate;
 end;
 
 procedure TSidebarNavHelper.NavItemPaint(Sender: TObject);
 var
   P: TPanel;
   Idx: Integer;
-  BgColor: TColor;
+  IsActive, IsHovered: Boolean;
+  SidebarBg, PillBg, PillBorder: TColor;
+  PadX, PadY, CornerR: Integer;
+  PillRect: TRect;
 begin
   P   := TPanel(Sender);
   Idx := P.Tag;
+
+  IsActive  := (Idx = FForm.FNavActive);
+  IsHovered := (Idx = FForm.FNavHoveredIdx);
+
   if CurrentTheme = tmLight then
+    SidebarBg := RGBToColor(238, 238, 238)
+  else
+    SidebarBg := RGBToColor(22, 26, 40);
+
+  if IsActive then
   begin
-    if Idx = FForm.FNavActive then      BgColor := NAV_LIGHT_ACTIVE
-    else if Idx = FForm.FNavHoveredIdx then BgColor := NAV_LIGHT_HOVER
-    else                              BgColor := NAV_LIGHT_BG;
+    if CurrentTheme = tmLight then
+    begin
+      PillBg     := NAV_LIGHT_ACTIVE;
+      PillBorder := RGBToColor(180, 180, 180);
+    end
+    else
+    begin
+      PillBg     := NAV_COLOR_ACTIVE;
+      PillBorder := RGBToColor(60, 72, 100);
+    end;
+  end
+  else if IsHovered then
+  begin
+    if CurrentTheme = tmLight then
+    begin
+      PillBg     := NAV_LIGHT_HOVER;
+      PillBorder := RGBToColor(205, 205, 205);
+    end
+    else
+    begin
+      PillBg     := NAV_COLOR_HOVER;
+      PillBorder := RGBToColor(42, 50, 72);
+    end;
   end
   else
   begin
-    if Idx = FForm.FNavActive then      BgColor := NAV_COLOR_ACTIVE
-    else if Idx = FForm.FNavHoveredIdx then BgColor := NAV_COLOR_HOVER
-    else                              BgColor := NAV_COLOR_BG;
+    PillBg     := SidebarBg;
+    PillBorder := SidebarBg;
   end;
-  P.Canvas.Brush.Color := BgColor;
+
+  P.Canvas.Brush.Color := SidebarBg;
   P.Canvas.Brush.Style := bsSolid;
   P.Canvas.FillRect(P.ClientRect);
+
+  if IsActive or IsHovered then
+  begin
+    PadX    := IfThen(FForm.FNavCollapsed, 5, 6);
+    PadY    := 5;
+    CornerR := 8;
+    PillRect := Rect(PadX, PadY, P.ClientWidth - PadX, P.ClientHeight - PadY);
+    P.Canvas.Brush.Color := PillBg;
+    P.Canvas.Pen.Color   := PillBorder;
+    P.Canvas.Pen.Width   := 1;
+    P.Canvas.RoundRect(PillRect.Left, PillRect.Top, PillRect.Right, PillRect.Bottom, CornerR * 2, CornerR * 2);
+  end;
 end;
 
 procedure TSidebarNavHelper.ApplyNavCollapsed;
@@ -1208,19 +1263,23 @@ begin
 
   for i := 0 to High(FForm.FNavItems) do
   begin
-    FForm.FNavItems[i].Width   := AWidth;
-    FForm.FNavIcons[i].Left    := IfThen(ShowLabels, 16, (AWidth - NAV_ICON_SIZE) div 2);
+    FForm.FNavItems[i].Width   := Max(1, AWidth - 1);
+    FForm.FNavIndicators[i].Visible := (i = FForm.FNavActive) and ShowLabels;
+    FForm.FNavIndicators[i].SetBounds(8, 16, 3, NAV_ITEM_H - 32);
+    FForm.FNavIcons[i].Left    := IfThen(ShowLabels, 18, (AWidth - NAV_ICON_SIZE) div 2);
     // In collapsed+game mode the button sits below the icon, so shift icon up
     FForm.FNavIcons[i].Top     := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
                               (NAV_ITEM_H - NAV_ICON_SIZE) div 2, 8);
     if Assigned(FForm.FNavImgIcons[i]) then
     begin
-      FForm.FNavImgIcons[i].Left   := IfThen(ShowLabels, 16, (AWidth - 32) div 2);
+      FForm.FNavImgIcons[i].Left   := IfThen(ShowLabels, 18, (AWidth - 32) div 2);
       FForm.FNavImgIcons[i].Top    := IfThen(ShowLabels or (FForm.FActiveGameName = ''),
                                        (NAV_ITEM_H - 32) div 2, 4);
       FForm.FNavImgIcons[i].Width  := 32;
       FForm.FNavImgIcons[i].Height := 32;
     end;
+    FForm.FNavLabels[i].Left    := 54;
+    FForm.FNavLabels[i].Width   := 104;
     FForm.FNavLabels[i].Visible := ShowLabels;
   end;
 

@@ -2261,7 +2261,12 @@ begin
       OffBmp.Canvas.Pen.Color := RGBToColor(55, 64, 95);
     OffBmp.Canvas.Line(0, 0, 0, THeight);
 
-    // No right separator — content area uses same navy background, seamless join
+    // Right rail separator — subtle 1px line delimiting nav rail from content
+    if CurrentTheme = tmLight then
+      OffBmp.Canvas.Pen.Color := RGBToColor(218, 218, 218)
+    else
+      OffBmp.Canvas.Pen.Color := RGBToColor(36, 42, 62);
+    OffBmp.Canvas.Line(TWidth - 1, 0, TWidth - 1, THeight);
 
     goverlayPaintBox.Canvas.Draw(0, 0, OffBmp);
   finally
