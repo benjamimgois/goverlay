@@ -263,6 +263,21 @@ const
       L.Font.Color := AColor;
   end;
 
+  procedure StyleSubTitle(L: TLabel);
+  begin
+    L.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+    L.Font.Style := [fsBold];
+    L.Transparent := True;
+  end;
+
+  procedure StdLbl(L: TLabel);
+  begin
+    StyleLabel(L, lrControlLabel);
+    L.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+    L.Font.Style := [fsBold];
+    L.Transparent := True;
+  end;
+
 const
   STAT_NAMES: array[0..5] of string = (
     'OptiScaler', 'DLSS / FSR / XeSS', 'DLSS Enabler', 'FakeNVAPI', 'Streamline SDK', 'OptiPatcher');
@@ -544,6 +559,12 @@ begin
     FOsFakeLbl := TLabel.Create(FOsFakeSec);
     FOsFakeLbl.Parent := FOsFakeSec;
     StyleSubCard(FOsFakeSec, FOsFakeLbl, 'Reflex / Antilag');
+
+    // Sub-card titles: always primary text color (Option A)
+    StyleSubTitle(FOsMainLbl);
+    StyleSubTitle(FOsSpatialLbl);
+    StyleSubTitle(FOsTemporalLbl);
+    StyleSubTitle(FOsFakeLbl);
 
     // Reparent controls to their sub-cards
     // --- Sub-card 1: Main controls ---
@@ -869,13 +890,11 @@ begin
     tracelogCheckBox.Visible := False;
 
     // DLL & Options section
-    DarkLbl(filenameLabel,    PURPLE); filenameLabel.Transparent    := True;
+    StdLbl(filenameLabel);
+    StdLbl(loglevelLabel);
     DarkCombo(filenameComboBox);
     if Assigned(gpudriverLabel) then
-    begin
-      DarkLbl(gpudriverLabel, PURPLE);
-      gpudriverLabel.Transparent := True;
-    end;
+      StdLbl(gpudriverLabel);
     if Assigned(gpudriverComboBox) then
       DarkCombo(gpudriverComboBox);
     DarkCheck(spoofCheckBox);
@@ -885,13 +904,13 @@ begin
     forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
-    DarkLbl(fsrversionLabel,  GRAY); fsrversionLabel.Transparent := True;
+    StdLbl(fsrversionLabel);
     DarkCombo(fsrversionComboBox);
-    DarkLbl(preferredUpscalerLabel,   GRAY); preferredUpscalerLabel.Transparent := True;
+    StdLbl(preferredUpscalerLabel);
     DarkCombo(preferredUpscalerComboBox);
     if Assigned(fgInputLabel) then
     begin
-      DarkLbl(fgInputLabel, GRAY); fgInputLabel.Transparent := True;
+      StdLbl(fgInputLabel);
     end;
     if Assigned(fgInputComboBox) then
     begin
@@ -899,7 +918,7 @@ begin
     end;
     if Assigned(fgOutputLabel) then
     begin
-      DarkLbl(fgOutputLabel, GRAY); fgOutputLabel.Transparent := True;
+      StdLbl(fgOutputLabel);
     end;
     if Assigned(fgOutputComboBox) then
     begin
@@ -908,7 +927,7 @@ begin
     UpdateFrameGenOptionsUI;
     DarkLbl(patcherlistLabel, BLUELK); patcherlistLabel.Transparent := True;
     // In-Game Menu section
-    DarkLbl(menuLabel,           PURPLE);
+    StdLbl(menuLabel);
     menuscalevalueLabel.Font.Color := RGBToColor(48, 190, 240);
     menuscalevalueLabel.Font.Style := [fsBold];
     menuscaleTrackBar.TickStyle    := tsNone;
@@ -917,12 +936,9 @@ begin
     DarkLbl(mark1Label,          GRAY); mark1Label.Transparent := True;
     DarkLbl(mark2Label,          GRAY); mark2Label.Transparent := True;
     DarkLbl(mark3Label,          GRAY); mark3Label.Transparent := True;
-    DarkLbl(shortcutkeyLabel,    PURPLE); shortcutkeyLabel.Transparent := True;
+    StdLbl(shortcutkeyLabel);
     if Assigned(dlssenablerToggleLabel) then
-    begin
-      DarkLbl(dlssenablerToggleLabel, PURPLE);
-      dlssenablerToggleLabel.Transparent := True;
-    end;
+      StdLbl(dlssenablerToggleLabel);
     DarkCombo(shortcutkeyComboBox);
     // FakeNVAPI section
     DarkCheck(forcereflexCheckBox);
@@ -1027,7 +1043,8 @@ begin
       NLbl := TLabel.Create(FForm);
       NLbl.Parent      := FOsStatusCard;
       NLbl.Caption     := STAT_NAMES[i];
-      NLbl.Font.Color  := $AAAAAA;
+      NLbl.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+      NLbl.Font.Style  := [fsBold];
       NLbl.Font.Size   := 9;
       NLbl.AutoSize    := True;
       NLbl.Transparent := True;
@@ -1036,7 +1053,8 @@ begin
       VLbl := TLabel.Create(FForm);
       VLbl.Parent      := FOsStatusCard;
       VLbl.Caption     := '—';
-      VLbl.Font.Color  := $BB99FF;
+      VLbl.Font.Color  := PURPLE;
+      VLbl.Font.Style  := [fsBold];
       VLbl.Font.Size   := 9;
       VLbl.AutoSize    := True;
       VLbl.Transparent := True;
@@ -1051,7 +1069,7 @@ procedure TOptiScalerTabHelper.RefreshOsStatusDots;
 const
   CLR_OK     = $0044BB44;   // green — library found
   CLR_NONE   = $00666666;   // gray  — not installed
-  PURPLE     = $BB99FF;
+  PURPLE     = $BB99FF; // purple — version with no pending update
   CLR_UPDATE = $0044AAFF;   // blue highlight — update available
 var
   i: Integer;
@@ -1068,6 +1086,7 @@ begin
 
     for i := 0 to 5 do
     begin
+      FOsStatVerLbls[i].Transparent := True;
       case i of
         0: // OptiScaler
           begin
