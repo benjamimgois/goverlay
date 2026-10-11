@@ -590,6 +590,32 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
     ACanvas.TextOut(AX + PadH, AY + PadV, AText);
   end;
 
+  // Modern subtle "N active" pill shown in card headers, right aligned.
+  procedure DrawActivePill(ACanvas: TCanvas; ARight, AY: Integer; const AText: string);
+  var
+    TxtW, BadgeW, TX, TY: Integer;
+  const
+    BADGE_H = 16;
+    PAD_H   = 6;
+  begin
+    ACanvas.Font.Name  := 'DejaVu Sans';
+    ACanvas.Font.Size  := 8;
+    ACanvas.Font.Style := [fsBold];
+    TxtW   := ACanvas.TextWidth(AText);
+    BadgeW := TxtW + 12;
+    TX     := ARight - BadgeW;
+
+    ACanvas.Brush.Color := RGBToColor(22, 48, 36);
+    ACanvas.Pen.Color   := RGBToColor(36, 120, 75);
+    ACanvas.Pen.Width   := 1;
+    ACanvas.RoundRect(TX, AY, TX + BadgeW, AY + BADGE_H, BADGE_H, BADGE_H);
+
+    ACanvas.Font.Color  := RGBToColor(74, 222, 128);
+    ACanvas.Brush.Style := bsClear;
+    TY := AY + (BADGE_H - ACanvas.TextHeight(AText)) div 2;
+    ACanvas.TextOut(TX + PAD_H, TY, AText);
+  end;
+
   procedure DrawItem(ACanvas: TCanvas; const ARect: TRect; const AVar, ADesc: string;
                      AChecked, AHover: Boolean; AIsCustom: Boolean; AIsArg: Boolean = False;
                      AEnabled: Boolean = True; ACategory: Integer = -1);
@@ -965,11 +991,7 @@ begin
     if ActiveCount > 0 then
     begin
       ActiveStr := IntToStr(ActiveCount) + ' active';
-      PB.Canvas.Font.Name  := 'DejaVu Sans';
-      PB.Canvas.Font.Size  := 8;
-      PB.Canvas.Font.Style := [];
-      PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
-      PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+      DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
     end;
 
     // Draw Warning Banner for Experimental category
@@ -1117,11 +1139,7 @@ begin
   if ActiveCustomCount > 0 then
   begin
     ActiveStr := IntToStr(ActiveCustomCount) + ' active';
-    PB.Canvas.Font.Name  := 'DejaVu Sans';
-    PB.Canvas.Font.Size  := 8;
-    PB.Canvas.Font.Style := [];
-    PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
-    PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+    DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
   end;
 
   if CustomVarCount > 0 then
@@ -1153,9 +1171,9 @@ begin
     PB.Canvas.Font.Name  := 'DejaVu Sans';
     PB.Canvas.Font.Size  := 8;
     PB.Canvas.Font.Style := [];
-    PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
+    PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No custom variables. Use the + Add button in the bottom dock to create one.');
+    PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No custom variables added yet. Click the + button to create one.');
   end;
 
   Inc(Y, CardH + CARD_GAP);
@@ -1187,11 +1205,7 @@ begin
   if ActiveArgCount > 0 then
   begin
     ActiveStr := IntToStr(ActiveArgCount) + ' active';
-    PB.Canvas.Font.Name  := 'DejaVu Sans';
-    PB.Canvas.Font.Size  := 8;
-    PB.Canvas.Font.Style := [];
-    PB.Canvas.Font.Color := RGBToColor(140, 160, 190);
-    PB.Canvas.TextOut(CardRight - 12 - PB.Canvas.TextWidth(ActiveStr), Y + 10, ActiveStr);
+    DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
   end;
 
   if LaunchArgCount > 0 then
@@ -1223,9 +1237,9 @@ begin
     PB.Canvas.Font.Name  := 'DejaVu Sans';
     PB.Canvas.Font.Size  := 8;
     PB.Canvas.Font.Style := [];
-    PB.Canvas.Font.Color := RGBToColor(120, 130, 150);
+    PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 4, Y + CARD_HDR_H + 8, 'No launch arguments. Use the + Add button in the bottom dock to create one.');
+    PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No launch arguments added yet. Click the + button to create one.');
   end;
 
   Inc(Y, CardH + CARD_GAP);
