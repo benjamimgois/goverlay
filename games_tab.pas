@@ -756,8 +756,12 @@ begin
 
     for y := 0 to H - 1 do
     begin
-      if y < H - GradH then Continue;
-      DimPct := Round((y - (H - GradH)) / GradH * 88);
+      if y >= H - GradH then
+        DimPct := Round((y - (H - GradH)) / GradH * 88)
+      else if y < 32 then
+        DimPct := Round((32 - y) / 32 * 50)
+      else
+        DimPct := 0;
       if DimPct <= 0 then Continue;
       Row := IntfImg.PixelData + PtrUInt(y * Stride);
       for x := 0 to W - 1 do
@@ -1228,13 +1232,18 @@ begin
 
   if Length(DiscoveredGames) = 0 then
   begin
+    FGamesPanel.Width := FGamesScrollBox.ClientWidth;
+    FGamesPanel.Height := Max(300, FGamesScrollBox.ClientHeight);
+
     NoGamesLabel := TLabel.Create(FForm);
     NoGamesLabel.Parent := FGamesPanel;
-    NoGamesLabel.Caption := 'No games detected in Steam or custom folders.';
-    NoGamesLabel.Font.Color := clSilver;
+    NoGamesLabel.Caption := '󰊴  No games detected in Steam or custom folders.' + LineEnding +
+                            'Right-click anywhere in the library to add custom game directories.';
+    NoGamesLabel.Font.Color := RGBToColor(140, 150, 175);
     NoGamesLabel.Font.Size := 10;
-    NoGamesLabel.Left := 16;
-    NoGamesLabel.Top := 16;
+    NoGamesLabel.Alignment := taCenter;
+    NoGamesLabel.Layout := tlCenter;
+    NoGamesLabel.SetBounds(0, Max(40, (FGamesPanel.Height - 60) div 2), FGamesPanel.Width, 60);
     Exit;
   end;
 
@@ -1260,7 +1269,7 @@ begin
       CardPanel.BevelInner := bvNone;
       CardPanel.BorderWidth := 0;
       CardPanel.Caption := '';
-      CardPanel.Color := $303030;  // slightly lighter than the navy bg for contrast
+      CardPanel.Color := RGBToColor(27, 32, 46);  // modern card elevation
       CardPanel.ShowHint := True;
       CardPanel.OnMouseEnter := @GameCardMouseEnter;
       CardPanel.OnMouseLeave := @GameCardMouseLeave;
@@ -2548,6 +2557,7 @@ procedure TGamesTabHelper.ActionPanelPaint(Sender: TObject);
 var
   Panel: TPanel;
   cx, cy: Integer;
+  R: TRect;
 begin
   if not (Sender is TPanel) then Exit;
   Panel := TPanel(Sender);
@@ -2556,16 +2566,14 @@ begin
 
   with Panel.Canvas do
   begin
-    // Drop shadow (black) for contrast against cover art
-    Brush.Color := clBlack;
+    R := Rect(1, 1, Panel.Width - 1, Panel.Height - 1);
+    Brush.Color := RGBToColor(16, 20, 30);
     Brush.Style := bsSolid;
-    Pen.Style := psClear;
-    Rectangle(cx, cy - 5, cx + 3, cy - 2);
-    Rectangle(cx, cy, cx + 3, cy + 3);
-    Rectangle(cx, cy + 5, cx + 3, cy + 8);
+    Pen.Style   := psClear;
+    RoundRect(R.Left, R.Top, R.Right, R.Bottom, Panel.Width, Panel.Height);
 
-    // White dots
     Brush.Color := clWhite;
+    Pen.Style   := psClear;
     Rectangle(cx - 1, cy - 6, cx + 2, cy - 3);
     Rectangle(cx - 1, cy - 1, cx + 2, cy + 2);
     Rectangle(cx - 1, cy + 4, cx + 2, cy + 7);
@@ -2574,28 +2582,26 @@ end;
 
 
 procedure TGamesTabHelper.ActionPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-var
-  Panel: TPanel;
 begin
-  if not (Sender is TPanel) then Exit;
-  Panel := TPanel(Sender);
-  Panel.Hint := 'Game options';
-  Panel.ShowHint := True;
+  if not (Sender is TControl) then Exit;
+  TControl(Sender).Hint := 'Game options';
+  TControl(Sender).ShowHint := True;
 end;
 
 
 procedure TGamesTabHelper.ActionPanelClick(Sender: TObject);
 var
-  Panel, CardPanel: TPanel;
+  Ctrl: TControl;
+  CardPanel: TPanel;
   Pt: TPoint;
   GameName, GamePath, GameCfgDir: string;
   Lines, MarkerFiles: TStringList;
   i: Integer;
   HasMods: Boolean;
 begin
-  if not (Sender is TPanel) then Exit;
-  Panel := TPanel(Sender);
-  CardPanel := GetCardPanel(Panel);
+  if not (Sender is TControl) then Exit;
+  Ctrl := TControl(Sender);
+  CardPanel := GetCardPanel(Ctrl);
   if not Assigned(CardPanel) then Exit;
 
   with FForm do
@@ -2653,7 +2659,7 @@ begin
       FUninstallMenuItem.Visible := HasMods;
     end;
 
-    Pt := Panel.ClientToScreen(Point(Panel.Width div 2, Panel.Height div 2));
+    Pt := Ctrl.ClientToScreen(Point(Ctrl.Width div 2, Ctrl.Height div 2));
     FGameCardMenu.PopUp(Pt.X, Pt.Y);
   end;
 end;
@@ -2661,35 +2667,53 @@ end;
 
 procedure TGamesTabHelper.CreateActionPanel(CardPanel: TPanel);
 var
-  ActionPanel: TPanel;
-  j: Integer;
+  ActionBtn: TImage;
+  Bmp: TBitmap;
+  cx, cy: Integer;
 begin
   with FForm do
   begin
-  if not Assigned(CardPanel) then Exit;
+    if not Assigned(CardPanel) then Exit;
 
-  ActionPanel := TPanel.Create(CardPanel);
-  ActionPanel.Parent := CardPanel;
-  ActionPanel.SetBounds(CARD_W - 32, CARD_H - 32, 26, 26);
-  ActionPanel.BevelOuter := bvNone;
-  ActionPanel.BevelInner := bvNone;
-  ActionPanel.BorderWidth := 0;
-  ActionPanel.ParentColor := True;
-  ActionPanel.ParentBackground := True;
-  ActionPanel.Tag := 9990;
-  ActionPanel.Visible := False;
-  ActionPanel.OnPaint := @ActionPanelPaint;
-  ActionPanel.OnMouseMove := @ActionPanelMouseMove;
-  ActionPanel.OnClick := @ActionPanelClick;
-  ActionPanel.OnMouseEnter := @GameCardMouseEnter;
-  ActionPanel.OnMouseLeave := @GameCardMouseLeave;
+    ActionBtn := TImage.Create(CardPanel);
+    ActionBtn.Parent := CardPanel;
+    ActionBtn.SetBounds(CARD_W - 32, CARD_H - 32, 26, 26);
+    ActionBtn.Tag := 9990;
+    ActionBtn.Visible := False;
+    ActionBtn.Transparent := True;
+    ActionBtn.Cursor := crHandPoint;
 
-  for j := 0 to CardPanel.ControlCount - 1 do
-    if (CardPanel.Controls[j] is TImage) and (CardPanel.Controls[j].Tag = 9995) then
-    begin
-      TImage(CardPanel.Controls[j]).SendToBack;
-      Break;
+    Bmp := TBitmap.Create;
+    try
+      Bmp.SetSize(26, 26);
+      Bmp.Canvas.Brush.Color := clFuchsia;
+      Bmp.Canvas.FillRect(0, 0, 26, 26);
+
+      // Dark circular pill
+      Bmp.Canvas.Brush.Color := RGBToColor(16, 20, 30);
+      Bmp.Canvas.Pen.Style   := psClear;
+      Bmp.Canvas.RoundRect(1, 1, 25, 25, 24, 24);
+
+      // 3 white dots
+      cx := 13;
+      cy := 13;
+      Bmp.Canvas.Brush.Color := clWhite;
+      Bmp.Canvas.Pen.Style   := psClear;
+      Bmp.Canvas.Rectangle(cx - 1, cy - 6, cx + 2, cy - 3);
+      Bmp.Canvas.Rectangle(cx - 1, cy - 1, cx + 2, cy + 2);
+      Bmp.Canvas.Rectangle(cx - 1, cy + 4, cx + 2, cy + 7);
+
+      ActionBtn.Picture.Bitmap.Assign(Bmp);
+      ActionBtn.Picture.Bitmap.TransparentColor := clFuchsia;
+      ActionBtn.Picture.Bitmap.Transparent := True;
+    finally
+      Bmp.Free;
     end;
+
+    ActionBtn.OnMouseMove  := @ActionPanelMouseMove;
+    ActionBtn.OnClick      := @ActionPanelClick;
+    ActionBtn.OnMouseEnter := @GameCardMouseEnter;
+    ActionBtn.OnMouseLeave := @GameCardMouseLeave;
   end;
 end;
 
