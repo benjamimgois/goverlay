@@ -2603,6 +2603,9 @@ begin
     ContentW := Max(1, Self.ClientWidth - IfThen(FNavCollapsed, NAV_W_COLLAPSED, NAV_W_EXPANDED));
   ReflowVkBasaltTab(ContentW);
 
+  if Assigned(FBasaltHelper) then
+    TVkBasaltTabHelper(FBasaltHelper).UpdateVkBasaltTheme;
+
   if not FReshadeDownloadedOnFirstShow then
   begin
     FReshadeDownloadedOnFirstShow := True;
@@ -5247,10 +5250,15 @@ begin
   UpdateGenericCardTheme(FOsStatusCard);
 
   // Update vkBasalt tab cards
-  UpdateGenericCardTheme(FVkReshadeCard);
-  UpdateGenericCardTheme(FVkBuiltinCard);
-  UpdateGenericCardTheme(FVkPipelineCard);
-  UpdateGenericCardTheme(FVkToggleCard);
+  if Assigned(FBasaltHelper) then
+    TVkBasaltTabHelper(FBasaltHelper).UpdateVkBasaltTheme
+  else
+  begin
+    UpdateGenericCardTheme(FVkReshadeCard);
+    UpdateGenericCardTheme(FVkBuiltinCard);
+    UpdateGenericCardTheme(FVkPipelineCard);
+    UpdateGenericCardTheme(FVkToggleCard);
+  end;
 
   // Update vkSumi tab cards
   for i := 0 to 2 do

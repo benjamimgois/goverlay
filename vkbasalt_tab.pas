@@ -32,6 +32,7 @@ type
     constructor Create(AForm: Tgoverlayform);
     destructor Destroy; override;
     procedure InitVkBasaltTab;
+    procedure UpdateVkBasaltTheme;
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure BuildVkSumiTab;
     procedure ReflowVkSumiTab(AContentW: Integer);
@@ -180,44 +181,44 @@ begin
   dlsTrackBar.Parent  := FVkBuiltinCard; dlsTrackBar.Anchors  := [akLeft, akTop]; dlsTrackBar.Visible  := True;
 
   casLabel.Parent  := FVkBuiltinCard; casLabel.Anchors  := [akLeft, akTop];
-  casLabel.Font.Color := $BB99FF; casLabel.Font.Style := [fsBold]; casLabel.Font.Size := 9;
+  casLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite); casLabel.Font.Style := [fsBold]; casLabel.Font.Size := 9;
   casLabel.Color := BG; casLabel.Visible := True;
 
   fxaaLabel.Parent := FVkBuiltinCard; fxaaLabel.Anchors := [akLeft, akTop];
-  fxaaLabel.Font.Color := $BB99FF; fxaaLabel.Font.Style := [fsBold]; fxaaLabel.Font.Size := 9;
+  fxaaLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite); fxaaLabel.Font.Style := [fsBold]; fxaaLabel.Font.Size := 9;
   fxaaLabel.Color := BG; fxaaLabel.Visible := True;
 
   smaaLabel.Parent := FVkBuiltinCard; smaaLabel.Anchors := [akLeft, akTop];
-  smaaLabel.Font.Color := $BB99FF; smaaLabel.Font.Style := [fsBold]; smaaLabel.Font.Size := 9;
+  smaaLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite); smaaLabel.Font.Style := [fsBold]; smaaLabel.Font.Size := 9;
   smaaLabel.Color := BG; smaaLabel.Visible := True;
 
   dlsLabel.Parent  := FVkBuiltinCard; dlsLabel.Anchors  := [akLeft, akTop];
-  dlsLabel.Font.Color := $BB99FF; dlsLabel.Font.Style := [fsBold]; dlsLabel.Font.Size := 9;
+  dlsLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite); dlsLabel.Font.Style := [fsBold]; dlsLabel.Font.Size := 9;
   dlsLabel.Color := BG; dlsLabel.Visible := True;
 
   // Fresh value labels — created here to avoid any LFM inheritance issues
   FVkCasValLbl := TLabel.Create(FForm);
   FVkCasValLbl.Parent := FVkBuiltinCard;
   FVkCasValLbl.Caption := casvalueLabel.Caption;
-  FVkCasValLbl.Font.Color := RGBToColor(48, 190, 240); FVkCasValLbl.Font.Style := [fsBold]; FVkCasValLbl.Font.Size := 9;
+  FVkCasValLbl.Font.Color := CLR_TEXT_ACCENT; FVkCasValLbl.Font.Style := [fsBold]; FVkCasValLbl.Font.Size := 9;
   FVkCasValLbl.Color := BG; FVkCasValLbl.Anchors := [akLeft, akTop];
 
   FVkFxaaValLbl := TLabel.Create(FForm);
   FVkFxaaValLbl.Parent := FVkBuiltinCard;
   FVkFxaaValLbl.Caption := fxaavalueLabel.Caption;
-  FVkFxaaValLbl.Font.Color := RGBToColor(48, 190, 240); FVkFxaaValLbl.Font.Style := [fsBold]; FVkFxaaValLbl.Font.Size := 9;
+  FVkFxaaValLbl.Font.Color := CLR_TEXT_ACCENT; FVkFxaaValLbl.Font.Style := [fsBold]; FVkFxaaValLbl.Font.Size := 9;
   FVkFxaaValLbl.Color := BG; FVkFxaaValLbl.Anchors := [akLeft, akTop];
 
   FVkSmaaValLbl := TLabel.Create(FForm);
   FVkSmaaValLbl.Parent := FVkBuiltinCard;
   FVkSmaaValLbl.Caption := smaavalueLabel.Caption;
-  FVkSmaaValLbl.Font.Color := RGBToColor(48, 190, 240); FVkSmaaValLbl.Font.Style := [fsBold]; FVkSmaaValLbl.Font.Size := 9;
+  FVkSmaaValLbl.Font.Color := CLR_TEXT_ACCENT; FVkSmaaValLbl.Font.Style := [fsBold]; FVkSmaaValLbl.Font.Size := 9;
   FVkSmaaValLbl.Color := BG; FVkSmaaValLbl.Anchors := [akLeft, akTop];
 
   FVkDlsValLbl := TLabel.Create(FForm);
   FVkDlsValLbl.Parent := FVkBuiltinCard;
   FVkDlsValLbl.Caption := dlsvalueLabel.Caption;
-  FVkDlsValLbl.Font.Color := RGBToColor(48, 190, 240); FVkDlsValLbl.Font.Style := [fsBold]; FVkDlsValLbl.Font.Size := 9;
+  FVkDlsValLbl.Font.Color := CLR_TEXT_ACCENT; FVkDlsValLbl.Font.Style := [fsBold]; FVkDlsValLbl.Font.Size := 9;
   FVkDlsValLbl.Color := BG; FVkDlsValLbl.Anchors := [akLeft, akTop];
 
   // Load custom icons for Built-in Effects card
@@ -265,7 +266,7 @@ begin
   FVkLutLabel := TLabel.Create(FForm);
   FVkLutLabel.Parent := FVkBuiltinCard;
   FVkLutLabel.Caption := 'Color LUT';
-  FVkLutLabel.Font.Color := $BB99FF;
+  FVkLutLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FVkLutLabel.Font.Style := [fsBold];
   FVkLutLabel.Font.Size := 9;
   FVkLutLabel.Color := BG;
@@ -392,6 +393,102 @@ begin
   StyleActionButton(FVkRestoreBtn);
 
   FVkReshadeSyncBtn := nil;
+
+  UpdateVkBasaltTheme;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.UpdateVkBasaltTheme;
+var
+  TextColor: TColor;
+  SS: WideString;
+begin
+  with FForm do
+  begin
+    // Repaint the four vkBasalt cards with the current theme colors
+    UpdateGenericCardTheme(FVkReshadeCard);
+    UpdateGenericCardTheme(FVkBuiltinCard);
+    UpdateGenericCardTheme(FVkPipelineCard);
+    UpdateGenericCardTheme(FVkToggleCard);
+
+    TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+
+    // Built-in effect + LUT name labels — standard text color (Option A)
+    if Assigned(casLabel) then
+    begin
+      casLabel.Font.Color := TextColor; casLabel.Font.Style := [fsBold]; casLabel.Transparent := True;
+    end;
+    if Assigned(fxaaLabel) then
+    begin
+      fxaaLabel.Font.Color := TextColor; fxaaLabel.Font.Style := [fsBold]; fxaaLabel.Transparent := True;
+    end;
+    if Assigned(smaaLabel) then
+    begin
+      smaaLabel.Font.Color := TextColor; smaaLabel.Font.Style := [fsBold]; smaaLabel.Transparent := True;
+    end;
+    if Assigned(dlsLabel) then
+    begin
+      dlsLabel.Font.Color := TextColor; dlsLabel.Font.Style := [fsBold]; dlsLabel.Transparent := True;
+    end;
+    if Assigned(FVkLutLabel) then
+    begin
+      FVkLutLabel.Font.Color := TextColor; FVkLutLabel.Font.Style := [fsBold]; FVkLutLabel.Transparent := True;
+    end;
+
+    // Value labels — accent color
+    if Assigned(FVkCasValLbl) then
+    begin
+      FVkCasValLbl.Font.Color := CLR_TEXT_ACCENT; FVkCasValLbl.Font.Style := [fsBold]; FVkCasValLbl.Transparent := True;
+    end;
+    if Assigned(FVkFxaaValLbl) then
+    begin
+      FVkFxaaValLbl.Font.Color := CLR_TEXT_ACCENT; FVkFxaaValLbl.Font.Style := [fsBold]; FVkFxaaValLbl.Transparent := True;
+    end;
+    if Assigned(FVkSmaaValLbl) then
+    begin
+      FVkSmaaValLbl.Font.Color := CLR_TEXT_ACCENT; FVkSmaaValLbl.Font.Style := [fsBold]; FVkSmaaValLbl.Transparent := True;
+    end;
+    if Assigned(FVkDlsValLbl) then
+    begin
+      FVkDlsValLbl.Font.Color := CLR_TEXT_ACCENT; FVkDlsValLbl.Font.Style := [fsBold]; FVkDlsValLbl.Transparent := True;
+    end;
+
+    // Color LUT path edit — modern Qt6 stylesheet
+    if Assigned(FVkLutPathEdit) then
+    begin
+      if CurrentTheme = tmLight then
+      begin
+        FVkLutPathEdit.Font.Color := LightTextColor;
+        FVkLutPathEdit.Color := LighterBackgroundColor;
+        SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 6px; }' +
+              'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
+              'QLineEdit:focus { border: 1px solid rgb(48,120,200); }';
+      end
+      else
+      begin
+        FVkLutPathEdit.Font.Color := clWhite;
+        FVkLutPathEdit.Color := RGBToColor(20, 24, 38);
+        SS := 'QLineEdit { background-color: rgb(20,24,38); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 6px; }' +
+              'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+              'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
+      end;
+      if FVkLutPathEdit.HandleAllocated then
+        QWidget_setStyleSheet(TQtWidget(FVkLutPathEdit.Handle).Widget, @SS);
+    end;
+
+    // Action buttons
+    if Assigned(FVkLutBrowseBtn) then
+      StyleBitBtnTheme(FVkLutBrowseBtn, TextColor, FVkBuiltinCard.Color);
+    if Assigned(FVkLutClearBtn) then
+      StyleBitBtnTheme(FVkLutClearBtn, TextColor, FVkBuiltinCard.Color);
+    if Assigned(FVkToggleCaptureBtn) then
+      StyleBitBtnTheme(FVkToggleCaptureBtn, TextColor, FVkToggleCard.Color);
+    if Assigned(FVkRestoreBtn) then
+      StyleBitBtnTheme(FVkRestoreBtn, TextColor, FVkToggleCard.Color);
+
+    // Repaint custom-drawn surfaces
+    if Assigned(FVkPipelinePB) then FVkPipelinePB.Invalidate;
+    if Assigned(FVkReshadePB) then FVkReshadePB.Invalidate;
   end;
 end;
 
