@@ -10,6 +10,7 @@ uses
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, overlay_utils,
   {$IFDEF LCLqt6}
   qt6,
+  qtobjects,
   {$ELSE}
   qt5,
   {$ENDIF}
@@ -669,22 +670,11 @@ end;
 
 procedure TMangoHudUiHelper.PresetCardPaint(Sender: TObject);
 const
-  // Dark theme — Lazarus TColor = $00BBGGRR (Blue, Green, Red byte order)
-  DARK_BG     = $003E2E2E;   // RGB( 46, 46, 62) dark blue-gray
-  DARK_HOVER  = $004E3A3A;   // RGB( 58, 58, 78) slightly lighter
-  DARK_SEL    = $0050321E;   // RGB( 30, 50, 80) blue-tinted selection
-  DARK_BRD    = $00645050;   // RGB( 80, 80,100) subtle border
-  DARK_H_BRD  = $00998888;   // RGB(136,136,153) hover border
-
-  // Light theme
-  LIGHT_BG    = $00F2F2F2;   // RGB(242,242,242) near-white
-  LIGHT_HOVER = $00EEE4E4;   // RGB(228,228,238) faint blue tint
-  LIGHT_SEL   = $00FFE8DC;   // RGB(220,232,255) light blue selection
-  LIGHT_BRD   = $00C8C0C0;   // RGB(192,192,200) light border
-  LIGHT_H_BRD = $00A09090;   // RGB(144,144,160) hover border
+  CORNER_R = 6;   // corners' rounding radius (px) — matches the modern card style
 var
   Card: TPanel;
-  BgColor, BorderColor: TColor;
+  BgClear, BgColor, BorderColor: TColor;
+  PenW: Integer;
   IsHovered, IsSelected: Boolean;
   i: Integer;
 begin
@@ -701,43 +691,73 @@ begin
       if (Card = FPresetColorCards[i]) and (i = FActiveColorCard) then
       begin IsSelected := True; Break; end;
 
+  // State palette — selected = elevated + glowing accent border (2px),
+  // hovered = subtly lighter + soft border, normal = flat + faint border.
   if CurrentTheme = tmLight then
   begin
-    if IsSelected      then BgColor := LIGHT_SEL
-    else if IsHovered  then BgColor := LIGHT_HOVER
-    else                    BgColor := LIGHT_BG;
-    if IsSelected      then BorderColor := clHighlight
-    else if IsHovered  then BorderColor := LIGHT_H_BRD
-    else                    BorderColor := LIGHT_BRD;
+    BgClear := LighterBackgroundColor;
+    if IsSelected then
+    begin BgColor := RGBToColor(220, 232, 255); BorderColor := RGBToColor(46, 138, 216); PenW := 2; end
+    else if IsHovered then
+    begin BgColor := RGBToColor(228, 228, 238); BorderColor := RGBToColor(144, 144, 160); PenW := 1; end
+    else
+    begin BgColor := RGBToColor(242, 242, 242); BorderColor := RGBToColor(192, 192, 200); PenW := 1; end;
   end
   else
   begin
-    if IsSelected      then BgColor := DARK_SEL
-    else if IsHovered  then BgColor := DARK_HOVER
-    else                    BgColor := DARK_BG;
-    if IsSelected      then BorderColor := clHighlight
-    else if IsHovered  then BorderColor := DARK_H_BRD
-    else                    BorderColor := DARK_BRD;
+    BgClear := RGBToColor(22, 26, 40);   // wrapper navy — lets rounded corners blend
+    if IsSelected then
+    begin BgColor := RGBToColor(32, 44, 68); BorderColor := RGBToColor(56, 189, 248); PenW := 2; end
+    else if IsHovered then
+    begin BgColor := RGBToColor(48, 54, 76); BorderColor := RGBToColor(90, 110, 150); PenW := 1; end
+    else
+    begin BgColor := RGBToColor(32, 38, 56); BorderColor := RGBToColor(46, 56, 80); PenW := 1; end;
   end;
 
-  // 1. Background fill
-  Card.Canvas.Brush.Color := BgColor;
+  // 1. Wipe the client area with the wrapper background so the pixels outside
+  //    the rounded shape don't keep stale square corners.
+  Card.Canvas.Brush.Color := BgClear;
   Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgClear;
+  Card.Canvas.Pen.Width   := 1;
   Card.Canvas.FillRect(Card.ClientRect);
 
-  // 2. Selection accent bar
+  {$IFDEF LCLqt6}
+  if Card.Canvas.Handle <> 0 then
+    TQtDeviceContext(Card.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
+
+  // 2. Rounded background fill — child controls paint on top afterwards, so
+  //    neither the fill nor the stroke ever clips the card's content.
+  Card.Canvas.Brush.Color := BgColor;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.RoundRect(0, 0, Card.Width, Card.Height, CORNER_R * 2, CORNER_R * 2);
+
+  // 3. Selection accent — a slim rounded bar hugging the bottom edge.
   if IsSelected then
   begin
-    Card.Canvas.Brush.Color := clHighlight;
+    Card.Canvas.Brush.Color := BorderColor;
     Card.Canvas.Brush.Style := bsSolid;
-    Card.Canvas.FillRect(Rect(2, Card.Height - 3, Card.Width - 2, Card.Height - 1));
+    Card.Canvas.Pen.Color   := BorderColor;
+    Card.Canvas.Pen.Width   := 1;
+    Card.Canvas.RoundRect(CORNER_R, Card.Height - 7,
+                          Card.Width - CORNER_R, Card.Height - 4,
+                          CORNER_R, CORNER_R);
   end;
 
-  // 3. 1px border rectangle on top of everything
+  // 4. Rounded border stroke on top of everything (inset by half the pen so
+  //    the 2px glow stays fully inside the client area).
   Card.Canvas.Brush.Style := bsClear;
   Card.Canvas.Pen.Color   := BorderColor;
+  Card.Canvas.Pen.Width   := PenW;
+  Card.Canvas.RoundRect(PenW, PenW, Card.Width - PenW, Card.Height - PenW,
+                        CORNER_R * 2, CORNER_R * 2);
+
+  // Restore defaults for any subsequent painting on this canvas.
   Card.Canvas.Pen.Width   := 1;
-  Card.Canvas.Rectangle(0, 0, Card.Width, Card.Height);
+  Card.Canvas.Brush.Style := bsSolid;
   end;
 end;
 
