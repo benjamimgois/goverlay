@@ -23,9 +23,10 @@
     </i18n>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
+      <MajorVersionNr Value="1"/>
       <MinorVersionNr Value="9"/>
-      <RevisionNr Value="1"/>
-      <StringTable InternalName="Goverlay" ProductName="Goverlay" ProductVersion="0.9.1"/>
+      <RevisionNr Value="5"/>
+      <StringTable InternalName="Goverlay" ProductName="Goverlay" ProductVersion="1.9.5"/>
     </VersionInfo>
     <MacroValues Count="1">
       <Macro1 Name="LCLWidgetType" Value="qt6"/>

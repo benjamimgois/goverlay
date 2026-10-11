@@ -3533,8 +3533,8 @@ begin
   end;
 
   //Program Version
-  GVERSION := '1.9.4';
-  GCHANNEL := 'stable'; //stable ou git
+  GVERSION := '1.9.5';
+  GCHANNEL := 'git'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading

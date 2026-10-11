@@ -118,7 +118,7 @@ begin
 end;
 
 const
-  BGMOD_VERSION = '1.9.4';
+  BGMOD_VERSION = '1.9.5';
 
 var
   GameDir: string;
