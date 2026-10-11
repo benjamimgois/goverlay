@@ -124,10 +124,6 @@ type
 
 implementation
 
-const
-  SECT_GPU = $66AAFF;
-  SECT_CPU = $FFAA55;
-
 type
   Ptm = Pointer;
 
@@ -2564,9 +2560,9 @@ const
     C.Font.Size   := 9;
   end;
 
-  procedure DarkSectLbl(L: TLabel; AColor: TColor);
+  procedure DarkSectLbl(L: TLabel);
   begin
-    L.Font.Color  := AColor;
+    L.Font.Color  := clWhite;
     L.Font.Size   := 9;
     L.Font.Style  := [fsBold];
     L.Transparent := True;
@@ -2634,7 +2630,7 @@ begin
   FgpumemfreqToggle   := PlaceToggle(gpumemfreqCheckBox, FMtGpuCard, 519, 77 + HDR);
   FgpumemfreqToggle.HasGraphButton := True;
   FgpumemfreqToggle.OnGraphClick   := @MetricGraphClick;
-  DarkSectLbl(mainmetricLabel, SECT_GPU);
+  DarkSectLbl(mainmetricLabel);
   gpuload1ColorButton.Color := CARD_BG;
   gpuload2ColorButton.Color := CARD_BG;
   gpuload3ColorButton.Color := CARD_BG;
@@ -2648,7 +2644,7 @@ begin
   FgpumemtempToggle  := PlaceToggle(gpumemtempCheckBox, FMtGpuCard, 120, 134 + HDR);
   FgpujunctempToggle := PlaceToggle(gpujunctempCheckBox, FMtGpuCard, 266, 134 + HDR);
   FgpufanToggle      := PlaceToggle(gpufanCheckBox, FMtGpuCard, 381, 134 + HDR);
-  DarkSectLbl(gputempLabel, SECT_GPU);
+  DarkSectLbl(gputempLabel);
 
   // Section: Power (label Top=170, controls Top=191/213)
   Place(gpupowerLabel,           FMtGpuCard, 11,  170 + HDR);
@@ -2659,7 +2655,7 @@ begin
   FgpuefficiencyToggle      := PlaceToggle(gpuefficiencyCheckBox, FMtGpuCard, 519, 191 + HDR);
   FgpupowerlimitToggle      := PlaceToggle(gpupowerlimitCheckBox, FMtGpuCard, 611, 191 + HDR);
   Place(gpuframesjouleBitBtn,    FMtGpuCard, 516, 213 + HDR);
-  DarkSectLbl(gpupowerLabel, SECT_GPU);
+  DarkSectLbl(gpupowerLabel);
   gpuframesjouleBitBtn.Font.Color := WHITE;
 
   // Section: Information (label Top=227, controls Top=248)
@@ -2667,7 +2663,7 @@ begin
   FgpumodelToggle     := PlaceToggle(gpumodelCheckBox, FMtGpuCard, 11, 248 + HDR);
   FvulkandriverToggle := PlaceToggle(vulkandriverCheckBox, FMtGpuCard, 120, 248 + HDR);
   FprocvramToggle     := PlaceToggle(procvramCheckBox, FMtGpuCard, 266, 248 + HDR);
-  DarkSectLbl(gpuinfoLabel, SECT_GPU);
+  DarkSectLbl(gpuinfoLabel);
 
   // GPU image — right-anchored, positioned in ReflowMetricsTab
   gpuImage.AnchorSideLeft.Control   := nil;
@@ -2704,7 +2700,7 @@ begin
   Place(coreloadtypeBitBtn,  FMtCpuCard, 264, 88 + HDR);
   FcpufreqToggle      := PlaceToggle(cpufreqCheckBox, FMtCpuCard, 382, 66 + HDR);
   FcpucoretypeToggle  := PlaceToggle(cpucoretypeCheckBox, FMtCpuCard, 516, 66 + HDR);
-  DarkSectLbl(cpumainmetricsLabel, SECT_CPU);
+  DarkSectLbl(cpumainmetricsLabel);
   cpuload1ColorButton.Color := CARD_BG;
   cpuload2ColorButton.Color := CARD_BG;
   cpuload3ColorButton.Color := CARD_BG;
@@ -2720,7 +2716,7 @@ begin
   FcpuefficiencyToggle:= PlaceToggle(cpuefficiencyCheckBox, FMtCpuCard, 266, 134 + HDR);
   FramtempToggle      := PlaceToggle(ramtempCheckBox, FMtCpuCard, 382, 134 + HDR);
   Place(cpuframesjouleBitBtn,FMtCpuCard,263,156 + HDR);
-  DarkSectLbl(cputempLabel, SECT_CPU);
+  DarkSectLbl(cputempLabel);
   cpuframesjouleBitBtn.Font.Color := WHITE;
   intelpowerfixBitBtn.Font.Color  := WHITE;
 
@@ -2734,7 +2730,7 @@ begin
   FswapusageToggle := PlaceToggle(swapusageCheckBox, FMtCpuCard, 382, 202 + HDR);
   Place(ramColorButton,    FMtCpuCard, 5,   224 + HDR);
   Place(iordrwColorButton, FMtCpuCard, 114, 224 + HDR);
-  DarkSectLbl(memLabel, SECT_CPU);
+  DarkSectLbl(memLabel);
   ramColorButton.Color    := CARD_BG;
   iordrwColorButton.Color := CARD_BG;
 
@@ -2788,8 +2784,8 @@ begin
   else
     TextColor := DarkTextColor;
 
-  GpuColor := SECT_GPU;
-  CpuColor := SECT_CPU;
+  GpuColor := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+  CpuColor := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
 
   // Card backgrounds / generic control colors first
   UpdateGenericCardTheme(FMtGpuCard);
