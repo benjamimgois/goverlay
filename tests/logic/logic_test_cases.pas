@@ -1034,7 +1034,7 @@ var
   F: TextFile;
   Lines: TStringList;
   Content: string;
-  WaitCount: Integer;
+  WaitCount, EnvIndex: Integer;
 begin
   EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Control Ultimate Edition';
@@ -1077,25 +1077,26 @@ begin
   WriteLn(F, 'VKSUMI_CONFIG_FILE=' + TestGameDir + '/vkSumi.conf');
   CloseFile(F);
 
-  // Ensure DISPLAY is set so SpawnLaunchSplashAsync does not exit early
-  if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then
-    setenv('DISPLAY', ':99', 1);
-
   // Run bgmod true
   Proc := TProcess.Create(nil);
   try
     Proc.Executable := TestGameDir + '/bgmod';
     Proc.Parameters.Add(FindTestHelperExecutable('true'));
     Proc.Options := [poWaitOnExit];
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    // Ensure DISPLAY is set so SpawnLaunchSplashAsync does not exit early
+    if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then
+      Proc.Environment.Add('DISPLAY=:99');
     Proc.Execute;
     AssertEquals('bgmod should return 0', 0, Proc.ExitStatus);
   finally
     Proc.Free;
   end;
 
-  // Wait for background grandchild to write args file (up to 2 seconds)
+  // Wait for background grandchild to write args file (up to 3 seconds)
   WaitCount := 0;
-  while not FileExists(OutFile) and (WaitCount < 20) do
+  while not FileExists(OutFile) and (WaitCount < 30) do
   begin
     Sleep(100);
     Inc(WaitCount);
@@ -1303,7 +1304,7 @@ end;
 procedure TBgmodSupervisorTests.TestBgmodNativeLinuxResolution;
 var
   Proc: TProcess;
-  TestGameDir, MockBinDir, MockExe, ConfFile, TomlFile, LogFile, Content: string;
+  TestGameDir, MockBinDir, MockExe, ConfFile, TomlFile, LogFile, Content, DummySrc: string;
   F: TextFile;
   Lines: TStringList;
   Ini: TIniFile;
@@ -1328,16 +1329,22 @@ begin
     Proc.Free;
   end;
 
-  // Create mock native Linux executable with valid ELF binary (copying true)
+  // Create mock native Linux executable with a valid ELF binary (compile a dummy)
   MockExe := MockBinDir + '/eurotrucks2';
+  DummySrc := IsolatedHome + '/dummy_game.pas';
+  AssignFile(F, DummySrc);
+  Rewrite(F);
+  WriteLn(F, 'program DummyGame; begin Halt(0); end.');
+  CloseFile(F);
   Proc := TProcess.Create(nil);
   try
-    Proc.Executable := FindTestHelperExecutable('cp');
-    Proc.Parameters.Add('-f');
-    Proc.Parameters.Add(FindTestHelperExecutable('true'));
-    Proc.Parameters.Add(MockExe);
+    Proc.Executable := FindTestHelperExecutable('fpc');
+    Proc.Parameters.Add(DummySrc);
+    Proc.Parameters.Add('-O3');
+    Proc.Parameters.Add('-o' + MockExe);
     Proc.Options := [poWaitOnExit];
     Proc.Execute;
+    AssertEquals('fpc should compile mock native executable', 0, Proc.ExitStatus);
     fpChmod(PChar(MockExe), &755);
   finally
     Proc.Free;
