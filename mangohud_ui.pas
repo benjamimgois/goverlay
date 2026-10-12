@@ -2581,6 +2581,7 @@ begin
   FMtScrollBox.HorzScrollBar.Range   := 0;
   FMtScrollBox.Color       := RGBToColor(22, 26, 40);
   FMtScrollBox.ParentColor := False;
+  ApplyModernScrollBarStylesheet(FMtScrollBox);
 
   FMtBgPanel := TPanel.Create(FForm);
   FMtBgPanel.Parent     := FMtScrollBox;
@@ -3054,6 +3055,7 @@ begin
   FExtScrollBox.AutoScroll  := True;
   FExtScrollBox.BorderStyle := bsNone;
   FExtScrollBox.Color       := RGBToColor(22, 26, 40);
+  ApplyModernScrollBarStylesheet(FExtScrollBox);
 
   FExtBgPanel := TPanel.Create(FForm);
   FExtBgPanel.Parent      := FExtScrollBox;

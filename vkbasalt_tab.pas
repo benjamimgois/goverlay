@@ -146,6 +146,7 @@ begin
   FVkReshadeSB.Kind        := sbVertical;
   FVkReshadeSB.Visible     := False;
   FVkReshadeSB.OnChange    := @VkReshadeMD3ScrollChange;
+  ApplyModernScrollBarStylesheet(FVkReshadeSB);
 
   // ══════════════════════════════════════════════════════════════════════════
   // CARD 2 — Built-in Effects
@@ -335,6 +336,7 @@ begin
   FVkPipelineSB.Kind        := sbHorizontal;
   FVkPipelineSB.Visible     := False;
   FVkPipelineSB.OnChange    := @VkPipelineScrollChange;
+  ApplyModernScrollBarStylesheet(FVkPipelineSB);
 
   if not Assigned(FPipelineEffects) then
     FPipelineEffects := TStringList.Create;
@@ -776,6 +778,7 @@ begin
     FVsScrollBox.HorzScrollBar.Visible := False;
     FVsScrollBox.Color       := BgClr;
     FVsScrollBox.ParentColor := False;
+    ApplyModernScrollBarStylesheet(FVsScrollBox);
 
     // Background panel filling the scroll box
     FVsBgPanel := TPanel.Create(FForm);

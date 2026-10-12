@@ -421,6 +421,7 @@ begin
   FScrollBox.Color := BgClr;
   FScrollBox.ParentColor := False;
   FScrollBox.OnResize := @ReshadeScrollBoxResize;
+  ApplyModernScrollBarStylesheet(FScrollBox);
 
   // Background Container
   FBgPanel := TPanel.Create(FScrollBox);

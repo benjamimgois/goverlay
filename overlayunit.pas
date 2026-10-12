@@ -4775,6 +4775,7 @@ begin
   GlobalSS :=
     GetComboBoxStyleSheet(True) + ' ' +
     GetSpinBoxStyleSheet(True) + ' ' +
+    GetModernScrollBarStylesheet + ' ' +
     'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
     'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; } ' +
     'QLineEdit:hover { border: 1px solid rgb(80,110,170); } ' +
@@ -5310,6 +5311,9 @@ begin
   if Assigned(FVsScrollBox)      then ApplyModernScrollBarStylesheet(FVsScrollBox);
   if Assigned(FTweaksScrollBar)  then ApplyModernScrollBarStylesheet(FTweaksScrollBar);
   if Assigned(FVkReshadeSB)      then ApplyModernScrollBarStylesheet(FVkReshadeSB);
+  if Assigned(FLosslessScalingHelper) then
+    ApplyModernScrollBarStylesheet(TLosslessScalingTabHelper(FLosslessScalingHelper).ScrollBox);
+  if Assigned(FVkPipelineSB)     then ApplyModernScrollBarStylesheet(FVkPipelineSB);
 
   // Invalidate painted backgrounds so custom paint handlers repaint with new theme
   if Assigned(FPresetsBgBox)      then FPresetsBgBox.Invalidate;

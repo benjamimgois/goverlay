@@ -303,6 +303,7 @@ begin
     FOsScrollBox.Color       := RGBToColor(22, 26, 40);
     FOsScrollBox.ParentColor := False;
     FOsScrollBox.OnResize    := @OsScrollBoxResize;
+    ApplyModernScrollBarStylesheet(FOsScrollBox);
 
     // FOsBgPanel fills the scroll box and reliably paints the dark background
     // in the Qt6 backend (TScrollBox.Color is ignored by the Qt viewport).

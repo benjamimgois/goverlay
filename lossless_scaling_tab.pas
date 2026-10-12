@@ -2394,6 +2394,7 @@ begin
   FLsScrollBox.Color := RGBToColor(22, 26, 40);
   FLsScrollBox.ParentColor := False;
   FLsScrollBox.OnResize := @LsScrollBoxResize;
+  ApplyModernScrollBarStylesheet(FLsScrollBox);
   
   // ── Background Panel ──────────────────────────────────────────────────────
   FLsBgPanel := TPanel.Create(FForm);

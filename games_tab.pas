@@ -1009,6 +1009,7 @@ begin
   FGamesScrollBox.Color := RGBToColor(22, 26, 40);
   FGamesScrollBox.ParentColor := False;
   FGamesScrollBox.OnResize := @GamesScrollBoxResize;
+  ApplyModernScrollBarStylesheet(FGamesScrollBox);
 
   // Navy background paintbox — created before FGamesPanel so it sits behind the cards
   GamesBgPB := TPaintBox.Create(FForm);

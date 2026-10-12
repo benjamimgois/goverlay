@@ -163,6 +163,12 @@ function IsGNOMEDesktop: Boolean;
 procedure CenterFormOnScreen(AForm: TForm);
 
 /// <summary>
+/// Returns the modern semitransparent scrollbar QSS shared across the application
+/// </summary>
+/// <returns>The QSS stylesheet string</returns>
+function GetModernScrollBarStylesheet: WideString;
+
+/// <summary>
 /// Applies modern semitransparent scrollbar styling (QSS) to a control
 /// </summary>
 /// <param name="AWinControl">The wincontrol to apply scrollbar QSS to</param>
@@ -286,6 +292,23 @@ begin
   end;
 end;
 
+function GetModernScrollBarStylesheet: WideString;
+begin
+  Result :=
+    'QScrollBar:vertical { border: none; background: transparent; width: 6px; margin: 0px; } ' +
+    'QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.25); min-height: 20px; border-radius: 3px; } ' +
+    'QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.5); } ' +
+    'QScrollBar::handle:vertical:pressed { background: rgba(255, 255, 255, 0.75); } ' +
+    'QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { border: none; background: none; height: 0px; } ' +
+    'QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; } ' +
+    'QScrollBar:horizontal { border: none; background: transparent; height: 6px; margin: 0px; } ' +
+    'QScrollBar::handle:horizontal { background: rgba(255, 255, 255, 0.25); min-width: 20px; border-radius: 3px; } ' +
+    'QScrollBar::handle:horizontal:hover { background: rgba(255, 255, 255, 0.5); } ' +
+    'QScrollBar::sub-line:horizontal, QScrollBar::add-line:horizontal { border: none; background: none; width: 0px; } ' +
+    'QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; } ' +
+    'QScrollBar::corner { background: transparent; border: none; }';
+end;
+
 procedure ApplyModernScrollBarStylesheet(AWinControl: TWinControl);
 var
   SS: WideString;
@@ -295,17 +318,7 @@ begin
     AWinControl.HandleNeeded;
   if not AWinControl.HandleAllocated then Exit;
 
-  SS := 'QScrollBar:vertical { border: none; background: transparent; width: 6px; margin: 0px; } ' +
-        'QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.25); min-height: 20px; border-radius: 3px; } ' +
-        'QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.5); } ' +
-        'QScrollBar::handle:vertical:pressed { background: rgba(255, 255, 255, 0.75); } ' +
-        'QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { border: none; background: none; height: 0px; } ' +
-        'QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; } ' +
-        'QScrollBar:horizontal { border: none; background: transparent; height: 6px; margin: 0px; } ' +
-        'QScrollBar::handle:horizontal { background: rgba(255, 255, 255, 0.25); min-width: 20px; border-radius: 3px; } ' +
-        'QScrollBar::handle:horizontal:hover { background: rgba(255, 255, 255, 0.5); } ' +
-        'QScrollBar::sub-line:horizontal, QScrollBar::add-line:horizontal { border: none; background: none; width: 0px; } ' +
-        'QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }';
+  SS := GetModernScrollBarStylesheet;
   QWidget_setStyleSheet(TQtWidget(AWinControl.Handle).Widget, @SS);
 end;
 
