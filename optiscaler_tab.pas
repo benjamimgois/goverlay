@@ -26,6 +26,7 @@ type
     FForceReflexToggle: TToggleSwitch;
     FForceLatencyFlexToggle: TToggleSwitch;
     FUnmanagedIniToggle: TToggleSwitch;
+    FFsr4vkToggle: TToggleSwitch;
     FOsCustomInfoLbl: TLabel;
     FOsToggles: TFPList;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
@@ -49,6 +50,7 @@ type
     property ForceReflexToggle: TToggleSwitch read FForceReflexToggle;
     property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
     property UnmanagedIniToggle: TToggleSwitch read FUnmanagedIniToggle;
+    property Fsr4vkToggle: TToggleSwitch read FFsr4vkToggle;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
     property OsToggles: TFPList read FOsToggles;
   end;
@@ -99,10 +101,13 @@ begin
     if Assigned(FForm.optipatcherCheckBox) then FForm.optipatcherCheckBox.Visible := False;
     if Assigned(FForm.spoofCheckBox) then FForm.spoofCheckBox.Visible := False;
     if Assigned(FForm.forceFsr4Int8CheckBox) then FForm.forceFsr4Int8CheckBox.Visible := False;
+    if Assigned(FForm.fsr4vkCheckBox) then FForm.fsr4vkCheckBox.Visible := False;
     if Assigned(FForm.emufp8CheckBox) then FForm.emufp8CheckBox.Visible := False;
     if Assigned(FForm.forcereflexCheckBox) then FForm.forcereflexCheckBox.Visible := False;
     if Assigned(FForm.forcelatencyflexCheckBox) then FForm.forcelatencyflexCheckBox.Visible := False;
     if Assigned(FForm.unmanagedIniCheckBox) then FForm.unmanagedIniCheckBox.Visible := False;
+    if Assigned(FFsr4vkToggle) and Assigned(FForm.fsr4vkCheckBox) then
+      FFsr4vkToggle.Checked := FForm.fsr4vkCheckBox.Checked;
   end;
 
   if Assigned(FOsToggles) then
@@ -618,6 +623,7 @@ begin
     menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
     menuLabel.Anchors := [akLeft, akTop]; menuLabel.Caption := 'Menu scale';
     menuLabel.Parent  := FOsMainSec;
+    menuLabel.Visible := False;
 
     if menuscaleComboBox = nil then
     begin
@@ -641,6 +647,7 @@ begin
     menuscaleComboBox.AnchorSideLeft.Control   := nil; menuscaleComboBox.AnchorSideTop.Control    := nil;
     menuscaleComboBox.AnchorSideRight.Control  := nil; menuscaleComboBox.AnchorSideBottom.Control := nil;
     menuscaleComboBox.Anchors := [akLeft, akTop]; menuscaleComboBox.Parent  := FOsMainSec;
+    menuscaleComboBox.Visible := False;
 
     if loglevelLabel = nil then
     begin
@@ -795,6 +802,21 @@ begin
     if FForceFsr4Toggle = nil then
       FForceFsr4Toggle := PlaceOsToggle(forceFsr4Int8CheckBox, FOsSpatialSec);
 
+    if fsr4vkCheckBox = nil then
+    begin
+      fsr4vkCheckBox := TCheckBox.Create(FForm);
+      fsr4vkCheckBox.Name := 'fsr4vkCheckBox';
+      fsr4vkCheckBox.Caption := 'FSR4 Vulkan';
+      fsr4vkCheckBox.Hint := 'FSR4 Vulkan (fsr4vk)' + LineEnding + 'Enables FSR 4 INT8 Vulkan native support via fsr4vk build';
+      fsr4vkCheckBox.ShowHint := True;
+      fsr4vkCheckBox.OnChange := @FForm.fsr4vkCheckBoxChange;
+      fsr4vkCheckBox.Anchors := [akLeft, akTop];
+      fsr4vkCheckBox.Parent := FOsSpatialSec;
+    end;
+    if FFsr4vkToggle = nil then
+      FFsr4vkToggle := PlaceOsToggle(fsr4vkCheckBox, FOsSpatialSec);
+    fsr4vkCheckBox.Visible := False;
+
     // --- Sub-card 3: Temporal Upscaler controls ---
     if fgInputLabel = nil then
     begin
@@ -849,6 +871,10 @@ begin
     // Hide legacy controls
     menuscaleTrackBar.Visible := False;
     menuscalevalueLabel.Visible := False;
+    if Assigned(menuLabel) then
+      menuLabel.Visible := False;
+    if Assigned(menuscaleComboBox) then
+      menuscaleComboBox.Visible := False;
     mark1Label.Visible := False;
     mark2Label.Visible := False;
     mark3Label.Visible := False;
@@ -904,6 +930,8 @@ begin
     forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
     forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.Visible := False;
+    DarkCheck(fsr4vkCheckBox);
+    fsr4vkCheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
     StdLbl(fsrversionLabel);
     DarkCombo(fsrversionComboBox);
@@ -1274,7 +1302,7 @@ begin
         TotalH := 648;
     end;
 
-    IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
+    IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 3);
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
 
     if IsCustom then
@@ -1388,10 +1416,10 @@ begin
       filenameLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
       filenameComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
-      menuLabel.Caption := 'Menu scale';
-      menuLabel.SetBounds(10, Y0 + 112, ColW - 20, 16);
+      if Assigned(menuLabel) then
+        menuLabel.Visible := False;
       if Assigned(menuscaleComboBox) then
-        menuscaleComboBox.SetBounds(10, Y0 + 134, ComboW, 26);
+        menuscaleComboBox.Visible := False;
 
       if Assigned(loglevelLabel) then
         loglevelLabel.Visible := False;
@@ -1400,25 +1428,25 @@ begin
 
       if Assigned(FOptiPatcherToggle) then
       begin
-        FOptiPatcherToggle.SetBounds(10, Y0 + 168, FOptiPatcherToggle.GetOptimalWidth, 20);
+        FOptiPatcherToggle.SetBounds(10, Y0 + 116, FOptiPatcherToggle.GetOptimalWidth, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 166, 22, 22);
+          FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 114, 22, 22);
       end
       else
       begin
-        optipatcherCheckBox.SetBounds(10, Y0 + 168, 95, 20);
+        optipatcherCheckBox.SetBounds(10, Y0 + 116, 95, 20);
         if Assigned(FOsPatcherListBtn) then
-          FOsPatcherListBtn.SetBounds(108, Y0 + 166, 22, 22);
+          FOsPatcherListBtn.SetBounds(108, Y0 + 114, 22, 22);
       end;
 
-      shortcutkeyLabel.SetBounds(10, Y0 + 194, ColW - 20, 16);
+      shortcutkeyLabel.SetBounds(10, Y0 + 146, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
-        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 212, Min(ColW - 20, 120), 26);
+        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 164, Min(ColW - 20, 120), 26);
 
       if Assigned(dlssenablerToggleLabel) then
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 242, ColW - 20, 16);
+        dlssenablerToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
       if Assigned(dlssenablerToggleBtn) then
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 260, Min(ColW - 20, 120), 26);
+        dlssenablerToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
@@ -1441,6 +1469,11 @@ begin
         FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20)
       else
         forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
+
+      if Assigned(FFsr4vkToggle) then
+        FFsr4vkToggle.SetBounds(10, Y0 + 176, ColW - 20, 20)
+      else if Assigned(fsr4vkCheckBox) then
+        fsr4vkCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler
@@ -1673,7 +1706,7 @@ begin
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1, 2] then
+        if Settings.OptVersionItemIndex in [0, 1, 2, 3] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1693,7 +1726,7 @@ begin
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1, 2] then
+        if Settings.OptVersionItemIndex in [0, 1, 2, 3] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1712,6 +1745,12 @@ begin
 
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.UpdateCustomBuildUI;
+
+    // Keep the FSR4 Vulkan shortcut synchronized with the loaded channel
+    if Assigned(fsr4vkCheckBox) then
+      fsr4vkCheckBox.Checked := (optversionComboBox.ItemIndex = 2);
+    if Assigned(FFsr4vkToggle) then
+      FFsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
@@ -1754,6 +1793,10 @@ begin
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
     Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
     Settings.OptVersionItemIndex := optversionComboBox.ItemIndex;
+    if Assigned(fsr4vkCheckBox) then
+      fsr4vkCheckBox.Checked := (optversionComboBox.ItemIndex = 2);
+    if Assigned(FFsr4vkToggle) then
+      FFsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
     if Assigned(unmanagedIniCheckBox) then
       Settings.UnmanagedIniChecked := unmanagedIniCheckBox.Checked
     else

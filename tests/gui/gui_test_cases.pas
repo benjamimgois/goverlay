@@ -61,6 +61,7 @@ type
     procedure TestOptiChannelSave;
     procedure TestUpscalerChannelPersistence;
     procedure TestCustomOptiScalerBuildSupport;
+    procedure TestFsr4vkOptiScalerSupport;
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
@@ -1327,6 +1328,8 @@ begin
   SeedOptiScalerFiles;
   NavigateOptiScalerTab;
   AssertTrue('menuscaleComboBox assigned', Assigned(goverlayform.menuscaleComboBox));
+  AssertFalse('menuscaleComboBox should be hidden', goverlayform.menuscaleComboBox.Visible);
+  AssertFalse('menuLabel should be hidden', goverlayform.menuLabel.Visible);
   AssertEquals('menuscaleComboBox item 0 is auto', 'auto', goverlayform.menuscaleComboBox.Items[0]);
   AssertEquals('menuscaleComboBox item 1 is 1.0', '1.0', goverlayform.menuscaleComboBox.Items[1]);
   AssertEquals('menuscaleComboBox default is auto (index 0)', 0, goverlayform.menuscaleComboBox.ItemIndex);
@@ -1814,7 +1817,7 @@ begin
   CustomTabHelper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
 
   // 1. Channel selection UI & Toggle visibility
-  goverlayform.optversionComboBox.ItemIndex := 2; // Custom Build
+  goverlayform.optversionComboBox.ItemIndex := 3; // Custom Build
   goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
 
   AssertTrue('UnmanagedIniToggle should be visible for Custom Build', Assigned(CustomTabHelper.UnmanagedIniToggle) and CustomTabHelper.UnmanagedIniToggle.Visible);
@@ -1826,7 +1829,7 @@ begin
   CustomTabHelper.UnmanagedIniToggleChange(nil);
   SaveOpti;
 
-  AssertEquals('OPT_CHANNEL=2 persisted', '2', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+  AssertEquals('OPT_CHANNEL=3 persisted', '3', ReadBgmodConf('Config', 'OPT_CHANNEL'));
   AssertEquals('OPT_UNMANAGED_INI=1 persisted', '1', ReadBgmodConf('Config', 'OPT_UNMANAGED_INI'));
 
   // Append a custom section to OptiScaler.ini
@@ -1877,14 +1880,14 @@ begin
   AssertTrue('Companion amd_fidelityfx_dx12.dll inherited from stable', FileExists(IsolatedHome + '/.local/share/goverlay/optiscaler-custom/amd_fidelityfx_dx12.dll'));
   AssertTrue('goverlay.vars created in optiscaler-custom', FileExists(IsolatedHome + '/.local/share/goverlay/optiscaler-custom/goverlay.vars'));
 
-  // 5. Test CopyOptiScalerGameFiles with OPT_CHANNEL=2
+  // 5. Test CopyOptiScalerGameFiles with OPT_CHANNEL=3
   GameCfgDir := goverlayform.GetGameConfigDir('CustomDeployGame');
   ForceDirectories(GameCfgDir);
   GameConfPath := GameCfgDir + 'bgmod.conf';
   Ini := TIniFile.Create(GameConfPath);
   try
     Ini.WriteInteger('Config', 'UPSCALER_TYPE', 0);
-    Ini.WriteInteger('Config', 'OPT_CHANNEL', 2);
+    Ini.WriteInteger('Config', 'OPT_CHANNEL', 3);
   finally
     Ini.Free;
   end;
@@ -1904,6 +1907,87 @@ begin
   DeleteDirectory(StableDir, False);
 
   // Reset to default
+  goverlayform.optversionComboBox.ItemIndex := 0;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  SaveOpti;
+end;
+
+procedure TGoverlayGuiTests.TestFsr4vkOptiScalerSupport;
+var
+  Helper: TOptiScalerTabHelper;
+  Fsr4vkDir, GameCfgDir, GameConfPath: string;
+  Ini: TIniFile;
+  F: TextFile;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+  AssertTrue('OptiScalerHelper assigned', Assigned(Helper));
+
+  // 1. Channel list exposes FSR4VK at index 2
+  AssertTrue('optversionComboBox has FSR4VK entry at index 2',
+    (goverlayform.optversionComboBox.Items.Count > 2) and
+    (goverlayform.optversionComboBox.Items[2] = 'FSR4VK'));
+
+  // 2. Selecting the FSR4VK channel checks both the checkbox and the toggle
+  goverlayform.optversionComboBox.ItemIndex := 2;
+  goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
+  AssertTrue('fsr4vkCheckBox checked on FSR4VK channel', goverlayform.fsr4vkCheckBox.Checked);
+  AssertTrue('Fsr4vkToggle checked on FSR4VK channel',
+    Assigned(Helper.Fsr4vkToggle) and Helper.Fsr4vkToggle.Checked);
+
+  // 3. Persisted as OPT_CHANNEL=2
+  SaveOpti;
+  AssertEquals('OPT_CHANNEL persisted as 2 for FSR4VK', '2', ReadBgmodConf('Config', 'OPT_CHANNEL'));
+
+  // 4. Switching the toggle off reverts to Stable (0)
+  Helper.Fsr4vkToggle.Checked := False;
+  goverlayform.fsr4vkCheckBoxChange(goverlayform.fsr4vkCheckBox);
+  AssertEquals('switching Fsr4vkToggle off reverts channel to 0', 0, goverlayform.optversionComboBox.ItemIndex);
+  AssertFalse('fsr4vkCheckBox unchecked after toggle off', goverlayform.fsr4vkCheckBox.Checked);
+
+  // 5. Switching the toggle on selects FSR4VK (2)
+  Helper.Fsr4vkToggle.Checked := True;
+  goverlayform.fsr4vkCheckBoxChange(goverlayform.fsr4vkCheckBox);
+  AssertEquals('switching Fsr4vkToggle on selects channel 2', 2, goverlayform.optversionComboBox.ItemIndex);
+  AssertTrue('fsr4vkCheckBox checked after toggle on', goverlayform.fsr4vkCheckBox.Checked);
+
+  // 6. Asset deployment: CopyOptiScalerGameFiles with OPT_CHANNEL=2 copies both DLLs
+  Fsr4vkDir := IsolatedHome + '/.local/share/goverlay/optiscaler-fsr4vk';
+  ForceDirectories(Fsr4vkDir + PathDelim + 'OptiScaler');
+  AssignFile(F, Fsr4vkDir + PathDelim + 'OptiScaler.dll');
+  Rewrite(F);
+  WriteLn(F, 'dummy_fsr4vk_optiscaler');
+  CloseFile(F);
+  AssignFile(F, Fsr4vkDir + PathDelim + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll');
+  Rewrite(F);
+  WriteLn(F, 'dummy_fsr4vk_vk');
+  CloseFile(F);
+
+  GameCfgDir := goverlayform.GetGameConfigDir('Fsr4vkDeployGame');
+  if DirectoryExists(GameCfgDir) then
+    DeleteDirectory(GameCfgDir, False);
+  ForceDirectories(GameCfgDir);
+  GameConfPath := GameCfgDir + 'bgmod.conf';
+  Ini := TIniFile.Create(GameConfPath);
+  try
+    Ini.WriteInteger('Config', 'UPSCALER_TYPE', 0);
+    Ini.WriteInteger('Config', 'OPT_CHANNEL', 2);
+  finally
+    Ini.Free;
+  end;
+
+  goverlayform.CopyOptiScalerGameFiles(GameCfgDir);
+  AssertTrue('OptiScaler.dll deployed to game folder for FSR4VK channel',
+    FileExists(IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler.dll'));
+  AssertTrue('amd_fidelityfx_upscaler_vk.dll deployed to game OptiScaler subfolder',
+    FileExists(IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll'));
+
+  // Cleanup
+  DeleteDirectory(GameCfgDir, False);
+  DeleteDirectory(Fsr4vkDir, False);
+
+  // Reset global channel to Stable (0)
   goverlayform.optversionComboBox.ItemIndex := 0;
   goverlayform.optversionComboBoxChange(goverlayform.optversionComboBox);
   SaveOpti;

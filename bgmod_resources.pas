@@ -26,6 +26,7 @@ function GetBGModPath: string;
 // Get the pristine bgmod original path (Flatpak-aware).
 function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
+function GetBGModOriginalFsr4vkPath: string;
 function GetBGModOriginalCustomPath: string;
 
 function GetGOverlayDataPath: string;
@@ -193,6 +194,11 @@ begin
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-edge';
+end;
+
+function GetBGModOriginalFsr4vkPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'optiscaler-fsr4vk';
 end;
 
 function GetBGModOriginalCustomPath: string;

@@ -928,8 +928,10 @@ begin
   // Seed default OptiScaler.ini template from cache if it is missing
   if not FileExists(OptiScalerIniPath) then
   begin
-    if Settings.OptVersionItemIndex = 2 then
+    if Settings.OptVersionItemIndex = 3 then
       FGModPath := GetBGModOriginalCustomPath
+    else if Settings.OptVersionItemIndex = 2 then
+      FGModPath := GetBGModOriginalFsr4vkPath
     else if Settings.OptVersionItemIndex = 1 then
       FGModPath := GetBGModOriginalEdgePath
     else
@@ -1611,8 +1613,10 @@ begin
       end;
     end;
 
-    if OptChannel = 2 then
+    if OptChannel = 3 then
       CacheDir := GetBGModOriginalCustomPath
+    else if OptChannel = 2 then
+      CacheDir := GetBGModOriginalFsr4vkPath
     else if OptChannel = 1 then
       CacheDir := GetBGModOriginalEdgePath
     else

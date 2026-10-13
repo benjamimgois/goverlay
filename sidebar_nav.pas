@@ -925,7 +925,7 @@ var
   OptChannel: Integer;
   UpscalerType: Integer;
   Settings: TOptiScalerSettings;
-  FsrDllSrc: string;
+  FsrDllSrc, VkDllSrc: string;
 begin
   UpscalerType := 0;
   OptChannel := 0;
@@ -943,12 +943,14 @@ begin
 
   if UpscalerType = 1 then
     CacheDir := GetDlssEnablerPath(OptChannel <> 1)
-  else if OptChannel = 2 then
-    CacheDir := GetBGModOriginalCustomPath
-  else if OptChannel = 1 then
-    CacheDir := GetBGModOriginalEdgePath
   else
-    CacheDir := GetBGModOriginalPath;
+    case OptChannel of
+      1: CacheDir := GetBGModOriginalEdgePath;
+      2: CacheDir := GetBGModOriginalFsr4vkPath;
+      3: CacheDir := GetBGModOriginalCustomPath;
+    else
+      CacheDir := GetBGModOriginalPath;
+    end;
 
   WriteLn('[BGMOD] Copying OptiScaler assets from ', CacheDir, ' to ', AGameCfgDir);
   ExecuteShellCommand('cp -rn ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + '.') + ' ' +
@@ -956,6 +958,19 @@ begin
   if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'goverlay.vars') then
     ExecuteShellCommand('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'goverlay.vars') + ' ' +
       QuotedStr(AGameCfgDir) + ' 2>/dev/null');
+
+  // FSR4VK deploys the Vulkan FFX provider alongside OptiScaler.dll. Ensure the
+  // vendored amd_fidelityfx_upscaler_vk.dll reaches the game's OptiScaler/
+  // subfolder even when cp -n skipped it due to a pre-existing target.
+  if (OptChannel = 2) or FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll') then
+  begin
+    VkDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll';
+    if FileExists(VkDllSrc) then
+    begin
+      ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler');
+      CopyFile(VkDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll');
+    end;
+  end;
 
   // Copy the correct FSR DLL based on the saved version configuration for this game profile
   if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then

@@ -14903,6 +14903,7 @@ object goverlayform: Tgoverlayform
             Items.Strings = (
               'Stable Channel'
               'Bleeding-edge'
+              'FSR4VK'
               'Custom Build'
             )
             ParentColor = True

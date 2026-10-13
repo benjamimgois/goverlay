@@ -20,6 +20,9 @@ function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean 
 // Check and automatically install/heal central FSR4 libraries (Latest, 4.1.1b, 4.0.2c)
 function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
+// Check and automatically install/heal the FSR4VK OptiScaler build (dvj5411/fsr4vk)
+function CheckAndInstallFsr4vk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
 // Audit mandatory upscaler and DLSS libraries on disk
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean; overload;
 function HasMissingMandatoryLibraries: Boolean; overload;
@@ -110,6 +113,7 @@ type
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
     function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
     function GetDlssEnablerLatestTag(AIsStable: Boolean = True; ASilent: Boolean = False): string;
+    function GetFsr4vkLatestTag(ASilent: Boolean = False): string;
     function FormatDlssEnablerDisplayTag(const ATag: string): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
     function ExtractZip(const AZipFile, ADestPath: string): Boolean;
@@ -197,6 +201,121 @@ type
     constructor Create(AOptiTab: TOptiscalerTab);
   end;
 
+// Query the latest release of dvj5411/fsr4vk from the GitHub API.
+// Fills ATag with the release tag (e.g. v0.4.3) and AUrl with the .zip asset URL.
+function FetchFsr4vkLatestRelease(out ATag, AUrl: string): Boolean;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  RespText, TmpFile: string;
+  KeyPos, ColonPos, QuoteStart, QuoteEnd, UrlPos: Integer;
+begin
+  Result := False;
+  ATag := '';
+  AUrl := '';
+
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'fsr4vk_api.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(TmpFile);
+    Process.Parameters.Add('https://api.github.com/repos/dvj5411/fsr4vk/releases/latest');
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if not FileExists(TmpFile) then Exit;
+  OutputList := TStringList.Create;
+  try
+    OutputList.LoadFromFile(TmpFile);
+    RespText := OutputList.Text;
+  finally
+    OutputList.Free;
+    DeleteFile(TmpFile);
+  end;
+
+  // Extract "tag_name": "vX.Y.Z"
+  KeyPos := Pos('"tag_name"', RespText);
+  if KeyPos > 0 then
+  begin
+    ColonPos := PosEx(':', RespText, KeyPos + 10);
+    if ColonPos > 0 then
+    begin
+      QuoteStart := PosEx('"', RespText, ColonPos);
+      if QuoteStart > 0 then
+      begin
+        QuoteEnd := PosEx('"', RespText, QuoteStart + 1);
+        if QuoteEnd > QuoteStart then
+          ATag := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+      end;
+    end;
+  end;
+
+  // Extract the first browser_download_url that points to a .zip asset
+  UrlPos := Pos('browser_download_url', RespText);
+  while UrlPos > 0 do
+  begin
+    QuoteEnd := PosEx('.zip"', RespText, UrlPos);
+    if QuoteEnd > 0 then
+    begin
+      KeyPos := PosEx('http', RespText, UrlPos);
+      if (KeyPos > 0) and (KeyPos < QuoteEnd) then
+      begin
+        AUrl := Copy(RespText, KeyPos, QuoteEnd + 4 - KeyPos);
+        Break;
+      end;
+    end;
+    UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+  end;
+
+  Result := (ATag <> '') or (AUrl <> '');
+end;
+
+// Read the installed FSR4VK tag from a game profile's goverlay.vars, falling
+// back to the central optiscaler-fsr4vk cache.
+function ReadFsr4vkInstalledVersion(const AVarsFilePath: string): string;
+var
+  VarsList: TStringList;
+  CacheVars: string;
+begin
+  Result := '';
+  if FileExists(AVarsFilePath) then
+  begin
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(AVarsFilePath);
+      Result := Trim(VarsList.Values['OPTISCALER_FSR4VK_VERSION']);
+      if Result = '' then
+        Result := Trim(VarsList.Values['dlssversion']);
+    finally
+      VarsList.Free;
+    end;
+  end;
+
+  if Result = '' then
+  begin
+    CacheVars := IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'goverlay.vars';
+    if FileExists(CacheVars) then
+    begin
+      VarsList := TStringList.Create;
+      try
+        VarsList.LoadFromFile(CacheVars);
+        Result := Trim(VarsList.Values['OPTISCALER_FSR4VK_VERSION']);
+        if Result = '' then
+          Result := Trim(VarsList.Values['dlssversion']);
+      finally
+        VarsList.Free;
+      end;
+    end;
+  end;
+end;
+
 { TOptiUpdateThread }
 
 constructor TOptiUpdateThread.Create(AOptiTab: TOptiscalerTab; AIsStable: Boolean; ACheckDecky: Boolean);
@@ -221,7 +340,12 @@ begin
   WriteLn('[DEBUG] TOptiUpdateThread.Execute: Thread started');
   IsDlssEnablerActive := Assigned(goverlayform) and Assigned(goverlayform.dlssenablerRadioButton) and goverlayform.dlssenablerRadioButton.Checked;
 
-  if IsDlssEnablerActive then
+  if Assigned(FOptiTab.FOptVersionComboBox) and (FOptiTab.FOptVersionComboBox.ItemIndex = 2) then
+  begin
+    WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking FSR4VK channel (dvj5411/fsr4vk)...');
+    FLatestOptiTag := FOptiTab.GetFsr4vkLatestTag(True);
+  end
+  else if IsDlssEnablerActive then
   begin
     WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking DLSS Enabler channel (OptiScaler-builds)...');
     FLatestOptiTag := FOptiTab.GetDlssEnablerLatestTag(FIsStableChannel, True);
@@ -269,14 +393,17 @@ begin
   // Skip if channel changed since thread was spawned (only for standard OptiScaler)
   if not IsDlssEnablerActive and Assigned(FOptiTab.FOptVersionComboBox) then
   begin
-    if FOptiTab.FOptVersionComboBox.ItemIndex = 2 then
+    if FOptiTab.FOptVersionComboBox.ItemIndex = 3 then
     begin
       FOptiTab.UpdateCustomBuildUI;
       FOptiTab.FUpdateThread := nil;
       Exit;
     end;
-    if (FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 0))
-       or (not FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 1)) then
+    // FSR4VK (index 2) is spawned with FIsStableChannel=True; accept its results
+    // instead of treating it as a channel switch from stable.
+    if (FOptiTab.FOptVersionComboBox.ItemIndex <> 2) and
+       ((FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 0))
+        or (not FIsStableChannel and (FOptiTab.FOptVersionComboBox.ItemIndex <> 1))) then
     begin
       WriteLn('[DEBUG] SyncUpdateUI: Channel changed since spawn, discarding results (spawned=', FIsStableChannel, ' current=', FOptiTab.FOptVersionComboBox.ItemIndex, ')');
       FOptiTab.FUpdateThread := nil;
@@ -355,7 +482,9 @@ begin
     end
     else
     begin
-      if Assigned(FOptiTab.FOptiLabel) then
+      if Assigned(FOptiTab.FOptVersionComboBox) and (FOptiTab.FOptVersionComboBox.ItemIndex = 2) then
+        CurrentVersion := ReadFsr4vkInstalledVersion(IncludeTrailingPathDelimiter(FOptiTab.FFGModPath) + 'goverlay.vars')
+      else if Assigned(FOptiTab.FOptiLabel) then
         CurrentVersion := FOptiTab.FOptiLabel.Caption
       else
         CurrentVersion := '';
@@ -386,6 +515,10 @@ begin
           IsCrossChannel := CurrentIsEdge
         else
           IsCrossChannel := not CurrentIsEdge;
+
+        // FSR4VK (index 2) versions are never cross-channel: compare tags directly.
+        if Assigned(FOptiTab.FOptVersionComboBox) and (FOptiTab.FOptVersionComboBox.ItemIndex = 2) then
+          IsCrossChannel := False;
 
         if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
         begin
@@ -1078,6 +1211,15 @@ begin
   end;
 end;
 
+function TOptiscalerTab.GetFsr4vkLatestTag(ASilent: Boolean = False): string;
+var
+  Tag, Url: string;
+begin
+  Result := '';
+  if FetchFsr4vkLatestRelease(Tag, Url) then
+    Result := Tag;
+end;
+
 function TOptiscalerTab.FormatDlssEnablerDisplayTag(const ATag: string): string;
 var
   Parts: TStringArray;
@@ -1508,6 +1650,11 @@ var
   IsStable: Boolean;
 begin
   Result := '';
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+  begin
+    Result := ReadFsr4vkInstalledVersion(IncludeTrailingPathDelimiter(FFGModPath) + 'goverlay.vars');
+    Exit;
+  end;
   IsStable := True;
   if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 1) then
     IsStable := False;
@@ -1753,7 +1900,7 @@ begin
         begin
           goverlayform.RefreshHomeOptiStatus;
           goverlayform.RefreshOsStatusDots;
-          if (goverlayform.FActiveGameName <> '') and Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+          if (goverlayform.FActiveGameName <> '') and Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 3) then
             goverlayform.CopyOptiScalerGameFiles(goverlayform.GetGameConfigDir(goverlayform.FActiveGameName));
         end;
         ShowToast(ntSuccess, 'Custom OptiScaler build imported successfully!', 4000);
@@ -1774,7 +1921,7 @@ procedure TOptiscalerTab.UpdateCustomBuildUI;
 var
   IsCustom: Boolean;
 begin
-  IsCustom := Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2);
+  IsCustom := Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 3);
 
   if IsCustom then
   begin
@@ -1802,7 +1949,7 @@ end;
 
 function TOptiscalerTab.GetBGModOriginalPathForChannel(IsStable: Boolean): string;
 begin
-  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 3) then
     Result := GetBGModOriginalCustomPath
   else if IsStable then
     Result := GetBGModOriginalPath
@@ -1827,9 +1974,15 @@ begin
   // If the file does not exist in FFGModPath, fall back to the active channel's cache folder
   if not FileExists(VarsFilePath) then
   begin
-    if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+    if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 3) then
     begin
       VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalCustomPath) + 'goverlay.vars'; // custom cache
+      if not FileExists(VarsFilePath) then
+        VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // fallback
+    end
+    else if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+    begin
+      VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'goverlay.vars'; // FSR4VK cache
       if not FileExists(VarsFilePath) then
         VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'; // fallback
     end
@@ -1890,6 +2043,8 @@ begin
               XessVer := Value
             else if SameText(Key, 'optipatcher') then
               OptiPatcherVer := Value
+            else if SameText(Key, 'OPTISCALER_FSR4VK_VERSION') then
+              OptiVer := Value
             else if SameText(Key, 'dlssversion') then
               DlssVer := Value
             else if SameText(Key, 'dlssenablerversion') or SameText(Key, 'dlssenabler') then
@@ -2107,7 +2262,7 @@ var
   IsStableChannel: Boolean;
 begin
   // Custom Build has no remote repository or online updates to check on GitHub
-  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 2) then
+  if Assigned(FOptVersionComboBox) and (FOptVersionComboBox.ItemIndex = 3) then
     Exit;
 
   // Test mode: never spawn network update threads (deterministic test runs)
@@ -2281,12 +2436,12 @@ begin
           ActiveGame := goverlayform.FActiveGameName;
 
         SavedSettings := Default(TOptiScalerSettings);
-        if overlay_config.LoadOptiScalerConfig(ActiveGame, SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1, 2]) then
+        if overlay_config.LoadOptiScalerConfig(ActiveGame, SavedSettings) and (SavedSettings.OptVersionItemIndex in [0, 1, 2, 3]) then
         begin
           FOptVersionComboBox.ItemIndex := SavedSettings.OptVersionItemIndex;
           WriteLn('[DEBUG] InitializeTab: Restored saved channel selection for "', ActiveGame, '", ComboBox index = ', SavedSettings.OptVersionItemIndex);
         end
-        else if not (FOptVersionComboBox.ItemIndex in [0, 1, 2]) then
+        else if not (FOptVersionComboBox.ItemIndex in [0, 1, 2, 3]) then
         begin
           // Fallback: combobox not yet set by game-specific config, derive from installed version tag
           CurrentVersion := '';
@@ -2296,8 +2451,8 @@ begin
 
           if Pos('custom', LowerCase(CurrentVersion)) > 0 then
           begin
-            FOptVersionComboBox.ItemIndex := 2;
-            WriteLn('[DEBUG] InitializeTab: Detected custom version, set ComboBox to index 2');
+            FOptVersionComboBox.ItemIndex := 3;
+            WriteLn('[DEBUG] InitializeTab: Detected custom version, set ComboBox to index 3');
           end
           else if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
           begin
@@ -2461,9 +2616,41 @@ begin
         IsStableChannel := False;
         WriteLn('[DEBUG] UpdateButtonClick: Bleeding-Edge Channel selected');
       end
-      else if FOptVersionComboBox.ItemIndex = 2 then
+      else if FOptVersionComboBox.ItemIndex = 3 then
       begin
         SelectAndImportCustomBuild;
+        Exit;
+      end
+      else if FOptVersionComboBox.ItemIndex = 2 then
+      begin
+        WriteLn('[DEBUG] UpdateButtonClick: FSR4VK Channel selected');
+        if CheckAndInstallFsr4vk(True) then
+        begin
+          if Assigned(goverlayform) and (goverlayform.FActiveGameName <> '') then
+            goverlayform.CopyOptiScalerGameFiles(GetGameConfigDir(goverlayform.FActiveGameName));
+          LoadVersionsFromFile;
+          if Assigned(FOptiLabel2) then
+            FOptiLabel2.Visible := False;
+          if Assigned(FUpdateBtn) then
+            FUpdateBtn.Visible := False;
+          if Assigned(FCheckupdBtn) then
+          begin
+            FCheckupdBtn.Visible := True;
+            FCheckupdBtn.Enabled := True;
+          end;
+          if Assigned(goverlayform) then
+          begin
+            goverlayform.RefreshHomeOptiStatus;
+            goverlayform.RefreshOsStatusDots;
+          end;
+          ShowToast(ntSuccess, 'OptiScaler FSR4VK updated successfully!', 4000);
+        end
+        else
+        begin
+          ShowToast(ntError, 'Failed to update OptiScaler FSR4VK', 5000);
+          if Assigned(FUpdateBtn) then
+            FUpdateBtn.Enabled := True;
+        end;
         Exit;
       end
       else
@@ -3879,6 +4066,172 @@ begin
     DeleteDirectory(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8', False);
 end;
 
+function CheckAndInstallFsr4vk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  TargetDir, VkDll, OptiDll: string;
+  Tag, DownloadUrl, TempZip, TempExtract: string;
+  Process: TProcess;
+  ExitCode: Integer;
+  StableCache: string;
+  VarsPath: string;
+  VarsList: TStringList;
+
+  procedure CopyDirectoryTree(const ASrc, ADst: string);
+  var
+    SR: TSearchRec;
+    SPath, DPath: string;
+  begin
+    if not DirectoryExists(ADst) then
+      ForceDirectories(ADst);
+    SPath := IncludeTrailingPathDelimiter(ASrc);
+    DPath := IncludeTrailingPathDelimiter(ADst);
+    if FindFirst(SPath + '*', faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Name <> '.') and (SR.Name <> '..') then
+          begin
+            if (SR.Attr and faDirectory) = faDirectory then
+              CopyDirectoryTree(SPath + SR.Name, DPath + SR.Name)
+            else
+              CopyFile(SPath + SR.Name, DPath + SR.Name);
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+begin
+  Result := True;
+  TargetDir := IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath);
+  ForceDirectories(TargetDir);
+  ForceDirectories(TargetDir + 'OptiScaler');
+
+  OptiDll := TargetDir + 'OptiScaler.dll';
+  VkDll   := TargetDir + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll';
+
+  if not AForce and FileExists(OptiDll) and FileExists(VkDll) then
+  begin
+    WriteLn('[FSR4VK] All FSR4VK libraries are present in ', TargetDir);
+    Exit(True);
+  end;
+
+  WriteLn('[FSR4VK] Verifying and downloading FSR4VK release (dvj5411/fsr4vk)...');
+  if Assigned(AOnProgress) then
+    AOnProgress(40, 'Downloading FSR4VK runtime...');
+
+  Tag := '';
+  DownloadUrl := '';
+  if not FetchFsr4vkLatestRelease(Tag, DownloadUrl) then
+  begin
+    Tag := 'v0.4.3';
+    DownloadUrl := 'https://github.com/dvj5411/fsr4vk/releases/download/v0.4.3/fsr4vk-v0.4.3.zip';
+  end;
+  if DownloadUrl = '' then
+    DownloadUrl := 'https://github.com/dvj5411/fsr4vk/releases/download/v0.4.3/fsr4vk-v0.4.3.zip';
+  if Tag = '' then
+    Tag := 'v0.4.3';
+
+  TempZip := IncludeTrailingPathDelimiter(GetTempDir) + 'fsr4vk_download.zip';
+  TempExtract := IncludeTrailingPathDelimiter(GetTempDir) + 'fsr4vk_extract' + PathDelim;
+  if FileExists(TempZip) then
+    DeleteFile(TempZip);
+  if DirectoryExists(TempExtract) then
+    DeleteDirectory(TempExtract, False);
+
+  ExitCode := RunCurlWithProgress(DownloadUrl, TempZip, 41, 48, 'Downloading FSR4VK', AOnProgress);
+  if (ExitCode <> 0) or not FileExists(TempZip) then
+  begin
+    WriteLn('[FSR4VK] ERROR: Failed to download FSR4VK from ', DownloadUrl);
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('FSR4VK (dvj5411/fsr4vk)') = -1) then
+      AFailedFiles.Add('FSR4VK (dvj5411/fsr4vk)');
+    Exit(False);
+  end;
+
+  ForceDirectories(TempExtract);
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := '7z';
+    Process.Parameters.Add('x');
+    Process.Parameters.Add('-y');
+    Process.Parameters.Add(TempZip);
+    Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtract));
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  // Deploy OptiScaler.dll
+  if FileExists(TempExtract + 'OptiScaler.dll') then
+    CopyFile(TempExtract + 'OptiScaler.dll', OptiDll)
+  else if FileExists(TempExtract + 'OptiScaler' + PathDelim + 'OptiScaler.dll') then
+    CopyFile(TempExtract + 'OptiScaler' + PathDelim + 'OptiScaler.dll', OptiDll);
+
+  // Deploy amd_fidelityfx_upscaler_vk.dll
+  if FileExists(TempExtract + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll') then
+    CopyFile(TempExtract + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll', VkDll)
+  else if FileExists(TempExtract + 'amd_fidelityfx_upscaler_vk.dll') then
+    CopyFile(TempExtract + 'amd_fidelityfx_upscaler_vk.dll', VkDll);
+
+  // Clean up temp files
+  if FileExists(TempZip) then
+    DeleteFile(TempZip);
+  if DirectoryExists(TempExtract) then
+    DeleteDirectory(TempExtract, False);
+
+  // Synchronize companion libraries from stable OptiScaler cache
+  StableCache := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
+  if DirectoryExists(StableCache) then
+  begin
+    if not FileExists(TargetDir + 'fakenvapi.dll') and FileExists(StableCache + 'fakenvapi.dll') then
+      CopyFile(StableCache + 'fakenvapi.dll', TargetDir + 'fakenvapi.dll');
+    if not FileExists(TargetDir + 'fakenvapi.ini') and FileExists(StableCache + 'fakenvapi.ini') then
+      CopyFile(StableCache + 'fakenvapi.ini', TargetDir + 'fakenvapi.ini');
+    if not FileExists(TargetDir + 'nvngx_dlss.dll') and FileExists(StableCache + 'nvngx_dlss.dll') then
+      CopyFile(StableCache + 'nvngx_dlss.dll', TargetDir + 'nvngx_dlss.dll');
+    if not FileExists(TargetDir + 'nvngx_dlssd.dll') and FileExists(StableCache + 'nvngx_dlssd.dll') then
+      CopyFile(StableCache + 'nvngx_dlssd.dll', TargetDir + 'nvngx_dlssd.dll');
+    if not FileExists(TargetDir + 'nvngx_dlssg.dll') and FileExists(StableCache + 'nvngx_dlssg.dll') then
+      CopyFile(StableCache + 'nvngx_dlssg.dll', TargetDir + 'nvngx_dlssg.dll');
+    if not FileExists(TargetDir + 'dlssg_to_fsr3_amd_is_better.dll') and FileExists(StableCache + 'dlssg_to_fsr3_amd_is_better.dll') then
+      CopyFile(StableCache + 'dlssg_to_fsr3_amd_is_better.dll', TargetDir + 'dlssg_to_fsr3_amd_is_better.dll');
+    if not FileExists(TargetDir + 'libxess.dll') and FileExists(StableCache + 'libxess.dll') then
+      CopyFile(StableCache + 'libxess.dll', TargetDir + 'libxess.dll');
+    if not FileExists(TargetDir + 'OptiScaler.ini') and FileExists(StableCache + 'OptiScaler.ini') then
+      CopyFile(StableCache + 'OptiScaler.ini', TargetDir + 'OptiScaler.ini');
+    if not DirectoryExists(TargetDir + 'plugins') and DirectoryExists(StableCache + 'plugins') then
+      CopyDirectoryTree(StableCache + 'plugins', TargetDir + 'plugins');
+    if not DirectoryExists(TargetDir + 'D3D12_OptiScaler') and DirectoryExists(StableCache + 'D3D12_OptiScaler') then
+      CopyDirectoryTree(StableCache + 'D3D12_OptiScaler', TargetDir + 'D3D12_OptiScaler');
+  end;
+
+  // Persist version tag in goverlay.vars
+  VarsPath := TargetDir + 'goverlay.vars';
+  VarsList := TStringList.Create;
+  try
+    if FileExists(VarsPath) then
+      VarsList.LoadFromFile(VarsPath);
+    VarsList.Values['OPTISCALER_FSR4VK_VERSION'] := Tag;
+    VarsList.Values['dlssversion'] := Tag;
+    VarsList.Values['OptiScalerVersion'] := Tag;
+    VarsList.SaveToFile(VarsPath);
+  finally
+    VarsList.Free;
+  end;
+
+  if not FileExists(OptiDll) or not FileExists(VkDll) then
+  begin
+    WriteLn('[FSR4VK] ERROR: Extraction completed but mandatory DLLs missing');
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('OptiScaler.dll / amd_fidelityfx_upscaler_vk.dll (FSR4VK)') = -1) then
+      AFailedFiles.Add('OptiScaler.dll / amd_fidelityfx_upscaler_vk.dll (FSR4VK)');
+    Result := False;
+  end
+  else
+    WriteLn('[FSR4VK] Successfully installed FSR4VK release ', Tag);
+end;
+
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean;
 var
   OptiDir, DlssEnablerDir, FsrBase: string;
@@ -3941,6 +4294,11 @@ begin
   // AFMF Vulkan layer
   if not IsAfmfInstalled and not IsRunningInFlatpak then
     AMissingList.Add('afmf-linux layer');
+
+  // FSR4VK (Vulkan upscaler and OptiScaler build)
+  if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'OptiScaler.dll') or
+     not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll') then
+    AMissingList.Add('FSR4VK (OptiScaler & Vulkan upscaler)');
 
   Result := AMissingList.Count > 0;
 end;
