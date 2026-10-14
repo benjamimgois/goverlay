@@ -598,7 +598,7 @@ var
   VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath, TempCfg: string;
-  Folders: array[0..4] of string;
+  Folders: array[0..5] of string;
   f: Integer;
   Ini: TIniFile;
 begin
@@ -688,9 +688,10 @@ begin
 
   Folders[0] := 'optiscaler-stable';
   Folders[1] := 'optiscaler-edge';
-  Folders[2] := 'optiscaler-custom';
-  Folders[3] := 'dlssenabler-stable';
-  Folders[4] := 'dlssenabler-edge';
+  Folders[2] := 'optiscaler-fsr4vk';
+  Folders[3] := 'optiscaler-custom';
+  Folders[4] := 'dlssenabler-stable';
+  Folders[5] := 'dlssenabler-edge';
 
   for f := 0 to High(Folders) do
   begin

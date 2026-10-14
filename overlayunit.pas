@@ -6786,6 +6786,8 @@ begin
   fsrversionComboBoxChange(nil);
   // Persist channel selection (OPT_CHANNEL) to active profile's bgmod.conf
   StartAutoSaveTimer;
+  if FActiveGameName <> '' then
+    CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
 end;
 
 procedure Tgoverlayform.fsr4vkCheckBoxChange(Sender: TObject);

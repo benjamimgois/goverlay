@@ -569,6 +569,26 @@ begin
     end;
   end;
 
+  OriginalPath := GetBGModOriginalFsr4vkPath;
+  if DirectoryExists(OriginalPath) then
+  begin
+    WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-fsr4vk cache...');
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := 'sh';
+      Proc.Parameters.Add('-c');
+      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') + ' ' +
+                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'fgmod') + ' ' +
+                          QuotedStr(OriginalPath) + '/ 2>/dev/null');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+  end;
+
   WriteLn('[BGMOD] bgmod template directory resources initialized.');
 
 end;

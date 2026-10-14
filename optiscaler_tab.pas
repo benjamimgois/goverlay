@@ -1837,9 +1837,11 @@ begin
       end;
     end;
 
-    // Immediately sync global profile assets (DLLs, plugins, configs) when saving global profile
+    // Immediately sync assets (DLLs, plugins, configs) when saving profile
     if FActiveGameName = '' then
-      InitializeGlobalConfigDirectory;
+      InitializeGlobalConfigDirectory
+    else
+      CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
 
     if ErrMsg <> '' then
       ShowMessage(ErrMsg);

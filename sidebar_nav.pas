@@ -959,6 +959,11 @@ begin
     ExecuteShellCommand('cp -f ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'goverlay.vars') + ' ' +
       QuotedStr(AGameCfgDir) + ' 2>/dev/null');
 
+  // OptiScaler.dll runtime binary must match the active channel (force overwrite pre-existing DLL)
+  if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll') then
+    CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll',
+             IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
+
   // FSR4VK deploys the Vulkan FFX provider alongside OptiScaler.dll. Ensure the
   // vendored amd_fidelityfx_upscaler_vk.dll reaches the game's OptiScaler/
   // subfolder even when cp -n skipped it due to a pre-existing target.

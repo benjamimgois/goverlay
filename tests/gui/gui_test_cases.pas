@@ -1977,9 +1977,17 @@ begin
     Ini.Free;
   end;
 
+  // Seed older OptiScaler.dll to ensure CopyOptiScalerGameFiles overwrites it
+  AssignFile(F, IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler.dll');
+  Rewrite(F);
+  WriteLn(F, 'old_stable_dll');
+  CloseFile(F);
+
   goverlayform.CopyOptiScalerGameFiles(GameCfgDir);
   AssertTrue('OptiScaler.dll deployed to game folder for FSR4VK channel',
     FileExists(IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler.dll'));
+  AssertTrue('OptiScaler.dll overwritten with FSR4VK version',
+    Pos('dummy_fsr4vk_optiscaler', ReadFileText(IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler.dll')) > 0);
   AssertTrue('amd_fidelityfx_upscaler_vk.dll deployed to game OptiScaler subfolder',
     FileExists(IncludeTrailingPathDelimiter(GameCfgDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll'));
 

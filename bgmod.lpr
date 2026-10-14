@@ -118,7 +118,7 @@ begin
 end;
 
 const
-  BGMOD_VERSION = '1.9.5';
+  BGMOD_VERSION = '1.9.6';
 
 var
   GameDir: string;
@@ -988,8 +988,10 @@ begin
     else
       ChannelFolder := 'dlssenabler-stable';
   end
-  else if OptChannel = 2 then
+  else if OptChannel = 3 then
     ChannelFolder := 'optiscaler-custom'
+  else if OptChannel = 2 then
+    ChannelFolder := 'optiscaler-fsr4vk'
   else if OptChannel = 1 then
     ChannelFolder := 'optiscaler-edge'
   else
@@ -1179,7 +1181,7 @@ var
   VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath: string;
-  Folders: array[0..4] of string;
+  Folders: array[0..5] of string;
   f: Integer;
   Ini: TIniFile;
 begin
@@ -1276,9 +1278,10 @@ begin
 
   Folders[0] := 'optiscaler-stable';
   Folders[1] := 'optiscaler-edge';
-  Folders[2] := 'optiscaler-custom';
-  Folders[3] := 'dlssenabler-stable';
-  Folders[4] := 'dlssenabler-edge';
+  Folders[2] := 'optiscaler-fsr4vk';
+  Folders[3] := 'optiscaler-custom';
+  Folders[4] := 'dlssenabler-stable';
+  Folders[5] := 'dlssenabler-edge';
 
   for f := 0 to High(Folders) do
   begin
@@ -2863,10 +2866,15 @@ begin
             CopyDirectory(SourceDir + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
           end;
 
-          // 7c. Copy OptiScaler/ directory if it exists (DLSS Enabler)
-          if DirectoryExists(SourceDir + 'OptiScaler') then
+          // 7c. Copy OptiScaler/ directory if it exists (FSR4VK / DLSS Enabler)
+          if DirectoryExists(ConfigDir + 'OptiScaler') then
           begin
-            Log('Installing OptiScaler directory...');
+            Log('Installing OptiScaler directory from config directory...');
+            CopyDirectory(ConfigDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
+          end
+          else if DirectoryExists(SourceDir + 'OptiScaler') then
+          begin
+            Log('Installing OptiScaler directory from source directory...');
             CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
           end;
           
