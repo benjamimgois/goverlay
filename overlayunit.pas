@@ -4764,14 +4764,7 @@ begin
 
   // Style tab bar to match navy UI
   TabWidget := TQtWidget(goverlayPageControl.Handle).Widget;
-  TabSS := 'QTabBar { background: rgb(22,26,40); } ' +
-            'QTabBar::tab { background: rgb(22,26,40); color: rgb(130,140,165); ' +
-            'padding: 8px 16px; border: none; ' +
-            'border-bottom: 2px solid transparent; ' +
-            'font-size: 12px; font-weight: bold; } ' +
-            'QTabBar::tab:selected { color: rgb(220,230,255); border-bottom: 2px solid rgb(48,190,240); } ' +
-            'QTabBar::tab:hover:!selected { background: rgb(30,36,58); color: rgb(180,192,215); } ' +
-            'QTabWidget::pane { border: none; background: rgb(22,26,40); }';
+  TabSS := GetTabBarStyleSheet(True);
   QWidget_setStyleSheet(TabWidget, @TabSS);
 
   // Apply global slate-navy Input stylesheet (QComboBox, QLineEdit, QSpinBox, QPushButton, QSlider) that overrides KDE/Breeze theme
@@ -6053,6 +6046,8 @@ begin
 end;
 
 procedure Tgoverlayform.coreloadtypeBitBtnClick(Sender: TObject);
+var
+  TextColor, CardBg: TColor;
 begin
 
   //Change icon and hint on click
@@ -6069,6 +6064,11 @@ begin
 
     end;
  end;
+
+  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
+  CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
+  if Assigned(coreloadtypeBitBtn) then
+    StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
 
 end;
 
@@ -6531,6 +6531,8 @@ saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.gpuframesjouleBitBtnClick(Sender: TObject);
+var
+  TextColor, CardBg: TColor;
 begin
   // Toggle between 'Frames / Joule' and 'Joules / Frame'. Both buttons share
   // the same caption; the state lives in Tag so it does not depend on the
@@ -6547,6 +6549,13 @@ begin
     gpuframesjouleBitBtn.Caption := 'Frames / Joule';
     cpuframesjouleBitBtn.Caption := 'Frames / Joule';
   end;
+
+  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
+  CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
+  if Assigned(gpuframesjouleBitBtn) then
+    StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+  if Assigned(cpuframesjouleBitBtn) then
+    StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
 end;
 
 procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);

@@ -3485,6 +3485,7 @@ var
   i: Integer;
   ParentControl: TWinControl;
   WasLoading: Boolean;
+  TextColor, CardBg: TColor;
 begin
   WasLoading := FForm.FLoadingConfig;
   FForm.FLoadingConfig := True;
@@ -3633,6 +3634,17 @@ begin
     fpsavgBitBtn.ImageIndex := 9;
     fpsavgBitBtn.Caption := '1% low';
 
+    // Re-style after caption/icon changes so the palette text colour sticks
+    // on icon-bearing TBitBtns (see StyleBitBtnTheme).
+    TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
+    CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
+    if Assigned(gpuframesjouleBitBtn) then
+      StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+    if Assigned(cpuframesjouleBitBtn) then
+      StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
+    if Assigned(coreloadtypeBitBtn) then
+      StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
+
     // RadioGroups
     filterRadioGroup.ItemIndex := 0;
 
@@ -3731,7 +3743,11 @@ begin
 end;
 
 procedure TMangoHudUiHelper.LoadMangoHudBoolFlag(const ATrimmedLine: string);
+var
+  TextColor, CardBg: TColor;
 begin
+  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
+  CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
   with FForm do
   begin
     if SameText(ATrimmedLine, MANGO_FLAG_HORIZONTAL) then
@@ -3788,6 +3804,10 @@ begin
       cpuframesjouleBitBtn.Tag := 1;
       gpuframesjouleBitBtn.Caption := 'Joules / Frame';
       cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+      if Assigned(gpuframesjouleBitBtn) then
+        StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+      if Assigned(cpuframesjouleBitBtn) then
+        StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_GPU_VOLTAGE) then
       gpuvoltageCheckBox.Checked := True
@@ -3809,6 +3829,8 @@ begin
     begin
       coreloadtypeBitBtn.ImageIndex := 7;
       coreloadtypeBitBtn.Caption := 'Graph';
+      if Assigned(coreloadtypeBitBtn) then
+        StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_CPU_MHZ) then
       cpufreqCheckBox.Checked := True

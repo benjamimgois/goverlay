@@ -2205,6 +2205,7 @@ var
   SS, GbSS: WideString;
   IsDark: Boolean;
   TextColor, HintColor, AccentColor: TColor;
+  BtnBg: TColor;
 begin
   IsDark := (CurrentTheme = tmDark);
   if IsDark then
@@ -2212,12 +2213,14 @@ begin
     TextColor   := clWhite;
     HintColor   := CLR_TEXT_MUTED;
     AccentColor := CLR_TEXT_ACCENT;
+    BtnBg       := RGBToColor(38, 46, 72);
   end
   else
   begin
     TextColor   := LightTextColor;
     HintColor   := RGBToColor(100, 100, 110);
     AccentColor := RGBToColor(0, 120, 215);
+    BtnBg       := RGBToColor(240, 240, 240);
   end;
 
   if Assigned(FLsScrollBox) then
@@ -2350,25 +2353,18 @@ begin
     QWidget_setStyleSheet(TQtWidget(FLsScalingSharpnessTrackBar.Handle).Widget, @SS);
 
   // Action Buttons
-  if IsDark then
-    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(220,225,240); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 8px; font-weight: bold; } ' +
-          'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); color: rgb(255,255,255); } ' +
-          'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-          'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); border: 1px solid rgb(40,48,70); color: rgb(120,125,140); }'
-  else
-    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(20,20,20); border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 8px; font-weight: bold; } ' +
-          'QPushButton:hover, QToolButton:hover { background-color: rgb(225,225,225); border: 1px solid rgb(160,160,160); }';
-
   if Assigned(FLsBrowseDllBtn) and FLsBrowseDllBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsBrowseDllBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FLsBrowseDllBtn, TextColor, BtnBg);
   if Assigned(FLsCheckUpdatesBtn) and FLsCheckUpdatesBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsCheckUpdatesBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FLsCheckUpdatesBtn, TextColor, BtnBg);
   if Assigned(FLsInstallBtn) and FLsInstallBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsInstallBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FLsInstallBtn, TextColor, BtnBg);
   if Assigned(FLsLsfgAssistantBtn) and FLsLsfgAssistantBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsLsfgAssistantBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FLsLsfgAssistantBtn, TextColor, BtnBg);
   if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.HandleAllocated then
-    QWidget_setStyleSheet(TQtWidget(FLsLsfgInstallBtn.Handle).Widget, @SS);
+    StyleBitBtnTheme(FLsLsfgInstallBtn, TextColor, BtnBg);
+  if Assigned(FLsAfmfInstallBtn) and FLsAfmfInstallBtn.HandleAllocated then
+    StyleBitBtnTheme(FLsAfmfInstallBtn, TextColor, BtnBg);
 end;
 
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;

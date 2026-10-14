@@ -93,6 +93,7 @@ type
     procedure TestMangoVisualTab;
     procedure TestMangoMetricsGpuTab;
     procedure TestMangoMetricsCpuTab;
+    procedure TestMetricsIconButtonsPaletteAfterToggle;
     procedure TestMangoMetricsMemIoTab;
     procedure TestMangoMetricsOtherTab;
     procedure TestMangoPerformanceTab;
@@ -3670,6 +3671,34 @@ begin
   AssertTrue('vram_color gone', Pos('vram_color', C) = 0);
   AssertTrue('gpu_temp gone', Pos('gpu_temp', C) = 0);
   AssertTrue('flip_efficiency gone', Pos('flip_efficiency', C) = 0);
+end;
+
+procedure TGoverlayGuiTests.TestMetricsIconButtonsPaletteAfterToggle;
+var
+  Expected: TColor;
+  Btns: array[0..2] of TBitBtn;
+  i: Integer;
+begin
+  NavigateMangoHud;
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.metricsTabSheet;
+  Application.ProcessMessages;
+
+  Btns[0] := goverlayform.gpuframesjouleBitBtn;
+  Btns[1] := goverlayform.cpuframesjouleBitBtn;
+  Btns[2] := goverlayform.coreloadtypeBitBtn;
+
+  // Toggling changes caption/icon; palette text colour must stay in sync with the theme.
+  goverlayform.gpuframesjouleBitBtn.OnClick(goverlayform.gpuframesjouleBitBtn);
+  goverlayform.coreloadtypeBitBtn.OnClick(goverlayform.coreloadtypeBitBtn);
+
+  if CurrentTheme = tmLight then
+    Expected := ColorToRGB(LightTextColor)
+  else
+    Expected := ColorToRGB(DarkTextColor);
+
+  for i := Low(Btns) to High(Btns) do
+    AssertEquals('ButtonText palette synced after toggle: ' + Btns[i].Name,
+      Integer(Expected), Integer(GetBitBtnButtonTextColor(Btns[i])));
 end;
 
 procedure TGoverlayGuiTests.TestMangoMetricsCpuTab;

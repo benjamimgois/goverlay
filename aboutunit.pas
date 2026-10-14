@@ -217,12 +217,14 @@ begin
   linksLabel.Caption := 'github.com/benjamimgois/goverlay';
 
   ApplyTheme(Self, CurrentTheme);
+  ApplyTabBarStyleSheet(aboutPageControl, CurrentTheme = tmDark);
 
   if CurrentTheme = tmDark then
   begin
     Self.Color := NewDarkBg;
     aboutPageControl.Color := NewDarkBg;
     aboutTabSheet.Color := NewDarkBg;
+    aboutTabSheet.Font.Color := clWhite;
     licenseTabSheet.Color := NewDarkBg;
     descLabel.Font.Color := RGBToColor(200, 208, 224);
     descLabel.Transparent := True;
@@ -248,6 +250,7 @@ begin
     Self.Color := LightBackgroundColor;
     aboutPageControl.Color := LightBackgroundColor;
     aboutTabSheet.Color := LightBackgroundColor;
+    aboutTabSheet.Font.Color := clBlack;
     licenseTabSheet.Color := LightBackgroundColor;
     descLabel.Font.Color := RGBToColor(70, 75, 85);
     descLabel.Transparent := True;

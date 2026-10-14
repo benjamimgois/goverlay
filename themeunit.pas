@@ -96,6 +96,13 @@ procedure StyleActionButton(AButton: TControl);
 procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
 
 /// <summary>
+/// Returns the Active-group QPaletteButtonText colour currently set on the Qt
+/// widget of a TBitBtn (used to verify palette synchronisation). Returns
+/// clNone when the widget handle or palette is unavailable.
+/// </summary>
+function GetBitBtnButtonTextColor(ABtn: TBitBtn): TColor;
+
+/// <summary>
 /// Recursively applies dark theme colors to all controls in a form
 /// </summary>
 /// <param name="AControl">The parent control to apply dark theme to</param>
@@ -184,6 +191,16 @@ function GetComboBoxStyleSheet(AIsDark: Boolean): string;
 /// </summary>
 function GetSpinBoxStyleSheet(AIsDark: Boolean): string;
 
+/// <summary>
+/// Returns the theme-aware QSS stylesheet for QTabBar / QTabWidget::pane
+/// </summary>
+function GetTabBarStyleSheet(AIsDark: Boolean): string;
+
+/// <summary>
+/// Applies the theme-aware QTabBar / QTabWidget::pane stylesheet to a TPageControl
+/// </summary>
+procedure ApplyTabBarStyleSheet(APageControl: TPageControl; AIsDark: Boolean);
+
 implementation
 
 uses
@@ -250,6 +267,45 @@ begin
   end
   else
     Result := 'QSpinBox, QDoubleSpinBox, QAbstractSpinBox { border: 1px solid rgb(200,200,200); border-radius: 4px; padding: 2px 6px; }';
+end;
+
+function GetTabBarStyleSheet(AIsDark: Boolean): string;
+begin
+  if AIsDark then
+    Result := 'QTabBar { background: rgb(22,26,40); } ' +
+              'QTabBar::tab { background: rgb(22,26,40); color: rgb(130,140,165); ' +
+              'padding: 8px 16px; border: none; ' +
+              'border-bottom: 2px solid transparent; ' +
+              'font-size: 12px; font-weight: bold; } ' +
+              'QTabBar::tab:selected { color: rgb(220,230,255); border-bottom: 2px solid rgb(48,190,240); } ' +
+              'QTabBar::tab:hover:!selected { background: rgb(30,36,58); color: rgb(180,192,215); } ' +
+              'QTabWidget::pane { border: none; background: rgb(22,26,40); }'
+  else
+    Result := 'QTabBar { background: rgb(245,246,248); } ' +
+              'QTabBar::tab { background: rgb(245,246,248); color: rgb(90,95,105); ' +
+              'padding: 8px 16px; border: none; ' +
+              'border-bottom: 2px solid transparent; ' +
+              'font-size: 12px; font-weight: bold; } ' +
+              'QTabBar::tab:selected { color: rgb(0,0,0); border-bottom: 2px solid rgb(0,120,215); } ' +
+              'QTabBar::tab:hover:!selected { background: rgb(232,234,238); } ' +
+              'QTabWidget::pane { border: none; background: rgb(255,255,255); }';
+end;
+
+procedure ApplyTabBarStyleSheet(APageControl: TPageControl; AIsDark: Boolean);
+var
+  SS: WideString;
+  Wdgt: QWidgetH;
+begin
+  if not Assigned(APageControl) then Exit;
+  if not APageControl.HandleAllocated then
+    APageControl.HandleNeeded;
+  if not APageControl.HandleAllocated then Exit;
+
+  Wdgt := TQtWidget(APageControl.Handle).Widget;
+  if Wdgt = nil then Exit;
+
+  SS := GetTabBarStyleSheet(AIsDark);
+  QWidget_setStyleSheet(Wdgt, @SS);
 end;
 
 function ColorToRGBString(AColor: TColor): string;
@@ -856,11 +912,23 @@ begin
   end;
 end;
 
+function QtPaletteColorStr(Pal: QPaletteH; AGroup: QPaletteColorGroup; ARole: QPaletteColorRole): string;
+var
+  QCRead: PQColor;
+begin
+  Result := 'nil';
+  if Pal = nil then Exit;
+  QCRead := QPalette_color(Pal, AGroup, ARole);
+  if QCRead = nil then Exit;
+  Result := Format('%d,%d,%d', [QColor_red(QColorH(QCRead)), QColor_green(QColorH(QCRead)), QColor_blue(QColorH(QCRead))]);
+end;
+
 procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
 var
   Wdgt: QWidgetH;
   Pal: QPaletteH;
   QC: TQColor;
+  QCDis: TQColor;
   CR: Longint;
   SS: WideString;
   IsLight: Boolean;
@@ -888,13 +956,64 @@ begin
 
   CR := ColorToRGB(ATextColor);
   QColor_fromRgb(@QC, Red(CR), Green(CR), Blue(CR));
+  if IsLight then
+    CR := RGBToColor(150, 150, 150)
+  else
+    CR := RGBToColor(120, 125, 140);
+  QColor_fromRgb(@QCDis, Red(CR), Green(CR), Blue(CR));
   Pal := QWidget_palette(Wdgt);
   if Pal <> nil then
   begin
-    QPalette_setColor(Pal, QPaletteButtonText, @QC);
-    QPalette_setColor(Pal, QPaletteWindowText, @QC);
+    QPalette_setColor(Pal, QPaletteActive, QPaletteButtonText, @QC);
+    QPalette_setColor(Pal, QPaletteActive, QPaletteWindowText, @QC);
+    QPalette_setColor(Pal, QPaletteActive, QPaletteText, @QC);
+    QPalette_setColor(Pal, QPaletteInactive, QPaletteButtonText, @QC);
+    QPalette_setColor(Pal, QPaletteInactive, QPaletteWindowText, @QC);
+    QPalette_setColor(Pal, QPaletteInactive, QPaletteText, @QC);
+    QPalette_setColor(Pal, QPaletteDisabled, QPaletteButtonText, @QCDis);
+    QPalette_setColor(Pal, QPaletteDisabled, QPaletteWindowText, @QCDis);
+    QPalette_setColor(Pal, QPaletteDisabled, QPaletteText, @QCDis);
     QWidget_setPalette(Wdgt, Pal);
   end;
+
+  if GetEnvironmentVariable('GOVERLAY_DEBUG_THEME') = '1' then
+  begin
+    WriteLn(StdErr, Format('StyleBitBtnTheme name=%s caption="%s" enabled=%s',
+      [ABtn.Name, ABtn.Caption, BoolToStr(ABtn.Enabled, True)]));
+    if Pal <> nil then
+    begin
+      WriteLn(StdErr, Format('  Active   ButtonText=%s WindowText=%s Text=%s',
+        [QtPaletteColorStr(Pal, QPaletteActive, QPaletteButtonText),
+         QtPaletteColorStr(Pal, QPaletteActive, QPaletteWindowText),
+         QtPaletteColorStr(Pal, QPaletteActive, QPaletteText)]));
+      WriteLn(StdErr, Format('  Inactive ButtonText=%s WindowText=%s Text=%s',
+        [QtPaletteColorStr(Pal, QPaletteInactive, QPaletteButtonText),
+         QtPaletteColorStr(Pal, QPaletteInactive, QPaletteWindowText),
+         QtPaletteColorStr(Pal, QPaletteInactive, QPaletteText)]));
+      WriteLn(StdErr, Format('  Disabled ButtonText=%s WindowText=%s Text=%s',
+        [QtPaletteColorStr(Pal, QPaletteDisabled, QPaletteButtonText),
+         QtPaletteColorStr(Pal, QPaletteDisabled, QPaletteWindowText),
+         QtPaletteColorStr(Pal, QPaletteDisabled, QPaletteText)]));
+    end;
+  end;
+end;
+
+function GetBitBtnButtonTextColor(ABtn: TBitBtn): TColor;
+var
+  Wdgt: QWidgetH;
+  Pal: QPaletteH;
+  QCRead: PQColor;
+begin
+  Result := clNone;
+  if (ABtn = nil) or not ABtn.HandleAllocated then Exit;
+  Wdgt := TQtWidget(ABtn.Handle).Widget;
+  if Wdgt = nil then Exit;
+  Pal := QWidget_palette(Wdgt);
+  if Pal = nil then Exit;
+  QCRead := QPalette_color(Pal, QPaletteActive, QPaletteButtonText);
+  if QCRead = nil then Exit;
+  Result := RGBToColor(QColor_red(QColorH(QCRead)), QColor_green(QColorH(QCRead)),
+    QColor_blue(QColorH(QCRead)));
 end;
 
 function LoadOptiScalerDriverPreference: string;
