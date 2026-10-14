@@ -29,6 +29,8 @@ type
 /// Detects if the application is running inside a Flatpak sandbox
 /// </summary>
 /// <returns>True if running in Flatpak, False otherwise</returns>
+var
+  FFlatpakOverrideForTest: Integer = -1; // -1: auto, 0: force false, 1: force true
 function IsRunningInFlatpak: Boolean;
 
 /// <summary>
@@ -227,7 +229,9 @@ end;
 
 function IsRunningInFlatpak: Boolean;
 begin
-  Result := GetEnvironmentVariable('FLATPAK_ID') <> '';
+  if FFlatpakOverrideForTest = 1 then Exit(True);
+  if FFlatpakOverrideForTest = 0 then Exit(False);
+  Result := (GetEnvironmentVariable('FLATPAK_ID') <> '') or FileExists('/.flatpak-info');
 end;
 
 function IsCommandAvailable(const CommandName: string): Boolean;

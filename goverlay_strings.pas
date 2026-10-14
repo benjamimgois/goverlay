@@ -64,11 +64,13 @@ resourcestring
 
   // Intel CPU power fix
   rsIntelFixTitle = 'Intel CPU Power Fix';
-  rsIntelFixNoFlatpak = 'Intel CPU power monitoring fix is not available in Flatpak.'
+  rsIntelFixNoFlatpak = 'Intel CPU power monitoring fix is not available directly inside Flatpak.'
     + LineEnding + LineEnding
     + 'Flatpak applications cannot modify system file permissions in /sys/.'
     + LineEnding + LineEnding
-    + 'This fix must be applied from outside the Flatpak sandbox on the host system.';
+    + 'To apply this fix, run the following command in a terminal on your host system:'
+    + LineEnding + LineEnding
+    + 'echo ''ACTION==\"add|change\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl*\", RUN+=\"/bin/chmod o+r /sys/%p/energy_uj\"'' | sudo tee /etc/udev/rules.d/70-intel-rapl.rules && sudo udevadm control --reload-rules && sudo udevadm trigger';
   rsIntelFixRemovePrompt = 'The persistent udev rule fix is currently active.'
     + LineEnding + LineEnding + 'Do you want to disable and remove it?';
   rsIntelFixRemoved = 'Persistent udev rule removed. Please reboot to restore default permissions.';

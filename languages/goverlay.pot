@@ -146,11 +146,13 @@ msgstr ""
 
 #: goverlay_strings.rsintelfixnoflatpak
 msgid ""
-"Intel CPU power monitoring fix is not available in Flatpak.\n"
+"Intel CPU power monitoring fix is not available directly inside Flatpak.\n"
 "\n"
 "Flatpak applications cannot modify system file permissions in /sys/.\n"
 "\n"
-"This fix must be applied from outside the Flatpak sandbox on the host system."
+"To apply this fix, run the following command in a terminal on your host system:\n"
+"\n"
+"echo 'ACTION==\"add|change\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl*\", RUN+=\"/bin/chmod o+r /sys/%p/energy_uj\"' | sudo tee /etc/udev/rules.d/70-intel-rapl.rules && sudo udevadm control --reload-rules && sudo udevadm trigger"
 msgstr ""
 
 #: goverlay_strings.rsintelfixremoved

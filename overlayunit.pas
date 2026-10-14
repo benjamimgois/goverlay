@@ -1093,6 +1093,7 @@ type
     function  GetReshadeProxyDll: string;
   public
     FLoadingConfig: Boolean;
+    FIntelCpuOverrideForTest: Integer; // -1: auto, 0: false, 1: true
     FPreviousFilenameIndex: Integer;
     FPreviousOptChannel: Integer;
     FLastLosslessShowTick: QWord;
@@ -3516,6 +3517,7 @@ begin
   FMockVkBasaltInstalled := -1;
   FMockVkSumiInstalled := -1;
   FMockLowLatencyInstalled := -1;
+  FIntelCpuOverrideForTest := -1;
   FCachedMissingDeps := nil;
   FCachedDepsValid := False;
   FPreviousFilenameIndex := 0;
@@ -6610,6 +6612,9 @@ var
   I: Integer;
   CPUBrand: string;
 begin
+  if FIntelCpuOverrideForTest = 1 then Exit(True);
+  if FIntelCpuOverrideForTest = 0 then Exit(False);
+
   Result := False;
   CPUBrand := '';
   CPUInfo := TStringList.Create;
@@ -8067,6 +8072,8 @@ procedure Tgoverlayform.gamemodeCheckBoxClick(Sender: TObject);
 var
   DialogResult: Integer;
 begin
+  if FLoadingConfig then Exit;
+
   // Only show warning in Flatpak when checkbox is being checked (enabled)
   if IsRunningInFlatpak and gamemodeCheckBox.Checked then
   begin
@@ -8090,8 +8097,10 @@ var
   FS: TFileStream;
   Readable: Boolean;
 begin
+  if FLoadingConfig then Exit;
   if not cpupowerCheckBox.Checked then Exit;
   if not IsIntelCPU then Exit;
+  if IsRunningInFlatpak then Exit;
 
   TargetFile := '/sys/class/powercap/intel-rapl:0/energy_uj';
   if not FileExists(TargetFile) then Exit; // Non-Intel or RAPL not supported

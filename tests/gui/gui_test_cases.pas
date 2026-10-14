@@ -163,12 +163,14 @@ type
     procedure TestGameCardsAlphabeticalSorting;
     procedure TestRichChangelogViewerRender;
     procedure TestStartupHasMissingLibrariesChecksVkBasaltShaders;
+    procedure TestIntelCpuPowerFixSuppressedOnConfigLoadAndFlatpak;
+    procedure TestGameModeWarningSuppressedOnConfigLoad;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -7248,6 +7250,53 @@ begin
 
   // Cleanup dummy shader
   DeleteFile(VkShadersDir + '/TestStartupEffect.fx');
+end;
+
+procedure TGoverlayGuiTests.TestIntelCpuPowerFixSuppressedOnConfigLoadAndFlatpak;
+begin
+  try
+    // 1. When FLoadingConfig is True, cpupowerCheckBoxClick exits immediately even on Intel
+    goverlayform.FLoadingConfig := True;
+    goverlayform.FIntelCpuOverrideForTest := 1;
+    AssertTrue('IsIntelCPU is True when overridden', goverlayform.IsIntelCPU);
+
+    goverlayform.cpupowerCheckBox.Checked := True;
+    goverlayform.cpupowerCheckBoxClick(nil);
+    AssertTrue('cpupowerCheckBox remains checked during loading', goverlayform.cpupowerCheckBox.Checked);
+
+    // 2. When simulated in Flatpak and FLoadingConfig is False
+    goverlayform.FLoadingConfig := False;
+    FFlatpakOverrideForTest := 1;
+    AssertTrue('IsRunningInFlatpak is True when overridden', IsRunningInFlatpak);
+
+    // Clicking cpupowerCheckBox in Flatpak exits early and does not invoke dialog
+    goverlayform.cpupowerCheckBox.Checked := True;
+    goverlayform.cpupowerCheckBoxClick(nil);
+    AssertTrue('cpupowerCheckBox remains checked in Flatpak without dialog loop', goverlayform.cpupowerCheckBox.Checked);
+  finally
+    goverlayform.FLoadingConfig := False;
+    goverlayform.FIntelCpuOverrideForTest := -1;
+    FFlatpakOverrideForTest := -1;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGameModeWarningSuppressedOnConfigLoad;
+begin
+  try
+    // Set Flatpak mode
+    FFlatpakOverrideForTest := 1;
+    AssertTrue('IsRunningInFlatpak is True', IsRunningInFlatpak);
+
+    // When FLoadingConfig is True, checking gamemode does not show warning dialog or uncheck
+    goverlayform.FLoadingConfig := True;
+    goverlayform.gamemodeCheckBox.Checked := True;
+    goverlayform.gamemodeCheckBoxClick(nil);
+    AssertTrue('gamemodeCheckBox remains checked when FLoadingConfig is True', goverlayform.gamemodeCheckBox.Checked);
+  finally
+    goverlayform.FLoadingConfig := False;
+    goverlayform.gamemodeCheckBox.Checked := False;
+    FFlatpakOverrideForTest := -1;
+  end;
 end;
 
 initialization
