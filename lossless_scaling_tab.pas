@@ -296,6 +296,7 @@ type
     procedure InitLosslessScalingTab;
     procedure ReflowLosslessScalingTab(AContentW: Integer);
     procedure ApplyThemeStyles;
+    procedure StyleActionButtons;
     procedure UpdateDllStatus;
     procedure UpdateStatusCard;
     procedure UpdateEngineStatus;
@@ -1692,6 +1693,8 @@ begin
       FLsAfmfInstallBtn.Enabled := True;
     end;
   end;
+
+  StyleActionButtons;
 end;
 
 function TLosslessScalingTabHelper.GetConfigFile: string;
@@ -2353,18 +2356,60 @@ begin
     QWidget_setStyleSheet(TQtWidget(FLsScalingSharpnessTrackBar.Handle).Widget, @SS);
 
   // Action Buttons
-  if Assigned(FLsBrowseDllBtn) and FLsBrowseDllBtn.HandleAllocated then
+  StyleActionButtons;
+end;
+
+procedure TLosslessScalingTabHelper.StyleActionButtons;
+var
+  TextColor, BtnBg: TColor;
+begin
+  if CurrentTheme = tmDark then
+  begin
+    TextColor := clWhite;
+    BtnBg := RGBToColor(38, 46, 72);
+  end
+  else
+  begin
+    TextColor := LightTextColor;
+    BtnBg := RGBToColor(240, 240, 240);
+  end;
+
+  if Assigned(FLsBrowseDllBtn) then
+  begin
+    if not FLsBrowseDllBtn.HandleAllocated then
+      FLsBrowseDllBtn.HandleNeeded;
     StyleBitBtnTheme(FLsBrowseDllBtn, TextColor, BtnBg);
-  if Assigned(FLsCheckUpdatesBtn) and FLsCheckUpdatesBtn.HandleAllocated then
+  end;
+  if Assigned(FLsCheckUpdatesBtn) then
+  begin
+    if not FLsCheckUpdatesBtn.HandleAllocated then
+      FLsCheckUpdatesBtn.HandleNeeded;
     StyleBitBtnTheme(FLsCheckUpdatesBtn, TextColor, BtnBg);
-  if Assigned(FLsInstallBtn) and FLsInstallBtn.HandleAllocated then
+  end;
+  if Assigned(FLsInstallBtn) then
+  begin
+    if not FLsInstallBtn.HandleAllocated then
+      FLsInstallBtn.HandleNeeded;
     StyleBitBtnTheme(FLsInstallBtn, TextColor, BtnBg);
-  if Assigned(FLsLsfgAssistantBtn) and FLsLsfgAssistantBtn.HandleAllocated then
+  end;
+  if Assigned(FLsLsfgAssistantBtn) then
+  begin
+    if not FLsLsfgAssistantBtn.HandleAllocated then
+      FLsLsfgAssistantBtn.HandleNeeded;
     StyleBitBtnTheme(FLsLsfgAssistantBtn, TextColor, BtnBg);
-  if Assigned(FLsLsfgInstallBtn) and FLsLsfgInstallBtn.HandleAllocated then
+  end;
+  if Assigned(FLsLsfgInstallBtn) then
+  begin
+    if not FLsLsfgInstallBtn.HandleAllocated then
+      FLsLsfgInstallBtn.HandleNeeded;
     StyleBitBtnTheme(FLsLsfgInstallBtn, TextColor, BtnBg);
-  if Assigned(FLsAfmfInstallBtn) and FLsAfmfInstallBtn.HandleAllocated then
+  end;
+  if Assigned(FLsAfmfInstallBtn) then
+  begin
+    if not FLsAfmfInstallBtn.HandleAllocated then
+      FLsAfmfInstallBtn.HandleNeeded;
     StyleBitBtnTheme(FLsAfmfInstallBtn, TextColor, BtnBg);
+  end;
 end;
 
 procedure TLosslessScalingTabHelper.InitLosslessScalingTab;

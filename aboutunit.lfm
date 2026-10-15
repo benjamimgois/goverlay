@@ -11,6 +11,7 @@ object aboutForm: TaboutForm
   Font.Quality = fqAntialiased
   LCLVersion = '4.4.0.0'
   OnCreate = FormCreate
+  OnShow = FormShow
   object aboutPageControl: TPageControl
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
