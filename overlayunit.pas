@@ -6081,12 +6081,6 @@ end;
 
 procedure Tgoverlayform.aboutMenuItemClick(Sender: TObject);
 begin
-  if not aboutForm.HandleAllocated then
-    aboutForm.HandleNeeded;
-  if not aboutForm.aboutPageControl.HandleAllocated then
-    aboutForm.aboutPageControl.HandleNeeded;
-  ApplyTheme(aboutForm, CurrentTheme);
-  ApplyTabBarStyleSheet(aboutForm.aboutPageControl, CurrentTheme = tmDark);
   aboutForm.ShowModal;
 end;
 
@@ -9297,7 +9291,6 @@ begin
   try
     if Assigned(FLosslessScalingHelper) then
     begin
-      TLosslessScalingTabHelper(FLosslessScalingHelper).ApplyThemeStyles;
       TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
       if Assigned(TLosslessScalingTabHelper(FLosslessScalingHelper).DllPathEdit) then
       begin

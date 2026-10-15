@@ -103,12 +103,6 @@ procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
 function GetBitBtnButtonTextColor(ABtn: TBitBtn): TColor;
 
 /// <summary>
-/// Returns True if the Lazarus TQtBitBtn internal FIcon has been unarmed (nil)
-/// so that Qt native painting renders the text in theme colors.
-/// </summary>
-function IsBitBtnIconUnarmed(ABtn: TBitBtn): Boolean;
-
-/// <summary>
 /// Recursively applies dark theme colors to all controls in a form
 /// </summary>
 /// <param name="AControl">The parent control to apply dark theme to</param>
@@ -210,41 +204,12 @@ procedure ApplyTabBarStyleSheet(APageControl: TPageControl; AIsDark: Boolean);
 implementation
 
 uses
-  Types,
   {$IFDEF LCLqt6}
   qt6,
   {$ELSE}
   qt5,
   {$ENDIF}
   qtwidgets, bgmod_resources;
-
-type
-  TQtBitBtnAccessor = class(TQtPushButton)
-  public
-    FGlyphLayout: Integer;
-    FIcon: QIconH;
-    FIconSize: TSize;
-  end;
-
-procedure UnarmBitBtnIcon(ABtn: TBitBtn);
-var
-  Wdgt: QWidgetH;
-  Accessor: TQtBitBtnAccessor;
-begin
-  if not Assigned(ABtn) then Exit;
-  if not ABtn.HandleAllocated then Exit;
-  if not (TObject(ABtn.Handle) is TQtBitBtn) then Exit;
-  Wdgt := TQtWidget(ABtn.Handle).Widget;
-  if Wdgt = nil then Exit;
-  Accessor := TQtBitBtnAccessor(ABtn.Handle);
-  if Accessor.FIcon <> nil then
-  begin
-    if not QIcon_isNull(Accessor.FIcon) then
-      QAbstractButton_setIcon(QAbstractButtonH(Wdgt), Accessor.FIcon);
-    QIcon_destroy(Accessor.FIcon);
-    Accessor.FIcon := nil;
-  end;
-end;
 
 function GetArrowIconPath(const AFileName: string): string;
 var
@@ -936,7 +901,7 @@ begin
       SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
             'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
             'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-            'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(160,170,190); border: 1px solid rgb(40,48,70); }';
+            'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
       QWidget_setStyleSheet(TQtWidget(TWinControl(AButton).Handle).Widget, @SS);
     end;
   end
@@ -945,9 +910,6 @@ begin
     AButton.Color := LightButtonColor;
     AButton.Font.Color := LightTextColor;
   end;
-
-  if (AButton is TBitBtn) and TBitBtn(AButton).HandleAllocated then
-    UnarmBitBtnIcon(TBitBtn(AButton));
 end;
 
 function QtPaletteColorStr(Pal: QPaletteH; AGroup: QPaletteColorGroup; ARole: QPaletteColorRole): string;
@@ -988,7 +950,7 @@ begin
     SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
           'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
           'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
-          'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(160,170,190); border: 1px solid rgb(40,48,70); }';
+          'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';
 
   QWidget_setStyleSheet(Wdgt, @SS);
 
@@ -1012,17 +974,6 @@ begin
     QPalette_setColor(Pal, QPaletteDisabled, QPaletteWindowText, @QCDis);
     QPalette_setColor(Pal, QPaletteDisabled, QPaletteText, @QCDis);
     QWidget_setPalette(Wdgt, Pal);
-  end;
-
-  if (Wdgt <> nil) and (TObject(ABtn.Handle) is TQtBitBtn) then
-  begin
-    if TQtBitBtnAccessor(ABtn.Handle).FIcon <> nil then
-    begin
-      if not QIcon_isNull(TQtBitBtnAccessor(ABtn.Handle).FIcon) then
-        QAbstractButton_setIcon(QAbstractButtonH(Wdgt), TQtBitBtnAccessor(ABtn.Handle).FIcon);
-      QIcon_destroy(TQtBitBtnAccessor(ABtn.Handle).FIcon);
-      TQtBitBtnAccessor(ABtn.Handle).FIcon := nil;
-    end;
   end;
 
   if GetEnvironmentVariable('GOVERLAY_DEBUG_THEME') = '1' then
@@ -1063,14 +1014,6 @@ begin
   if QCRead = nil then Exit;
   Result := RGBToColor(QColor_red(QColorH(QCRead)), QColor_green(QColorH(QCRead)),
     QColor_blue(QColorH(QCRead)));
-end;
-
-function IsBitBtnIconUnarmed(ABtn: TBitBtn): Boolean;
-begin
-  Result := False;
-  if not Assigned(ABtn) or not ABtn.HandleAllocated then Exit;
-  if not (TObject(ABtn.Handle) is TQtBitBtn) then Exit;
-  Result := (TQtBitBtnAccessor(ABtn.Handle).FIcon = nil);
 end;
 
 function LoadOptiScalerDriverPreference: string;

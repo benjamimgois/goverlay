@@ -165,14 +165,12 @@ type
     procedure TestStartupHasMissingLibrariesChecksVkBasaltShaders;
     procedure TestIntelCpuPowerFixSuppressedOnConfigLoadAndFlatpak;
     procedure TestGameModeWarningSuppressedOnConfigLoad;
-    procedure TestAboutDialogTabsStyling;
-    procedure TestLosslessScalingButtonsStyling;
   end;
 
 implementation
 
 uses
-  overlayunit, aboutunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -3701,12 +3699,8 @@ begin
     Expected := ColorToRGB(DarkTextColor);
 
   for i := Low(Btns) to High(Btns) do
-  begin
     AssertEquals('ButtonText palette synced after toggle: ' + Btns[i].Name,
       Integer(Expected), Integer(GetBitBtnButtonTextColor(Btns[i])));
-    AssertTrue('Button icon unarmed for native Qt text painting: ' + Btns[i].Name,
-      IsBitBtnIconUnarmed(Btns[i]));
-  end;
 end;
 
 procedure TGoverlayGuiTests.TestMangoMetricsCpuTab;
@@ -7303,34 +7297,6 @@ begin
     goverlayform.gamemodeCheckBox.Checked := False;
     FFlatpakOverrideForTest := -1;
   end;
-end;
-
-procedure TGoverlayGuiTests.TestAboutDialogTabsStyling;
-begin
-  if not Assigned(aboutForm) then
-    Application.CreateForm(TaboutForm, aboutForm);
-  aboutForm.HandleNeeded;
-  aboutForm.aboutPageControl.HandleNeeded;
-  aboutForm.FormShow(nil);
-  Application.ProcessMessages;
-  AssertTrue('aboutPageControl handle allocated', aboutForm.aboutPageControl.HandleAllocated);
-  AssertTrue('aboutPageControl active page is aboutTabSheet', aboutForm.aboutPageControl.ActivePage = aboutForm.aboutTabSheet);
-end;
-
-procedure TGoverlayGuiTests.TestLosslessScalingButtonsStyling;
-var
-  Helper: TLosslessScalingTabHelper;
-begin
-  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
-  goverlayform.losslessScalingTabSheetShow(nil);
-  Application.ProcessMessages;
-  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
-  AssertTrue('Lossless helper assigned', Assigned(Helper));
-  Helper.StyleActionButtons;
-  if Assigned(Helper.InstallBtn) and Helper.InstallBtn.HandleAllocated then
-    AssertTrue('InstallBtn unarmed', IsBitBtnIconUnarmed(Helper.InstallBtn));
-  if Assigned(Helper.LsfgAssistantBtn) and Helper.LsfgAssistantBtn.HandleAllocated then
-    AssertTrue('LsfgAssistantBtn unarmed', IsBitBtnIconUnarmed(Helper.LsfgAssistantBtn));
 end;
 
 initialization

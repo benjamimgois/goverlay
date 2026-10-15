@@ -30,7 +30,6 @@ type
     aboutTabSheet: TTabSheet;
     licenseTabSheet: TTabSheet;
     procedure FormCreate(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure sponsorImageClick(Sender: TObject);
     procedure donateImageClick(Sender: TObject);
     procedure paypalDonateImageClick(Sender: TObject);
@@ -271,31 +270,6 @@ begin
     meLabel.Transparent := True;
     gplMemo.Color := RGBToColor(245, 246, 248);
     gplMemo.Font.Color := clBlack;
-  end;
-end;
-
-procedure TaboutForm.FormShow(Sender: TObject);
-var
-  NewDarkBg: TColor;
-begin
-  NewDarkBg := RGBToColor(22, 26, 40);
-  ApplyTheme(Self, CurrentTheme);
-  ApplyTabBarStyleSheet(aboutPageControl, CurrentTheme = tmDark);
-  if CurrentTheme = tmDark then
-  begin
-    Self.Color := NewDarkBg;
-    aboutPageControl.Color := NewDarkBg;
-    aboutTabSheet.Color := NewDarkBg;
-    aboutTabSheet.Font.Color := clWhite;
-    licenseTabSheet.Color := NewDarkBg;
-  end
-  else
-  begin
-    Self.Color := LightBackgroundColor;
-    aboutPageControl.Color := LightBackgroundColor;
-    aboutTabSheet.Color := LightBackgroundColor;
-    aboutTabSheet.Font.Color := clBlack;
-    licenseTabSheet.Color := LightBackgroundColor;
   end;
 end;
 

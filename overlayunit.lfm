@@ -8889,7 +8889,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ImageIndex = -1
+            ImageIndex = 32
             ImageWidth = 15
             ParentFont = False
             TabOrder = 17
@@ -9401,7 +9401,7 @@ object goverlayform: Tgoverlayform
             Font.Height = -11
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
-            ImageIndex = -1
+            ImageIndex = 0
             ImageWidth = 20
             ParentFont = False
             TabOrder = 14
