@@ -1434,7 +1434,7 @@ begin
       LogoW_None  := 48;
       LogoW_Opti  := 84;
       LogoW_De    := 88;
-      LogoW_Helix := 84;
+      LogoW_Helix := 98;
 
       GroupW_None  := 22 + LogoW_None;
       GroupW_Opti  := 22 + LogoW_Opti;
