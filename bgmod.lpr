@@ -131,9 +131,11 @@ var
   SourceDir: string;
   GameProfileName: string;
   UpscalerType: Integer;
+  HelixSrNativeDlss: Integer;
   HasGamePerformance: Boolean;
   GOverlayReshade: Boolean;
   ReshadeDllName: string;
+  DllName: string;
   OrigDlls: array[0..25] of string = (
     'd3dcompiler_47.dll',
     'amd_fidelityfx_dx12.dll',
@@ -376,10 +378,11 @@ end;
 
 procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
 var
-  Candidates: array[0..9] of string = (
+  Candidates: array[0..10] of string = (
     'optiscaler.log',
     'dlss-enabler.log',
     'fakenvapi.log',
+    'helixsr.log',
     'vksumi.log',
     'vkbasalt.log',
     'reshade.log',
@@ -988,6 +991,8 @@ begin
     else
       ChannelFolder := 'dlssenabler-stable';
   end
+  else if UpscalerType = 3 then
+    ChannelFolder := 'optiscaler-helixsr'
   else if OptChannel = 3 then
     ChannelFolder := 'optiscaler-custom'
   else if OptChannel = 2 then
@@ -1159,6 +1164,29 @@ begin
         end;
       end;
     end;
+  end
+  else if UpscalerType = 3 then
+  begin
+    if HelixSrNativeDlss = 1 then
+    begin
+      if (not FileExists(LocalPath + 'dxgi.dll')) or (not FileExists(LocalPath + 'nvngx.dll')) then
+      begin
+        Log('HelixSR Native DLSS files missing in game directory, update needed.');
+        Result := True;
+        Exit;
+      end;
+    end
+    else
+    begin
+      if (not FileExists(LocalPath + DllName)) or
+         (not FileExists(LocalPath + 'OptiScaler.dll')) or
+         (not FileExists(LocalPath + 'HelixSR' + PathDelim + 'helixsr.dll')) then
+      begin
+        Log('HelixSR OptiScaler files missing in game directory, update needed.');
+        Result := True;
+        Exit;
+      end;
+    end;
   end;
 end;
 
@@ -1181,7 +1209,7 @@ var
   VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath: string;
-  Folders: array[0..5] of string;
+  Folders: array[0..6] of string;
   f: Integer;
   Ini: TIniFile;
 begin
@@ -1282,6 +1310,7 @@ begin
   Folders[3] := 'optiscaler-custom';
   Folders[4] := 'dlssenabler-stable';
   Folders[5] := 'dlssenabler-edge';
+  Folders[6] := 'optiscaler-helixsr';
 
   for f := 0 to High(Folders) do
   begin
@@ -1290,6 +1319,8 @@ begin
     begin
       if (TargetSize = GetFileSize(CandidatePath + 'renames' + PathDelim + FileName)) or
          (TargetSize = GetFileSize(CandidatePath + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + 'optiscaler' + PathDelim + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + 'dlss-loader' + PathDelim + 'dxgi.dll')) or
          (TargetSize = GetFileSize(CandidatePath + FileName)) then
       begin
         Result := True;
@@ -1928,6 +1959,9 @@ begin
 
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'D3D12_OptiScaler');
+  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'HelixSR');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.ini');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.log');
   if DirectoryExists(IncludeTrailingPathDelimiter(AGameDir) + 'plugins') then
   begin
     CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
@@ -2404,7 +2438,7 @@ begin
 end;
 
 var
-  DllName, DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
+  DllBase, CurrentOverrides, NewOverrides, TempStr, GlobalBgmodPath, OptiBaseDir: string;
   TomlPath, LsfgDllPath, LsfgFlow, LsfgPerf, LsfgHdr, LsfgLegacy, LsfgPacing, LsfgPerfStr, LsfgHdrStr, LsfgLegacyStr, InterpolationMethod, LsfgGpu: string;
   LsfgOverridePresent, LsfgPreserveSwapchain, LsfgOverridePresentStr, LsfgPreserveSwapchainStr: string;
   MakoScalingEnabled, MakoScalingMethod, MakoScalingFactor, MakoScalingSharpness, MakoScalingSs: string;
@@ -2606,6 +2640,7 @@ begin
         GOverlayLossless := False;
 
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
+      HelixSrNativeDlss := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0);
       DllName := Ini.ReadString('Config', 'DLL', 'dxgi.dll');
       PreserveIni := Ini.ReadString('Config', 'PRESERVE_INI', 'true') = 'true';
       UnmanagedIni := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
@@ -2802,7 +2837,111 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'nvapi64.dll.b');
           
           // 5. Core Install - Copy proxy DLL
-          if UpscalerType = 1 then
+          if UpscalerType = 3 then
+          begin
+            if HelixSrNativeDlss = 1 then
+            begin
+              Log('Installing HelixSR in Native DLSS mode (direct loader)...');
+              if FileExists(SourceDir + 'dlss-loader' + PathDelim + 'dxgi.dll') then
+                SafeCopyFile(SourceDir + 'dlss-loader' + PathDelim + 'dxgi.dll', IncludeTrailingPathDelimiter(GameDir) + 'dxgi.dll')
+              else if FileExists(ConfigDir + 'dxgi.dll') then
+                SafeCopyFile(ConfigDir + 'dxgi.dll', IncludeTrailingPathDelimiter(GameDir) + 'dxgi.dll');
+
+              if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
+                SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll')
+              else if FileExists(ConfigDir + 'nvngx.dll') then
+                SafeCopyFile(ConfigDir + 'nvngx.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
+
+              if FileExists(ConfigDir + 'helixsr.ini') then
+                SafeCopyFile(ConfigDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini')
+              else if FileExists(SourceDir + 'helixsr.ini') then
+                SafeCopyFile(SourceDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini');
+
+              SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+              SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.asi');
+            end
+            else
+            begin
+              Log('Installing HelixSR in Standard mode (OptiScaler + Backend HelixSR)...');
+              // Base OptiScaler companion files
+              OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
+              if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
+              OptiBaseDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'optiscaler-stable' + PathDelim;
+              if FileExists(OptiBaseDir + 'libxess.dll') then
+                SafeCopyFile(OptiBaseDir + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
+              if DirectoryExists(OptiBaseDir + 'plugins') then
+                CopyDirectory(OptiBaseDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+
+              // OptiScaler.dll & Proxy DLL
+              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+              begin
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+              end
+              else if FileExists(SourceDir + 'OptiScaler.dll') then
+              begin
+                SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+                SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+              end
+              else if FileExists(ConfigDir + 'OptiScaler.dll') then
+              begin
+                SafeCopyFile(ConfigDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+                SafeCopyFile(ConfigDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+              end;
+
+              // fakenvapi.dll & ini
+              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') then
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll')
+              else if FileExists(SourceDir + 'fakenvapi.dll') then
+                SafeCopyFile(SourceDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll')
+              else if FileExists(ConfigDir + 'fakenvapi.dll') then
+                SafeCopyFile(ConfigDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
+
+              if FileExists(ConfigDir + 'fakenvapi.ini') then
+                SafeCopyFile(ConfigDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini')
+              else if FileExists(SourceDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') then
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini')
+              else if FileExists(SourceDir + 'fakenvapi.ini') then
+                SafeCopyFile(SourceDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
+
+              // Deploy HelixSR folder
+              ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
+              if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
+              begin
+                SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
+                SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll');
+              end;
+              if FileExists(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll') then
+                SafeCopyFile(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll');
+              if FileExists(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll') then
+                SafeCopyFile(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll');
+              if FileExists(ConfigDir + 'HelixSR' + PathDelim + 'helixsr.ini') then
+                SafeCopyFile(ConfigDir + 'HelixSR' + PathDelim + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
+              else if FileExists(SourceDir + 'helixsr.ini') then
+                SafeCopyFile(SourceDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
+
+              // OptiScaler.ini & fakenvapi.ini handling
+              SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
+              SyncFakeNvapiIni(ConfigDir, GameDir);
+
+              // Update OptiScaler.ini with HelixSR backend library paths
+              if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+              begin
+                OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+                try
+                  OptiIni.WriteString('Upscalers', 'Dx12Upscaler', 'fsr31');
+                  OptiIni.WriteString('Libraries', 'FfxDx12Path', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.dll'));
+                  OptiIni.WriteString('Libraries', 'FfxDx12SRPath', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll'));
+                  if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll') then
+                    OptiIni.WriteString('Libraries', 'FfxDx12FGPath', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll'));
+                finally
+                  OptiIni.Free;
+                end;
+              end;
+            end;
+          end
+          else if UpscalerType = 1 then
           begin
             // 5a. First copy base OptiScaler files from optiscaler-stable if available
             OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
@@ -3186,6 +3325,11 @@ begin
       NewOverrides := CurrentOverrides + ',' + DllBase + '=n,b'
     else
       NewOverrides := DllBase + '=n,b';
+    if (UpscalerType = 3) and (HelixSrNativeDlss = 1) then
+    begin
+      if Pos('nvngx=', NewOverrides) = 0 then
+        NewOverrides := NewOverrides + ',nvngx=n,b';
+    end;
     SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
   end;
@@ -3840,6 +3984,14 @@ begin
         InitToolLogFile(DlssCentralLogFile, 'DLSS Enabler', GameDir, '');
         Log('DLSS Enabler central log: ' + DlssCentralLogFile);
       end;
+    end
+    else if UpscalerType = 3 then
+    begin
+      if CentralLogDir <> '' then
+      begin
+        InitToolLogFile(IncludeTrailingPathDelimiter(CentralLogDir) + 'helixsr.log', 'HelixSR', GameDir, '');
+        Log('HelixSR central log: ' + IncludeTrailingPathDelimiter(CentralLogDir) + 'helixsr.log');
+      end;
     end;
   end;
 
@@ -3945,6 +4097,8 @@ begin
       begin
         if UpscalerType = 1 then
           SplashItems.Add('DLSS Enabler')
+        else if UpscalerType = 3 then
+          SplashItems.Add('HelixSR')
         else
           SplashItems.Add('OptiScaler');
       end;

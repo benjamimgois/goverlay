@@ -27,6 +27,8 @@ type
     FForceLatencyFlexToggle: TToggleSwitch;
     FUnmanagedIniToggle: TToggleSwitch;
     FFsr4vkToggle: TToggleSwitch;
+    FHelixSrNativeDlssToggle: TToggleSwitch;
+    FHelixSrModeInfoLbl: TLabel;
     FOsCustomInfoLbl: TLabel;
     FOsToggles: TFPList;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
@@ -51,6 +53,8 @@ type
     property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
     property UnmanagedIniToggle: TToggleSwitch read FUnmanagedIniToggle;
     property Fsr4vkToggle: TToggleSwitch read FFsr4vkToggle;
+    property HelixSrNativeDlssToggle: TToggleSwitch read FHelixSrNativeDlssToggle;
+    property HelixSrModeInfoLbl: TLabel read FHelixSrModeInfoLbl;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
     property OsToggles: TFPList read FOsToggles;
   end;
@@ -108,6 +112,8 @@ begin
     if Assigned(FForm.unmanagedIniCheckBox) then FForm.unmanagedIniCheckBox.Visible := False;
     if Assigned(FFsr4vkToggle) and Assigned(FForm.fsr4vkCheckBox) then
       FFsr4vkToggle.Checked := FForm.fsr4vkCheckBox.Checked;
+    if Assigned(FHelixSrNativeDlssToggle) and Assigned(FForm.helixsrNativeDlssCheckBox) then
+      FHelixSrNativeDlssToggle.Checked := FForm.helixsrNativeDlssCheckBox.Checked;
   end;
 
   if Assigned(FOsToggles) then
@@ -344,6 +350,15 @@ begin
     dlssenablerRadioButton.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
     dlssenablerRadioButton.ShowHint := True;
 
+    helixsrRadioButton := TRadioButton.Create(FForm);
+    helixsrRadioButton.Parent := FOsUpscalerCard;
+    helixsrRadioButton.Caption := '';
+    DarkRadio(helixsrRadioButton);
+    helixsrRadioButton.Checked := False;
+    helixsrRadioButton.OnClick := @helixsrRadioButtonClick;
+    helixsrRadioButton.Hint := 'DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders';
+    helixsrRadioButton.ShowHint := True;
+
     optiscalerLogoImage := TImage.Create(FForm);
     optiscalerLogoImage.AntialiasingMode := amOn;
     optiscalerLogoImage.StretchInEnabled  := True;
@@ -371,6 +386,20 @@ begin
     dlssEnablerLogoImage.OnClick := @dlssEnablerLogoImageClick;
     dlssEnablerLogoImage.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
     dlssEnablerLogoImage.ShowHint := True;
+
+    helixsrLogoImage := TImage.Create(FForm);
+    helixsrLogoImage.AntialiasingMode := amOn;
+    helixsrLogoImage.StretchInEnabled  := True;
+    helixsrLogoImage.StretchOutEnabled := True;
+    helixsrLogoImage.Parent := FOsUpscalerCard;
+    helixsrLogoImage.Transparent := True;
+    helixsrLogoImage.Center := True;
+    helixsrLogoImage.Proportional := True;
+    helixsrLogoImage.Stretch := True;
+    helixsrLogoImage.Cursor := crHandPoint;
+    helixsrLogoImage.OnClick := @helixsrLogoImageClick;
+    helixsrLogoImage.Hint := 'DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders';
+    helixsrLogoImage.ShowHint := True;
 
     dlssEnablerVersionLabel := TLabel.Create(FForm);
     dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
@@ -406,6 +435,7 @@ begin
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;
     FNoneUpscalerPngLogo := TPortableNetworkGraphic.Create;
+    FHelixSrPngLogo := TPortableNetworkGraphic.Create;
 
     IconPath := GetAppBaseDir + 'assets/icons/upscaler_optiscaler.png';
     if not FileExists(IconPath) then
@@ -425,13 +455,21 @@ begin
     if FileExists(IconPath) then
       FNoneUpscalerPngLogo.LoadFromFile(IconPath);
 
+    IconPath := GetAppBaseDir + 'assets/icons/upscaler_helixsr.png';
+    if not FileExists(IconPath) then
+      IconPath := 'assets/icons/upscaler_helixsr.png';
+    if FileExists(IconPath) then
+      FHelixSrPngLogo.LoadFromFile(IconPath);
+
     FOptiScalerPngLogoDimmed := CreateDimmedPng(FOptiScalerPngLogo, 35);
     FDlssEnablerPngLogoDimmed := CreateDimmedPng(FDlssEnablerPngLogo, 35);
     FNoneUpscalerPngLogoDimmed := CreateDimmedPng(FNoneUpscalerPngLogo, 35);
+    FHelixSrPngLogoDimmed := CreateDimmedPng(FHelixSrPngLogo, 35);
 
     optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
     dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
     noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogo);
+    helixsrLogoImage.Picture.Assign(FHelixSrPngLogoDimmed);
     UpdateUpscalerImageOpacity;
 
     // ── Card 0b: GPU Driver (Right) ─────────────────────────────────────
@@ -817,6 +855,34 @@ begin
       FFsr4vkToggle := PlaceOsToggle(fsr4vkCheckBox, FOsSpatialSec);
     fsr4vkCheckBox.Visible := False;
 
+    if helixsrNativeDlssCheckBox = nil then
+    begin
+      helixsrNativeDlssCheckBox := TCheckBox.Create(FForm);
+      helixsrNativeDlssCheckBox.Name := 'helixsrNativeDlssCheckBox';
+      helixsrNativeDlssCheckBox.Caption := 'Native DLSS (Experimental)';
+      helixsrNativeDlssCheckBox.Hint := 'Native DLSS (Experimental)' + LineEnding + 'Bypass OptiScaler using direct DLSS loader (Single-player only, anti-cheat ban risk)';
+      helixsrNativeDlssCheckBox.ShowHint := True;
+      helixsrNativeDlssCheckBox.OnChange := @FForm.helixsrNativeDlssCheckBoxChange;
+      helixsrNativeDlssCheckBox.Anchors := [akLeft, akTop];
+      helixsrNativeDlssCheckBox.Parent := FOsSpatialSec;
+    end;
+    if FHelixSrNativeDlssToggle = nil then
+      FHelixSrNativeDlssToggle := PlaceOsToggle(helixsrNativeDlssCheckBox, FOsSpatialSec);
+    helixsrNativeDlssCheckBox.Visible := False;
+
+    if FHelixSrModeInfoLbl = nil then
+    begin
+      FHelixSrModeInfoLbl := TLabel.Create(FForm);
+      FHelixSrModeInfoLbl.Name := 'FHelixSrModeInfoLbl';
+      FHelixSrModeInfoLbl.Parent := FOsSpatialSec;
+      FHelixSrModeInfoLbl.Caption := '';
+      FHelixSrModeInfoLbl.Font.Color := $999999;
+      FHelixSrModeInfoLbl.Font.Size := 8;
+      FHelixSrModeInfoLbl.WordWrap := True;
+      FHelixSrModeInfoLbl.Transparent := True;
+      FHelixSrModeInfoLbl.Visible := False;
+    end;
+
     // --- Sub-card 3: Temporal Upscaler controls ---
     if fgInputLabel = nil then
     begin
@@ -1105,13 +1171,16 @@ var
   Ver, NewTag, VerCaption: string;
   DlssV, FsrV, XessV: string;
   HasAnyUpscaler: Boolean;
-  IsDlssEnablerActive: Boolean;
+  IsDlssEnablerActive, IsHelixSrActive: Boolean;
+  HelixDir: string;
+  HelixVars: TStringList;
 begin
   with FForm do
   begin
     if not Assigned(FOsStatDots[0]) then Exit;
 
     IsDlssEnablerActive := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
+    IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
 
     for i := 0 to 5 do
     begin
@@ -1166,38 +1235,68 @@ begin
               FOsStatDots[1].Brush.Color := CLR_NONE;
           end;
 
-        2: // DLSS Enabler
+        2: // DLSS Enabler or HelixSR
           begin
-            if not IsDlssEnablerActive then
+            if IsHelixSrActive then
             begin
-              FOsStatVerLbls[2].Caption    := '--';
-              FOsStatVerLbls[2].Font.Color := CYAN_VER;
-              FOsStatDots[2].Brush.Color   := CLR_NONE;
-            end
-            else
-            begin
-              Ver := dlssEnablerVersionLabel.Caption;
-              VerCaption := IfThen(Ver <> '', Ver, '—');
-
-              if optLabel2.Visible and (optLabel2.Caption <> '') then
+              FOsStatNameLbls[2].Caption := 'HelixSR';
+              HelixDir := GetBGModOriginalHelixSRPath;
+              Ver := '';
+              if FileExists(IncludeTrailingPathDelimiter(HelixDir) + 'goverlay.vars') then
               begin
-                NewTag := optLabel2.Hint;
-                if NewTag <> '' then
-                begin
-                  VerCaption := VerCaption + ' → ' + NewTag;
-                  FOsStatVerLbls[2].Caption    := VerCaption;
-                  FOsStatVerLbls[2].Font.Color := CLR_UPDATE;
-                  FOsStatDots[2].Brush.Color   := CLR_OK;
-                  Continue;
+                HelixVars := TStringList.Create;
+                try
+                  HelixVars.LoadFromFile(IncludeTrailingPathDelimiter(HelixDir) + 'goverlay.vars');
+                  Ver := HelixVars.Values['OPTISCALER_HELIXSR_VERSION'];
+                finally
+                  HelixVars.Free;
                 end;
               end;
+              if (Ver = '') and FileExists(IncludeTrailingPathDelimiter(HelixDir) + 'amd_fidelityfx_dx12.dll') then
+                Ver := 'v1.8.1';
 
+              VerCaption := IfThen(Ver <> '', Ver, '—');
               FOsStatVerLbls[2].Caption    := VerCaption;
               FOsStatVerLbls[2].Font.Color := CYAN_VER;
               if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
                 FOsStatDots[2].Brush.Color := CLR_OK
               else
                 FOsStatDots[2].Brush.Color := CLR_NONE;
+            end
+            else
+            begin
+              FOsStatNameLbls[2].Caption := 'DLSS Enabler';
+              if not IsDlssEnablerActive then
+              begin
+                FOsStatVerLbls[2].Caption    := '--';
+                FOsStatVerLbls[2].Font.Color := CYAN_VER;
+                FOsStatDots[2].Brush.Color   := CLR_NONE;
+              end
+              else
+              begin
+                Ver := dlssEnablerVersionLabel.Caption;
+                VerCaption := IfThen(Ver <> '', Ver, '—');
+
+                if optLabel2.Visible and (optLabel2.Caption <> '') then
+                begin
+                  NewTag := optLabel2.Hint;
+                  if NewTag <> '' then
+                  begin
+                    VerCaption := VerCaption + ' → ' + NewTag;
+                    FOsStatVerLbls[2].Caption    := VerCaption;
+                    FOsStatVerLbls[2].Font.Color := CLR_UPDATE;
+                    FOsStatDots[2].Brush.Color   := CLR_OK;
+                    Continue;
+                  end;
+                end;
+
+                FOsStatVerLbls[2].Caption    := VerCaption;
+                FOsStatVerLbls[2].Font.Color := CYAN_VER;
+                if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+                  FOsStatDots[2].Brush.Color := CLR_OK
+                else
+                  FOsStatDots[2].Brush.Color := CLR_NONE;
+              end;
             end;
           end;
 
@@ -1272,11 +1371,11 @@ var
   ColW, i, Col, RowIdx: Integer;
   InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
   OptW, FakeW, ColM, X1, X2, X3, X4, Y0: Integer;
-  ComboW, CheckW: Integer;
+  ComboW, CheckW, PB_W: Integer;
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
-  LogoH, LogoW_None, LogoW_Opti, LogoW_De: Integer;
-  GroupW_None, GroupW_Opti, GroupW_De, TotalGroupW, GapBetween, SlotW: Integer;
+  LogoH, LogoW_None, LogoW_Opti, LogoW_De, LogoW_Helix: Integer;
+  GroupW_None, GroupW_Opti, GroupW_De, GroupW_Helix, TotalGroupW, GapBetween, SlotW: Integer;
 begin
   with FForm do
   begin
@@ -1330,37 +1429,46 @@ begin
     begin
       FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
       InnerW := CW - 2 * PAD;
-      SlotW  := InnerW div 3;
+      SlotW  := InnerW div 4;
 
-      LogoW_None := 48;
-      LogoW_Opti := 84;
-      LogoW_De   := 88;
+      LogoW_None  := 48;
+      LogoW_Opti  := 84;
+      LogoW_De    := 88;
+      LogoW_Helix := 84;
 
-      GroupW_None := 22 + LogoW_None;
-      GroupW_Opti := 22 + LogoW_Opti;
-      GroupW_De   := 22 + LogoW_De;
+      GroupW_None  := 22 + LogoW_None;
+      GroupW_Opti  := 22 + LogoW_Opti;
+      GroupW_De    := 22 + LogoW_De;
+      GroupW_Helix := 22 + LogoW_Helix;
 
       X1 := PAD + (SlotW - GroupW_None) div 2;
       X2 := PAD + SlotW + (SlotW - GroupW_Opti) div 2;
       X3 := PAD + 2 * SlotW + (SlotW - GroupW_De) div 2;
+      X4 := PAD + 3 * SlotW + (SlotW - GroupW_Helix) div 2;
 
-      // Column 1: None (left slot)
+      // Column 1: None
       if Assigned(noneUpscalerRadioButton) then
         noneUpscalerRadioButton.SetBounds(X1, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(noneUpscalerLogoImage) then
         noneUpscalerLogoImage.SetBounds(X1 + 22, HDR + (GPU_GH - 20) div 2, LogoW_None, 20);
 
-      // Column 2: OptiScaler (middle slot)
+      // Column 2: OptiScaler
       if Assigned(optiscalerRadioButton) then
         optiscalerRadioButton.SetBounds(X2, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(optiscalerLogoImage) then
         optiscalerLogoImage.SetBounds(X2 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Opti, 36);
 
-      // Column 3: DLSS Enabler (right slot)
+      // Column 3: DLSS Enabler
       if Assigned(dlssenablerRadioButton) then
         dlssenablerRadioButton.SetBounds(X3, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(dlssEnablerLogoImage) then
         dlssEnablerLogoImage.SetBounds(X3 + 22, HDR + (GPU_GH - 36) div 2, LogoW_De, 36);
+
+      // Column 4: HelixSR
+      if Assigned(helixsrRadioButton) then
+        helixsrRadioButton.SetBounds(X4, HDR + (GPU_GH - 20) div 2, 20, 20);
+      if Assigned(helixsrLogoImage) then
+        helixsrLogoImage.SetBounds(X4 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Helix, 36);
     end;
 
     // ── Card 0b: Standalone GPU Driver Card (Hidden) ─────────────────────
@@ -1428,25 +1536,43 @@ begin
 
       if Assigned(FOptiPatcherToggle) then
       begin
+        FOptiPatcherToggle.Visible := True;
         FOptiPatcherToggle.SetBounds(10, Y0 + 116, FOptiPatcherToggle.GetOptimalWidth, 20);
         if Assigned(FOsPatcherListBtn) then
+        begin
+          FOsPatcherListBtn.Visible := True;
           FOsPatcherListBtn.SetBounds(FOptiPatcherToggle.Left + FOptiPatcherToggle.Width + 4, Y0 + 114, 22, 22);
+        end;
       end
       else
       begin
+        optipatcherCheckBox.Visible := True;
         optipatcherCheckBox.SetBounds(10, Y0 + 116, 95, 20);
         if Assigned(FOsPatcherListBtn) then
+        begin
+          FOsPatcherListBtn.Visible := True;
           FOsPatcherListBtn.SetBounds(108, Y0 + 114, 22, 22);
+        end;
       end;
 
+      shortcutkeyLabel.Visible := True;
       shortcutkeyLabel.SetBounds(10, Y0 + 146, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
+      begin
+        FOsShortcutCaptureBtn.Visible := True;
         FOsShortcutCaptureBtn.SetBounds(10, Y0 + 164, Min(ColW - 20, 120), 26);
+      end;
 
       if Assigned(dlssenablerToggleLabel) then
+      begin
+        dlssenablerToggleLabel.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
         dlssenablerToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
+      end;
       if Assigned(dlssenablerToggleBtn) then
+      begin
+        dlssenablerToggleBtn.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
         dlssenablerToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+      end;
     end;
 
     // Reflow Sub-card 2: Spatial Upscaler
@@ -1454,26 +1580,62 @@ begin
     begin
       if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(10, 6, ColW - 20, 16);
 
+      preferredUpscalerLabel.Visible := True;
+      preferredUpscalerComboBox.Visible := True;
       preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
       preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
+      fsrversionLabel.Visible := True;
+      fsrversionComboBox.Visible := True;
       fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
       fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(FSpoofToggle) then
-        FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20)
+      begin
+        FSpoofToggle.Visible := True;
+        FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+      end
       else
+      begin
+        spoofCheckBox.Visible := True;
         spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
+      end;
 
       if Assigned(FForceFsr4Toggle) then
-        FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20)
+      begin
+        FForceFsr4Toggle.Visible := True;
+        FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20);
+      end
       else
+      begin
+        forceFsr4Int8CheckBox.Visible := True;
         forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
+      end;
 
       if Assigned(FFsr4vkToggle) then
-        FFsr4vkToggle.SetBounds(10, Y0 + 176, ColW - 20, 20)
+      begin
+        FFsr4vkToggle.Visible := True;
+        FFsr4vkToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
+      end
       else if Assigned(fsr4vkCheckBox) then
+      begin
+        fsr4vkCheckBox.Visible := True;
         fsr4vkCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
+      end;
+
+      if Assigned(FHelixSrNativeDlssToggle) then
+      begin
+        FHelixSrNativeDlssToggle.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
+        FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 200, ColW - 20, 20);
+      end
+      else if Assigned(helixsrNativeDlssCheckBox) then
+      begin
+        helixsrNativeDlssCheckBox.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
+        helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 200, ColW - 20, 20);
+      end;
+
+      if Assigned(FHelixSrModeInfoLbl) then
+        FHelixSrModeInfoLbl.Visible := False;
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler
@@ -1481,16 +1643,26 @@ begin
     begin
       if Assigned(FOsTemporalLbl) then FOsTemporalLbl.SetBounds(10, 6, ColW - 20, 16);
 
+      fgInputLabel.Enabled := True;
       fgInputLabel.SetBounds(10, Y0, ColW - 20, 16);
+      fgInputComboBox.Enabled := True;
       fgInputComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
+      fgOutputLabel.Enabled := True;
       fgOutputLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      fgOutputComboBox.Enabled := True;
       fgOutputComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(FForceMlfgToggle) then
-        FForceMlfgToggle.SetBounds(10, Y0 + 116, ColW - 20, 20)
+      begin
+        FForceMlfgToggle.Enabled := True;
+        FForceMlfgToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+      end
       else
+      begin
+        emufp8CheckBox.Enabled := True;
         emufp8CheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
+      end;
     end;
 
     // Reflow Sub-card 4: Reflex / Antilag
@@ -1527,8 +1699,11 @@ begin
     checkupdBitBtn.SetBounds(PAD + ComboW + 8, Y + (BTN_H - 28) div 2, CheckW, 28);
     updateBitBtn.SetBounds(PAD + ComboW + 8, Y + (BTN_H - 28) div 2, CheckW, 28);
 
-    updateProgressBar.SetBounds(PAD, Y + (BTN_H - PB_H) div 2, ComboW, PB_H);
-    updatestatusLabel.SetBounds(PAD + ComboW + 4, Y + (BTN_H - PB_H) div 2, CheckW + 4, PB_H);
+    PB_W := (CW - 2 * PAD) div 2;
+    if PB_W > 320 then PB_W := 320;
+    if PB_W < 160 then PB_W := 160;
+    updateProgressBar.SetBounds(PAD, Y + (BTN_H - PB_H) div 2, PB_W, PB_H);
+    updatestatusLabel.SetBounds(PAD + PB_W + 12, Y + (BTN_H - PB_H) div 2, (CW - 2 * PAD) - PB_W - 12, PB_H);
 
     if IsCustom then
     begin
@@ -1717,6 +1892,18 @@ begin
           noneUpscalerRadioButton.Checked := True;
         optiscalerRadioButton.Checked := False;
         dlssenablerRadioButton.Checked := False;
+        if Assigned(helixsrRadioButton) then
+          helixsrRadioButton.Checked := False;
+        optversionComboBox.Enabled := False;
+      end
+      else if Settings.UpscalerTypeItemIndex = 3 then
+      begin
+        if Assigned(helixsrRadioButton) then
+          helixsrRadioButton.Checked := True;
+        optiscalerRadioButton.Checked := False;
+        dlssenablerRadioButton.Checked := False;
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := False;
       end
       else
@@ -1725,11 +1912,19 @@ begin
         dlssenablerRadioButton.Checked := False;
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
+        if Assigned(helixsrRadioButton) then
+          helixsrRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
         if Settings.OptVersionItemIndex in [0, 1, 2, 3] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
+      end;
+      if Assigned(helixsrNativeDlssCheckBox) then
+      begin
+        helixsrNativeDlssCheckBox.Checked := Settings.HelixSrNativeDlssChecked;
+        if Assigned(FHelixSrNativeDlssToggle) then
+          FHelixSrNativeDlssToggle.Checked := Settings.HelixSrNativeDlssChecked;
       end;
       UpdateUpscalerImageOpacity;
       UpdateFrameGenOptionsUI;
@@ -1819,8 +2014,15 @@ begin
       Settings.UpscalerTypeItemIndex := 2
     else if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
       Settings.UpscalerTypeItemIndex := 1
+    else if Assigned(helixsrRadioButton) and helixsrRadioButton.Checked then
+      Settings.UpscalerTypeItemIndex := 3
     else
       Settings.UpscalerTypeItemIndex := 0;
+
+    if Assigned(helixsrNativeDlssCheckBox) then
+      Settings.HelixSrNativeDlssChecked := helixsrNativeDlssCheckBox.Checked
+    else
+      Settings.HelixSrNativeDlssChecked := False;
 
     try
       if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then

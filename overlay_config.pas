@@ -77,6 +77,7 @@ type
     FGOutputItemIndex: Integer;
     LogLevelItemIndex: Integer;
     UnmanagedIniChecked: Boolean;
+    HelixSrNativeDlssChecked: Boolean;
   end;
 
   TMangoHudSettings = record
@@ -907,6 +908,10 @@ begin
     Ini.WriteString('Config', 'PRESERVE_INI', 'true');
     Ini.WriteInteger('Config', 'OPT_CHANNEL', Settings.OptVersionItemIndex);
     Ini.WriteInteger('Config', 'UPSCALER_TYPE', Settings.UpscalerTypeItemIndex);
+    if Settings.HelixSrNativeDlssChecked then
+      Ini.WriteInteger('Config', 'HELIXSR_NATIVE_DLSS', 1)
+    else
+      Ini.WriteInteger('Config', 'HELIXSR_NATIVE_DLSS', 0);
     if Settings.UnmanagedIniChecked then
       Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '1')
     else
@@ -1818,6 +1823,7 @@ begin
       Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
       Settings.OptVersionItemIndex := Ini.ReadInteger('Config', 'OPT_CHANNEL', -1);
       Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
+      Settings.HelixSrNativeDlssChecked := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0) = 1;
       Settings.UnmanagedIniChecked := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
     finally
       Ini.Free;

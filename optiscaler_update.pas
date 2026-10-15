@@ -23,6 +23,19 @@ function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProg
 // Check and automatically install/heal the FSR4VK OptiScaler build (dvj5411/fsr4vk)
 function CheckAndInstallFsr4vk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
+// Fetch the latest HelixSR release (lonewolf0622/HelixSR) tag and .zip asset URL
+function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
+
+// Check and automatically install/heal the HelixSR OptiScaler runtime (lonewolf0622/HelixSR)
+function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Check whether the HelixSR neural runtime has been compiled locally (HXSRNET1
+// footer marker in amd_fidelityfx_dx12.dll, or weights/kernels payloads present)
+function IsHelixSRCompiled(const ARootPath: string = ''): Boolean;
+
+// Compile the HelixSR neural shaders/kernels on demand by running helixsr-setup.sh
+function CompileHelixSR(AOnProgress: TDownloadProgressProc = nil): Boolean;
+
 // Audit mandatory upscaler and DLSS libraries on disk
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean; overload;
 function HasMissingMandatoryLibraries: Boolean; overload;
@@ -275,6 +288,94 @@ begin
   end;
 
   Result := (ATag <> '') or (AUrl <> '');
+end;
+
+// Query the latest release of lonewolf0622/HelixSR from the GitHub API.
+// Fills ATag with the release tag (e.g. v1.8.1) and AUrl with the .zip asset URL.
+// Falls back to a hardcoded tag/URL when the API cannot be reached or parsed.
+function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  RespText, TmpFile: string;
+  KeyPos, ColonPos, QuoteStart, QuoteEnd, UrlPos: Integer;
+begin
+  Result := False;
+  ATag := '';
+  AUrl := '';
+
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'helixsr_api.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(TmpFile);
+    Process.Parameters.Add('https://api.github.com/repos/lonewolf0622/HelixSR/releases/latest');
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if FileExists(TmpFile) then
+  begin
+    OutputList := TStringList.Create;
+    try
+      OutputList.LoadFromFile(TmpFile);
+      RespText := OutputList.Text;
+    finally
+      OutputList.Free;
+      DeleteFile(TmpFile);
+    end;
+
+    // Extract "tag_name": "vX.Y.Z"
+    KeyPos := Pos('"tag_name"', RespText);
+    if KeyPos > 0 then
+    begin
+      ColonPos := PosEx(':', RespText, KeyPos + 10);
+      if ColonPos > 0 then
+      begin
+        QuoteStart := PosEx('"', RespText, ColonPos);
+        if QuoteStart > 0 then
+        begin
+          QuoteEnd := PosEx('"', RespText, QuoteStart + 1);
+          if QuoteEnd > QuoteStart then
+            ATag := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+        end;
+      end;
+    end;
+
+    // Extract the first browser_download_url that points to a .zip asset
+    UrlPos := Pos('browser_download_url', RespText);
+    while UrlPos > 0 do
+    begin
+      QuoteEnd := PosEx('.zip"', RespText, UrlPos);
+      if QuoteEnd > 0 then
+      begin
+        KeyPos := PosEx('http', RespText, UrlPos);
+        if (KeyPos > 0) and (KeyPos < QuoteEnd) then
+        begin
+          AUrl := Copy(RespText, KeyPos, QuoteEnd + 4 - KeyPos);
+          Break;
+        end;
+      end;
+      UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+    end;
+  end;
+
+  // Fallback to a known-good release if the API could not provide a usable tag/URL
+  if (ATag = '') or (AUrl = '') then
+  begin
+    if ATag = '' then
+      ATag := 'v1.8.1';
+    if AUrl = '' then
+      AUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
+  end;
+
+  Result := (ATag <> '') and (AUrl <> '');
 end;
 
 // Read the installed FSR4VK tag from a game profile's goverlay.vars, falling
@@ -4232,6 +4333,390 @@ begin
     WriteLn('[FSR4VK] Successfully installed FSR4VK release ', Tag);
 end;
 
+function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  TargetDir, Dx12Dll, OptiDll, SetupScript: string;
+  Tag, DownloadUrl, TempZip, TempExtract, SubDir: string;
+  Process: TProcess;
+  ExitCode: Integer;
+  VarsPath: string;
+  VarsList: TStringList;
+  Scan: TSearchRec;
+
+  procedure CopyDirectoryTree(const ASrc, ADst: string);
+  var
+    SR: TSearchRec;
+    SPath, DPath: string;
+  begin
+    if not DirectoryExists(ADst) then
+      ForceDirectories(ADst);
+    SPath := IncludeTrailingPathDelimiter(ASrc);
+    DPath := IncludeTrailingPathDelimiter(ADst);
+    if FindFirst(SPath + '*', faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Name <> '.') and (SR.Name <> '..') then
+          begin
+            if (SR.Attr and faDirectory) = faDirectory then
+              CopyDirectoryTree(SPath + SR.Name, DPath + SR.Name)
+            else
+              CopyFile(SPath + SR.Name, DPath + SR.Name);
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+begin
+  Result := True;
+  TargetDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+  ForceDirectories(TargetDir);
+
+  Dx12Dll := TargetDir + 'amd_fidelityfx_dx12.dll';
+  OptiDll := TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll';
+  SetupScript := TargetDir + 'helixsr-setup.sh';
+
+  if not AForce and FileExists(Dx12Dll) and FileExists(OptiDll) and FileExists(SetupScript) then
+  begin
+    WriteLn('[HELIXSR] All HelixSR libraries are present in ', TargetDir);
+    Exit(True);
+  end;
+
+  WriteLn('[HELIXSR] Verifying and downloading HelixSR release (lonewolf0622/HelixSR)...');
+  if Assigned(AOnProgress) then
+    AOnProgress(45, 'Downloading HelixSR runtime...');
+
+  Tag := '';
+  DownloadUrl := '';
+  if not FetchHelixSRLatestRelease(Tag, DownloadUrl) then
+  begin
+    Tag := 'v1.8.1';
+    DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
+  end;
+  if DownloadUrl = '' then
+    DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
+  if Tag = '' then
+    Tag := 'v1.8.1';
+
+  TempZip := IncludeTrailingPathDelimiter(GetTempDir) + 'helixsr_download.zip';
+  TempExtract := IncludeTrailingPathDelimiter(GetTempDir) + 'helixsr_extract' + PathDelim;
+  if FileExists(TempZip) then
+    DeleteFile(TempZip);
+  if DirectoryExists(TempExtract) then
+    DeleteDirectory(TempExtract, False);
+
+  ExitCode := RunCurlWithProgress(DownloadUrl, TempZip, 46, 54, 'Downloading HelixSR', AOnProgress);
+  if (ExitCode <> 0) or not FileExists(TempZip) then
+  begin
+    WriteLn('[HELIXSR] ERROR: Failed to download HelixSR from ', DownloadUrl);
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('HelixSR (OptiScaler & DLSS Model E runtime)') = -1) then
+      AFailedFiles.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
+    Exit(False);
+  end;
+
+  ForceDirectories(TempExtract);
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := '7z';
+    Process.Parameters.Add('x');
+    Process.Parameters.Add('-y');
+    Process.Parameters.Add(TempZip);
+    Process.Parameters.Add('-o' + ExcludeTrailingPathDelimiter(TempExtract));
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  // If the archive wraps its payload in a HelixSR-* subfolder, deploy that
+  // subfolder's contents; otherwise deploy straight from the extract root.
+  SubDir := '';
+  if FindFirst(TempExtract + 'HelixSR-*', faDirectory, Scan) = 0 then
+  begin
+    try
+      if (Scan.Name <> '.') and (Scan.Name <> '..') and ((Scan.Attr and faDirectory) = faDirectory) then
+        SubDir := IncludeTrailingPathDelimiter(TempExtract) + Scan.Name;
+    finally
+      FindClose(Scan);
+    end;
+  end;
+
+  if SubDir <> '' then
+    CopyDirectoryTree(SubDir, TargetDir)
+  else
+    CopyDirectoryTree(TempExtract, TargetDir);
+
+  // Clean up temp files
+  if FileExists(TempZip) then
+    DeleteFile(TempZip);
+  if DirectoryExists(TempExtract) then
+    DeleteDirectory(TempExtract, False);
+
+  // Persist version tag in goverlay.vars
+  VarsPath := TargetDir + 'goverlay.vars';
+  VarsList := TStringList.Create;
+  try
+    if FileExists(VarsPath) then
+      VarsList.LoadFromFile(VarsPath);
+    VarsList.Values['OPTISCALER_HELIXSR_VERSION'] := Tag;
+    VarsList.SaveToFile(VarsPath);
+  finally
+    VarsList.Free;
+  end;
+
+  // Ensure scripts and binaries have execution permissions
+  fpChmod(PChar(TargetDir + 'helixsr-setup.sh'), &755);
+  fpChmod(PChar(TargetDir + 'helixsr-uninstall.sh'), &755);
+  if FileExists(TargetDir + 'setup/lib/model/launch_synth') then
+    fpChmod(PChar(TargetDir + 'setup/lib/model/launch_synth'), &755);
+
+  // Copy OptiScaler.dll and fakenvapi companion files to root if present in optiscaler subfolder
+  if FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and not FileExists(TargetDir + 'OptiScaler.dll') then
+    CopyFile(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', TargetDir + 'OptiScaler.dll');
+  if FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and not FileExists(TargetDir + 'fakenvapi.dll') then
+    CopyFile(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll', TargetDir + 'fakenvapi.dll');
+  if FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and not FileExists(TargetDir + 'fakenvapi.ini') then
+    CopyFile(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini', TargetDir + 'fakenvapi.ini');
+
+  if not FileExists(Dx12Dll) or not FileExists(OptiDll) then
+  begin
+    WriteLn('[HELIXSR] ERROR: Extraction completed but mandatory DLLs missing');
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('HelixSR (OptiScaler & DLSS Model E runtime)') = -1) then
+      AFailedFiles.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
+    Result := False;
+  end
+  else
+    WriteLn('[HELIXSR] Successfully installed HelixSR release ', Tag);
+end;
+
+// Check whether the HelixSR neural runtime has been compiled locally.
+// Returns True when amd_fidelityfx_dx12.dll carries the HXSRNET1 footer marker,
+// or when the extracted weights/kernels payloads exist and are non-empty.
+function IsHelixSRCompiled(const ARootPath: string): Boolean;
+var
+  Root, DllPath, WeightsPath, KernelsPath: string;
+  Stream: TFileStream;
+  Buf: array[0..31] of Byte;
+  ReadLen: Integer;
+  Tail: string;
+begin
+  Result := False;
+
+  if ARootPath <> '' then
+    Root := IncludeTrailingPathDelimiter(ARootPath)
+  else
+    Root := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+
+  DllPath := Root + 'amd_fidelityfx_dx12.dll';
+  if FileExists(DllPath) then
+  begin
+    try
+      Stream := TFileStream.Create(DllPath, fmOpenRead or fmShareDenyNone);
+      try
+        if Stream.Size >= 32 then
+        begin
+          Stream.Position := Stream.Size - 32;
+          ReadLen := Stream.Read(Buf, SizeOf(Buf));
+          if ReadLen > 0 then
+          begin
+            SetLength(Tail, ReadLen);
+            Move(Buf[0], Tail[1], ReadLen);
+            if Pos('HXSRNET1', Tail) > 0 then
+              Exit(True);
+          end;
+        end;
+      finally
+        Stream.Free;
+      end;
+    except
+      // Unreadable/corrupt DLL: fall through to the payload-based check.
+    end;
+  end;
+
+  WeightsPath := Root + 'helixsr_weights.bin';
+  KernelsPath := Root + 'helixsr_kernels.pak';
+  if FileExists(WeightsPath) and FileExists(KernelsPath) then
+  begin
+    Result := False;
+    try
+      Stream := TFileStream.Create(WeightsPath, fmOpenRead or fmShareDenyNone);
+      try
+        Result := Stream.Size > 0;
+      finally
+        Stream.Free;
+      end;
+    except
+      Result := False;
+    end;
+    if Result then
+    begin
+      Result := False;
+      try
+        Stream := TFileStream.Create(KernelsPath, fmOpenRead or fmShareDenyNone);
+        try
+          Result := Stream.Size > 0;
+        finally
+          Stream.Free;
+        end;
+      except
+        Result := False;
+      end;
+    end;
+  end;
+end;
+
+// Compile the HelixSR neural shaders/kernels on demand. Runs the bundled
+// helixsr-setup.sh in the HelixSR runtime path and reports staged progress.
+function CompileHelixSR(AOnProgress: TDownloadProgressProc): Boolean;
+var
+  WorkDir: string;
+  Process: TProcess;
+  Buffer: array[0..4095] of Byte;
+  Count, i: Integer;
+  Pending, Line, L: string;
+
+  procedure EmitLine(const ALine: string);
+  var
+    PctPos, StartPos, PctVal: Integer;
+    PctStr, LabelStr: string;
+  begin
+    if not Assigned(AOnProgress) then Exit;
+    L := LowerCase(ALine);
+
+    // 1. Detect percentage if emitted by helixsr_setup.py: "[helixsr-setup] [###---]  35% 0:12 extract weights"
+    PctPos := Pos('%', ALine);
+    if PctPos > 1 then
+    begin
+      StartPos := PctPos - 1;
+      while (StartPos >= 1) and (ALine[StartPos] in ['0'..'9', ' ']) do
+        Dec(StartPos);
+      PctStr := Trim(Copy(ALine, StartPos + 1, PctPos - StartPos - 1));
+      PctVal := StrToIntDef(PctStr, -1);
+      if (PctVal >= 0) and (PctVal <= 100) then
+      begin
+        LabelStr := Trim(Copy(ALine, PctPos + 1, MaxInt));
+        // Strip elapsed time if present, e.g. "0:12 label" or "1:05 label"
+        if (Length(LabelStr) > 4) and ((LabelStr[2] = ':') or ((Length(LabelStr) > 5) and (LabelStr[3] = ':'))) then
+        begin
+          StartPos := Pos(' ', LabelStr);
+          if StartPos > 0 then
+            LabelStr := Trim(Copy(LabelStr, StartPos + 1, MaxInt));
+        end;
+        if LabelStr = '' then
+          LabelStr := 'Compiling HelixSR neural shaders...';
+        AOnProgress(PctVal, LabelStr);
+        Exit;
+      end;
+    end;
+
+    // 2. Setup script phases
+    if Pos('downloading', L) > 0 then
+      AOnProgress(15, Trim(ALine))
+    else if Pos('python', L) > 0 then
+      AOnProgress(20, 'Configuring Python runtime...')
+    else if Pos('shader compiler', L) > 0 then
+      AOnProgress(30, 'Configuring DirectX Shader Compiler...')
+    else if Pos('weights', L) > 0 then
+      AOnProgress(45, 'Extracting DLSS neural weights...')
+    else if (Pos('ptx', L) > 0) or (Pos('tables', L) > 0) or (Pos('kernel', L) > 0) or (Pos('sources', L) > 0) then
+      AOnProgress(65, 'Generating compute kernels...')
+    else if (Pos('shaders', L) > 0) or (Pos('dxc', L) > 0) then
+      AOnProgress(85, 'Compiling Direct3D 12 shaders...');
+  end;
+
+begin
+  Result := False;
+  WorkDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+
+  if not FileExists(WorkDir + 'helixsr-setup.sh') then
+  begin
+    WriteLn('[HELIXSR] Cannot compile: helixsr-setup.sh not found in ', WorkDir);
+    Exit;
+  end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(5, 'Preparing HelixSR neural compilation...');
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'sh';
+    Process.Parameters.Add('-c');
+    Process.Parameters.Add('chmod +x ./helixsr-setup.sh ./setup/lib/model/launch_synth 2>/dev/null; ./helixsr-setup.sh --yes < /dev/null');
+    Process.CurrentDirectory := ExcludeTrailingPathDelimiter(WorkDir);
+    Process.Options := [poUsePipes, poStderrToOutPut];
+    Process.Execute;
+
+    Pending := '';
+    while Process.Running or (Process.Output.NumBytesAvailable > 0) do
+    begin
+      Count := Process.Output.NumBytesAvailable;
+      if Count > SizeOf(Buffer) then
+        Count := SizeOf(Buffer);
+      if Count > 0 then
+      begin
+        Count := Process.Output.Read(Buffer, Count);
+        if Count > 0 then
+        begin
+          SetLength(Pending, Length(Pending) + Count);
+          Move(Buffer[0], Pending[Length(Pending) - Count + 1], Count);
+
+          repeat
+            i := Pos(#10, Pending);
+            if i > 0 then
+            begin
+              Line := Trim(Copy(Pending, 1, i - 1));
+              Delete(Pending, 1, i);
+              if Line <> '' then
+              begin
+                WriteLn('[HELIXSR] ', Line);
+                EmitLine(Line);
+              end;
+            end;
+          until i = 0;
+        end;
+      end
+      else
+        Sleep(20);
+    end;
+
+    if Pending <> '' then
+    begin
+      Line := Trim(Pending);
+      if Line <> '' then
+      begin
+        WriteLn('[HELIXSR] ', Line);
+        EmitLine(Line);
+      end;
+    end;
+
+    Process.WaitOnExit;
+    Result := IsHelixSRCompiled(WorkDir);
+
+    if Result then
+    begin
+      // Ensure OptiScaler companion files are mirrored in root
+      if FileExists(WorkDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and not FileExists(WorkDir + 'OptiScaler.dll') then
+        CopyFile(WorkDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', WorkDir + 'OptiScaler.dll');
+      if FileExists(WorkDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and not FileExists(WorkDir + 'fakenvapi.dll') then
+        CopyFile(WorkDir + 'optiscaler' + PathDelim + 'fakenvapi.dll', WorkDir + 'fakenvapi.dll');
+      if FileExists(WorkDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and not FileExists(WorkDir + 'fakenvapi.ini') then
+        CopyFile(WorkDir + 'optiscaler' + PathDelim + 'fakenvapi.ini', WorkDir + 'fakenvapi.ini');
+    end;
+  finally
+    Process.Free;
+  end;
+
+  if Assigned(AOnProgress) then
+  begin
+    if Result then
+      AOnProgress(100, 'HelixSR neural runtime compiled successfully.')
+    else
+      AOnProgress(100, 'HelixSR compilation failed.');
+  end;
+end;
+
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean;
 var
   OptiDir, DlssEnablerDir, FsrBase: string;
@@ -4299,6 +4784,11 @@ begin
   if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'OptiScaler.dll') or
      not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalFsr4vkPath) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll') then
     AMissingList.Add('FSR4VK (OptiScaler & Vulkan upscaler)');
+
+  // HelixSR (OptiScaler & DLSS Model E runtime)
+  if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') or
+     not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+    AMissingList.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
 
   Result := AMissingList.Count > 0;
 end;

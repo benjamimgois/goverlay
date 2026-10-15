@@ -598,7 +598,7 @@ var
   VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath, TempCfg: string;
-  Folders: array[0..5] of string;
+  Folders: array[0..6] of string;
   f: Integer;
   Ini: TIniFile;
 begin
@@ -692,6 +692,7 @@ begin
   Folders[3] := 'optiscaler-custom';
   Folders[4] := 'dlssenabler-stable';
   Folders[5] := 'dlssenabler-edge';
+  Folders[6] := 'optiscaler-helixsr';
 
   for f := 0 to High(Folders) do
   begin
@@ -914,10 +915,11 @@ end;
 
 procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
 var
-  Candidates: array[0..9] of string = (
+  Candidates: array[0..10] of string = (
     'optiscaler.log',
     'dlss-enabler.log',
     'fakenvapi.log',
+    'helixsr.log',
     'vksumi.log',
     'vkbasalt.log',
     'reshade.log',
@@ -1165,6 +1167,8 @@ begin
       SafeCleanOrRestore(GameDir, BackupsDir, 'dlss-enabler-upscaler.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'dlss-enabler.log', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'dlss-enabler.ini', False);
+      SafeCleanOrRestore(GameDir, BackupsDir, 'helixsr.ini', False);
+      SafeCleanOrRestore(GameDir, BackupsDir, 'helixsr.log', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'nvngx-wrapper.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, '_nvngx.dll', False);
       SafeCleanOrRestore(GameDir, BackupsDir, 'dlssg_to_fsr3_amd_is_better-3.0.dll', False);
@@ -1199,6 +1203,7 @@ begin
       RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
       
       // Synchronize tool logs to central logs folder before removing files
       if CentralLogDir <> '' then
@@ -1217,6 +1222,8 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlss-enabler.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'helixsr.log');
+      SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'mangohud.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vksumi.log');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkbasalt.log');

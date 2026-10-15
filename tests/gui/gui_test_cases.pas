@@ -88,6 +88,7 @@ type
     procedure TestThirdPartyProxyDllPreservedDuringLaunchAndUninstall;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     procedure TestOptiScalerOptionsCardHeightAndNoScroll;
+    procedure TestHelixSRMethodSelectionAndPersistence;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
     procedure TestMangoVisualTab;
@@ -3434,6 +3435,80 @@ begin
   // Software status card bottom must be fully within client height (no vertical scroll needed)
   AssertTrue('FOsStatusCard fits within FOsScrollBox client height without vertical scrolling',
     goverlayform.FOsStatusCard.Top + goverlayform.FOsStatusCard.Height <= goverlayform.FOsScrollBox.ClientHeight);
+end;
+
+procedure TGoverlayGuiTests.TestHelixSRMethodSelectionAndPersistence;
+var
+  HelixDir: string;
+  F: TextFile;
+begin
+  SeedOptiScalerFiles;
+
+  // Seed mock HelixSR directory so IsHelixSRCompiled is True and doesn't trigger compilation during test
+  HelixDir := IsolatedHome + '/.local/share/goverlay/optiscaler-helixsr';
+  ForceDirectories(HelixDir);
+  AssignFile(F, HelixDir + '/helixsr_weights.bin');
+  Rewrite(F);
+  WriteLn(F, 'dummy_weights');
+  CloseFile(F);
+  AssignFile(F, HelixDir + '/helixsr_kernels.pak');
+  Rewrite(F);
+  WriteLn(F, 'dummy_kernels');
+  CloseFile(F);
+
+  NavigateOptiScalerTab;
+  goverlayform.FNavToolEnabled[2] := True;
+  goverlayform.ApplyToolEnabledState(2, True);
+
+  // Initial state check
+  AssertNotNull('helixsrRadioButton exists', goverlayform.helixsrRadioButton);
+  AssertNotNull('helixsrLogoImage exists', goverlayform.helixsrLogoImage);
+
+  // Select HelixSR
+  goverlayform.helixsrRadioButton.Checked := True;
+  goverlayform.helixsrRadioButtonClick(goverlayform.helixsrRadioButton);
+
+  AssertTrue('HelixSR radio button is checked', goverlayform.helixsrRadioButton.Checked);
+  AssertFalse('OptiScaler radio button unchecked', goverlayform.optiscalerRadioButton.Checked);
+  AssertFalse('DLSS Enabler radio button unchecked', goverlayform.dlssenablerRadioButton.Checked);
+  AssertFalse('None radio button unchecked', goverlayform.noneUpscalerRadioButton.Checked);
+  AssertFalse('optversionComboBox disabled when HelixSR is active', goverlayform.optversionComboBox.Enabled);
+  AssertEquals('Status row 2 label is HelixSR', 'HelixSR', goverlayform.FOsStatNameLbls[2].Caption);
+
+  // Native DLSS toggle test
+  AssertNotNull('helixsrNativeDlssCheckBox exists', goverlayform.helixsrNativeDlssCheckBox);
+  goverlayform.helixsrNativeDlssCheckBox.Checked := True;
+  goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
+
+  // Save and reload config
+  goverlayform.SaveOptiScalerConfig(True);
+  AssertEquals('UPSCALER_TYPE in bgmod.conf is 3 for HelixSR', '3', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
+  AssertEquals('HELIXSR_NATIVE_DLSS in bgmod.conf is 1', '1', ReadBgmodConf('Config', 'HELIXSR_NATIVE_DLSS'));
+
+  // Test toggling Native DLSS off
+  goverlayform.helixsrNativeDlssCheckBox.Checked := False;
+  goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
+  goverlayform.SaveOptiScalerConfig(True);
+  AssertEquals('HELIXSR_NATIVE_DLSS in bgmod.conf is 0', '0', ReadBgmodConf('Config', 'HELIXSR_NATIVE_DLSS'));
+
+  // Switch to OptiScaler
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertFalse('HelixSR unchecked when OptiScaler selected', goverlayform.helixsrRadioButton.Checked);
+  AssertTrue('OptiScaler checked', goverlayform.optiscalerRadioButton.Checked);
+  AssertTrue('optversionComboBox re-enabled when OptiScaler selected', goverlayform.optversionComboBox.Enabled);
+  AssertEquals('Status row 2 label is DLSS Enabler', 'DLSS Enabler', goverlayform.FOsStatNameLbls[2].Caption);
+  goverlayform.SaveOptiScalerConfig(True);
+  AssertEquals('UPSCALER_TYPE in bgmod.conf is 0 for OptiScaler', '0', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
+
+  // Switch back to None
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(goverlayform.noneUpscalerRadioButton);
+  AssertFalse('HelixSR unchecked when None selected', goverlayform.helixsrRadioButton.Checked);
+  AssertTrue('None checked', goverlayform.noneUpscalerRadioButton.Checked);
+  AssertFalse('optversionComboBox disabled when None selected', goverlayform.optversionComboBox.Enabled);
+  goverlayform.SaveOptiScalerConfig(True);
+  AssertEquals('UPSCALER_TYPE in bgmod.conf is 2 for None', '2', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────

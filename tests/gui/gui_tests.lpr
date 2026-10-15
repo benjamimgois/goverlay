@@ -26,13 +26,13 @@ type
 
 procedure TConsoleListener.AddFailure(ATest: TTest; AFailure: TTestFailure);
 begin
-  WriteLn(' [FAIL]');
+  WriteLn(' [FAIL] ', AFailure.ExceptionMessage, ' (', AFailure.LocationInfo, ')');
   Flush(Output);
 end;
 
 procedure TConsoleListener.AddError(ATest: TTest; AError: TTestFailure);
 begin
-  WriteLn(' [ERROR]');
+  WriteLn(' [ERROR] ', AError.ExceptionMessage, ' (', AError.LocationInfo, ')');
   Flush(Output);
 end;
 
@@ -59,13 +59,38 @@ var
   Results: TTestResult;
   Writer: TPlainResultsWriter;
   Listener: ITestListener;
+  i: Integer;
+  Filter: string;
+  RunTarget: TTest;
 begin
+  Filter := '';
+  for i := 1 to ParamCount do
+  begin
+    if Copy(ParamStr(i), 1, 8) = '--suite=' then
+      Filter := Copy(ParamStr(i), 9, Length(ParamStr(i)))
+    else if Copy(ParamStr(i), 1, 7) = '--test=' then
+      Filter := Copy(ParamStr(i), 8, Length(ParamStr(i)));
+  end;
+
   Results := TTestResult.Create;
   Writer := TPlainResultsWriter.Create(nil);
   Listener := TConsoleListener.Create;
   try
     Results.AddListener(Listener);
-    GetTestRegistry.Run(Results);
+    if Filter <> '' then
+    begin
+      RunTarget := GetTestRegistry.FindTest(Filter);
+      if RunTarget = nil then
+      begin
+        WriteLn('[gui_tests] Test/suite not found: ', Filter);
+        SuiteOk := False;
+        Exit;
+      end;
+      RunTarget.Run(Results);
+    end
+    else
+      GetTestRegistry.Run(Results);
+
     Writer.WriteHeader;
     Writer.WriteResult(Results);
     SuiteOk := (Results.NumberOfErrors = 0) and (Results.NumberOfFailures = 0);

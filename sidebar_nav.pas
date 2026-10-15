@@ -781,6 +781,10 @@ begin
         if Assigned(FForm.FOsOptionsCard) then FForm.SetControlTreeEnabled(FForm.FOsOptionsCard, False);
         if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Enabled := False;
         if Assigned(FForm.checkupdBitBtn) then FForm.checkupdBitBtn.Enabled := False;
+      end
+      else if Assigned(FForm.helixsrRadioButton) and FForm.helixsrRadioButton.Checked then
+      begin
+        if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Enabled := False;
       end;
       if Assigned(FForm.dlssenablerToggleBtn) then FForm.dlssenablerToggleBtn.Enabled := False;
     end;
@@ -924,11 +928,13 @@ var
   Ini: TIniFile;
   OptChannel: Integer;
   UpscalerType: Integer;
+  NativeDlss: Integer;
   Settings: TOptiScalerSettings;
   FsrDllSrc, VkDllSrc: string;
 begin
   UpscalerType := 0;
   OptChannel := 0;
+  NativeDlss := 0;
   ConfigPath := IncludeTrailingPathDelimiter(AGameCfgDir) + 'bgmod.conf';
   if FileExists(ConfigPath) then
   begin
@@ -936,6 +942,7 @@ begin
     try
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
+      NativeDlss := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0);
     finally
       Ini.Free;
     end;
@@ -943,6 +950,8 @@ begin
 
   if UpscalerType = 1 then
     CacheDir := GetDlssEnablerPath(OptChannel <> 1)
+  else if UpscalerType = 3 then
+    CacheDir := GetBGModOriginalHelixSRPath
   else
     case OptChannel of
       1: CacheDir := GetBGModOriginalEdgePath;
@@ -974,6 +983,46 @@ begin
     begin
       ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler');
       CopyFile(VkDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll');
+    end;
+  end;
+
+  // HelixSR deployment (UPSCALER_TYPE = 3): Native DLSS loader or OptiScaler backend
+  if UpscalerType = 3 then
+  begin
+    if NativeDlss = 1 then
+    begin
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'dlss-loader' + PathDelim + 'dxgi.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'dlss-loader' + PathDelim + 'dxgi.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'dxgi.dll');
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'nvngx.dll');
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'helixsr.ini');
+    end
+    else
+    begin
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.dll');
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
+      ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR');
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
     end;
   end;
 

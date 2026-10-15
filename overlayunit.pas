@@ -88,6 +88,23 @@ type
     property FailedFiles: TStringList read FFailedFiles;
   end;
 
+  { THelixSRCompileThread - runs HelixSR neural shader compilation in background
+    so the main thread stays free to repaint the splash progress bar }
+  THelixSRCompileThread = class(TThread)
+  private
+    FOwner:   TObject;
+    FPercent: Integer;
+    FStatus:  string;
+    FSuccess: Boolean;
+    procedure DoUpdateProgress;
+    procedure OnCompileProgress(APercent: Integer; const AStatus: string);
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOwner: TObject);
+    property Success: Boolean read FSuccess;
+  end;
+
   { TChangelogFetchThread - fetches release notes in background and shows popup }
   TChangelogFetchThread = class(TThread)
   private
@@ -593,6 +610,9 @@ type
     procedure optiscalerLogoImageClick(Sender: TObject);
     procedure dlssEnablerLogoImageClick(Sender: TObject);
     procedure noneUpscalerLogoImageClick(Sender: TObject);
+    procedure helixsrRadioButtonClick(Sender: TObject);
+    procedure helixsrLogoImageClick(Sender: TObject);
+    procedure helixsrNativeDlssCheckBoxChange(Sender: TObject);
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
     procedure reshaderefreshBitBtnClick(Sender: TObject);
@@ -1123,17 +1143,22 @@ type
     optiscalerRadioButton: TRadioButton;
     dlssenablerRadioButton: TRadioButton;
     noneUpscalerRadioButton: TRadioButton;
+    helixsrRadioButton: TRadioButton;
     optiscalerLogoImage: TImage;
     dlssEnablerLogoImage: TImage;
     noneUpscalerLogoImage: TImage;
+    helixsrLogoImage: TImage;
+    helixsrNativeDlssCheckBox: TCheckBox;
     dlssEnablerVersionLabel: TLabel;
     streamlineVersionLabel: TLabel;
     FOptiScalerPngLogo: TPortableNetworkGraphic;
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
     FNoneUpscalerPngLogo: TPortableNetworkGraphic;
+    FHelixSrPngLogo: TPortableNetworkGraphic;
     FOptiScalerPngLogoDimmed: TPortableNetworkGraphic;
     FDlssEnablerPngLogoDimmed: TPortableNetworkGraphic;
     FNoneUpscalerPngLogoDimmed: TPortableNetworkGraphic;
+    FHelixSrPngLogoDimmed: TPortableNetworkGraphic;
     FOsStatDots:     array[0..5] of TShape;
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel;
@@ -2980,9 +3005,11 @@ begin
   FreeAndNil(FOptiScalerPngLogo);
   FreeAndNil(FDlssEnablerPngLogo);
   FreeAndNil(FNoneUpscalerPngLogo);
+  FreeAndNil(FHelixSrPngLogo);
   FreeAndNil(FOptiScalerPngLogoDimmed);
   FreeAndNil(FDlssEnablerPngLogoDimmed);
   FreeAndNil(FNoneUpscalerPngLogoDimmed);
+  FreeAndNil(FHelixSrPngLogoDimmed);
   FreeAndNil(FOptiScalerHelper);
   FreeAndNil(FLosslessScalingHelper);
   FreeAndNil(FReshadeHelper);
@@ -3401,6 +3428,12 @@ begin
 
   if Assigned(FSplashLogList) then
     FreeAndNil(FSplashLogList);
+
+  FSplashProgressBar := nil;
+  FSplashDetailLabel := nil;
+  FSplashPercentLabel := nil;
+  FSplashBrandingImage := nil;
+  FSplashDetailsButton := nil;
 
   Application.ProcessMessages;
 end;
@@ -5667,6 +5700,8 @@ begin
       dlssenablerRadioButton.Checked := False;
     if Assigned(noneUpscalerRadioButton) then
       noneUpscalerRadioButton.Checked := False;
+    if Assigned(helixsrRadioButton) then
+      helixsrRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5693,7 +5728,10 @@ begin
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
+  begin
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
 
@@ -5760,6 +5798,8 @@ begin
       optiscalerRadioButton.Checked := False;
     if Assigned(noneUpscalerRadioButton) then
       noneUpscalerRadioButton.Checked := False;
+    if Assigned(helixsrRadioButton) then
+      helixsrRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5776,7 +5816,10 @@ begin
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
+  begin
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
   RefreshOsStatusDots;
@@ -5802,10 +5845,15 @@ begin
       optiscalerRadioButton.Checked := False;
     if Assigned(dlssenablerRadioButton) then
       dlssenablerRadioButton.Checked := False;
+    if Assigned(helixsrRadioButton) then
+      helixsrRadioButton.Checked := False;
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
+  begin
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
   if Assigned(FOptiscalerUpdate) then
     FOptiscalerUpdate.LoadVersionsFromFile;
 
@@ -5844,6 +5892,124 @@ begin
     noneUpscalerRadioButton.Checked := True;
     noneUpscalerRadioButtonClick(noneUpscalerRadioButton);
   end;
+end;
+
+procedure Tgoverlayform.helixsrLogoImageClick(Sender: TObject);
+begin
+  if Assigned(helixsrRadioButton) then
+  begin
+    helixsrRadioButton.Checked := True;
+    helixsrRadioButtonClick(helixsrRadioButton);
+  end;
+end;
+
+procedure Tgoverlayform.helixsrNativeDlssCheckBoxChange(Sender: TObject);
+begin
+  StartAutoSaveTimer;
+  if FActiveGameName <> '' then
+    CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
+  if Assigned(FOptiScalerHelper) then
+  begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
+end;
+
+procedure Tgoverlayform.helixsrRadioButtonClick(Sender: TObject);
+var
+  Idx: Integer;
+  CompileThread: THelixSRCompileThread;
+  CompileSuccess: Boolean;
+begin
+  if Assigned(helixsrRadioButton) and not helixsrRadioButton.Checked then Exit;
+
+  if Assigned(helixsrRadioButton) then
+  begin
+    helixsrRadioButton.Checked := True;
+    if Assigned(optiscalerRadioButton) then
+      optiscalerRadioButton.Checked := False;
+    if Assigned(dlssenablerRadioButton) then
+      dlssenablerRadioButton.Checked := False;
+    if Assigned(noneUpscalerRadioButton) then
+      noneUpscalerRadioButton.Checked := False;
+
+    if Assigned(filenameComboBox) then
+    begin
+      if IsReshadeActive and SameText(GetReshadeProxyDll, 'dxgi.dll') then
+      begin
+        Idx := filenameComboBox.Items.IndexOf('version.dll');
+        if Idx >= 0 then
+          filenameComboBox.ItemIndex := Idx;
+        ShowToast(ntInfo, 'dxgi.dll is in use by ReShade. HelixSR proxy set to version.dll.', 4000);
+      end
+      else
+      begin
+        Idx := filenameComboBox.Items.IndexOf('dxgi.dll');
+        if Idx >= 0 then
+          filenameComboBox.ItemIndex := Idx;
+      end;
+      FPreviousFilenameIndex := filenameComboBox.ItemIndex;
+    end;
+  end;
+
+  UpdateUpscalerImageOpacity;
+  if Assigned(FOptiScalerHelper) then
+  begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
+    TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
+
+  if Assigned(optversionComboBox) then
+    optversionComboBox.Enabled := False;
+
+  RefreshOsStatusDots;
+
+  if (not IsHelixSRCompiled) and (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
+  begin
+    // Switch controls in Software Status card to embedded progress mode
+    if Assigned(optversionComboBox) then optversionComboBox.Visible := False;
+    if Assigned(checkupdBitBtn) then checkupdBitBtn.Visible := False;
+    if Assigned(updateBitBtn) then updateBitBtn.Visible := False;
+    if Assigned(updateProgressBar) then
+    begin
+      updateProgressBar.Position := 0;
+      updateProgressBar.Visible := True;
+    end;
+    if Assigned(updatestatusLabel) then
+    begin
+      updatestatusLabel.Caption := 'Preparing HelixSR neural compilation...';
+      updatestatusLabel.Visible := True;
+    end;
+    Application.ProcessMessages;
+
+    CompileThread := THelixSRCompileThread.Create(Self);
+    try
+      CompileThread.Start;
+      while not CompileThread.Finished do
+      begin
+        Application.ProcessMessages;
+        Sleep(16);
+      end;
+      CompileSuccess := CompileThread.Success;
+    finally
+      if Assigned(updateProgressBar) then updateProgressBar.Visible := False;
+      if Assigned(updatestatusLabel) then updatestatusLabel.Visible := False;
+      if Assigned(optversionComboBox) then optversionComboBox.Visible := True;
+      if Assigned(checkupdBitBtn) then checkupdBitBtn.Visible := True;
+      CompileThread.Free;
+    end;
+
+    if CompileSuccess then
+      ShowToast(ntSuccess, 'HelixSR compiled successfully!', 4000)
+    else
+      ShowToast(ntError, 'HelixSR compilation failed. Ensure Wine/Proton and Python are available.', 6000);
+  end;
+
+  RefreshOsStatusDots;
+  ApplyToolEnabledState(2, FNavToolEnabled[2]);
+  SetSaveBtnEnabled(FNavToolEnabled[2]);
+  SaveOptiScalerConfig(True);
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.UpdateUpscalerImageOpacity;
@@ -5890,6 +6056,21 @@ begin
     begin
       if Assigned(FNoneUpscalerPngLogoDimmed) then
         noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogoDimmed);
+    end;
+  end;
+
+  if Assigned(helixsrLogoImage) and Assigned(helixsrRadioButton) then
+  begin
+    helixsrLogoImage.Enabled := True;
+    if helixsrRadioButton.Checked then
+    begin
+      if Assigned(FHelixSrPngLogo) then
+        helixsrLogoImage.Picture.Assign(FHelixSrPngLogo);
+    end
+    else
+    begin
+      if Assigned(FHelixSrPngLogoDimmed) then
+        helixsrLogoImage.Picture.Assign(FHelixSrPngLogoDimmed);
     end;
   end;
 end;
@@ -10729,6 +10910,7 @@ begin
     CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
     CheckAndInstallFsr4vk(False, @OnDownloadProgress, FFailedFiles);                     // FSR4VK runtime (55%)
+    CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
     CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
     CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
@@ -10740,6 +10922,58 @@ begin
   except
     on E: Exception do
       WriteLn('[GOVERLAY] StartupDownload error: ', E.Message);
+  end;
+end;
+
+{ THelixSRCompileThread }
+
+constructor THelixSRCompileThread.Create(AOwner: TObject);
+begin
+  inherited Create(True); // suspended
+  FOwner := AOwner;
+  FreeOnTerminate := False;
+  FSuccess := False;
+  FPercent := 0;
+  FStatus := '';
+end;
+
+procedure THelixSRCompileThread.DoUpdateProgress;
+var
+  MainForm: Tgoverlayform;
+begin
+  if Assigned(FOwner) and (FOwner is Tgoverlayform) then
+  begin
+    MainForm := Tgoverlayform(FOwner);
+    if Assigned(MainForm.updateProgressBar) and MainForm.updateProgressBar.Visible then
+      MainForm.updateProgressBar.Position := FPercent;
+    if Assigned(MainForm.updatestatusLabel) and MainForm.updatestatusLabel.Visible then
+    begin
+      if FStatus <> '' then
+        MainForm.updatestatusLabel.Caption := Format('%s (%d%%)', [FStatus, FPercent])
+      else
+        MainForm.updatestatusLabel.Caption := Format('%d%%', [FPercent]);
+    end;
+  end;
+end;
+
+procedure THelixSRCompileThread.OnCompileProgress(APercent: Integer; const AStatus: string);
+begin
+  if Terminated then Exit;
+  FPercent := APercent;
+  FStatus := AStatus;
+  Synchronize(@DoUpdateProgress);
+end;
+
+procedure THelixSRCompileThread.Execute;
+begin
+  try
+    FSuccess := CompileHelixSR(@OnCompileProgress);
+  except
+    on E: Exception do
+    begin
+      FSuccess := False;
+      WriteLn('[HELIXSR] Compile error: ', E.Message);
+    end;
   end;
 end;
 
