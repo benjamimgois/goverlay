@@ -111,6 +111,7 @@ type
     procedure TestTweaksCardLayoutAndClick;
     procedure TestGlobalCustomVariablesReuseAndInheritance;
     procedure TestLaunchArgumentsCardAndInheritance;
+    procedure TestTweaksEnvVarsAndArgumentsSubTabs;
     procedure TestTabSwitchingPersistence;
     procedure TestNonSteamRemoveFoldersMenu;
     procedure TestHomeTabHidesToggles;
@@ -174,7 +175,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -4849,6 +4850,71 @@ begin
   end;
 end;
 
+procedure TGoverlayGuiTests.TestTweaksEnvVarsAndArgumentsSubTabs;
+var
+  NovidRow: Integer;
+begin
+  NavigateMangoHud;
+  NavigateTweaksTab;
+  goverlayform.FActiveGameName := '';
+
+  // 1. Verify Tweaks shows tabs with EnvVars and Arguments, and hides MangoHud tabs
+  AssertTrue('goverlayPageControl shows tabs on Tweaks', goverlayform.goverlayPageControl.ShowTabs);
+  AssertFalse('presetTabSheet is hidden on Tweaks', goverlayform.presetTabSheet.TabVisible);
+  AssertFalse('visualTabSheet is hidden on Tweaks', goverlayform.visualTabSheet.TabVisible);
+  AssertFalse('performanceTabSheet is hidden on Tweaks', goverlayform.performanceTabSheet.TabVisible);
+  AssertFalse('metricsTabSheet is hidden on Tweaks', goverlayform.metricsTabSheet.TabVisible);
+  AssertFalse('extrasTabSheet is hidden on Tweaks', goverlayform.extrasTabSheet.TabVisible);
+  AssertEquals('Tweaks tab sheet caption is EnvVars', 'EnvVars', goverlayform.tweaksTabSheet.Caption);
+  AssertTrue('tweaksTabSheet is visible', goverlayform.tweaksTabSheet.TabVisible);
+  AssertNotNull('launchArgsTabSheet is assigned', goverlayform.launchArgsTabSheet);
+  AssertEquals('launchArgsTabSheet caption is Arguments', 'Arguments', goverlayform.launchArgsTabSheet.Caption);
+  AssertTrue('launchArgsTabSheet is visible', goverlayform.launchArgsTabSheet.TabVisible);
+  AssertTrue('Active sub-tab defaults to tweaksTabSheet (EnvVars)', goverlayform.goverlayPageControl.ActivePage = goverlayform.tweaksTabSheet);
+
+  // 2. Verify PaintBoxes and ScrollBars are created
+  AssertNotNull('FTweaksPaintBox is created', goverlayform.FTweaksPaintBox);
+  AssertNotNull('FTweaksScrollBar is created', goverlayform.FTweaksScrollBar);
+  AssertNotNull('FArgsPaintBox is created', goverlayform.FArgsPaintBox);
+  AssertNotNull('FArgsScrollBar is created', goverlayform.FArgsScrollBar);
+
+  // 3. Switch to Arguments tab
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.launchArgsTabSheet;
+  goverlayform.goverlayPageControlChange(nil);
+  AssertTrue('Active page is now launchArgsTabSheet', goverlayform.goverlayPageControl.ActivePage = goverlayform.launchArgsTabSheet);
+
+  // 4. Test rendering of both paintboxes
+  goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
+  goverlayform.ArgsMD3Paint(goverlayform.FArgsPaintBox);
+
+  // 5. Test mouse interaction on Arguments tab (FArgsPaintBox)
+  goverlayform.ArgsMD3MouseMove(goverlayform.FArgsPaintBox, [], 30, 50);
+  goverlayform.ArgsMD3MouseLeave(goverlayform.FArgsPaintBox);
+  AssertEquals('FArgsHoverIdx reset after mouse leave', -1, goverlayform.FArgsHoverIdx);
+
+  // 6. Test toggling predefined argument on Arguments tab
+  goverlayform.LoadTweaksFromFGMod;
+  NovidRow := -1;
+  for NovidRow := 1 + TWEAK_ROW_COUNT to goverlayform.FTweaksGrid.RowCount - 1 do
+    if goverlayform.FTweaksGrid.Cells[2, NovidRow] = '-novid' then Break;
+  AssertTrue('-novid exists in grid', NovidRow >= 0);
+
+  // Simulate mouse click on the first predefined item in FArgsPaintBox
+  goverlayform.ArgsMD3MouseDown(goverlayform.FArgsPaintBox, mbLeft, [], 50, 45);
+  // Verify paintbox re-render after interaction
+  goverlayform.ArgsMD3Paint(goverlayform.FArgsPaintBox);
+
+  // 7. Verify switching away to another section (e.g. MangoHud) hides both sub-tabs
+  goverlayform.mangohudLabelClick(nil);
+  AssertFalse('tweaksTabSheet hidden when switching to MangoHud', goverlayform.tweaksTabSheet.TabVisible);
+  AssertFalse('launchArgsTabSheet hidden when switching to MangoHud', goverlayform.launchArgsTabSheet.TabVisible);
+
+  // Switch back to Tweaks
+  goverlayform.tweaksLabelClick(nil);
+  AssertTrue('tweaksTabSheet visible again', goverlayform.tweaksTabSheet.TabVisible);
+  AssertTrue('launchArgsTabSheet visible again', goverlayform.launchArgsTabSheet.TabVisible);
+end;
+
 procedure TGoverlayGuiTests.TestNonSteamRemoveFoldersMenu;
 var
   NonSteamFile, FakeFolder: string;
@@ -4913,6 +4979,14 @@ begin
   AssertTrue('AFMF status dot assigned', Assigned(goverlayform.FHomeModDots[8]));
   AssertTrue('AFMF version label assigned', Assigned(goverlayform.FHomeModVerLbls[8]));
   AssertTrue('AFMF version label text not empty', goverlayform.FHomeModVerLbls[8].Caption <> '');
+  AssertTrue('HelixSR status dot assigned', Assigned(goverlayform.FHomeModDots[9]));
+  AssertTrue('HelixSR version label assigned', Assigned(goverlayform.FHomeModVerLbls[9]));
+  AssertTrue('HelixSR version label text not empty', goverlayform.FHomeModVerLbls[9].Caption <> '');
+
+  if not Assigned(aboutForm) then
+    Application.CreateForm(TaboutForm, aboutForm);
+  AssertTrue('creditsLabel mentions lonewolf0622', Pos('lonewolf0622', aboutForm.creditsLabel.Caption) > 0);
+  AssertTrue('creditsLabel mentions HelixSR', Pos('HelixSR', aboutForm.creditsLabel.Caption) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;

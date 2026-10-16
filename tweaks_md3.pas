@@ -394,6 +394,32 @@ begin
   FForm.FTweaksScrollBar.OnChange    := @FForm.TweaksMD3ScrollChange;
   ApplyModernScrollBarStylesheet(FForm.FTweaksScrollBar);
 
+  // Launch Arguments sub-tab controls
+  if Assigned(FForm.launchArgsTabSheet) then
+  begin
+    FForm.FArgsScrollPos := 0;
+    FForm.FArgsHoverIdx := -1;
+
+    FForm.FArgsPaintBox := TPaintBox.Create(FForm);
+    FForm.FArgsPaintBox.Parent       := FForm.launchArgsTabSheet;
+    FForm.FArgsPaintBox.Align        := alClient;
+    FForm.FArgsPaintBox.Color        := DARK_TAB_BG;
+    FForm.FArgsPaintBox.OnPaint      := @FForm.ArgsMD3Paint;
+    FForm.FArgsPaintBox.OnMouseMove  := @FForm.ArgsMD3MouseMove;
+    FForm.FArgsPaintBox.OnMouseDown  := @FForm.ArgsMD3MouseDown;
+    FForm.FArgsPaintBox.OnMouseWheel := @FForm.ArgsMD3MouseWheel;
+    FForm.FArgsPaintBox.OnMouseLeave := @FForm.ArgsMD3MouseLeave;
+
+    FForm.FArgsScrollBar := TScrollBar.Create(FForm);
+    FForm.FArgsScrollBar.Parent      := FForm.launchArgsTabSheet;
+    FForm.FArgsScrollBar.Kind        := sbVertical;
+    FForm.FArgsScrollBar.Align       := alRight;
+    FForm.FArgsScrollBar.Width       := 6;
+    FForm.FArgsScrollBar.Visible     := False;
+    FForm.FArgsScrollBar.OnChange    := @FForm.ArgsMD3ScrollChange;
+    ApplyModernScrollBarStylesheet(FForm.FArgsScrollBar);
+  end;
+
   // Hidden checkbox for AMD Anti-Lag 2 (not in LFM — created dynamically)
   FForm.FAntilagCheckBox := TCheckBox.Create(FForm);
   FForm.FAntilagCheckBox.Parent      := FForm;
@@ -919,6 +945,221 @@ begin
   end;
   {$ENDIF}
 
+  if PB = FForm.FArgsPaintBox then
+  begin
+    HoverIdx := FForm.FArgsHoverIdx;
+    Is2Col   := PB.Width >= 700;
+    CardLeft  := CARD_MARGIN_X;
+    CardRight := PB.Width - CARD_MARGIN_X;
+    InnerLeft := CardLeft + 8;
+    InnerRight := CardRight - 8;
+    InnerW := InnerRight - InnerLeft;
+    ColGap := 8;
+    ColW := (InnerW - ColGap) div 2;
+    Y := -FForm.FArgsScrollPos + CARD_GAP;
+
+    // Active predefined args count
+    ActiveArgCount := 0;
+    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if (FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+           FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], ItemVarName) and
+           (FForm.FTweaksGrid.Cells[0, i] = '1') then
+          Inc(ActiveArgCount);
+      end;
+    end;
+
+    // 1. Predefined Arguments Card
+    if Is2Col then
+      Rows := (PREDEFINED_ARG_COUNT + 1) div 2
+    else
+      Rows := PREDEFINED_ARG_COUNT;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    PB.Canvas.Brush.Color := DARK_CARD_BG;
+    PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 10;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.Font.Color := clWhite;
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(CardLeft + 12, Y + 8, 'Predefined Arguments');
+
+    if ActiveArgCount > 0 then
+    begin
+      ActiveStr := IntToStr(ActiveArgCount) + ' active';
+      DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
+    end;
+
+    RowIdx := 0;
+    for i := 0 to PREDEFINED_ARG_COUNT - 1 do
+    begin
+      ItemTopY := Y + CARD_HDR_H;
+      if Is2Col then
+      begin
+        Col := i mod 2;
+        Row := i div 2;
+        if Col = 0 then
+          R := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
+        else
+          R := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
+      end
+      else
+        R := Rect(InnerLeft, ItemTopY + (i * ITEM_H), InnerRight, ItemTopY + ((i + 1) * ITEM_H));
+
+      IsRowEnabled := False;
+      if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+      begin
+        for CatItemCount := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+        begin
+          if (FForm.FTweaksGrid.Cells[1, CatItemCount] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+             SameText(FForm.FTweaksGrid.Cells[2, CatItemCount], PREDEFINED_ARGS[i].Arg) then
+          begin
+            IsRowEnabled := FForm.FTweaksGrid.Cells[0, CatItemCount] = '1';
+            Break;
+          end;
+        end;
+      end;
+
+      DrawItem(PB.Canvas, R, PREDEFINED_ARGS[i].Arg, PREDEFINED_ARGS[i].Description,
+               IsRowEnabled, HoverIdx = RowIdx, False, True, True);
+      Inc(RowIdx);
+    end;
+
+    Inc(Y, CardH + CARD_GAP);
+
+    // Info Chip Banner before Custom Arguments card
+    PB.Canvas.Brush.Color := RGBToColor(20, 26, 38);
+    PB.Canvas.Pen.Color   := RGBToColor(38, 52, 78);
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + INFO_BANNER_H, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 9;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.Font.Color := RGBToColor(56, 189, 201);
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(CardLeft + 12, Y + 9, 'ⓘ');
+
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 8;
+    PB.Canvas.Font.Style := [];
+    PB.Canvas.Font.Color := RGBToColor(145, 160, 185);
+    PB.Canvas.Brush.Style := bsClear;
+    if FForm.FActiveGameName = '' then
+      PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Custom items added in Global mode are cataloged and can be toggled per game.')
+    else
+      PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Global catalog items are listed below. Toggling applies only to this game.');
+
+    Inc(Y, INFO_BANNER_H + CARD_GAP);
+
+    // Count custom launch arguments
+    LaunchArgCount := 0;
+    ActiveArgCount := 0;
+    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if (FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+           not FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], ItemVarName) then
+        begin
+          Inc(LaunchArgCount);
+          if FForm.FTweaksGrid.Cells[0, i] = '1' then Inc(ActiveArgCount);
+        end;
+      end;
+    end;
+
+    // 2. Custom Arguments Card
+    if LaunchArgCount > 0 then
+    begin
+      if Is2Col then
+        Rows := (LaunchArgCount + 1) div 2
+      else
+        Rows := LaunchArgCount;
+      CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+    end
+    else
+      CardH := CARD_HDR_H + 36;
+
+    PB.Canvas.Brush.Color := DARK_CARD_BG;
+    PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
+
+    PB.Canvas.Font.Name  := 'DejaVu Sans';
+    PB.Canvas.Font.Size  := 10;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.Font.Color := clWhite;
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(CardLeft + 12, Y + 8, 'Custom Arguments');
+
+    if ActiveArgCount > 0 then
+    begin
+      ActiveStr := IntToStr(ActiveArgCount) + ' active';
+      DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
+    end;
+
+    if LaunchArgCount > 0 then
+    begin
+      ArgItemCount := 0;
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if (FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS)) or
+           FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], ItemVarName) then Continue;
+
+        if Is2Col then
+        begin
+          Col := ArgItemCount mod 2;
+          Row := ArgItemCount div 2;
+          if Col = 0 then
+            R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          else
+            R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
+        end
+        else
+          R := Rect(InnerLeft, Y + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+        DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
+                 FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True, True);
+        Inc(ArgItemCount);
+        Inc(RowIdx);
+      end;
+    end
+    else
+    begin
+      PB.Canvas.Font.Name  := 'DejaVu Sans';
+      PB.Canvas.Font.Size  := 8;
+      PB.Canvas.Font.Style := [];
+      PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
+      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No custom arguments added yet. Click the + button to create one.');
+    end;
+
+    Inc(Y, CardH + CARD_GAP);
+
+    TotalContentH := Y + FForm.FArgsScrollPos + 80;
+    if Assigned(FForm.FArgsScrollBar) then
+    begin
+      if TotalContentH > PB.Height then
+      begin
+        FForm.FArgsScrollBar.Max := TotalContentH - PB.Height;
+        FForm.FArgsScrollBar.PageSize := 1;
+        FForm.FArgsScrollBar.Visible := True;
+      end
+      else
+      begin
+        FForm.FArgsScrollBar.Visible := False;
+        FForm.FArgsScrollPos := 0;
+      end;
+    end;
+    Exit;
+  end;
+
   HoverIdx := FForm.FTweaksHoverIdx;
   Is2Col   := PB.Width >= 700;
   LowLatencyInstalled := FForm.IsLowLatencyInstalled;
@@ -1178,72 +1419,6 @@ begin
 
   Inc(Y, CardH + CARD_GAP);
 
-  // 2. Launch Arguments Card
-  if LaunchArgCount > 0 then
-  begin
-    if Is2Col then
-      Rows := (LaunchArgCount + 1) div 2
-    else
-      Rows := LaunchArgCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
-  end
-  else
-    CardH := CARD_HDR_H + 36;
-
-  PB.Canvas.Brush.Color := DARK_CARD_BG;
-  PB.Canvas.Pen.Color   := DARK_CARD_BORDER;
-  PB.Canvas.Pen.Width   := 1;
-  PB.Canvas.RoundRect(CardLeft, Y, CardRight, Y + CardH, CARD_CORNER_RADIUS * 2, CARD_CORNER_RADIUS * 2);
-
-  PB.Canvas.Font.Name  := 'DejaVu Sans';
-  PB.Canvas.Font.Size  := 10;
-  PB.Canvas.Font.Style := [fsBold];
-  PB.Canvas.Font.Color := clWhite;
-  PB.Canvas.Brush.Style := bsClear;
-  PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_ARGS));
-
-  if ActiveArgCount > 0 then
-  begin
-    ActiveStr := IntToStr(ActiveArgCount) + ' active';
-    DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
-  end;
-
-  if LaunchArgCount > 0 then
-  begin
-    ArgItemCount := 0;
-    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
-    begin
-      if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
-      if Is2Col then
-      begin
-        Col := ArgItemCount mod 2;
-        Row := ArgItemCount div 2;
-        if Col = 0 then
-          R := Rect(InnerLeft, Y + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, Y + CARD_HDR_H + ((Row + 1) * ITEM_H))
-        else
-          R := Rect(InnerLeft + ColW + ColGap, Y + CARD_HDR_H + (Row * ITEM_H), InnerRight, Y + CARD_HDR_H + ((Row + 1) * ITEM_H));
-      end
-      else
-        R := Rect(InnerLeft, Y + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, Y + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
-
-      DrawItem(PB.Canvas, R, FForm.FTweaksGrid.Cells[2, i], FForm.FTweaksGrid.Cells[3, i],
-               FForm.FTweaksGrid.Cells[0, i] = '1', HoverIdx = RowIdx, True, True);
-      Inc(ArgItemCount);
-      Inc(RowIdx);
-    end;
-  end
-  else
-  begin
-    PB.Canvas.Font.Name  := 'DejaVu Sans';
-    PB.Canvas.Font.Size  := 8;
-    PB.Canvas.Font.Style := [];
-    PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
-    PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No launch arguments added yet. Click the + button to create one.');
-  end;
-
-  Inc(Y, CardH + CARD_GAP);
-
   // Update Scrollbar (with padding for floating dock)
   TotalContentH := Y + FForm.FTweaksScrollPos + 80;
   if TotalContentH > PB.Height then
@@ -1278,6 +1453,123 @@ const
   ITEM_H             = 50;
 begin
   PB := Sender as TPaintBox;
+
+  if PB = FForm.FArgsPaintBox then
+  begin
+    OldHover := FForm.FArgsHoverIdx;
+    FForm.FArgsHoverIdx := -1;
+    TweakHint := '';
+
+    YPos := -FForm.FArgsScrollPos + CARD_GAP;
+    RowIdx := 0;
+    Is2Col := PB.Width >= 700;
+    CardLeft := CARD_MARGIN_X;
+    CardRight := PB.Width - CARD_MARGIN_X;
+    InnerLeft := CardLeft + 8;
+    InnerRight := CardRight - 8;
+    InnerW := InnerRight - InnerLeft;
+    ColGap := 8;
+    ColW := (InnerW - ColGap) div 2;
+
+    // 1. Predefined Arguments Card hover
+    if Is2Col then Rows := (PREDEFINED_ARG_COUNT + 1) div 2 else Rows := PREDEFINED_ARG_COUNT;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    for i := 0 to PREDEFINED_ARG_COUNT - 1 do
+    begin
+      ItemTopY := YPos + CARD_HDR_H;
+      if Is2Col then
+      begin
+        Col := i mod 2;
+        Row := i div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
+        else
+          ItemRect := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, ItemTopY + (i * ITEM_H), InnerRight, ItemTopY + ((i + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        FForm.FArgsHoverIdx := RowIdx;
+        TweakHint := PREDEFINED_ARGS[i].Description;
+        Break;
+      end;
+      Inc(RowIdx);
+    end;
+
+    Inc(YPos, CardH + CARD_GAP + INFO_BANNER_H + CARD_GAP);
+
+    // 2. Custom Arguments Card hover
+    LaunchArgCount := 0;
+    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+        if (FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+           not FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], TweakHint) then
+          Inc(LaunchArgCount);
+    end;
+
+    if LaunchArgCount > 0 then
+    begin
+      if Is2Col then Rows := (LaunchArgCount + 1) div 2 else Rows := LaunchArgCount;
+      CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+      if FForm.FArgsHoverIdx < 0 then
+      begin
+        ArgItemCount := 0;
+        for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+        begin
+          if (FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS)) or
+             FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], TweakHint) then Continue;
+
+          if Is2Col then
+          begin
+            Col := ArgItemCount mod 2;
+            Row := ArgItemCount div 2;
+            if Col = 0 then
+              ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+            else
+              ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+          end
+          else
+            ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+          if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+          begin
+            FForm.FArgsHoverIdx := RowIdx;
+            TweakHint := FForm.FTweaksGrid.Cells[2, i];
+            Break;
+          end;
+          Inc(ArgItemCount);
+          Inc(RowIdx);
+        end;
+      end;
+    end;
+
+    if TweakHint <> '' then
+    begin
+      if PB.Hint <> TweakHint then
+      begin
+        PB.Hint := TweakHint;
+        PB.ShowHint := True;
+      end;
+    end
+    else
+    begin
+      if PB.Hint <> '' then
+      begin
+        PB.Hint := '';
+        PB.ShowHint := False;
+      end;
+    end;
+
+    if OldHover <> FForm.FArgsHoverIdx then
+      PB.Invalidate;
+    Exit;
+  end;
+
   OldHover := FForm.FTweaksHoverIdx;
   FForm.FTweaksHoverIdx := -1;
   TweakHint := '';
@@ -1428,50 +1720,7 @@ begin
     end
     else
       Inc(RowIdx, CustomVarCount);
-  end
-  else
-    CardH := CARD_HDR_H + 36;
-
-  Inc(YPos, CardH + CARD_GAP);
-
-  // Launch Arguments card hover
-  if LaunchArgCount > 0 then
-  begin
-    if Is2Col then Rows := (LaunchArgCount + 1) div 2 else Rows := LaunchArgCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
-
-    if FForm.FTweaksHoverIdx < 0 then
-    begin
-      ArgItemCount := 0;
-      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
-      begin
-        if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
-        if Is2Col then
-        begin
-          Col := ArgItemCount mod 2;
-          Row := ArgItemCount div 2;
-          if Col = 0 then
-            ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
-          else
-            ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
-        end
-        else
-          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
-
-        if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
-        begin
-          FForm.FTweaksHoverIdx := RowIdx;
-          Break;
-        end;
-        Inc(ArgItemCount);
-        Inc(RowIdx);
-      end;
-    end
-    else
-      Inc(RowIdx, LaunchArgCount);
-  end
-  else
-    CardH := CARD_HDR_H + 36;
+  end;
 
   if TweakHint <> '' then
   begin
@@ -1500,6 +1749,14 @@ end;
 
 procedure TTweaksMD3Helper.MouseLeave(Sender: TObject);
 begin
+  if Sender = FForm.FArgsPaintBox then
+  begin
+    FForm.FArgsHoverIdx := -1;
+    if Assigned(FForm.FArgsPaintBox) then
+      FForm.FArgsPaintBox.Invalidate;
+    Exit;
+  end;
+
   FForm.FTweaksHoverIdx := -1;
   FForm.HideTweaksMissingBanner;
   if Assigned(FForm.FTweaksPaintBox) then
@@ -1527,6 +1784,131 @@ const
 begin
   if Button <> mbLeft then Exit;
   PB := Sender as TPaintBox;
+
+  if PB = FForm.FArgsPaintBox then
+  begin
+    YPos := -FForm.FArgsScrollPos + CARD_GAP;
+    Is2Col := PB.Width >= 700;
+    CardLeft := CARD_MARGIN_X;
+    CardRight := PB.Width - CARD_MARGIN_X;
+    InnerLeft := CardLeft + 8;
+    InnerRight := CardRight - 8;
+    InnerW := InnerRight - InnerLeft;
+    ColGap := 8;
+    ColW := (InnerW - ColGap) div 2;
+
+    // 1. Predefined Arguments Card click
+    if Is2Col then Rows := (PREDEFINED_ARG_COUNT + 1) div 2 else Rows := PREDEFINED_ARG_COUNT;
+    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
+
+    for i := 0 to PREDEFINED_ARG_COUNT - 1 do
+    begin
+      ItemTopY := YPos + CARD_HDR_H;
+      if Is2Col then
+      begin
+        Col := i mod 2;
+        Row := i div 2;
+        if Col = 0 then
+          ItemRect := Rect(InnerLeft, ItemTopY + (Row * ITEM_H), InnerLeft + ColW, ItemTopY + ((Row + 1) * ITEM_H))
+        else
+          ItemRect := Rect(InnerLeft + ColW + ColGap, ItemTopY + (Row * ITEM_H), InnerRight, ItemTopY + ((Row + 1) * ITEM_H));
+      end
+      else
+        ItemRect := Rect(InnerLeft, ItemTopY + (i * ITEM_H), InnerRight, ItemTopY + ((i + 1) * ITEM_H));
+
+      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+      begin
+        if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+        begin
+          for ArgItemCount := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+          begin
+            if (FForm.FTweaksGrid.Cells[1, ArgItemCount] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+               SameText(FForm.FTweaksGrid.Cells[2, ArgItemCount], PREDEFINED_ARGS[i].Arg) then
+            begin
+              if FForm.FTweaksGrid.Cells[0, ArgItemCount] = '1' then
+                FForm.FTweaksGrid.Cells[0, ArgItemCount] := '0'
+              else
+                FForm.FTweaksGrid.Cells[0, ArgItemCount] := '1';
+              PB.Invalidate;
+              FForm.TriggerAutoSave;
+              Exit;
+            end;
+          end;
+        end;
+        Exit;
+      end;
+    end;
+
+    Inc(YPos, CardH + CARD_GAP + INFO_BANNER_H + CARD_GAP);
+
+    // 2. Custom Arguments Card click
+    LaunchArgCount := 0;
+    if Assigned(FForm.FTweaksGrid) and (FForm.FTweaksGrid.RowCount > 1 + TWEAK_ROW_COUNT) then
+    begin
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+        if (FForm.FTweaksGrid.Cells[1, i] = TweakCategoryName(TWEAK_CAT_ARGS)) and
+           not FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], DummyDesc) then
+          Inc(LaunchArgCount);
+    end;
+
+    if LaunchArgCount > 0 then
+    begin
+      ArgItemCount := 0;
+      for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
+      begin
+        if (FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS)) or
+           FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], DummyDesc) then Continue;
+
+        if Is2Col then
+        begin
+          Col := ArgItemCount mod 2;
+          Row := ArgItemCount div 2;
+          if Col = 0 then
+            ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
+          else
+            ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
+        end
+        else
+          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
+
+        if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
+        begin
+          // Delete button hit (left 28px of the item)
+          if X < ItemRect.Left + 28 then
+          begin
+            if (FForm.FActiveGameName <> '') and (FForm.FTweaksGrid.Cells[3, i] = 'Global') then
+            begin
+              // Guard: Cannot delete global catalog entries from within a game profile; toggle instead
+              if FForm.FTweaksGrid.Cells[0, i] = '1' then
+                FForm.FTweaksGrid.Cells[0, i] := '0'
+              else
+                FForm.FTweaksGrid.Cells[0, i] := '1';
+              PB.Invalidate;
+              FForm.TriggerAutoSave;
+              Exit;
+            end;
+
+            FForm.FTweaksGrid.DeleteRow(i);
+            PB.Invalidate;
+            FForm.TriggerAutoSave;
+            Exit;
+          end;
+
+          // Otherwise toggle custom argument
+          if FForm.FTweaksGrid.Cells[0, i] = '1' then
+            FForm.FTweaksGrid.Cells[0, i] := '0'
+          else
+            FForm.FTweaksGrid.Cells[0, i] := '1';
+          PB.Invalidate;
+          FForm.TriggerAutoSave;
+          Exit;
+        end;
+        Inc(ArgItemCount);
+      end;
+    end;
+
+    Exit;
+  end;
 
   YPos := -FForm.FTweaksScrollPos + CARD_GAP;
   RowIdx := 0;
@@ -1706,87 +2088,25 @@ begin
   end
   else
     CardH := CARD_HDR_H + 36;
-
-  Inc(YPos, CardH + CARD_GAP);
-
-  // Launch Arguments card click
-  if LaunchArgCount > 0 then
-  begin
-    if Is2Col then Rows := (LaunchArgCount + 1) div 2 else Rows := LaunchArgCount;
-    CardH := CARD_HDR_H + (Rows * ITEM_H) + CARD_PAD_BOTTOM;
-
-    ArgItemCount := 0;
-    for i := 1 + TWEAK_ROW_COUNT to FForm.FTweaksGrid.RowCount - 1 do
-    begin
-      if FForm.FTweaksGrid.Cells[1, i] <> TweakCategoryName(TWEAK_CAT_ARGS) then Continue;
-      if Is2Col then
-      begin
-        Col := ArgItemCount mod 2;
-        Row := ArgItemCount div 2;
-        if Col = 0 then
-          ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (Row * ITEM_H), InnerLeft + ColW, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H))
-        else
-          ItemRect := Rect(InnerLeft + ColW + ColGap, YPos + CARD_HDR_H + (Row * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((Row + 1) * ITEM_H));
-      end
-      else
-        ItemRect := Rect(InnerLeft, YPos + CARD_HDR_H + (ArgItemCount * ITEM_H), InnerRight, YPos + CARD_HDR_H + ((ArgItemCount + 1) * ITEM_H));
-
-      if (X >= ItemRect.Left) and (X < ItemRect.Right) and (Y >= ItemRect.Top) and (Y < ItemRect.Bottom) then
-      begin
-        // Predefined arguments have no delete button: entire item toggles
-        if FindPredefinedArg(FForm.FTweaksGrid.Cells[2, i], DummyDesc) then
-        begin
-          if FForm.FTweaksGrid.Cells[0, i] = '1' then
-            FForm.FTweaksGrid.Cells[0, i] := '0'
-          else
-            FForm.FTweaksGrid.Cells[0, i] := '1';
-          PB.Invalidate;
-          FForm.TriggerAutoSave;
-          Exit;
-        end;
-
-        // Delete button hit (left 28px of the item) for custom arguments
-        if X < ItemRect.Left + 28 then
-        begin
-          if (FForm.FActiveGameName <> '') and (FForm.FTweaksGrid.Cells[3, i] = 'Global') then
-          begin
-            // Guard: Cannot delete global catalog entries from within a game profile; toggle instead
-            if FForm.FTweaksGrid.Cells[0, i] = '1' then
-              FForm.FTweaksGrid.Cells[0, i] := '0'
-            else
-              FForm.FTweaksGrid.Cells[0, i] := '1';
-            PB.Invalidate;
-            FForm.TriggerAutoSave;
-            Exit;
-          end;
-
-          FForm.FTweaksGrid.DeleteRow(i);
-          PB.Invalidate;
-          FForm.TriggerAutoSave;
-          Exit;
-        end;
-
-        // Otherwise toggle argument
-        if FForm.FTweaksGrid.Cells[0, i] = '1' then
-          FForm.FTweaksGrid.Cells[0, i] := '0'
-        else
-          FForm.FTweaksGrid.Cells[0, i] := '1';
-        PB.Invalidate;
-        FForm.TriggerAutoSave;
-        Exit;
-      end;
-      Inc(ArgItemCount);
-      Inc(RowIdx);
-    end;
-  end
-  else
-    CardH := CARD_HDR_H + 36;
 end;
 
 procedure TTweaksMD3Helper.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 var
   MaxScroll: Integer;
 begin
+  if (Sender = FForm.FArgsPaintBox) and Assigned(FForm.FArgsScrollBar) then
+  begin
+    if not FForm.FArgsScrollBar.Visible then Exit;
+    MaxScroll := FForm.FArgsScrollBar.Max;
+    FForm.FArgsScrollPos := FForm.FArgsScrollPos - WheelDelta div 4;
+    if FForm.FArgsScrollPos < 0 then FForm.FArgsScrollPos := 0;
+    if FForm.FArgsScrollPos > MaxScroll then FForm.FArgsScrollPos := MaxScroll;
+    FForm.FArgsScrollBar.Position := FForm.FArgsScrollPos;
+    FForm.FArgsPaintBox.Invalidate;
+    Handled := True;
+    Exit;
+  end;
+
   if not FForm.FTweaksScrollBar.Visible then Exit;
   MaxScroll := FForm.FTweaksScrollBar.Max;
   FForm.FTweaksScrollPos := FForm.FTweaksScrollPos - WheelDelta div 4;
@@ -1799,29 +2119,43 @@ end;
 
 procedure TTweaksMD3Helper.ScrollChange(Sender: TObject);
 begin
+  if (Sender = FForm.FArgsScrollBar) and Assigned(FForm.FArgsPaintBox) then
+  begin
+    FForm.FArgsScrollPos := FForm.FArgsScrollBar.Position;
+    FForm.FArgsPaintBox.Invalidate;
+    Exit;
+  end;
+
   FForm.FTweaksScrollPos := FForm.FTweaksScrollBar.Position;
-  FForm.FTweaksPaintBox.Invalidate;
+  if Assigned(FForm.FTweaksPaintBox) then
+    FForm.FTweaksPaintBox.Invalidate;
 end;
 
 procedure TTweaksMD3Helper.FABClick(Sender: TObject);
 var
   Val: string;
   Row: Integer;
-  IsArg: Boolean;
+  IsArgTab: Boolean;
   ArgDesc: string;
 begin
-  Val := Trim(InputBox('Add Environment Variable or Launch Argument',
-                       'Enter variable (KEY=VAL) or argument (-arg / +arg):', ''));
-  if Val = '' then Exit;
+  IsArgTab := Assigned(FForm.launchArgsTabSheet) and (FForm.goverlayPageControl.ActivePage = FForm.launchArgsTabSheet);
 
-  if not Assigned(FForm.FTweaksGrid) then Exit;
-  Row := FForm.FTweaksGrid.RowCount;
-  FForm.FTweaksGrid.RowCount := Row + 1;
-  FForm.FTweaksGrid.Cells[0, Row] := '1';
-
-  IsArg := IsLaunchArgument(Val);
-  if IsArg then
+  if IsArgTab then
   begin
+    Val := Trim(InputBox('Add Launch Argument',
+                         'Enter launch argument (-arg or +arg):', ''));
+    if Val = '' then Exit;
+
+    if not IsLaunchArgument(Val) then
+    begin
+      ShowMessage('Invalid launch argument. Must start with "-", "--", or "+".');
+      Exit;
+    end;
+
+    if not Assigned(FForm.FTweaksGrid) then Exit;
+    Row := FForm.FTweaksGrid.RowCount;
+    FForm.FTweaksGrid.RowCount := Row + 1;
+    FForm.FTweaksGrid.Cells[0, Row] := '1';
     FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_ARGS);
     FForm.FTweaksGrid.Cells[2, Row] := Val;
     if FindPredefinedArg(Val, ArgDesc) then
@@ -1830,19 +2164,32 @@ begin
       FForm.FTweaksGrid.Cells[3, Row] := 'Global'
     else
       FForm.FTweaksGrid.Cells[3, Row] := 'Local';
+
+    if Assigned(FForm.FArgsPaintBox) then
+      FForm.FArgsPaintBox.Invalidate;
+    FForm.TriggerAutoSave;
   end
   else
   begin
+    Val := Trim(InputBox('Add Environment Variable',
+                         'Enter variable (KEY=VALUE):', ''));
+    if Val = '' then Exit;
+
+    if not Assigned(FForm.FTweaksGrid) then Exit;
+    Row := FForm.FTweaksGrid.RowCount;
+    FForm.FTweaksGrid.RowCount := Row + 1;
+    FForm.FTweaksGrid.Cells[0, Row] := '1';
     FForm.FTweaksGrid.Cells[1, Row] := TweakCategoryName(TWEAK_CAT_CUSTOM);
     FForm.FTweaksGrid.Cells[2, Row] := Val;
     if FForm.FActiveGameName = '' then
       FForm.FTweaksGrid.Cells[3, Row] := 'Global'
     else
       FForm.FTweaksGrid.Cells[3, Row] := 'Local';
-  end;
 
-  FForm.FTweaksPaintBox.Invalidate;
-  FForm.TriggerAutoSave;
+    if Assigned(FForm.FTweaksPaintBox) then
+      FForm.FTweaksPaintBox.Invalidate;
+    FForm.TriggerAutoSave;
+  end;
 end;
 
 procedure TTweaksMD3Helper.InitTweaksCards;

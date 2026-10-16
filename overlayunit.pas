@@ -464,6 +464,7 @@ type
     systemGroupBox: TGroupBox;
     systemLabel: TLabel;
     tweaksTabSheet: TTabSheet;
+    launchArgsTabSheet: TTabSheet;
     settingsSpeedButton: TSpeedButton;
     settingsMenu: TPopupMenu;
     themeMenuItem: TMenuItem;
@@ -679,6 +680,7 @@ type
     procedure metricsTabSheetShow(Sender: TObject);
     procedure extrasTabSheetShow(Sender: TObject);
     procedure tweaksTabSheetShow(Sender: TObject);
+    procedure launchArgsTabSheetShow(Sender: TObject);
     procedure SyncAllToggles;
     procedure LoadMangoHudConfig;
     procedure SaveMangoHudConfig;
@@ -1171,8 +1173,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..8] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux
-    FHomeModVerLbls:   array[0..8] of TLabel;   // version text
+    FHomeModDots:      array[0..9] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR
+    FHomeModVerLbls:   array[0..9] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -1294,6 +1296,10 @@ type
     FTweaksScrollBar:  TScrollBar;
     FTweaksScrollPos:  Integer;
     FTweaksHoverIdx:   Integer;
+    FArgsPaintBox:     TPaintBox;
+    FArgsScrollBar:    TScrollBar;
+    FArgsScrollPos:    Integer;
+    FArgsHoverIdx:     Integer;
     FTweaksCatExpanded: array[0..3] of Boolean; // General, Graphics, Performance, Latency reduction
     FAntilagCheckBox:  TCheckBox;  // ENABLE_LAYER_MESA_ANTI_LAG=1
     FFSR4UpgradeCheckBox: TCheckBox;   // PROTON_FSR4_UPGRADE=1
@@ -1422,6 +1428,12 @@ type
     procedure TweaksMD3ToggleItem(Index: Integer);
     procedure TweaksMD3FABClick(Sender: TObject);
     procedure TweaksMD3MouseLeave(Sender: TObject);
+    procedure ArgsMD3Paint(Sender: TObject);
+    procedure ArgsMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure ArgsMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure ArgsMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure ArgsMD3ScrollChange(Sender: TObject);
+    procedure ArgsMD3MouseLeave(Sender: TObject);
 
     function IsMangoHudInstalled: Boolean;
     function IsVkBasaltInstalled: Boolean;
@@ -1932,16 +1944,26 @@ begin
   SetNavActive(4);
 
 //Enable goverlay tabs
-goverlayPageControl.ShowTabs:=false; //disable mangohud tab
+goverlayPageControl.ShowTabs:=true;
+presetTabSheet.TabVisible:=false;
+visualTabSheet.TabVisible:=false;
+performanceTabSheet.TabVisible:=false;
+metricsTabSheet.TabVisible:=false;
+extrasTabSheet.TabVisible:=false;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 if Assigned(reshadeTabSheet) then reshadeTabSheet.TabVisible:=false; //disable reshade tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
 gamesTabSheet.TabVisible:=false; //disable games tab
+FHomeTabSheet.TabVisible:=false; //disable home tab
 tweakstabsheet.TabVisible:=true;
+if Assigned(launchArgsTabSheet) then
+  launchArgsTabSheet.TabVisible:=true;
 
-goverlayPageControl.ActivePage:=tweaksTabsheet;
+if (goverlayPageControl.ActivePage <> tweaksTabSheet) and
+   (goverlayPageControl.ActivePage <> launchArgsTabSheet) then
+  goverlayPageControl.ActivePage:=tweaksTabsheet;
 
 //Hide notification messages
 notificationLabel.Visible:=false;
@@ -2077,6 +2099,7 @@ begin
   optiscalertabsheet.TabVisible:=false;
   losslessScalingTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
+  if Assigned(launchArgsTabSheet) then launchArgsTabSheet.TabVisible:=false;
   gamesTabSheet.TabVisible:=false;
   FHomeTabSheet.TabVisible:=false;
 
@@ -2725,6 +2748,16 @@ procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
 begin
   LoadTweaksFromFGMod;
   UpdateToolMissingDependencyBanners;
+  if Assigned(FTweaksPaintBox) then
+    FTweaksPaintBox.Invalidate;
+end;
+
+procedure Tgoverlayform.launchArgsTabSheetShow(Sender: TObject);
+begin
+  LoadTweaksFromFGMod;
+  UpdateToolMissingDependencyBanners;
+  if Assigned(FArgsPaintBox) then
+    FArgsPaintBox.Invalidate;
 end;
 
 // ============================================================================
@@ -3661,6 +3694,15 @@ begin
   losslessScalingTabSheet.TabVisible  := False;
   losslessScalingTabSheet.PageIndex   := optiscalertabsheet.PageIndex + 1;
   losslessScalingTabSheet.OnShow      := @losslessScalingTabSheetShow;
+
+  // Tweaks sub-tabs: EnvVars and Arguments
+  tweaksTabSheet.Caption := 'EnvVars';
+  launchArgsTabSheet := TTabSheet.Create(goverlayPageControl);
+  launchArgsTabSheet.PageControl := goverlayPageControl;
+  launchArgsTabSheet.Caption     := 'Arguments';
+  launchArgsTabSheet.TabVisible  := False;
+  launchArgsTabSheet.PageIndex   := tweaksTabSheet.PageIndex + 1;
+  launchArgsTabSheet.OnShow      := @launchArgsTabSheetShow;
 
   BuildVkSumiTab;
   InitTweaksCards;
@@ -4666,6 +4708,42 @@ begin
   if Assigned(FTweaksHelper) then
     TTweaksMD3Helper(FTweaksHelper).MouseLeave(Sender);
 end;
+
+procedure Tgoverlayform.ArgsMD3Paint(Sender: TObject);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).Paint(Sender);
+end;
+
+procedure Tgoverlayform.ArgsMD3MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).MouseMove(Sender, Shift, X, Y);
+end;
+
+procedure Tgoverlayform.ArgsMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).MouseDown(Sender, Button, Shift, X, Y);
+end;
+
+procedure Tgoverlayform.ArgsMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).MouseWheel(Sender, Shift, WheelDelta, MousePos, Handled);
+end;
+
+procedure Tgoverlayform.ArgsMD3ScrollChange(Sender: TObject);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).ScrollChange(Sender);
+end;
+
+procedure Tgoverlayform.ArgsMD3MouseLeave(Sender: TObject);
+begin
+  if Assigned(FTweaksHelper) then
+    TTweaksMD3Helper(FTweaksHelper).MouseLeave(Sender);
+end;
 procedure Tgoverlayform.ApplyImageAntialiasing;
   procedure ScanImages(AParent: TWinControl);
   var
@@ -5171,8 +5249,10 @@ begin
   // 4. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
   HideTweaksMissingBanner;
 
-  if (goverlayPageControl.ActivePage = tweaksTabSheet) and Assigned(FTweaksPaintBox) then
+  if ((goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet)) and Assigned(FTweaksPaintBox) then
     FTweaksPaintBox.Invalidate;
+  if (goverlayPageControl.ActivePage = launchArgsTabSheet) and Assigned(FArgsPaintBox) then
+    FArgsPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.EnsureTweaksMissingBanner;
@@ -5521,6 +5601,8 @@ begin
   optiscalertabsheet.TabVisible:=false;
   losslessScalingTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
+  if Assigned(launchArgsTabSheet) then
+    launchArgsTabSheet.TabVisible:=false;
 
   gamesTabSheet.TabVisible:=true;
   goverlayPageControl.ActivePage:=gamesTabSheet;
@@ -5573,6 +5655,7 @@ vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
 optiscalertabsheet.TabVisible:=false; //disable optiscaler tab
 losslessScalingTabSheet.TabVisible:=false; //disable lossless scaling tab
 tweakstabsheet.TabVisible:=false;  //disable tweaks tab
+if Assigned(launchArgsTabSheet) then launchArgsTabSheet.TabVisible:=false;
 gamesTabSheet.TabVisible:=false; //disable games tab
 FHomeTabSheet.TabVisible:=false; //hide home tab when switching to mangohud
 
@@ -6091,6 +6174,8 @@ begin
     reshadeTabSheet.TabVisible := False;
   vksumiTabSheet.TabVisible := False;
   tweakstabsheet.TabVisible := False;
+  if Assigned(launchArgsTabSheet) then
+    launchArgsTabSheet.TabVisible := False;
   gamesTabSheet.TabVisible := False;
   FHomeTabSheet.TabVisible := False;
 
@@ -7143,7 +7228,8 @@ begin
   end
   else if (goverlayPageControl.ActivePage = optiscalerTabSheet) or
           (goverlayPageControl.ActivePage = losslessScalingTabSheet) or
-          (goverlayPageControl.ActivePage = tweaksTabSheet) then
+          (goverlayPageControl.ActivePage = tweaksTabSheet) or
+          (goverlayPageControl.ActivePage = launchArgsTabSheet) then
   begin
     // OptiScaler, Lossless Scaling, and Tweaks tabs: hide Save options/Load config, show Config folder, Log folder, and global enable
     loadconfigMenuItem.Visible := False;
@@ -7367,7 +7453,7 @@ var
   BlacklistCfg: TConfigFile;
 begin
   // ################### SAVE TWEAKS TAB SETTINGS
-  if goverlayPageControl.ActivePage = tweaksTabSheet then
+  if (goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet) then
   begin
     SaveTweaksConfig;
     Exit;
@@ -7586,7 +7672,7 @@ begin
         Result := ConfigDir + 'conf.toml';
     end;
   end
-  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+  else if (goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet) then
   begin
     Result := ConfigDir + 'bgmod.conf';
     if not FileExists(Result) then
@@ -7667,7 +7753,7 @@ begin
   end
   else if goverlayPageControl.ActivePage = reshadeTabSheet then
     Result := LogDir + 'reshade.log'
-  else if goverlayPageControl.ActivePage = tweaksTabSheet then
+  else if (goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet) then
     Result := LogDir + 'bgmod.log'
   else
     Result := LogDir + 'bgmod.log';
@@ -9385,6 +9471,8 @@ begin
     vkSumiTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
     tweaksTabSheetShow(nil)
+  else if Assigned(launchArgsTabSheet) and (goverlayPageControl.ActivePage = launchArgsTabSheet) then
+    launchArgsTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = visualTabSheet then
     visualTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = performanceTabSheet then
@@ -9784,7 +9872,7 @@ begin
       end;
       LoadOptiScalerConfig;
     end
-    else if goverlayPageControl.ActivePage = tweaksTabSheet then
+    else if (goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet) then
     begin
       LoadTweaksFromFGMod;
     end

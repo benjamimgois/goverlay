@@ -788,7 +788,11 @@ begin
       end;
       if Assigned(FForm.dlssenablerToggleBtn) then FForm.dlssenablerToggleBtn.Enabled := False;
     end;
-    3: FForm.SetControlTreeEnabled(FForm.tweaksTabSheet,      AEnabled);
+    3: begin
+         FForm.SetControlTreeEnabled(FForm.tweaksTabSheet, AEnabled);
+         if Assigned(FForm.launchArgsTabSheet) then
+           FForm.SetControlTreeEnabled(FForm.launchArgsTabSheet, AEnabled);
+       end;
   end;
   // Disable Save when the toggled tool owns the currently visible tab
   if ActiveToolIndex = AToolIdx then
@@ -807,7 +811,7 @@ begin
     Result := 1
   else if (P = FForm.optiscalertabsheet) or (P = FForm.losslessScalingTabSheet) then
     Result := 2
-  else if P = FForm.tweaksTabSheet then
+  else if (P = FForm.tweaksTabSheet) or (P = FForm.launchArgsTabSheet) then
     Result := 3
   else
     Result := -1;

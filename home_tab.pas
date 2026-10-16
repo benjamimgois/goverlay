@@ -415,6 +415,8 @@ begin
     optiscalertabsheet.TabVisible := False;
     losslessScalingTabSheet.TabVisible := False;
     tweakstabsheet.TabVisible    := False;
+    if Assigned(launchArgsTabSheet) then
+      launchArgsTabSheet.TabVisible := False;
     gamesTabSheet.TabVisible     := False;
     FHomeTabSheet.TabVisible     := True;
     goverlayPageControl.ActivePage := FHomeTabSheet;
