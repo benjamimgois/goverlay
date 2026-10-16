@@ -3680,10 +3680,10 @@ begin
   FReshadeHelper := TReshadeTabHelper.Create(Self);
   TReshadeTabHelper(FReshadeHelper).BuildReShadeTab;
 
-  // Create vkSumi tab sheet (must exist before BuildVkSumiTab)
+  // Create Color Grading (vkSumi) tab sheet (must exist before BuildVkSumiTab)
   vksumiTabSheet := TTabSheet.Create(goverlayPageControl);
   vksumiTabSheet.PageControl := goverlayPageControl;
-  vksumiTabSheet.Caption     := 'vkSumi';
+  vksumiTabSheet.Caption     := 'Color Grading';
   vksumiTabSheet.TabVisible  := False;
   vksumiTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex + 1;
 

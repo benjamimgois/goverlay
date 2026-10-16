@@ -1234,6 +1234,7 @@ begin
   NavigateVkSumiTab;
   AssertTrue('vksumi tab is active',
     goverlayform.goverlayPageControl.ActivePage = goverlayform.vksumiTabSheet);
+  AssertEquals('vksumi tab sheet caption is Color Grading', 'Color Grading', goverlayform.vksumiTabSheet.Caption);
   AssertTrue('vksumi trackbars were built', Assigned(goverlayform.FVsTrackbars[0]));
   AssertEquals('vksumiTabSheet background matches dark tab color',
     RGBToColor(22, 26, 40), goverlayform.vksumiTabSheet.Color);
