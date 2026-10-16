@@ -3430,6 +3430,8 @@ begin
 
   // Native DLSS toggle test
   AssertNotNull('helixsrNativeDlssCheckBox exists', goverlayform.helixsrNativeDlssCheckBox);
+  AssertEquals('helixsrNativeDlssCheckBox caption', 'Native DLSS (Exp.)', goverlayform.helixsrNativeDlssCheckBox.Caption);
+  AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 176', 36 + 176, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
   goverlayform.helixsrNativeDlssCheckBox.Checked := True;
   goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
 

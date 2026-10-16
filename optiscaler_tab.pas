@@ -848,7 +848,7 @@ begin
     begin
       helixsrNativeDlssCheckBox := TCheckBox.Create(FForm);
       helixsrNativeDlssCheckBox.Name := 'helixsrNativeDlssCheckBox';
-      helixsrNativeDlssCheckBox.Caption := 'Native DLSS (Experimental)';
+      helixsrNativeDlssCheckBox.Caption := 'Native DLSS (Exp.)';
       helixsrNativeDlssCheckBox.Hint := 'Native DLSS (Experimental)' + LineEnding + 'Bypass OptiScaler using direct DLSS loader (Single-player only, anti-cheat ban risk)';
       helixsrNativeDlssCheckBox.ShowHint := True;
       helixsrNativeDlssCheckBox.OnChange := @FForm.helixsrNativeDlssCheckBoxChange;
@@ -1625,12 +1625,12 @@ begin
       if Assigned(FHelixSrNativeDlssToggle) then
       begin
         FHelixSrNativeDlssToggle.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
-        FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 200, ColW - 20, 20);
+        FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
       end
       else if Assigned(helixsrNativeDlssCheckBox) then
       begin
         helixsrNativeDlssCheckBox.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
-        helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 200, ColW - 20, 20);
+        helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
       end;
 
       if Assigned(FHelixSrModeInfoLbl) then
