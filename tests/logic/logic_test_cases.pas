@@ -112,10 +112,19 @@ type
     procedure TestBgmodExecutableSelfUpdate;
   end;
 
+  TRuntimeUpdateDowngradeTests = class(TTestCase)
+  published
+    procedure TestExtractReleaseTagFromAtomXmlLinkHref;
+    procedure TestExtractReleaseTagFromAtomXmlIdTag;
+    procedure TestExtractReleaseTagFromAtomXmlEmpty;
+    procedure TestSemverComparisonSemantics;
+    procedure TestDowngradeSuppressionLogic;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, bgmod_resources, Process, BaseUnix;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -1816,6 +1825,46 @@ begin
   end;
 end;
 
+procedure TRuntimeUpdateDowngradeTests.TestExtractReleaseTagFromAtomXmlLinkHref;
+var
+  Xml: string;
+begin
+  Xml := '<entry><link rel="alternate" type="text/html" href="https://github.com/eugeniosegala/MAKO/releases/tag/render-v4.5.0"/><title>MAKO v4.5.0</title></entry>';
+  AssertEquals('Extract release tag from link href', 'render-v4.5.0', ExtractReleaseTagFromAtomXml(Xml));
+end;
+
+procedure TRuntimeUpdateDowngradeTests.TestExtractReleaseTagFromAtomXmlIdTag;
+var
+  Xml: string;
+begin
+  Xml := '<entry><id>tag:github.com,2008:Repository/1405556861/v1.9.0</id><title>v1.9.0</title></entry>';
+  AssertEquals('Extract release tag from id tag fallback', 'v1.9.0', ExtractReleaseTagFromAtomXml(Xml));
+end;
+
+procedure TRuntimeUpdateDowngradeTests.TestExtractReleaseTagFromAtomXmlEmpty;
+begin
+  AssertEquals('Empty Atom XML yields empty tag', '', ExtractReleaseTagFromAtomXml(''));
+  AssertEquals('Feed without entries yields empty tag', '',
+    ExtractReleaseTagFromAtomXml('<feed><title>No entries</title></feed>'));
+end;
+
+procedure TRuntimeUpdateDowngradeTests.TestSemverComparisonSemantics;
+begin
+  AssertTrue('4.5.0 > 4.0.0', CompareVersions('4.5.0', '4.0.0') > 0);
+  AssertTrue('4.0.0 = 4.0.0', CompareVersions('4.0.0', '4.0.0') = 0);
+  AssertTrue('3.0.0 < 4.0.0', CompareVersions('3.0.0', '4.0.0') < 0);
+  AssertTrue('1.9.0 > 1.8.1', CompareVersions('1.9.0', '1.8.1') > 0);
+  AssertTrue('1.3.1 = 1.3.1', CompareVersions('1.3.1', '1.3.1') = 0);
+end;
+
+procedure TRuntimeUpdateDowngradeTests.TestDowngradeSuppressionLogic;
+begin
+  AssertFalse('Downgrade 3.0.0 over 4.0.0 must not trigger update condition',
+    CompareVersions('3.0.0', '4.0.0') > 0);
+  AssertTrue('Upgrade 4.5.0 over 4.0.0 triggers update condition',
+    CompareVersions('4.5.0', '4.0.0') > 0);
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -1830,5 +1879,6 @@ initialization
   RegisterTest(TReShadeLogicTests);
   RegisterTest(TSyncGameWrapperBinariesTests);
   RegisterTest(TBgmodSelfUpdateTests);
+  RegisterTest(TRuntimeUpdateDowngradeTests);
 
 end.

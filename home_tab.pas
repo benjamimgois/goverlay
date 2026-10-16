@@ -657,7 +657,7 @@ begin
       while (LsfgRemoteVer <> '') and (LsfgRemoteVer[1] in ['v', 'V']) do
         Delete(LsfgRemoteVer, 1, 1);
 
-      if LsfgHasUpdate and (LsfgRemoteVer <> '') and (LsfgLocalVer <> '') and (LsfgRemoteVer <> LsfgLocalVer) then
+      if LsfgHasUpdate and (LsfgRemoteVer <> '') and (LsfgLocalVer <> '') and (CompareVersions(LsfgRemoteVer, LsfgLocalVer) > 0) then
       begin
         FHomeModVerLbls[5].Caption := LsfgLocalVer + ' → ' + LsfgRemoteVer;
         FHomeModVerLbls[5].Font.Color := $0044AAFF;
@@ -704,7 +704,7 @@ begin
       while (MakoRemoteVer <> '') and (MakoRemoteVer[1] in ['v', 'V']) do
         Delete(MakoRemoteVer, 1, 1);
 
-      if MakoHasUpdate and (MakoRemoteVer <> '') and (MakoLocalVer <> '') and (MakoRemoteVer <> MakoLocalVer) then
+      if MakoHasUpdate and (MakoRemoteVer <> '') and (MakoLocalVer <> '') and (CompareVersions(MakoRemoteVer, MakoLocalVer) > 0) then
       begin
         FHomeModVerLbls[6].Caption := MakoLocalVer + ' → ' + MakoRemoteVer;
         FHomeModVerLbls[6].Font.Color := $0044AAFF;
@@ -751,7 +751,7 @@ begin
       while (AfmfRemoteVer <> '') and (AfmfRemoteVer[1] in ['v', 'V']) do
         Delete(AfmfRemoteVer, 1, 1);
 
-      if AfmfHasUpdate and (AfmfRemoteVer <> '') and (AfmfLocalVer <> '') and (AfmfRemoteVer <> AfmfLocalVer) then
+      if AfmfHasUpdate and (AfmfRemoteVer <> '') and (AfmfLocalVer <> '') and (CompareVersions(AfmfRemoteVer, AfmfLocalVer) > 0) then
       begin
         FHomeModVerLbls[8].Caption := AfmfLocalVer + ' → ' + AfmfRemoteVer;
         FHomeModVerLbls[8].Font.Color := $0044AAFF;

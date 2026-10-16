@@ -139,6 +139,7 @@ type
     procedure TestLosslessScalingMakoTogglesLayoutAndNoScroll;
     procedure TestLosslessScalingMethodSwitching;
     procedure TestMakoUpdateNotificationPersistenceAndHomeSync;
+    procedure TestUniversalRuntimeUpdateDowngradesSuppressed;
     procedure TestLsfgVkUpdateNotificationPersistenceAndHomeSync;
     procedure TestAfmfUpdateNotificationPersistenceAndHomeSync;
     procedure TestLsfgVkBuildsHtmlParsingIgnoresGitVersion;
@@ -172,7 +173,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -6272,6 +6273,55 @@ begin
   finally
     // Reset state
     Helper.SetMakoUpdateState('', False);
+    if FileExists(StateFile) then DeleteFile(StateFile);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestUniversalRuntimeUpdateDowngradesSuppressed;
+var
+  Helper: TLosslessScalingTabHelper;
+  StateDir, StateFile: string;
+  SL: TStringList;
+begin
+  // Seed the simulated local MAKO runtime version 4.0.0.
+  StateDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/mako-render';
+  ForceDirectories(StateDir);
+  StateFile := StateDir + '/active-renderer.json';
+  SL := TStringList.Create;
+  try
+    SL.Add('{"version": "4.0.0", "prefix": "/home/test"}');
+    SL.SaveToFile(StateFile);
+  finally
+    SL.Free;
+  end;
+
+  goverlayform.optiscalerLabel.OnClick(goverlayform.optiscalerLabel);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper := TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper);
+  AssertNotNull('Lossless helper is assigned', Helper);
+
+  try
+    // 1. Older remote version 3.0.0 must be suppressed by the runtime comparison.
+    Helper.ApplyMakoUpdateResult('4.0.0', '3.0.0');
+    AssertTrue('Downgrade comparison 3.0.0 vs 4.0.0 yields <= 0',
+      CompareVersions('3.0.0', '4.0.0') <= 0);
+    AssertFalse('FMakoUpdateAvailable remains False on downgrade', Helper.FMakoUpdateAvailable);
+    AssertFalse('FLsInstallBtn is not showing an update on downgrade', Helper.InstallBtn.Visible);
+
+    goverlayform.RefreshHomeMakoStatus;
+    AssertFalse('Home tab does not show a downgrade arrow',
+      Pos('4.0.0 → 3.0.0', goverlayform.FHomeModVerLbls[6].Caption) > 0);
+
+    // 2. Newer remote version 4.5.0 must surface the upgrade affordances.
+    Helper.FMakoRemoteVer := '4.5.0';
+    Helper.FMakoUpdateAvailable := True;
+    goverlayform.RefreshHomeMakoStatus;
+    AssertTrue('Home tab displays upgrade arrow when remote is newer',
+      Pos('4.0.0 → 4.5.0', goverlayform.FHomeModVerLbls[6].Caption) > 0);
+  finally
+    // Reset state.
+    Helper.SetMakoUpdateState('', False);
+    goverlayform.RefreshHomeMakoStatus;
     if FileExists(StateFile) then DeleteFile(StateFile);
   end;
 end;

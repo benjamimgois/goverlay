@@ -23,6 +23,14 @@ function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProg
 // Fetch the latest HelixSR release (lonewolf0622/HelixSR) tag and .zip asset URL
 function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
 
+// Extract the latest release tag from a GitHub releases Atom XML feed.
+// Returns the tag string (e.g. v1.2.3) or '' when no entry/tag can be found.
+function ExtractReleaseTagFromAtomXml(const AXml: string): string;
+
+// Fetch the latest release tag for a GitHub repository through its Atom feed
+// (https://github.com/<owner>/<repo>/releases.atom). Returns '' on failure.
+function FetchLatestReleaseTagFromAtom(const AOwner, ARepo: string): string;
+
 // Check and automatically install/heal the HelixSR OptiScaler runtime (lonewolf0622/HelixSR)
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
@@ -216,14 +224,106 @@ type
     constructor Create(AOptiTab: TOptiscalerTab);
   end;
 
+// Extract the latest release tag from a GitHub releases Atom XML feed.
+// Inspection strategy: locate the first <entry> block, then read the tag either
+// from its <link ... href=".../releases/tag/<tag>"> alternate link or, as a
+// fallback, from the <id>tag:github.com,2008:Repository/<repo>/<tag></id> node.
+function ExtractReleaseTagFromAtomXml(const AXml: string): string;
+var
+  EntryStart, EntryEnd, TagPos, IdPos, P1, P2: Integer;
+  Entry: string;
+begin
+  Result := '';
+  if AXml = '' then Exit;
+
+  EntryStart := Pos('<entry>', AXml);
+  if EntryStart = 0 then Exit;
+
+  EntryEnd := PosEx('</entry>', AXml, EntryStart);
+  if EntryEnd = 0 then
+    Entry := Copy(AXml, EntryStart, Length(AXml) - EntryStart + 1)
+  else
+    Entry := Copy(AXml, EntryStart, EntryEnd - EntryStart);
+
+  // Preferred: <link rel="alternate" ... href=".../releases/tag/<tag>">
+  TagPos := Pos('/releases/tag/', Entry);
+  if TagPos > 0 then
+  begin
+    P1 := TagPos + Length('/releases/tag/');
+    P2 := P1;
+    while (P2 <= Length(Entry)) and (Entry[P2] <> '"') and (Entry[P2] <> '<') and (Entry[P2] <> ' ') and (Entry[P2] <> '/') do
+      Inc(P2);
+    if P2 > P1 then
+      Exit(Copy(Entry, P1, P2 - P1));
+  end;
+
+  // Fallback: <id>tag:github.com,2008:Repository/<numeric>/<tag></id>
+  IdPos := Pos('2008:Repository/', Entry);
+  if IdPos > 0 then
+  begin
+    P1 := IdPos + Length('2008:Repository/');
+    while (P1 <= Length(Entry)) and (Entry[P1] in ['0'..'9']) do
+      Inc(P1);
+    if (P1 <= Length(Entry)) and (Entry[P1] = '/') then
+      Inc(P1);
+    P2 := P1;
+    while (P2 <= Length(Entry)) and (Entry[P2] <> '<') and (Entry[P2] <> '"') and (Entry[P2] <> ' ') do
+      Inc(P2);
+    if P2 > P1 then
+      Exit(Copy(Entry, P1, P2 - P1));
+  end;
+end;
+
+// Fetch the latest release tag for a GitHub repository through its Atom feed.
+function FetchLatestReleaseTagFromAtom(const AOwner, ARepo: string): string;
+var
+  Process: TProcess;
+  OutputList: TStringList;
+  TmpFile, RespText: string;
+begin
+  Result := '';
+  if (AOwner = '') or (ARepo = '') then Exit;
+
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'atom_' + AOwner + '_' + ARepo + '_' + IntToStr(fpgetpid) + '.xml';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('8');
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(TmpFile);
+    Process.Parameters.Add('https://github.com/' + AOwner + '/' + ARepo + '/releases.atom');
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if not FileExists(TmpFile) then Exit;
+
+  OutputList := TStringList.Create;
+  try
+    OutputList.LoadFromFile(TmpFile);
+    RespText := OutputList.Text;
+  finally
+    OutputList.Free;
+    DeleteFile(TmpFile);
+  end;
+
+  Result := ExtractReleaseTagFromAtomXml(RespText);
+end;
+
 // Query the latest release of lonewolf0622/HelixSR from the GitHub API.
 // Fills ATag with the release tag (e.g. v1.8.1) and AUrl with the .zip asset URL.
-// Falls back to a hardcoded tag/URL when the API cannot be reached or parsed.
+// Falls back to the Atom feed when the API cannot be reached or parsed.
 function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
 var
   Process: TProcess;
   OutputList: TStringList;
-  RespText, TmpFile: string;
+  RespText, TmpFile, AtomTag, FileTag: string;
   KeyPos, ColonPos, QuoteStart, QuoteEnd, UrlPos: Integer;
 begin
   Result := False;
@@ -292,13 +392,19 @@ begin
     end;
   end;
 
-  // Fallback to a known-good release if the API could not provide a usable tag/URL
+  // Fallback to the Atom feed when the REST API is unavailable or incomplete
   if (ATag = '') or (AUrl = '') then
   begin
-    if ATag = '' then
-      ATag := 'v1.8.1';
-    if AUrl = '' then
-      AUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
+    AtomTag := FetchLatestReleaseTagFromAtom('lonewolf0622', 'HelixSR');
+    if AtomTag <> '' then
+    begin
+      ATag := AtomTag;
+      if (ATag <> '') and (ATag[1] = 'v') then
+        FileTag := Copy(ATag, 2, Length(ATag))
+      else
+        FileTag := ATag;
+      AUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/' + ATag + '/HelixSR-' + FileTag + '.zip';
+    end;
   end;
 
   Result := (ATag <> '') and (AUrl <> '');
@@ -4097,15 +4203,27 @@ begin
 
   Tag := '';
   DownloadUrl := '';
-  if not FetchHelixSRLatestRelease(Tag, DownloadUrl) then
-  begin
-    Tag := 'v1.8.1';
-    DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
-  end;
+  FetchHelixSRLatestRelease(Tag, DownloadUrl);
+
+  // Only fall back to the baseline release URL on an initial installation
+  // (i.e. when no HelixSR runtime is present yet) so an existing build is
+  // never downgraded just because remote discovery failed.
   if DownloadUrl = '' then
-    DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.8.1/HelixSR-1.8.1.zip';
+  begin
+    if not FileExists(Dx12Dll) then
+    begin
+      Tag := 'v1.9.0';
+      DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.9.0/HelixSR-1.9.0.zip';
+    end;
+  end;
   if Tag = '' then
-    Tag := 'v1.8.1';
+    Tag := 'v1.9.0';
+
+  if DownloadUrl = '' then
+  begin
+    WriteLn('[HELIXSR] No download URL available; keeping existing runtime');
+    Exit(FileExists(Dx12Dll));
+  end;
 
   TempZip := IncludeTrailingPathDelimiter(GetTempDir) + 'helixsr_download.zip';
   TempExtract := IncludeTrailingPathDelimiter(GetTempDir) + 'helixsr_extract' + PathDelim;
@@ -5425,7 +5543,7 @@ end;
 
 function GetMakoLatestRemoteVersion(out AUrl: string): string;
 var
-  RespFile, RespText, TagName, DownloadUrl, AssetName: string;
+  RespFile, RespText, TagName, DownloadUrl, AssetName, Tag, CleanTag: string;
   Process: TProcess;
   OutputList: TStringList;
   JsonData, AssetData: TJSONData;
@@ -5529,8 +5647,21 @@ begin
     AUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-' + Result + '/MAKO-Renderer-' + Result + '-linux.tar.xz'
   else
   begin
-    Result := 'v3.0.0';
-    AUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-v3.0.0/MAKO-Renderer-v3.0.0-linux.tar.xz';
+    // Remote discovery failed: fall back to the Atom feed before giving up.
+    Tag := FetchLatestReleaseTagFromAtom('eugeniosegala', 'MAKO');
+    if Tag <> '' then
+    begin
+      CleanTag := Tag;
+      if Pos('render-', CleanTag) = 1 then
+        Delete(CleanTag, 1, 7);
+      Result := CleanTag;
+      AUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/' + Tag + '/MAKO-Renderer-' + CleanTag + '-linux.tar.xz';
+    end
+    else
+    begin
+      Result := '';
+      AUrl := '';
+    end;
   end;
 end;
 
@@ -5579,7 +5710,16 @@ begin
     RemoteVer := GetMakoLatestRemoteVersion(DownloadUrl);
 
     if DownloadUrl = '' then
-      DownloadUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-v3.0.0/MAKO-Renderer-v3.0.0-linux.tar.xz';
+    begin
+      // Never downgrade an existing install: if the MAKO layer is already
+      // present, keep it instead of forcing the baseline render-v4.5.0.
+      if IsMakoInstalled then
+      begin
+        WriteLn('[AUTO-INSTALL] MAKO remote discovery failed; keeping installed runtime');
+        Exit(False);
+      end;
+      DownloadUrl := 'https://github.com/eugeniosegala/MAKO/releases/download/render-v4.5.0/MAKO-Renderer-v4.5.0-linux.tar.xz';
+    end;
 
     WriteLn('[AUTO-INSTALL] MAKO Download URL: ', DownloadUrl);
     TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'mako_download.tar.xz';
@@ -6032,11 +6172,9 @@ begin
 
   if Result = '' then
   begin
-    Result := '2.0.0';
-    AUrl := URL_LSFGVK_TARBALL;
+    Result := '';
+    AUrl := '';
   end;
-  if AUrl = '' then
-    AUrl := URL_LSFGVK_TARBALL;
 end;
 
 function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
@@ -6081,7 +6219,16 @@ begin
     DownloadUrl := '';
     RemoteVer := GetLsfgVkLatestRemoteVersion(DownloadUrl);
     if DownloadUrl = '' then
+    begin
+      // Never downgrade an existing install: if the lsfg-vk layer is already
+      // present, keep it instead of forcing the baseline tarball.
+      if IsLsfgVkInstalled then
+      begin
+        WriteLn('[AUTO-INSTALL] lsfg-vk remote discovery failed; keeping installed runtime');
+        Exit(False);
+      end;
       DownloadUrl := URL_LSFGVK_TARBALL;
+    end;
     TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'lsfg_vk_download.tar.xz';
     LocalUserDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local';
 
@@ -6260,7 +6407,7 @@ end;
 
 function GetAfmfLatestRemoteVersion(out AUrl: string): string;
 var
-  RespFile, RespText, TagName, DownloadUrl, AssetName: string;
+  RespFile, RespText, TagName, DownloadUrl, AssetName, Tag, CleanTag: string;
   Process: TProcess;
   OutputList: TStringList;
   JsonData, AssetData: TJSONData;
@@ -6352,13 +6499,22 @@ begin
     AUrl := DownloadUrl;
   end;
 
-  if Result = '' then
+  if TagName = '' then
   begin
-    Result := '1.3.1';
-    AUrl := URL_AFMF_TARBALL;
+    // Remote discovery failed: fall back to the Atom feed before giving up.
+    Tag := FetchLatestReleaseTagFromAtom('serialexperimentslainnnn', 'afmf-linux');
+    if Tag <> '' then
+    begin
+      CleanTag := Tag;
+      while (CleanTag <> '') and (CleanTag[1] in ['v', 'V']) do
+        Delete(CleanTag, 1, 1);
+      Result := CleanTag;
+      AUrl := 'https://github.com/serialexperimentslainnnn/afmf-linux/releases/download/' + Tag + '/afmf-linux-' + CleanTag + '-x86_64.tar.xz';
+    end;
   end;
-  if AUrl = '' then
-    AUrl := URL_AFMF_TARBALL;
+
+  if Result = '' then
+    AUrl := '';
 end;
 
 function CheckAndInstallAfmf(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
@@ -6402,7 +6558,16 @@ begin
     DownloadUrl := '';
     RemoteVer := GetAfmfLatestRemoteVersion(DownloadUrl);
     if DownloadUrl = '' then
+    begin
+      // Never downgrade an existing install: if the afmf-linux layer is
+      // already present, keep it instead of forcing the baseline tarball.
+      if IsAfmfInstalled then
+      begin
+        WriteLn('[AUTO-INSTALL] AFMF remote discovery failed; keeping installed runtime');
+        Exit(False);
+      end;
       DownloadUrl := URL_AFMF_TARBALL;
+    end;
     TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'afmf_linux_download_' + IntToStr(fpgetpid) + '.tar.xz';
     TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'afmf_unpack_' + IntToStr(fpgetpid);
 
