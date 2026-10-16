@@ -13,7 +13,7 @@ uses
   qt5,
   {$ENDIF}
   qtwidgets,
-  Math, configkeys, StrUtils;
+  Math, configkeys, StrUtils, helixsr_license_dialog;
 
 type
   TOptiScalerTabHelper = class
@@ -29,8 +29,10 @@ type
     FHelixSrNativeDlssToggle: TToggleSwitch;
     FHelixSrModeInfoLbl: TLabel;
     FOsCustomInfoLbl: TLabel;
+    FOsHelixLicenseBtn: TBitBtn;
     FOsToggles: TFPList;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
+    procedure HelixLicenseBtnClick(Sender: TObject);
   public
     constructor Create(AForm: Tgoverlayform);
     destructor Destroy; override;
@@ -54,6 +56,7 @@ type
     property HelixSrNativeDlssToggle: TToggleSwitch read FHelixSrNativeDlssToggle;
     property HelixSrModeInfoLbl: TLabel read FHelixSrModeInfoLbl;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
+    property OsHelixLicenseBtn: TBitBtn read FOsHelixLicenseBtn;
     property OsToggles: TFPList read FOsToggles;
   end;
 
@@ -92,6 +95,12 @@ begin
     ReflowOptiScalerTabNew(0);
     FForm.StartAutoSaveTimer;
   end;
+end;
+
+procedure TOptiScalerTabHelper.HelixLicenseBtnClick(Sender: TObject);
+begin
+  if Assigned(FForm) then
+    ShowHelixSRLicenseDialog(FForm);
 end;
 
 procedure TOptiScalerTabHelper.SyncAllToggles;
@@ -1134,6 +1143,17 @@ begin
       FOsStatVerLbls[i] := VLbl;
     end;
 
+    // License button — shown only when HelixSR is the active upscaler
+    FOsHelixLicenseBtn := TBitBtn.Create(FForm);
+    FOsHelixLicenseBtn.Parent  := FOsStatusCard;
+    FOsHelixLicenseBtn.Name    := 'helixsrLicenseBtn';
+    FOsHelixLicenseBtn.Caption := 'License';
+    FOsHelixLicenseBtn.Font.Size := 8;
+    FOsHelixLicenseBtn.Font.Style := [fsBold];
+    FOsHelixLicenseBtn.Cursor  := crHandPoint;
+    FOsHelixLicenseBtn.Visible := False;
+    FOsHelixLicenseBtn.OnClick := @HelixLicenseBtnClick;
+
     RefreshOsStatusDots;
   end;
 end;
@@ -1159,6 +1179,9 @@ begin
 
     IsDlssEnablerActive := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
     IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
+
+    if Assigned(FOsHelixLicenseBtn) then
+      FOsHelixLicenseBtn.Visible := IsHelixSrActive;
 
     for i := 0 to 5 do
     begin
@@ -1319,6 +1342,13 @@ begin
       end;
     end;
 
+    if Assigned(FOsHelixLicenseBtn) and IsHelixSrActive then
+    begin
+      FOsStatVerLbls[2].AdjustSize;
+      FOsHelixLicenseBtn.Left := FOsStatVerLbls[2].Left + FOsStatVerLbls[2].Width + 8;
+      FOsHelixLicenseBtn.Top  := FOsStatVerLbls[2].Top + (FOsStatVerLbls[2].Height - FOsHelixLicenseBtn.Height) div 2;
+    end;
+
     ReflowOptiScalerTabNew(0);
   end;
 end;
@@ -1344,6 +1374,7 @@ var
   W, CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
   StatH: Integer;
   IsCustom, IsUnmanaged: Boolean;
+  IsHelixSrActive: Boolean;
   MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
@@ -1381,6 +1412,7 @@ begin
 
     IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
+    IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
 
     if IsCustom then
       StatH := HDR + 6 + BTN_H + 8 + 26 + STAT_ROWS * ROW_H + 12
@@ -1735,6 +1767,20 @@ begin
 
       FOsStatVerLbls[i].Left := ColX[Col] + DOT_SZ + 6 + MaxNameW[Col] + 12;
       FOsStatVerLbls[i].Top  := Row + (ROW_H - 16) div 2;
+
+      if Assigned(FOsHelixLicenseBtn) and (i = 2) then
+      begin
+        if IsHelixSrActive then
+        begin
+          FOsHelixLicenseBtn.Visible := True;
+          FOsHelixLicenseBtn.SetBounds(FOsStatVerLbls[2].Left + FOsStatVerLbls[2].Width + 8,
+            Row + (ROW_H - 22) div 2, 62, 22);
+          StyleBitBtnTheme(FOsHelixLicenseBtn,
+            IfThen(CurrentTheme = tmLight, LightTextColor, clWhite), FOsStatusCard.Color);
+        end
+        else
+          FOsHelixLicenseBtn.Visible := False;
+      end;
     end;
   end;
 end;

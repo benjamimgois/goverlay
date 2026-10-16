@@ -92,7 +92,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="37">
+    <Units Count="38">
       <Unit0>
         <Filename Value="goverlay.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -257,6 +257,10 @@
         <Filename Value="lossless_scaling_tab.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit36>
+      <Unit37>
+        <Filename Value="helixsr_license_dialog.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit37>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

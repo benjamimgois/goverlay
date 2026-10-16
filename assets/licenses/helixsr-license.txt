@@ -1,0 +1,35 @@
+HelixSR Freeware License
+Copyright (c) 2026 lonewolf0622. All rights reserved.
+
+This license covers the HelixSR software, the DLL and its documentation, as published in this repository and in its
+official releases ("HelixSR"), except the parts listed in section 6.
+
+1. Use. You may use HelixSR free of charge, for any lawful purpose, on any number of your own computers.
+
+2. Redistribution. You may redistribute HelixSR only (a) unmodified, (b) complete, as published in an official release
+   at https://github.com/lonewolf0622/HelixSR/releases, including this license and the notices, and (c) free of
+   charge. You may not sell, rent, sublicense or host HelixSR as part of a paid product or service.
+
+3. No modification. You may not modify HelixSR, create derivative works of it, or reverse engineer, decompile or
+   disassemble its compiled parts, except to the extent that applicable law allows you to despite this restriction.
+   Changing settings through helixsr.ini is not modification.
+
+4. NVIDIA material. HelixSR does not include NVIDIA's DLSS software, neural network weights or code. The HelixSR setup
+   builds network files on your computer from NVIDIA's DLSS DLL, which you obtain from NVIDIA under NVIDIA's license.
+   Those files remain NVIDIA's property, are not covered by this license, and must not be shared or redistributed.
+   HelixSR is an independent, unofficial project and is not affiliated with or endorsed by NVIDIA or AMD.
+
+5. Third-party components. HelixSR contains AMD FidelityFX code under AMD's MIT license; see THIRD_PARTY_NOTICES.md.
+   The setup downloads other tools from their own sources, under their own licenses.
+
+6. Setup scripts and other parts. The setup scripts (helixsr-setup.*, helixsr-uninstall.* and the setup folder) are
+   part of HelixSR and covered by this license: you may read and run them, but sections 2 and 3 apply to them too.
+   Setup scripts in releases up to and including 1.8.1 remain under the license they were published with (Apache
+   License, Version 2.0). Third-party files keep their own licenses.
+
+7. No warranty. HelixSR is provided "as is", without warranty of any kind, express or implied, including
+   merchantability, fitness for a particular purpose and non-infringement. To the maximum extent permitted by law, the
+   author is not liable for any claim, damages or other liability arising from the use of HelixSR, including damage to
+   games, accounts or hardware.
+
+8. Termination. Your rights under this license end automatically if you breach it.

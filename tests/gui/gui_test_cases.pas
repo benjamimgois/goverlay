@@ -166,12 +166,13 @@ type
     procedure TestIntelCpuPowerFixSuppressedOnConfigLoadAndFlatpak;
     procedure TestGameModeWarningSuppressedOnConfigLoad;
     procedure TestStartupHelixSRVerificationAndCompanionSync;
+    procedure TestHelixSRLicenseButtonAndDialog;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -7348,6 +7349,49 @@ begin
 
   // Cleanup
   DeleteDirectory(HelixDir, False);
+end;
+
+procedure TGoverlayGuiTests.TestHelixSRLicenseButtonAndDialog;
+var
+  Helper: TOptiScalerTabHelper;
+  HelixDir, LicensePath, LicenseText: string;
+begin
+  // 1. License text content
+  LicenseText := GetHelixSRLicenseText;
+  AssertTrue('License text contains the title', Pos('HelixSR Freeware License', LicenseText) > 0);
+  AssertTrue('License text contains the author', Pos('lonewolf0622', LicenseText) > 0);
+
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+  AssertTrue('OptiScalerHelper assigned', Assigned(Helper));
+  AssertNotNull('HelixSR license button exists', Helper.OsHelixLicenseBtn);
+  AssertEquals('HelixSR license button caption', 'License', Helper.OsHelixLicenseBtn.Caption);
+
+  // 2. HelixSR active -> the License button becomes visible
+  goverlayform.helixsrRadioButton.Checked := True;
+  goverlayform.RefreshOsStatusDots;
+  AssertTrue('License button visible when HelixSR is active', Helper.OsHelixLicenseBtn.Visible);
+
+  // 3. OptiScaler active -> the License button is hidden
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.RefreshOsStatusDots;
+  AssertFalse('License button hidden when OptiScaler is active', Helper.OsHelixLicenseBtn.Visible);
+
+  // 4. The license is always redistributed with the runtime files
+  HelixDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+  ForceDirectories(HelixDir);
+  LicensePath := HelixDir + 'LICENSE';
+  if FileExists(LicensePath) then
+    DeleteFile(LicensePath);
+
+  AssertTrue('EnsureHelixSRCompanionLibraries reports success',
+    EnsureHelixSRCompanionLibraries(HelixDir));
+  AssertTrue('LICENSE is written to the HelixSR target directory',
+    FileExists(LicensePath));
+  AssertTrue('Written LICENSE contains the license title',
+    Pos('HelixSR Freeware License', ReadFileText(LicensePath)) > 0);
 end;
 
 initialization

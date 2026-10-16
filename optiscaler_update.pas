@@ -26,6 +26,11 @@ function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
 // Check and automatically install/heal the HelixSR OptiScaler runtime (lonewolf0622/HelixSR)
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
+// Synchronize HelixSR companion libraries from the stable OptiScaler cache and
+// guarantee the HelixSR Freeware License is redistributed as <TargetDir>/LICENSE.
+// Passing an empty ATargetDir defaults to the HelixSR runtime path.
+function EnsureHelixSRCompanionLibraries(const ATargetDir: string): Boolean;
+
 // Check whether the HelixSR neural runtime has been compiled locally (HXSRNET1
 // footer marker in amd_fidelityfx_dx12.dll, or weights/kernels payloads present)
 function IsHelixSRCompiled(const ARootPath: string = ''): Boolean;
@@ -195,7 +200,8 @@ type
 implementation
 
 uses
-  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, overlay_utils, IniFiles, StrUtils, configfile;
+  FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, overlay_utils, IniFiles, StrUtils, configfile,
+  helixsr_license_dialog;
 
 type
   TOptiPatcherCheckThread = class(TThread)
@@ -3980,6 +3986,56 @@ begin
     DeleteDirectory(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'FSR4_INT8', False);
 end;
 
+function EnsureHelixSRCompanionLibraries(const ATargetDir: string): Boolean;
+var
+  TargetDir, StableDir, LicensePath: string;
+  LicenseLines: TStringList;
+begin
+  Result := False;
+
+  if Trim(ATargetDir) = '' then
+    TargetDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath)
+  else
+    TargetDir := IncludeTrailingPathDelimiter(Trim(ATargetDir));
+
+  if not DirectoryExists(TargetDir) and not ForceDirectories(TargetDir) then
+    Exit;
+
+  // Synchronize companion libraries from the stable OptiScaler cache so that
+  // even if the upstream archive lacks optiscaler/OptiScaler.dll it is populated.
+  StableDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
+  if DirectoryExists(StableDir) then
+  begin
+    ForceDirectories(TargetDir + 'optiscaler');
+    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and FileExists(StableDir + 'OptiScaler.dll') then
+      CopyFile(StableDir + 'OptiScaler.dll', TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll');
+    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and FileExists(StableDir + 'fakenvapi.dll') then
+      CopyFile(StableDir + 'fakenvapi.dll', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll');
+    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and FileExists(StableDir + 'fakenvapi.ini') then
+      CopyFile(StableDir + 'fakenvapi.ini', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini');
+  end;
+
+  // Always redistribute the HelixSR Freeware License alongside the runtime.
+  LicensePath := TargetDir + 'LICENSE';
+  if not FileExists(LicensePath) then
+  begin
+    LicenseLines := TStringList.Create;
+    try
+      LicenseLines.Text := GetHelixSRLicenseText;
+      try
+        LicenseLines.SaveToFile(LicensePath);
+        Result := True;
+      except
+        Result := False;
+      end;
+    finally
+      LicenseLines.Free;
+    end;
+  end
+  else
+    Result := True;
+end;
+
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   TargetDir, Dx12Dll, OptiDll, SetupScript: string;
@@ -4025,16 +4081,9 @@ begin
   OptiDll := TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll';
   SetupScript := TargetDir + 'helixsr-setup.sh';
 
-  if DirectoryExists(GetBGModOriginalPath) then
-  begin
-    ForceDirectories(TargetDir + 'optiscaler');
-    if not FileExists(OptiDll) and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll', OptiDll);
-    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll');
-    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini');
-  end;
+  // Synchronize companion libraries from the stable OptiScaler cache and make
+  // sure the HelixSR Freeware License ships alongside the runtime.
+  EnsureHelixSRCompanionLibraries(TargetDir);
 
   if not AForce and FileExists(Dx12Dll) and (IsHelixSRCompiled(TargetDir) or (FileExists(SetupScript) and FileExists(OptiDll))) then
   begin
@@ -4126,16 +4175,8 @@ begin
 
   // Synchronize companion libraries from stable OptiScaler cache so that even
   // if the upstream archive lacks optiscaler/OptiScaler.dll it is populated.
-  if DirectoryExists(GetBGModOriginalPath) then
-  begin
-    ForceDirectories(TargetDir + 'optiscaler');
-    if not FileExists(OptiDll) and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'OptiScaler.dll', OptiDll);
-    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll');
-    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') then
-      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini');
-  end;
+  // Also (re)writes the HelixSR Freeware License as <TargetDir>/LICENSE.
+  EnsureHelixSRCompanionLibraries(TargetDir);
 
   // Ensure scripts and binaries have execution permissions
   fpChmod(PChar(TargetDir + 'helixsr-setup.sh'), &755);
