@@ -50,6 +50,13 @@ function CompileHelixSR(AOnProgress: TDownloadProgressProc = nil): Boolean;
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean; overload;
 function HasMissingMandatoryLibraries: Boolean; overload;
 
+// Check and automatically install/update the OptiPatcher OptiScaler ASI plugin
+// from the optiscaler/OptiPatcher rolling release.
+function CheckAndInstallOptiPatcher(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Check whether a newer OptiPatcher rolling build is available on GitHub.
+function IsOptiPatcherUpdateAvailable: Boolean;
+
 // Import a custom OptiScaler build from a local directory
 function ImportCustomOptiScalerBuild(const ASourceDir: string; out AErrorMsg: string): Boolean;
 
@@ -905,15 +912,8 @@ end;
 
 procedure TOptiscalerTab.CheckAndUpdateOptiPatcherAsync;
 begin
-  // Debounce checks: max 1 check per 60 seconds
-  if (Now - FLastOptiPatcherCheckTime) < (1.0 / 1440.0) then Exit;
-
-  if Assigned(FOptiPatcherCheckThread) then Exit;
-
-  FLastOptiPatcherCheckTime := Now;
-  FOptiPatcherCheckThread := TOptiPatcherCheckThread.Create(Self);
-  FOptiPatcherCheckThread.OnTerminate := @OptiPatcherThreadTerminated;
-  FOptiPatcherCheckThread.Start;
+  // OptiPatcher checks/updates moved to the startup splash screen
+  // (CheckAndInstallOptiPatcher run from TStartupDownloadThread.Execute).
 end;
 
 procedure TOptiscalerTab.OptiPatcherThreadTerminated(Sender: TObject);
@@ -4614,6 +4614,11 @@ begin
   if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') then
     AMissingList.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
 
+  // OptiPatcher ASI plugin (OptiScaler)
+  if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
+     not FileExists(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi') then
+    AMissingList.Add('OptiPatcher (OptiScaler ASI plugin)');
+
   Result := AMissingList.Count > 0;
 end;
 
@@ -4627,6 +4632,252 @@ begin
   finally
     TempList.Free;
   end;
+end;
+
+// Extract the "rolling-YYYY.MM.DD" version derived from the release
+// "updated_at" field of an optiscaler/OptiPatcher GitHub API response.
+// Returns '' when the field cannot be located or parsed.
+function ParseOptiPatcherRollingVersion(const AJson: string): string;
+var
+  KeyPos, ColonPos, QuoteStart, QuoteEnd: Integer;
+  DateVal: string;
+begin
+  Result := '';
+  if AJson = '' then Exit;
+
+  KeyPos := Pos('"updated_at"', AJson);
+  if KeyPos = 0 then Exit;
+
+  ColonPos := PosEx(':', AJson, KeyPos + 12);
+  if ColonPos = 0 then Exit;
+
+  QuoteStart := PosEx('"', AJson, ColonPos);
+  if QuoteStart = 0 then Exit;
+
+  QuoteEnd := PosEx('"', AJson, QuoteStart + 1);
+  if QuoteEnd <= QuoteStart then Exit;
+
+  DateVal := Copy(AJson, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+  if Length(DateVal) < 10 then Exit;
+
+  DateVal := StringReplace(Copy(DateVal, 1, 10), '-', '.', [rfReplaceAll]);
+  if (Length(DateVal) <> 10) or (Pos(',', DateVal) > 0) then Exit;
+
+  Result := 'rolling-' + DateVal;
+end;
+
+// Read the locally recorded OptiPatcher version from the stable (or, as a
+// fallback, edge) bgmod goverlay.vars file.
+function ReadLocalOptiPatcherVersion: string;
+var
+  VarsFilePath: string;
+  VarsList: TStringList;
+begin
+  Result := '';
+  if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') then
+    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars'
+  else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars') then
+    VarsFilePath := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars'
+  else
+    VarsFilePath := '';
+
+  if VarsFilePath = '' then Exit;
+
+  VarsList := TStringList.Create;
+  try
+    VarsList.LoadFromFile(VarsFilePath);
+    Result := VarsList.Values['optipatcher'];
+  finally
+    VarsList.Free;
+  end;
+end;
+
+function IsOptiPatcherUpdateAvailable: Boolean;
+var
+  Process: TProcess;
+  Response, RemoteVerStr, LocalVerStr, TargetAsiFile: string;
+begin
+  Result := False;
+
+  TargetAsiFile := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi';
+  if not FileExists(TargetAsiFile) then
+    Exit(True);
+
+  LocalVerStr := ReadLocalOptiPatcherVersion;
+  if LocalVerStr = '' then
+    Exit(True);
+
+  Response := '';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--connect-timeout');
+    Process.Parameters.Add('2');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('4');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/optiscaler/OptiPatcher/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
+  finally
+    Process.Free;
+  end;
+
+  if Response = '' then Exit;
+
+  RemoteVerStr := ParseOptiPatcherRollingVersion(Response);
+  if RemoteVerStr = '' then Exit;
+
+  Result := RemoteVerStr <> LocalVerStr;
+end;
+
+function CheckAndInstallOptiPatcher(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  Process: TProcess;
+  Response, RemoteVerStr, LocalVerStr, VarsFilePath: string;
+  VarsList: TStringList;
+  PathsToUpdate: TStringList;
+  TargetAsiFile, OrigPluginsDir, EdgePluginsDir, GlobalBgModPlugins, TmpAsiFile: string;
+  i, LineIdx: Integer;
+begin
+  Result := False;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(26, 'Checking OptiPatcher plugin...');
+
+  TargetAsiFile := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi';
+  OrigPluginsDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins';
+  EdgePluginsDir := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'plugins';
+  GlobalBgModPlugins := GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod' + PathDelim + 'plugins';
+
+  LocalVerStr := ReadLocalOptiPatcherVersion;
+
+  // Query the latest rolling release metadata (updated_at date).
+  Response := '';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--connect-timeout');
+    Process.Parameters.Add('3');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('6');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/optiscaler/OptiPatcher/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
+  finally
+    Process.Free;
+  end;
+
+  RemoteVerStr := ParseOptiPatcherRollingVersion(Response);
+
+  // Fast path: already up to date. Heal the stable/edge plugin caches when the
+  // ASI file is present centrally but missing from one of them.
+  if (not AForce) and (RemoteVerStr <> '') and (RemoteVerStr = LocalVerStr) and FileExists(TargetAsiFile) then
+  begin
+    if not FileExists(OrigPluginsDir + PathDelim + 'OptiPatcher.asi') then
+    begin
+      ForceDirectories(OrigPluginsDir);
+      CopyFile(TargetAsiFile, OrigPluginsDir + PathDelim + 'OptiPatcher.asi');
+    end;
+    if not FileExists(EdgePluginsDir + PathDelim + 'OptiPatcher.asi') then
+    begin
+      ForceDirectories(EdgePluginsDir);
+      CopyFile(TargetAsiFile, EdgePluginsDir + PathDelim + 'OptiPatcher.asi');
+    end;
+    if Assigned(AOnProgress) then
+      AOnProgress(32, 'OptiPatcher is up to date');
+    Result := True;
+    Exit;
+  end;
+
+  // Remote check failed but a local copy already exists: keep it.
+  if (RemoteVerStr = '') and FileExists(TargetAsiFile) and (not AForce) then
+  begin
+    WriteLn('[OPTIPATCHER-AUTO] Remote release check failed; keeping existing OptiPatcher.');
+    Result := True;
+    Exit;
+  end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(28, 'Downloading OptiPatcher plugin...');
+
+  ForceDirectories(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins');
+  TmpAsiFile := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi.tmp';
+
+  RunCurlWithProgress('https://github.com/optiscaler/OptiPatcher/releases/download/rolling/OptiPatcher.asi',
+    TmpAsiFile, 28, 31, 'Downloading OptiPatcher plugin', AOnProgress);
+
+  if (not FileExists(TmpAsiFile)) or (FileSize(TmpAsiFile) < 1000) then
+  begin
+    WriteLn('[OPTIPATCHER-AUTO] Download failed or invalid file size.');
+    if FileExists(TmpAsiFile) then DeleteFile(TmpAsiFile);
+    if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('OptiPatcher (OptiScaler ASI plugin)') = -1) then
+      AFailedFiles.Add('OptiPatcher (OptiScaler ASI plugin)');
+    Result := FileExists(TargetAsiFile);
+    Exit;
+  end;
+
+  CopyFile(TmpAsiFile, TargetAsiFile);
+  DeleteFile(TmpAsiFile);
+
+  // Sync to the stable and edge plugin caches.
+  ForceDirectories(OrigPluginsDir);
+  CopyFile(TargetAsiFile, OrigPluginsDir + PathDelim + 'OptiPatcher.asi');
+  ForceDirectories(EdgePluginsDir);
+  CopyFile(TargetAsiFile, EdgePluginsDir + PathDelim + 'OptiPatcher.asi');
+
+  // Sync to the global bgmod plugins when that profile tree exists.
+  if DirectoryExists(GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod') then
+  begin
+    ForceDirectories(GlobalBgModPlugins);
+    CopyFile(TargetAsiFile, GlobalBgModPlugins + PathDelim + 'OptiPatcher.asi');
+  end;
+
+  // Record the version in every goverlay.vars that already exists.
+  PathsToUpdate := TStringList.Create;
+  try
+    PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
+    PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars');
+    PathsToUpdate.Add(GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod' + PathDelim + 'goverlay.vars');
+
+    for i := 0 to PathsToUpdate.Count - 1 do
+    begin
+      VarsFilePath := PathsToUpdate[i];
+      if not FileExists(VarsFilePath) then Continue;
+
+      VarsList := TStringList.Create;
+      try
+        VarsList.LoadFromFile(VarsFilePath);
+        LineIdx := VarsList.IndexOfName('optipatcher');
+        if LineIdx >= 0 then
+          VarsList[LineIdx] := 'optipatcher=' + RemoteVerStr
+        else
+          VarsList.Add('optipatcher=' + RemoteVerStr);
+        VarsList.SaveToFile(VarsFilePath);
+      finally
+        VarsList.Free;
+      end;
+    end;
+  finally
+    PathsToUpdate.Free;
+  end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(32, 'OptiPatcher installed');
+  Result := True;
 end;
 
 function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;

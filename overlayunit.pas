@@ -3446,7 +3446,7 @@ begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
-  NeedsDownload := HasMissingMandatoryLibraries;
+  NeedsDownload := HasMissingMandatoryLibraries or IsOptiPatcherUpdateAvailable;
 
   if not NeedsDownload then
   begin
@@ -6097,10 +6097,9 @@ begin
   optiscalertabsheet.TabVisible := True;
   losslessScalingTabSheet.TabVisible := True;
 
-  // Auto-check and update OptiPatcher (rolling release) or DLSS Enabler in background
+  // Auto-check DLSS Enabler updates in background (OptiPatcher checks run at startup)
   if Assigned(FOptiscalerUpdate) then
   begin
-    FOptiscalerUpdate.CheckAndUpdateOptiPatcherAsync;
     if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked and (optversionComboBox.ItemIndex <> 2) then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
   end;
@@ -10874,6 +10873,7 @@ begin
   try
     SanitizeImplicitVulkanLayers;
     CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
+    CheckAndInstallOptiPatcher(False, @OnDownloadProgress, FFailedFiles);                // OptiPatcher ASI plugin
     CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
     CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)

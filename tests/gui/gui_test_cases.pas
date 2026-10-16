@@ -167,6 +167,7 @@ type
     procedure TestIntelCpuPowerFixSuppressedOnConfigLoadAndFlatpak;
     procedure TestGameModeWarningSuppressedOnConfigLoad;
     procedure TestStartupHelixSRVerificationAndCompanionSync;
+    procedure TestStartupHasMissingLibrariesChecksOptiPatcher;
     procedure TestHelixSRLicenseButtonAndDialog;
   end;
 
@@ -7441,6 +7442,54 @@ begin
 
   // Cleanup
   DeleteDirectory(HelixDir, False);
+end;
+
+procedure TGoverlayGuiTests.TestStartupHasMissingLibrariesChecksOptiPatcher;
+var
+  Missing: TStringList;
+  TargetAsi, OrigAsi: string;
+  F: TextFile;
+begin
+  TargetAsi := GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi';
+  OrigAsi := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi';
+
+  // 1. When the OptiPatcher ASI is absent everywhere, HasMissingMandatoryLibraries reports it
+  if FileExists(TargetAsi) then
+    DeleteFile(TargetAsi);
+  if FileExists(OrigAsi) then
+    DeleteFile(OrigAsi);
+
+  Missing := nil;
+  try
+    AssertTrue('HasMissingMandatoryLibraries returns true when OptiPatcher missing',
+      HasMissingMandatoryLibraries(Missing));
+    AssertNotNull('Missing list is created', Missing);
+    AssertTrue('Missing list contains OptiPatcher',
+      Missing.IndexOf('OptiPatcher (OptiScaler ASI plugin)') >= 0);
+  finally
+    Missing.Free;
+  end;
+
+  // 2. When the OptiPatcher ASI is seeded, HasMissingMandatoryLibraries does not report it
+  ForceDirectories(ExtractFilePath(TargetAsi));
+  AssignFile(F, TargetAsi);
+  Rewrite(F);
+  WriteLn(F, 'dummy_optipatcher_asi_payload');
+  CloseFile(F);
+
+  Missing := nil;
+  try
+    HasMissingMandatoryLibraries(Missing);
+    if Assigned(Missing) then
+      AssertTrue('Missing list does NOT contain OptiPatcher when ASI exists',
+        Missing.IndexOf('OptiPatcher (OptiScaler ASI plugin)') = -1);
+  finally
+    Missing.Free;
+  end;
+
+  // 3. CheckAndInstallOptiPatcher returns True when a local copy already exists
+  AssertTrue('CheckAndInstallOptiPatcher returns True when ASI exists',
+    CheckAndInstallOptiPatcher(False));
 end;
 
 procedure TGoverlayGuiTests.TestHelixSRLicenseButtonAndDialog;
