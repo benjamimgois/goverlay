@@ -3435,7 +3435,7 @@ begin
   FAfmfStaticSadTitleLbl := TLabel.Create(FAfmfOptCard);
   FAfmfStaticSadTitleLbl.Parent := FAfmfOptCard;
   FAfmfStaticSadTitleLbl.Caption := 'Static Block SAD Threshold';
-  FAfmfStaticSadTitleLbl.Hint := 'Sum of Absolute Differences threshold for stationary blocks (AFMF_STATIC_SAD)';
+  FAfmfStaticSadTitleLbl.Hint := 'Sum of Absolute Differences threshold for stationary blocks (AFMF_STATIC_BLOCK_SAD)';
   FAfmfStaticSadTitleLbl.ShowHint := True;
   StyleLabel(FAfmfStaticSadTitleLbl, lrControlLabel);
 
@@ -5017,14 +5017,28 @@ var
   ScalingMethodStr, FactorStr, SharpnessStr, FlowStr, ConfFile, CachedTargetExe: string;
   MultVal, TargetFpsVal, MaxMultVal, RefreshVal, BaseCapVal: Integer;
   IsAdaptive, ScalingEn, ScalingSs, AllowFp16Val, PerfVal, UltraPerfVal, FgLiveVal, HdrVal: Boolean;
-  AutoBaseCapVal: Boolean;
+  HasLosslessDll, AutoBaseCapVal: Boolean;
   ConfIni: TIniFile;
 begin
   Result := '';
+
+  // Determine scaling settings before validating the DLL: MAKO v4.5.0 decoupled
+  // native/mako scaling (and vkBasalt shaders) from Lossless.dll.
+  ScalingEn := Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0);
+  case FLsScalingMethodComboBox.ItemIndex of
+    1: ScalingMethodStr := 'ls1';
+    2: ScalingMethodStr := 'ls1-performance';
+    3: ScalingMethodStr := 'mako';
+    4: ScalingMethodStr := 'native';
+  else
+    ScalingMethodStr := 'none';
+  end;
+
   DllP := Trim(FLsDllPathEdit.Text);
   if SameText(ExtractFileName(DllP), 'lsfg-vk.dll') then
     DllP := ExtractFilePath(DllP) + 'Lossless.dll';
-  if (DllP = '') or not FileExists(DllP) then Exit;
+  HasLosslessDll := (DllP <> '') and FileExists(DllP);
+  if not HasLosslessDll and not (ScalingEn and ((ScalingMethodStr = 'mako') or (ScalingMethodStr = 'native'))) then Exit;
 
   if ATargetDir <> '' then
     OutDir := ATargetDir
@@ -5056,16 +5070,6 @@ begin
   BaseCapVal := FLsBaseFpsCapTrackBar.Position;
   FlowStr := StringReplace(FormatFloat('0.00', FLsFlowScaleTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
 
-  ScalingEn := Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0);
-  case FLsScalingMethodComboBox.ItemIndex of
-    1: ScalingMethodStr := 'ls1';
-    2: ScalingMethodStr := 'ls1-performance';
-    3: ScalingMethodStr := 'mako';
-    4: ScalingMethodStr := 'native';
-  else
-    ScalingMethodStr := 'none';
-  end;
-
   FactorStr := StringReplace(FormatFloat('0.00', FLsScalingFactorTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
   SharpnessStr := StringReplace(FormatFloat('0.00', FLsScalingSharpnessTrackBar.Position / 100.0), ',', '.', [rfReplaceAll]);
   ScalingSs := Assigned(FLsScalingSupersamplingCheckBox) and FLsScalingSupersamplingCheckBox.Checked;
@@ -5092,7 +5096,8 @@ begin
   try
     Lines.Add('version = 2');
     Lines.Add('');
-    Lines.Add('dll = "' + DllP + '"');
+    if HasLosslessDll then
+      Lines.Add('dll = "' + DllP + '"');
     if AllowFp16Val then
       Lines.Add('allow_fp16 = true')
     else
@@ -5116,7 +5121,7 @@ begin
 
     if IsAdaptive then
     begin
-      Lines.Add('frame_generation_enabled = true');
+      if HasLosslessDll then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
       Lines.Add('adaptive = true');
       Lines.Add('target_fps = ' + IntToStr(TargetFpsVal));
       Lines.Add('adaptive_max_multiplier = ' + IntToStr(MaxMultVal));
@@ -5125,7 +5130,7 @@ begin
     else if MultVal >= 2 then
     begin
       Lines.Add('multiplier = ' + IntToStr(MultVal));
-      if FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
+      if HasLosslessDll and FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
       Lines.Add('adaptive = false');
     end
     else
@@ -5160,7 +5165,7 @@ begin
 
     if IsAdaptive then
     begin
-      Lines.Add('frame_generation_enabled = true');
+      if HasLosslessDll then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
       Lines.Add('adaptive = true');
       Lines.Add('target_fps = ' + IntToStr(TargetFpsVal));
       Lines.Add('adaptive_max_multiplier = ' + IntToStr(MaxMultVal));
@@ -5169,7 +5174,7 @@ begin
     else if MultVal >= 2 then
     begin
       Lines.Add('multiplier = ' + IntToStr(MultVal));
-      if FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
+      if HasLosslessDll and FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
       Lines.Add('adaptive = false');
     end
     else
@@ -5232,7 +5237,7 @@ begin
 
       if IsAdaptive then
       begin
-        Lines.Add('frame_generation_enabled = true');
+        if HasLosslessDll then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
         Lines.Add('adaptive = true');
         Lines.Add('target_fps = ' + IntToStr(TargetFpsVal));
         Lines.Add('adaptive_max_multiplier = ' + IntToStr(MaxMultVal));
@@ -5241,7 +5246,7 @@ begin
       else if MultVal >= 2 then
       begin
         Lines.Add('multiplier = ' + IntToStr(MultVal));
-        if FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
+        if HasLosslessDll and FgLiveVal then Lines.Add('frame_generation_enabled = true') else Lines.Add('frame_generation_enabled = false');
         Lines.Add('adaptive = false');
       end
       else
@@ -5267,11 +5272,11 @@ begin
       LegacyLines.Add('version = 1');
       LegacyLines.Add('');
       LegacyLines.Add('[global]');
-      LegacyLines.Add('dll = "' + DllP + '"');
+      if HasLosslessDll then LegacyLines.Add('dll = "' + DllP + '"');
       LegacyLines.Add('');
       LegacyLines.Add('[[game]]');
       LegacyLines.Add('exe = "pascube"');
-      LegacyLines.Add('dll = "' + DllP + '"');
+      if HasLosslessDll then LegacyLines.Add('dll = "' + DllP + '"');
       LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
       LegacyLines.Add('flow_scale = ' + FlowStr);
       if PerfVal then LegacyLines.Add('performance_mode = true') else LegacyLines.Add('performance_mode = false');
@@ -5281,7 +5286,7 @@ begin
       LegacyLines.Add('');
       LegacyLines.Add('[[game]]');
       LegacyLines.Add('exe = "vkcube"');
-      LegacyLines.Add('dll = "' + DllP + '"');
+      if HasLosslessDll then LegacyLines.Add('dll = "' + DllP + '"');
       LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
       LegacyLines.Add('flow_scale = ' + FlowStr);
       if PerfVal then LegacyLines.Add('performance_mode = true') else LegacyLines.Add('performance_mode = false');
@@ -5294,7 +5299,7 @@ begin
         LegacyLines.Add('');
         LegacyLines.Add('[[game]]');
         LegacyLines.Add('exe = "' + ExeName + '"');
-        LegacyLines.Add('dll = "' + DllP + '"');
+        if HasLosslessDll then LegacyLines.Add('dll = "' + DllP + '"');
         LegacyLines.Add('multiplier = ' + IntToStr(MultVal));
         LegacyLines.Add('flow_scale = ' + FlowStr);
         if PerfVal then LegacyLines.Add('performance_mode = true') else LegacyLines.Add('performance_mode = false');
@@ -5698,14 +5703,14 @@ begin
 
     // Static SAD
     if Assigned(FAfmfStaticSadTrackBar) and (FAfmfStaticSadTrackBar.Position > 0) then
-      Result := Result + ' AFMF_STATIC_SAD=' + IntToStr(FAfmfStaticSadTrackBar.Position);
+      Result := Result + ' AFMF_STATIC_BLOCK_SAD=' + IntToStr(FAfmfStaticSadTrackBar.Position);
 
     // Log
     if Assigned(FAfmfLogComboBox) then
     begin
       case FAfmfLogComboBox.ItemIndex of
-        1: Result := Result + ' AFMF_LOG=info';
-        2: Result := Result + ' AFMF_LOG=debug';
+        1: Result := Result + ' AFMF_LOG=2';
+        2: Result := Result + ' AFMF_LOG=3';
       end;
     end;
 
@@ -5910,13 +5915,16 @@ begin
         FAfmfAsyncCheckBox.Checked := (Ini.ReadString('Config', 'AFMF_ASYNC', '0') = '1');
 
         // Static SAD
-        FAfmfStaticSadTrackBar.Position := Ini.ReadInteger('Config', 'AFMF_STATIC_SAD', 0);
+        if Ini.ValueExists('Config', 'AFMF_STATIC_BLOCK_SAD') then
+          FAfmfStaticSadTrackBar.Position := Ini.ReadInteger('Config', 'AFMF_STATIC_BLOCK_SAD', 0)
+        else
+          FAfmfStaticSadTrackBar.Position := Ini.ReadInteger('Config', 'AFMF_STATIC_SAD', 0);
         AfmfStaticSadTrackBarChange(nil);
 
         // Diagnostics
-        MethodStr := LowerCase(Trim(Ini.ReadString('Config', 'AFMF_LOG', 'none')));
-        if MethodStr = 'info' then FAfmfLogComboBox.ItemIndex := 1
-        else if MethodStr = 'debug' then FAfmfLogComboBox.ItemIndex := 2
+        MethodStr := LowerCase(Trim(Ini.ReadString('Config', 'AFMF_LOG', '0')));
+        if (MethodStr = '2') or (MethodStr = 'info') then FAfmfLogComboBox.ItemIndex := 1
+        else if (MethodStr = '3') or (MethodStr = 'debug') then FAfmfLogComboBox.ItemIndex := 2
         else FAfmfLogComboBox.ItemIndex := 0;
 
         FAfmfProfileCheckBox.Checked := (Ini.ReadString('Config', 'AFMF_PROFILE', '0') = '1');
@@ -6220,13 +6228,13 @@ begin
       else
         Ini.WriteString('Config', 'AFMF_ASYNC', '0');
 
-      Ini.WriteInteger('Config', 'AFMF_STATIC_SAD', FAfmfStaticSadTrackBar.Position);
+      Ini.WriteInteger('Config', 'AFMF_STATIC_BLOCK_SAD', FAfmfStaticSadTrackBar.Position);
 
       // Diagnostics
       case FAfmfLogComboBox.ItemIndex of
-        1: Ini.WriteString('Config', 'AFMF_LOG', 'info');
-        2: Ini.WriteString('Config', 'AFMF_LOG', 'debug');
-        else Ini.WriteString('Config', 'AFMF_LOG', 'none');
+        1: Ini.WriteString('Config', 'AFMF_LOG', '2');
+        2: Ini.WriteString('Config', 'AFMF_LOG', '3');
+        else Ini.WriteString('Config', 'AFMF_LOG', '0');
       end;
 
       if FAfmfProfileCheckBox.Checked then
@@ -6249,6 +6257,7 @@ begin
       Ini.DeleteKey('Config', 'AFMF_DIRECT_INGEST');
       Ini.DeleteKey('Config', 'AFMF_DIRECT_OUTPUT');
       Ini.DeleteKey('Config', 'AFMF_ASYNC');
+      Ini.DeleteKey('Config', 'AFMF_STATIC_BLOCK_SAD');
       Ini.DeleteKey('Config', 'AFMF_STATIC_SAD');
       Ini.DeleteKey('Config', 'AFMF_LOG');
       Ini.DeleteKey('Config', 'AFMF_PROFILE');
