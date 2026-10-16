@@ -203,11 +203,12 @@ begin
   // Update description and credits captions dynamically at runtime
   descLabel.Caption := 'Open-source tool providing a unified interface to configure different gaming tools';
   creditsHeaderLabel.Caption := 'Credits:';
-  creditsLabel.Height := 160;
+  creditsLabel.Height := 180;
   creditsLabel.Caption := 
     'FlightlessMango – MangoHud'#10 +
     'DadSchoorse – vkBasalt'#10 +
     'reakjra – vkSumi'#10 +
+    'lonewolf0622 – HelixSR'#10 +
     'OptiScaler ecosystem: OptiScaler, fakenvapi, Decky-Framegen, fgmod, DLSS-Enabler'#10 +
     'THS – Lossless Scaling'#10 +
     'PancakeTAS – lsfg-vk'#10 +

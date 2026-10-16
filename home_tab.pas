@@ -42,6 +42,8 @@ type
     function  GetLsfgVkVersion: string;
     function  GetMakoVersion: string;
     function  GetAfmfVersion: string;
+    function  IsHelixSrInstalled: Boolean;
+    function  GetHelixSrVersion: string;
     function  IsDlssEnablerInstalled: Boolean;
     function  GetDlssEnablerVersion: string;
     function  FindBinPath(const BinName: string): string;
@@ -83,7 +85,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..8] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux');
+  MOD_NAMES: array[0..9] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -334,12 +336,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 9 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 10 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux)
-    for i := 0 to 8 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR)
+    for i := 0 to 9 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -441,8 +443,8 @@ const
   CLR_MISSING = $005555EE;  // vibrant rose/coral red
 var
   Missing: TStringList;
-  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK: Boolean;
-  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer: string;
+  MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK, HelixSrOK: Boolean;
+  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer, HelixSrVer: string;
 begin
   with FForm do
   begin
@@ -461,6 +463,7 @@ begin
     MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
     ReShadeOK := IsReShadeInstalled;
     AfmfOK  := IsAfmfInstalled;
+    HelixSrOK := Self.IsHelixSrInstalled;
 
     FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
     FHomeModDots[0].Pen.Color   := FHomeModDots[0].Brush.Color;
@@ -578,6 +581,13 @@ begin
       FHomeModVerLbls[8].Caption := AfmfVer;
       FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
     end;
+
+    FHomeModDots[9].Brush.Color := Math.IfThen(HelixSrOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[9].Pen.Color := FHomeModDots[9].Brush.Color;
+    HelixSrVer := Self.GetHelixSrVersion;
+    if HelixSrVer = '' then HelixSrVer := StrUtils.IfThen(HelixSrOK, 'installed', 'not found');
+    FHomeModVerLbls[9].Caption := HelixSrVer;
+    FHomeModVerLbls[9].Font.Color := CLR_TEXT_MUTED;
   end;
 end;
 
@@ -1220,6 +1230,39 @@ begin
     Exit('installed');
 
   Result := '';
+end;
+
+function THomeTabHelper.IsHelixSrInstalled: Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll');
+end;
+
+function THomeTabHelper.GetHelixSrVersion: string;
+var
+  HelixDir, VarsPath, Ver: string;
+  HelixVars: TStringList;
+begin
+  Result := '';
+  HelixDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+  if not FileExists(HelixDir + 'amd_fidelityfx_dx12.dll') then
+    Exit;
+
+  VarsPath := HelixDir + 'goverlay.vars';
+  if FileExists(VarsPath) then
+  begin
+    HelixVars := TStringList.Create;
+    try
+      HelixVars.LoadFromFile(VarsPath);
+      Ver := HelixVars.Values['OPTISCALER_HELIXSR_VERSION'];
+    finally
+      HelixVars.Free;
+    end;
+  end;
+
+  if Ver = '' then
+    Ver := 'v1.9.0';
+
+  Result := Ver;
 end;
 
 function THomeTabHelper.FindBinPath(const BinName: string): string;
