@@ -114,6 +114,7 @@ lib/
 .lazarus/
 openspec/
 .openspec/
+.mcp.json
 
 # Test binaries (built by make test)
 tests/gui/gui_tests

@@ -26,7 +26,6 @@ type
     FForceReflexToggle: TToggleSwitch;
     FForceLatencyFlexToggle: TToggleSwitch;
     FUnmanagedIniToggle: TToggleSwitch;
-    FFsr4vkToggle: TToggleSwitch;
     FHelixSrNativeDlssToggle: TToggleSwitch;
     FHelixSrModeInfoLbl: TLabel;
     FOsCustomInfoLbl: TLabel;
@@ -52,7 +51,6 @@ type
     property ForceReflexToggle: TToggleSwitch read FForceReflexToggle;
     property ForceLatencyFlexToggle: TToggleSwitch read FForceLatencyFlexToggle;
     property UnmanagedIniToggle: TToggleSwitch read FUnmanagedIniToggle;
-    property Fsr4vkToggle: TToggleSwitch read FFsr4vkToggle;
     property HelixSrNativeDlssToggle: TToggleSwitch read FHelixSrNativeDlssToggle;
     property HelixSrModeInfoLbl: TLabel read FHelixSrModeInfoLbl;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
@@ -105,13 +103,10 @@ begin
     if Assigned(FForm.optipatcherCheckBox) then FForm.optipatcherCheckBox.Visible := False;
     if Assigned(FForm.spoofCheckBox) then FForm.spoofCheckBox.Visible := False;
     if Assigned(FForm.forceFsr4Int8CheckBox) then FForm.forceFsr4Int8CheckBox.Visible := False;
-    if Assigned(FForm.fsr4vkCheckBox) then FForm.fsr4vkCheckBox.Visible := False;
     if Assigned(FForm.emufp8CheckBox) then FForm.emufp8CheckBox.Visible := False;
     if Assigned(FForm.forcereflexCheckBox) then FForm.forcereflexCheckBox.Visible := False;
     if Assigned(FForm.forcelatencyflexCheckBox) then FForm.forcelatencyflexCheckBox.Visible := False;
     if Assigned(FForm.unmanagedIniCheckBox) then FForm.unmanagedIniCheckBox.Visible := False;
-    if Assigned(FFsr4vkToggle) and Assigned(FForm.fsr4vkCheckBox) then
-      FFsr4vkToggle.Checked := FForm.fsr4vkCheckBox.Checked;
     if Assigned(FHelixSrNativeDlssToggle) and Assigned(FForm.helixsrNativeDlssCheckBox) then
       FHelixSrNativeDlssToggle.Checked := FForm.helixsrNativeDlssCheckBox.Checked;
   end;
@@ -840,21 +835,6 @@ begin
     if FForceFsr4Toggle = nil then
       FForceFsr4Toggle := PlaceOsToggle(forceFsr4Int8CheckBox, FOsSpatialSec);
 
-    if fsr4vkCheckBox = nil then
-    begin
-      fsr4vkCheckBox := TCheckBox.Create(FForm);
-      fsr4vkCheckBox.Name := 'fsr4vkCheckBox';
-      fsr4vkCheckBox.Caption := 'FSR4 Vulkan';
-      fsr4vkCheckBox.Hint := 'FSR4 Vulkan (fsr4vk)' + LineEnding + 'Enables FSR 4 INT8 Vulkan native support via fsr4vk build';
-      fsr4vkCheckBox.ShowHint := True;
-      fsr4vkCheckBox.OnChange := @FForm.fsr4vkCheckBoxChange;
-      fsr4vkCheckBox.Anchors := [akLeft, akTop];
-      fsr4vkCheckBox.Parent := FOsSpatialSec;
-    end;
-    if FFsr4vkToggle = nil then
-      FFsr4vkToggle := PlaceOsToggle(fsr4vkCheckBox, FOsSpatialSec);
-    fsr4vkCheckBox.Visible := False;
-
     if helixsrNativeDlssCheckBox = nil then
     begin
       helixsrNativeDlssCheckBox := TCheckBox.Create(FForm);
@@ -996,8 +976,6 @@ begin
     forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
     forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.Visible := False;
-    DarkCheck(fsr4vkCheckBox);
-    fsr4vkCheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
     StdLbl(fsrversionLabel);
     DarkCombo(fsrversionComboBox);
@@ -1401,7 +1379,7 @@ begin
         TotalH := 648;
     end;
 
-    IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 3);
+    IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
 
     if IsCustom then
@@ -1610,17 +1588,6 @@ begin
       begin
         forceFsr4Int8CheckBox.Visible := True;
         forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
-      end;
-
-      if Assigned(FFsr4vkToggle) then
-      begin
-        FFsr4vkToggle.Visible := True;
-        FFsr4vkToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
-      end
-      else if Assigned(fsr4vkCheckBox) then
-      begin
-        fsr4vkCheckBox.Visible := True;
-        fsr4vkCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
       end;
 
       if Assigned(FHelixSrNativeDlssToggle) then
@@ -1881,7 +1848,7 @@ begin
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1, 2, 3] then
+        if Settings.OptVersionItemIndex in [0, 1, 2] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1915,7 +1882,7 @@ begin
         if Assigned(helixsrRadioButton) then
           helixsrRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1, 2, 3] then
+        if Settings.OptVersionItemIndex in [0, 1, 2] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
@@ -1940,12 +1907,6 @@ begin
 
     if Assigned(FOptiscalerUpdate) then
       FOptiscalerUpdate.UpdateCustomBuildUI;
-
-    // Keep the FSR4 Vulkan shortcut synchronized with the loaded channel
-    if Assigned(fsr4vkCheckBox) then
-      fsr4vkCheckBox.Checked := (optversionComboBox.ItemIndex = 2);
-    if Assigned(FFsr4vkToggle) then
-      FFsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
 
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
@@ -1988,10 +1949,6 @@ begin
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
     Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
     Settings.OptVersionItemIndex := optversionComboBox.ItemIndex;
-    if Assigned(fsr4vkCheckBox) then
-      fsr4vkCheckBox.Checked := (optversionComboBox.ItemIndex = 2);
-    if Assigned(FFsr4vkToggle) then
-      FFsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
     if Assigned(unmanagedIniCheckBox) then
       Settings.UnmanagedIniChecked := unmanagedIniCheckBox.Checked
     else

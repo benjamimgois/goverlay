@@ -243,7 +243,6 @@ type
     dxapiCheckBox: TCheckBox;
     emufp8CheckBox: TCheckBox;
     forceFsr4Int8CheckBox: TCheckBox;
-    fsr4vkCheckBox: TCheckBox;
     unmanagedIniCheckBox: TCheckBox;
     engineColorButton: TColorButton;
     engineshortCheckBox: TCheckBox;
@@ -631,7 +630,6 @@ type
     procedure goverlayPaintBoxPaint(Sender: TObject);
     procedure pcidevComboBoxChange(Sender: TObject);
     procedure optversionComboBoxChange(Sender: TObject);
-    procedure fsr4vkCheckBoxChange(Sender: TObject);
     procedure plusSpeedButtonClick(Sender: TObject);
     procedure UpdateDockMenuItemsVisibility;
     procedure popupBitBtnClick(Sender: TObject);
@@ -1115,7 +1113,6 @@ type
     FLoadingConfig: Boolean;
     FIntelCpuOverrideForTest: Integer; // -1: auto, 0: false, 1: true
     FPreviousFilenameIndex: Integer;
-    FPreviousOptChannel: Integer;
     FLastLosslessShowTick: QWord;
     FLastLosslessGame: string;
     autoSaveTimer: TTimer;
@@ -1901,7 +1898,7 @@ begin
   if Assigned(FOptiscalerUpdate) then
   begin
     // For Custom Build, this button is labeled "Select Folder..." - prompt user to select folder
-    if Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 3) then
+    if Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2) then
     begin
       FOptiscalerUpdate.SelectAndImportCustomBuild;
       Exit;
@@ -3554,7 +3551,6 @@ begin
   FCachedMissingDeps := nil;
   FCachedDepsValid := False;
   FPreviousFilenameIndex := 0;
-  FPreviousOptChannel := 0;
 
   // Test mode (GOVERLAY_TEST=1): skip network update checks and background
   // download/install work so automated tests start deterministically.
@@ -6954,28 +6950,13 @@ begin
   begin
     FOptiscalerUpdate.UpdateCustomBuildUI;
     FOptiscalerUpdate.LoadVersionsFromFile;
-    if optversionComboBox.ItemIndex <> 3 then
+    if optversionComboBox.ItemIndex <> 2 then
       FOptiscalerUpdate.CheckForUpdatesOnClick;
     RefreshOsStatusDots;
   end;
   if Assigned(FOptiScalerHelper) then
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
-
-  // Keep the "FSR4 Vulkan" shortcut toggle in sync with the channel selection.
-  if Assigned(fsr4vkCheckBox) then
-  begin
-    if optversionComboBox.ItemIndex = 2 then
-      fsr4vkCheckBox.Checked := True
-    else
-    begin
-      fsr4vkCheckBox.Checked := False;
-      FPreviousOptChannel := optversionComboBox.ItemIndex;
-    end;
-    if Assigned(FOptiScalerHelper) and Assigned(TOptiScalerTabHelper(FOptiScalerHelper).Fsr4vkToggle) then
-      TOptiScalerTabHelper(FOptiScalerHelper).Fsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
-  end;
-
-  if optversionComboBox.ItemIndex = 3 then
+  if optversionComboBox.ItemIndex = 2 then
     ShowToast(ntInfo, 'Custom build selected. Missing companion libraries are inherited from stable cache.', 4000);
   // Sync emufp8CheckBox enabled state with the current optversionComboBox selection
   fsrversionComboBoxChange(nil);
@@ -6983,36 +6964,6 @@ begin
   StartAutoSaveTimer;
   if FActiveGameName <> '' then
     CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
-end;
-
-procedure Tgoverlayform.fsr4vkCheckBoxChange(Sender: TObject);
-begin
-  if not Assigned(fsr4vkCheckBox) then
-    Exit;
-
-  if fsr4vkCheckBox.Checked then
-  begin
-    if optversionComboBox.ItemIndex <> 2 then
-    begin
-      FPreviousOptChannel := optversionComboBox.ItemIndex;
-      optversionComboBox.ItemIndex := 2;
-      optversionComboBoxChange(optversionComboBox);
-    end;
-  end
-  else
-  begin
-    if optversionComboBox.ItemIndex = 2 then
-    begin
-      if FPreviousOptChannel in [0, 1, 3] then
-        optversionComboBox.ItemIndex := FPreviousOptChannel
-      else
-        optversionComboBox.ItemIndex := 0;
-      optversionComboBoxChange(optversionComboBox);
-    end;
-  end;
-
-  if Assigned(FOptiScalerHelper) and Assigned(TOptiScalerTabHelper(FOptiScalerHelper).Fsr4vkToggle) then
-    TOptiScalerTabHelper(FOptiScalerHelper).Fsr4vkToggle.Checked := fsr4vkCheckBox.Checked;
 end;
 
 procedure Tgoverlayform.fsrversionComboBoxChange(Sender: TObject);
@@ -10909,7 +10860,6 @@ begin
     CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
     CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
-    CheckAndInstallFsr4vk(False, @OnDownloadProgress, FFailedFiles);                     // FSR4VK runtime (55%)
     CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
     CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)

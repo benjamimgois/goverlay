@@ -993,10 +993,8 @@ begin
   end
   else if UpscalerType = 3 then
     ChannelFolder := 'optiscaler-helixsr'
-  else if OptChannel = 3 then
-    ChannelFolder := 'optiscaler-custom'
   else if OptChannel = 2 then
-    ChannelFolder := 'optiscaler-fsr4vk'
+    ChannelFolder := 'optiscaler-custom'
   else if OptChannel = 1 then
     ChannelFolder := 'optiscaler-edge'
   else
@@ -1209,7 +1207,7 @@ var
   VarsFile, RecordedProxy, RecordedReshade, TargetFile: string;
   TargetSize: Int64;
   CandidatePath, GlobalPath, DataHome, ConfPath: string;
-  Folders: array[0..6] of string;
+  Folders: array[0..5] of string;
   f: Integer;
   Ini: TIniFile;
 begin
@@ -1306,11 +1304,10 @@ begin
 
   Folders[0] := 'optiscaler-stable';
   Folders[1] := 'optiscaler-edge';
-  Folders[2] := 'optiscaler-fsr4vk';
-  Folders[3] := 'optiscaler-custom';
-  Folders[4] := 'dlssenabler-stable';
-  Folders[5] := 'dlssenabler-edge';
-  Folders[6] := 'optiscaler-helixsr';
+  Folders[2] := 'optiscaler-custom';
+  Folders[3] := 'dlssenabler-stable';
+  Folders[4] := 'dlssenabler-edge';
+  Folders[5] := 'optiscaler-helixsr';
 
   for f := 0 to High(Folders) do
   begin
@@ -3005,15 +3002,10 @@ begin
             CopyDirectory(SourceDir + 'D3D12_Optiscaler', IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
           end;
 
-          // 7c. Copy OptiScaler/ directory if it exists (FSR4VK / DLSS Enabler)
-          if DirectoryExists(ConfigDir + 'OptiScaler') then
+          // 7c. Copy OptiScaler/ directory if it exists (DLSS Enabler)
+          if DirectoryExists(SourceDir + 'OptiScaler') then
           begin
-            Log('Installing OptiScaler directory from config directory...');
-            CopyDirectory(ConfigDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
-          end
-          else if DirectoryExists(SourceDir + 'OptiScaler') then
-          begin
-            Log('Installing OptiScaler directory from source directory...');
+            Log('Installing OptiScaler directory...');
             CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
           end;
           

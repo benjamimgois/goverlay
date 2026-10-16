@@ -930,7 +930,7 @@ var
   UpscalerType: Integer;
   NativeDlss: Integer;
   Settings: TOptiScalerSettings;
-  FsrDllSrc, VkDllSrc: string;
+  FsrDllSrc: string;
 begin
   UpscalerType := 0;
   OptChannel := 0;
@@ -955,8 +955,7 @@ begin
   else
     case OptChannel of
       1: CacheDir := GetBGModOriginalEdgePath;
-      2: CacheDir := GetBGModOriginalFsr4vkPath;
-      3: CacheDir := GetBGModOriginalCustomPath;
+      2: CacheDir := GetBGModOriginalCustomPath;
     else
       CacheDir := GetBGModOriginalPath;
     end;
@@ -972,19 +971,6 @@ begin
   if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll') then
     CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll',
              IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
-
-  // FSR4VK deploys the Vulkan FFX provider alongside OptiScaler.dll. Ensure the
-  // vendored amd_fidelityfx_upscaler_vk.dll reaches the game's OptiScaler/
-  // subfolder even when cp -n skipped it due to a pre-existing target.
-  if (OptChannel = 2) or FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll') then
-  begin
-    VkDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll';
-    if FileExists(VkDllSrc) then
-    begin
-      ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler');
-      CopyFile(VkDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_vk.dll');
-    end;
-  end;
 
   // HelixSR deployment (UPSCALER_TYPE = 3): Native DLSS loader or OptiScaler backend
   if UpscalerType = 3 then

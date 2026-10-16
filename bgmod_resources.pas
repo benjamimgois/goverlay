@@ -26,7 +26,6 @@ function GetBGModPath: string;
 // Get the pristine bgmod original path (Flatpak-aware).
 function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
-function GetBGModOriginalFsr4vkPath: string;
 function GetBGModOriginalHelixSRPath: string;
 function GetBGModOriginalCustomPath: string;
 
@@ -195,11 +194,6 @@ begin
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-edge';
-end;
-
-function GetBGModOriginalFsr4vkPath: string;
-begin
-  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'optiscaler-fsr4vk';
 end;
 
 function GetBGModOriginalHelixSRPath: string;
@@ -559,26 +553,6 @@ begin
   if DirectoryExists(OriginalPath) then
   begin
     WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-custom cache...');
-    Proc := TProcess.Create(nil);
-    try
-      Proc.Executable := 'sh';
-      Proc.Parameters.Add('-c');
-      Proc.Parameters.Add('cp -f --no-preserve=mode ' +
-                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') + ' ' +
-                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-uninstaller') + ' ' +
-                          QuotedStr(IncludeTrailingPathDelimiter(BGModPath) + 'fgmod') + ' ' +
-                          QuotedStr(OriginalPath) + '/ 2>/dev/null');
-      Proc.Options := [poWaitOnExit];
-      Proc.Execute;
-    finally
-      Proc.Free;
-    end;
-  end;
-
-  OriginalPath := GetBGModOriginalFsr4vkPath;
-  if DirectoryExists(OriginalPath) then
-  begin
-    WriteLn('[BGMOD] Copying wrapper scripts to optiscaler-fsr4vk cache...');
     Proc := TProcess.Create(nil);
     try
       Proc.Executable := 'sh';
