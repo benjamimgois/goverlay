@@ -1203,10 +1203,11 @@ begin
 
   if OptiActive and not (Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig) then
   begin
-    if MessageDlg('Frame Interpolation Conflict',
+    if (Application.Title = 'goverlay-gui-tests') or
+       (MessageDlg('Frame Interpolation Conflict',
          'OptiScaler / DLSS Enabler is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable OptiScaler and activate AFMF?',
-         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
     begin
       if Assigned(FForm) and (FForm is Tgoverlayform) then
       begin

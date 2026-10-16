@@ -86,6 +86,7 @@ type
     procedure TestBgmodInjectsLaunchArguments;
     procedure TestBgmodProtonArgsInjection;
     procedure TestBgmodNativeLinuxResolution;
+    procedure TestBgmodCentralToolLoggingSync;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -1442,6 +1443,100 @@ begin
   AssertFalse('dxgi.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/dxgi.dll'));
   AssertFalse('OptiScaler.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/OptiScaler.dll'));
   AssertFalse('ReShade64.dll should NOT be copied to native game dir', FileExists(MockBinDir + '/ReShade64.dll'));
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodCentralToolLoggingSync;
+var
+  Proc: TProcess;
+  TestGameDir, MockGameDir, CentralLogDir: string;
+  F: TextFile;
+  EnvIndex: Integer;
+begin
+  EnsureBgmodBinary;
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/LoggingTestGame';
+  ForceDirectories(TestGameDir);
+  MockGameDir := IsolatedHome + '/.local/share/goverlay/mock_game_logging';
+  ForceDirectories(MockGameDir);
+  ForceDirectories(MockGameDir + '/HelixSR');
+  ForceDirectories(MockGameDir + '/HelixSR/helixsr-fg');
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Write dummy log files in the root game dir and HelixSR subfolders
+  AssignFile(F, MockGameDir + '/afmf.log');
+  Rewrite(F);
+  WriteLn(F, 'afmf log');
+  CloseFile(F);
+
+  AssignFile(F, MockGameDir + '/reshade.log');
+  Rewrite(F);
+  WriteLn(F, 'reshade log');
+  CloseFile(F);
+
+  AssignFile(F, MockGameDir + '/HelixSR/helixsr.log');
+  Rewrite(F);
+  WriteLn(F, 'helixsr log');
+  CloseFile(F);
+
+  AssignFile(F, MockGameDir + '/HelixSR/helixsr_loader.log');
+  Rewrite(F);
+  WriteLn(F, 'helixsr loader log');
+  CloseFile(F);
+
+  AssignFile(F, MockGameDir + '/HelixSR/helixsr-fg/nvexec.log');
+  Rewrite(F);
+  WriteLn(F, 'nvexec log');
+  CloseFile(F);
+
+  // Write dummy mock runner script
+  AssignFile(F, MockGameDir + '/mockgame.sh');
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockGameDir + '/mockgame.sh'), &755);
+
+  // Write bgmod.conf with splash disabled
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  CloseFile(F);
+
+  // Execute bgmod with STEAM_COMPAT_INSTALL_PATH=MockGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockGameDir + '/mockgame.sh');
+    Proc.Options := [poWaitOnExit];
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + MockGameDir);
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Verify all 5 files were synchronized into the central log directory
+  CentralLogDir := IsolatedHome + '/.local/share/goverlay/logs/LoggingTestGame';
+  AssertTrue('afmf.log synced to central log dir', FileExists(CentralLogDir + '/afmf.log'));
+  AssertTrue('reshade.log synced to central log dir', FileExists(CentralLogDir + '/reshade.log'));
+  AssertTrue('helixsr.log synced from HelixSR subdir', FileExists(CentralLogDir + '/helixsr.log'));
+  AssertTrue('helixsr_loader.log synced from HelixSR subdir', FileExists(CentralLogDir + '/helixsr_loader.log'));
+  AssertTrue('nvexec.log synced from HelixSR/helixsr-fg subdir', FileExists(CentralLogDir + '/nvexec.log'));
 end;
 
 procedure TReShadeLogicTests.TestUnixPathToWinePath;

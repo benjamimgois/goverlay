@@ -5670,10 +5670,11 @@ begin
   if not FLoadingConfig and Assigned(FLosslessScalingHelper) and
      (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
   begin
-    if MessageDlg('Frame Interpolation Conflict',
+    if (Application.Title = 'goverlay-gui-tests') or
+       (MessageDlg('Frame Interpolation Conflict',
          'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable Frame Interpolation and activate OptiScaler?',
-         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
     begin
       TLosslessScalingTabHelper(FLosslessScalingHelper).SetInterpolationMethod(imNone);
       TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
@@ -5768,10 +5769,11 @@ begin
   if not FLoadingConfig and Assigned(FLosslessScalingHelper) and
      (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
   begin
-    if MessageDlg('Frame Interpolation Conflict',
+    if (Application.Title = 'goverlay-gui-tests') or
+       (MessageDlg('Frame Interpolation Conflict',
          'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable Frame Interpolation and activate DLSS Enabler?',
-         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
     begin
       TLosslessScalingTabHelper(FLosslessScalingHelper).SetInterpolationMethod(imNone);
       TLosslessScalingTabHelper(FLosslessScalingHelper).SaveLosslessConfig;
@@ -7616,7 +7618,16 @@ begin
     Result := LogDir + 'vksumi.log'
   else if goverlayPageControl.ActivePage = optiscalerTabSheet then
   begin
-    if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
+    if Assigned(helixsrRadioButton) and helixsrRadioButton.Checked then
+    begin
+      Result := LogDir + 'helixsr.log';
+      if not FileExists(Result) and (FActiveGameName <> '') then
+      begin
+        if FileExists(LogDir + 'optiscaler.log') then
+          Result := LogDir + 'optiscaler.log';
+      end;
+    end
+    else if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
     begin
       Result := LogDir + 'dlss-enabler.log';
       if not FileExists(Result) and (FActiveGameName <> '') then
@@ -7647,11 +7658,16 @@ begin
         IsLsfg := True;
     end;
 
-    if IsLsfg then
+    if Assigned(FLosslessScalingHelper) and
+       (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
+      Result := LogDir + 'afmf.log'
+    else if IsLsfg then
       Result := LogDir + 'lsfg.log'
     else
       Result := LogDir + 'mako.log';
   end
+  else if goverlayPageControl.ActivePage = reshadeTabSheet then
+    Result := LogDir + 'reshade.log'
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
     Result := LogDir + 'bgmod.log'
   else

@@ -1438,6 +1438,8 @@ function TReshadeTabHelper.PromptDxgiResolution: Integer;
 begin
   if FAutoConfirmProxyResolution <> 0 then
     Result := FAutoConfirmProxyResolution
+  else if Application.Title = 'goverlay-gui-tests' then
+    Result := mrYes
   else
     Result := MessageDlg('Proxy DLL Conflict',
       'OptiScaler is currently using "dxgi.dll".' + LineEnding + LineEnding +

@@ -580,6 +580,8 @@ begin
     goverlayform.optiscalerRadioButton.Checked := True;
   if Assigned(goverlayform.dlssenablerRadioButton) then
     goverlayform.dlssenablerRadioButton.Checked := False;
+  if Assigned(goverlayform.helixsrRadioButton) then
+    goverlayform.helixsrRadioButton.Checked := False;
   LogFile := goverlayform.GetActiveTabLogFile;
   AssertEquals('OptiScaler selected opens optiscaler.log', 'optiscaler.log', ExtractFileName(LogFile));
 
@@ -590,6 +592,36 @@ begin
     goverlayform.dlssenablerRadioButton.Checked := True;
   LogFile := goverlayform.GetActiveTabLogFile;
   AssertEquals('DLSS Enabler selected opens dlss-enabler.log', 'dlss-enabler.log', ExtractFileName(LogFile));
+
+  // 6. Test OptiScaler tab with HelixSR selected
+  goverlayform.optiscalerRadioButton.Checked := False;
+  goverlayform.dlssenablerRadioButton.Checked := False;
+  goverlayform.helixsrRadioButton.Checked := True;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('HelixSR selected opens helixsr.log', 'helixsr.log', ExtractFileName(LogFile));
+
+  // 7. Test Lossless Scaling tab with AFMF selected
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  Helper.InterpolationMethod := imAfmf;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('AFMF selected opens afmf.log', 'afmf.log', ExtractFileName(LogFile));
+
+  // 8. Test ReShade tab
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.reshadeTabSheet;
+  LogFile := goverlayform.GetActiveTabLogFile;
+  AssertEquals('ReShade tab opens reshade.log', 'reshade.log', ExtractFileName(LogFile));
+
+  // Reset upscaler selection and lossless method to preserve test isolation
+  if Assigned(Helper) then
+    Helper.InterpolationMethod := imNone;
+  if Assigned(goverlayform.noneUpscalerRadioButton) then
+    goverlayform.noneUpscalerRadioButton.Checked := True;
+  if Assigned(goverlayform.helixsrRadioButton) then
+    goverlayform.helixsrRadioButton.Checked := False;
+  if Assigned(goverlayform.optiscalerRadioButton) then
+    goverlayform.optiscalerRadioButton.Checked := False;
+  if Assigned(goverlayform.dlssenablerRadioButton) then
+    goverlayform.dlssenablerRadioButton.Checked := False;
 end;
 
 procedure TGoverlayGuiTests.TestLosslessScalingDynamicDllAndMigrationAssistant;
@@ -822,6 +854,7 @@ begin
 
   AssertTrue('FReshadeHelper is assigned', Assigned(goverlayform.FReshadeHelper));
   Helper := TReshadeTabHelper(goverlayform.FReshadeHelper);
+  Helper.AutoConfirmProxyResolution := mrYes;
 
   // Method Card and controls
   AssertTrue('MethodCard is assigned', Assigned(Helper.MethodCard));
@@ -895,6 +928,7 @@ begin
   AssertEquals('Pack 2 CheckFile is qUINT_bloom.fx', 'qUINT_bloom.fx', RESHADE_PACKS[2].CheckFile);
   AssertEquals('Pack 3 CheckFile is Depth_Cues.fx', 'Depth_Cues.fx', RESHADE_PACKS[3].CheckFile);
   AssertEquals('Pack 4 CheckFile is PD80_01B_RT_Correct_Color.fx', 'PD80_01B_RT_Correct_Color.fx', RESHADE_PACKS[4].CheckFile);
+  Helper.AutoConfirmProxyResolution := 0;
 end;
 
 procedure TGoverlayGuiTests.TestReShadeConfigSaveAndLoad;
@@ -1120,6 +1154,12 @@ begin
   if Assigned(goverlayform.filenameComboBox.OnChange) then
     goverlayform.filenameComboBox.OnChange(goverlayform.filenameComboBox);
   AssertEquals('OptiScaler allowed to select dxgi.dll when ReShade is None', 0, goverlayform.filenameComboBox.ItemIndex);
+
+  // Restore state to avoid leaking OptiScaler active into subsequent tests
+  if Assigned(goverlayform.noneUpscalerRadioButton) then
+    goverlayform.noneUpscalerRadioButton.Checked := True;
+  if Assigned(goverlayform.optiscalerRadioButton) then
+    goverlayform.optiscalerRadioButton.Checked := False;
 end;
 
 procedure TGoverlayGuiTests.NavigateVkBasaltTab;

@@ -378,11 +378,14 @@ end;
 
 procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
 var
-  Candidates: array[0..10] of string = (
+  Candidates: array[0..13] of string = (
     'optiscaler.log',
     'dlss-enabler.log',
     'fakenvapi.log',
     'helixsr.log',
+    'helixsr_loader.log',
+    'nvexec.log',
+    'afmf.log',
     'vksumi.log',
     'vkbasalt.log',
     'reshade.log',
@@ -392,7 +395,7 @@ var
     'mangohud.log'
   );
   i: Integer;
-  FoundSrc, TargetDest: string;
+  FoundSrc, TargetDest, SubDir: string;
 begin
   if (AGameDir = '') or (ACentralDir = '') or not DirectoryExists(AGameDir) then Exit;
   try
@@ -409,6 +412,35 @@ begin
     begin
       TargetDest := IncludeTrailingPathDelimiter(ACentralDir) + Candidates[i];
       SafeSyncLogFile(FoundSrc, TargetDest);
+    end;
+
+    SubDir := IncludeTrailingPathDelimiter(AGameDir) + 'HelixSR';
+    if DirectoryExists(SubDir) then
+    begin
+      FoundSrc := FindFileCaseInsensitive(SubDir, Candidates[i]);
+      if (FoundSrc <> '') and FileExists(FoundSrc) then
+      begin
+        TargetDest := IncludeTrailingPathDelimiter(ACentralDir) + Candidates[i];
+        SafeSyncLogFile(FoundSrc, TargetDest);
+      end;
+
+      FoundSrc := FindFileCaseInsensitive(SubDir + PathDelim + 'helixsr-fg', Candidates[i]);
+      if (FoundSrc <> '') and FileExists(FoundSrc) then
+      begin
+        TargetDest := IncludeTrailingPathDelimiter(ACentralDir) + Candidates[i];
+        SafeSyncLogFile(FoundSrc, TargetDest);
+      end;
+    end;
+
+    SubDir := IncludeTrailingPathDelimiter(AGameDir) + 'optiscaler';
+    if DirectoryExists(SubDir) then
+    begin
+      FoundSrc := FindFileCaseInsensitive(SubDir, Candidates[i]);
+      if (FoundSrc <> '') and FileExists(FoundSrc) then
+      begin
+        TargetDest := IncludeTrailingPathDelimiter(ACentralDir) + Candidates[i];
+        SafeSyncLogFile(FoundSrc, TargetDest);
+      end;
     end;
   end;
 end;
@@ -435,8 +467,10 @@ procedure RunSubprocessLogger(ReadFd, OrigStderrFd: cint;
   const MakoCent, LsfgCent, OptiCent,
         SumiCent, BasaltCent,
         MangoCent, DlssCent,
+        HelixCent, AfmfCent,
         AGameDir, ACentralDir: string;
-  LogMako, LogLsfg, LogOpti, LogSumi, LogBasalt, LogMango, LogDlss: Boolean);
+  LogMako, LogLsfg, LogOpti, LogSumi, LogBasalt, LogMango, LogDlss,
+  LogHelix, LogAfmf: Boolean);
 var
   MakoCentFd: cint;
   LsfgCentFd: cint;
@@ -445,11 +479,14 @@ var
   BasaltCentFd: cint;
   MangoCentFd: cint;
   DlssCentFd: cint;
+  HelixCentFd: cint;
+  AfmfCentFd: cint;
   Buf: array[0..4095] of char;
   N: TsSize;
   i: Integer;
   LineBuf, Line, OutLine, LowLine: string;
   IsMako, IsLsfg, IsOpti, IsSumi, IsBasalt, IsMango, IsDlss: Boolean;
+  IsHelix, IsAfmf: Boolean;
   ParentPid: TPid;
   Fds: TFDSet;
   Tv: TTimeVal;
@@ -474,6 +511,8 @@ begin
   BasaltCentFd := -1;
   MangoCentFd := -1;
   DlssCentFd := -1;
+  HelixCentFd := -1;
+  AfmfCentFd := -1;
 
   if LogMako and (MakoCent <> '') then
     MakoCentFd := fpOpen(PChar(MakoCent), O_WRONLY or O_CREAT or O_APPEND, &644);
@@ -495,6 +534,12 @@ begin
 
   if LogDlss and (DlssCent <> '') then
     DlssCentFd := fpOpen(PChar(DlssCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogHelix and (HelixCent <> '') then
+    HelixCentFd := fpOpen(PChar(HelixCent), O_WRONLY or O_CREAT or O_APPEND, &644);
+
+  if LogAfmf and (AfmfCent <> '') then
+    AfmfCentFd := fpOpen(PChar(AfmfCent), O_WRONLY or O_CREAT or O_APPEND, &644);
 
   LineBuf := '';
   LastSyncTick := GetTickCount64;
@@ -616,6 +661,28 @@ begin
               if DlssCentFd >= 0 then fpWrite(DlssCentFd, PChar(OutLine), Length(OutLine));
             end;
           end;
+
+          if LogHelix then
+          begin
+            IsHelix := (Pos('helixsr', LowLine) > 0) or
+                       (Pos('hxsr', LowLine) > 0) or
+                       (Pos('dx12_upscaler', LowLine) > 0) or
+                       (Pos('helix', LowLine) > 0);
+            if IsHelix then
+            begin
+              if HelixCentFd >= 0 then fpWrite(HelixCentFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
+
+          if LogAfmf then
+          begin
+            IsAfmf := (Pos('afmf', LowLine) > 0) or
+                      (Pos('fluid motion', LowLine) > 0);
+            if IsAfmf then
+            begin
+              if AfmfCentFd >= 0 then fpWrite(AfmfCentFd, PChar(OutLine), Length(OutLine));
+            end;
+          end;
         end;
       end
       else if Buf[i] <> #13 then
@@ -664,6 +731,16 @@ begin
     begin
       if DlssCentFd >= 0 then fpWrite(DlssCentFd, PChar(OutLine), Length(OutLine));
     end;
+
+    if LogHelix and ((Pos('helixsr', LowLine) > 0) or (Pos('hxsr', LowLine) > 0) or (Pos('dx12_upscaler', LowLine) > 0) or (Pos('helix', LowLine) > 0)) then
+    begin
+      if HelixCentFd >= 0 then fpWrite(HelixCentFd, PChar(OutLine), Length(OutLine));
+    end;
+
+    if LogAfmf and ((Pos('afmf', LowLine) > 0) or (Pos('fluid motion', LowLine) > 0)) then
+    begin
+      if AfmfCentFd >= 0 then fpWrite(AfmfCentFd, PChar(OutLine), Length(OutLine));
+    end;
   end;
 
   if MakoCentFd >= 0 then fpClose(MakoCentFd);
@@ -673,6 +750,8 @@ begin
   if BasaltCentFd >= 0 then fpClose(BasaltCentFd);
   if MangoCentFd >= 0 then fpClose(MangoCentFd);
   if DlssCentFd >= 0 then fpClose(DlssCentFd);
+  if HelixCentFd >= 0 then fpClose(HelixCentFd);
+  if AfmfCentFd >= 0 then fpClose(AfmfCentFd);
   if ReadFd >= 0 then fpClose(ReadFd);
   if OrigStderrFd >= 0 then fpClose(OrigStderrFd);
 
@@ -2471,6 +2550,8 @@ var
   SumiCentralLogFile: string;
   BasaltCentralLogFile: string;
   ReShadeCentralLogFile: string;
+  HelixSRCentralLogFile: string;
+  AfmfCentralLogFile: string;
   HasAnyToolLogging: Boolean;
   ShowLaunchSplash: Boolean;
   SplashExe, SplashGameTitle: string;
@@ -3921,6 +4002,8 @@ begin
   SumiCentralLogFile := '';
   BasaltCentralLogFile := '';
   ReShadeCentralLogFile := '';
+  HelixSRCentralLogFile := '';
+  AfmfCentralLogFile := '';
   InternalOptiLogPath := '';
 
   if GOverlayMangoHud then
@@ -3981,9 +4064,20 @@ begin
     begin
       if CentralLogDir <> '' then
       begin
-        InitToolLogFile(IncludeTrailingPathDelimiter(CentralLogDir) + 'helixsr.log', 'HelixSR', GameDir, '');
-        Log('HelixSR central log: ' + IncludeTrailingPathDelimiter(CentralLogDir) + 'helixsr.log');
+        HelixSRCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'helixsr.log';
+        InitToolLogFile(HelixSRCentralLogFile, 'HelixSR', GameDir, '');
+        Log('HelixSR central log: ' + HelixSRCentralLogFile);
       end;
+    end;
+  end;
+
+  if GOverlayLossless and (InterpolationMethod = 'afmf') then
+  begin
+    if CentralLogDir <> '' then
+    begin
+      AfmfCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'afmf.log';
+      InitToolLogFile(AfmfCentralLogFile, 'AFMF', GameDir, '');
+      Log('AFMF central log: ' + AfmfCentralLogFile);
     end;
   end;
 
@@ -4017,7 +4111,7 @@ begin
     end;
   end;
 
-  HasAnyToolLogging := GOverlayMangoHud or (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt or GOverlayReshade;
+  HasAnyToolLogging := GOverlayMangoHud or (GOverlayLossless and ((InterpolationMethod = 'mako') or (InterpolationMethod = 'lsfg') or (InterpolationMethod = 'afmf'))) or GOverlayOptiscaler or GOverlayVkSumi or GOverlayVkBasalt or GOverlayReshade;
 
   LoggerPid := -1;
   GamePid := -1;
@@ -4034,7 +4128,9 @@ begin
      (MangoCentralLogFile <> '') or
      (SumiCentralLogFile <> '') or
      (BasaltCentralLogFile <> '') or
-     (ReShadeCentralLogFile <> '')
+     (ReShadeCentralLogFile <> '') or
+     (HelixSRCentralLogFile <> '') or
+     (AfmfCentralLogFile <> '')
   ) then
   begin
     if fpPipe(PipeFds) = 0 then
@@ -4053,6 +4149,8 @@ begin
           BasaltCentralLogFile,
           MangoCentralLogFile,
           DlssCentralLogFile,
+          HelixSRCentralLogFile,
+          AfmfCentralLogFile,
           GameDir, CentralLogDir,
           (GOverlayLossless and (InterpolationMethod = 'mako')),
           (GOverlayLossless and (InterpolationMethod = 'lsfg')),
@@ -4060,7 +4158,9 @@ begin
           GOverlayVkSumi,
           GOverlayVkBasalt,
           GOverlayMangoHud,
-          (GOverlayOptiscaler and (UpscalerType = 1))
+          (GOverlayOptiscaler and (UpscalerType = 1)),
+          (GOverlayOptiscaler and (UpscalerType = 3)),
+          (GOverlayLossless and (InterpolationMethod = 'afmf'))
         );
       end
       else if LoggerPid > 0 then
