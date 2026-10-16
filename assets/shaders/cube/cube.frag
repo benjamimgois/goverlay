@@ -314,15 +314,18 @@ void main() {
         // Lambertian diffuse shading
         float diff = max(dot(N, L), 0.0);
         
-        // Matte ambient + diffuse with no specular highlight for maximum tridimensionality
-        vec3 ambient = vec3(0.18);
-        vec3 diffuseColor = diff * vec3(0.82);
+        // Specular highlight for a satin titanium finish
+        vec3 H = normalize(L + V);
+        float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.35;
         
-        lighting = ambient + diffuseColor;
+        vec3 ambient = vec3(0.12);
+        vec3 diffuseColor = diff * vec3(0.70);
+        
+        lighting = ambient + diffuseColor + vec3(spec);
     }
     
-    // Base color: premium matte light-grey/white
-    vec3 baseColor = vec3(0.9) * pushConsts.vector.rgb;
+    // Base color: satin titanium
+    vec3 baseColor = vec3(0.85) * pushConsts.vector.rgb;
     vec3 finalColor = lighting * baseColor + reflectionColor;
     
     outColor = vec4(finalColor, pushConsts.vector.a);

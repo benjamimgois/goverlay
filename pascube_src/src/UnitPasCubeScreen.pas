@@ -291,7 +291,17 @@ type
        // Persistent Mapped Uniform Buffer Pointers
        fVulkanUniformBufferPointers: array[0..MaxInFlightFrames-1] of pointer;
 
-      public
+       // Live telemetry values sampled by TTelemetryThread
+       fLiveCPUTemp: Double;
+       fLiveGPUTemp: Double;
+       fLiveCPUPower: Double;
+       fLiveGPUPower: Double;
+
+       procedure DrawStyledCard(const aX, aY, aW, aH: TpvFloat; const aHighlighted: Boolean = false; const aAccentR: TpvFloat = 0.0; const aAccentG: TpvFloat = 0.0; const aAccentB: TpvFloat = 0.0; const aBorderR: TpvFloat = 0.0; const aBorderG: TpvFloat = 0.0; const aBorderB: TpvFloat = 0.0);
+       procedure DrawPillBadge(const aX, aY: TpvFloat; const aText: String; const aR, aG, aB: TpvFloat; const aScale: TpvFloat = 0.7);
+       procedure GetScoreTier(const aScore: Integer; out aTierName: String; out aR, aG, aB: TpvFloat);
+
+       public
         fOffscreenColorAttachments: array of TpvVulkanFrameBufferAttachment;
         fOffscreenDepthAttachments: array of TpvVulkanFrameBufferAttachment;
         fOffscreenFrameBuffers: array of TpvVulkanFrameBuffer;
@@ -1160,6 +1170,13 @@ begin
     if curGPUPower > FScreen.fCurrentResult.GPUPowerMax then
       FScreen.fCurrentResult.GPUPowerMax := curGPUPower;
   end;
+
+  // 3. Publish live sampled values to the screen for the overlay
+  if Assigned(FScreen) then begin
+    if (curCPU > 0) and (curCPU < 150) then FScreen.fLiveCPUTemp := curCPU;
+    if (curGPU > 0) and (curGPU < 150) then FScreen.fLiveGPUTemp := curGPU;
+    if (curGPUPower > 0) and (curGPUPower < 2000) then FScreen.fLiveGPUPower := curGPUPower;
+  end;
 end;
 
 procedure TTelemetryThread.Execute;
@@ -1598,9 +1615,9 @@ begin
                                          TVkDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT));
   fVulkanRenderPass.Initialize;
 
-  fVulkanRenderPass.ClearValues[0].color.float32[0]:=0.15;
-  fVulkanRenderPass.ClearValues[0].color.float32[1]:=0.15;
-  fVulkanRenderPass.ClearValues[0].color.float32[2]:=0.15;
+  fVulkanRenderPass.ClearValues[0].color.float32[0]:=10.0/255.0;
+  fVulkanRenderPass.ClearValues[0].color.float32[1]:=14.0/255.0;
+  fVulkanRenderPass.ClearValues[0].color.float32[2]:=22.0/255.0;
   fVulkanRenderPass.ClearValues[0].color.float32[3]:=1.0;
 
   fVulkanGraphicsPipeline:=TpvVulkanGraphicsPipeline.Create(pvApplication.VulkanDevice,
@@ -1998,24 +2015,23 @@ begin
           fHoveredHardwareIdx := -1;
         end;
 
-      // Check hover on Score Trend history bars
+      // Check hover on Run History bars (column 2)
       fHoveredHistoryIdx := -1;
       if (not fClearConfirmPending) and (not fSubmitConfirmPending) and (fHistoryCount > 0) then begin
       app := UnitPasCubeApplication.Application;
       if Assigned(app) then begin
        charWidth := app.TextOverlay.FontCharWidth;
        charHeight := app.TextOverlay.FontCharHeight;
-       leftColX1 := 1920.0 * 0.05;
-       leftColWidth := 1920.0 * 0.43;
-       histCardY := 1.0 * charHeight + 6.5 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight + 5.0 * charHeight + 0.5 * charHeight;
-       histGraphY := histCardY;
-       histGraphH := (1.0 * charHeight + (1080.0 - 55.0 - 1.0 * charHeight - 55.0)) - histGraphY;
+       leftColX1 := 664.0;   // xCol2 = margin + wCol1 + gap
+       leftColWidth := 520.0; // wCol2
+       histGraphY := 372.0;   // historyY = telemY(76) + telemH(280) + 16
+       histGraphH := (1080.0 - 75.0) - histGraphY; // historyH = bottomY - historyY
        if histGraphH < 6.0 * charHeight then histGraphH := 6.0 * charHeight;
        histGraphW := leftColWidth;
-       if (ScaledPos.x >= leftColX1) and (ScaledPos.x <= leftColX1 + histGraphW) and
-          (ScaledPos.y >= histGraphY) and (ScaledPos.y <= histGraphY + histGraphH) then begin
-         barSlotW := (histGraphW - 4.0 * charWidth) / fHistoryCount;
-         fHoveredHistoryIdx := Trunc((ScaledPos.x - (leftColX1 + 2.0 * charWidth)) / barSlotW);
+       if (ScaledPos.x >= leftColX1 + 24.0) and (ScaledPos.x <= leftColX1 + histGraphW - 24.0) and
+          (ScaledPos.y >= histGraphY + 70.0) and (ScaledPos.y <= histGraphY + histGraphH - 46.0) then begin
+         barSlotW := (histGraphW - 48.0) / fHistoryCount;
+         fHoveredHistoryIdx := Trunc((ScaledPos.x - (leftColX1 + 24.0)) / barSlotW);
          if fHoveredHistoryIdx < 0 then fHoveredHistoryIdx := 0;
          if fHoveredHistoryIdx >= fHistoryCount then fHoveredHistoryIdx := fHistoryCount - 1;
          // Map visual index (oldest at left) to array index (newest at 0)
@@ -2289,9 +2305,9 @@ begin
    fVulkanRenderPass.ClearValues[0].color.float32[2]:=0.0;
    fVulkanRenderPass.ClearValues[0].color.float32[3]:=1.0;
   end else begin
-   fVulkanRenderPass.ClearValues[0].color.float32[0]:=0.15;
-   fVulkanRenderPass.ClearValues[0].color.float32[1]:=0.15;
-   fVulkanRenderPass.ClearValues[0].color.float32[2]:=0.15;
+   fVulkanRenderPass.ClearValues[0].color.float32[0]:=10.0/255.0;
+   fVulkanRenderPass.ClearValues[0].color.float32[1]:=14.0/255.0;
+   fVulkanRenderPass.ClearValues[0].color.float32[2]:=22.0/255.0;
    fVulkanRenderPass.ClearValues[0].color.float32[3]:=1.0;
   end;
 
@@ -2401,7 +2417,7 @@ begin
       end;
 
      // Default cube (idle menu / warmup / CPU single / GPU stress phases)
-      if (not isBenchmark) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_1080p, bpRT_1080p]) then begin
+      if ((not isBenchmark) and (fBenchmarkPhase <> bpResults)) or (fBenchmarkPhase in [bpWarmup, bpCPU_Single, bpGPU_1080p, bpRT_1080p]) then begin
       if isBenchmark then begin
         if fBenchmarkPhase = bpCPU_Single then begin
           PushConstants.Vector := TpvVector4.Create(1.0, 0.45 + 0.1 * Sin(fPhaseTimer * 8.0), 0.0, 1.0);
@@ -3342,15 +3358,70 @@ begin
  end;
 end;
 
+procedure TPasCubeScreen.DrawStyledCard(const aX, aY, aW, aH: TpvFloat; const aHighlighted: Boolean = false; const aAccentR: TpvFloat = 0.0; const aAccentG: TpvFloat = 0.0; const aAccentB: TpvFloat = 0.0; const aBorderR: TpvFloat = 0.0; const aBorderG: TpvFloat = 0.0; const aBorderB: TpvFloat = 0.0);
+var app: TPasCubeApplication;
+    bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+  bgR := 15.0 / 255.0; bgG := 20.0 / 255.0; bgB := 32.0 / 255.0; bgA := 0.90;
+  if (aBorderR > 0.0) or (aBorderG > 0.0) or (aBorderB > 0.0) then begin
+    fgR := aBorderR; fgG := aBorderG; fgB := aBorderB; fgA := 0.90;
+  end else if aHighlighted then begin
+    fgR := 56.0 / 255.0; fgG := 189.0 / 255.0; fgB := 248.0 / 255.0; fgA := 0.90;
+  end else begin
+    fgR := 55.0 / 255.0; fgG := 70.0 / 255.0; fgB := 105.0 / 255.0; fgA := 0.65;
+  end;
+  app.TextOverlay.AddBox(aX, aY, aW, aH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+  if (aAccentR > 0.0) or (aAccentG > 0.0) or (aAccentB > 0.0) then begin
+    app.TextOverlay.AddBox(aX + 8.0, aY + 1.0, aW - 16.0, 3.0, aAccentR, aAccentG, aAccentB, 0.95, 0.0, 0.0, 0.0, 0.0, 32.0);
+  end;
+end;
+
+procedure TPasCubeScreen.DrawPillBadge(const aX, aY: TpvFloat; const aText: String; const aR, aG, aB: TpvFloat; const aScale: TpvFloat = 0.7);
+var app: TPasCubeApplication;
+    charWidth, charHeight, bw, bh: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+  bw := (Length(aText) * charWidth * aScale) + (charWidth * 1.2);
+  bh := (charHeight * aScale) + (charHeight * 0.4);
+  if bh < 22.0 then bh := 22.0;
+  app.TextOverlay.AddBox(aX - (bw * 0.5), aY - (bh * 0.5), bw, bh,
+                         aR * 0.15, aG * 0.15, aB * 0.15, 0.92,
+                         aR, aG, aB, 0.85, 255.0);
+  app.TextOverlay.AddText(aX, aY - (charHeight * aScale * 0.45), aScale, toaCenter, aText,
+                          0.0, 0.0, 0.0, 0.0, aR, aG, aB, 1.0);
+end;
+
+procedure TPasCubeScreen.GetScoreTier(const aScore: Integer; out aTierName: String; out aR, aG, aB: TpvFloat);
+begin
+  if aScore >= 4000 then begin
+    aTierName := 'TIER: ENTHUSIAST GAMING';
+    aR := 56.0 / 255.0; aG := 189.0 / 255.0; aB := 248.0 / 255.0; // Cyan
+  end else if aScore >= 2200 then begin
+    aTierName := 'TIER: MAINSTREAM GAMING';
+    aR := 96.0 / 255.0; aG := 165.0 / 255.0; aB := 250.0 / 255.0; // Sky Blue
+  end else begin
+    aTierName := 'TIER: ENTRY / HANDHELD';
+    aR := 52.0 / 255.0; aG := 211.0 / 255.0; aB := 153.0 / 255.0; // Emerald
+  end;
+end;
+
 procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
     cx, yText, charWidth, charHeight: TpvFloat;
     btnWidth, btnHeight, btnX, paddingX, paddingY: TpvFloat;
     boxW, boxH, boxX, boxY: TpvFloat;
     isStartHovered, isViewHovered: Boolean;
-    bgR, bgG, bgB, bgA: TpvFloat;
-    fgR, fgG, fgB, fgA: TpvFloat;
+    bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
+    subtitle: String;
+    specsW, dockY, dockH, dockW, stageCX: TpvFloat;
+    stageIdx: Integer;
+    stageTexts: array[0..3] of String;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -3367,8 +3438,14 @@ begin
  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
 
- // Centered Title (Increased font size to 3.0, using default font)
- app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
+ // Centered Title
+ app.TextOverlay.AddText(cx, 48.0, 2.6, toaCenter, 'PasCube Benchmark', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+ // Centered Subtitle Specs Pill Card
+ subtitle := GetCPUName + '  |  ' + CleanGPUName(app.VulkanDevice.PhysicalDevice.DeviceName) + '  |  Vulkan 1.3  |  1080p Standard';
+ specsW := (Length(subtitle) * charWidth * 0.65) + 36.0;
+ DrawStyledCard(cx - (specsW * 0.5), 92.0, specsW, 28.0, false, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0);
+ app.TextOverlay.AddText(cx, 98.0, 0.65, toaCenter, subtitle, 0.0, 0.0, 0.0, 0.0, 180.0/255.0, 210.0/255.0, 245.0/255.0, 1.0);
 
  // Centered Alert Card when Lossless Scaling is active
  if app.LosslessScalingActive then begin
@@ -3397,22 +3474,37 @@ begin
                           185.0/255.0, 190.0/255.0, 205.0/255.0, 1.0);
  end;
 
- // 1. Start benchmark button
+ // Benchmark Suite Pipeline Dock (overview card above bottom buttons)
+ dockY := 1080.0 - 200.0;
+ dockH := 72.0;
+ dockW := 1920.0 * 0.62;
+ DrawStyledCard(cx - dockW * 0.5, dockY, dockW, dockH, false, 56.0/255.0, 189.0/255.0, 248.0/255.0);
+ app.TextOverlay.AddText(cx, dockY + 0.55 * charHeight, 0.7, toaCenter, 'BENCHMARK SUITE PIPELINE',
+                         0.0, 0.0, 0.0, 0.0, 56.0/255.0, 189.0/255.0, 248.0/255.0, 1.0);
+ stageTexts[0] := '1. CPU SINGLE (7-Zip MIPS)';
+ stageTexts[1] := '2. CPU MULTI (All-Core Stress)';
+ stageTexts[2] := '3. GPU RASTER (Vulkan 1.3 1080p)';
+ stageTexts[3] := '4. RAY TRACING (Hardware RT or Raster Fallback)';
+ for stageIdx := 0 to 3 do begin
+  stageCX := (cx - dockW * 0.5) + (dockW * (stageIdx + 0.5) / 4.0);
+  app.TextOverlay.AddText(stageCX, dockY + 2.0 * charHeight, 0.5, toaCenter, stageTexts[stageIdx],
+                          0.0, 0.0, 0.0, 0.0, 180.0/255.0, 200.0/255.0, 230.0/255.0, 1.0);
+ end;
+
+ // 1. Start benchmark button (neon cyan border)
+ isStartHovered := (not app.LosslessScalingActive) and IsStartButtonHovered(fLastMousePosition);
  if app.LosslessScalingActive then begin
   bgR := 18.0 / 255.0; bgG := 20.0 / 255.0; bgB := 28.0 / 255.0; bgA := 1.0;
   fgR := 40.0 / 255.0; fgG := 45.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
   textR := 110.0 / 255.0; textG := 115.0 / 255.0; textB := 130.0 / 255.0; textA := 1.0;
+ end else if isStartHovered then begin
+  bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
+  fgR := 56.0 / 255.0; fgG := 189.0 / 255.0; fgB := 248.0 / 255.0; fgA := 1.0;
+  textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
  end else begin
-  isStartHovered := IsStartButtonHovered(fLastMousePosition);
-  if isStartHovered then begin
-   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
+  bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
+  fgR := 56.0 / 255.0; fgG := 189.0 / 255.0; fgB := 248.0 / 255.0; fgA := 0.85;
+  textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
  end;
 
  if fHistoryCount > 0 then
@@ -3421,13 +3513,13 @@ begin
   btnX := cx - (btnWidth * 0.5);
 
  app.TextOverlay.AddBox(btnX, yText - paddingY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
- 
+
  if fHistoryCount > 0 then
   app.TextOverlay.AddText(cx - (btnWidth * 0.5) - 15.0, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA)
  else
   app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
- // 2. View results button (only if history exists)
+ // 2. View results button (only if history exists) - slate border
  if fHistoryCount > 0 then begin
   isViewHovered := IsViewResultsButtonHovered(fLastMousePosition);
   if isViewHovered then begin
@@ -3436,7 +3528,7 @@ begin
    textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
   end else begin
    bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
+   fgR := 55.0 / 255.0; fgG := 70.0 / 255.0; fgB := 105.0 / 255.0; fgA := 0.9;
    textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
   end;
 
@@ -3523,7 +3615,7 @@ begin
  if not Assigned(app) then Exit;
 
  cx := 1920.0 * 0.5;
- yText := 1080.0 - 55.0;
+ yText := 1080.0 - 58.0;
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
  paddingX := charWidth * 1.5;
@@ -3606,10 +3698,9 @@ end;
 
 function TPasCubeScreen.IsHardwareItemHovered(const aPos: TpvVector2; out aIndex: Integer): Boolean;
 var app: TPasCubeApplication;
-    rightColX1, rightColWidth, cardY: TpvFloat;
-    charHeight: TpvFloat;
-    i: Integer;
-    itemY, itemH: TpvFloat;
+    wCol1, wCol2, wCol3, xCol3, startY, margin, gap: TpvFloat;
+    cardH, cardGap, cardsStartY, cardY: TpvFloat;
+    k, idx, curIdx, winStart: Integer;
     HWRefs: THardwareRefArray;
 begin
   Result := false;
@@ -3618,25 +3709,38 @@ begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
 
-  charHeight := app.TextOverlay.FontCharHeight;
-  rightColX1 := 1920.0 * 0.52;
-  rightColWidth := 1920.0 * 0.43;
-  cardY := 1.0 * charHeight;  // Must match hwCardY in DrawResultsOverlay
+  // Must match the column-3 geometry in DrawResultsOverlay
+  startY := 76.0;
+  margin := 60.0;
+  gap := 24.0;
+  wCol1 := 580.0;
+  wCol2 := 520.0;
+  wCol3 := 652.0;
+  xCol3 := margin + wCol1 + gap + wCol2 + gap;
 
   GetHardwareReferences(HWRefs);
+  curIdx := 0;
+  for idx := 0 to 11 do
+    if HWRefs[idx].IsCurrent then begin curIdx := idx; Break; end;
 
-  // Determine which item is hovered using animated Y layout
-  itemY := cardY + 3.5 * charHeight;
-  for i := 0 to 11 do begin
-   itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
+  if curIdx <= 1 then winStart := 0
+  else if curIdx >= 8 then winStart := 7
+  else winStart := curIdx - 2;
 
-   if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
-      (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
-    aIndex := i;
-    Result := true;
-    Exit;
-   end;
-   itemY := itemY + itemH;
+  cardH := 142.0;
+  cardGap := 14.0;
+  cardsStartY := startY + 54.0;
+
+  for k := 0 to 4 do begin
+    idx := winStart + k;
+    if (idx < 0) or (idx > 11) then Continue;
+    cardY := cardsStartY + k * (cardH + cardGap);
+    if (aPos.x >= xCol3) and (aPos.x <= xCol3 + wCol3) and
+       (aPos.y >= cardY) and (aPos.y <= cardY + cardH) then begin
+      aIndex := idx;
+      Result := true;
+      Exit;
+    end;
   end;
 end;
 
@@ -3653,7 +3757,7 @@ begin
   if not Assigned(app) then Exit;
 
   cx := 1920.0 * 0.5;
-  yText := 1080.0 - 55.0;
+  yText := 1080.0 - 58.0;
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
   paddingX := charWidth * 1.5;
@@ -3695,7 +3799,7 @@ begin
  if not Assigned(app) then Exit;
 
  cx := 1920.0 * 0.5;
- yText := 1080.0 - 55.0;
+ yText := 1080.0 - 58.0;
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
  paddingX := charWidth * 1.5;
@@ -4235,8 +4339,7 @@ end;
 
 function TPasCubeScreen.IsMethodologyButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    charWidth, charHeight, leftColX1, leftColWidth: TpvFloat;
-    cardY, btnSize: TpvFloat;
+    charWidth, heroX, heroW: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
@@ -4244,15 +4347,14 @@ begin
   if not Assigned(app) then Exit;
 
   charWidth := app.TextOverlay.FontCharWidth;
-  charHeight := app.TextOverlay.FontCharHeight;
-  leftColX1 := 1920.0 * 0.05;
-  leftColWidth := 1920.0 * 0.43;
-  cardY := 1.0 * charHeight;
+  // Must match the Hero Score card geometry in DrawResultsOverlay
+  heroX := 60.0;
+  heroW := 580.0;
 
-  Result := (aPos.x >= leftColX1 + leftColWidth - 3.0 * charWidth) and
-            (aPos.x <= leftColX1 + leftColWidth - 0.5 * charWidth) and
-            (aPos.y >= cardY + 0.2 * charHeight) and
-            (aPos.y <= cardY + 1.8 * charHeight);
+  Result := (aPos.x >= heroX + heroW - 3.0 * charWidth) and
+            (aPos.x <= heroX + heroW - 8.0) and
+            (aPos.y >= 76.0 + 6.0) and
+            (aPos.y <= 76.0 + 40.0);
 end;
 
 procedure TPasCubeScreen.DrawMethodologyOverlay;
@@ -4400,6 +4502,15 @@ var app: TPasCubeApplication;
     phaseStr, infoStr: String;
     duration, progress: TpvDouble;
     pbWidth, pbHeight, pbX, pbY: TpvFloat;
+    totalPhases, activePhase, chipIdx: Integer;
+    chipTexts: array[0..4] of String;
+    chipWidths: array[0..4] of TpvFloat;
+    charW, charH, chipH, chipGap, chipPad, chipY: TpvFloat;
+    rowWidth, chipLeft, chipTop, chipCX, chipTextY: TpvFloat;
+    chipR, chipG, chipB: TpvFloat;
+    fillR, fillG, fillB: TpvFloat;
+    cardX, cardY, cardW, cardH, lineX: TpvFloat;
+    cpuStr, gpuStr, tempStr, pwrStr: String;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -4422,11 +4533,127 @@ begin
  if progress > 1.0 then progress := 1.0;
  if progress < 0.0 then progress := 0.0;
 
-  // Render header centered
-  app.TextOverlay.AddText(1920.0 * 0.5, 40.0, 2.2, toaCenter, phaseStr);
+  // Render header centered (below the phase stepper to avoid overlap)
+  app.TextOverlay.AddText(1920.0 * 0.5, 58.0, 2.2, toaCenter, phaseStr);
 
-  // Render FPS right below the main cube
-  app.TextOverlay.AddText(1920.0 * 0.5, 1080.0 * 0.72, 1.5, toaCenter, Format('FPS: %.1f', [pvApplication.FramesPerSecond]));
+  // ------------------------------------------------------------------
+  // Phase Stepper (top center, y = 35.0)
+  // ------------------------------------------------------------------
+  chipTexts[0] := '1. Warmup';
+  chipTexts[1] := '2. CPU ST';
+  chipTexts[2] := '3. CPU MT';
+  chipTexts[3] := '4. GPU 1080p';
+  chipTexts[4] := '5. Ray Tracing';
+
+  if fRayTracingSupported then
+    totalPhases := 5
+  else
+    totalPhases := 4;
+
+  case fBenchmarkPhase of
+    bpWarmup: activePhase := 0;
+    bpCPU_Single: activePhase := 1;
+    bpCPU_Multi: activePhase := 2;
+    bpGPU_1080p: activePhase := 3;
+    bpRT_1080p: activePhase := 4;
+  else
+    activePhase := -1;
+  end;
+
+  charW := app.TextOverlay.FontCharWidth;
+  charH := app.TextOverlay.FontCharHeight;
+  chipH := 30.0;
+  chipGap := 10.0;
+  chipPad := 16.0;
+  chipY := 35.0;
+  chipTextY := chipY - (charH * 0.7 * 0.5);
+
+  rowWidth := 0.0;
+  for chipIdx := 0 to totalPhases - 1 do begin
+    chipWidths[chipIdx] := (Length(chipTexts[chipIdx]) * charW * 0.7) + (chipPad * 2.0);
+    rowWidth := rowWidth + chipWidths[chipIdx];
+    if chipIdx < totalPhases - 1 then
+      rowWidth := rowWidth + chipGap;
+  end;
+
+  chipLeft := (1920.0 * 0.5) - (rowWidth * 0.5);
+  for chipIdx := 0 to totalPhases - 1 do begin
+    chipTop := chipY - (chipH * 0.5);
+    chipCX := chipLeft + (chipWidths[chipIdx] * 0.5);
+
+    if (activePhase >= 0) and (chipIdx < activePhase) then begin
+      // Completed phase: green text with a subtle background
+      chipR := 52.0 / 255.0; chipG := 211.0 / 255.0; chipB := 153.0 / 255.0;
+      app.TextOverlay.AddBox(chipLeft, chipTop, chipWidths[chipIdx], chipH,
+                             chipR * 0.12, chipG * 0.12, chipB * 0.12, 0.75,
+                             chipR, chipG, chipB, 0.45,
+                             255.0);
+    end else if chipIdx = activePhase then begin
+      // Active phase: bright cyan, or violet for the Ray Tracing phase
+      if chipIdx = 4 then begin
+        chipR := 192.0 / 255.0; chipG := 132.0 / 255.0; chipB := 252.0 / 255.0;
+      end else begin
+        chipR := 56.0 / 255.0; chipG := 189.0 / 255.0; chipB := 248.0 / 255.0;
+      end;
+      app.TextOverlay.AddBox(chipLeft - 1.0, chipTop - 1.0, chipWidths[chipIdx] + 2.0, chipH + 2.0,
+                             chipR * 0.30, chipG * 0.30, chipB * 0.30, 0.92,
+                             chipR, chipG, chipB, 0.95,
+                             255.0);
+    end else begin
+      // Pending phase: muted gray text
+      chipR := 120.0 / 255.0; chipG := 130.0 / 255.0; chipB := 150.0 / 255.0;
+      app.TextOverlay.AddBox(chipLeft, chipTop, chipWidths[chipIdx], chipH,
+                             22.0 / 255.0, 25.0 / 255.0, 38.0 / 255.0, 0.55,
+                             chipR, chipG, chipB, 0.35,
+                             255.0);
+    end;
+
+    app.TextOverlay.AddText(chipCX, chipTextY, 0.7, toaCenter, chipTexts[chipIdx],
+                            1.0, 1.0, 1.0, 0.0,
+                            chipR, chipG, chipB, 1.0);
+
+    chipLeft := chipLeft + chipWidths[chipIdx] + chipGap;
+  end;
+
+  // ------------------------------------------------------------------
+  // Top-Right Floating Live Telemetry Panel
+  // ------------------------------------------------------------------
+  cardX := 1920.0 - 320.0;
+  cardY := 25.0;
+  cardW := 295.0;
+  cardH := 95.0;
+  DrawStyledCard(cardX, cardY, cardW, cardH, true);
+
+  lineX := cardX + 15.0;
+  app.TextOverlay.AddText(lineX, cardY + 18.0, 0.7, toaLeft, 'LIVE SENSORS',
+                          1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 1.0);
+
+  app.TextOverlay.AddText(lineX, cardY + 40.0, 0.85, toaLeft,
+                          Format('FPS: %.1f', [pvApplication.FramesPerSecond]),
+                          1.0, 1.0, 1.0, 0.0,
+                          1.0, 1.0, 1.0, 1.0);
+
+  if fLiveCPUTemp > 0 then
+    cpuStr := Format('CPU: %.0f C', [fLiveCPUTemp])
+  else
+    cpuStr := 'CPU: --';
+  if fLiveGPUTemp > 0 then
+    gpuStr := Format('GPU: %.0f C', [fLiveGPUTemp])
+  else
+    gpuStr := 'GPU: --';
+  tempStr := cpuStr + '   ' + gpuStr;
+  app.TextOverlay.AddText(lineX, cardY + 62.0, 0.7, toaLeft, tempStr,
+                          1.0, 1.0, 1.0, 0.0,
+                          180.0 / 255.0, 190.0 / 255.0, 205.0 / 255.0, 1.0);
+
+  if fLiveGPUPower > 0 then
+    pwrStr := Format('Power: %.0f W', [fLiveGPUPower])
+  else
+    pwrStr := 'Power: --';
+  app.TextOverlay.AddText(lineX, cardY + 80.0, 0.65, toaLeft, pwrStr,
+                          1.0, 1.0, 1.0, 0.0,
+                          180.0 / 255.0, 190.0 / 255.0, 205.0 / 255.0, 1.0);
 
   infoStr := '';
   case fBenchmarkPhase of
@@ -4437,8 +4664,15 @@ begin
     bpRT_1080p: infoStr := 'Testing Ray Tracing performance at 1080p...';
   end;
 
+  // Fill color: violet for Ray Tracing, cyan otherwise
+  if fBenchmarkPhase = bpRT_1080p then begin
+    fillR := 192.0 / 255.0; fillG := 132.0 / 255.0; fillB := 252.0 / 255.0;
+  end else begin
+    fillR := 56.0 / 255.0; fillG := 189.0 / 255.0; fillB := 248.0 / 255.0;
+  end;
+
   pbWidth := 1920.0 * 0.6;
-  pbHeight := 24.0;
+  pbHeight := 18.0;
   pbX := (1920.0 - pbWidth) * 0.5;
   pbY := 1080.0 - 120.0;
 
@@ -4446,24 +4680,24 @@ begin
    if infoStr <> '' then
     app.TextOverlay.AddText(1920.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
 
-   // Draw progress bar track (background box, Goverlay dark blue-grey, blue-grey outline)
+   // Sleek progress bar track (dark inset with a subtle blue-grey outline)
    app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
-                          22.0/255.0, 25.0/255.0, 37.0/255.0, 0.8,
-                          50.0/255.0, 60.0/255.0, 85.0/255.0, 1.0,
+                          18.0/255.0, 21.0/255.0, 32.0/255.0, 0.85,
+                          60.0/255.0, 70.0/255.0, 95.0/255.0, 0.9,
                           255.0);
 
-   // Draw progress bar fill (cyan)
+   // Progress bar fill (cyan or violet, with a brighter top edge)
    if progress > 0.01 then begin
     app.TextOverlay.AddBox(pbX + 2.0, pbY + 2.0, (pbWidth - 4.0) * progress, pbHeight - 4.0,
-                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
-                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                           fillR, fillG, fillB, 0.95,
+                           fillR, fillG, fillB, 1.0,
                            255.0);
    end;
 
    // Draw progress percentage text centered inside the progress bar
    app.TextOverlay.AddText(1920.0 * 0.5,
-                          pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.8) * 0.5,
-                          0.8,
+                          pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.7) * 0.5,
+                          0.7,
                           toaCenter,
                           Format('%.0f%%', [progress * 100.0]));
 end;
@@ -5602,41 +5836,63 @@ end;
  procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;
     cx, cy: TpvFloat;
-    i: Integer;
-    lineStr, resultStr, descStr, nickname: String;
-    leftColX1, leftColWidth, rightColX1, rightColWidth: TpvFloat;
-     HWRefs: THardwareRefArray;
-     MaxScore, MaxRTScore: Integer;
-      barStartX, maxBarWidth, barWidth, barHeight, barY: TpvFloat;
-      rtBarWidth, rtBarY, rtBarR, rtBarG, rtBarB, rtBarA, rtTextR, rtTextG, rtTextB: TpvFloat;
-      bgR, bgG, bgB, bgA: TpvFloat;
-      isExpanded, isHovered: Boolean;
-      itemH: TpvFloat;
-      nameR, nameG, nameB, scoreR, scoreG, scoreB, barR, barG, barB, barA: TpvFloat;
-      hwScoreStr, hwRTStr, kernelStr, driverStr: String;
+    i, k: Integer;
     charWidth, charHeight: TpvFloat;
-    textScaleSmall: TpvFloat;
-    scaleFactor: TpvDouble;
-    cardY, cardHeight, availableH, fixedH, itemY, topBoxX, topBoxY, topBoxW, topBoxH: TpvFloat;
-    halfWidth, gap, hwCardY, hwTotalH: TpvFloat;
-     btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
-     clearBtnWidth, clearBtnHeight, clearBtnX, clearBtnY: TpvFloat;
-     returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
-     submitBtnWidth, submitBtnX: TpvFloat;
-     isReturnHovered, isClearHovered, isSubmitHovered, prompted: Boolean;
-     submitStr: String;
-     fgR, fgG, fgB, fgA: TpvFloat;
+    startY, bottomY, margin, gap: TpvFloat;
+    wCol1, wCol2, wCol3, xCol1, xCol2, xCol3: TpvFloat;
+    heroY, heroH, gridY, cardH, subW, subGap: TpvFloat;
+    telemY, telemH, historyY, historyH: TpvFloat;
+    rowY: TpvFloat;
+    HWRefs: THardwareRefArray;
+    curIdx, winStart, idx: Integer;
+    hwCardH, hwCardGap, cardsStartY, hwCardY: TpvFloat;
+    isCurrent: Boolean;
+    tierName: String;
+    tierR, tierG, tierB: TpvFloat;
+    rankStr, hwScoreStr, hwRTStr, specsStr, hwName: String;
+    MaxScore, MaxRTScore: Integer;
+    barStartX, maxBarWidth, barWidth, barY: TpvFloat;
+    deltaVal: Double;
+    bR, bG, bB, bA, fR, fG, fB, fA: TpvFloat;
     textR, textG, textB, textA: TpvFloat;
-      // Graph variables
-       graphY, graphH, graphW, pointX, pointY, prevX, prevY, barW, scoreRange: TpvFloat;
-        graphMaxScore, graphMinScore: Integer;
-        graphIdx, historyIdx: Integer;
-       baseY, plotTop, plotH, barX, barTopH: TpvFloat;
-       paddedMinScore, paddedRange: TpvFloat;
-      popupX, popupY, popupW, popupH: TpvFloat;
-      detailStr: String;
-      // Clear confirmation dialog variables
-      boxW, boxH, boxX, boxY, btnW, btnH, yesX, noX: TpvFloat;
+    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY, yText: TpvFloat;
+    clearBtnWidth, clearBtnX, returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
+    submitBtnWidth, submitBtnX: TpvFloat;
+    isReturnHovered, isClearHovered, isSubmitHovered: Boolean;
+    submitStr: String;
+    cpuPeakStr, gpuPeakStr, pwrPeakStr, cpuTempStr, gpuTempStr: String;
+    cpuTempV, gpuTempV, pwrV: Double;
+    tempR, tempG, tempB: TpvFloat;
+    boxW, boxH, boxX, boxY, btnW, btnH, yesX, noX: TpvFloat;
+    nickname: String;
+    prompted: Boolean;
+    pillW: TpvFloat;
+    headerSpecs: String;
+    popupX, popupY, popupW, popupH: TpvFloat;
+    detailStr: String;
+    graphMaxScore, graphMinScore, historyIdx, graphIdx: Integer;
+    scoreRange, paddedMinScore, paddedRange: Double;
+    hbarAreaX, hbarAreaW, hbarBaseY, hbarPlotTop, hbarPlotH, hbarSlotW, hbarW, hbarH, hbarX: TpvFloat;
+    maxChars: Integer;
+    rtBarWidth: TpvFloat;
+    aR, aG, aB: TpvFloat;
+
+    procedure DrawMetricCard(const mX, mY, mW, mH: TpvFloat; const aTitle, aSubtitle, aValueStr: String; const aVal, aMaxVal: TpvFloat; const cR, cG, cB: TpvFloat; const vR, vG, vB: TpvFloat);
+    var bx, bw, mMaxW, mBy: TpvFloat;
+    begin
+      DrawStyledCard(mX, mY, mW, mH, false, cR, cG, cB, cR, cG, cB);
+      app.TextOverlay.AddText(mX + 16.0, mY + 16.0, 0.8, toaLeft, aTitle, 0.0, 0.0, 0.0, 0.0, cR, cG, cB, 1.0);
+      app.TextOverlay.AddText(mX + 16.0, mY + 42.0, 0.55, toaLeft, aSubtitle, 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 165.0/255.0, 190.0/255.0, 0.85);
+      app.TextOverlay.AddText(mX + mW * 0.5, mY + mH * 0.44, 2.2, toaCenter, aValueStr, 0.0, 0.0, 0.0, 0.0, vR, vG, vB, 1.0);
+      mMaxW := mW - 32.0;
+      bx := mX + 16.0;
+      mBy := mY + mH - 22.0;
+      if aMaxVal > 0.0 then bw := (aVal / aMaxVal) * mMaxW else bw := 0.0;
+      if bw > mMaxW then bw := mMaxW;
+      if bw < 3.0 then bw := 3.0;
+      app.TextOverlay.AddBox(bx, mBy, mMaxW, 6.0, 20.0/255.0, 25.0/255.0, 38.0/255.0, 0.9, 0.0, 0.0, 0.0, 0.0, 32.0);
+      app.TextOverlay.AddBox(bx, mBy, bw, 6.0, cR, cG, cB, 0.95, 0.0, 0.0, 0.0, 0.0, 32.0);
+    end;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
@@ -5644,394 +5900,360 @@ begin
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
 
-  textScaleSmall := 0.65;
   cx := 1920.0 * 0.5;
   cy := 1080.0 * 0.5;
 
-  leftColX1 := 1920.0 * 0.05;
-  leftColWidth := 1920.0 * 0.43;
-  rightColX1 := 1920.0 * 0.52;
-  rightColWidth := 1920.0 * 0.43;
+  // --- FULLSCREEN DARK OBSIDIAN BACKDROP ---
+  app.TextOverlay.AddBox(0.0, 0.0, 1920.0, 1080.0, 10.0 / 255.0, 14.0 / 255.0, 22.0 / 255.0, 0.95, 0.0, 0.0, 0.0, 0.0, 32.0);
 
-    // --- COLUNA DIREITA: Hardware Comparison ---
-    hwCardY := 1.0 * charHeight;
-    // Leave comfortable margin above Return button (55px)
-    hwTotalH := 1080.0 - 55.0 - hwCardY - 55.0;
+  // --- 3-COLUMN GRID GEOMETRY ---
+  startY := 76.0;
+  bottomY := 1080.0 - 75.0;
+  margin := 60.0;
+  gap := 24.0;
+  wCol1 := 580.0;
+  wCol2 := 520.0;
+  wCol3 := 652.0;
+  xCol1 := margin;
+  xCol2 := xCol1 + wCol1 + gap;
+  xCol3 := xCol2 + wCol2 + gap;
 
-    // Draw right card background first (so text draws on top)
-     app.TextOverlay.AddBox(rightColX1, hwCardY, rightColWidth, hwTotalH,
-                            33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.95,
-                            48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
-                            255.0);
+  // --- TOP HEADER: cube badge + branding (left) ---
+  app.TextOverlay.AddBox(margin - 2.0, 25.0, 62.0, 40.0, 56.0/255.0*0.12, 189.0/255.0*0.12, 248.0/255.0*0.12, 0.85, 56.0/255.0, 189.0/255.0, 248.0/255.0, 0.85, 32.0);
+  app.TextOverlay.AddText(margin + 4.0, 32.0, 1.4, toaLeft, '[#]', 0.0, 0.0, 0.0, 0.0, 56.0/255.0, 189.0/255.0, 248.0/255.0, 1.0);
+  app.TextOverlay.AddText(margin + 4.0 + (3.0 * charWidth * 1.4) + 4.0, 32.0, 1.4, toaLeft, 'PasCube Benchmark', 0.0, 0.0, 0.0, 0.0, 245.0/255.0, 248.0/255.0, 255.0/255.0, 1.0);
 
-    // --- COLUNA ESQUERDA: Final Results + CPU + GPU + History ---
-   halfWidth := (leftColWidth - charWidth) / 2;
-   gap := charWidth;
-    // Dynamic card height: distribute available vertical space between the 3 cards and Score Trend
-    availableH := (hwCardY + hwTotalH) - (1.0 * charHeight);
-     // Fixed: Main Score (6.5) + 4 gaps (0.5 each) + Score Trend minimum (10.0)
-     fixedH := (6.5 + 0.5*4 + 10.0) * charHeight;
-     cardHeight := (availableH - fixedH) / 3.0;
-     if cardHeight < 5.0 * charHeight then cardHeight := 5.0 * charHeight;
-     if cardHeight > 10.0 * charHeight then cardHeight := 10.0 * charHeight;
+  // --- TOP HEADER: floating hardware specs pill (right) ---
+  headerSpecs := GetCPUName + ' | ' + CleanGPUName(pvApplication.VulkanDevice.PhysicalDevice.DeviceName) + ' | Vulkan 1.3 | 1080p';
+  pillW := (Length(headerSpecs) * charWidth * 0.65) + 40.0;
+  DrawStyledCard(1920.0 - 60.0 - pillW, 26.0, pillW, 32.0, false, 56.0/255.0, 189.0/255.0, 248.0/255.0, 56.0/255.0, 189.0/255.0, 248.0/255.0);
+  app.TextOverlay.AddText(1920.0 - 60.0 - (pillW * 0.5), 34.0, 0.65, toaCenter, headerSpecs, 0.0, 0.0, 0.0, 0.0, 180.0/255.0, 205.0/255.0, 235.0/255.0, 0.9);
 
-    // --- Card 0: Main Score (spans both CPU card widths) ---
-    cardY := 1.0 * charHeight;
-    // Taller to fit the large score text
-     app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, 6.5 * charHeight,
-                            33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                            48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
-                            255.0);
-     app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 0.5 * charHeight, 1.0, toaCenter, 'Main Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-      app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.2 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  // =========================================================
+  // COLUMN 1: Scores & Compute
+  // =========================================================
 
-       // --- Methodology hint (?) aligned right of Main Score title ---
-       if fShowMethodology then begin
-         fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-       end else begin
-         fgR := 150.0 / 255.0; fgG := 160.0 / 255.0; fgB := 180.0 / 255.0; fgA := 0.9;
-       end;
-        app.TextOverlay.AddText(leftColX1 + leftColWidth - 1.0 * charWidth, cardY + 0.5 * charHeight, 1.4, toaRight, '?',
-                                0.0, 0.0, 0.0, 0.0, fgR, fgG, fgB, fgA);
+  // --- Hero Score Card ---
+  heroY := startY;
+  heroH := 230.0;
+  DrawStyledCard(xCol1, heroY, wCol1, heroH, true, 56.0/255.0, 189.0/255.0, 248.0/255.0, 56.0/255.0, 189.0/255.0, 248.0/255.0);
+  app.TextOverlay.AddText(xCol1 + 24.0, heroY + 18.0, 0.85, toaLeft, 'Hero Score', 0.0, 0.0, 0.0, 0.0, 56.0/255.0, 189.0/255.0, 248.0/255.0, 1.0);
 
-   // --- Row 1: CPU Single-Thread | CPU Multi-Thread ---
-   cardY := cardY + 6.5 * charHeight + 0.5 * charHeight;
+  if fShowMethodology then begin
+    fR := 56.0/255.0; fG := 189.0/255.0; fB := 248.0/255.0; fA := 1.0;
+  end else begin
+    fR := 150.0/255.0; fG := 160.0/255.0; fB := 180.0/255.0; fA := 0.9;
+  end;
+  app.TextOverlay.AddText(xCol1 + wCol1 - 24.0, heroY + 16.0, 1.2, toaRight, '?', 0.0, 0.0, 0.0, 0.0, fR, fG, fB, fA);
 
-   // CPU Single-Thread (left)
-   app.TextOverlay.AddBox(leftColX1, cardY, halfWidth, cardHeight,
-                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                          255.0);
-   app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-    app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[1].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(xCol1 + 28.0, heroY + 64.0, 3.5, toaLeft, FormatScoreValue(fCurrentResult.TotalScore), 0.0, 0.0, 0.0, 0.0, 245.0/255.0, 248.0/255.0, 255.0/255.0, 1.0);
 
-   // CPU Multi-Thread (right)
-   app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
-                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                          255.0);
-   app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-    app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[2].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  GetScoreTier(fCurrentResult.TotalScore, tierName, tierR, tierG, tierB);
+  DrawPillBadge(xCol1 + wCol1 - 125.0, heroY + 98.0, tierName, tierR, tierG, tierB, 0.75);
 
-   // --- Row 2: GPU Raster Score | Ray Tracing Score ---
-   cardY := cardY + cardHeight + 0.5 * charHeight;
+  app.TextOverlay.AddText(xCol1 + 28.0, heroY + heroH - 36.0, 0.7, toaLeft, 'Status: ' + tierName, 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 160.0/255.0, 180.0/255.0, 1.0);
 
-   // GPU Raster Score (left)
-   app.TextOverlay.AddBox(leftColX1, cardY, halfWidth, cardHeight,
-                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                          255.0);
-   app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Raster Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-   app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  // --- 2x2 Compute Grid ---
+  gridY := heroY + heroH + 16.0;
+  cardH := (bottomY - gridY - 16.0) / 2.0;
+  subW := (wCol1 - 16.0) / 2.0;
+  subGap := 16.0;
 
-   // Ray Tracing Score (right)
-   app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
-                          33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                          50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                          255.0);
-   app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'Ray Tracing Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-   if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then begin
-     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 2.2, toaCenter, FormatScoreValue(fCurrentResult.RTScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
-   end else if not fCurrentResult.RTSupported then begin
-     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.38, 1.8, toaCenter, 'N/A', 1.0, 1.0, 1.0, 0.0, 150.0 / 255.0, 160.0 / 255.0, 180.0 / 255.0, 0.8);
-     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.72, 0.65, toaCenter, 'No Hardware RT Support', 1.0, 1.0, 1.0, 0.0, 120.0 / 255.0, 130.0 / 255.0, 150.0 / 255.0, 0.8);
-   end else begin
-     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.5, 1.8, toaCenter, 'N/A', 1.0, 1.0, 1.0, 0.0, 150.0 / 255.0, 160.0 / 255.0, 180.0 / 255.0, 0.8);
-   end;
+  // Row 1 Left: CPU Single-Thread
+  DrawMetricCard(xCol1, gridY, subW, cardH,
+                 'CPU Single-Thread', '7-Zip MIPS',
+                 FormatScoreValue(fCurrentResult.PhaseResults[1].Score),
+                 fCurrentResult.PhaseResults[1].Score * 1.0, 4500.0,
+                 96.0/255.0, 165.0/255.0, 250.0/255.0,
+                 240.0/255.0, 245.0/255.0, 255.0/255.0);
 
-    // --- SCORE TREND GRAPH (expanded, replaces former History / Benchmark Details space) ---
-    if fHistoryCount > 0 then begin
-     graphY := cardY + cardHeight + 0.5 * charHeight;
-     // Align bottom with Hardware Comparison card bottom
-     graphH := (hwCardY + hwTotalH) - graphY;
-     if graphH < 10.0 * charHeight then graphH := 10.0 * charHeight;
-     graphW := leftColWidth;
+  // Row 1 Right: CPU Multi-Thread
+  DrawMetricCard(xCol1 + subW + subGap, gridY, subW, cardH,
+                 'CPU Multi-Thread', 'All-Core Stress',
+                 FormatScoreValue(fCurrentResult.PhaseResults[2].Score),
+                 fCurrentResult.PhaseResults[2].Score * 1.0, 9000.0,
+                 96.0/255.0, 165.0/255.0, 250.0/255.0,
+                 240.0/255.0, 245.0/255.0, 255.0/255.0);
 
-     // Graph background card
-     app.TextOverlay.AddBox(leftColX1, graphY, graphW, graphH,
-                            33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                            50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
-                            255.0);
-     app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  // Row 2 Left: GPU Raster (Vulkan)
+  DrawMetricCard(xCol1, gridY + cardH + subGap, subW, cardH,
+                 'GPU Raster (Vulkan)', '1080p Standard Engine',
+                 FormatScoreValue(fCurrentResult.PhaseResults[7].Score),
+                 fCurrentResult.PhaseResults[7].Score * 1.0, 7000.0,
+                 56.0/255.0, 189.0/255.0, 248.0/255.0,
+                 48.0/255.0, 240.0/255.0, 255.0/255.0);
 
-      // Find min/max for scaling
-      graphMaxScore := fHistory[0].TotalScore;
-      graphMinScore := fHistory[0].TotalScore;
-      for graphIdx := 1 to fHistoryCount - 1 do begin
-       if fHistory[graphIdx].TotalScore > graphMaxScore then graphMaxScore := fHistory[graphIdx].TotalScore;
-       if fHistory[graphIdx].TotalScore < graphMinScore then graphMinScore := fHistory[graphIdx].TotalScore;
-      end;
-      if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
+  // Row 2 Right: Ray Tracing Score
+  if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then
+    DrawMetricCard(xCol1 + subW + subGap, gridY + cardH + subGap, subW, cardH,
+                   'Ray Tracing Score', 'Hardware RT Pipeline',
+                   FormatScoreValue(fCurrentResult.RTScore),
+                   fCurrentResult.RTScore * 1.0, 6000.0,
+                   192.0/255.0, 132.0/255.0, 252.0/255.0,
+                   192.0/255.0, 132.0/255.0, 252.0/255.0)
+  else
+    DrawMetricCard(xCol1 + subW + subGap, gridY + cardH + subGap, subW, cardH,
+                   'Ray Tracing Score', 'Hardware RT Pipeline',
+                   'N/A', 0.0, 6000.0,
+                   192.0/255.0, 132.0/255.0, 252.0/255.0,
+                   150.0/255.0, 160.0/255.0, 180.0/255.0);
 
-      // Auto-scale Y axis: 5% top padding, 5% bottom padding, never clamp to zero
+  // =========================================================
+  // COLUMN 2: Live Telemetry & Run History
+  // =========================================================
+
+  // --- Live Telemetry Card ---
+  telemY := startY;
+  telemH := 280.0;
+  DrawStyledCard(xCol2, telemY, wCol2, telemH, false, 52.0/255.0, 211.0/255.0, 153.0/255.0, 55.0/255.0, 70.0/255.0, 105.0/255.0);
+  app.TextOverlay.AddText(xCol2 + 20.0, telemY + 16.0, 0.9, toaLeft, 'Live Telemetry', 0.0, 0.0, 0.0, 0.0, 235.0/255.0, 240.0/255.0, 250.0/255.0, 1.0);
+
+  cpuTempV := fCurrentResult.CPUTempMax;
+  if cpuTempV <= 0.0 then cpuTempV := fLiveCPUTemp;
+  gpuTempV := fCurrentResult.GPUTempMax;
+  if gpuTempV <= 0.0 then gpuTempV := fLiveGPUTemp;
+  pwrV := fCurrentResult.GPUPowerMax;
+  if pwrV <= 0.0 then pwrV := fLiveGPUPower;
+
+  if cpuTempV > 0.0 then cpuTempStr := Format('%.0f C', [cpuTempV]) else cpuTempStr := 'N/A';
+  if gpuTempV > 0.0 then gpuTempStr := Format('%.0f C', [gpuTempV]) else gpuTempStr := 'N/A';
+  if pwrV > 0.0 then pwrPeakStr := Format('%.0f W', [pwrV]) else pwrPeakStr := 'N/A';
+
+  // 1) CPU Temp
+  rowY := telemY + 74.0;
+  app.TextOverlay.AddBox(xCol2 + 20.0, rowY - 10.0, 54.0, 26.0, 96.0/255.0*0.15, 165.0/255.0*0.15, 250.0/255.0*0.15, 0.9, 96.0/255.0, 165.0/255.0, 250.0/255.0, 0.85, 32.0);
+  app.TextOverlay.AddText(xCol2 + 47.0, rowY - 4.0, 0.6, toaCenter, '[CPU]', 0.0, 0.0, 0.0, 0.0, 96.0/255.0, 165.0/255.0, 250.0/255.0, 1.0);
+  app.TextOverlay.AddText(xCol2 + 92.0, rowY - 4.0, 0.8, toaLeft, 'CPU Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 160.0/255.0, 180.0/255.0, 1.0);
+  if cpuTempV < 65.0 then begin tempR := 52.0/255.0; tempG := 211.0/255.0; tempB := 153.0/255.0; end
+  else if cpuTempV < 80.0 then begin tempR := 245.0/255.0; tempG := 166.0/255.0; tempB := 35.0/255.0; end
+  else begin tempR := 239.0/255.0; tempG := 68.0/255.0; tempB := 68.0/255.0; end;
+  app.TextOverlay.AddText(xCol2 + wCol2 - 24.0, rowY - 8.0, 1.1, toaRight, cpuTempStr, 0.0, 0.0, 0.0, 0.0, tempR, tempG, tempB, 1.0);
+
+  // 2) GPU Temp
+  rowY := telemY + 148.0;
+  app.TextOverlay.AddBox(xCol2 + 20.0, rowY - 10.0, 54.0, 26.0, 52.0/255.0*0.15, 211.0/255.0*0.15, 153.0/255.0*0.15, 0.9, 52.0/255.0, 211.0/255.0, 153.0/255.0, 0.85, 32.0);
+  app.TextOverlay.AddText(xCol2 + 47.0, rowY - 4.0, 0.6, toaCenter, '[GPU]', 0.0, 0.0, 0.0, 0.0, 52.0/255.0, 211.0/255.0, 153.0/255.0, 1.0);
+  app.TextOverlay.AddText(xCol2 + 92.0, rowY - 4.0, 0.8, toaLeft, 'GPU Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 160.0/255.0, 180.0/255.0, 1.0);
+  if gpuTempV <= 0.0 then begin tempR := 150.0/255.0; tempG := 160.0/255.0; tempB := 180.0/255.0; end
+  else if gpuTempV < 65.0 then begin tempR := 52.0/255.0; tempG := 211.0/255.0; tempB := 153.0/255.0; end
+  else if gpuTempV < 80.0 then begin tempR := 245.0/255.0; tempG := 166.0/255.0; tempB := 35.0/255.0; end
+  else begin tempR := 239.0/255.0; tempG := 68.0/255.0; tempB := 68.0/255.0; end;
+  app.TextOverlay.AddText(xCol2 + wCol2 - 24.0, rowY - 8.0, 1.1, toaRight, gpuTempStr, 0.0, 0.0, 0.0, 0.0, tempR, tempG, tempB, 1.0);
+
+  // 3) Peak Power
+  rowY := telemY + 222.0;
+  app.TextOverlay.AddBox(xCol2 + 20.0, rowY - 10.0, 54.0, 26.0, 245.0/255.0*0.15, 166.0/255.0*0.15, 35.0/255.0*0.15, 0.9, 245.0/255.0, 166.0/255.0, 35.0/255.0, 0.85, 32.0);
+  app.TextOverlay.AddText(xCol2 + 47.0, rowY - 4.0, 0.6, toaCenter, '[PWR]', 0.0, 0.0, 0.0, 0.0, 245.0/255.0, 166.0/255.0, 35.0/255.0, 1.0);
+  app.TextOverlay.AddText(xCol2 + 92.0, rowY - 4.0, 0.8, toaLeft, 'Peak Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 160.0/255.0, 180.0/255.0, 1.0);
+  app.TextOverlay.AddText(xCol2 + wCol2 - 24.0, rowY - 8.0, 1.1, toaRight, pwrPeakStr, 0.0, 0.0, 0.0, 0.0, 56.0/255.0, 189.0/255.0, 248.0/255.0, 1.0);
+
+  // --- Run History / Score Trend Card ---
+  historyY := telemY + telemH + 16.0;
+  historyH := bottomY - historyY;
+  DrawStyledCard(xCol2, historyY, wCol2, historyH, false, 52.0/255.0, 211.0/255.0, 153.0/255.0, 55.0/255.0, 70.0/255.0, 105.0/255.0);
+  app.TextOverlay.AddText(xCol2 + 20.0, historyY + 16.0, 0.9, toaLeft, 'Run History', 0.0, 0.0, 0.0, 0.0, 235.0/255.0, 240.0/255.0, 250.0/255.0, 1.0);
+
+  if fHistoryCount >= 2 then begin
+    if fHistory[1].TotalScore > 0 then
+      deltaVal := ((fHistory[0].TotalScore - fHistory[1].TotalScore) / fHistory[1].TotalScore) * 100.0
+    else
+      deltaVal := 0.0;
+    if deltaVal >= 0.0 then begin tempR := 52.0/255.0; tempG := 211.0/255.0; tempB := 153.0/255.0; end
+    else begin tempR := 239.0/255.0; tempG := 68.0/255.0; tempB := 68.0/255.0; end;
+    if deltaVal >= 0.0 then
+      DrawPillBadge(xCol2 + wCol2 - 60.0, historyY + 24.0, Format('+%.1f%%', [deltaVal]), tempR, tempG, tempB, 0.7)
+    else
+      DrawPillBadge(xCol2 + wCol2 - 60.0, historyY + 24.0, Format('%.1f%%', [deltaVal]), tempR, tempG, tempB, 0.7);
+  end;
+
+  if fHistoryCount > 0 then begin
+    graphMaxScore := fHistory[0].TotalScore;
+    graphMinScore := fHistory[0].TotalScore;
+    for graphIdx := 1 to fHistoryCount - 1 do begin
+      if fHistory[graphIdx].TotalScore > graphMaxScore then graphMaxScore := fHistory[graphIdx].TotalScore;
+      if fHistory[graphIdx].TotalScore < graphMinScore then graphMinScore := fHistory[graphIdx].TotalScore;
+    end;
+    if graphMaxScore = graphMinScore then scoreRange := 1.0 else scoreRange := graphMaxScore - graphMinScore;
+
+    if graphMaxScore = graphMinScore then begin
+      paddedMinScore := 0.0;
+      paddedRange := graphMaxScore * 1.25;
+    end else begin
       paddedMinScore := graphMinScore - scoreRange * 0.05;
       if paddedMinScore < 0 then paddedMinScore := 0;
       paddedRange := graphMaxScore - paddedMinScore;
-      // Enforce a minimum range (~5% of max) so tiny score diffs don't exaggerate bar heights
-      if paddedRange < graphMaxScore * 0.05 then begin
-        paddedRange := graphMaxScore * 0.05;
+      if paddedRange < graphMaxScore * 0.08 then begin
+        paddedRange := graphMaxScore * 0.08;
         paddedMinScore := graphMaxScore - paddedRange;
       end;
-      if paddedRange < 1.0 then paddedRange := 1.0;
+    end;
+    if paddedRange < 1.0 then paddedRange := 1.0;
 
-      // Baseline Y (bottom of bars)
-      baseY := graphY + graphH - 1.8 * charHeight;
-      plotTop := graphY + 1.8 * charHeight;
-      plotH := baseY - plotTop;
+    hbarAreaX := xCol2 + 24.0;
+    hbarAreaW := wCol2 - 48.0;
+    hbarBaseY := historyY + historyH - 46.0;
+    hbarPlotTop := historyY + 70.0;
+    hbarPlotH := hbarBaseY - hbarPlotTop;
+    if hbarPlotH < 40.0 then hbarPlotH := 40.0;
 
-    // Draw horizontal axis line
-    app.TextOverlay.AddBox(leftColX1 + 2.0 * charWidth, baseY, graphW - 4.0 * charWidth, 0.06 * charHeight,
-                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4,
-                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 255.0);
+    hbarSlotW := hbarAreaW / fHistoryCount;
+    hbarW := hbarSlotW * 0.5;
+    if hbarW > 40.0 then hbarW := 40.0;
+    if hbarW < 6.0 then hbarW := 6.0;
 
-    // Optional: horizontal grid line at mid-range
-    app.TextOverlay.AddBox(leftColX1 + 2.0 * charWidth, plotTop + plotH * 0.5, graphW - 4.0 * charWidth, 0.03 * charHeight,
-                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2,
-                           70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2, 255.0);
+    // Baseline
+    app.TextOverlay.AddBox(hbarAreaX, hbarBaseY, hbarAreaW, 1.0, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.4, 255.0);
+    // Midline
+    app.TextOverlay.AddBox(hbarAreaX, hbarPlotTop + hbarPlotH * 0.5, hbarAreaW, 0.6, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.2, 255.0);
 
-      // Draw vertical bars for each history entry
-      barW := (graphW - 4.0 * charWidth) / fHistoryCount * 0.6;
-      for graphIdx := 0 to fHistoryCount - 1 do begin
-       historyIdx := fHistoryCount - 1 - graphIdx; // oldest first, newest last
-       barX := leftColX1 + 2.0 * charWidth + (graphIdx + 0.5) * ((graphW - 4.0 * charWidth) / fHistoryCount) - barW * 0.5;
-       barTopH := ((fHistory[historyIdx].TotalScore - paddedMinScore) / paddedRange) * plotH;
-       if barTopH < 2.0 then barTopH := 2.0;
+    for graphIdx := 0 to fHistoryCount - 1 do begin
+      historyIdx := fHistoryCount - 1 - graphIdx;
+      hbarX := hbarAreaX + (graphIdx + 0.5) * hbarSlotW - hbarW * 0.5;
+      hbarH := ((fHistory[historyIdx].TotalScore - paddedMinScore) / paddedRange) * hbarPlotH;
+      if hbarH < 3.0 then hbarH := 3.0;
 
-       // Bar fill (cyan for latest = rightmost, muted for older)
-       if historyIdx = 0 then
-        app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                               48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85,
-                               48.0/255.0, 190.0/255.0, 240.0/255.0, 0.85, 255.0)
-       else
-        app.TextOverlay.AddBox(barX, baseY - barTopH, barW, barTopH,
-                               70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6,
-                               70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
+      if historyIdx = 0 then
+        app.TextOverlay.AddBox(hbarX, hbarBaseY - hbarH, hbarW, hbarH, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.9, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.9, 255.0)
+      else
+        app.TextOverlay.AddBox(hbarX, hbarBaseY - hbarH, hbarW, hbarH, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 70.0/255.0, 80.0/255.0, 100.0/255.0, 0.6, 255.0);
 
-       // Test label below bar: "Test N" instead of just "N"
-       app.TextOverlay.AddText(barX + barW * 0.5, baseY + 0.3 * charHeight, 0.65, toaCenter, 'Test ' + IntToStr(graphIdx + 1),
-                               1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+      app.TextOverlay.AddText(hbarX + hbarW * 0.5, hbarBaseY + 5.0, 0.6, toaCenter, 'Run ' + IntToStr(graphIdx + 1), 0.0, 0.0, 0.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-       // Score label on top of bar
-       // Always show for the latest test (historyIdx = 0); for older tests only if enough height
-       if (historyIdx = 0) or (barTopH > 1.5 * charHeight) then begin
-        // Place label above bar top to avoid overlapping axis label when bar is tiny
-        if barTopH > 1.5 * charHeight then
-         app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH + 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore),
-                                 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0)
+      if (historyIdx = 0) or (hbarH > 1.5 * charHeight) then begin
+        if hbarH > 1.5 * charHeight then
+          app.TextOverlay.AddText(hbarX + hbarW * 0.5, hbarBaseY - hbarH + 6.0, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
         else
-         app.TextOverlay.AddText(barX + barW * 0.5, baseY - barTopH - 0.4 * charHeight, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore),
-                                 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-       end;
+          app.TextOverlay.AddText(hbarX + hbarW * 0.5, hbarBaseY - hbarH - 8.0, 0.55, toaCenter, FormatScoreValue(fHistory[historyIdx].TotalScore), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
       end;
+    end;
 
-    // Hover detail popup for Score Trend
-     if fHoveredHistoryIdx >= 0 then begin
-      popupW := 28.0 * charWidth;
-      popupH := 5.0 * charHeight;
-      popupX := cx - popupW * 0.5;
-      popupY := graphY + graphH * 0.5 - popupH * 0.5;
-      if popupY < graphY + 0.5 * charHeight then popupY := graphY + 0.5 * charHeight;
+    if fHoveredHistoryIdx >= 0 then begin
+      popupW := 30.0 * charWidth;
+      popupH := 5.4 * charHeight;
+      popupX := xCol2 + (wCol2 - popupW) * 0.5;
+      popupY := historyY + 80.0;
 
-     // Popup background
-     app.TextOverlay.AddBox(popupX, popupY, popupW, popupH,
-                            22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
-                            48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
-                            255.0);
+      app.TextOverlay.AddBox(popupX, popupY, popupW, popupH, 22.0/255.0, 25.0/255.0, 37.0/255.0, 0.97, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6, 255.0);
+      app.TextOverlay.AddText(popupX + popupW * 0.5, popupY + 10.0, 0.8, toaCenter, 'Run #' + IntToStr(fHistoryCount - fHoveredHistoryIdx) + ' Details', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
 
-     // Title
-     app.TextOverlay.AddText(popupX + popupW * 0.5, popupY + 0.4 * charHeight, 0.8, toaCenter,
-                              'Run #' + IntToStr(fHistoryCount - fHoveredHistoryIdx) + ' Details',
-                             1.0, 1.0, 1.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
-
-     // Details
       detailStr := 'Total: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].TotalScore);
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 1.4 * charHeight, 0.7, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 1.5 * charHeight, 0.7, toaLeft, detailStr, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-     detailStr := 'CPU ST: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[1].Score) +
-                  '  MT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[2].Score);
-     app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
-                             1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+      detailStr := 'CPU ST: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[1].Score) + '  MT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[2].Score);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.3 * charHeight, 0.65, toaLeft, detailStr, 0.0, 0.0, 0.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
       if fHistory[fHoveredHistoryIdx].RTSupported and (fHistory[fHoveredHistoryIdx].RTScore > 0) then
-        detailStr := 'GPU: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score) +
-                     '  RT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].RTScore)
+        detailStr := 'GPU: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[7].Score) + '  RT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].RTScore)
       else
-        detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[3].Score);
-      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
-                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+        detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[7].Score);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.0 * charHeight, 0.65, toaLeft, detailStr, 0.0, 0.0, 0.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
       detailStr := 'Kernel: ' + fHistory[fHoveredHistoryIdx].KernelVersion;
-      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.6 * charHeight, 0.6, toaLeft, detailStr,
-                              1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.7 * charHeight, 0.6, toaLeft, detailStr, 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
 
       detailStr := 'Driver: ' + fHistory[fHoveredHistoryIdx].DriverVersion;
-      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 4.2 * charHeight, 0.6, toaLeft, detailStr,
-                              1.0, 1.0, 1.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
+      app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 4.4 * charHeight, 0.6, toaLeft, detailStr, 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 155.0/255.0, 170.0/255.0, 1.0);
     end;
-   end;
+  end;
 
-   // --- Hardware Comparison title (right column) ---
-   app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, hwCardY + 0.94 * charHeight, 1.2, toaLeft, 'Hardware Comparison', 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  // =========================================================
+  // COLUMN 3: Hardware Comparison Leaderboard
+  // =========================================================
+  app.TextOverlay.AddText(xCol3, startY + 6.0, 1.1, toaLeft, 'Hardware Comparison', 0.0, 0.0, 0.0, 0.0, 245.0/255.0, 248.0/255.0, 255.0/255.0, 1.0);
+  app.TextOverlay.AddText(xCol3, startY + 34.0, 0.62, toaLeft, 'Reference gaming rigs', 0.0, 0.0, 0.0, 0.0, 140.0/255.0, 155.0/255.0, 180.0/255.0, 0.9);
 
-    GetHardwareReferences(HWRefs);
+  GetHardwareReferences(HWRefs);
+  MaxScore := HWRefs[0].Score;
+  if MaxScore <= 0 then MaxScore := 1;
+  MaxRTScore := 1;
+  for i := 0 to 11 do
+    if HWRefs[i].RTScore > MaxRTScore then MaxRTScore := HWRefs[i].RTScore;
 
-    MaxScore := HWRefs[0].Score;
-    if MaxScore = 0 then MaxScore := 1;
+  curIdx := 0;
+  for i := 0 to 11 do
+    if HWRefs[i].IsCurrent then begin curIdx := i; Break; end;
+  fCurrentHardwareIdx := curIdx;
+  fHWExpandProgress[curIdx] := 1.0;
 
-    MaxRTScore := 1;
-    for i := 0 to 11 do begin
-      if HWRefs[i].RTScore > MaxRTScore then
-        MaxRTScore := HWRefs[i].RTScore;
-    end;
+  if curIdx <= 1 then winStart := 0
+  else if curIdx >= 8 then winStart := 7
+  else winStart := curIdx - 2;
 
-    // Find Current System index and always keep it expanded
-    for i := 0 to 11 do begin
-     if HWRefs[i].IsCurrent then begin
-      fCurrentHardwareIdx := i;
-      fHWExpandProgress[i] := 1.0;
-      Break;
-     end;
-    end;
+  hwCardH := 142.0;
+  hwCardGap := 14.0;
+  cardsStartY := startY + 54.0;
 
-    itemY := hwCardY + 3.5 * charHeight;
+  for k := 0 to 4 do begin
+    idx := winStart + k;
+    if (idx < 0) or (idx > 11) then Continue;
+    hwCardY := cardsStartY + k * (hwCardH + hwCardGap);
+    isCurrent := HWRefs[idx].IsCurrent;
 
-    for i := 0 to 11 do begin
-     isHovered := (fHoveredHardwareIdx = i);
-     itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
+    if isCurrent then
+      DrawStyledCard(xCol3, hwCardY, wCol3, hwCardH, true, 56.0/255.0, 189.0/255.0, 248.0/255.0, 56.0/255.0, 189.0/255.0, 248.0/255.0)
+    else
+      DrawStyledCard(xCol3, hwCardY, wCol3, hwCardH, false, 0.0, 0.0, 0.0, 55.0/255.0, 70.0/255.0, 105.0/255.0);
 
-     // Hover background highlight (subtle cyan glow)
-     if isHovered then begin
-      app.TextOverlay.AddBox(rightColX1 + 1.0 * charWidth,
-                              itemY - 0.1 * charHeight,
-                              rightColWidth - 2.0 * charWidth,
-                              itemH,
-                              48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.07,
-                              48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.07,
-                              255.0);
-     end;
+    // Rank badge (left)
+    rankStr := '[ ' + IntToStr(idx + 1) + ' ]';
+    if isCurrent then begin aR := 56.0/255.0; aG := 189.0/255.0; aB := 248.0/255.0; end
+    else begin aR := 120.0/255.0; aG := 135.0/255.0; aB := 160.0/255.0; end;
+    app.TextOverlay.AddText(xCol3 + 16.0, hwCardY + 14.0, 0.9, toaLeft, rankStr, 0.0, 0.0, 0.0, 0.0, aR, aG, aB, 1.0);
 
-     // Determine colors: Current > Selected (expanded) > Hover > Normal
-     if HWRefs[i].IsCurrent then begin
-      nameR := 48.0 / 255.0;  nameG := 190.0 / 255.0; nameB := 240.0 / 255.0;
-      scoreR := 48.0 / 255.0; scoreG := 190.0 / 255.0; scoreB := 240.0 / 255.0;
-      barR := 48.0 / 255.0;   barG := 190.0 / 255.0;  barB := 240.0 / 255.0;  barA := 1.0;
-     end else if (fExpandedHardwareIdx = i) then begin
-      // Selected / expanded item: slightly brighter for comparison
-      nameR := 210.0 / 255.0;  nameG := 215.0 / 255.0; nameB := 225.0 / 255.0;
-      scoreR := 210.0 / 255.0; scoreG := 215.0 / 255.0; scoreB := 225.0 / 255.0;
-      barR := 130.0 / 255.0;   barG := 145.0 / 255.0;  barB := 165.0 / 255.0; barA := 0.95;
-     end else if isHovered then begin
-      nameR := 1.0;  nameG := 1.0;  nameB := 1.0;
-      scoreR := 1.0; scoreG := 1.0; scoreB := 1.0;
-      barR := 120.0 / 255.0; barG := 135.0 / 255.0; barB := 155.0 / 255.0; barA := 0.95;
-     end else begin
-      nameR := 180.0 / 255.0;  nameG := 185.0 / 255.0; nameB := 200.0 / 255.0;
-      scoreR := 180.0 / 255.0; scoreG := 185.0 / 255.0; scoreB := 200.0 / 255.0;
-      barR := 75.0 / 255.0;    barG := 85.0 / 255.0;  barB := 105.0 / 255.0; barA := 0.75;
-     end;
+    // Rig name
+    hwName := HWRefs[idx].Name;
+    if isCurrent then hwName := hwName + '  [ YOUR SYSTEM ]';
+    if isCurrent then begin aR := 56.0/255.0; aG := 220.0/255.0; aB := 255.0/255.0; end
+    else begin aR := 220.0/255.0; aG := 228.0/255.0; aB := 240.0/255.0; end;
+    app.TextOverlay.AddText(xCol3 + 96.0, hwCardY + 14.0, 0.9, toaLeft, hwName, 0.0, 0.0, 0.0, 0.0, aR, aG, aB, 1.0);
 
-     // --- Linha 1: Nome (esquerda) + Pontuacao (direita) ---
-     app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, nameR, nameG, nameB, 1.0);
+    // Score (top right)
+    hwScoreStr := FormatScoreValue(HWRefs[idx].Score) + ' pts';
+    if isCurrent then begin aR := 56.0/255.0; aG := 220.0/255.0; aB := 255.0/255.0; end
+    else begin aR := 185.0/255.0; aG := 195.0/255.0; aB := 210.0/255.0; end;
+    app.TextOverlay.AddText(xCol3 + wCol3 - 16.0, hwCardY + 14.0, 0.95, toaRight, hwScoreStr, 0.0, 0.0, 0.0, 0.0, aR, aG, aB, 1.0);
 
-     hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
-     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, scoreR, scoreG, scoreB, 1.0);
+    // Specs subtitle
+    specsStr := HWRefs[idx].Specs;
+    maxChars := Trunc((wCol3 - 32.0) / (charWidth * 0.55));
+    if (maxChars > 3) and (Length(specsStr) > maxChars) then
+      specsStr := Copy(specsStr, 1, maxChars - 3) + '...';
+    app.TextOverlay.AddText(xCol3 + 16.0, hwCardY + 44.0, 0.55, toaLeft, specsStr, 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 165.0/255.0, 190.0/255.0, 0.9);
 
-     // --- Linha 2: Barra fina moderna (Main Score) ---
-     barStartX := rightColX1 + 2.5 * charWidth;
-     maxBarWidth := rightColWidth - 5.0 * charWidth;
-     barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
-     if barWidth < 2.0 then barWidth := 2.0;
+    // Comparison progress bar (bottom of card)
+    barStartX := xCol3 + 16.0;
+    maxBarWidth := wCol3 - 32.0;
+    barY := hwCardY + hwCardH - 20.0;
+    barWidth := (HWRefs[idx].Score / MaxScore) * maxBarWidth;
+    if barWidth > maxBarWidth then barWidth := maxBarWidth;
+    if barWidth < 3.0 then barWidth := 3.0;
+    app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, 7.0, 20.0/255.0, 26.0/255.0, 40.0/255.0, 0.9, 0.0, 0.0, 0.0, 0.0, 32.0);
+    if isCurrent then begin aR := 56.0/255.0; aG := 189.0/255.0; aB := 248.0/255.0; end
+    else begin aR := 70.0/255.0; aG := 85.0/255.0; aB := 115.0/255.0; end;
+    app.TextOverlay.AddBox(barStartX, barY, barWidth, 7.0, aR, aG, aB, 1.0, 0.0, 0.0, 0.0, 0.0, 32.0);
 
-     barHeight := 0.18 * charHeight;
-     barY := itemY + 1.1 * charHeight;
-
-     // Background track
-     app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
-                            22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
-                            50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
-                            255.0);
-     // Fill
-     app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, barR, barG, barB, barA, barR, barG, barB, barA, 255.0);
-
-     // --- Linha 3, 4, 5: Detalhes expandidos (RT Score + Barra de RT + Specs) ---
-     if fHWExpandProgress[i] > 0.01 then begin
-      if HWRefs[i].IsCurrent then begin
-       rtTextR := 192.0 / 255.0; rtTextG := 132.0 / 255.0; rtTextB := 252.0 / 255.0;
-       rtBarR := 175.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 255.0 / 255.0; rtBarA := 1.0;
+    // Current system: RT score bar + specs preview
+    if isCurrent then begin
+      if HWRefs[idx].RTScore > 0 then hwRTStr := FormatScoreValue(HWRefs[idx].RTScore) + ' pts' else hwRTStr := 'N/A';
+      app.TextOverlay.AddText(barStartX, hwCardY + 70.0, 0.6, toaLeft, 'Ray Tracing', 0.0, 0.0, 0.0, 0.0, 192.0/255.0, 132.0/255.0, 252.0/255.0, 1.0);
+      app.TextOverlay.AddText(xCol3 + wCol3 - 16.0, hwCardY + 70.0, 0.6, toaRight, hwRTStr, 0.0, 0.0, 0.0, 0.0, 192.0/255.0, 132.0/255.0, 252.0/255.0, 1.0);
+      if HWRefs[idx].RTScore > 0 then begin
+        rtBarWidth := (HWRefs[idx].RTScore / MaxRTScore) * maxBarWidth;
+        if rtBarWidth > maxBarWidth then rtBarWidth := maxBarWidth;
+        if rtBarWidth < 3.0 then rtBarWidth := 3.0;
       end else begin
-       rtTextR := 160.0 / 255.0; rtTextG := 150.0 / 255.0; rtTextB := 195.0 / 255.0;
-       rtBarR := 140.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 190.0 / 255.0; rtBarA := 0.95;
+        rtBarWidth := 0.0;
       end;
-
-      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                              itemY + 1.55 * charHeight,
-                              0.7,
-                              toaLeft,
-                              'Ray Tracing',
-                              1.0, 1.0, 1.0, 0.0,
-                              rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
-
-      if HWRefs[i].RTScore > 0 then
-       hwRTStr := FormatScoreValue(HWRefs[i].RTScore) + ' points'
-      else
-       hwRTStr := 'N/A';
-
-      if HWRefs[i].RTScore > 0 then begin
-       app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                               itemY + 1.55 * charHeight,
-                               0.7,
-                               toaRight,
-                               hwRTStr,
-                               1.0, 1.0, 1.0, 0.0,
-                               rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
-      end else begin
-       app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                               itemY + 1.55 * charHeight,
-                               0.7,
-                               toaRight,
-                               hwRTStr,
-                               1.0, 1.0, 1.0, 0.0,
-                               150.0 / 255.0, 155.0 / 255.0, 170.0 / 255.0, 0.8 * fHWExpandProgress[i]);
-      end;
-
-      // Segunda barra (Ray Tracing)
-      rtBarY := itemY + 2.35 * charHeight;
-      if HWRefs[i].RTScore > 0 then begin
-       rtBarWidth := (HWRefs[i].RTScore / MaxRTScore) * maxBarWidth;
-       if rtBarWidth < 2.0 then rtBarWidth := 2.0;
-      end else begin
-       rtBarWidth := 0.0;
-      end;
-
-      // Background track da barra de RT
-      app.TextOverlay.AddBox(barStartX, rtBarY, maxBarWidth, barHeight,
-                             22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8 * fHWExpandProgress[i],
-                             50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6 * fHWExpandProgress[i],
-                             255.0);
-      // Fill da barra de RT
-      if rtBarWidth > 0.0 then begin
-       app.TextOverlay.AddBox(barStartX, rtBarY, rtBarWidth, barHeight,
-                              rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
-                              rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
-                              255.0);
-      end;
-
-      // Especificacoes (accordion com fade)
-      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                              itemY + 2.9 * charHeight,
-                              0.6,
-                              toaLeft,
-                              HWRefs[i].Specs,
-                              1.0, 1.0, 1.0, 0.0,
-                              179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, fHWExpandProgress[i]);
-     end;
-
-     itemY := itemY + itemH;
+      app.TextOverlay.AddBox(barStartX, hwCardY + 90.0, maxBarWidth, 5.0, 20.0/255.0, 26.0/255.0, 40.0/255.0, 0.9, 0.0, 0.0, 0.0, 0.0, 32.0);
+      if rtBarWidth > 0.0 then
+        app.TextOverlay.AddBox(barStartX, hwCardY + 90.0, rtBarWidth, 5.0, 192.0/255.0, 132.0/255.0, 252.0/255.0, 1.0, 0.0, 0.0, 0.0, 0.0, 32.0);
     end;
+  end;
 
-  // --- BOTTOM BUTTON BAR ---
-  yText := 1080.0 - 55.0;
+  // =========================================================
+  // BOTTOM ACTION BAR
+  // =========================================================
+  yText := 1080.0 - 58.0;
   paddingX := charWidth * 1.5;
   paddingY := charHeight * 0.4;
   btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
@@ -6042,64 +6264,58 @@ begin
   btnY := yText - paddingY;
 
   if fSubmitStatus = 4 then begin
-    // 2-button layout: Return to Menu and Clear results
     groupWidth := returnBtnWidth + gap + clearBtnWidth;
     groupX := cx - (groupWidth * 0.5);
 
-    // --- RETURN TO MENU BUTTON ---
     isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
     if isReturnHovered then begin
-      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+      bR := 36.0 / 255.0; bG := 45.0 / 255.0; bB := 65.0 / 255.0; bA := 1.0;
+      fR := 96.0 / 255.0; fG := 165.0 / 255.0; fB := 250.0 / 255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+      bR := 20.0 / 255.0; bG := 25.0 / 255.0; bB := 38.0 / 255.0; bA := 0.95;
+      fR := 55.0 / 255.0; fG := 70.0 / 255.0; fB := 100.0 / 255.0; fA := 0.8;
+      textR := 210.0 / 255.0; textG := 220.0 / 255.0; textB := 235.0 / 255.0; textA := 1.0;
     end;
 
     returnBtnX := groupX;
-    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
     app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-    // --- CLEAR RESULTS BUTTON ---
     isClearHovered := IsClearButtonHovered(fLastMousePosition);
     if isClearHovered then begin
-      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+      bR := 70.0 / 255.0; bG := 30.0 / 255.0; bB := 30.0 / 255.0; bA := 1.0;
+      fR := 248.0 / 255.0; fG := 113.0 / 255.0; fB := 113.0 / 255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+      bR := 38.0 / 255.0; bG := 20.0 / 255.0; bB := 22.0 / 255.0; bA := 0.95;
+      fR := 200.0 / 255.0; fG := 60.0 / 255.0; fB := 60.0 / 255.0; fA := 0.75;
+      textR := 240.0 / 255.0; textG := 200.0 / 255.0; textB := 200.0 / 255.0; textA := 1.0;
     end;
 
     clearBtnX := groupX + returnBtnWidth + gap;
-    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
     app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end else begin
-    // 3-button layout: Return to Menu, Submit results (with status), and Clear results
     submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
     groupWidth := returnBtnWidth + gap + submitBtnWidth + gap + clearBtnWidth;
     groupX := cx - (groupWidth * 0.5);
 
-    // --- RETURN TO MENU BUTTON ---
     isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
     if isReturnHovered then begin
-      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+      bR := 36.0 / 255.0; bG := 45.0 / 255.0; bB := 65.0 / 255.0; bA := 1.0;
+      fR := 96.0 / 255.0; fG := 165.0 / 255.0; fB := 250.0 / 255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+      bR := 20.0 / 255.0; bG := 25.0 / 255.0; bB := 38.0 / 255.0; bA := 0.95;
+      fR := 55.0 / 255.0; fG := 70.0 / 255.0; fB := 100.0 / 255.0; fA := 0.8;
+      textR := 210.0 / 255.0; textG := 220.0 / 255.0; textB := 235.0 / 255.0; textA := 1.0;
     end;
 
     returnBtnX := groupX;
-    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
     app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-    // --- SUBMIT RESULTS BUTTON ---
     submitBtnX := groupX + returnBtnWidth + gap;
     isSubmitHovered := IsSubmitButtonHovered(fLastMousePosition);
 
@@ -6107,91 +6323,73 @@ begin
       0: begin
         submitStr := 'Submit results';
         if isSubmitHovered then begin
-          bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-          fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
+          bR := 30.0 / 255.0; bG := 60.0 / 255.0; bB := 95.0 / 255.0; bA := 1.0;
+          fR := 56.0 / 255.0; fG := 220.0 / 255.0; fB := 255.0 / 255.0; fA := 1.0;
           textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
         end else begin
-          bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-          fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+          bR := 20.0 / 255.0; bG := 38.0 / 255.0; bB := 62.0 / 255.0; bA := 0.95;
+          fR := 56.0 / 255.0; fG := 189.0 / 255.0; fB := 248.0 / 255.0; fA := 0.90;
+          textR := 235.0 / 255.0; textG := 245.0 / 255.0; textB := 255.0 / 255.0; textA := 1.0;
         end;
       end;
       1: begin
         submitStr := 'Submitting...';
-        bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-        fgR := 200.0 / 255.0; fgG := 150.0 / 255.0; fgB := 30.0 / 255.0; fgA := 1.0;
+        bR := 22.0 / 255.0; bG := 25.0 / 255.0; bB := 37.0 / 255.0; bA := 1.0;
+        fR := 200.0 / 255.0; fG := 150.0 / 255.0; fB := 30.0 / 255.0; fA := 1.0;
         textR := 200.0 / 255.0; textG := 150.0 / 255.0; textB := 30.0 / 255.0; textA := 1.0;
       end;
       2: begin
         submitStr := 'Submitted!';
-        bgR := 20.0 / 255.0; bgG := 60.0 / 255.0; bgB := 30.0 / 255.0; bgA := 1.0;
-        fgR := 48.0 / 255.0; fgG := 200.0 / 255.0; fgB := 100.0 / 255.0; fgA := 1.0;
+        bR := 20.0 / 255.0; bG := 60.0 / 255.0; bB := 30.0 / 255.0; bA := 1.0;
+        fR := 48.0 / 255.0; fG := 200.0 / 255.0; fB := 100.0 / 255.0; fA := 1.0;
         textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
       end;
       3: begin
         submitStr := 'Error! Retry?';
         if isSubmitHovered then begin
-          bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-          fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+          bR := 70.0 / 255.0; bG := 30.0 / 255.0; bB := 30.0 / 255.0; bA := 1.0;
+          fR := 248.0 / 255.0; fG := 113.0 / 255.0; fB := 113.0 / 255.0; fA := 1.0;
           textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
         end else begin
-          bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-          fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+          bR := 45.0 / 255.0; bG := 22.0 / 255.0; bB := 22.0 / 255.0; bA := 0.95;
+          fR := 239.0 / 255.0; fG := 68.0 / 255.0; fB := 68.0 / 255.0; fA := 0.85;
+          textR := 245.0 / 255.0; textG := 220.0 / 255.0; textB := 220.0 / 255.0; textA := 1.0;
         end;
       end;
     end;
 
-    app.TextOverlay.AddBox(submitBtnX, btnY, submitBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddBox(submitBtnX, btnY, submitBtnWidth, btnHeight, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
     app.TextOverlay.AddText(submitBtnX + submitBtnWidth * 0.5, yText, 1.8, toaCenter, submitStr, 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-    // --- CLEAR RESULTS BUTTON ---
     isClearHovered := IsClearButtonHovered(fLastMousePosition);
     if isClearHovered then begin
-      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
+      bR := 70.0 / 255.0; bG := 30.0 / 255.0; bB := 30.0 / 255.0; bA := 1.0;
+      fR := 248.0 / 255.0; fG := 113.0 / 255.0; fB := 113.0 / 255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
+      bR := 38.0 / 255.0; bG := 20.0 / 255.0; bB := 22.0 / 255.0; bA := 0.95;
+      fR := 200.0 / 255.0; fG := 60.0 / 255.0; fB := 60.0 / 255.0; fA := 0.75;
+      textR := 240.0 / 255.0; textG := 200.0 / 255.0; textB := 200.0 / 255.0; textA := 1.0;
     end;
 
     clearBtnX := groupX + returnBtnWidth + gap + submitBtnWidth + gap;
-    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
+    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
     app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
 
   // --- CLEAR CONFIRMATION DIALOG ---
   if fClearConfirmPending then begin
-    // Dim background
-    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
-                           0.0, 0.0, 0.0, 0.6,
-                           0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 255.0);
 
-    // Dialog box
     boxW := 32.0 * charWidth;
     boxH := 7.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
-    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
-                           22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
-                           48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
-                           255.0);
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH, 22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6, 255.0);
 
-    // Title
-    app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.0, toaCenter,
-                            'Clear benchmark history',
-                            0.0, 0.0, 0.0, 0.0,
-                            1.0, 1.0, 1.0, 1.0);
+    app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.0, toaCenter, 'Clear benchmark history', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+    app.TextOverlay.AddText(cx, boxY + 2.4 * charHeight, 0.75, toaCenter, 'This will permanently delete all results.', 0.0, 0.0, 0.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
 
-    // Message
-    app.TextOverlay.AddText(cx, boxY + 2.4 * charHeight, 0.75, toaCenter,
-                            'This will permanently delete all results.',
-                            0.0, 0.0, 0.0, 0.0,
-                            179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
-
-    // Yes / No buttons
     gap := 3.0 * charWidth;
     btnW := 10.0 * charWidth;
     btnH := 2.2 * charHeight;
@@ -6199,175 +6397,124 @@ begin
     noX := cx + gap * 0.5;
     btnY := boxY + boxH - btnH - 1.2 * charHeight;
 
-    // Yes button
     if fClearConfirmHovered = 1 then begin
-      bgR := 56.0/255.0; bgG := 33.0/255.0; bgB := 33.0/255.0; bgA := 1.0;
-      fgR := 240.0/255.0; fgG := 80.0/255.0; fgB := 80.0/255.0; fgA := 1.0;
+      bR := 56.0/255.0; bG := 33.0/255.0; bB := 33.0/255.0; bA := 1.0;
+      fR := 240.0/255.0; fG := 80.0/255.0; fB := 80.0/255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
-      fgR := 85.0/255.0; fgG := 50.0/255.0; fgB := 50.0/255.0; fgA := 1.0;
+      bR := 22.0/255.0; bG := 25.0/255.0; bB := 37.0/255.0; bA := 1.0;
+      fR := 85.0/255.0; fG := 50.0/255.0; fB := 50.0/255.0; fA := 1.0;
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
-    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter,
-                            'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
+    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter, 'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-    // No button
     if fClearConfirmHovered = 2 then begin
-      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
-      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      bR := 33.0/255.0; bG := 38.0/255.0; bB := 56.0/255.0; bA := 1.0;
+      fR := 48.0/255.0; fG := 190.0/255.0; fB := 240.0/255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
-      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      bR := 22.0/255.0; bG := 25.0/255.0; bB := 37.0/255.0; bA := 1.0;
+      fR := 50.0/255.0; fG := 60.0/255.0; fB := 85.0/255.0; fA := 1.0;
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
-    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter,
-                            'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
+    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.0, toaCenter, 'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
 
   // --- SUBMIT CONFIRMATION DIALOG ---
   if fSubmitConfirmPending then begin
     nickname := ReadPasCubeNickname(prompted);
     if nickname = '' then nickname := 'Anonymous';
-    // Dim background
-    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0,
-                           0.0, 0.0, 0.0, 0.6,
-                           0.0, 0.0, 0.0, 0.0, 255.0);
 
-    // Dialog box
+    app.TextOverlay.AddBox(0, 0, 1920.0, 1080.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 255.0);
+
     boxW := 66.0 * charWidth;
     boxH := 43.5 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
-    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
-                           22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
-                           48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
-                           255.0);
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH, 22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6, 255.0);
 
-    // Title
-    app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.4, toaCenter,
-                            'Submit benchmark results',
-                            0.0, 0.0, 0.0, 0.0,
-                            48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+    app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.4, toaCenter, 'Submit benchmark results', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
+    app.TextOverlay.AddText(cx, boxY + 2.2 * charHeight, 0.9, toaCenter, 'Do you want to submit the following anonymous data?', 0.0, 0.0, 0.0, 0.0, 221.0/255.0, 221.0/255.0, 221.0/255.0, 1.0);
 
-    // Prompt
-    app.TextOverlay.AddText(cx, boxY + 2.2 * charHeight, 0.9, toaCenter,
-                            'Do you want to submit the following anonymous data?',
-                            0.0, 0.0, 0.0, 0.0,
-                            221.0/255.0, 221.0/255.0, 221.0/255.0, 1.0);
-
-    // System Information
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 3.4 * charHeight, 0.9, toaLeft, 'CPU:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 3.4 * charHeight, 0.9, toaLeft, GetCPUName, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 4.6 * charHeight, 0.9, toaLeft, 'GPU:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 4.6 * charHeight, 0.9, toaLeft, CleanGPUName(fCurrentResult.DeviceName), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 5.8 * charHeight, 0.9, toaLeft, 'VRAM:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 5.8 * charHeight, 0.9, toaLeft, GetVRAMSize, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 7.0 * charHeight, 0.9, toaLeft, 'RAM:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 7.0 * charHeight, 0.9, toaLeft, GetRAMSize, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 8.2 * charHeight, 0.9, toaLeft, 'Video Driver:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 8.2 * charHeight, 0.9, toaLeft, GetDriverVersion, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 9.4 * charHeight, 0.9, toaLeft, 'OS:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 9.4 * charHeight, 0.9, toaLeft, GetOSName, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 10.6 * charHeight, 0.9, toaLeft, 'Kernel:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 10.6 * charHeight, 0.9, toaLeft, GetKernelVersion, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 11.8 * charHeight, 0.9, toaLeft, 'Main Score:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 11.8 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.TotalScore) + ' points', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 13.0 * charHeight, 0.9, toaLeft, 'CPU Single:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 13.0 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.PhaseResults[1].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 14.2 * charHeight, 0.9, toaLeft, 'CPU Multi:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 14.2 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.PhaseResults[2].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 15.4 * charHeight, 0.9, toaLeft, 'GPU Score:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 15.4 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.PhaseResults[3].Score), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'GPU RT:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.RTScore), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
-    else if not fCurrentResult.RTSupported then
-      app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'N/A', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 16.6 * charHeight, 0.9, toaLeft, 'N/A', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, 'Contributor:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 17.8 * charHeight, 0.9, toaLeft, nickname, 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 200.0/255.0, 100.0/255.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, 'Client ID:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 19.0 * charHeight, 0.9, toaLeft, Copy(GetPersistentUUID, 1, 8), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, 'Architecture:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 20.2 * charHeight, 0.9, toaLeft, GetCPUArchitecture, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, 'Package:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 21.4 * charHeight, 0.9, toaLeft, GetPackageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, 'Timer:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 22.6 * charHeight, 0.9, toaLeft, IntToStr(Round(fCurrentResult.BenchmarkDuration)) + ' seconds', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, 'Display Server:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 23.8 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayServer, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, 'Resolution/Rate:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 25.0 * charHeight, 0.9, toaLeft, fCurrentResult.DisplayResolution + ' @ ' + fCurrentResult.RefreshRate, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, 'Desktop Env:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 26.2 * charHeight, 0.9, toaLeft, fCurrentResult.DesktopEnvironment, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, 'Storage Type:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 27.4 * charHeight, 0.9, toaLeft, fCurrentResult.StorageType, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, 'Vulkan Driver:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 28.6 * charHeight, 0.9, toaLeft, fCurrentResult.VulkanDriver, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, 'CPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 29.8 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.CPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, 'GPU Max Freq:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 31.0 * charHeight, 0.9, toaLeft, IntToStr(fCurrentResult.GPUMaxFreq) + ' MHz', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'CPU Max Temp:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if fCurrentResult.CPUTempMax > 0 then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUTempMax) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 32.2 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'CPU Temp Delta:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if fCurrentResult.CPUTempDelta >= 0 then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, '+' + FloatToJsonStr(fCurrentResult.CPUTempDelta) + ' C', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 33.4 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'CPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if fCurrentResult.CPUPowerMax > 0 then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.CPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 34.6 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'GPU Max Power:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if fCurrentResult.GPUPowerMax > 0 then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, FloatToJsonStr(fCurrentResult.GPUPowerMax) + ' W', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 35.8 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
     app.TextOverlay.AddText(boxX + 3.5 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'Goverlay Version:', 0.0, 0.0, 0.0, 0.0, 150.0/255.0, 150.0/255.0, 170.0/255.0, 1.0);
     if Assigned(app) and (app.Version <> '') then
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, app.Version, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0)
     else
       app.TextOverlay.AddText(boxX + 22.0 * charWidth, boxY + 37.0 * charHeight, 0.9, toaLeft, 'N/D', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-    // Buttons
     gap := 5.0 * charWidth;
     btnW := 15.0 * charWidth;
     btnH := 2.5 * charHeight;
@@ -6375,33 +6522,29 @@ begin
     noX := cx + gap * 0.5;
     btnY := boxY + boxH - btnH - 1.2 * charHeight;
 
-    // Yes button
     if fSubmitConfirmHovered = 1 then begin
-      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
-      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      bR := 33.0/255.0; bG := 38.0/255.0; bB := 56.0/255.0; bA := 1.0;
+      fR := 48.0/255.0; fG := 190.0/255.0; fB := 240.0/255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
-      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      bR := 22.0/255.0; bG := 25.0/255.0; bB := 37.0/255.0; bA := 1.0;
+      fR := 50.0/255.0; fG := 60.0/255.0; fB := 85.0/255.0; fA := 1.0;
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
-    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.1, toaCenter,
-                            'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    app.TextOverlay.AddBox(yesX, btnY, btnW, btnH, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
+    app.TextOverlay.AddText(yesX + btnW * 0.5, btnY + btnH * 0.5, 1.1, toaCenter, 'Yes', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
 
-    // No button
     if fSubmitConfirmHovered = 2 then begin
-      bgR := 33.0/255.0; bgG := 38.0/255.0; bgB := 56.0/255.0; bgA := 1.0;
-      fgR := 48.0/255.0; fgG := 190.0/255.0; fgB := 240.0/255.0; fgA := 1.0;
+      bR := 33.0/255.0; bG := 38.0/255.0; bB := 56.0/255.0; bA := 1.0;
+      fR := 48.0/255.0; fG := 190.0/255.0; fB := 240.0/255.0; fA := 1.0;
       textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
     end else begin
-      bgR := 22.0/255.0; bgG := 25.0/255.0; bgB := 37.0/255.0; bgA := 1.0;
-      fgR := 50.0/255.0; fgG := 60.0/255.0; fgB := 85.0/255.0; fgA := 1.0;
+      bR := 22.0/255.0; bG := 25.0/255.0; bB := 37.0/255.0; bA := 1.0;
+      fR := 50.0/255.0; fG := 60.0/255.0; fB := 85.0/255.0; fA := 1.0;
       textR := 221.0/255.0; textG := 221.0/255.0; textB := 221.0/255.0; textA := 1.0;
     end;
-    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.1, toaCenter,
-                            'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    app.TextOverlay.AddBox(noX, btnY, btnW, btnH, bR, bG, bB, bA, fR, fG, fB, fA, 255.0);
+    app.TextOverlay.AddText(noX + btnW * 0.5, btnY + btnH * 0.5, 1.1, toaCenter, 'No', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
   end;
 end;
 
