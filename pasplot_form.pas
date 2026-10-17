@@ -71,6 +71,7 @@ type
     FInitialGame: string;
     FViewMode: TGplotViewMode;
     FDiscoveredFiles: TStringList;
+    FDiscoveredRuns: array of TGplotRunData;
     FLoadedRuns: array of TGplotRunData;
     FHoverX: Integer;
     FHoverY: Integer;
@@ -101,6 +102,30 @@ type
     FTimelineTabBtn: TBitBtn;
     FSummaryTabBtn: TBitBtn;
     FHardwareTabBtn: TBitBtn;
+
+    // Quick KPI Hero Cards
+    FKpiContainerPanel: TPanel;
+    FKpiCardAvgFps: TPanel;
+    FKpiCardLows: TPanel;
+    FKpiCardFrametime: TPanel;
+    FKpiCardPower: TPanel;
+
+    FKpiTitleAvgFps: TLabel;
+    FKpiValAvgFps: TLabel;
+    FKpiSubAvgFps: TLabel;
+
+    FKpiTitleLows: TLabel;
+    FKpiValLows: TLabel;
+    FKpiSubLows: TLabel;
+
+    FKpiTitleFrametime: TLabel;
+    FKpiValFrametime: TLabel;
+    FKpiSubFrametime: TLabel;
+
+    FKpiTitlePower: TLabel;
+    FKpiValPower: TLabel;
+    FKpiSubPower: TLabel;
+
     FChartContainerPanel: TPanel;
     FChartPaintBox: TPaintBox;
 
@@ -115,9 +140,12 @@ type
     procedure ApplyThemeStyling;
     procedure SetViewMode(AValue: TGplotViewMode);
     procedure UpdateViewTabButtons;
+    procedure UpdateKpiHeroCards;
+    procedure KpiContainerResize(Sender: TObject);
 
     procedure GameComboChange(Sender: TObject);
     procedure RunCheckListClickCheck(Sender: TObject);
+    procedure RunCheckListDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
     procedure SelectAllClick(Sender: TObject);
     procedure ClearSelClick(Sender: TObject);
     procedure RefreshClick(Sender: TObject);
@@ -791,6 +819,9 @@ begin
   FRunCheckListBox.Parent := FLeftPanel;
   FRunCheckListBox.Align := alClient;
   FRunCheckListBox.BorderSpacing.Around := 4;
+  FRunCheckListBox.Style := lbOwnerDrawFixed;
+  FRunCheckListBox.ItemHeight := 52;
+  FRunCheckListBox.OnDrawItem := @RunCheckListDrawItem;
   FRunCheckListBox.OnClickCheck := @RunCheckListClickCheck;
 
   // Right Area (Charts + Comparative Table)
@@ -800,35 +831,158 @@ begin
   FRightPanel.BevelOuter := bvNone;
   FRightPanel.BorderSpacing.Around := 6;
 
+  // Segmented Pill View Switcher
   FViewTabsPanel := TPanel.Create(FRightPanel);
   FViewTabsPanel.Parent := FRightPanel;
   FViewTabsPanel.Align := alTop;
-  FViewTabsPanel.Height := 38;
+  FViewTabsPanel.Height := 40;
   FViewTabsPanel.BevelOuter := bvNone;
 
   FTimelineTabBtn := TBitBtn.Create(FViewTabsPanel);
   FTimelineTabBtn.Parent := FViewTabsPanel;
-  FTimelineTabBtn.SetBounds(4, 4, 210, 30);
-  FTimelineTabBtn.Caption := 'FPS && Frametime Timeline';
+  FTimelineTabBtn.SetBounds(4, 4, 180, 32);
+  FTimelineTabBtn.Caption := '📈 Timeline';
   FTimelineTabBtn.Tag := Ord(gvmTimeline);
   FTimelineTabBtn.Cursor := crHandPoint;
   FTimelineTabBtn.OnClick := @ViewTabBtnClick;
 
   FSummaryTabBtn := TBitBtn.Create(FViewTabsPanel);
   FSummaryTabBtn.Parent := FViewTabsPanel;
-  FSummaryTabBtn.SetBounds(222, 4, 190, 30);
-  FSummaryTabBtn.Caption := 'Summary Comparison';
+  FSummaryTabBtn.SetBounds(190, 4, 180, 32);
+  FSummaryTabBtn.Caption := '📊 Comparison';
   FSummaryTabBtn.Tag := Ord(gvmSummary);
   FSummaryTabBtn.Cursor := crHandPoint;
   FSummaryTabBtn.OnClick := @ViewTabBtnClick;
 
   FHardwareTabBtn := TBitBtn.Create(FViewTabsPanel);
   FHardwareTabBtn.Parent := FViewTabsPanel;
-  FHardwareTabBtn.SetBounds(420, 4, 190, 30);
-  FHardwareTabBtn.Caption := 'Hardware Telemetry';
+  FHardwareTabBtn.SetBounds(376, 4, 180, 32);
+  FHardwareTabBtn.Caption := '🌡 Telemetry';
   FHardwareTabBtn.Tag := Ord(gvmHardware);
   FHardwareTabBtn.Cursor := crHandPoint;
   FHardwareTabBtn.OnClick := @ViewTabBtnClick;
+
+  // Quick KPI Hero Cards Container
+  FKpiContainerPanel := TPanel.Create(FRightPanel);
+  FKpiContainerPanel.Parent := FRightPanel;
+  FKpiContainerPanel.Align := alTop;
+  FKpiContainerPanel.Height := 72;
+  FKpiContainerPanel.BevelOuter := bvNone;
+  FKpiContainerPanel.BorderSpacing.Top := 4;
+  FKpiContainerPanel.BorderSpacing.Bottom := 6;
+  FKpiContainerPanel.OnResize := @KpiContainerResize;
+
+  // Card 1: Avg FPS
+  FKpiCardAvgFps := TPanel.Create(FKpiContainerPanel);
+  FKpiCardAvgFps.Parent := FKpiContainerPanel;
+  FKpiCardAvgFps.BevelOuter := bvNone;
+
+  FKpiTitleAvgFps := TLabel.Create(FKpiCardAvgFps);
+  FKpiTitleAvgFps.Parent := FKpiCardAvgFps;
+  FKpiTitleAvgFps.Left := 12;
+  FKpiTitleAvgFps.Top := 6;
+  FKpiTitleAvgFps.Caption := 'AVG FPS';
+  FKpiTitleAvgFps.Font.Size := 8;
+  FKpiTitleAvgFps.Font.Style := [fsBold];
+
+  FKpiValAvgFps := TLabel.Create(FKpiCardAvgFps);
+  FKpiValAvgFps.Parent := FKpiCardAvgFps;
+  FKpiValAvgFps.Left := 12;
+  FKpiValAvgFps.Top := 22;
+  FKpiValAvgFps.Caption := '-';
+  FKpiValAvgFps.Font.Size := 16;
+  FKpiValAvgFps.Font.Style := [fsBold];
+
+  FKpiSubAvgFps := TLabel.Create(FKpiCardAvgFps);
+  FKpiSubAvgFps.Parent := FKpiCardAvgFps;
+  FKpiSubAvgFps.Left := 12;
+  FKpiSubAvgFps.Top := 48;
+  FKpiSubAvgFps.Caption := 'No run selected';
+  FKpiSubAvgFps.Font.Size := 8;
+
+  // Card 2: 1% & 0.1% Low
+  FKpiCardLows := TPanel.Create(FKpiContainerPanel);
+  FKpiCardLows.Parent := FKpiContainerPanel;
+  FKpiCardLows.BevelOuter := bvNone;
+
+  FKpiTitleLows := TLabel.Create(FKpiCardLows);
+  FKpiTitleLows.Parent := FKpiCardLows;
+  FKpiTitleLows.Left := 12;
+  FKpiTitleLows.Top := 6;
+  FKpiTitleLows.Caption := '1% / 0.1% LOW';
+  FKpiTitleLows.Font.Size := 8;
+  FKpiTitleLows.Font.Style := [fsBold];
+
+  FKpiValLows := TLabel.Create(FKpiCardLows);
+  FKpiValLows.Parent := FKpiCardLows;
+  FKpiValLows.Left := 12;
+  FKpiValLows.Top := 22;
+  FKpiValLows.Caption := '-';
+  FKpiValLows.Font.Size := 16;
+  FKpiValLows.Font.Style := [fsBold];
+
+  FKpiSubLows := TLabel.Create(FKpiCardLows);
+  FKpiSubLows.Parent := FKpiCardLows;
+  FKpiSubLows.Left := 12;
+  FKpiSubLows.Top := 48;
+  FKpiSubLows.Caption := 'Stability metrics';
+  FKpiSubLows.Font.Size := 8;
+
+  // Card 3: Frametime & Pacing
+  FKpiCardFrametime := TPanel.Create(FKpiContainerPanel);
+  FKpiCardFrametime.Parent := FKpiContainerPanel;
+  FKpiCardFrametime.BevelOuter := bvNone;
+
+  FKpiTitleFrametime := TLabel.Create(FKpiCardFrametime);
+  FKpiTitleFrametime.Parent := FKpiCardFrametime;
+  FKpiTitleFrametime.Left := 12;
+  FKpiTitleFrametime.Top := 6;
+  FKpiTitleFrametime.Caption := 'FRAMETIME';
+  FKpiTitleFrametime.Font.Size := 8;
+  FKpiTitleFrametime.Font.Style := [fsBold];
+
+  FKpiValFrametime := TLabel.Create(FKpiCardFrametime);
+  FKpiValFrametime.Parent := FKpiCardFrametime;
+  FKpiValFrametime.Left := 12;
+  FKpiValFrametime.Top := 22;
+  FKpiValFrametime.Caption := '-';
+  FKpiValFrametime.Font.Size := 16;
+  FKpiValFrametime.Font.Style := [fsBold];
+
+  FKpiSubFrametime := TLabel.Create(FKpiCardFrametime);
+  FKpiSubFrametime.Parent := FKpiCardFrametime;
+  FKpiSubFrametime.Left := 12;
+  FKpiSubFrametime.Top := 48;
+  FKpiSubFrametime.Caption := 'Target pacing';
+  FKpiSubFrametime.Font.Size := 8;
+
+  // Card 4: Power & Temperature
+  FKpiCardPower := TPanel.Create(FKpiContainerPanel);
+  FKpiCardPower.Parent := FKpiContainerPanel;
+  FKpiCardPower.BevelOuter := bvNone;
+
+  FKpiTitlePower := TLabel.Create(FKpiCardPower);
+  FKpiTitlePower.Parent := FKpiCardPower;
+  FKpiTitlePower.Left := 12;
+  FKpiTitlePower.Top := 6;
+  FKpiTitlePower.Caption := 'POWER & TEMP';
+  FKpiTitlePower.Font.Size := 8;
+  FKpiTitlePower.Font.Style := [fsBold];
+
+  FKpiValPower := TLabel.Create(FKpiCardPower);
+  FKpiValPower.Parent := FKpiCardPower;
+  FKpiValPower.Left := 12;
+  FKpiValPower.Top := 22;
+  FKpiValPower.Caption := '-';
+  FKpiValPower.Font.Size := 16;
+  FKpiValPower.Font.Style := [fsBold];
+
+  FKpiSubPower := TLabel.Create(FKpiCardPower);
+  FKpiSubPower.Parent := FKpiCardPower;
+  FKpiSubPower.Left := 12;
+  FKpiSubPower.Top := 48;
+  FKpiSubPower.Caption := 'GPU Power & Temp';
+  FKpiSubPower.Font.Size := 8;
 
   // Bottom Comparative Statistics Table
   FStatsPanel := TPanel.Create(FRightPanel);
@@ -935,7 +1089,297 @@ begin
   FStatsGrid.FixedColor := CardColor;
   FStatsGrid.Font.Color := TextColor;
 
+  if Assigned(FKpiContainerPanel) then
+  begin
+    FKpiContainerPanel.Color := BgColor;
+    FKpiCardAvgFps.Color := CardColor;
+    FKpiCardLows.Color := CardColor;
+    FKpiCardFrametime.Color := CardColor;
+    FKpiCardPower.Color := CardColor;
+
+    FKpiTitleAvgFps.Font.Color := IfThen(IsDark, RGBToColor(160, 175, 200), RGBToColor(100, 110, 130));
+    FKpiTitleLows.Font.Color := FKpiTitleAvgFps.Font.Color;
+    FKpiTitleFrametime.Font.Color := FKpiTitleAvgFps.Font.Color;
+    FKpiTitlePower.Font.Color := FKpiTitleAvgFps.Font.Color;
+
+    FKpiValAvgFps.Font.Color := AccentColor;
+    FKpiValLows.Font.Color := TextColor;
+    FKpiValFrametime.Font.Color := TextColor;
+    FKpiValPower.Font.Color := TextColor;
+  end;
+
   UpdateViewTabButtons;
+  UpdateKpiHeroCards;
+end;
+
+procedure TgplotForm.KpiContainerResize(Sender: TObject);
+var
+  W, H, Gap, TotalW: Integer;
+begin
+  if not Assigned(FKpiContainerPanel) or not Assigned(FKpiCardAvgFps) then Exit;
+  Gap := 8;
+  TotalW := FKpiContainerPanel.ClientWidth - (Gap * 3);
+  if TotalW <= 0 then Exit;
+  W := TotalW div 4;
+  H := FKpiContainerPanel.ClientHeight;
+  FKpiCardAvgFps.SetBounds(0, 0, W, H);
+  FKpiCardLows.SetBounds(W + Gap, 0, W, H);
+  FKpiCardFrametime.SetBounds((W + Gap) * 2, 0, W, H);
+  FKpiCardPower.SetBounds((W + Gap) * 3, 0, FKpiContainerPanel.ClientWidth - ((W + Gap) * 3), H);
+end;
+
+procedure TgplotForm.UpdateKpiHeroCards;
+var
+  RunCount: Integer;
+  R, Base: TGplotRunData;
+  DeltaPct, LowDeltaPct: Double;
+  DeltaSign: string;
+  IsDark: Boolean;
+  AccentColor, SuccessColor, MutedColor, HighColor: TColor;
+begin
+  if not Assigned(FKpiCardAvgFps) then Exit;
+  RunCount := Length(FLoadedRuns);
+  IsDark := (CurrentTheme <> tmLight);
+  AccentColor := IfThen(IsDark, RGBToColor(48, 190, 240), RGBToColor(25, 118, 210));
+  SuccessColor := IfThen(IsDark, RGBToColor(100, 215, 110), RGBToColor(40, 160, 50));
+  MutedColor := IfThen(IsDark, RGBToColor(150, 162, 185), RGBToColor(110, 120, 138));
+  HighColor := IfThen(IsDark, RGBToColor(245, 200, 80), RGBToColor(200, 140, 20));
+
+  if RunCount = 0 then
+  begin
+    FKpiValAvgFps.Caption := '-';
+    FKpiValAvgFps.Font.Color := MutedColor;
+    FKpiSubAvgFps.Caption := 'No run selected';
+    FKpiSubAvgFps.Font.Color := MutedColor;
+
+    FKpiValLows.Caption := '-';
+    FKpiValLows.Font.Color := MutedColor;
+    FKpiSubLows.Caption := 'Stability metrics';
+    FKpiSubLows.Font.Color := MutedColor;
+
+    FKpiValFrametime.Caption := '-';
+    FKpiValFrametime.Font.Color := MutedColor;
+    FKpiSubFrametime.Caption := 'Target pacing';
+    FKpiSubFrametime.Font.Color := MutedColor;
+
+    FKpiValPower.Caption := '-';
+    FKpiValPower.Font.Color := MutedColor;
+    FKpiSubPower.Caption := 'GPU Power & Temp';
+    FKpiSubPower.Font.Color := MutedColor;
+    Exit;
+  end;
+
+  if RunCount = 1 then
+  begin
+    R := FLoadedRuns[0];
+    FKpiValAvgFps.Caption := Format('%.1f FPS', [R.AvgFps]);
+    FKpiValAvgFps.Font.Color := AccentColor;
+    FKpiSubAvgFps.Caption := 'Single run baseline';
+    FKpiSubAvgFps.Font.Color := MutedColor;
+
+    FKpiValLows.Caption := Format('%.1f / %.1f', [R.Fps1Low, R.Fps01Low]);
+    FKpiValLows.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    if (R.AvgFps > 0) and (R.Fps1Low / R.AvgFps >= 0.70) then
+    begin
+      FKpiSubLows.Caption := 'Smooth frame pacing';
+      FKpiSubLows.Font.Color := SuccessColor;
+    end
+    else
+    begin
+      FKpiSubLows.Caption := 'Noticeable stutter variance';
+      FKpiSubLows.Font.Color := HighColor;
+    end;
+
+    FKpiValFrametime.Caption := Format('%.2f ms', [R.AvgFrametimeMs]);
+    FKpiValFrametime.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    if R.AvgFrametimeMs <= 7.0 then
+      FKpiSubFrametime.Caption := '144Hz Pacing (~6.9ms)'
+    else if R.AvgFrametimeMs <= 8.5 then
+      FKpiSubFrametime.Caption := '120Hz Pacing (~8.3ms)'
+    else if R.AvgFrametimeMs <= 16.8 then
+      FKpiSubFrametime.Caption := '60Hz Pacing (~16.6ms)'
+    else
+      FKpiSubFrametime.Caption := 'Frametime variance';
+    FKpiSubFrametime.Font.Color := MutedColor;
+
+    FKpiValPower.Caption := Format('%.0fW • %.0f°C', [R.AvgGpuPower, R.MaxGpuTemp]);
+    FKpiValPower.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    FKpiSubPower.Caption := 'Avg GPU Power & Peak Temp';
+    FKpiSubPower.Font.Color := MutedColor;
+  end
+  else
+  begin
+    Base := FLoadedRuns[0];
+    R := FLoadedRuns[High(FLoadedRuns)];
+
+    FKpiValAvgFps.Caption := Format('%.1f FPS', [R.AvgFps]);
+    FKpiValAvgFps.Font.Color := AccentColor;
+    if Base.AvgFps > 0 then
+    begin
+      DeltaPct := ((R.AvgFps - Base.AvgFps) / Base.AvgFps) * 100.0;
+      if DeltaPct >= 0 then
+      begin
+        DeltaSign := '+';
+        FKpiSubAvgFps.Font.Color := SuccessColor;
+      end
+      else
+      begin
+        DeltaSign := '';
+        FKpiSubAvgFps.Font.Color := RGBToColor(230, 80, 80);
+      end;
+      FKpiSubAvgFps.Caption := Format('%s%.1f%% vs Baseline (%s)', [DeltaSign, DeltaPct, Base.DisplayName]);
+    end
+    else
+    begin
+      FKpiSubAvgFps.Caption := 'Compared to baseline';
+      FKpiSubAvgFps.Font.Color := MutedColor;
+    end;
+
+    FKpiValLows.Caption := Format('%.1f / %.1f', [R.Fps1Low, R.Fps01Low]);
+    FKpiValLows.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    if Base.Fps1Low > 0 then
+    begin
+      LowDeltaPct := ((R.Fps1Low - Base.Fps1Low) / Base.Fps1Low) * 100.0;
+      if LowDeltaPct >= 0 then
+        DeltaSign := '+'
+      else
+        DeltaSign := '';
+      FKpiSubLows.Caption := Format('1%% Low: %s%.1f%% vs Base', [DeltaSign, LowDeltaPct]);
+    end
+    else
+      FKpiSubLows.Caption := '1% & 0.1% Low FPS';
+    FKpiSubLows.Font.Color := MutedColor;
+
+    FKpiValFrametime.Caption := Format('%.2f ms', [R.AvgFrametimeMs]);
+    FKpiValFrametime.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    FKpiSubFrametime.Caption := Format('Baseline: %.2f ms', [Base.AvgFrametimeMs]);
+    FKpiSubFrametime.Font.Color := MutedColor;
+
+    FKpiValPower.Caption := Format('%.0fW • %.0f°C', [R.AvgGpuPower, R.MaxGpuTemp]);
+    FKpiValPower.Font.Color := IfThen(IsDark, RGBToColor(235, 240, 248), RGBToColor(25, 30, 40));
+    FKpiSubPower.Caption := Format('Base: %.0fW • %.0f°C', [Base.AvgGpuPower, Base.MaxGpuTemp]);
+    FKpiSubPower.Font.Color := MutedColor;
+  end;
+end;
+
+procedure TgplotForm.RunCheckListDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+var
+  Box: TCheckListBox;
+  ACanvas: TCanvas;
+  IsDark, IsChecked, IsSelected: Boolean;
+  BgColor, CardBorder, TextColor, MutedColor, SeriesColor: TColor;
+  CheckedCount, CheckedRank, I: Integer;
+  BadgeLeft, TextLeft, DotY: Integer;
+  RunData: TGplotRunData;
+  TitleStr, SubStr: string;
+begin
+  Box := TCheckListBox(Control);
+  ACanvas := Box.Canvas;
+  IsDark := (CurrentTheme <> tmLight);
+  IsSelected := (odSelected in State);
+  IsChecked := (Index >= 0) and (Index < Box.Items.Count) and Box.Checked[Index];
+
+  if IsDark then
+  begin
+    if IsSelected then
+      BgColor := RGBToColor(42, 52, 78)
+    else
+      BgColor := RGBToColor(28, 34, 50);
+    CardBorder := RGBToColor(38, 46, 68);
+    TextColor := RGBToColor(235, 240, 248);
+    MutedColor := RGBToColor(150, 162, 185);
+  end
+  else
+  begin
+    if IsSelected then
+      BgColor := RGBToColor(220, 230, 245)
+    else
+      BgColor := RGBToColor(255, 255, 255);
+    CardBorder := RGBToColor(225, 230, 240);
+    TextColor := RGBToColor(25, 30, 40);
+    MutedColor := RGBToColor(110, 120, 138);
+  end;
+
+  // Background
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := BgColor;
+  ACanvas.FillRect(ARect);
+
+  // Bottom separator line
+  ACanvas.Pen.Color := CardBorder;
+  ACanvas.Line(ARect.Left, ARect.Bottom - 1, ARect.Right, ARect.Bottom - 1);
+
+  if (Index < 0) or (Index >= Box.Items.Count) then Exit;
+
+  // Determine series color based on checked rank
+  CheckedCount := 0;
+  CheckedRank := -1;
+  for I := 0 to Box.Items.Count - 1 do
+  begin
+    if Box.Checked[I] then
+    begin
+      if I = Index then CheckedRank := CheckedCount;
+      Inc(CheckedCount);
+    end;
+  end;
+
+  if CheckedRank >= 0 then
+    SeriesColor := SERIES_COLORS[CheckedRank mod Length(SERIES_COLORS)]
+  else
+    SeriesColor := MutedColor;
+
+  // Offset allowing space for checkbox
+  BadgeLeft := ARect.Left + 24;
+  DotY := ARect.Top + 10;
+
+  // Draw series indicator circle
+  ACanvas.Brush.Color := SeriesColor;
+  ACanvas.Pen.Color := SeriesColor;
+  if IsChecked then
+  begin
+    ACanvas.Brush.Style := bsSolid;
+    ACanvas.Ellipse(BadgeLeft, DotY, BadgeLeft + 10, DotY + 10);
+  end
+  else
+  begin
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.Ellipse(BadgeLeft, DotY, BadgeLeft + 10, DotY + 10);
+  end;
+
+  TextLeft := BadgeLeft + 16;
+  if (Index >= 0) and (Index < Length(FDiscoveredRuns)) then
+    RunData := FDiscoveredRuns[Index]
+  else
+    RunData := Default(TGplotRunData);
+
+  TitleStr := RunData.DisplayName;
+  if TitleStr = '' then TitleStr := Box.Items[Index];
+
+  // Title: Date / Timestamp
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size := 9;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := TextColor;
+  ACanvas.TextOut(TextLeft, ARect.Top + 6, TitleStr);
+
+  // Baseline badge if checked rank is 0
+  if CheckedRank = 0 then
+  begin
+    ACanvas.Font.Size := 8;
+    ACanvas.Font.Style := [fsBold];
+    ACanvas.Font.Color := IfThen(IsDark, RGBToColor(48, 190, 240), RGBToColor(25, 118, 210));
+    ACanvas.TextOut(TextLeft + ACanvas.TextWidth(TitleStr) + 8, ARect.Top + 7, '[Baseline]');
+  end;
+
+  // Subtitle chips: Duration, Avg FPS, Power in Watts
+  SubStr := Format('%.0fs • %.0f FPS', [RunData.DurationSec, RunData.AvgFps]);
+  if RunData.AvgGpuPower > 0 then
+    SubStr := SubStr + Format(' • %.0fW', [RunData.AvgGpuPower]);
+
+  ACanvas.Font.Size := 8;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := MutedColor;
+  ACanvas.TextOut(TextLeft, ARect.Top + 28, SubStr);
 end;
 
 procedure TgplotForm.SetViewMode(AValue: TGplotViewMode);
@@ -947,27 +1391,72 @@ begin
 end;
 
 procedure TgplotForm.UpdateViewTabButtons;
+var
+  IsDark: Boolean;
+  ActiveBg, InactiveBg, ActiveText, InactiveText: TColor;
 begin
+  IsDark := (CurrentTheme <> tmLight);
+  if IsDark then
+  begin
+    ActiveBg := RGBToColor(48, 190, 240);
+    ActiveText := RGBToColor(20, 24, 36);
+    InactiveBg := RGBToColor(36, 44, 66);
+    InactiveText := RGBToColor(180, 190, 210);
+  end
+  else
+  begin
+    ActiveBg := RGBToColor(25, 118, 210);
+    ActiveText := clWhite;
+    InactiveBg := RGBToColor(230, 235, 245);
+    InactiveText := RGBToColor(60, 70, 85);
+  end;
+
   if Assigned(FTimelineTabBtn) then
   begin
     if FViewMode = gvmTimeline then
-      FTimelineTabBtn.Font.Style := [fsBold]
+    begin
+      FTimelineTabBtn.Font.Style := [fsBold];
+      FTimelineTabBtn.Color := ActiveBg;
+      FTimelineTabBtn.Font.Color := ActiveText;
+    end
     else
+    begin
       FTimelineTabBtn.Font.Style := [];
+      FTimelineTabBtn.Color := InactiveBg;
+      FTimelineTabBtn.Font.Color := InactiveText;
+    end;
   end;
+
   if Assigned(FSummaryTabBtn) then
   begin
     if FViewMode = gvmSummary then
-      FSummaryTabBtn.Font.Style := [fsBold]
+    begin
+      FSummaryTabBtn.Font.Style := [fsBold];
+      FSummaryTabBtn.Color := ActiveBg;
+      FSummaryTabBtn.Font.Color := ActiveText;
+    end
     else
+    begin
       FSummaryTabBtn.Font.Style := [];
+      FSummaryTabBtn.Color := InactiveBg;
+      FSummaryTabBtn.Font.Color := InactiveText;
+    end;
   end;
+
   if Assigned(FHardwareTabBtn) then
   begin
     if FViewMode = gvmHardware then
-      FHardwareTabBtn.Font.Style := [fsBold]
+    begin
+      FHardwareTabBtn.Font.Style := [fsBold];
+      FHardwareTabBtn.Color := ActiveBg;
+      FHardwareTabBtn.Font.Color := ActiveText;
+    end
     else
+    begin
       FHardwareTabBtn.Font.Style := [];
+      FHardwareTabBtn.Color := InactiveBg;
+      FHardwareTabBtn.Font.Color := InactiveText;
+    end;
   end;
 end;
 
@@ -1074,12 +1563,14 @@ var
   ItemCaption: string;
 begin
   FDiscoveredFiles.Clear;
+  SetLength(FDiscoveredRuns, 0);
   FRunCheckListBox.Items.Clear;
   SetLength(FLoadedRuns, 0);
 
   if (FGameComboBox.ItemIndex < 0) or (FGameComboBox.ItemIndex >= FGameComboBox.Items.Count) then
   begin
     UpdateStatsGridAndSpecs;
+    UpdateKpiHeroCards;
     FChartPaintBox.Invalidate;
     Exit;
   end;
@@ -1106,6 +1597,8 @@ begin
       if ParseMangoHudCsvFile(FileList[I], RunData) then
       begin
         FDiscoveredFiles.Add(FileList[I]);
+        SetLength(FDiscoveredRuns, Length(FDiscoveredRuns) + 1);
+        FDiscoveredRuns[High(FDiscoveredRuns)] := RunData;
         ItemCaption := Format('%s  (%.0fs • %.0f FPS)', [
           RunData.DisplayName,
           RunData.DurationSec,
@@ -1148,6 +1641,8 @@ begin
   end;
 
   UpdateStatsGridAndSpecs;
+  UpdateKpiHeroCards;
+  FRunCheckListBox.Invalidate;
   FChartPaintBox.Invalidate;
 end;
 
@@ -1412,13 +1907,14 @@ var
   TopRect, BotRect: TRect;
   MidY, RIdx, SIdx, Step, X, Y, PrevX, PrevY: Integer;
   MaxDuration, MaxFpsVal, MaxFtVal: Double;
-  GridColor, AxisColor, TextColor: TColor;
+  GridColor, AxisColor, TextColor, FillColor: TColor;
   SeriesColor: TColor;
   Run: TGplotRunData;
   HoverSec: Double;
   BestIdx: Integer;
   BestDist, Dist: Double;
   TipStr: string;
+  CardW, CardH, CardLeft, CardTop, RowY: Integer;
 begin
   if (ARect.Right <= ARect.Left + 40) or (ARect.Bottom <= ARect.Top + 60) then Exit;
 
@@ -1464,6 +1960,44 @@ begin
     ACanvas.TextOut(4, Y - 7, Format('%.1fms', [MaxFtVal * (1.0 - SIdx / 4.0)]));
   end;
 
+  // Refresh rate guide lines (60, 120, 144 FPS)
+  ACanvas.Pen.Style := psDot;
+  ACanvas.Font.Size := 7;
+  ACanvas.Font.Style := [];
+  ACanvas.Font.Color := IfThen(AIsDark, RGBToColor(110, 130, 170), RGBToColor(140, 150, 175));
+
+  if (MaxFpsVal >= 60.0) and (60.0 < MaxFpsVal * 0.95) then
+  begin
+    Y := TopRect.Bottom - Round((60.0 / MaxFpsVal) * (TopRect.Bottom - TopRect.Top));
+    if (Y >= TopRect.Top + 8) and (Y <= TopRect.Bottom - 8) then
+    begin
+      ACanvas.Pen.Color := IfThen(AIsDark, RGBToColor(60, 75, 105), RGBToColor(190, 200, 215));
+      ACanvas.Line(TopRect.Left, Y, TopRect.Right, Y);
+      ACanvas.TextOut(TopRect.Right - 42, Y - 9, '60 FPS');
+    end;
+  end;
+  if (MaxFpsVal >= 120.0) and (120.0 < MaxFpsVal * 0.95) then
+  begin
+    Y := TopRect.Bottom - Round((120.0 / MaxFpsVal) * (TopRect.Bottom - TopRect.Top));
+    if (Y >= TopRect.Top + 8) and (Y <= TopRect.Bottom - 8) then
+    begin
+      ACanvas.Pen.Color := IfThen(AIsDark, RGBToColor(60, 75, 105), RGBToColor(190, 200, 215));
+      ACanvas.Line(TopRect.Left, Y, TopRect.Right, Y);
+      ACanvas.TextOut(TopRect.Right - 48, Y - 9, '120 FPS');
+    end;
+  end;
+  if (MaxFpsVal >= 144.0) and (144.0 < MaxFpsVal * 0.95) then
+  begin
+    Y := TopRect.Bottom - Round((144.0 / MaxFpsVal) * (TopRect.Bottom - TopRect.Top));
+    if (Y >= TopRect.Top + 8) and (Y <= TopRect.Bottom - 8) then
+    begin
+      ACanvas.Pen.Color := IfThen(AIsDark, RGBToColor(60, 75, 105), RGBToColor(190, 200, 215));
+      ACanvas.Line(TopRect.Left, Y, TopRect.Right, Y);
+      ACanvas.TextOut(TopRect.Right - 48, Y - 9, '144 FPS');
+    end;
+  end;
+  ACanvas.Pen.Style := psSolid;
+
   // Time X-Axis Labels
   for SIdx := 0 to 4 do
   begin
@@ -1476,6 +2010,27 @@ begin
   ACanvas.Pen.Color := AxisColor;
   ACanvas.Frame(TopRect);
   ACanvas.Frame(BotRect);
+
+  // Soft shaded area under the baseline/primary curve
+  if Length(FLoadedRuns) > 0 then
+  begin
+    Run := FLoadedRuns[0];
+    if Run.SampleCount > 1 then
+    begin
+      FillColor := IfThen(AIsDark, RGBToColor(28, 42, 60), RGBToColor(225, 235, 248));
+      ACanvas.Pen.Color := FillColor;
+      Step := Max(1, Run.SampleCount div Max(200, TopRect.Right - TopRect.Left));
+      SIdx := 0;
+      while SIdx < Run.SampleCount do
+      begin
+        X := TopRect.Left + Round((Run.Samples[SIdx].ElapsedSec / MaxDuration) * (TopRect.Right - TopRect.Left));
+        Y := TopRect.Bottom - Round(EnsureRange(Run.Samples[SIdx].Fps / MaxFpsVal, 0.0, 1.0) * (TopRect.Bottom - TopRect.Top));
+        if (X >= TopRect.Left) and (X <= TopRect.Right) and (Y < TopRect.Bottom - 1) then
+          ACanvas.Line(X, Y + 1, X, TopRect.Bottom - 1);
+        Inc(SIdx, Step);
+      end;
+    end;
+  end;
 
   // Plot FPS and Frametime polylines for each run
   for RIdx := 0 to High(FLoadedRuns) do
@@ -1517,41 +2072,68 @@ begin
   end;
   ACanvas.Pen.Width := 1;
 
-  // Hover crosshair and readout
+  // Hover crosshair and floating rounded card tooltip
   if FHoverActive and (FHoverX >= TopRect.Left) and (FHoverX <= TopRect.Right) then
   begin
     HoverSec := ((FHoverX - TopRect.Left) / Max(1, TopRect.Right - TopRect.Left)) * MaxDuration;
     ACanvas.Pen.Style := psDot;
-    ACanvas.Pen.Color := TextColor;
+    ACanvas.Pen.Color := IfThen(AIsDark, RGBToColor(120, 140, 180), RGBToColor(100, 110, 130));
     ACanvas.Line(FHoverX, TopRect.Top, FHoverX, BotRect.Bottom);
     ACanvas.Pen.Style := psSolid;
 
-    Run := FLoadedRuns[0];
-    BestIdx := 0;
-    BestDist := 1e18;
-    for SIdx := 0 to Run.SampleCount - 1 do
+    CardW := 230;
+    CardH := 24 + (Length(FLoadedRuns) * 18);
+    if FHoverX + 15 + CardW > ARect.Right then
+      CardLeft := FHoverX - CardW - 15
+    else
+      CardLeft := FHoverX + 15;
+    CardTop := Max(TopRect.Top + 6, Min(FHoverY - 20, BotRect.Bottom - CardH - 6));
+
+    // Card background & border
+    ACanvas.Brush.Style := bsSolid;
+    ACanvas.Brush.Color := IfThen(AIsDark, RGBToColor(18, 22, 34), RGBToColor(255, 255, 255));
+    ACanvas.Pen.Color := IfThen(AIsDark, RGBToColor(65, 80, 115), RGBToColor(190, 200, 215));
+    ACanvas.RoundRect(CardLeft, CardTop, CardLeft + CardW, CardTop + CardH, 8, 8);
+
+    // Header: Elapsed Time
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.Font.Size := 8;
+    ACanvas.Font.Style := [fsBold];
+    ACanvas.Font.Color := IfThen(AIsDark, RGBToColor(48, 190, 240), RGBToColor(25, 118, 210));
+    ACanvas.TextOut(CardLeft + 10, CardTop + 5, Format('⏱ Elapsed: %.2fs', [HoverSec]));
+
+    // Multi-series rows
+    for RIdx := 0 to High(FLoadedRuns) do
     begin
-      Dist := Abs(Run.Samples[SIdx].ElapsedSec - HoverSec);
-      if Dist < BestDist then
+      Run := FLoadedRuns[RIdx];
+      BestIdx := 0;
+      BestDist := 1e18;
+      for SIdx := 0 to Run.SampleCount - 1 do
       begin
-        BestDist := Dist;
-        BestIdx := SIdx;
+        Dist := Abs(Run.Samples[SIdx].ElapsedSec - HoverSec);
+        if Dist < BestDist then
+        begin
+          BestDist := Dist;
+          BestIdx := SIdx;
+        end;
       end;
-    end;
-    if (Run.SampleCount > 0) and (BestIdx >= 0) then
-    begin
-      TipStr := Format('t=%.1fs | %.1f FPS | %.2f ms', [
-        Run.Samples[BestIdx].ElapsedSec,
-        Run.Samples[BestIdx].Fps,
-        Run.Samples[BestIdx].FrametimeMs
-      ]);
+
+      RowY := CardTop + 22 + (RIdx * 18);
+      SeriesColor := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
       ACanvas.Brush.Style := bsSolid;
-      ACanvas.Brush.Color := IfThen(AIsDark, RGBToColor(15, 18, 28), RGBToColor(235, 240, 250));
-      X := Min(TopRect.Right - ACanvas.TextWidth(TipStr) - 12, FHoverX + 8);
-      ACanvas.Rectangle(X, TopRect.Top + 4, X + ACanvas.TextWidth(TipStr) + 10, TopRect.Top + 24);
+      ACanvas.Brush.Color := SeriesColor;
+      ACanvas.Pen.Color := SeriesColor;
+      ACanvas.Ellipse(CardLeft + 10, RowY + 3, CardLeft + 18, RowY + 11);
+
       ACanvas.Brush.Style := bsClear;
+      ACanvas.Font.Size := 8;
+      ACanvas.Font.Style := [];
       ACanvas.Font.Color := TextColor;
-      ACanvas.TextOut(X + 5, TopRect.Top + 6, TipStr);
+      if (Run.SampleCount > 0) and (BestIdx >= 0) then
+        TipStr := Format('%.1f FPS • %.2f ms', [Run.Samples[BestIdx].Fps, Run.Samples[BestIdx].FrametimeMs])
+      else
+        TipStr := 'N/A';
+      ACanvas.TextOut(CardLeft + 24, RowY, TipStr);
     end;
   end;
 end;
@@ -1561,7 +2143,7 @@ const
   METRIC_NAMES: array[0..3] of string = ('Average FPS', '1% Low FPS', '0.1% Low FPS', 'Peak (Max) FPS');
 var
   MIdx, RIdx, GroupTop, GroupH, BarH, BarTop, BarRight, MaxBarW: Integer;
-  MaxVal, Val: Double;
+  MaxVal, Val, BaseVal, Delta: Double;
   TextColor, GridColor: TColor;
   ValText: string;
 begin
@@ -1602,9 +2184,32 @@ begin
       ACanvas.Brush.Style := bsSolid;
       ACanvas.Brush.Color := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
       ACanvas.Pen.Color := ACanvas.Brush.Color;
-      ACanvas.Rectangle(ARect.Left + 10, BarTop, Max(ARect.Left + 14, BarRight), BarTop + BarH);
+      ACanvas.RoundRect(ARect.Left + 10, BarTop, Max(ARect.Left + 14, BarRight), BarTop + BarH, 6, 6);
 
-      ValText := Format('%.1f FPS (%s)', [Val, FLoadedRuns[RIdx].DisplayName]);
+      if Length(FLoadedRuns) > 1 then
+      begin
+        case MIdx of
+          0: BaseVal := FLoadedRuns[0].AvgFps;
+          1: BaseVal := FLoadedRuns[0].Fps1Low;
+          2: BaseVal := FLoadedRuns[0].Fps01Low;
+          else BaseVal := FLoadedRuns[0].MaxFps;
+        end;
+        if RIdx = 0 then
+          ValText := Format('%.1f FPS  [Baseline] (%s)', [Val, FLoadedRuns[RIdx].DisplayName])
+        else if BaseVal > 0 then
+        begin
+          Delta := ((Val - BaseVal) / BaseVal) * 100.0;
+          if Delta >= 0 then
+            ValText := Format('%.1f FPS  (+%.1f%%) (%s)', [Val, Delta, FLoadedRuns[RIdx].DisplayName])
+          else
+            ValText := Format('%.1f FPS  (%.1f%%) (%s)', [Val, Delta, FLoadedRuns[RIdx].DisplayName]);
+        end
+        else
+          ValText := Format('%.1f FPS (%s)', [Val, FLoadedRuns[RIdx].DisplayName]);
+      end
+      else
+        ValText := Format('%.1f FPS (%s)', [Val, FLoadedRuns[RIdx].DisplayName]);
+
       ACanvas.Brush.Style := bsClear;
       ACanvas.Font.Style := [];
       ACanvas.Font.Color := TextColor;
@@ -1671,7 +2276,7 @@ begin
       ACanvas.Brush.Style := bsSolid;
       ACanvas.Brush.Color := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
       ACanvas.Pen.Color := ACanvas.Brush.Color;
-      ACanvas.Rectangle(ARect.Left + 10, BarTop, Max(ARect.Left + 14, BarRight), BarTop + BarH);
+      ACanvas.RoundRect(ARect.Left + 10, BarTop, Max(ARect.Left + 14, BarRight), BarTop + BarH, 6, 6);
 
       ValText := Format('%.1f %s | Peak VRAM: %.2f GB (%s)', [
         Val, UnitStr, FLoadedRuns[RIdx].MaxVramUsed, FLoadedRuns[RIdx].DisplayName
