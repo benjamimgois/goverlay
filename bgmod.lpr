@@ -2746,7 +2746,7 @@ begin
       AfmfDirectIngest := Ini.ReadString('Config', 'AFMF_DIRECT_INGEST', '0');
       AfmfDirectOutput := Ini.ReadString('Config', 'AFMF_DIRECT_OUTPUT', '0');
       AfmfAsync := Ini.ReadString('Config', 'AFMF_ASYNC', '0');
-      AfmfStaticSad := Ini.ReadString('Config', 'AFMF_STATIC_SAD', '0');
+      AfmfStaticSad := Ini.ReadString('Config', 'AFMF_STATIC_BLOCK_SAD', Ini.ReadString('Config', 'AFMF_STATIC_SAD', '0'));
       AfmfLog := Ini.ReadString('Config', 'AFMF_LOG', 'none');
       AfmfProfile := Ini.ReadString('Config', 'AFMF_PROFILE', '0');
       
@@ -2996,6 +2996,8 @@ begin
                 SafeCopyFile(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll');
               if FileExists(ConfigDir + 'HelixSR' + PathDelim + 'helixsr.ini') then
                 SafeCopyFile(ConfigDir + 'HelixSR' + PathDelim + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
+              else if FileExists(ConfigDir + 'helixsr.ini') then
+                SafeCopyFile(ConfigDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
               else if FileExists(SourceDir + 'helixsr.ini') then
                 SafeCopyFile(SourceDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
 
@@ -3901,8 +3903,8 @@ begin
 
       if (AfmfStaticSad <> '') and (AfmfStaticSad <> '0') then
       begin
-        SetEnvVarInList(EnvStrings, 'AFMF_STATIC_SAD', AfmfStaticSad);
-        Log('Export: AFMF_STATIC_SAD=' + AfmfStaticSad);
+        SetEnvVarInList(EnvStrings, 'AFMF_STATIC_BLOCK_SAD', AfmfStaticSad);
+        Log('Export: AFMF_STATIC_BLOCK_SAD=' + AfmfStaticSad);
       end;
 
       if (AfmfLog <> '') and (AfmfLog <> 'none') then

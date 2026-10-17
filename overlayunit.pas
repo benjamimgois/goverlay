@@ -924,6 +924,8 @@ type
     procedure BuildVkSumiTab;
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
+    procedure VsCompareToggleChange(Sender: TObject);
+    procedure VsDaltonizeComboChange(Sender: TObject);
     // Exposed: procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
     // Exposed: procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
     // Exposed: procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
@@ -1277,6 +1279,10 @@ type
     FVsNameLabels:  array[0..14] of TLabel;
     FVsScrollBox:   TScrollBox;
     FVsBgPanel:     TPanel;
+    FVsCompareCB:   TCheckBox;
+    FVsCompareToggle: TControl;
+    FVsDaltonizeLabel: TLabel;
+    FVsDaltonizeCombo: TComboBox;
     FVkReshadeSyncBtn:      TBitBtn;  // Sync/update reshade shaders button
     FVkToggleCaptureBtn:    TBitBtn;
     FVkToggleTitleLbl:      TLabel;
@@ -7303,6 +7309,16 @@ begin
     else
       Settings.TrackbarPositions[i] := 100;
   end;
+  if Assigned(FVsCompareCB) then
+    Settings.Compare := FVsCompareCB.Checked
+  else
+    Settings.Compare := False;
+
+  if Assigned(FVsDaltonizeCombo) and (FVsDaltonizeCombo.ItemIndex >= 0) then
+    Settings.Daltonize := FVsDaltonizeCombo.ItemIndex
+  else
+    Settings.Daltonize := 0;
+
   Settings.ActiveGameName := FActiveGameName;
 
   if not overlay_config.SaveVkSumiConfig(Settings, ErrMsg) then
@@ -7361,6 +7377,14 @@ begin
     if Assigned(FVsToggleCaptureBtn) and Assigned(FVsToggleEdit) then
       FVsToggleCaptureBtn.Caption := '⌨ ' + FVsToggleEdit.Text;
 
+    if Assigned(FVsCompareCB) then
+      FVsCompareCB.Checked := Settings.Compare;
+    if Assigned(FVsCompareToggle) and Assigned(FVsCompareCB) then
+      TToggleSwitch(FVsCompareToggle).Checked := FVsCompareCB.Checked;
+
+    if Assigned(FVsDaltonizeCombo) then
+      FVsDaltonizeCombo.ItemIndex := Settings.Daltonize;
+
     for i := 0 to 14 do
     begin
       if Assigned(FVsTrackbars[i]) then
@@ -7374,6 +7398,18 @@ end;
 procedure Tgoverlayform.VsRestoreBtnClick(Sender: TObject);
 begin
   TVkBasaltTabHelper(FBasaltHelper).VsRestoreBtnClick(Sender);
+end;
+
+procedure Tgoverlayform.VsCompareToggleChange(Sender: TObject);
+begin
+  if not FLoadingConfig then
+    SaveVkSumiConfig;
+end;
+
+procedure Tgoverlayform.VsDaltonizeComboChange(Sender: TObject);
+begin
+  if not FLoadingConfig then
+    SaveVkSumiConfig;
 end;
 
 procedure Tgoverlayform.VkRestoreBtnClick(Sender: TObject);

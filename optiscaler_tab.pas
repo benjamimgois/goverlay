@@ -30,7 +30,16 @@ type
     FHelixSrModeInfoLbl: TLabel;
     FOsCustomInfoLbl: TLabel;
     FOsHelixLicenseBtn: TBitBtn;
+    FHelixsrSharpenerLabel: TLabel;
+    FHelixsrSharpenerComboBox: TComboBox;
+    FHelixsrSharpnessLabel: TLabel;
+    FHelixsrSharpnessTrackBar: TTrackBar;
+    FHelixsrSharpnessValLabel: TLabel;
+    FHelixsrWaveSizeLabel: TLabel;
+    FHelixsrWaveSizeComboBox: TComboBox;
     FOsToggles: TFPList;
+    procedure HelixSrSharpnessChange(Sender: TObject);
+    procedure HelixSrControlChange(Sender: TObject);
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
     procedure HelixLicenseBtnClick(Sender: TObject);
   public
@@ -57,6 +66,9 @@ type
     property HelixSrModeInfoLbl: TLabel read FHelixSrModeInfoLbl;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
     property OsHelixLicenseBtn: TBitBtn read FOsHelixLicenseBtn;
+    property HelixSrSharpenerComboBox: TComboBox read FHelixsrSharpenerComboBox;
+    property HelixSrSharpnessTrackBar: TTrackBar read FHelixsrSharpnessTrackBar;
+    property HelixSrWaveSizeComboBox: TComboBox read FHelixsrWaveSizeComboBox;
     property OsToggles: TFPList read FOsToggles;
   end;
 
@@ -101,6 +113,20 @@ procedure TOptiScalerTabHelper.HelixLicenseBtnClick(Sender: TObject);
 begin
   if Assigned(FForm) then
     ShowHelixSRLicenseDialog(FForm);
+end;
+
+procedure TOptiScalerTabHelper.HelixSrSharpnessChange(Sender: TObject);
+begin
+  if Assigned(FHelixsrSharpnessTrackBar) and Assigned(FHelixsrSharpnessValLabel) then
+    FHelixsrSharpnessValLabel.Caption := FormatFloat('0.00', FHelixsrSharpnessTrackBar.Position / 100.0);
+  if Assigned(FForm) and not FForm.FLoadingConfig then
+    FForm.StartAutoSaveTimer;
+end;
+
+procedure TOptiScalerTabHelper.HelixSrControlChange(Sender: TObject);
+begin
+  if Assigned(FForm) and not FForm.FLoadingConfig then
+    FForm.StartAutoSaveTimer;
 end;
 
 procedure TOptiScalerTabHelper.SyncAllToggles;
@@ -872,6 +898,85 @@ begin
       FHelixSrModeInfoLbl.Visible := False;
     end;
 
+    if FHelixsrSharpenerLabel = nil then
+    begin
+      FHelixsrSharpenerLabel := TLabel.Create(FForm);
+      FHelixsrSharpenerLabel.Name := 'helixsrSharpenerLabel';
+      FHelixsrSharpenerLabel.Caption := 'Sharpener';
+      FHelixsrSharpenerLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpenerLabel.Visible := False;
+    end;
+
+    if FHelixsrSharpenerComboBox = nil then
+    begin
+      FHelixsrSharpenerComboBox := TComboBox.Create(FForm);
+      FHelixsrSharpenerComboBox.Name := 'helixsrSharpenerComboBox';
+      FHelixsrSharpenerComboBox.Style := csDropDownList;
+      FHelixsrSharpenerComboBox.Items.Add('Off');
+      FHelixsrSharpenerComboBox.Items.Add('NVIDIA Image Sharpening');
+      FHelixsrSharpenerComboBox.Items.Add('AMD RCAS');
+      FHelixsrSharpenerComboBox.ItemIndex := 0;
+      FHelixsrSharpenerComboBox.Parent := FOsSpatialSec;
+      FHelixsrSharpenerComboBox.Visible := False;
+      FHelixsrSharpenerComboBox.OnChange := @HelixSrControlChange;
+    end;
+
+    if FHelixsrSharpnessLabel = nil then
+    begin
+      FHelixsrSharpnessLabel := TLabel.Create(FForm);
+      FHelixsrSharpnessLabel.Name := 'helixsrSharpnessLabel';
+      FHelixsrSharpnessLabel.Caption := 'Sharpness';
+      FHelixsrSharpnessLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpnessLabel.Visible := False;
+    end;
+
+    if FHelixsrSharpnessValLabel = nil then
+    begin
+      FHelixsrSharpnessValLabel := TLabel.Create(FForm);
+      FHelixsrSharpnessValLabel.Name := 'helixsrSharpnessValLabel';
+      FHelixsrSharpnessValLabel.Caption := '0.10';
+      FHelixsrSharpnessValLabel.Font.Color := RGBToColor(48, 190, 240);
+      FHelixsrSharpnessValLabel.Font.Style := [fsBold];
+      FHelixsrSharpnessValLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpnessValLabel.Visible := False;
+    end;
+
+    if FHelixsrSharpnessTrackBar = nil then
+    begin
+      FHelixsrSharpnessTrackBar := TTrackBar.Create(FForm);
+      FHelixsrSharpnessTrackBar.Name := 'helixsrSharpnessTrackBar';
+      FHelixsrSharpnessTrackBar.Min := 0;
+      FHelixsrSharpnessTrackBar.Max := 100;
+      FHelixsrSharpnessTrackBar.Position := 10;
+      FHelixsrSharpnessTrackBar.TickStyle := tsNone;
+      FHelixsrSharpnessTrackBar.Parent := FOsSpatialSec;
+      FHelixsrSharpnessTrackBar.Visible := False;
+      FHelixsrSharpnessTrackBar.OnChange := @HelixSrSharpnessChange;
+    end;
+
+    if FHelixsrWaveSizeLabel = nil then
+    begin
+      FHelixsrWaveSizeLabel := TLabel.Create(FForm);
+      FHelixsrWaveSizeLabel.Name := 'helixsrWaveSizeLabel';
+      FHelixsrWaveSizeLabel.Caption := 'Wave size';
+      FHelixsrWaveSizeLabel.Parent := FOsSpatialSec;
+      FHelixsrWaveSizeLabel.Visible := False;
+    end;
+
+    if FHelixsrWaveSizeComboBox = nil then
+    begin
+      FHelixsrWaveSizeComboBox := TComboBox.Create(FForm);
+      FHelixsrWaveSizeComboBox.Name := 'helixsrWaveSizeComboBox';
+      FHelixsrWaveSizeComboBox.Style := csDropDownList;
+      FHelixsrWaveSizeComboBox.Items.Add('Auto');
+      FHelixsrWaveSizeComboBox.Items.Add('32 (Wave32)');
+      FHelixsrWaveSizeComboBox.Items.Add('64 (Wave64)');
+      FHelixsrWaveSizeComboBox.ItemIndex := 0;
+      FHelixsrWaveSizeComboBox.Parent := FOsSpatialSec;
+      FHelixsrWaveSizeComboBox.Visible := False;
+      FHelixsrWaveSizeComboBox.OnChange := @HelixSrControlChange;
+    end;
+
     // --- Sub-card 3: Temporal Upscaler controls ---
     if fgInputLabel = nil then
     begin
@@ -990,6 +1095,11 @@ begin
     DarkCombo(fsrversionComboBox);
     StdLbl(preferredUpscalerLabel);
     DarkCombo(preferredUpscalerComboBox);
+    if Assigned(FHelixsrSharpenerLabel) then StdLbl(FHelixsrSharpenerLabel);
+    if Assigned(FHelixsrSharpenerComboBox) then DarkCombo(FHelixsrSharpenerComboBox);
+    if Assigned(FHelixsrSharpnessLabel) then StdLbl(FHelixsrSharpnessLabel);
+    if Assigned(FHelixsrWaveSizeLabel) then StdLbl(FHelixsrWaveSizeLabel);
+    if Assigned(FHelixsrWaveSizeComboBox) then DarkCombo(FHelixsrWaveSizeComboBox);
     if Assigned(fgInputLabel) then
     begin
       StdLbl(fgInputLabel);
@@ -1590,47 +1700,115 @@ begin
     begin
       if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      preferredUpscalerLabel.Visible := True;
-      preferredUpscalerComboBox.Visible := True;
-      preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
-      preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
-
-      fsrversionLabel.Visible := True;
-      fsrversionComboBox.Visible := True;
-      fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
-      fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
-
-      if Assigned(FSpoofToggle) then
+      if IsHelixSrActive then
       begin
-        FSpoofToggle.Visible := True;
-        FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+        if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'HelixSR';
+
+        // Hide OptiScaler-specific spatial controls
+        preferredUpscalerLabel.Visible := False;
+        preferredUpscalerComboBox.Visible := False;
+        fsrversionLabel.Visible := False;
+        fsrversionComboBox.Visible := False;
+        if Assigned(FSpoofToggle) then FSpoofToggle.Visible := False
+        else spoofCheckBox.Visible := False;
+        if Assigned(FForceFsr4Toggle) then FForceFsr4Toggle.Visible := False
+        else forceFsr4Int8CheckBox.Visible := False;
+
+        // Show HelixSR controls
+        if Assigned(FHelixsrSharpenerLabel) then
+        begin
+          FHelixsrSharpenerLabel.Visible := True;
+          FHelixsrSharpenerLabel.SetBounds(10, Y0, ColW - 20, 16);
+        end;
+        if Assigned(FHelixsrSharpenerComboBox) then
+        begin
+          FHelixsrSharpenerComboBox.Visible := True;
+          FHelixsrSharpenerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+        end;
+        if Assigned(FHelixsrSharpnessLabel) then
+        begin
+          FHelixsrSharpnessLabel.Visible := True;
+          FHelixsrSharpnessLabel.SetBounds(10, Y0 + 56, ColW - 60, 16);
+        end;
+        if Assigned(FHelixsrSharpnessValLabel) then
+        begin
+          FHelixsrSharpnessValLabel.Visible := True;
+          FHelixsrSharpnessValLabel.SetBounds(ColW - 45, Y0 + 56, 35, 16);
+        end;
+        if Assigned(FHelixsrSharpnessTrackBar) then
+        begin
+          FHelixsrSharpnessTrackBar.Visible := True;
+          FHelixsrSharpnessTrackBar.SetBounds(10, Y0 + 78, ColW - 20, 24);
+        end;
+        if Assigned(FHelixsrWaveSizeLabel) then
+        begin
+          FHelixsrWaveSizeLabel.Visible := True;
+          FHelixsrWaveSizeLabel.SetBounds(10, Y0 + 116, ColW - 20, 16);
+        end;
+        if Assigned(FHelixsrWaveSizeComboBox) then
+        begin
+          FHelixsrWaveSizeComboBox.Visible := True;
+          FHelixsrWaveSizeComboBox.SetBounds(10, Y0 + 138, ComboW, 26);
+        end;
+
+        if Assigned(FHelixSrNativeDlssToggle) then
+        begin
+          FHelixSrNativeDlssToggle.Visible := True;
+          FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
+        end
+        else if Assigned(helixsrNativeDlssCheckBox) then
+        begin
+          helixsrNativeDlssCheckBox.Visible := True;
+          helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
+        end;
       end
       else
       begin
-        spoofCheckBox.Visible := True;
-        spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
-      end;
+        if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'Upscaler';
 
-      if Assigned(FForceFsr4Toggle) then
-      begin
-        FForceFsr4Toggle.Visible := True;
-        FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20);
-      end
-      else
-      begin
-        forceFsr4Int8CheckBox.Visible := True;
-        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
-      end;
+        // Hide HelixSR controls
+        if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
+        if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
+        if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
+        if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
+        if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
+        if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
+        if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
 
-      if Assigned(FHelixSrNativeDlssToggle) then
-      begin
-        FHelixSrNativeDlssToggle.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
-        FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
-      end
-      else if Assigned(helixsrNativeDlssCheckBox) then
-      begin
-        helixsrNativeDlssCheckBox.Visible := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
-        helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
+        // Show and position OptiScaler-specific spatial controls
+        preferredUpscalerLabel.Visible := True;
+        preferredUpscalerComboBox.Visible := True;
+        preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
+        preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+
+        fsrversionLabel.Visible := True;
+        fsrversionComboBox.Visible := True;
+        fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+        fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+
+        if Assigned(FSpoofToggle) then
+        begin
+          FSpoofToggle.Visible := True;
+          FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+        end
+        else
+        begin
+          spoofCheckBox.Visible := True;
+          spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
+        end;
+
+        if Assigned(FForceFsr4Toggle) then
+        begin
+          FForceFsr4Toggle.Visible := True;
+          FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20);
+        end
+        else
+        begin
+          forceFsr4Int8CheckBox.Visible := True;
+          forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
+        end;
       end;
 
       if Assigned(FHelixSrModeInfoLbl) then
@@ -1939,6 +2117,28 @@ begin
         if Assigned(FHelixSrNativeDlssToggle) then
           FHelixSrNativeDlssToggle.Checked := Settings.HelixSrNativeDlssChecked;
       end;
+      if Assigned(FHelixsrSharpenerComboBox) then
+      begin
+        if (Settings.HelixSrSharpenerIndex >= 0) and
+           (Settings.HelixSrSharpenerIndex < FHelixsrSharpenerComboBox.Items.Count) then
+          FHelixsrSharpenerComboBox.ItemIndex := Settings.HelixSrSharpenerIndex
+        else
+          FHelixsrSharpenerComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FHelixsrSharpnessTrackBar) then
+      begin
+        FHelixsrSharpnessTrackBar.Position := Settings.HelixSrSharpness;
+        if Assigned(FHelixsrSharpnessValLabel) then
+          FHelixsrSharpnessValLabel.Caption := FormatFloat('0.00', FHelixsrSharpnessTrackBar.Position / 100.0);
+      end;
+      if Assigned(FHelixsrWaveSizeComboBox) then
+      begin
+        if (Settings.HelixSrWaveSizeIndex >= 0) and
+           (Settings.HelixSrWaveSizeIndex < FHelixsrWaveSizeComboBox.Items.Count) then
+          FHelixsrWaveSizeComboBox.ItemIndex := Settings.HelixSrWaveSizeIndex
+        else
+          FHelixsrWaveSizeComboBox.ItemIndex := 0;
+      end;
       UpdateUpscalerImageOpacity;
       UpdateFrameGenOptionsUI;
     finally
@@ -2013,6 +2213,8 @@ begin
       Settings.FGOutputItemIndex := fgOutputComboBox.ItemIndex
     else
       Settings.FGOutputItemIndex := 0;
+    Settings.Fsr4PresetItemIndex := 0;
+    Settings.FgNvngxItemIndex := 0;
     if Assigned(noneUpscalerRadioButton) and noneUpscalerRadioButton.Checked then
       Settings.UpscalerTypeItemIndex := 2
     else if Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked then
@@ -2026,6 +2228,19 @@ begin
       Settings.HelixSrNativeDlssChecked := helixsrNativeDlssCheckBox.Checked
     else
       Settings.HelixSrNativeDlssChecked := False;
+
+    if Assigned(FHelixsrSharpenerComboBox) then
+      Settings.HelixSrSharpenerIndex := FHelixsrSharpenerComboBox.ItemIndex
+    else
+      Settings.HelixSrSharpenerIndex := 0;
+    if Assigned(FHelixsrSharpnessTrackBar) then
+      Settings.HelixSrSharpness := FHelixsrSharpnessTrackBar.Position
+    else
+      Settings.HelixSrSharpness := 10;
+    if Assigned(FHelixsrWaveSizeComboBox) then
+      Settings.HelixSrWaveSizeIndex := FHelixsrWaveSizeComboBox.ItemIndex
+    else
+      Settings.HelixSrWaveSizeIndex := 0;
 
     try
       if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then

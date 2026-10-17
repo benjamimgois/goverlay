@@ -15,8 +15,8 @@ void main() {
     vec2 uv = inUV;
 
     // Use raw sRGB-like linear base colors to match the look of the reference gradient
-    vec3 skyTopColor = vec3(0.012, 0.015, 0.022);      // deep dark obsidian top
-    vec3 maxColor = vec3(0.028, 0.038, 0.055);         // deep dark slate light peak
+    vec3 skyTopColor = vec3(0.125, 0.129, 0.141);      // #202124 (dark top)
+    vec3 maxColor = vec3(0.270, 0.275, 0.290);         // #3a3b3f (brighter studio light peak)
 
     // Smooth vertical spotlight gradient peaking around y = 0.78 (simulating studio floor horizon)
     float yFactor = 1.0 - pow(uv.y - 0.78, 2.0) * 1.55;
@@ -41,14 +41,14 @@ void main() {
         float grid = max(gridLineX, gridLineZ) * fade;
         
         // Blend in a subtle, dark graphite grid color for an engraved look
-        vec3 gridColor = vec3(0.045, 0.065, 0.095); 
+        vec3 gridColor = vec3(0.11, 0.11, 0.12); 
         color = mix(color, gridColor, grid * 0.35);
     }
 
     // Studio vignette to darken the left and right edges smoothly
     float dist = distance(uv, vec2(0.5, 0.5));
     float vignette = smoothstep(0.0, 0.9, dist);
-    color = mix(color, vec3(0.005, 0.007, 0.010), vignette * 0.35);
+    color = mix(color, vec3(0.08, 0.08, 0.09), vignette * 0.22);
 
     // Extract angle from push constants
     float angle = pushConsts.angles.x * 6.28318530718;
@@ -64,7 +64,7 @@ void main() {
     float shadowIntensity = pow(1.0 - smoothstep(0.0, 1.0, shadowDist), 1.5);
 
     // Apply soft drop shadow (dark gray contact shadow)
-    color = mix(color, vec3(0.002, 0.003, 0.005), shadowIntensity * 0.70);
+    color = mix(color, vec3(0.04, 0.04, 0.05), shadowIntensity * 0.60);
 
     // Dithering to prevent color banding
     float ditherVal = fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;

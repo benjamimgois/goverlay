@@ -53,6 +53,8 @@ type
   public
     // Visual Tab Toggles
     FhudcompactToggle, FhorizontalstrechToggle, FhidehudToggle: TToggleSwitch;
+    FtextoutlineToggle: TToggleSwitch;
+    textoutlineCheckBox: TCheckBox;
 
     // Performance Tab Toggles
     FfpsToggle, FfpsavgToggle, FshowfpslimToggle: TToggleSwitch;
@@ -1227,6 +1229,26 @@ begin
   FhidehudToggle.Height := 20;
   FhidehudToggle.Width  := FhidehudToggle.GetOptimalWidth;
   FVisualToggles.Add(FhidehudToggle);
+
+  // Create and link Text outline toggle switch in Fonts section
+  if not Assigned(textoutlineCheckBox) then
+  begin
+    textoutlineCheckBox := TCheckBox.Create(FForm);
+    textoutlineCheckBox.Name := 'textoutlineCheckBox';
+    textoutlineCheckBox.Parent := FVisualSections[3];
+    textoutlineCheckBox.Caption := 'Text outline';
+    textoutlineCheckBox.Visible := False;
+  end;
+  textoutlineCheckBox.Hint := 'Text outline' + LineEnding + 'Renders high-contrast outline around text';
+  textoutlineCheckBox.ShowHint := True;
+  FtextoutlineToggle := TToggleSwitch.Create(FForm);
+  FtextoutlineToggle.Parent := FVisualSections[3];
+  FtextoutlineToggle.LinkToCheckBox(textoutlineCheckBox);
+  FtextoutlineToggle.Height := 20;
+  FtextoutlineToggle.Width  := FtextoutlineToggle.GetOptimalWidth;
+  FtextoutlineToggle.Left   := 6;
+  FtextoutlineToggle.Top    := 178;
+  FVisualToggles.Add(FtextoutlineToggle);
   end;
 end;
 
@@ -1357,6 +1379,11 @@ begin
   fontsizeTrackBar.Width  := Max(30, SecW1 - 60 - 44);
   fontsizevalueLabel.Left := 60 + fontsizeTrackBar.Width + 8;
   fontsizevalueLabel.Top  := fontsizeTrackBar.Top + 2;
+  if Assigned(FtextoutlineToggle) then
+  begin
+    FtextoutlineToggle.Left := 6;
+    FtextoutlineToggle.Top  := 178;
+  end;
 
   // Position section: Image fills panel, radio buttons proportional within it
   ImgW := SecW2 - 8;
@@ -1604,6 +1631,11 @@ begin
     hudcompactCheckBox.Font.Color := TextColor;
     horizontalstrechCheckBox.ParentColor := True;
     horizontalstrechCheckBox.Font.Color := TextColor;
+    if Assigned(textoutlineCheckBox) then
+    begin
+      textoutlineCheckBox.ParentColor := True;
+      textoutlineCheckBox.Font.Color := TextColor;
+    end;
     hidehudCheckBox.ParentColor := True;
     hidehudCheckBox.Font.Color   := TextColor;
 
@@ -3756,6 +3788,11 @@ begin
       hidehudCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_HUD_COMPACT) then
       hudcompactCheckBox.Checked := True
+    else if SameText(ATrimmedLine, MANGO_FLAG_TEXT_OUTLINE) then
+    begin
+      if Assigned(textoutlineCheckBox) then
+        textoutlineCheckBox.Checked := True;
+    end
     else if SameText(ATrimmedLine, MANGO_FLAG_FPS) then
       fpsCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_FRAME_TIMING) then
@@ -3892,6 +3929,8 @@ begin
       fahrenheitCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_WINESYNC) then
       winesyncCheckBox.Checked := True
+    else if SameText(ATrimmedLine, MANGO_FLAG_DX_API) then
+      dxapiCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_PRESENT_MODE) then
       vpsCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_LOG_VERSIONING) then
@@ -4369,6 +4408,10 @@ begin
     Settings.HideHud := hidehudCheckBox.Checked;
     Settings.HudCompact := hudcompactCheckBox.Checked;
     Settings.HorizontalStretch := horizontalstrechCheckBox.Checked;
+    if Assigned(textoutlineCheckBox) then
+      Settings.TextOutline := textoutlineCheckBox.Checked
+    else
+      Settings.TextOutline := False;
 
     Settings.PciDevIndex := pcidevComboBox.ItemIndex;
     Settings.PciDevCount := pcidevComboBox.Items.Count;
@@ -4487,6 +4530,7 @@ begin
     Settings.Wine := wineCheckBox.Checked;
     Settings.WineColor := wineColorButton.ButtonColor;
     Settings.Winesync := winesyncCheckBox.Checked;
+    Settings.DxApi := dxapiCheckBox.Checked;
 
     // Performance Tab
     Settings.ShowFpsLim := showfpslimCheckBox.Checked;

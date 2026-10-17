@@ -121,11 +121,28 @@ const
   OPTI_KEY_DX12_UPSCALER       = 'Dx12Upscaler=';
   OPTI_KEY_VULKAN_UPSCALER     = 'VulkanUpscaler=';
   OPTI_KEY_LOG_LEVEL           = 'LogLevel=';
+  OPTI_KEY_FSR4_PRESET         = 'Fsr4Preset=';
+  OPTI_KEY_FG_NVNGX            = 'FGNvngxReplacement=';
 
   FAKE_KEY_FORCE_REFLEX        = 'force_reflex=';
   FAKE_KEY_FORCE_LATENCY       = 'force_latencyflex=';
   FAKE_KEY_LATENCY_MODE        = 'latencyflex_mode=';
   FAKE_KEY_TRACE_LOGS          = 'enable_trace_logs=';
+
+// ============================================================================
+// HELIXSR / VKSUMI / MAKO CONFIG KEYS
+// ============================================================================
+
+const
+  HELIX_KEY_SHARPENER          = 'Sharpener';
+  HELIX_KEY_SHARPNESS          = 'Sharpness';
+  HELIX_KEY_WAVESIZE           = 'WaveSize';
+
+  VKSUMI_KEY_COMPARE           = 'compare';
+  VKSUMI_KEY_DALTONIZE         = 'daltonize';
+  VKSUMI_KEY_VIGNETTE          = 'vignette';
+
+  MAKO_KEY_DISABLE_STEAM_OVERLAY = 'disable_steam_overlay';
 
 // ============================================================================
 // MANGOHUD CONFIG KEYS (complement to constants.pas)
@@ -247,6 +264,8 @@ const
   MANGO_FLAG_TEMP_FAHRENHEIT   = 'temp_fahrenheit';
   MANGO_FLAG_WINESYNC          = 'winesync';
   MANGO_FLAG_PRESENT_MODE      = 'present_mode';
+  MANGO_FLAG_DX_API            = 'dx_api';
+  MANGO_FLAG_TEXT_OUTLINE      = 'text_outline';
   MANGO_FLAG_LOG_VERSIONING    = 'log_versioning';
   MANGO_FLAG_UPLOAD_LOGS       = 'upload_logs';
   MANGO_FLAG_FPS_COLOR_CHANGE  = 'fps_color_change';

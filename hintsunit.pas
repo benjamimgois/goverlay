@@ -121,6 +121,8 @@ begin
 
   SetHint('hudcompactCheckBox', 'Compact mode' + LineEnding +
     'Reduces spacing between elements');
+  SetHint('textoutlineCheckBox', 'Text outline' + LineEnding +
+    'Renders high-contrast outline around text');
   SetHint('horizontalstrechCheckBox', 'Stretches the background to the screens width in horizontal mode');
   SetHint('fahrenheitCheckBox', 'Use Fahrenheit' + LineEnding +
     'Displays temperatures in °F instead of °C');

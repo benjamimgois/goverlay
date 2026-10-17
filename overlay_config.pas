@@ -47,6 +47,8 @@ type
     Enabled: Boolean;
     ToggleKeys: string;
     TrackbarPositions: array[0..14] of Integer;
+    Compare: Boolean;
+    Daltonize: Integer;
     ActiveGameName: string;
   end;
 
@@ -78,6 +80,11 @@ type
     LogLevelItemIndex: Integer;
     UnmanagedIniChecked: Boolean;
     HelixSrNativeDlssChecked: Boolean;
+    Fsr4PresetItemIndex: Integer;
+    FgNvngxItemIndex: Integer;
+    HelixSrSharpenerIndex: Integer;
+    HelixSrSharpness: Integer;
+    HelixSrWaveSizeIndex: Integer;
   end;
 
   TMangoHudSettings = record
@@ -102,6 +109,7 @@ type
     HideHud: Boolean;
     HudCompact: Boolean;
     HorizontalStretch: Boolean;
+    TextOutline: Boolean;
     PciDevIndex: Integer;
     PciDevCount: Integer;
     PciDevText: string;
@@ -186,6 +194,7 @@ type
     Wine: Boolean;
     WineColor: TColor;
     Winesync: Boolean;
+    DxApi: Boolean;
 
     // Performance Tab
     ShowFpsLim: Boolean;
@@ -778,6 +787,20 @@ begin
     else
       Lines.Add('toggle_keys = Shift_R+F9    # in-game hotkey, X11 + XWayland (Wine/Proton)');
     Lines.Add('');
+
+    if Settings.Compare then
+      Lines.Add('compare     = true')
+    else
+      Lines.Add('compare     = false');
+
+    case Settings.Daltonize of
+      1: Lines.Add('daltonize   = protan');
+      2: Lines.Add('daltonize   = deutan');
+      3: Lines.Add('daltonize   = tritan');
+    else
+      Lines.Add('daltonize   = off');
+    end;
+    Lines.Add('');
     
     Lines.Add('# tone');
     for i := 0 to 3 do
@@ -815,6 +838,20 @@ begin
       Val := (Settings.TrackbarPositions[i] - 100) / 100;
       Lines.Add(KEYS[i] + ' = ' + FormatFloat('0.0', Val, FS));
     end;
+    Lines.Add('');
+
+    Lines.Add('# color-vision');
+    if Settings.Compare then
+      Lines.Add('compare = true')
+    else
+      Lines.Add('compare = false');
+    case Settings.Daltonize of
+      1: Lines.Add('daltonize = protan');
+      2: Lines.Add('daltonize = deutan');
+      3: Lines.Add('daltonize = tritan');
+    else
+      Lines.Add('daltonize = off');
+    end;
 
     if not DirectoryExists(ExtractFileDir(Settings.SumiCfgFile)) then
       ForceDirectories(ExtractFileDir(Settings.SumiCfgFile));
@@ -845,7 +882,7 @@ end;
 function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
 var
   SelectedDllName, DllNameWithoutExt: string;
-  OptiScalerIniPath: string;
+  OptiScalerIniPath, HelixSrIniPath: string;
   OptiCfg: TConfigFile;
   SelectedShortcutKey, ScaleValue: string;
   ScaleFloat: Double;
@@ -1032,6 +1069,27 @@ begin
         else
           OptiCfg.SetValue('Fsr4ForceEnableInt8=', 'false');
 
+        case Settings.Fsr4PresetItemIndex of
+          1: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '0');
+          2: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '1');
+          3: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '2');
+          4: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '3');
+          5: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '4');
+          6: OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, '5');
+        else
+          OptiCfg.SetValue(OPTI_KEY_FSR4_PRESET, 'auto');
+        end;
+
+        case Settings.FgNvngxItemIndex of
+          1: OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'none', OPTI_INI_SECTION_FRAMEGEN);
+          2: OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'nukems', OPTI_INI_SECTION_FRAMEGEN);
+          3: OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'arturs', OPTI_INI_SECTION_FRAMEGEN);
+          4: OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'ffx', OPTI_INI_SECTION_FRAMEGEN);
+          5: OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'combo', OPTI_INI_SECTION_FRAMEGEN);
+        else
+          OptiCfg.SetValue(OPTI_KEY_FG_NVNGX, 'auto', OPTI_INI_SECTION_FRAMEGEN);
+        end;
+
         case Settings.FGInputItemIndex of
           1: FGInputValue := 'nofg';
           2: FGInputValue := 'dlssg';
@@ -1084,7 +1142,33 @@ begin
     end;
   end;
 
+  // ##### Save helixsr.ini file when HelixSR is selected #####
+  if Settings.UpscalerTypeItemIndex = 3 then
+  begin
+    HelixSrIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'HelixSR' + PathDelim + 'helixsr.ini';
+    ForceDirectories(ExtractFilePath(HelixSrIniPath));
+    Ini := TIniFile.Create(HelixSrIniPath);
+    try
+      case Settings.HelixSrSharpenerIndex of
+        1: Ini.WriteString('Sharpening', 'Sharpener', 'nvidia');
+        2: Ini.WriteString('Sharpening', 'Sharpener', 'rcas');
+      else
+        Ini.WriteString('Sharpening', 'Sharpener', 'off');
+      end;
+      Ini.WriteString('Sharpening', 'Sharpness', FormatFloat('0.00', Settings.HelixSrSharpness / 100.0, FS));
 
+      case Settings.HelixSrWaveSizeIndex of
+        1: Ini.WriteString('Compatibility', 'WaveSize', '32');
+        2: Ini.WriteString('Compatibility', 'WaveSize', '64');
+      else
+        Ini.WriteString('Compatibility', 'WaveSize', 'auto');
+      end;
+    finally
+      Ini.Free;
+    end;
+    if FileExists(HelixSrIniPath) then
+      CopyFile(HelixSrIniPath, GetGameConfigDir(Settings.ActiveGameName) + 'helixsr.ini');
+  end;
 
   // ##### Now modify fakenvapi.ini file #####
   begin
@@ -1516,6 +1600,18 @@ begin
       if i > 0 then ValStr := Copy(ValStr, 1, i - 1);
       Settings.ToggleKeys := Trim(ValStr);
 
+      ValStr := Cfg.GetValue('compare =', '');
+      Settings.Compare := SameText(ValStr, 'true');
+      ValStr := Cfg.GetValue('daltonize =', '');
+      if SameText(ValStr, 'protan') then
+        Settings.Daltonize := 1
+      else if SameText(ValStr, 'deutan') then
+        Settings.Daltonize := 2
+      else if SameText(ValStr, 'tritan') then
+        Settings.Daltonize := 3
+      else
+        Settings.Daltonize := 0;
+
       for i := 0 to 14 do
       begin
         ValStr := Cfg.GetValue(KEYS[i] + ' =', '');
@@ -1593,6 +1689,8 @@ begin
   Settings.ForceFsr4Int8Checked := True;
   Settings.LogLevelItemIndex := 2;
   Settings.UnmanagedIniChecked := False;
+  Settings.Fsr4PresetItemIndex := 0;
+  Settings.FgNvngxItemIndex := 0;
 
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
@@ -1700,6 +1798,36 @@ begin
           Settings.ForceFsr4Int8Checked := SameText(Value, 'true')
         else
           Settings.ForceFsr4Int8Checked := True;
+
+        Value := OptiCfg.GetValue(OPTI_KEY_FSR4_PRESET, '');
+        if Value = '0' then
+          Settings.Fsr4PresetItemIndex := 1
+        else if Value = '1' then
+          Settings.Fsr4PresetItemIndex := 2
+        else if Value = '2' then
+          Settings.Fsr4PresetItemIndex := 3
+        else if Value = '3' then
+          Settings.Fsr4PresetItemIndex := 4
+        else if Value = '4' then
+          Settings.Fsr4PresetItemIndex := 5
+        else if Value = '5' then
+          Settings.Fsr4PresetItemIndex := 6
+        else
+          Settings.Fsr4PresetItemIndex := 0;
+
+        Value := OptiCfg.GetValue(OPTI_KEY_FG_NVNGX, '', OPTI_INI_SECTION_FRAMEGEN);
+        if SameText(Value, 'none') then
+          Settings.FgNvngxItemIndex := 1
+        else if SameText(Value, 'nukems') then
+          Settings.FgNvngxItemIndex := 2
+        else if SameText(Value, 'arturs') then
+          Settings.FgNvngxItemIndex := 3
+        else if SameText(Value, 'ffx') then
+          Settings.FgNvngxItemIndex := 4
+        else if SameText(Value, 'combo') then
+          Settings.FgNvngxItemIndex := 5
+        else
+          Settings.FgNvngxItemIndex := 0;
 
         Value := OptiCfg.GetValue('FGInput=', '', OPTI_INI_SECTION_FRAMEGEN);
         if SameText(Value, 'nofg') then
@@ -1858,6 +1986,41 @@ begin
     finally
       ConfigLines.Free;
     end;
+  end;
+
+  // 4. Load helixsr.ini
+  ConfigPath := GetGameConfigDir(ActiveGameName) + 'HelixSR' + PathDelim + 'helixsr.ini';
+  if not FileExists(ConfigPath) then
+    ConfigPath := GetGameConfigDir(ActiveGameName) + 'helixsr.ini';
+
+  if FileExists(ConfigPath) then
+  begin
+    Ini := TIniFile.Create(ConfigPath);
+    try
+      Value := Ini.ReadString('Sharpening', 'Sharpener', 'off');
+      if SameText(Value, 'nvidia') then Settings.HelixSrSharpenerIndex := 1
+      else if SameText(Value, 'rcas') then Settings.HelixSrSharpenerIndex := 2
+      else Settings.HelixSrSharpenerIndex := 0;
+
+      Value := Ini.ReadString('Sharpening', 'Sharpness', '0.10');
+      if TryStrToFloat(Value, FloatValue, FS) then
+        Settings.HelixSrSharpness := Round(FloatValue * 100)
+      else
+        Settings.HelixSrSharpness := 10;
+
+      Value := Ini.ReadString('Compatibility', 'WaveSize', 'auto');
+      if Value = '32' then Settings.HelixSrWaveSizeIndex := 1
+      else if Value = '64' then Settings.HelixSrWaveSizeIndex := 2
+      else Settings.HelixSrWaveSizeIndex := 0;
+    finally
+      Ini.Free;
+    end;
+  end
+  else
+  begin
+    Settings.HelixSrSharpenerIndex := 0;
+    Settings.HelixSrSharpness := 10;
+    Settings.HelixSrWaveSizeIndex := 0;
   end;
 
   Result := True;
@@ -2046,6 +2209,9 @@ begin
 
     // HUD compact
     AddIfTrue(Settings.HudCompact, 'hud_compact');
+
+    // Text outline
+    AddIfTrue(Settings.TextOutline, MANGO_FLAG_TEXT_OUTLINE);
 
     // Horizontal Stretch
     if Settings.HorizontalStretch then
@@ -2308,6 +2474,9 @@ begin
 
     // Winesync
     AddIfTrue(Settings.Winesync, 'winesync');
+
+    // DX API
+    AddIfTrue(Settings.DxApi, MANGO_FLAG_DX_API);
 
     // ============= PERFORMANCE TAB =============
 

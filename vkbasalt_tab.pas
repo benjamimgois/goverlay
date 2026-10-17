@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids, git2pas,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings;
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings, toggle_switch;
 
 type
   TPipelineChipHit = record
@@ -38,6 +38,8 @@ type
     procedure ReflowVkSumiTab(AContentW: Integer);
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
+    procedure VsCompareToggleChange(Sender: TObject);
+    procedure VsDaltonizeComboChange(Sender: TObject);
     procedure VkRestoreBtnClick(Sender: TObject);
     procedure VkLutBrowseBtnClick(Sender: TObject);
     procedure VkLutClearBtnClick(Sender: TObject);
@@ -834,6 +836,39 @@ begin
     FVsRestoreBtn.SetBounds(CARD_P + 180, CARD_P + 26, 150, 30);
     StyleActionButton(FVsRestoreBtn);
 
+    FVsCompareCB := TCheckBox.Create(FForm);
+    FVsCompareCB.Parent := FForm;
+    FVsCompareCB.Visible := False;
+    FVsCompareCB.Caption := 'Split compare';
+    FVsCompareCB.Hint := 'Split compare (A/B)' + LineEnding + 'Splits screen comparing original image (left) with color-graded image (right)';
+    FVsCompareCB.ShowHint := True;
+    FVsCompareCB.OnChange := @VsCompareToggleChange;
+
+    FVsCompareToggle := TToggleSwitch.Create(FForm);
+    TToggleSwitch(FVsCompareToggle).Parent := Card;
+    TToggleSwitch(FVsCompareToggle).LinkToCheckBox(FVsCompareCB);
+    FVsCompareToggle.Height := 20;
+    FVsCompareToggle.Width := TToggleSwitch(FVsCompareToggle).GetOptimalWidth;
+
+    FVsDaltonizeLabel := TLabel.Create(Card);
+    FVsDaltonizeLabel.Parent := Card;
+    FVsDaltonizeLabel.Caption := 'Color blindness';
+    FVsDaltonizeLabel.Font.Size := 8;
+    FVsDaltonizeLabel.Font.Color := TxtClr;
+    FVsDaltonizeLabel.Transparent := True;
+
+    FVsDaltonizeCombo := TComboBox.Create(Card);
+    FVsDaltonizeCombo.Parent := Card;
+    FVsDaltonizeCombo.Style := csDropDownList;
+    FVsDaltonizeCombo.Items.Add('Off');
+    FVsDaltonizeCombo.Items.Add('Protanopia (Red-blind)');
+    FVsDaltonizeCombo.Items.Add('Deuteranopia (Green-blind)');
+    FVsDaltonizeCombo.Items.Add('Tritanopia (Blue-blind)');
+    FVsDaltonizeCombo.ItemIndex := 0;
+    FVsDaltonizeCombo.OnChange := @VsDaltonizeComboChange;
+    FVsDaltonizeCombo.Hint := 'Color blindness compensation (Daltonize)';
+    FVsDaltonizeCombo.ShowHint := True;
+
     // ── Left Card: Tone + 3-Band ──────────────────────────────────────────
     Card := MkCard(0, 400);
     FVsCards[1] := Card;
@@ -990,6 +1025,12 @@ begin
   begin
     FVsCards[0].Visible := True;
     FVsCards[0].SetBounds(Col0_X, MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP, CardWidth, 85);
+    if Assigned(FVsCompareToggle) then
+      FVsCompareToggle.SetBounds(CARD_P + 170, CARD_P + 31, TToggleSwitch(FVsCompareToggle).GetOptimalWidth, 20);
+    if Assigned(FVsDaltonizeLabel) then
+      FVsDaltonizeLabel.SetBounds(CARD_P + 170 + FVsCompareToggle.Width + 20, CARD_P + 6, 180, 18);
+    if Assigned(FVsDaltonizeCombo) then
+      FVsDaltonizeCombo.SetBounds(CARD_P + 170 + FVsCompareToggle.Width + 20, CARD_P + 26, 210, 28);
     if Assigned(FVsRestoreBtn) then
       FVsRestoreBtn.Left := CardWidth - CARD_P - FVsRestoreBtn.Width;
   end;
@@ -1078,6 +1119,26 @@ begin
     end;
     TriggerAutoSave;
   end;
+end;
+
+procedure TVkBasaltTabHelper.VsCompareToggleChange(Sender: TObject);
+begin
+  with FForm do
+    if not FLoadingConfig then
+    begin
+      SaveVkSumiConfig;
+      TriggerAutoSave;
+    end;
+end;
+
+procedure TVkBasaltTabHelper.VsDaltonizeComboChange(Sender: TObject);
+begin
+  with FForm do
+    if not FLoadingConfig then
+    begin
+      SaveVkSumiConfig;
+      TriggerAutoSave;
+    end;
 end;
 
 procedure TVkBasaltTabHelper.VkRestoreBtnClick(Sender: TObject);
