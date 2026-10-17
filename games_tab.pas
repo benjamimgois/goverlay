@@ -2904,9 +2904,11 @@ end;
 
 function TGamesTabHelper.CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string): Boolean;
 var
-  GameCfgDir, GlobalCfgDir: string;
+  GameCfgDir, GlobalCfgDir, GameLogDir: string;
   GlobalVkBasaltFile, GlobalVkSumiFile, GlobalMangoFile: string;
   BGTemplate: string;
+  MangoLines: TStringList;
+  I: Integer;
   Ini: TIniFile;
   OptiEnabled: Boolean;
 begin
@@ -2924,7 +2926,24 @@ begin
   if not FileExists(GlobalMangoFile) then
     GlobalMangoFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
   if FileExists(GlobalMangoFile) then
+  begin
     CopyFile(GlobalMangoFile, GameCfgDir + 'MangoHud.conf');
+    // Point the cloned profile's CSV output at its dedicated game log folder
+    // so logs never share the global folder between games.
+    GameLogDir := FForm.GetGameLogDir(AGameName);
+    if not DirectoryExists(GameLogDir) then
+      ForceDirectories(GameLogDir);
+    MangoLines := TStringList.Create;
+    try
+      MangoLines.LoadFromFile(GameCfgDir + 'MangoHud.conf');
+      for I := 0 to MangoLines.Count - 1 do
+        if StartsText('output_folder=', MangoLines[I]) then
+          MangoLines[I] := 'output_folder=' + GameLogDir;
+      MangoLines.SaveToFile(GameCfgDir + 'MangoHud.conf');
+    finally
+      MangoLines.Free;
+    end;
+  end;
 
   // 2. vkBasalt.conf
   GlobalVkBasaltFile := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';

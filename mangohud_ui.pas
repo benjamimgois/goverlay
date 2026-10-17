@@ -3226,6 +3226,24 @@ begin
 
   StyleBitBtnTheme(FLoggingCaptureBtn, TextColor, CARD_BG);
 
+  FExtGplotLabel := TLabel.Create(FExtLogCard);
+  FExtGplotLabel.Parent      := FExtLogCard;
+  FExtGplotLabel.Left        := 512;
+  FExtGplotLabel.Top         := 106 + HDR;
+  FExtGplotLabel.Caption     := 'Benchmark viewer';
+  FExtGplotLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+  FExtGplotLabel.Font.Style  := [fsBold];
+  FExtGplotLabel.Transparent := True;
+
+  FGplotBtn := TBitBtn.Create(FExtLogCard);
+  FGplotBtn.Parent      := FExtLogCard;
+  FGplotBtn.SetBounds(512, 127 + HDR, 140, 28);
+  FGplotBtn.Caption     := 'PasPlot';
+  FGplotBtn.OnClick     := @FForm.GplotBtnClick;
+  FGplotBtn.Cursor      := crHandPoint;
+  FGplotBtn.Font.Color  := WHITE;
+  StyleBitBtnTheme(FGplotBtn, TextColor, CARD_BG);
+
   Place(autouploadCheckBox, FExtLogCard, 530, 67 + HDR); DarkCheck(autouploadCheckBox);
   autouploadCheckBox.Visible := False;
   Place(versioningCheckBox, FExtLogCard, 665, 67 + HDR); DarkCheck(versioningCheckBox);
@@ -3408,6 +3426,16 @@ begin
     FLoggingCaptureBtn.Left  := X3;
     FLoggingCaptureBtn.Top   := 127 + HDR;
   end;
+  if Assigned(FExtGplotLabel) then
+  begin
+    FExtGplotLabel.Left      := Max(X4, X3 + 156);
+    FExtGplotLabel.Top       := 106 + HDR;
+  end;
+  if Assigned(FGplotBtn) then
+  begin
+    FGplotBtn.Left           := Max(X4, X3 + 156);
+    FGplotBtn.Top            := 127 + HDR;
+  end;
 
   autouploadCheckBox.Visible := False;
   versioningCheckBox.Visible := False;
@@ -3466,9 +3494,13 @@ begin
 
   if Assigned(logtoggleLabel) then
     logtoggleLabel.Font.Color := TextColor;
+  if Assigned(FExtGplotLabel) then
+    FExtGplotLabel.Font.Color := TextColor;
 
   if Assigned(FLoggingCaptureBtn) then
     StyleBitBtnTheme(FLoggingCaptureBtn, TextColor, CardBg);
+  if Assigned(FGplotBtn) then
+    StyleBitBtnTheme(FGplotBtn, TextColor, CardBg);
   if Assigned(logfolderBitBtn) then
     StyleBitBtnTheme(logfolderBitBtn, TextColor, CardBg);
     
@@ -3563,7 +3595,7 @@ begin
     hudtitleEdit.Text := '';
     gpunameEdit.Text := '';
     cpunameEdit.Text := '';
-    logfolderEdit.Text := GetGOverlayDataDir();
+    logfolderEdit.Text := FForm.GetGameLogDir(FForm.FActiveGameName);
     if Assigned(FFpsLimitEdit) then
       FFpsLimitEdit.Text := '0';
 
@@ -4243,7 +4275,21 @@ begin
     else if SameText(AKey, MANGO_KEY_DEVICE_BATTERY) then
       deviceCheckBox.Checked := True
     else if SameText(AKey, MANGO_KEY_OUTPUT_FOLDER) then
-      logfolderEdit.Text := AValue
+    begin
+      if (AValue = '') or
+         SameText(ExcludeTrailingPathDelimiter(AValue),
+                  ExcludeTrailingPathDelimiter(GetGOverlayDataDir())) or
+         ((FForm.FActiveGameName <> '') and
+          ((SameText(ExcludeTrailingPathDelimiter(AValue),
+                     ExcludeTrailingPathDelimiter(FForm.GetGameLogDir('')))) or
+           (SameText(ExcludeTrailingPathDelimiter(AValue),
+                     ExcludeTrailingPathDelimiter(GetGOverlayDataDir()) + '/logs/global')))) then
+        logfolderEdit.Text := FForm.GetGameLogDir(FForm.FActiveGameName)
+      else
+        logfolderEdit.Text := AValue;
+      if (logfolderEdit.Text <> '') and not DirectoryExists(logfolderEdit.Text) then
+        try ForceDirectories(logfolderEdit.Text); except end;
+    end
     else if SameText(AKey, MANGO_KEY_LOG_DURATION) then
     begin
       if TryStrToInt(AValue, IntValue) then

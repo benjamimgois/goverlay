@@ -18,7 +18,7 @@ uses
   qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils,
   goverlay_strings,
-  floating_dock, finish_dialog, floating_overlay;
+  floating_dock, finish_dialog, floating_overlay, pasplot_form;
 
 
 
@@ -1208,6 +1208,8 @@ type
     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
     FLoggingCaptureBtn: TBitBtn;
+    FExtGplotLabel:     TLabel;
+    FGplotBtn:          TBitBtn;
     FColumnsMinusBtn:   TBitBtn;
     FColumnsPlusBtn:    TBitBtn;
     // Extras tab code-generated layout
@@ -1565,6 +1567,7 @@ type
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
     procedure CaptureBtnClick(Sender: TObject);
+    procedure GplotBtnClick(Sender: TObject);
     procedure SaveVkSumiConfig;
     procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
     procedure UpdateGenericCardTheme(Card: TPanel);
@@ -4207,7 +4210,10 @@ begin
        afvalueLabel.Caption:= IntToStr(afTrackbar.Position) + 'x';
      mipmapvalueLabel.Caption:= IntToStr(mipmapTrackbar.Position);
      // Set log folder path - use XDG-compliant data directory
-     logfolderEdit.text := GetGOverlayDataDir();
+     logfolderEdit.text := GetGameLogDir(FActiveGameName);
+     if not DirectoryExists(logfolderEdit.text) then
+       try ForceDirectories(logfolderEdit.text); except end;
+     try OrganizeMangoHudCsvLogs; except end;
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
@@ -9259,6 +9265,11 @@ begin
   Key := 0; // Mark as handled
 end;
 
+procedure Tgoverlayform.GplotBtnClick(Sender: TObject);
+begin
+  ShowGplotDialog(Self, FActiveGameName);
+end;
+
 procedure Tgoverlayform.CaptureBtnClick(Sender: TObject);
 var
   Lbl: TLabel;
@@ -10309,21 +10320,13 @@ end;
 
 function Tgoverlayform.GetGameLogDir(const AGameName: string): string;
 var
-  GameDirName, BaseLogs: string;
+  BaseLogs: string;
 begin
   BaseLogs := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) + 'goverlay/logs/';
   if AGameName = '' then
-  begin
-    if DirectoryExists(BaseLogs + 'global/') then
-      Result := BaseLogs + 'global/'
-    else
-      Result := BaseLogs;
-  end
+    Result := BaseLogs
   else
-  begin
-    GameDirName := SanitizeFileName(AGameName);
-    Result := BaseLogs + GameDirName + '/';
-  end;
+    Result := BaseLogs + SanitizeFileName(AGameName) + '/';
 end;
 
 function Tgoverlayform.GetTargetCustomConfigFile: string;

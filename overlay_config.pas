@@ -2610,7 +2610,11 @@ begin
 
     // Log folder (XDG-compliant data directory)
     if Settings.LogFolder <> '' then
+    begin
+      if not DirectoryExists(Settings.LogFolder) then
+        try ForceDirectories(Settings.LogFolder); except end;
       ConfigLines.Add('output_folder=' + Settings.LogFolder);
+    end;
 
     // Log duration
     if Settings.Duration > 0 then

@@ -172,12 +172,15 @@ type
     procedure TestStartupHasMissingLibrariesChecksVkSumi;
     procedure TestHelixSRLicenseButtonAndDialog;
     procedure TestHelixSRWineValidationAndPrefixCleanup;
+    procedure TestGplotLogDirectoryAndAutoOrganization;
+    procedure TestGplotCsvParserHighFpsAndShortDuration;
+    procedure TestGplotWindowMultiRunComparisonAndPngExport;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab, pasplot_form, StrUtils;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -7833,6 +7836,199 @@ begin
   // 4. Last compile error accessors
   ClearHelixSRLastCompileError;
   AssertEquals('ClearHelixSRLastCompileError resets error string', '', GetHelixSRLastCompileError);
+end;
+
+procedure TGoverlayGuiTests.TestGplotLogDirectoryAndAutoOrganization;
+var
+  TempBase, LooseRootCsv, LooseRootSummary, LooseLogsCsv, ExpectedDir: string;
+  SL: TStringList;
+  MovedCount: Integer;
+begin
+  // 1. Default GetGameLogDir resolution
+  AssertTrue('Global GetGameLogDir ends with goverlay/logs/',
+    EndsStr('goverlay/logs/', goverlayform.GetGameLogDir('')));
+  AssertTrue('Per-game GetGameLogDir ends with goverlay/logs/Cyberpunk 2077/',
+    EndsStr('goverlay/logs/Cyberpunk 2077/', goverlayform.GetGameLogDir('Cyberpunk 2077')));
+
+  // 2. Legacy output_folder path upgrade on LoadMangoHudKeyValue
+  goverlayform.FActiveGameName := 'TestGameProfile';
+  try
+    goverlayform.LoadMangoHudKeyValue('output_folder', GetGOverlayDataDir());
+    AssertEquals('Legacy root output_folder upgraded to game log dir',
+      goverlayform.GetGameLogDir('TestGameProfile'), goverlayform.logfolderEdit.Text);
+  finally
+    goverlayform.FActiveGameName := '';
+  end;
+
+  // 3. Auto-organization of loose CSV and _summary.csv files
+  TempBase := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_gplot_org_' + IntToStr(Random(100000)) + PathDelim;
+  ForceDirectories(TempBase + 'logs');
+  try
+    LooseRootCsv := TempBase + 'pascube_2026-10-17_14-07-18.csv';
+    LooseRootSummary := TempBase + 'pascube_2026-10-17_14-07-18_summary.csv';
+    LooseLogsCsv := TempBase + 'logs' + PathDelim + 'Cyberpunk2077_2026-10-17_15-20-00.csv';
+
+    SL := TStringList.Create;
+    try
+      SL.Text := 'os,cpu,gpu' + LineEnding + 'Linux,Ryzen,Radeon' + LineEnding + 'fps,frametime,elapsed' + LineEnding + '120,8.3,100000000';
+      SL.SaveToFile(LooseRootCsv);
+      SL.SaveToFile(LooseRootSummary);
+      SL.SaveToFile(LooseLogsCsv);
+    finally
+      SL.Free;
+    end;
+
+    MovedCount := OrganizeMangoHudCsvLogs(TempBase);
+    AssertEquals('3 loose CSV files organized into game subfolders', 3, MovedCount);
+
+    ExpectedDir := TempBase + 'logs' + PathDelim + 'pascube' + PathDelim;
+    AssertTrue('pascube main CSV moved to logs/pascube/',
+      FileExists(ExpectedDir + 'pascube_2026-10-17_14-07-18.csv'));
+    AssertTrue('pascube summary CSV moved to logs/pascube/',
+      FileExists(ExpectedDir + 'pascube_2026-10-17_14-07-18_summary.csv'));
+    AssertTrue('Cyberpunk2077 CSV moved to logs/Cyberpunk2077/',
+      FileExists(TempBase + 'logs' + PathDelim + 'Cyberpunk2077' + PathDelim + 'Cyberpunk2077_2026-10-17_15-20-00.csv'));
+  finally
+    DeleteDirectory(TempBase, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGplotCsvParserHighFpsAndShortDuration;
+var
+  TempDir, CsvPath, SummaryPath: string;
+  SL: TStringList;
+  I: Integer;
+  RunData: TGplotRunData;
+  ElapsedNs: Int64;
+begin
+  TempDir := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_gplot_parse_' + IntToStr(Random(100000)) + PathDelim;
+  ForceDirectories(TempDir);
+  try
+    CsvPath := TempDir + 'pascube_2026-10-17_14-07-18.csv';
+    SummaryPath := TempDir + 'pascube_2026-10-17_14-07-18_summary.csv';
+
+    SL := TStringList.Create;
+    try
+      SL.Add('os,cpu,gpu,ram,kernel,driver,cpuscheduler');
+      SL.Add('CachyOS,AMD Ryzen 7 7800X3D 8-Core Processor,AMD Radeon RX 7900 XTX (RADV NAVI31),32452304,7.2.10-1-cachyos,,powersave');
+      SL.Add('fps,frametime,cpu_load,cpu_power,gpu_load,cpu_temp,gpu_temp,gpu_core_clock,gpu_mem_clock,gpu_vram_used,gpu_power,ram_used,swap_used,process_rss,cpu_mhz,elapsed');
+      // 600 samples (~60s at 100ms interval) at >9,000 FPS (which mangoplot rejects)
+      for I := 0 to 599 do
+      begin
+        ElapsedNs := 383645225 + Int64(I) * 100000000;
+        if I = 10 then
+          SL.Add('5200.0,0.192,3.0,25.0,10.0,49,45,220,200,3.35,32,9.5,0,0,4390,' + IntToStr(ElapsedNs))
+        else
+          SL.Add('9500.0,0.105,2.8,24.0,10.0,49,44,193,204,3.36,32,9.5,0,0,4391,' + IntToStr(ElapsedNs));
+      end;
+      SL.SaveToFile(CsvPath);
+      SL.SaveToFile(SummaryPath);
+    finally
+      SL.Free;
+    end;
+
+    AssertTrue('IsMangoHudSummaryCsv identifies _summary.csv', IsMangoHudSummaryCsv(SummaryPath));
+    AssertFalse('ParseMangoHudCsvFile rejects _summary.csv', ParseMangoHudCsvFile(SummaryPath, RunData));
+
+    AssertTrue('ParseMangoHudCsvFile succeeds on 600-sample >9000 FPS CSV', ParseMangoHudCsvFile(CsvPath, RunData));
+    AssertEquals('All 600 samples parsed', 600, RunData.SampleCount);
+    AssertEquals('Specs.OS parsed', 'CachyOS', RunData.Specs.OS);
+    AssertTrue('Specs.CPU parsed', Pos('7800X3D', RunData.Specs.CPU) > 0);
+    AssertTrue('Specs.GPU parsed', Pos('7900 XTX', RunData.Specs.GPU) > 0);
+    AssertTrue('AvgFps > 9400 FPS (not capped at 1000)', RunData.AvgFps > 9400.0);
+    AssertTrue('MinFps is 5200', Abs(RunData.MinFps - 5200.0) < 1.0);
+    AssertTrue('Fps1Low computed', RunData.Fps1Low > 5000.0);
+    AssertTrue('Fps01Low computed', RunData.Fps01Low > 5000.0);
+    AssertTrue('DurationSec is ~59.9s', (RunData.DurationSec > 58.0) and (RunData.DurationSec < 61.0));
+  finally
+    DeleteDirectory(TempDir, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGplotWindowMultiRunComparisonAndPngExport;
+var
+  TempBase, GameLogsDir, Run1Path, Run2Path, SummaryPath, PngPath: string;
+  SL: TStringList;
+  I: Integer;
+  Dlg: TgplotForm;
+begin
+  // 1. Verify FGplotBtn placement in FExtLogCard on Extras tab
+  NavigateMangoHud;
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.extrasTabSheet;
+  goverlayform.ReflowExtrasTab(800);
+  AssertNotNull('FGplotBtn is created', goverlayform.FGplotBtn);
+  AssertNotNull('FExtGplotLabel is created', goverlayform.FExtGplotLabel);
+  AssertTrue('FGplotBtn is parented to FExtLogCard', goverlayform.FGplotBtn.Parent = goverlayform.FExtLogCard);
+  AssertEquals('FGplotBtn caption is PasPlot', 'PasPlot', goverlayform.FGplotBtn.Caption);
+
+  // 2. Seed two benchmark runs + a companion _summary.csv for pascube
+  TempBase := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_gplot_ui_' + IntToStr(Random(100000)) + PathDelim;
+  GameLogsDir := TempBase + 'logs' + PathDelim + 'pascube' + PathDelim;
+  ForceDirectories(GameLogsDir);
+  try
+    Run1Path := GameLogsDir + 'pascube_2026-10-17_14-00-00.csv';
+    Run2Path := GameLogsDir + 'pascube_2026-10-17_14-10-00.csv';
+    SummaryPath := GameLogsDir + 'pascube_2026-10-17_14-10-00_summary.csv';
+
+    SL := TStringList.Create;
+    try
+      SL.Add('os,cpu,gpu,ram,kernel,driver,cpuscheduler');
+      SL.Add('CachyOS,AMD Ryzen 7 7800X3D,AMD Radeon RX 7900 XTX,32452304,7.2.10,,powersave');
+      SL.Add('fps,frametime,cpu_load,cpu_power,gpu_load,cpu_temp,gpu_temp,gpu_vram_used,gpu_power,elapsed');
+      for I := 0 to 19 do
+        SL.Add(Format('100.0,10.0,25.0,45.0,80.0,60,65,4.5,180,%d', [Int64(I) * 1000000000]));
+      SL.SaveToFile(Run1Path);
+
+      SL.Clear;
+      SL.Add('os,cpu,gpu,ram,kernel,driver,cpuscheduler');
+      SL.Add('CachyOS,AMD Ryzen 7 7800X3D,AMD Radeon RX 7900 XTX,32452304,7.2.10,,powersave');
+      SL.Add('fps,frametime,cpu_load,cpu_power,gpu_load,cpu_temp,gpu_temp,gpu_vram_used,gpu_power,elapsed');
+      for I := 0 to 19 do
+        SL.Add(Format('120.0,8.33,28.0,50.0,85.0,62,68,4.8,195,%d', [Int64(I) * 1000000000]));
+      SL.SaveToFile(Run2Path);
+      SL.SaveToFile(SummaryPath);
+    finally
+      SL.Free;
+    end;
+
+    Dlg := TgplotForm.Create(nil, 'pascube', TempBase);
+    try
+      AssertEquals('GameComboBox selected pascube', 'pascube', Dlg.GameComboBox.Text);
+      AssertEquals('RunCheckListBox lists 2 runs (excluding _summary.csv)', 2, Dlg.RunCheckListBox.Items.Count);
+      AssertEquals('Newest run is checked by default', 1, Dlg.SelectedRunCount);
+
+      // Check both runs for comparison
+      Dlg.RunCheckListBox.Checked[0] := True;
+      Dlg.RunCheckListBox.Checked[1] := True;
+      // Trigger reload via OnClickCheck
+      Dlg.RunCheckListBox.OnClickCheck(Dlg.RunCheckListBox);
+      AssertEquals('Both runs loaded for comparison', 2, Dlg.SelectedRunCount);
+      AssertEquals('StatsGrid has header + 2 rows', 3, Dlg.StatsGrid.RowCount);
+      AssertEquals('First checked run is Baseline', 'Baseline', Dlg.StatsGrid.Cells[7, 1]);
+      AssertTrue('Second checked run shows percentage delta', Pos('%', Dlg.StatsGrid.Cells[7, 2]) > 0);
+
+      // Cycle view modes and export PNG
+      PngPath := TempBase + 'exported_chart.png';
+      Dlg.ViewMode := gvmTimeline;
+      AssertTrue('ExportToPngFile succeeds in Timeline mode', Dlg.ExportToPngFile(PngPath));
+      AssertTrue('Exported PNG exists on disk', FileExists(PngPath));
+      AssertTrue('Exported PNG is non-empty', FileSize(PngPath) > 500);
+
+      DeleteFile(PngPath);
+      Dlg.ViewMode := gvmSummary;
+      AssertTrue('ExportToPngFile succeeds in Summary mode', Dlg.ExportToPngFile(PngPath));
+      AssertTrue('Exported Summary PNG exists', FileExists(PngPath));
+
+      DeleteFile(PngPath);
+      Dlg.ViewMode := gvmHardware;
+      AssertTrue('ExportToPngFile succeeds in Hardware mode', Dlg.ExportToPngFile(PngPath));
+      AssertTrue('Exported Hardware PNG exists', FileExists(PngPath));
+    finally
+      Dlg.Free;
+    end;
+  finally
+    DeleteDirectory(TempBase, False);
+  end;
 end;
 
 initialization
