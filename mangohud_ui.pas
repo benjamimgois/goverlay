@@ -1230,24 +1230,22 @@ begin
   FhidehudToggle.Width  := FhidehudToggle.GetOptimalWidth;
   FVisualToggles.Add(FhidehudToggle);
 
-  // Create and link Text outline toggle switch in Fonts section
+  // Create and link Text outline toggle switch
   if not Assigned(textoutlineCheckBox) then
   begin
-    textoutlineCheckBox := TCheckBox.Create(FForm);
+    textoutlineCheckBox := TCheckBox.Create(FVisualHudBar);
     textoutlineCheckBox.Name := 'textoutlineCheckBox';
-    textoutlineCheckBox.Parent := FVisualSections[3];
+    textoutlineCheckBox.Parent := FVisualHudBar;
     textoutlineCheckBox.Caption := 'Text outline';
     textoutlineCheckBox.Visible := False;
   end;
   textoutlineCheckBox.Hint := 'Text outline' + LineEnding + 'Renders high-contrast outline around text';
   textoutlineCheckBox.ShowHint := True;
   FtextoutlineToggle := TToggleSwitch.Create(FForm);
-  FtextoutlineToggle.Parent := FVisualSections[3];
+  FtextoutlineToggle.Parent := FVisualHudBar;
   FtextoutlineToggle.LinkToCheckBox(textoutlineCheckBox);
   FtextoutlineToggle.Height := 20;
   FtextoutlineToggle.Width  := FtextoutlineToggle.GetOptimalWidth;
-  FtextoutlineToggle.Left   := 6;
-  FtextoutlineToggle.Top    := 178;
   FVisualToggles.Add(FtextoutlineToggle);
   end;
 end;
@@ -1379,11 +1377,6 @@ begin
   fontsizeTrackBar.Width  := Max(30, SecW1 - 60 - 44);
   fontsizevalueLabel.Left := 60 + fontsizeTrackBar.Width + 8;
   fontsizevalueLabel.Top  := fontsizeTrackBar.Top + 2;
-  if Assigned(FtextoutlineToggle) then
-  begin
-    FtextoutlineToggle.Left := 6;
-    FtextoutlineToggle.Top  := 178;
-  end;
 
   // Position section: Image fills panel, radio buttons proportional within it
   ImgW := SecW2 - 8;
@@ -1442,6 +1435,7 @@ begin
     if Assigned(FhudcompactToggle) then FhudcompactToggle.Top := CY;
     if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.Top := CY;
     if Assigned(FhidehudToggle) then FhidehudToggle.Top := CY;
+    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.Top := CY;
 
     // Position toggles sequentially to the right of FVisualCaptureBtn
     ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 24;
@@ -1458,6 +1452,11 @@ begin
     if Assigned(FhidehudToggle) then
     begin
       FhidehudToggle.Left := ToggleRight;
+      ToggleRight := FhidehudToggle.Left + FhidehudToggle.Width + 18;
+    end;
+    if Assigned(FtextoutlineToggle) then
+    begin
+      FtextoutlineToggle.Left := ToggleRight;
     end;
   end;
   end;
