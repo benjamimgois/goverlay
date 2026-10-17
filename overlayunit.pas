@@ -6015,6 +6015,7 @@ var
   Idx: Integer;
   CompileThread: THelixSRCompileThread;
   CompileSuccess: Boolean;
+  ErrDetail: string;
 begin
   if Assigned(helixsrRadioButton) and not helixsrRadioButton.Checked then Exit;
 
@@ -6097,7 +6098,15 @@ begin
     if CompileSuccess then
       ShowToast(ntSuccess, 'HelixSR compiled successfully!', 4000)
     else
-      ShowToast(ntError, 'HelixSR compilation failed. Ensure Wine/Proton and Python are available.', 6000);
+    begin
+      ErrDetail := GetHelixSRLastCompileError;
+      if (Pos('wine', LowerCase(ErrDetail)) > 0) or
+         (Pos('proton', LowerCase(ErrDetail)) > 0) or
+         (Pos('kernel32', LowerCase(ErrDetail)) > 0) then
+        ShowToast(ntError, 'HelixSR compilation failed: ' + ErrDetail + '. Ensure system Wine or compatible Proton is installed.', 7000)
+      else
+        ShowToast(ntError, 'HelixSR compilation failed. Ensure Wine/Proton and Python are available.', 6000);
+    end;
   end;
 
   RefreshOsStatusDots;

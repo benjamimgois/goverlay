@@ -46,6 +46,23 @@ function IsHelixSRCompiled(const ARootPath: string = ''): Boolean;
 // Compile the HelixSR neural shaders/kernels on demand by running helixsr-setup.sh
 function CompileHelixSR(AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Retrieve/clear the descriptive error recorded by the last HelixSR compilation.
+function GetHelixSRLastCompileError: string;
+procedure ClearHelixSRLastCompileError;
+
+// Remove a stale/corrupted HelixSR Wine prefix before a new compilation run.
+procedure CleanHelixSRWinePrefix;
+
+// Validate that the given Wine executable can run (`--version`, exit code 0).
+function IsWineExecutableValid(const AWinePath: string): Boolean;
+
+// Resolve the best validated Wine runtime available on this host.
+function FindWorkingWineForHelixSR: string;
+
+// Harden the bundled helixsr-setup.sh (prefix purge, HELIXSR_WINE, system Wine
+// preference and WINEARCH=win64 wrapper) so compilation is robust on Wine/Proton.
+procedure SanitizeHelixSRSetupScript(const AWorkDir: string);
+
 // Audit mandatory upscaler and DLSS libraries on disk
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean; overload;
 function HasMissingMandatoryLibraries: Boolean; overload;
@@ -242,6 +259,9 @@ type
   public
     constructor Create(AOptiTab: TOptiscalerTab);
   end;
+
+var
+  FHelixSRLastCompileError: string = '';
 
 // Extract the latest release tag from a GitHub releases Atom XML feed.
 // Inspection strategy: locate the first <entry> block, then read the tag either
@@ -4409,6 +4429,264 @@ begin
   end;
 end;
 
+// Resolve the HelixSR data directory (honours XDG_DATA_HOME).
+function GetHelixSRDataDir: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if Trim(DataHome) = '' then
+    Result := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share' + PathDelim + 'HelixSR'
+  else
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'HelixSR';
+end;
+
+function GetHelixSRLastCompileError: string;
+begin
+  Result := FHelixSRLastCompileError;
+end;
+
+procedure ClearHelixSRLastCompileError;
+begin
+  FHelixSRLastCompileError := '';
+end;
+
+procedure CleanHelixSRWinePrefix;
+var
+  PrefixDir: string;
+begin
+  PrefixDir := IncludeTrailingPathDelimiter(GetHelixSRDataDir) + 'wineprefix';
+  if DirectoryExists(PrefixDir) then
+  begin
+    WriteLn('[HELIXSR] Removing stale Wine prefix: ', PrefixDir);
+    DeleteDirectory(PrefixDir, False);
+  end;
+end;
+
+function IsWineExecutableValid(const AWinePath: string): Boolean;
+var
+  Process: TProcess;
+begin
+  Result := False;
+  if Trim(AWinePath) = '' then Exit;
+  if not FileExists(AWinePath) then Exit;
+  try
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := AWinePath;
+      Process.Parameters.Add('--version');
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+      Result := Process.ExitStatus = 0;
+    finally
+      Process.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function FindWorkingWineForHelixSR: string;
+var
+  Candidates: TStringList;
+  HomeDir, EnvWine, Candidate: string;
+  I: Integer;
+
+  procedure AddCandidate(const APath: string);
+  begin
+    if (Trim(APath) <> '') and (Candidates.IndexOf(APath) < 0) then
+      Candidates.Add(APath);
+  end;
+
+  procedure AddDirCandidates(const ADirPattern, ASubPath: string);
+  var
+    SR: TSearchRec;
+    BaseDir: string;
+  begin
+    BaseDir := IncludeTrailingPathDelimiter(ExtractFilePath(ADirPattern));
+    if FindFirst(ADirPattern, faDirectory, SR) = 0 then
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) = faDirectory) then
+          AddCandidate(IncludeTrailingPathDelimiter(BaseDir + SR.Name) + ASubPath);
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+
+begin
+  Result := '';
+  Candidates := TStringList.Create;
+  try
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+
+    // 1) Explicitly supplied runtime.
+    EnvWine := Trim(GetEnvironmentVariable('HELIXSR_WINE'));
+    if (EnvWine <> '') and FileExists(EnvWine) then
+      AddCandidate(EnvWine);
+
+    // 2) Native system Wine.
+    AddCandidate('/usr/bin/wine');
+    AddCandidate('/usr/local/bin/wine');
+
+    // 3) Steam custom compatibility tools (Proton-GE and friends).
+    AddDirCandidates(HomeDir + '.local/share/Steam/compatibilitytools.d/*', 'files/bin/wine');
+    AddDirCandidates(HomeDir + '.steam/root/compatibilitytools.d/*', 'files/bin/wine');
+
+    // 4) Official stable Proton builds.
+    AddCandidate(HomeDir + '.local/share/Steam/steamapps/common/Proton 9.0/files/bin/wine');
+    AddCandidate(HomeDir + '.local/share/Steam/steamapps/common/Proton - Experimental/files/bin/wine');
+
+    // 5) Any other Proton build as a last resort.
+    AddDirCandidates(HomeDir + '.local/share/Steam/steamapps/common/Proton*', 'files/bin/wine');
+
+    for I := 0 to Candidates.Count - 1 do
+    begin
+      Candidate := Candidates[I];
+      if FileExists(Candidate) and IsWineExecutableValid(Candidate) then
+        Exit(Candidate);
+    end;
+  finally
+    Candidates.Free;
+  end;
+end;
+
+procedure SanitizeHelixSRSetupScript(const AWorkDir: string);
+var
+  ScriptPath, OriginalText, NewText: string;
+  Lines: TStringList;
+  I, WineLine, EndLine, FirstProtonLine, Deletes: Integer;
+  HasCleanupBefore: Boolean;
+
+  function FindLineContaining(const ANeedle: string; AStart: Integer): Integer;
+  var
+    J: Integer;
+  begin
+    Result := -1;
+    for J := AStart to Lines.Count - 1 do
+      if Pos(ANeedle, Lines[J]) > 0 then
+      begin
+        Result := J;
+        Exit;
+      end;
+  end;
+
+begin
+  ScriptPath := IncludeTrailingPathDelimiter(AWorkDir) + 'helixsr-setup.sh';
+  if not FileExists(ScriptPath) then Exit;
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(ScriptPath);
+    OriginalText := Lines.Text;
+
+    // 1) Locate the Wine discovery block.
+    WineLine := FindLineContaining('WINE=""', 0);
+    if WineLine < 0 then
+      WineLine := FindLineContaining('for p in', 0);
+
+    // 2) Purge a stale prefix before any Wine setup (idempotent).
+    HasCleanupBefore := False;
+    if WineLine >= 0 then
+    begin
+      for I := 0 to WineLine do
+        if Pos('rm -rf "$DATA/wineprefix"', Lines[I]) > 0 then
+        begin
+          HasCleanupBefore := True;
+          Break;
+        end;
+    end;
+    if not HasCleanupBefore then
+    begin
+      if WineLine < 0 then
+        WineLine := FindLineContaining('# --- shader compiler', 0);
+      if WineLine >= 0 then
+        Lines.Insert(WineLine, 'rm -rf "$DATA/wineprefix"   # GOverlay: purge stale Wine prefix before setup');
+    end;
+
+    // 3) Replace the discovery block with a validated, prioritised fallback.
+    WineLine := FindLineContaining('WINE=""', 0);
+    if WineLine >= 0 then
+    begin
+      EndLine := -1;
+      for I := WineLine + 1 to Lines.Count - 1 do
+        if (Pos('[ -n "$WINE" ]', Lines[I]) > 0) or (Pos('no Proton or Wine found', Lines[I]) > 0) then
+        begin
+          EndLine := I;
+          Break;
+        end;
+      if EndLine <= WineLine then
+        EndLine := WineLine + 1;
+
+      Deletes := EndLine - WineLine - 1;
+      for I := 1 to Deletes do
+        Lines.Delete(WineLine + 1);
+
+      Lines.Insert(WineLine + 1, '# GOverlay: honour a pre-validated runtime supplied by GOverlay');
+      Lines.Insert(WineLine + 2, 'if [ -n "${HELIXSR_WINE:-}" ] && [ -x "$HELIXSR_WINE" ]; then WINE="$HELIXSR_WINE"; fi');
+      Lines.Insert(WineLine + 3, '# GOverlay: prefer a working system Wine before unverified Proton builds');
+      Lines.Insert(WineLine + 4, 'if [ -z "$WINE" ] && command -v wine >/dev/null 2>&1; then WINE=$(command -v wine); fi');
+      Lines.Insert(WineLine + 5, '# GOverlay: stable official Proton builds next');
+      Lines.Insert(WineLine + 6, 'if [ -z "$WINE" ]; then');
+      Lines.Insert(WineLine + 7, '    for p in "$HOME"/.local/share/Steam/steamapps/common/Proton\ 9.0/files/bin/wine \');
+      Lines.Insert(WineLine + 8, '             "$HOME"/.local/share/Steam/steamapps/common/Proton\ -\ Experimental/files/bin/wine \');
+      Lines.Insert(WineLine + 9, '             "$HOME"/.steam/steam/steamapps/common/Proton\ 9.0/files/bin/wine \');
+      Lines.Insert(WineLine + 10, '             "$HOME"/.steam/steam/steamapps/common/Proton\ -\ Experimental/files/bin/wine; do');
+      Lines.Insert(WineLine + 11, '        if [ -x "$p" ]; then WINE="$p"; break; fi');
+      Lines.Insert(WineLine + 12, '    done');
+      Lines.Insert(WineLine + 13, 'fi');
+      Lines.Insert(WineLine + 14, '# GOverlay: custom compatibility tools, then remaining Proton builds');
+      Lines.Insert(WineLine + 15, 'if [ -z "$WINE" ]; then');
+      Lines.Insert(WineLine + 16, '    for p in "$HOME"/.local/share/Steam/compatibilitytools.d/*/files/bin/wine \');
+      Lines.Insert(WineLine + 17, '             "$HOME"/.steam/root/compatibilitytools.d/*/files/bin/wine \');
+      Lines.Insert(WineLine + 18, '             "$HOME"/.local/share/Steam/steamapps/common/Proton*/files/bin/wine \');
+      Lines.Insert(WineLine + 19, '             "$HOME"/.steam/steam/steamapps/common/Proton*/files/bin/wine; do');
+      Lines.Insert(WineLine + 20, '        if [ -x "$p" ]; then WINE="$p"; break; fi');
+      Lines.Insert(WineLine + 21, '    done');
+      Lines.Insert(WineLine + 22, 'fi');
+    end
+    else
+    begin
+      // Fallback for an unexpected script layout: ensure HELIXSR_WINE and a
+      // system-Wine probe precede the first Proton glob.
+      FirstProtonLine := FindLineContaining('for p in', 0);
+      if (FirstProtonLine >= 0) and (Pos('HELIXSR_WINE', Lines.Text) = 0) then
+      begin
+        Lines.Insert(FirstProtonLine, 'if [ -n "${HELIXSR_WINE:-}" ] && [ -x "$HELIXSR_WINE" ]; then WINE="$HELIXSR_WINE"; fi');
+        Lines.Insert(FirstProtonLine + 1, 'if [ -z "$WINE" ] && command -v wine >/dev/null 2>&1; then WINE=$(command -v wine); fi');
+      end;
+    end;
+
+    NewText := Lines.Text;
+
+    // 4) Force win64 in the generated DXC wrapper.
+    if Pos('WINEARCH=win64', NewText) = 0 then
+    begin
+      if Pos('WINEPREFIX="$DATA/wineprefix" WINEDEBUG=-all exec', NewText) > 0 then
+        NewText := StringReplace(NewText, 'WINEPREFIX="$DATA/wineprefix" WINEDEBUG=-all exec',
+          'WINEARCH=win64 WINEPREFIX="$DATA/wineprefix" WINEDEBUG=-all exec', [rfReplaceAll])
+      else if Pos('WINEPREFIX="$DATA/wineprefix"', NewText) > 0 then
+        NewText := StringReplace(NewText, 'WINEPREFIX="$DATA/wineprefix"',
+          'WINEARCH=win64 WINEPREFIX="$DATA/wineprefix"', [rfReplaceAll]);
+    end;
+
+    if NewText <> OriginalText then
+    begin
+      Lines.Text := NewText;
+      try
+        Lines.SaveToFile(ScriptPath);
+        WriteLn('[HELIXSR] Sanitized helixsr-setup.sh Wine/Proton discovery and prefix handling.');
+      except
+        on E: Exception do
+          WriteLn('[HELIXSR] WARNING: could not write sanitized helixsr-setup.sh: ', E.Message);
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
 // Compile the HelixSR neural shaders/kernels on demand. Runs the bundled
 // helixsr-setup.sh in the HelixSR runtime path and reports staged progress.
 function CompileHelixSR(AOnProgress: TDownloadProgressProc): Boolean;
@@ -4417,15 +4695,28 @@ var
   Process: TProcess;
   Buffer: array[0..4095] of Byte;
   Count, i: Integer;
-  Pending, Line, L: string;
+  Pending, Line, L, Cmd, WinePath: string;
 
   procedure EmitLine(const ALine: string);
   var
     PctPos, StartPos, PctVal: Integer;
     PctStr, LabelStr: string;
   begin
-    if not Assigned(AOnProgress) then Exit;
     L := LowerCase(ALine);
+
+    // 0. Capture Wine/DXC failure signatures for actionable diagnostics.
+    if Pos('c0000135', L) > 0 then
+      FHelixSRLastCompileError := 'Wine prefix initialization failed (c0000135 STATUS_DLL_NOT_FOUND: kernel32.dll could not be loaded).'
+    else if Pos('kernel32', L) > 0 then
+      FHelixSRLastCompileError := 'Wine could not load kernel32.dll; the selected Wine/Proton runtime is unusable on this host.'
+    else if Pos('could not open working directory', L) > 0 then
+      FHelixSRLastCompileError := 'Wine could not open the prefix working directory (C:\windows\system32\).'
+    else if Pos('no proton or wine found', L) > 0 then
+      FHelixSRLastCompileError := 'No working Wine or Proton runtime was found for the shader compiler.'
+    else if (Pos('dxc-wine.sh', L) > 0) and (Pos('failed', L) > 0) then
+      FHelixSRLastCompileError := 'The DirectX Shader Compiler wrapper (dxc-wine.sh) failed to run through Wine/Proton.';
+
+    if not Assigned(AOnProgress) then Exit;
 
     // 1. Detect percentage if emitted by helixsr_setup.py: "[helixsr-setup] [###---]  35% 0:12 extract weights"
     PctPos := Pos('%', ALine);
@@ -4472,20 +4763,40 @@ begin
   Result := False;
   WorkDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
 
+  // Always start from a clean state: stale prefixes are the most common cause
+  // of c0000135/kernel32 failures on subsequent runs.
+  ClearHelixSRLastCompileError;
+  CleanHelixSRWinePrefix;
+
   if not FileExists(WorkDir + 'helixsr-setup.sh') then
   begin
     WriteLn('[HELIXSR] Cannot compile: helixsr-setup.sh not found in ', WorkDir);
+    FHelixSRLastCompileError := 'helixsr-setup.sh was not found in ' + WorkDir;
     Exit;
   end;
 
+  SanitizeHelixSRSetupScript(WorkDir);
+
   if Assigned(AOnProgress) then
     AOnProgress(5, 'Preparing HelixSR neural compilation...');
+
+  // Prefer a runtime that we have validated by executing it.
+  WinePath := FindWorkingWineForHelixSR;
+  Cmd := 'chmod +x ./helixsr-setup.sh ./setup/lib/model/launch_synth 2>/dev/null; ';
+  if WinePath <> '' then
+  begin
+    WriteLn('[HELIXSR] Using validated Wine runtime: ', WinePath);
+    Cmd := Cmd + 'export HELIXSR_WINE=' + QuotedStr(WinePath) + '; ';
+  end
+  else
+    WriteLn('[HELIXSR] No validated Wine/Proton runtime found; relying on setup script discovery.');
+  Cmd := Cmd + './helixsr-setup.sh --yes < /dev/null';
 
   Process := TProcess.Create(nil);
   try
     Process.Executable := 'sh';
     Process.Parameters.Add('-c');
-    Process.Parameters.Add('chmod +x ./helixsr-setup.sh ./setup/lib/model/launch_synth 2>/dev/null; ./helixsr-setup.sh --yes < /dev/null');
+    Process.Parameters.Add(Cmd);
     Process.CurrentDirectory := ExcludeTrailingPathDelimiter(WorkDir);
     Process.Options := [poUsePipes, poStderrToOutPut];
     Process.Execute;
@@ -4549,6 +4860,9 @@ begin
   finally
     Process.Free;
   end;
+
+  if (not Result) and (FHelixSRLastCompileError = '') then
+    FHelixSRLastCompileError := 'HelixSR compilation failed: no compiled runtime was produced. Ensure Wine/Proton and Python are available.';
 
   if Assigned(AOnProgress) then
   begin

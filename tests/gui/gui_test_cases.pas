@@ -171,6 +171,7 @@ type
     procedure TestStartupHasMissingLibrariesChecksOptiPatcher;
     procedure TestStartupHasMissingLibrariesChecksVkSumi;
     procedure TestHelixSRLicenseButtonAndDialog;
+    procedure TestHelixSRWineValidationAndPrefixCleanup;
   end;
 
 implementation
@@ -7764,6 +7765,74 @@ begin
     FileExists(LicensePath));
   AssertTrue('Written LICENSE contains the license title',
     Pos('HelixSR Freeware License', ReadFileText(LicensePath)) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestHelixSRWineValidationAndPrefixCleanup;
+var
+  DataHome, PrefixDir, DummyDir, ScriptPath, ScriptContent, SanitizedContent: string;
+  SL: TStringList;
+begin
+  // 1. Prefix cleanup
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := IncludeTrailingPathDelimiter(GetUserDir + '.local/share') + 'HelixSR'
+  else
+    DataHome := IncludeTrailingPathDelimiter(DataHome) + 'HelixSR';
+  PrefixDir := IncludeTrailingPathDelimiter(DataHome) + 'wineprefix';
+
+  ForceDirectories(PrefixDir);
+  SL := TStringList.Create;
+  try
+    SL.Text := 'dummy_wine_file';
+    SL.SaveToFile(PrefixDir + PathDelim + 'test.txt');
+  finally
+    SL.Free;
+  end;
+  AssertTrue('Stale prefix directory created', DirectoryExists(PrefixDir));
+
+  CleanHelixSRWinePrefix;
+  AssertFalse('CleanHelixSRWinePrefix purged stale wineprefix', DirectoryExists(PrefixDir));
+
+  // 2. Wine executable validation
+  AssertFalse('IsWineExecutableValid returns false for non-existent path',
+    IsWineExecutableValid('/path/to/nonexistent/wine'));
+
+  // 3. Setup script sanitization
+  DummyDir := IncludeTrailingPathDelimiter(GetTempDir) + 'test_helixsr_' + IntToStr(Random(100000)) + PathDelim;
+  ForceDirectories(DummyDir);
+  ScriptPath := DummyDir + 'helixsr-setup.sh';
+  try
+    ScriptContent :=
+      '#!/bin/bash' + LineEnding +
+      '# --- shader compiler: Microsoft''s DXC (Windows build) through Proton/Wine ---' + LineEnding +
+      'WINE=""' + LineEnding +
+      'for p in "$HOME"/.local/share/Steam/steamapps/common/Proton*/files/bin/wine; do' + LineEnding +
+      '    if [ -x "$p" ]; then WINE="$p"; break; fi' + LineEnding +
+      'done' + LineEnding +
+      '[ -n "$WINE" ] || die "no Proton or Wine found"' + LineEnding +
+      'WINEPREFIX="$DATA/wineprefix" WINEDEBUG=-all exec "$WINE" "$DATA/dxc-win/bin/x64/dxc.exe" "$@"' + LineEnding;
+
+    SL := TStringList.Create;
+    try
+      SL.Text := ScriptContent;
+      SL.SaveToFile(ScriptPath);
+    finally
+      SL.Free;
+    end;
+
+    SanitizeHelixSRSetupScript(DummyDir);
+
+    SanitizedContent := ReadFileText(ScriptPath);
+    AssertTrue('Sanitized script purges wineprefix', Pos('rm -rf "$DATA/wineprefix"', SanitizedContent) > 0);
+    AssertTrue('Sanitized script respects HELIXSR_WINE', Pos('HELIXSR_WINE', SanitizedContent) > 0);
+    AssertTrue('Sanitized script sets WINEARCH=win64', Pos('WINEARCH=win64', SanitizedContent) > 0);
+  finally
+    DeleteDirectory(DummyDir, False);
+  end;
+
+  // 4. Last compile error accessors
+  ClearHelixSRLastCompileError;
+  AssertEquals('ClearHelixSRLastCompileError resets error string', '', GetHelixSRLastCompileError);
 end;
 
 initialization
