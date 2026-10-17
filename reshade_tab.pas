@@ -673,7 +673,7 @@ begin
 
   FStatusTitleLbl := TLabel.Create(FStatusCard);
   FStatusTitleLbl.Parent := FStatusCard;
-  StyleMainCard(FStatusCard, FStatusTitleLbl, 'Software status');
+  StyleMainCard(FStatusCard, FStatusTitleLbl, 'Software Status');
 
   // Row 1: ReShade
   FStatDot := TShape.Create(FStatusCard);
@@ -686,7 +686,8 @@ begin
   FStatNameLbl := TLabel.Create(FStatusCard);
   FStatNameLbl.Parent := FStatusCard;
   FStatNameLbl.Caption := 'ReShade';
-  FStatNameLbl.Font.Color := $AAAAAA;
+  FStatNameLbl.Font.Name := UI_FONT_FAMILY;
+  FStatNameLbl.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FStatNameLbl.Font.Size := 9;
   FStatNameLbl.Font.Style := [fsBold];
   FStatNameLbl.AutoSize := True;
@@ -697,8 +698,10 @@ begin
   FStatVerLbl := TLabel.Create(FStatusCard);
   FStatVerLbl.Parent := FStatusCard;
   FStatVerLbl.Caption := '—';
+  FStatVerLbl.Font.Name := UI_FONT_FAMILY;
   FStatVerLbl.Font.Color := $00666666;
   FStatVerLbl.Font.Size := 9;
+  FStatVerLbl.Font.Style := [];
   FStatVerLbl.AutoSize := True;
   FStatVerLbl.Transparent := True;
   FStatVerLbl.Left := FStatNameLbl.Left + 65;
@@ -723,7 +726,8 @@ begin
   FVkStatNameLbl := TLabel.Create(FStatusCard);
   FVkStatNameLbl.Parent := FStatusCard;
   FVkStatNameLbl.Caption := 'vkBasalt';
-  FVkStatNameLbl.Font.Color := $AAAAAA;
+  FVkStatNameLbl.Font.Name := UI_FONT_FAMILY;
+  FVkStatNameLbl.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FVkStatNameLbl.Font.Size := 9;
   FVkStatNameLbl.Font.Style := [fsBold];
   FVkStatNameLbl.AutoSize := True;
@@ -734,8 +738,10 @@ begin
   FVkStatVerLbl := TLabel.Create(FStatusCard);
   FVkStatVerLbl.Parent := FStatusCard;
   FVkStatVerLbl.Caption := '—';
+  FVkStatVerLbl.Font.Name := UI_FONT_FAMILY;
   FVkStatVerLbl.Font.Color := $00666666;
   FVkStatVerLbl.Font.Size := 9;
+  FVkStatVerLbl.Font.Style := [];
   FVkStatVerLbl.AutoSize := True;
   FVkStatVerLbl.Transparent := True;
   FVkStatVerLbl.Left := FVkStatNameLbl.Left + 65;

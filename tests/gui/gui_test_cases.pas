@@ -169,13 +169,14 @@ type
     procedure TestGameModeWarningSuppressedOnConfigLoad;
     procedure TestStartupHelixSRVerificationAndCompanionSync;
     procedure TestStartupHasMissingLibrariesChecksOptiPatcher;
+    procedure TestStartupHasMissingLibrariesChecksVkSumi;
     procedure TestHelixSRLicenseButtonAndDialog;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -7565,6 +7566,161 @@ begin
   // 3. CheckAndInstallOptiPatcher returns True when a local copy already exists
   AssertTrue('CheckAndInstallOptiPatcher returns True when ASI exists',
     CheckAndInstallOptiPatcher(False));
+end;
+
+procedure TGoverlayGuiTests.TestStartupHasMissingLibrariesChecksVkSumi;
+var
+  Missing: TStringList;
+  SoFile, JsonFile, VersionFile: string;
+  VarsFile, VarsBackup: string;
+  BkSo, BkJson: string;
+  SoExisted, JsonExisted, VarsExisted: Boolean;
+  DataHome: string;
+  FS: TFileStream;
+  SL: TStringList;
+  Magic: array[0..3] of Byte;
+  Zeros: array[0..65535] of Byte;
+begin
+  SoFile := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim + 'libVkLayer_vksumi.so';
+  VersionFile := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim + 'version.txt';
+
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := IncludeTrailingPathDelimiter(GetUserDir + '.local/share')
+  else
+    DataHome := IncludeTrailingPathDelimiter(DataHome);
+  JsonFile := DataHome + 'vulkan' + PathDelim + 'implicit_layer.d' + PathDelim + 'vksumi.json';
+
+  VarsFile := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+
+  BkSo := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_test_so.bak';
+  BkJson := IncludeTrailingPathDelimiter(GetTempDir) + 'vksumi_test_json.bak';
+
+  SoExisted := FileExists(SoFile);
+  JsonExisted := FileExists(JsonFile);
+  VarsExisted := FileExists(VarsFile);
+  if SoExisted then CopyFile(SoFile, BkSo);
+  if JsonExisted then CopyFile(JsonFile, BkJson);
+  if VarsExisted then VarsBackup := ReadFileText(VarsFile) else VarsBackup := '';
+
+  try
+    // 1. Missing user-space layer -> HasMissingMandatoryLibraries reports vkSumi
+    if FileExists(SoFile) then DeleteFile(SoFile);
+    if FileExists(JsonFile) then DeleteFile(JsonFile);
+    if FileExists(VersionFile) then DeleteFile(VersionFile);
+
+    Missing := nil;
+    try
+      AssertTrue('HasMissingMandatoryLibraries returns true when vkSumi missing',
+        HasMissingMandatoryLibraries(Missing));
+      AssertNotNull('Missing list is created', Missing);
+      AssertTrue('Missing list contains vkSumi Vulkan layer',
+        Missing.IndexOf('vkSumi Vulkan layer') >= 0);
+    finally
+      Missing.Free;
+    end;
+
+    // 2. Seed a valid user-space layer (ELF .so >= 65536 bytes + manifest)
+    ForceDirectories(ExtractFilePath(SoFile));
+    FS := TFileStream.Create(SoFile, fmCreate);
+    try
+      Magic[0] := $7F;
+      Magic[1] := Ord('E');
+      Magic[2] := Ord('L');
+      Magic[3] := Ord('F');
+      FillChar(Zeros, SizeOf(Zeros), 0);
+      FS.Write(Magic, SizeOf(Magic));
+      FS.Write(Zeros, SizeOf(Zeros));
+    finally
+      FS.Free;
+    end;
+
+    ForceDirectories(ExtractFilePath(JsonFile));
+    SL := TStringList.Create;
+    try
+      SL.Add('{}');
+      SL.SaveToFile(JsonFile);
+    finally
+      SL.Free;
+    end;
+
+    Missing := nil;
+    try
+      HasMissingMandatoryLibraries(Missing);
+      if Assigned(Missing) then
+        AssertTrue('Missing list does NOT contain vkSumi Vulkan layer when installed',
+          Missing.IndexOf('vkSumi Vulkan layer') = -1);
+    finally
+      Missing.Free;
+    end;
+
+    // 3. ReadLocalVkSumiVersion returns the version recorded in goverlay.vars
+    ForceDirectories(ExtractFilePath(VarsFile));
+    SL := TStringList.Create;
+    try
+      if VarsExisted then
+        SL.Text := VarsBackup;
+      SL.Values['vksumi'] := 'v0.1.0';
+      SL.SaveToFile(VarsFile);
+    finally
+      SL.Free;
+    end;
+
+    AssertEquals('ReadLocalVkSumiVersion reads vksumi= from goverlay.vars',
+      'v0.1.0', ReadLocalVkSumiVersion);
+
+    // 4. Verify Home Tab Libraries version displays the local vkSumi version
+    AssertEquals('Home Tab GetVkSumiVersion returns local version',
+      'v0.1.0', THomeTabHelper(goverlayform.FHomeHelper).GetVkSumiVersion);
+
+    // 5. Verify Color Grading Software Status Card
+    goverlayform.ReflowVkSumiTab(800);
+    AssertNotNull('FVsStatusCard is created', goverlayform.FVsStatusCard);
+    AssertTrue('FVsStatusCard is visible', goverlayform.FVsStatusCard.Visible);
+    AssertEquals('FVsStatusTitleLbl caption is Software Status', 'Software Status', goverlayform.FVsStatusTitleLbl.Caption);
+    AssertEquals('FVsStatNameLbl caption is vkSumi', 'vkSumi', goverlayform.FVsStatNameLbl.Caption);
+    AssertEquals('FVsStatVerLbl caption matches version', 'v0.1.0', goverlayform.FVsStatVerLbl.Caption);
+    AssertEquals('FVsStatDot is green', $0044CC55, goverlayform.FVsStatDot.Brush.Color);
+    AssertTrue('FVsStatVerLbl has regular font style', goverlayform.FVsStatVerLbl.Font.Style = []);
+    AssertEquals('Options card title is Options', 'Options', goverlayform.FVsToggleTitleLbl.Caption);
+    AssertEquals('Split compare toggle is on left corner', 14, goverlayform.FVsCompareToggle.Left);
+    AssertTrue('Daltonize combo is in Options card', goverlayform.FVsDaltonizeCombo.Parent = goverlayform.FVsCards[0]);
+    AssertTrue('Options card height expanded to fill space', goverlayform.FVsCards[0].Height >= 116);
+  finally
+    // Restore original user-space layer state
+    if SoExisted then
+    begin
+      ForceDirectories(ExtractFilePath(SoFile));
+      CopyFile(BkSo, SoFile);
+      DeleteFile(BkSo);
+    end
+    else if FileExists(SoFile) then
+      DeleteFile(SoFile);
+
+    if JsonExisted then
+    begin
+      ForceDirectories(ExtractFilePath(JsonFile));
+      CopyFile(BkJson, JsonFile);
+      DeleteFile(BkJson);
+    end
+    else if FileExists(JsonFile) then
+      DeleteFile(JsonFile);
+
+    // Restore goverlay.vars
+    if VarsExisted then
+    begin
+      ForceDirectories(ExtractFilePath(VarsFile));
+      SL := TStringList.Create;
+      try
+        SL.Text := VarsBackup;
+        SL.SaveToFile(VarsFile);
+      finally
+        SL.Free;
+      end;
+    end
+    else if FileExists(VarsFile) then
+      DeleteFile(VarsFile);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestHelixSRLicenseButtonAndDialog;

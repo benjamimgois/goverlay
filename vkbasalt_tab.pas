@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids, git2pas,
-  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings, toggle_switch;
+  themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, goverlay_strings, toggle_switch,
+  optiscaler_update;
 
 type
   TPipelineChipHit = record
@@ -36,6 +37,8 @@ type
     procedure ReflowVkBasaltTab(AContentW: Integer);
     procedure BuildVkSumiTab;
     procedure ReflowVkSumiTab(AContentW: Integer);
+    procedure VsScrollBoxResize(Sender: TObject);
+    procedure UpdateVkSumiStatus;
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
     procedure VsCompareToggleChange(Sender: TObject);
@@ -781,6 +784,7 @@ begin
     FVsScrollBox.Color       := BgClr;
     FVsScrollBox.ParentColor := False;
     ApplyModernScrollBarStylesheet(FVsScrollBox);
+    FVsScrollBox.OnResize := @VsScrollBoxResize;
 
     // Background panel filling the scroll box
     FVsBgPanel := TPanel.Create(FForm);
@@ -797,8 +801,8 @@ begin
     CW      := FVsScrollBox.ClientWidth;
     if CW < 200 then CW := 200;
 
-    // ── Settings card (Visible, containing Restore default + Toggle key) ──────
-    Card := MkCard(0, 85);
+    // ── Settings card (Options: Split compare, Toggle key, Restore default) ──
+    Card := MkCard(0, 76);
     FVsCards[0] := Card;
 
     FVsEnabledCB := TCheckBox.Create(FForm);
@@ -813,29 +817,9 @@ begin
 
     FVsToggleTitleLbl := TLabel.Create(Card);
     FVsToggleTitleLbl.Parent      := Card;
-    StyleLabel(FVsToggleTitleLbl, lrCardTitle);
-    FVsToggleTitleLbl.Caption     := 'Toggle key';
-    FVsToggleTitleLbl.SetBounds(CARD_P, CARD_P, 100, 22);
+    StyleMainCard(Card, FVsToggleTitleLbl, 'Options');
 
-    FVsToggleCaptureBtn := TBitBtn.Create(Card);
-    FVsToggleCaptureBtn.Parent   := Card;
-    FVsToggleCaptureBtn.Tag      := 6;
-    FVsToggleCaptureBtn.Anchors  := [akLeft, akTop];
-    FVsToggleCaptureBtn.Cursor   := crHandPoint;
-    FVsToggleCaptureBtn.OnClick  := @CaptureBtnClick;
-    FVsToggleCaptureBtn.Caption  := '⌨ ' + FVsToggleEdit.Text;
-    FVsToggleCaptureBtn.SetBounds(CARD_P, CARD_P + 26, 150, 30);
-    StyleActionButton(FVsToggleCaptureBtn);
-
-    FVsRestoreBtn := TBitBtn.Create(Card);
-    FVsRestoreBtn.Parent      := Card;
-    FVsRestoreBtn.Caption     := 'Restore default';
-    FVsRestoreBtn.Anchors     := [akLeft, akTop];
-    FVsRestoreBtn.Cursor      := crHandPoint;
-    FVsRestoreBtn.OnClick     := @VsRestoreBtnClick;
-    FVsRestoreBtn.SetBounds(CARD_P + 180, CARD_P + 26, 150, 30);
-    StyleActionButton(FVsRestoreBtn);
-
+    // Split compare toggle switch (canto esquerdo)
     FVsCompareCB := TCheckBox.Create(FForm);
     FVsCompareCB.Parent := FForm;
     FVsCompareCB.Visible := False;
@@ -850,11 +834,15 @@ begin
     FVsCompareToggle.Height := 20;
     FVsCompareToggle.Width := TToggleSwitch(FVsCompareToggle).GetOptimalWidth;
 
+    // Color blindness compensation (Daltonize) in Options card
     FVsDaltonizeLabel := TLabel.Create(Card);
     FVsDaltonizeLabel.Parent := Card;
-    FVsDaltonizeLabel.Caption := 'Color blindness';
-    FVsDaltonizeLabel.Font.Size := 8;
-    FVsDaltonizeLabel.Font.Color := TxtClr;
+    FVsDaltonizeLabel.Caption := 'Color blindness:';
+    FVsDaltonizeLabel.Font.Name := UI_FONT_FAMILY;
+    FVsDaltonizeLabel.Font.Size := 9;
+    FVsDaltonizeLabel.Font.Style := [fsBold];
+    FVsDaltonizeLabel.Font.Color := IfThen(IsLight, LightTextColor, clWhite);
+    FVsDaltonizeLabel.AutoSize := True;
     FVsDaltonizeLabel.Transparent := True;
 
     FVsDaltonizeCombo := TComboBox.Create(Card);
@@ -868,6 +856,36 @@ begin
     FVsDaltonizeCombo.OnChange := @VsDaltonizeComboChange;
     FVsDaltonizeCombo.Hint := 'Color blindness compensation (Daltonize)';
     FVsDaltonizeCombo.ShowHint := True;
+    StyleInputControl(FVsDaltonizeCombo);
+
+    // Toggle key
+    FVsToggleKeyLbl := TLabel.Create(Card);
+    FVsToggleKeyLbl.Parent := Card;
+    FVsToggleKeyLbl.Caption := 'Toggle key:';
+    FVsToggleKeyLbl.Font.Name := UI_FONT_FAMILY;
+    FVsToggleKeyLbl.Font.Size := 9;
+    FVsToggleKeyLbl.Font.Style := [fsBold];
+    FVsToggleKeyLbl.Font.Color := IfThen(IsLight, LightTextColor, clWhite);
+    FVsToggleKeyLbl.AutoSize := True;
+    FVsToggleKeyLbl.Transparent := True;
+
+    FVsToggleCaptureBtn := TBitBtn.Create(Card);
+    FVsToggleCaptureBtn.Parent   := Card;
+    FVsToggleCaptureBtn.Tag      := 6;
+    FVsToggleCaptureBtn.Anchors  := [akLeft, akTop];
+    FVsToggleCaptureBtn.Cursor   := crHandPoint;
+    FVsToggleCaptureBtn.OnClick  := @CaptureBtnClick;
+    FVsToggleCaptureBtn.Caption  := '⌨ ' + FVsToggleEdit.Text;
+    StyleActionButton(FVsToggleCaptureBtn);
+
+    // Restore default
+    FVsRestoreBtn := TBitBtn.Create(Card);
+    FVsRestoreBtn.Parent      := Card;
+    FVsRestoreBtn.Caption     := 'Restore default';
+    FVsRestoreBtn.Anchors     := [akLeft, akTop];
+    FVsRestoreBtn.Cursor      := crHandPoint;
+    FVsRestoreBtn.OnClick     := @VsRestoreBtnClick;
+    StyleActionButton(FVsRestoreBtn);
 
     // ── Left Card: Tone + 3-Band ──────────────────────────────────────────
     Card := MkCard(0, 400);
@@ -875,9 +893,7 @@ begin
 
     FVsLuminanceTitleLbl := TLabel.Create(Card);
     FVsLuminanceTitleLbl.Parent      := Card;
-    StyleLabel(FVsLuminanceTitleLbl, lrCardTitle);
-    FVsLuminanceTitleLbl.Caption     := 'Luminance';
-    FVsLuminanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
+    StyleMainCard(Card, FVsLuminanceTitleLbl, 'Luminance');
 
     ToneSec := MkSection(Card, 'Tone', CARD_P + 30, 4 * ROW_H + 32);
     RowY := 24;
@@ -895,9 +911,7 @@ begin
 
     FVsChrominanceTitleLbl := TLabel.Create(Card);
     FVsChrominanceTitleLbl.Parent      := Card;
-    StyleLabel(FVsChrominanceTitleLbl, lrCardTitle);
-    FVsChrominanceTitleLbl.Caption     := 'Chrominance';
-    FVsChrominanceTitleLbl.SetBounds(CARD_P, CARD_P, 150, 22);
+    StyleMainCard(Card, FVsChrominanceTitleLbl, 'Chrominance');
 
     ColorSec := MkSection(Card, 'Color', CARD_P + 30, 5 * ROW_H + 32);
     RowY := 24;
@@ -907,12 +921,54 @@ begin
     RowY := 24;
     for i := 9 to 11 do AddSliderLine(GainSec, PARAMS[i], i, RowY);
 
-    Card.Height := GainSec.Top + GainSec.Height + CARD_P;
+    Card.Height := ColorSec.Top + ColorSec.Height + CARD_P;
 
     // ── Show value labels ────────────────────────────────────────────────
     for i := 0 to 14 do
       if Assigned(FVsTrackbars[i]) then
         VkSumiSliderChange(FVsTrackbars[i]);
+
+    // ── Software status card ─────────────────────────────────────────────
+    Card := MkCard(0, 70);
+    FVsCards[3] := Card;
+    FVsStatusCard := Card;
+
+    FVsStatusTitleLbl := TLabel.Create(Card);
+    FVsStatusTitleLbl.Parent := Card;
+    StyleMainCard(Card, FVsStatusTitleLbl, 'Software Status');
+
+    FVsStatDot := TShape.Create(Card);
+    FVsStatDot.Parent := Card;
+    FVsStatDot.Shape := stEllipse;
+    FVsStatDot.Brush.Color := $00666666;
+    FVsStatDot.Pen.Style := psClear;
+    FVsStatDot.SetBounds(CARD_P, 42, 8, 8);
+
+    FVsStatNameLbl := TLabel.Create(Card);
+    FVsStatNameLbl.Parent := Card;
+    FVsStatNameLbl.Caption := 'vkSumi';
+    FVsStatNameLbl.Font.Name := UI_FONT_FAMILY;
+    FVsStatNameLbl.Font.Color := IfThen(IsLight, LightTextColor, clWhite);
+    FVsStatNameLbl.Font.Size := 9;
+    FVsStatNameLbl.Font.Style := [fsBold];
+    FVsStatNameLbl.AutoSize := True;
+    FVsStatNameLbl.Transparent := True;
+    FVsStatNameLbl.Left := CARD_P + 14;
+    FVsStatNameLbl.Top := 38;
+
+    FVsStatVerLbl := TLabel.Create(Card);
+    FVsStatVerLbl.Parent := Card;
+    FVsStatVerLbl.Caption := '—';
+    FVsStatVerLbl.Font.Name := UI_FONT_FAMILY;
+    FVsStatVerLbl.Font.Color := $00666666;
+    FVsStatVerLbl.Font.Size := 9;
+    FVsStatVerLbl.Font.Style := [];
+    FVsStatVerLbl.AutoSize := True;
+    FVsStatVerLbl.Transparent := True;
+    FVsStatVerLbl.Left := FVsStatNameLbl.Left + 55;
+    FVsStatVerLbl.Top := 38;
+
+    UpdateVkSumiStatus;
 
     // Reflow cards to proper 2-column layout
     ReflowVkSumiTab(Max(800, vksumiTabSheet.ClientWidth));
@@ -929,7 +985,8 @@ const
   ROW_H    = 32;
 var
   CW, CardWidth, i, BannerOffset: Integer;
-  R0_H, R1_H: Integer;
+  R0_H, R1_H, OptTop, MinOptH, OptH, StatH, MinTotalH, ClientH, TotalH, StatusTop: Integer;
+  AvailH, RowGap, Row1_Y, Row2_Y, BtnW, BtnRightX, ComboX, ComboW: Integer;
   Col0_X: Integer;
   Card: TPanel;
   Sec: TPanel;
@@ -1012,7 +1069,7 @@ begin
   if Assigned(BandSec) then
     BandSec.SetBounds(CARD_P + HalfW + GAP, CARD_P + 30, HalfW, 128);
 
-  // Position Card 2 and its sections side-by-side
+  // Position Card 2 (Chrominance) and its sections side-by-side
   Card := FVsCards[2];
   Card.SetBounds(Col0_X, MARGIN + BannerOffset + R0_H + GAP, CardWidth, R1_H);
   if Assigned(ColorSec) then
@@ -1020,20 +1077,78 @@ begin
   if Assigned(GainSec) then
     GainSec.SetBounds(CARD_P + HalfW + GAP, CARD_P + 30, HalfW, 128);
 
-  // Position Card 0 (Settings/Toggle card)
+  // Card 0 (Options card) & Card 3 (Software status card)
+  OptTop := MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP;
+  MinOptH := 116;
+  StatH := 70;
+  MinTotalH := OptTop + MinOptH + GAP + StatH + MARGIN;
+  ClientH := 0;
+  if Assigned(FVsScrollBox) then
+    ClientH := FVsScrollBox.ClientHeight;
+  TotalH := Max(ClientH, MinTotalH);
+  StatusTop := TotalH - MARGIN - StatH;
+
+  // Options card expands to fill the space down to Software Status!
+  OptH := (StatusTop - GAP) - OptTop;
+  if OptH < MinOptH then
+    OptH := MinOptH;
+
+  // Position Card 0 (Options card)
   if Assigned(FVsCards[0]) then
   begin
     FVsCards[0].Visible := True;
-    FVsCards[0].SetBounds(Col0_X, MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP, CardWidth, 85);
+    FVsCards[0].SetBounds(Col0_X, OptTop, CardWidth, OptH);
+
+    AvailH := OptH - 38 - CARD_P;
+    RowGap := Max(12, (AvailH - 56) div 2);
+    if RowGap > 24 then RowGap := 24;
+    Row1_Y := 38 + (AvailH - (56 + RowGap)) div 2;
+    if Row1_Y < 38 then Row1_Y := 38;
+    Row2_Y := Row1_Y + 28 + RowGap;
+
+    // Row 1 - Left: Split compare toggle switch (canto esquerdo)
     if Assigned(FVsCompareToggle) then
-      FVsCompareToggle.SetBounds(CARD_P + 170, CARD_P + 31, TToggleSwitch(FVsCompareToggle).GetOptimalWidth, 20);
+      FVsCompareToggle.SetBounds(CARD_P, Row1_Y + (28 - 20) div 2, TToggleSwitch(FVsCompareToggle).GetOptimalWidth, 20);
+
+    // Row 1 - Right: Toggle key label + capture button
+    BtnW := 150;
+    BtnRightX := CardWidth - CARD_P - BtnW;
+    if Assigned(FVsToggleCaptureBtn) then
+      FVsToggleCaptureBtn.SetBounds(BtnRightX, Row1_Y, BtnW, 28);
+    if Assigned(FVsToggleKeyLbl) and Assigned(FVsToggleCaptureBtn) then
+      FVsToggleKeyLbl.SetBounds(FVsToggleCaptureBtn.Left - FVsToggleKeyLbl.Width - 10,
+        Row1_Y + (28 - FVsToggleKeyLbl.Height) div 2, FVsToggleKeyLbl.Width, FVsToggleKeyLbl.Height);
+
+    // Row 2 - Left: Color blindness label + combo
     if Assigned(FVsDaltonizeLabel) then
-      FVsDaltonizeLabel.SetBounds(CARD_P + 170 + FVsCompareToggle.Width + 20, CARD_P + 6, 180, 18);
-    if Assigned(FVsDaltonizeCombo) then
-      FVsDaltonizeCombo.SetBounds(CARD_P + 170 + FVsCompareToggle.Width + 20, CARD_P + 26, 210, 28);
+      FVsDaltonizeLabel.SetBounds(CARD_P, Row2_Y + (28 - FVsDaltonizeLabel.Height) div 2, FVsDaltonizeLabel.Width, FVsDaltonizeLabel.Height);
+    if Assigned(FVsDaltonizeCombo) and Assigned(FVsDaltonizeLabel) then
+    begin
+      ComboX := CARD_P + FVsDaltonizeLabel.Width + 10;
+      ComboW := Min(260, HalfW - FVsDaltonizeLabel.Width - 10);
+      if ComboW < 160 then ComboW := 160;
+      FVsDaltonizeCombo.SetBounds(ComboX, Row2_Y, ComboW, 28);
+    end;
+
+    // Row 2 - Right: Restore default button aligned with Toggle key capture button
     if Assigned(FVsRestoreBtn) then
-      FVsRestoreBtn.Left := CardWidth - CARD_P - FVsRestoreBtn.Width;
+      FVsRestoreBtn.SetBounds(BtnRightX, Row2_Y, BtnW, 28);
   end;
+
+  // Position Card 3 (Software status card) anchored to bottom
+  if Assigned(FVsCards[3]) then
+  begin
+    FVsCards[3].Visible := True;
+    FVsCards[3].SetBounds(Col0_X, StatusTop, CardWidth, StatH);
+    if Assigned(FVsStatDot) then
+      FVsStatDot.SetBounds(CARD_P, 42, 8, 8);
+    if Assigned(FVsStatNameLbl) then
+      FVsStatNameLbl.SetBounds(CARD_P + 14, 38, FVsStatNameLbl.Width, FVsStatNameLbl.Height);
+    if Assigned(FVsStatVerLbl) and Assigned(FVsStatNameLbl) then
+      FVsStatVerLbl.SetBounds(FVsStatNameLbl.Left + FVsStatNameLbl.Width + 12, 38, FVsStatVerLbl.Width, FVsStatVerLbl.Height);
+  end;
+
+  UpdateVkSumiStatus;
 
   // Reflow sliders inside sections
   if Assigned(ToneSec) then
@@ -1072,8 +1187,52 @@ begin
   if Assigned(FVsBgPanel) then
   begin
     FVsBgPanel.Width  := CW;
-    FVsBgPanel.Height := MARGIN + BannerOffset + R0_H + GAP + R1_H + GAP + 85 + MARGIN;
+    FVsBgPanel.Height := TotalH;
   end;
+  end;
+end;
+
+procedure TVkBasaltTabHelper.VsScrollBoxResize(Sender: TObject);
+begin
+  if Assigned(FForm) and Assigned(FForm.FVsScrollBox) and (FForm.FVsScrollBox.ClientWidth > 0) then
+    ReflowVkSumiTab(FForm.FVsScrollBox.ClientWidth);
+end;
+
+procedure TVkBasaltTabHelper.UpdateVkSumiStatus;
+const
+  CLR_OK   = $0044CC55;
+  CLR_NONE = $00666666;
+  CYAN_VER = $00F0BE30;
+var
+  Installed: Boolean;
+  VerStr: string;
+begin
+  with FForm do
+  begin
+    if not Assigned(FVsStatDot) or not Assigned(FVsStatVerLbl) then Exit;
+
+    Installed := optiscaler_update.IsVkSumiInstalled;
+    if not Installed then
+      Installed := FForm.IsVkSumiInstalled;
+
+    if Installed then
+    begin
+      VerStr := ReadLocalVkSumiVersion;
+      if VerStr = '' then
+        VerStr := 'installed';
+      FVsStatDot.Brush.Color := CLR_OK;
+      FVsStatVerLbl.Caption := VerStr;
+      FVsStatVerLbl.Font.Color := CYAN_VER;
+    end
+    else
+    begin
+      FVsStatDot.Brush.Color := CLR_NONE;
+      FVsStatVerLbl.Caption := 'not found';
+      FVsStatVerLbl.Font.Color := CLR_NONE;
+    end;
+
+    if Assigned(FVsStatNameLbl) then
+      FVsStatVerLbl.Left := FVsStatNameLbl.Left + FVsStatNameLbl.Width + 12;
   end;
 end;
 

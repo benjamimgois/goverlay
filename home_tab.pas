@@ -1173,8 +1173,16 @@ function THomeTabHelper.GetVkSumiVersion: string;
 var
   P: TProcess;
   S: TStringList;
+  LocalVer: string;
 begin
   Result := '';
+
+  // 1. Check local user-space version recorded by GOverlay
+  LocalVer := ReadLocalVkSumiVersion;
+  if LocalVer <> '' then
+    Exit(LocalVer);
+
+  // 2. Fall back to package managers for system-wide installs
   if IsRunningInFlatpak then Exit;
   P := TProcess.Create(nil);
   try

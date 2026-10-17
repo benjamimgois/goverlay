@@ -1265,13 +1265,14 @@ type
     FVkReshadeScrollPos: Integer;
     FVkReshadeHoverIdx:  Integer;
     // vkSumi tab controls
-    FVsCards:       array[0..2] of TPanel;
+    FVsCards:       array[0..3] of TPanel;
     FVsEnabledCB:   TCheckBox;
     FVsToggleEdit:  TEdit;
     FVsRestoreBtn:      TBitBtn;
     FVkRestoreBtn:      TBitBtn;
     FVsToggleCaptureBtn: TBitBtn;
     FVsToggleTitleLbl:  TLabel;
+    FVsToggleKeyLbl:    TLabel;
     FVsLuminanceTitleLbl: TLabel;
     FVsChrominanceTitleLbl: TLabel;
     FVsTrackbars:   array[0..14] of TTrackBar;
@@ -1283,6 +1284,11 @@ type
     FVsCompareToggle: TControl;
     FVsDaltonizeLabel: TLabel;
     FVsDaltonizeCombo: TComboBox;
+    FVsStatusCard:      TPanel;
+    FVsStatusTitleLbl:  TLabel;
+    FVsStatDot:         TShape;
+    FVsStatNameLbl:     TLabel;
+    FVsStatVerLbl:      TLabel;
     FVkReshadeSyncBtn:      TBitBtn;  // Sync/update reshade shaders button
     FVkToggleCaptureBtn:    TBitBtn;
     FVkToggleTitleLbl:      TLabel;
@@ -3485,7 +3491,7 @@ begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
-  NeedsDownload := HasMissingMandatoryLibraries or IsOptiPatcherUpdateAvailable;
+  NeedsDownload := HasMissingMandatoryLibraries or IsOptiPatcherUpdateAvailable or IsVkSumiUpdateAvailable;
 
   if not NeedsDownload then
   begin
@@ -5006,6 +5012,7 @@ var
 begin
   if FMockVkSumiInstalled = 0 then Exit(False);
   if FMockVkSumiInstalled = 1 then Exit(True);
+  if optiscaler_update.IsVkSumiInstalled then Exit(True);
   Missing := GetCachedMissingDeps;
   Result := (Missing.IndexOf(DEP_VKSUMI) < 0) and
             (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
@@ -5381,8 +5388,9 @@ begin
   end;
 
   // Update vkSumi tab cards
-  for i := 0 to 2 do
-    UpdateGenericCardTheme(FVsCards[i]);
+  for i := 0 to 3 do
+    if Assigned(FVsCards[i]) then
+      UpdateGenericCardTheme(FVsCards[i]);
 
   // Update vkSumi tab background and scrollbox colors
   if Assigned(vksumiTabSheet) then

@@ -1235,6 +1235,7 @@ begin
       NLbl := TLabel.Create(FForm);
       NLbl.Parent      := FOsStatusCard;
       NLbl.Caption     := STAT_NAMES[i];
+      NLbl.Font.Name   := UI_FONT_FAMILY;
       NLbl.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
       NLbl.Font.Style  := [fsBold];
       NLbl.Font.Size   := 9;
@@ -1245,8 +1246,9 @@ begin
       VLbl := TLabel.Create(FForm);
       VLbl.Parent      := FOsStatusCard;
       VLbl.Caption     := '—';
+      VLbl.Font.Name   := UI_FONT_FAMILY;
       VLbl.Font.Color  := CYAN_VER;
-      VLbl.Font.Style  := [fsBold];
+      VLbl.Font.Style  := [];
       VLbl.Font.Size   := 9;
       VLbl.AutoSize    := True;
       VLbl.Transparent := True;

@@ -3533,7 +3533,8 @@ begin
       2: NLbl.Caption := 'lsfg-vk';
       3: NLbl.Caption := 'AFMF';
     end;
-    NLbl.Font.Color := clWhite;
+    NLbl.Font.Name := UI_FONT_FAMILY;
+    NLbl.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
     NLbl.Font.Style := [fsBold];
     NLbl.Font.Size := 9;
     NLbl.AutoSize := True;
@@ -3586,13 +3587,15 @@ begin
   FLsEngineStatusLabel := TLabel.Create(FLsStatusCard);
   FLsEngineStatusLabel.Parent := FLsStatusCard;
   FLsEngineStatusLabel.Caption := '● Checking MAKO...';
-  FLsEngineStatusLabel.Font.Style := [fsBold];
+  FLsEngineStatusLabel.Font.Name := UI_FONT_FAMILY;
+  FLsEngineStatusLabel.Font.Style := [];
   FLsEngineStatusLabel.Font.Size := 9;
   FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
 
   FLsMakoNoteLabel := TLabel.Create(FLsStatusCard);
   FLsMakoNoteLabel.Parent := FLsStatusCard;
   FLsMakoNoteLabel.Caption := '(Incompatible with Wayland and HDR)';
+  FLsMakoNoteLabel.Font.Name := UI_FONT_FAMILY;
   FLsMakoNoteLabel.Font.Style := [];
   FLsMakoNoteLabel.Font.Size := 9;
   FLsMakoNoteLabel.Font.Color := CLR_TEXT_MUTED;
@@ -3619,7 +3622,8 @@ begin
   FLsLsfgStatusLabel := TLabel.Create(FLsStatusCard);
   FLsLsfgStatusLabel.Parent := FLsStatusCard;
   FLsLsfgStatusLabel.Caption := '● Checking lsfg-vk layer...';
-  FLsLsfgStatusLabel.Font.Style := [fsBold];
+  FLsLsfgStatusLabel.Font.Name := UI_FONT_FAMILY;
+  FLsLsfgStatusLabel.Font.Style := [];
   FLsLsfgStatusLabel.Font.Size := 9;
   FLsLsfgStatusLabel.Font.Color := CLR_TEXT_ACCENT;
 
@@ -3645,7 +3649,8 @@ begin
   FLsAfmfStatusLabel := TLabel.Create(FLsStatusCard);
   FLsAfmfStatusLabel.Parent := FLsStatusCard;
   FLsAfmfStatusLabel.Caption := '● Checking AFMF layer...';
-  FLsAfmfStatusLabel.Font.Style := [fsBold];
+  FLsAfmfStatusLabel.Font.Name := UI_FONT_FAMILY;
+  FLsAfmfStatusLabel.Font.Style := [];
   FLsAfmfStatusLabel.Font.Size := 9;
   FLsAfmfStatusLabel.Font.Color := CLR_TEXT_ACCENT;
 

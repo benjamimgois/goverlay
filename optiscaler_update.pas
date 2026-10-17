@@ -78,6 +78,18 @@ procedure SanitizeImplicitVulkanLayers;
 // Check and automatically install vkSumi Vulkan layer if not present
 function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 
+// Check whether the vkSumi Vulkan layer is installed (system or user space)
+function IsVkSumiInstalled: Boolean;
+
+// Read the locally recorded vkSumi version (goverlay.vars or version.txt)
+function ReadLocalVkSumiVersion: string;
+
+// Check whether a newer vkSumi release is available on GitHub
+function IsVkSumiUpdateAvailable: Boolean;
+
+// Parse the "tag_name" field from a vkSumi GitHub API response
+function ParseVkSumiReleaseTag(const AJson: string): string;
+
 // Check and automatically install MAKO Renderer Vulkan layer if not present
 function IsMakoInstalled: Boolean;
 function GetMakoLibraryPath: string;
@@ -4547,6 +4559,167 @@ begin
   end;
 end;
 
+// True when a system-wide vkSumi Vulkan layer is present. System layers are
+// managed by the distribution/package manager and must not be touched.
+function VkSumiSystemLayersPresent: Boolean;
+begin
+  Result :=
+    FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
+    FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') or
+    FileExists('/app/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
+    FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') or
+    FileExists('/usr/local/share/vulkan/implicit_layer.d/vksumi.json') or
+    FileExists('/etc/vulkan/implicit_layer.d/vksumi.json') or
+    FileExists('/app/share/vulkan/implicit_layer.d/vksumi.json');
+end;
+
+// Resolve the user-space vkSumi Vulkan layer manifest directory
+// (<XDG_DATA_HOME|~/.local/share>/vulkan/implicit_layer.d/).
+function GetUserVulkanImplicitDir: string;
+var
+  DataHome: string;
+begin
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := IncludeTrailingPathDelimiter(GetUserDir + '.local/share')
+  else
+    DataHome := IncludeTrailingPathDelimiter(DataHome);
+  Result := DataHome + 'vulkan' + PathDelim + 'implicit_layer.d' + PathDelim;
+end;
+
+function IsVkSumiInstalled: Boolean;
+var
+  TargetSoFile, TargetJsonFile: string;
+begin
+  // System-wide layer (distribution package) takes precedence
+  if VkSumiSystemLayersPresent then
+    Exit(True);
+
+  TargetSoFile := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim + 'libVkLayer_vksumi.so';
+  TargetJsonFile := GetUserVulkanImplicitDir + 'vksumi.json';
+
+  Result := FileExists(TargetSoFile) and
+            IsValidSharedLibrary(TargetSoFile) and
+            FileExists(TargetJsonFile);
+end;
+
+// Extract the "tag_name" value from a vkSumi GitHub API response.
+function ParseVkSumiReleaseTag(const AJson: string): string;
+var
+  KeyPos, ColonPos, QuoteStart, QuoteEnd: Integer;
+begin
+  Result := '';
+  if AJson = '' then Exit;
+
+  KeyPos := Pos('"tag_name"', AJson);
+  if KeyPos = 0 then Exit;
+
+  ColonPos := PosEx(':', AJson, KeyPos + 10);
+  if ColonPos = 0 then Exit;
+
+  QuoteStart := PosEx('"', AJson, ColonPos);
+  if QuoteStart = 0 then Exit;
+
+  QuoteEnd := PosEx('"', AJson, QuoteStart + 1);
+  if QuoteEnd > QuoteStart then
+    Result := Copy(AJson, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+end;
+
+// Read the locally recorded vkSumi version from the goverlay.vars files or,
+// as a last resort, from <data>/layers/vksumi/version.txt.
+function ReadLocalVkSumiVersion: string;
+var
+  Candidates: array[0..3] of string;
+  VersionFile: string;
+  VarsList: TStringList;
+  i: Integer;
+begin
+  Result := '';
+
+  Candidates[0] := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars';
+  Candidates[1] := IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars';
+  Candidates[2] := GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod' + PathDelim + 'goverlay.vars';
+  Candidates[3] := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'goverlay.vars';
+
+  for i := Low(Candidates) to High(Candidates) do
+  begin
+    if not FileExists(Candidates[i]) then Continue;
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(Candidates[i]);
+      Result := Trim(VarsList.Values['vksumi']);
+    finally
+      VarsList.Free;
+    end;
+    if Result <> '' then Exit;
+  end;
+
+  VersionFile := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim + 'version.txt';
+  if FileExists(VersionFile) then
+  begin
+    VarsList := TStringList.Create;
+    try
+      VarsList.LoadFromFile(VersionFile);
+      if VarsList.Count > 0 then
+        Result := Trim(VarsList[0]);
+    finally
+      VarsList.Free;
+    end;
+  end;
+end;
+
+// System layers are managed by package managers, so updates are only checked
+// for the user-space runtime installed by GOverlay itself.
+function IsVkSumiUpdateAvailable: Boolean;
+var
+  Process: TProcess;
+  Response, LocalVer, RemoteTag: string;
+begin
+  Result := False;
+
+  if IsRunningInFlatpak then Exit(False);
+
+  // System layers are managed by package managers, do not check updates
+  if FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') or
+     FileExists('/usr/local/share/vulkan/implicit_layer.d/vksumi.json') or
+     FileExists('/etc/vulkan/implicit_layer.d/vksumi.json') or
+     FileExists('/app/share/vulkan/implicit_layer.d/vksumi.json') then Exit(False);
+
+  if not IsVkSumiInstalled then Exit(True);
+
+  LocalVer := ReadLocalVkSumiVersion;
+  if LocalVer = '' then Exit(True);
+
+  Response := '';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('--connect-timeout');
+    Process.Parameters.Add('2');
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('4');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('https://api.github.com/repos/reakjra/vkSumi/releases/latest');
+    Process.Options := [poWaitOnExit, poUsePipes];
+    Process.Execute;
+
+    SetLength(Response, Process.Output.NumBytesAvailable);
+    if Length(Response) > 0 then
+      Process.Output.Read(Response[1], Length(Response));
+  finally
+    Process.Free;
+  end;
+
+  if Response = '' then Exit(False);
+
+  RemoteTag := ParseVkSumiReleaseTag(Response);
+  if RemoteTag = '' then Exit(False);
+
+  Result := RemoteTag <> LocalVer;
+end;
+
 function HasMissingMandatoryLibraries(out AMissingList: TStringList): Boolean;
 var
   OptiDir, DlssEnablerDir, FsrBase: string;
@@ -4609,6 +4782,10 @@ begin
   // AFMF Vulkan layer
   if not IsAfmfInstalled and not IsRunningInFlatpak then
     AMissingList.Add('afmf-linux layer');
+
+  // vkSumi Vulkan layer
+  if not IsVkSumiInstalled and not IsRunningInFlatpak then
+    AMissingList.Add('vkSumi Vulkan layer');
 
   // HelixSR (OptiScaler & DLSS Model E runtime)
   if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') then
@@ -5423,12 +5600,14 @@ var
   LayersDir, TargetSoFile, UserVulkanImplicitDir, TargetJsonFile: string;
   ChanLabel: string;
   StartPct, EndPct: Integer;
-  DownloadUrl, TempArchiveFile, TempExtractDir: string;
+  DownloadUrl, TempArchiveFile, TempExtractDir, LatestTag, CandidateUrl: string;
   Process: TProcess;
   JsonSL, OutputList: TStringList;
   FoundFiles: TStringList;
+  PathsToUpdate, VarsList: TStringList;
   RespFile, RespText: string;
-  TagPos, UrlPos, QuoteEnd: Integer;
+  TagPos, UrlPos, QuoteStart, QuoteEnd: Integer;
+  i, LineIdx: Integer;
 begin
   Result := False;
   StartPct := 70;
@@ -5460,20 +5639,29 @@ begin
   // Check if system runtime exists or user-space runtime already exists
   if not AForce then
   begin
-    if (FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
-        FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') or
-        FileExists('/app/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') or
-        FileExists('/usr/share/vulkan/implicit_layer.d/vksumi.json') or
-        FileExists('/etc/vulkan/implicit_layer.d/vksumi.json')) or
-       (FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) and FileExists(TargetJsonFile)) then
+    if VkSumiSystemLayersPresent then
     begin
       WriteLn('[AUTO-INSTALL] vkSumi layer is already available');
       if Assigned(AOnProgress) then
         AOnProgress(EndPct, 'vkSumi runtime ready');
-      Result := True;
-      Exit;
+      Exit(True);
+    end;
+
+    if (FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) and FileExists(TargetJsonFile)) then
+    begin
+      if not IsVkSumiUpdateAvailable then
+      begin
+        WriteLn('[AUTO-INSTALL] vkSumi layer is already available');
+        if Assigned(AOnProgress) then
+          AOnProgress(EndPct, 'vkSumi runtime ready');
+        Exit(True);
+      end
+      else
+        WriteLn('[AUTO-INSTALL] vkSumi update available, proceeding with installation...');
     end;
   end;
+
+  LatestTag := '';
 
   ChanLabel := 'Downloading vkSumi runtime';
   if Assigned(AOnProgress) then
@@ -5514,49 +5702,48 @@ begin
           DeleteFile(RespFile);
         end;
 
-        // Prefer .pkg.tar.zst browser_download_url (extracted directly with tar)
-        UrlPos := Pos('browser_download_url', RespText);
+        // Release tag used to track the installed version locally
+        LatestTag := ParseVkSumiReleaseTag(RespText);
+
+        // Parse all browser_download_url entries from GitHub release assets
+        UrlPos := Pos('"browser_download_url"', RespText);
         while UrlPos > 0 do
         begin
-          QuoteEnd := PosEx('.pkg.tar.zst"', RespText, UrlPos);
-          if QuoteEnd > 0 then
+          TagPos := PosEx(':', RespText, UrlPos);
+          if TagPos > 0 then
           begin
-            TagPos := PosEx('http', RespText, UrlPos);
-            if (TagPos > 0) and (TagPos < QuoteEnd) then
+            QuoteStart := PosEx('"', RespText, TagPos);
+            if QuoteStart > 0 then
             begin
-              DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 12 - TagPos);
-              Break;
-            end;
-          end;
-          UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
-        end;
-
-        // Fallback: look for .deb browser_download_url if no tar.zst found
-        if DownloadUrl = '' then
-        begin
-          UrlPos := Pos('browser_download_url', RespText);
-          while UrlPos > 0 do
-          begin
-            QuoteEnd := PosEx('.deb"', RespText, UrlPos);
-            if QuoteEnd > 0 then
-            begin
-              TagPos := PosEx('http', RespText, UrlPos);
-              if (TagPos > 0) and (TagPos < QuoteEnd) then
+              QuoteEnd := PosEx('"', RespText, QuoteStart + 1);
+              if QuoteEnd > QuoteStart then
               begin
-                DownloadUrl := Copy(RespText, TagPos, QuoteEnd + 4 - TagPos);
-                Break;
+                CandidateUrl := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+                if (Pos('-debug', CandidateUrl) = 0) and (Pos('http', CandidateUrl) = 1) then
+                begin
+                  if Pos('.pkg.tar.zst', CandidateUrl) > 0 then
+                  begin
+                    DownloadUrl := CandidateUrl;
+                    Break; // Prefer .pkg.tar.zst
+                  end
+                  else if (Pos('.deb', CandidateUrl) > 0) and (DownloadUrl = '') then
+                    DownloadUrl := CandidateUrl; // Fallback to .deb
+                end;
               end;
             end;
-            UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
           end;
+          UrlPos := PosEx('"browser_download_url"', RespText, UrlPos + 22);
         end;
       end;
     finally
       Process.Free;
     end;
 
+    if LatestTag = '' then
+      LatestTag := 'v0.1.0';
+
     if DownloadUrl = '' then
-      DownloadUrl := 'https://github.com/reakjra/vkSumi/releases/download/v0.0.7/vksumi-0.0.7-2-x86_64.pkg.tar.zst';
+      DownloadUrl := 'https://github.com/reakjra/vkSumi/releases/download/v0.1.0/vksumi-0.1.0-2-x86_64.pkg.tar.zst';
 
     WriteLn('[AUTO-INSTALL] vkSumi Download URL: ', DownloadUrl);
     if Pos('.deb', DownloadUrl) > 0 then
@@ -5678,8 +5865,42 @@ begin
         JsonSL.Add('    }');
         JsonSL.Add('}');
         JsonSL.SaveToFile(TargetJsonFile);
+
+        // Persist the installed release tag next to the layer for update checks
+        JsonSL.Clear;
+        JsonSL.Add(LatestTag);
+        JsonSL.SaveToFile(LayersDir + 'version.txt');
       finally
         JsonSL.Free;
+      end;
+
+      // Record the version in every governed goverlay.vars file so
+      // ReadLocalVkSumiVersion/IsVkSumiUpdateAvailable can track updates.
+      PathsToUpdate := TStringList.Create;
+      try
+        PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars');
+        PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars');
+        PathsToUpdate.Add(GetGOverlayDataDir + 'gameconfig' + PathDelim + 'global' + PathDelim + 'bgmod' + PathDelim + 'goverlay.vars');
+        PathsToUpdate.Add(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'goverlay.vars');
+
+        for i := 0 to PathsToUpdate.Count - 1 do
+        begin
+          if not FileExists(PathsToUpdate[i]) then Continue;
+          VarsList := TStringList.Create;
+          try
+            VarsList.LoadFromFile(PathsToUpdate[i]);
+            LineIdx := VarsList.IndexOfName('vksumi');
+            if LineIdx >= 0 then
+              VarsList[LineIdx] := 'vksumi=' + LatestTag
+            else
+              VarsList.Add('vksumi=' + LatestTag);
+            VarsList.SaveToFile(PathsToUpdate[i]);
+          finally
+            VarsList.Free;
+          end;
+        end;
+      finally
+        PathsToUpdate.Free;
       end;
 
       WriteLn('[AUTO-INSTALL] Created Vulkan layer manifest at: ', TargetJsonFile);
