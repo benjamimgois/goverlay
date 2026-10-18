@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Math, StrUtils, Forms, Controls, Graphics, Dialogs,
   ExtCtrls, StdCtrls, Buttons, CheckLst, Grids, LCLIntf, LCLType, Types,
-  Process, themeunit, overlay_utils, configmanager;
+  Process, IniFiles, Menus, themeunit, overlay_utils, configmanager;
 
 type
   TGplotViewMode = (gvmTimeline, gvmSummary, gvmHardware);
@@ -43,6 +43,7 @@ type
     FilePath: string;
     FileName: string;
     DisplayName: string;
+    CustomName: string;
     GameName: string;
     Specs: TGplotSystemSpecs;
     Samples: array of TGplotSample;
@@ -84,8 +85,13 @@ type
     FGameComboBox: TComboBox;
     FRefreshBtn: TBitBtn;
     FOpenFolderBtn: TBitBtn;
+    FRenameRunBtn: TBitBtn;
     FDeleteRunBtn: TBitBtn;
     FExportPngBtn: TBitBtn;
+
+    FRunPopupMenu: TPopupMenu;
+    FPopupRenameItem: TMenuItem;
+    FPopupDeleteItem: TMenuItem;
 
     // Main body
     FBodyPanel: TPanel;
@@ -146,13 +152,20 @@ type
     procedure GameComboChange(Sender: TObject);
     procedure RunCheckListClickCheck(Sender: TObject);
     procedure RunCheckListDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+    procedure RunCheckListMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure RunCheckListDblClick(Sender: TObject);
+    procedure RunCheckListKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure SelectAllClick(Sender: TObject);
     procedure ClearSelClick(Sender: TObject);
     procedure RefreshClick(Sender: TObject);
     procedure OpenFolderClick(Sender: TObject);
+    procedure RenameRunClick(Sender: TObject);
+    procedure PopupRenameClick(Sender: TObject);
+    procedure PopupDeleteClick(Sender: TObject);
     procedure DeleteRunClick(Sender: TObject);
     procedure ExportPngClick(Sender: TObject);
     procedure ViewTabBtnClick(Sender: TObject);
+    procedure PromptRenameBenchmark(AIndex: Integer);
 
     procedure ChartPaintBoxPaint(Sender: TObject);
     procedure ChartPaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -182,6 +195,7 @@ type
     property HardwareTabBtn: TBitBtn read FHardwareTabBtn;
     property RefreshBtn: TBitBtn read FRefreshBtn;
     property OpenFolderBtn: TBitBtn read FOpenFolderBtn;
+    property RenameRunBtn: TBitBtn read FRenameRunBtn;
     property DeleteRunBtn: TBitBtn read FDeleteRunBtn;
     property ExportPngBtn: TBitBtn read FExportPngBtn;
     property ChartPaintBox: TPaintBox read FChartPaintBox;
@@ -196,6 +210,10 @@ function IsMangoHudSummaryCsv(const AFileName: string): Boolean;
 function ExtractAppFromMangoHudCsvName(const AFileName: string): string;
 function OrganizeMangoHudCsvLogs(const ABaseDataDir: string = ''): Integer;
 function ParseMangoHudCsvFile(const AFilePath: string; out ARun: TGplotRunData): Boolean;
+function GetGameBenchmarksIniPath(const AGameDir: string): string;
+function ReadBenchmarkCustomName(const AGameDir, AFileName: string): string;
+procedure WriteBenchmarkCustomName(const AGameDir, AFileName, ACustomName: string);
+procedure DeleteBenchmarkCustomName(const AGameDir, AFileName: string);
 procedure ShowPasPlotDialog(AOwner: TComponent; const AInitialGame: string = ''; const ABaseDataDir: string = '');
 procedure ShowGplotDialog(AOwner: TComponent; const AInitialGame: string = ''; const ABaseDataDir: string = '');
 
@@ -287,6 +305,68 @@ begin
   end
   else
     Result := S;
+end;
+
+function GetGameBenchmarksIniPath(const AGameDir: string): string;
+begin
+  if Trim(AGameDir) = '' then
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataDir()) + 'logs' + PathDelim + 'benchmarks.ini'
+  else
+    Result := IncludeTrailingPathDelimiter(AGameDir) + 'benchmarks.ini';
+end;
+
+function ReadBenchmarkCustomName(const AGameDir, AFileName: string): string;
+var
+  Ini: TIniFile;
+  IniPath: string;
+begin
+  Result := '';
+  if Trim(AFileName) = '' then Exit;
+  IniPath := GetGameBenchmarksIniPath(AGameDir);
+  if not FileExists(IniPath) then Exit;
+  Ini := TIniFile.Create(IniPath);
+  try
+    Result := Ini.ReadString('Names', AFileName, '');
+  finally
+    Ini.Free;
+  end;
+end;
+
+procedure WriteBenchmarkCustomName(const AGameDir, AFileName, ACustomName: string);
+var
+  Ini: TIniFile;
+  IniPath, IniDir: string;
+begin
+  if Trim(AFileName) = '' then Exit;
+  IniPath := GetGameBenchmarksIniPath(AGameDir);
+  IniDir := ExtractFilePath(IniPath);
+  if (IniDir <> '') and not DirectoryExists(IniDir) then
+    ForceDirectories(IniDir);
+  Ini := TIniFile.Create(IniPath);
+  try
+    if Trim(ACustomName) = '' then
+      Ini.DeleteKey('Names', AFileName)
+    else
+      Ini.WriteString('Names', AFileName, Trim(ACustomName));
+  finally
+    Ini.Free;
+  end;
+end;
+
+procedure DeleteBenchmarkCustomName(const AGameDir, AFileName: string);
+var
+  Ini: TIniFile;
+  IniPath: string;
+begin
+  if Trim(AFileName) = '' then Exit;
+  IniPath := GetGameBenchmarksIniPath(AGameDir);
+  if not FileExists(IniPath) then Exit;
+  Ini := TIniFile.Create(IniPath);
+  try
+    Ini.DeleteKey('Names', AFileName);
+  finally
+    Ini.Free;
+  end;
 end;
 
 function MoveFileSafe(const ASrc, ADest: string): Boolean;
@@ -742,21 +822,28 @@ begin
 
   FOpenFolderBtn := TBitBtn.Create(FTopPanel);
   FOpenFolderBtn.Parent := FTopPanel;
-  FOpenFolderBtn.SetBounds(530, 11, 120, 30);
+  FOpenFolderBtn.SetBounds(530, 11, 115, 30);
   FOpenFolderBtn.Caption := 'Open Folder';
   FOpenFolderBtn.Cursor := crHandPoint;
   FOpenFolderBtn.OnClick := @OpenFolderClick;
 
+  FRenameRunBtn := TBitBtn.Create(FTopPanel);
+  FRenameRunBtn.Parent := FTopPanel;
+  FRenameRunBtn.SetBounds(652, 11, 120, 30);
+  FRenameRunBtn.Caption := 'Rename Run';
+  FRenameRunBtn.Cursor := crHandPoint;
+  FRenameRunBtn.OnClick := @RenameRunClick;
+
   FDeleteRunBtn := TBitBtn.Create(FTopPanel);
   FDeleteRunBtn.Parent := FTopPanel;
-  FDeleteRunBtn.SetBounds(658, 11, 130, 30);
+  FDeleteRunBtn.SetBounds(778, 11, 120, 30);
   FDeleteRunBtn.Caption := 'Delete Run';
   FDeleteRunBtn.Cursor := crHandPoint;
   FDeleteRunBtn.OnClick := @DeleteRunClick;
 
   FExportPngBtn := TBitBtn.Create(FTopPanel);
   FExportPngBtn.Parent := FTopPanel;
-  FExportPngBtn.SetBounds(796, 11, 120, 30);
+  FExportPngBtn.SetBounds(904, 11, 120, 30);
   FExportPngBtn.Caption := 'Export PNG';
   FExportPngBtn.Cursor := crHandPoint;
   FExportPngBtn.OnClick := @ExportPngClick;
@@ -823,6 +910,22 @@ begin
   FRunCheckListBox.ItemHeight := 52;
   FRunCheckListBox.OnDrawItem := @RunCheckListDrawItem;
   FRunCheckListBox.OnClickCheck := @RunCheckListClickCheck;
+
+  FRunPopupMenu := TPopupMenu.Create(Self);
+  FPopupRenameItem := TMenuItem.Create(FRunPopupMenu);
+  FPopupRenameItem.Caption := 'Rename Benchmark... (F2)';
+  FPopupRenameItem.OnClick := @PopupRenameClick;
+  FRunPopupMenu.Items.Add(FPopupRenameItem);
+  FPopupDeleteItem := TMenuItem.Create(FRunPopupMenu);
+  FPopupDeleteItem.Caption := 'Delete Benchmark';
+  FPopupDeleteItem.OnClick := @PopupDeleteClick;
+  FRunPopupMenu.Items.Add(FPopupDeleteItem);
+
+  FRunCheckListBox.Cursor := crHandPoint;
+  FRunCheckListBox.PopupMenu := FRunPopupMenu;
+  FRunCheckListBox.OnMouseDown := @RunCheckListMouseDown;
+  FRunCheckListBox.OnDblClick := @RunCheckListDblClick;
+  FRunCheckListBox.OnKeyDown := @RunCheckListKeyDown;
 
   // Right Area (Charts + Comparative Table)
   FRightPanel := TPanel.Create(FBodyPanel);
@@ -1084,6 +1187,20 @@ begin
   FGameComboBox.Font.Color := TextColor;
   FRunCheckListBox.Color := BgColor;
   FRunCheckListBox.Font.Color := TextColor;
+
+  if Assigned(FRenameRunBtn) then
+  begin
+    FRefreshBtn.Color := CardColor;
+    FRefreshBtn.Font.Color := TextColor;
+    FOpenFolderBtn.Color := CardColor;
+    FOpenFolderBtn.Font.Color := TextColor;
+    FRenameRunBtn.Color := CardColor;
+    FRenameRunBtn.Font.Color := TextColor;
+    FDeleteRunBtn.Color := CardColor;
+    FDeleteRunBtn.Font.Color := TextColor;
+    FExportPngBtn.Color := CardColor;
+    FExportPngBtn.Font.Color := TextColor;
+  end;
 
   FStatsGrid.Color := BgColor;
   FStatsGrid.FixedColor := CardColor;
@@ -1371,8 +1488,15 @@ begin
     ACanvas.TextOut(TextLeft + ACanvas.TextWidth(TitleStr) + 8, ARect.Top + 7, '[Baseline]');
   end;
 
-  // Subtitle chips: Duration, Avg FPS, Power in Watts
-  SubStr := Format('%.0fs • %.0f FPS', [RunData.DurationSec, RunData.AvgFps]);
+  // Subtitle chips: timestamp (when renamed), Duration, Avg FPS, Power in Watts
+  if RunData.CustomName <> '' then
+    SubStr := Format('%s • %.0fs • %.0f FPS', [
+      FormatRunTimestampFromFileName(RunData.FileName),
+      RunData.DurationSec,
+      RunData.AvgFps
+    ])
+  else
+    SubStr := Format('%.0fs • %.0f FPS', [RunData.DurationSec, RunData.AvgFps]);
   if RunData.AvgGpuPower > 0 then
     SubStr := SubStr + Format(' • %.0fW', [RunData.AvgGpuPower]);
 
@@ -1596,6 +1720,11 @@ begin
     begin
       if ParseMangoHudCsvFile(FileList[I], RunData) then
       begin
+        RunData.CustomName := ReadBenchmarkCustomName(GameLogDir, RunData.FileName);
+        if Trim(RunData.CustomName) <> '' then
+          RunData.DisplayName := Trim(RunData.CustomName)
+        else
+          RunData.DisplayName := FormatRunTimestampFromFileName(RunData.FileName);
         FDiscoveredFiles.Add(FileList[I]);
         SetLength(FDiscoveredRuns, Length(FDiscoveredRuns) + 1);
         FDiscoveredRuns[High(FDiscoveredRuns)] := RunData;
@@ -1633,6 +1762,11 @@ begin
     begin
       if ParseMangoHudCsvFile(FDiscoveredFiles[I], RunData) then
       begin
+        if (I >= 0) and (I < Length(FDiscoveredRuns)) then
+        begin
+          RunData.CustomName := FDiscoveredRuns[I].CustomName;
+          RunData.DisplayName := FDiscoveredRuns[I].DisplayName;
+        end;
         SetLength(FLoadedRuns, Count + 1);
         FLoadedRuns[Count] := RunData;
         Inc(Count);
@@ -1717,6 +1851,58 @@ begin
   ReloadCheckedRunsData;
 end;
 
+procedure TgplotForm.RunCheckListMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Idx: Integer;
+begin
+  Idx := FRunCheckListBox.ItemAtPos(Point(X, Y), True);
+  if (Idx < 0) and (FRunCheckListBox.ItemHeight > 0) then
+    Idx := FRunCheckListBox.TopIndex + (Y div FRunCheckListBox.ItemHeight);
+  if (Idx < 0) or (Idx >= FRunCheckListBox.Items.Count) then Exit;
+
+  if Button = mbRight then
+  begin
+    FRunCheckListBox.ItemIndex := Idx;
+    Exit;
+  end;
+
+  if Button = mbLeft then
+  begin
+    FRunCheckListBox.ItemIndex := Idx;
+    if ssDouble in Shift then
+    begin
+      if X >= 20 then
+      begin
+        FRunCheckListBox.Checked[Idx] := not FRunCheckListBox.Checked[Idx];
+        ReloadCheckedRunsData;
+      end;
+      Exit;
+    end;
+
+    if X >= 20 then
+    begin
+      FRunCheckListBox.Checked[Idx] := not FRunCheckListBox.Checked[Idx];
+      ReloadCheckedRunsData;
+    end;
+  end;
+end;
+
+procedure TgplotForm.RunCheckListDblClick(Sender: TObject);
+begin
+  if FRunCheckListBox.ItemIndex >= 0 then
+    PromptRenameBenchmark(FRunCheckListBox.ItemIndex);
+end;
+
+procedure TgplotForm.RunCheckListKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_F2 then
+  begin
+    if FRunCheckListBox.ItemIndex >= 0 then
+      PromptRenameBenchmark(FRunCheckListBox.ItemIndex);
+    Key := 0;
+  end;
+end;
+
 procedure TgplotForm.SelectAllClick(Sender: TObject);
 var
   I: Integer;
@@ -1755,6 +1941,58 @@ begin
   OpenDocument(Folder);
 end;
 
+procedure TgplotForm.RenameRunClick(Sender: TObject);
+begin
+  if FRunCheckListBox.ItemIndex >= 0 then
+    PromptRenameBenchmark(FRunCheckListBox.ItemIndex);
+end;
+
+procedure TgplotForm.PopupRenameClick(Sender: TObject);
+begin
+  RenameRunClick(Sender);
+end;
+
+procedure TgplotForm.PopupDeleteClick(Sender: TObject);
+begin
+  DeleteRunClick(Sender);
+end;
+
+procedure TgplotForm.PromptRenameBenchmark(AIndex: Integer);
+var
+  NewName: string;
+begin
+  if (AIndex < 0) or (AIndex >= Length(FDiscoveredRuns)) then Exit;
+
+  NewName := FDiscoveredRuns[AIndex].DisplayName;
+  if not InputQuery('Rename Benchmark',
+    'Enter benchmark label (leave empty to restore timestamp):', NewName) then
+    Exit;
+
+  WriteBenchmarkCustomName(GetActiveGameLogFolder,
+    FDiscoveredRuns[AIndex].FileName, NewName);
+
+  if Trim(NewName) = '' then
+  begin
+    FDiscoveredRuns[AIndex].CustomName := '';
+    FDiscoveredRuns[AIndex].DisplayName :=
+      FormatRunTimestampFromFileName(FDiscoveredRuns[AIndex].FileName);
+  end
+  else
+  begin
+    FDiscoveredRuns[AIndex].CustomName := Trim(NewName);
+    FDiscoveredRuns[AIndex].DisplayName := Trim(NewName);
+  end;
+
+  if AIndex < FRunCheckListBox.Items.Count then
+    FRunCheckListBox.Items[AIndex] := Format('%s  (%.0fs • %.0f FPS)', [
+      FDiscoveredRuns[AIndex].DisplayName,
+      FDiscoveredRuns[AIndex].DurationSec,
+      FDiscoveredRuns[AIndex].AvgFps
+    ]);
+
+  ReloadCheckedRunsData;
+end;
+
 procedure TgplotForm.DeleteRunClick(Sender: TObject);
 var
   I: Integer;
@@ -1775,6 +2013,7 @@ begin
       end;
       if FileExists(SummaryPath) then
         DeleteFile(SummaryPath);
+      DeleteBenchmarkCustomName(GetActiveGameLogFolder, ExtractFileName(FilePath));
     end;
   end;
 

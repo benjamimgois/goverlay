@@ -8007,6 +8007,27 @@ begin
       AssertEquals('First checked run is Baseline', 'Baseline', Dlg.StatsGrid.Cells[7, 1]);
       AssertTrue('Second checked run shows percentage delta', Pos('%', Dlg.StatsGrid.Cells[7, 2]) > 0);
 
+      // Verify RenameRunBtn and hand cursor
+      AssertNotNull('RenameRunBtn exists', Dlg.RenameRunBtn);
+      AssertEquals('RunCheckListBox has crHandPoint cursor', crHandPoint, Dlg.RunCheckListBox.Cursor);
+
+      // Verify custom benchmark name via benchmarks.ini
+      WriteBenchmarkCustomName(GameLogsDir, 'pascube_2026-10-17_14-10-00.csv', 'Pascube FSR4');
+      Dlg.RefreshBtn.OnClick(Dlg.RefreshBtn);
+      AssertTrue('Run list item 0 contains custom name', Pos('Pascube FSR4', Dlg.RunCheckListBox.Items[0]) > 0);
+      AssertEquals('StatsGrid column 0 reflects custom name', 'Pascube FSR4', Dlg.StatsGrid.Cells[0, 1]);
+
+      // Verify full-card click selection at X = 50 toggles checked state
+      Dlg.RunCheckListBox.OnMouseDown(Dlg.RunCheckListBox, mbLeft, [], 50, 10);
+      AssertEquals('Run 0 toggled off via click on card body', 0, Dlg.SelectedRunCount);
+      Dlg.RunCheckListBox.OnMouseDown(Dlg.RunCheckListBox, mbLeft, [], 50, 10);
+      AssertEquals('Run 0 toggled back on via click on card body', 1, Dlg.SelectedRunCount);
+
+      // Verify deleting run removes custom name from benchmarks.ini
+      AssertEquals('benchmarks.ini has custom name before delete', 'Pascube FSR4', ReadBenchmarkCustomName(GameLogsDir, 'pascube_2026-10-17_14-10-00.csv'));
+      Dlg.DeleteRunBtn.OnClick(Dlg.DeleteRunBtn);
+      AssertEquals('benchmarks.ini key removed on delete', '', ReadBenchmarkCustomName(GameLogsDir, 'pascube_2026-10-17_14-10-00.csv'));
+
       // Cycle view modes and export PNG
       PngPath := TempBase + 'exported_chart.png';
       Dlg.ViewMode := gvmTimeline;
