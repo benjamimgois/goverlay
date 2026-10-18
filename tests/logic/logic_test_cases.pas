@@ -122,6 +122,16 @@ type
     procedure TestDowngradeSuppressionLogic;
   end;
 
+  TShellQuoteTests = class(TTestCase)
+  published
+    procedure TestEmptyString;
+    procedure TestPlainPath;
+    procedure TestPathWithSpaces;
+    procedure TestPathWithApostrophe;
+    procedure TestPathWithMultipleApostrophes;
+    procedure TestSpecialShellCharacters;
+  end;
+
 implementation
 
 uses
@@ -1960,6 +1970,36 @@ begin
     CompareVersions('4.5.0', '4.0.0') > 0);
 end;
 
+procedure TShellQuoteTests.TestEmptyString;
+begin
+  AssertEquals('Empty string quoted', '''''', ShellQuote(''));
+end;
+
+procedure TShellQuoteTests.TestPlainPath;
+begin
+  AssertEquals('Plain path wrapped', '''/usr/bin/game''', ShellQuote('/usr/bin/game'));
+end;
+
+procedure TShellQuoteTests.TestPathWithSpaces;
+begin
+  AssertEquals('Path with spaces', '''/home/user/My Games/Foo''', ShellQuote('/home/user/My Games/Foo'));
+end;
+
+procedure TShellQuoteTests.TestPathWithApostrophe;
+begin
+  AssertEquals('Path with single apostrophe escaped', '''/home/user/No Man''\''''s Sky''', ShellQuote('/home/user/No Man''s Sky'));
+end;
+
+procedure TShellQuoteTests.TestPathWithMultipleApostrophes;
+begin
+  AssertEquals('Path with multiple apostrophes', '''''\''''''\''''''\''''''', ShellQuote(''''''''));
+end;
+
+procedure TShellQuoteTests.TestSpecialShellCharacters;
+begin
+  AssertEquals('Special characters preserved', '''$HOME/`evil`/foo*bar"baz''', ShellQuote('$HOME/`evil`/foo*bar"baz'));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -1975,5 +2015,6 @@ initialization
   RegisterTest(TSyncGameWrapperBinariesTests);
   RegisterTest(TBgmodSelfUpdateTests);
   RegisterTest(TRuntimeUpdateDowngradeTests);
+  RegisterTest(TShellQuoteTests);
 
 end.

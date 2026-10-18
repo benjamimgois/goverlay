@@ -2281,13 +2281,13 @@ begin
   // template folder. OptiScaler files will be copied only when the
   // OptiScaler toggle is explicitly enabled for this game.
   BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
-  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod-uninstaller') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
-  ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
+  ExecuteShellCommand('cp -f ' + ShellQuote(BGTemplate + 'bgmod') + ' ' +
+    ShellQuote(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
+    ShellQuote(GameCfgDir + 'bgmod'));
+  ExecuteShellCommand('cp -f ' + ShellQuote(BGTemplate + 'bgmod-uninstaller') + ' ' +
+    ShellQuote(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
+    ShellQuote(GameCfgDir + 'bgmod-uninstaller'));
+  ExecuteShellCommand('ln -sf bgmod ' + ShellQuote(GameCfgDir + 'fgmod') + ' 2>/dev/null');
   EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
 
   // Re-point the OptiScaler tab at the active game's config dir and reload
@@ -2427,10 +2427,10 @@ begin
       begin
         if not DirectoryExists(TargetDirs[j]) then Continue;
         ExecuteShellCommand(
-          'BGMOD_CONFIG_DIR=' + QuotedStr(GameCfgDir) + ' ' +
-          'BGMOD_BACKUPS_DIR=' + QuotedStr(IncludeTrailingPathDelimiter(GameCfgDir) + 'backups') + ' ' +
-          'STEAM_COMPAT_INSTALL_PATH=' + QuotedStr(TargetDirs[j]) + ' ' +
-          QuotedStr(UninstallerBin) + ' -- 2>/dev/null');
+          'BGMOD_CONFIG_DIR=' + ShellQuote(GameCfgDir) + ' ' +
+          'BGMOD_BACKUPS_DIR=' + ShellQuote(IncludeTrailingPathDelimiter(GameCfgDir) + 'backups') + ' ' +
+          'STEAM_COMPAT_INSTALL_PATH=' + ShellQuote(TargetDirs[j]) + ' ' +
+          ShellQuote(UninstallerBin) + ' -- 2>/dev/null');
       end;
     finally
       TargetDirs.Free;
@@ -2848,7 +2848,7 @@ begin
   end;
 
   if DirectoryExists(GamePath) then
-    ExecuteShellCommand('xdg-open ' + QuotedStr(GamePath));
+    ExecuteShellCommand('xdg-open ' + ShellQuote(GamePath));
   end;
 end;
 
@@ -2896,7 +2896,7 @@ begin
     begin
       PrefixPath := Copy(GamePath, 1, p - 1) + '/compatdata/' + AppID + '/pfx';
       if DirectoryExists(PrefixPath) then
-        ExecuteShellCommand('xdg-open ' + QuotedStr(PrefixPath));
+        ExecuteShellCommand('xdg-open ' + ShellQuote(PrefixPath));
     end;
   end;
   end;
@@ -2990,13 +2990,13 @@ begin
 
   // 7. Base wrappers (bgmod, bgmod-uninstaller, fgmod link)
   BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
-  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod'));
-  ExecuteShellCommand('cp -f ' + QuotedStr(BGTemplate + 'bgmod-uninstaller') + ' ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
-    QuotedStr(GameCfgDir + 'bgmod-uninstaller'));
-  ExecuteShellCommand('ln -sf bgmod ' + QuotedStr(GameCfgDir + 'fgmod') + ' 2>/dev/null');
+  ExecuteShellCommand('cp -f ' + ShellQuote(BGTemplate + 'bgmod') + ' ' +
+    ShellQuote(GameCfgDir + 'bgmod') + ' 2>/dev/null && chmod 755 ' +
+    ShellQuote(GameCfgDir + 'bgmod'));
+  ExecuteShellCommand('cp -f ' + ShellQuote(BGTemplate + 'bgmod-uninstaller') + ' ' +
+    ShellQuote(GameCfgDir + 'bgmod-uninstaller') + ' 2>/dev/null && chmod 755 ' +
+    ShellQuote(GameCfgDir + 'bgmod-uninstaller'));
+  ExecuteShellCommand('ln -sf bgmod ' + ShellQuote(GameCfgDir + 'fgmod') + ' 2>/dev/null');
   FForm.EnsureGameFGModOptiScalerConditional(GameCfgDir + 'bgmod');
 
   // 8. If OptiScaler enabled, deploy DLLs

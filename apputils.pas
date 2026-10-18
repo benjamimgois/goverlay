@@ -14,6 +14,9 @@ procedure DbgLog(const Msg: string);
 /// <summary>Compare two dot-separated version strings. Returns -1, 0, or 1.</summary>
 function CompareVersions(const Version1, Version2: string): Integer;
 
+/// <summary>Quote a string safely for POSIX shell execution (/bin/sh).</summary>
+function ShellQuote(const S: string): string;
+
 /// <summary>Execute a shell command asynchronously (fire-and-forget).</summary>
 procedure ExecuteShellCommand(const Command: string);
 
@@ -237,6 +240,14 @@ begin
       Exit(1);
   end;
   Result := 0;
+end;
+
+function ShellQuote(const S: string): string;
+const
+  SingleQuote = #39;
+  EscapedSingleQuote = #39 + '\' + #39 + #39;
+begin
+  Result := SingleQuote + StringReplace(S, SingleQuote, EscapedSingleQuote, [rfReplaceAll]) + SingleQuote;
 end;
 
 procedure ExecuteShellCommand(const Command: string);

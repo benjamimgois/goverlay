@@ -2246,7 +2246,15 @@ begin
   begin
     GameDir := GetEnvironmentVariable('STEAM_COMPAT_INSTALL_PATH');
     if GameDir <> '' then
-      Log('Resolved GameDir from STEAM_COMPAT_INSTALL_PATH: ' + GameDir);
+    begin
+      if DirectoryExists(GameDir) then
+        Log('Resolved GameDir from STEAM_COMPAT_INSTALL_PATH: ' + GameDir)
+      else
+      begin
+        Log('Warning: STEAM_COMPAT_INSTALL_PATH directory does not exist: ' + GameDir + '. Discarding in favor of cached config.');
+        GameDir := '';
+      end;
+    end;
   end;
 
   // 3b. Check cached TARGET_EXE from bgmod.conf
