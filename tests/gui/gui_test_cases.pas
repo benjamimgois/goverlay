@@ -3418,6 +3418,7 @@ begin
   CloseFile(F);
 
   NavigateOptiScalerTab;
+  goverlayform.mesaRadioButton.Checked := True; // spoof only enabled on mesa
   goverlayform.FNavToolEnabled[2] := True;
   goverlayform.ApplyToolEnabledState(2, True);
 
@@ -3436,12 +3437,21 @@ begin
   AssertFalse('optversionComboBox disabled when HelixSR is active', goverlayform.optversionComboBox.Enabled);
   AssertEquals('Status row 2 label is HelixSR', 'HelixSR', goverlayform.FOsStatNameLbls[2].Caption);
 
+  // Spoof DLSS visibility and enabled state in standard HelixSR mode
+  AssertTrue('Spoof toggle visible in HelixSR mode', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Visible);
+  AssertEquals('Spoof toggle Top in HelixSR mode is Y0 + 204', 36 + 204, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Top);
+  AssertTrue('Spoof toggle enabled in standard HelixSR mode', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Enabled);
+  AssertTrue('spoofCheckBox enabled in standard HelixSR mode', goverlayform.spoofCheckBox.Enabled);
+
   // Native DLSS toggle test
   AssertNotNull('helixsrNativeDlssCheckBox exists', goverlayform.helixsrNativeDlssCheckBox);
   AssertEquals('helixsrNativeDlssCheckBox caption', 'Native DLSS (Exp.)', goverlayform.helixsrNativeDlssCheckBox.Caption);
   AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 176', 36 + 176, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
   goverlayform.helixsrNativeDlssCheckBox.Checked := True;
   goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
+
+  AssertFalse('Spoof toggle disabled when Native DLSS is active', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Enabled);
+  AssertFalse('spoofCheckBox disabled when Native DLSS is active', goverlayform.spoofCheckBox.Enabled);
 
   // Save and reload config
   goverlayform.SaveOptiScalerConfig(True);
@@ -3451,6 +3461,10 @@ begin
   // Test toggling Native DLSS off
   goverlayform.helixsrNativeDlssCheckBox.Checked := False;
   goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
+
+  AssertTrue('Spoof toggle re-enabled when Native DLSS is unchecked', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Enabled);
+  AssertTrue('spoofCheckBox re-enabled when Native DLSS is unchecked', goverlayform.spoofCheckBox.Enabled);
+
   goverlayform.SaveOptiScalerConfig(True);
   AssertEquals('HELIXSR_NATIVE_DLSS in bgmod.conf is 0', '0', ReadBgmodConf('Config', 'HELIXSR_NATIVE_DLSS'));
 

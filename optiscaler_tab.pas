@@ -1487,6 +1487,7 @@ var
   StatH: Integer;
   IsCustom, IsUnmanaged: Boolean;
   IsHelixSrActive: Boolean;
+  IsNativeDlss: Boolean;
   MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
@@ -1531,7 +1532,7 @@ begin
     else
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
-    MinOptH := 290;
+    MinOptH := 295;
     CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -1605,7 +1606,7 @@ begin
     if ColW < 100 then ColW := 100;
 
     BoxH   := OptH - HDR - 12;
-    if BoxH < 240 then BoxH := 240;
+    if BoxH < 265 then BoxH := 265;
 
     X1 := IMARGIN;
     X2 := IMARGIN + ColW + IGAP;
@@ -1711,8 +1712,22 @@ begin
         preferredUpscalerComboBox.Visible := False;
         fsrversionLabel.Visible := False;
         fsrversionComboBox.Visible := False;
-        if Assigned(FSpoofToggle) then FSpoofToggle.Visible := False
-        else spoofCheckBox.Visible := False;
+        // Spoof DLSS stays visible; disable it when Native DLSS or NVIDIA driver is active
+        IsNativeDlss := Assigned(helixsrNativeDlssCheckBox) and helixsrNativeDlssCheckBox.Checked;
+        if Assigned(spoofCheckBox) then
+          spoofCheckBox.Enabled := not (IsNativeDlss or (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked));
+
+        if Assigned(FSpoofToggle) then
+        begin
+          FSpoofToggle.Visible := True;
+          FSpoofToggle.SetBounds(10, Y0 + 204, ColW - 20, 20);
+          FSpoofToggle.Enabled := spoofCheckBox.Enabled;
+        end
+        else
+        begin
+          spoofCheckBox.Visible := True;
+          spoofCheckBox.SetBounds(10, Y0 + 204, ColW - 20, 20);
+        end;
         if Assigned(FForceFsr4Toggle) then FForceFsr4Toggle.Visible := False
         else forceFsr4Int8CheckBox.Visible := False;
 
@@ -1790,10 +1805,14 @@ begin
         fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
         fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
+        if Assigned(spoofCheckBox) then
+          spoofCheckBox.Enabled := not (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked);
+
         if Assigned(FSpoofToggle) then
         begin
           FSpoofToggle.Visible := True;
           FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+          FSpoofToggle.Enabled := spoofCheckBox.Enabled;
         end
         else
         begin
