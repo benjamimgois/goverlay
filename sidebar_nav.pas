@@ -999,17 +999,26 @@ begin
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'dlss-loader' + PathDelim + 'dxgi.dll') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'dlss-loader' + PathDelim + 'dxgi.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'dxgi.dll');
-      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'nvngx.dll')
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'nvngx.dll');
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'helixsr.ini')
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'helixsr.ini');
     end
     else
     begin
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll')
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll',
@@ -1018,7 +1027,14 @@ begin
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
       ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR');
-      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll');
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll') then
       begin
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_dx12.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
@@ -1027,6 +1043,9 @@ begin
       end;
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
     end;
   end;

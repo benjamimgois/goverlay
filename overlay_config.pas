@@ -85,6 +85,9 @@ type
     HelixSrSharpenerIndex: Integer;
     HelixSrSharpness: Integer;
     HelixSrWaveSizeIndex: Integer;
+    HelixSrInt8Index: Integer;               // 0: Auto, 1: On, 2: Off
+    HelixSrNetworkResolutionIndex: Integer; // 0: Fast, 1: Full
+    HelixSrFgPresetIndex: Integer;          // 0: Light (c), 1: Full
 
     // DLSS-NR options
     DlssNrArchIndex: Integer;          // 0: Auto, 1: RDNA4, 2: RDNA3
@@ -931,6 +934,9 @@ begin
   ErrMsg := '';
   LaunchCommand := '';
 
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+
   // Get the bgmod.conf path
   FGModFilePath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
 
@@ -1205,6 +1211,19 @@ begin
     ForceDirectories(ExtractFilePath(HelixSrIniPath));
     Ini := TIniFile.Create(HelixSrIniPath);
     try
+      case Settings.HelixSrInt8Index of
+        1: Ini.WriteString('Upscaling', 'Int8', 'on');
+        2: Ini.WriteString('Upscaling', 'Int8', 'off');
+      else
+        Ini.WriteString('Upscaling', 'Int8', 'auto');
+      end;
+
+      case Settings.HelixSrNetworkResolutionIndex of
+        1: Ini.WriteString('Upscaling', 'NetworkResolution', 'full');
+      else
+        Ini.WriteString('Upscaling', 'NetworkResolution', 'fast');
+      end;
+
       case Settings.HelixSrSharpenerIndex of
         1: Ini.WriteString('Sharpening', 'Sharpener', 'nvidia');
         2: Ini.WriteString('Sharpening', 'Sharpener', 'rcas');
@@ -1212,6 +1231,12 @@ begin
         Ini.WriteString('Sharpening', 'Sharpener', 'off');
       end;
       Ini.WriteString('Sharpening', 'Sharpness', FormatFloat('0.00', Settings.HelixSrSharpness / 100.0, FS));
+
+      case Settings.HelixSrFgPresetIndex of
+        1: Ini.WriteString('DlssFrameGeneration', 'Preset', 'full');
+      else
+        Ini.WriteString('DlssFrameGeneration', 'Preset', 'c');
+      end;
 
       case Settings.HelixSrWaveSizeIndex of
         1: Ini.WriteString('Compatibility', 'WaveSize', '32');
@@ -2150,6 +2175,15 @@ begin
   begin
     Ini := TIniFile.Create(ConfigPath);
     try
+      Value := Ini.ReadString('Upscaling', 'Int8', 'auto');
+      if SameText(Value, 'on') then Settings.HelixSrInt8Index := 1
+      else if SameText(Value, 'off') then Settings.HelixSrInt8Index := 2
+      else Settings.HelixSrInt8Index := 0;
+
+      Value := Ini.ReadString('Upscaling', 'NetworkResolution', 'fast');
+      if SameText(Value, 'full') then Settings.HelixSrNetworkResolutionIndex := 1
+      else Settings.HelixSrNetworkResolutionIndex := 0;
+
       Value := Ini.ReadString('Sharpening', 'Sharpener', 'off');
       if SameText(Value, 'nvidia') then Settings.HelixSrSharpenerIndex := 1
       else if SameText(Value, 'rcas') then Settings.HelixSrSharpenerIndex := 2
@@ -2161,6 +2195,10 @@ begin
       else
         Settings.HelixSrSharpness := 10;
 
+      Value := Ini.ReadString('DlssFrameGeneration', 'Preset', 'c');
+      if SameText(Value, 'full') then Settings.HelixSrFgPresetIndex := 1
+      else Settings.HelixSrFgPresetIndex := 0;
+
       Value := Ini.ReadString('Compatibility', 'WaveSize', 'auto');
       if Value = '32' then Settings.HelixSrWaveSizeIndex := 1
       else if Value = '64' then Settings.HelixSrWaveSizeIndex := 2
@@ -2171,8 +2209,11 @@ begin
   end
   else
   begin
+    Settings.HelixSrInt8Index := 0;
+    Settings.HelixSrNetworkResolutionIndex := 0;
     Settings.HelixSrSharpenerIndex := 0;
     Settings.HelixSrSharpness := 10;
+    Settings.HelixSrFgPresetIndex := 0;
     Settings.HelixSrWaveSizeIndex := 0;
   end;
 

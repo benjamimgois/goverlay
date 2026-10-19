@@ -1262,7 +1262,8 @@ end;
 
 function THomeTabHelper.IsHelixSrInstalled: Boolean;
 begin
-  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll');
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll');
 end;
 
 function THomeTabHelper.GetHelixSrVersion: string;
@@ -1272,7 +1273,8 @@ var
 begin
   Result := '';
   HelixDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
-  if not FileExists(HelixDir + 'amd_fidelityfx_dx12.dll') then
+  if not FileExists(HelixDir + 'amd_fidelityfx_dx12.dll') and
+     not FileExists(HelixDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
     Exit;
 
   VarsPath := HelixDir + 'goverlay.vars';

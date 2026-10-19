@@ -3448,7 +3448,39 @@ begin
   // Native DLSS toggle test (in Column 4 HelixSR card)
   AssertNotNull('helixsrNativeDlssCheckBox exists', goverlayform.helixsrNativeDlssCheckBox);
   AssertEquals('helixsrNativeDlssCheckBox caption', 'Native DLSS (Exp.)', goverlayform.helixsrNativeDlssCheckBox.Caption);
-  AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 168', 36 + 168, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
+  AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 224', 36 + 224, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
+
+  // Sharpener and Sharpness are hidden
+  AssertFalse('HelixSrSharpenerComboBox is hidden', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrSharpenerComboBox.Visible);
+  AssertFalse('HelixSrSharpnessTrackBar is hidden', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrSharpnessTrackBar.Visible);
+
+  // HelixSR 2.0 options (NetworkResolution, Int8, DLSS FG Preset)
+  AssertNotNull('HelixsrNetworkResolutionComboBox exists', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox);
+  AssertTrue('HelixsrNetworkResolutionComboBox is visible', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.Visible);
+  AssertEquals('HelixsrNetworkResolutionComboBox Top is Y0 + 78', 36 + 78, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.Top);
+
+  AssertNotNull('HelixsrInt8ComboBox exists', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox);
+  AssertTrue('HelixsrInt8ComboBox is visible', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.Visible);
+  AssertEquals('HelixsrInt8ComboBox Top is Y0 + 134', 36 + 134, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.Top);
+
+  AssertNotNull('HelixsrFgPresetComboBox exists', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox);
+  AssertTrue('HelixsrFgPresetComboBox is visible', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.Visible);
+  AssertEquals('HelixsrFgPresetComboBox Top is Y0 + 190', 36 + 190, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.Top);
+
+  // Hints on HelixSR comboboxes
+  AssertTrue('HelixSrWaveSizeComboBox hint enabled', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrWaveSizeComboBox.ShowHint);
+  AssertTrue('HelixSrWaveSizeComboBox has hint', Pos('compute subgroup', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrWaveSizeComboBox.Hint) > 0);
+  AssertTrue('HelixsrNetworkResolutionComboBox hint enabled', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.ShowHint);
+  AssertTrue('HelixsrNetworkResolutionComboBox has hint', Pos('Neural model reconstruction', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.Hint) > 0);
+  AssertTrue('HelixsrInt8ComboBox hint enabled', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.ShowHint);
+  AssertTrue('HelixsrInt8ComboBox has hint', Pos('INT8 quantization', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.Hint) > 0);
+  AssertTrue('HelixsrFgPresetComboBox hint enabled', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.ShowHint);
+  AssertTrue('HelixsrFgPresetComboBox has hint', Pos('Frame Generation model preset', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.Hint) > 0);
+
+  TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.ItemIndex := 1;
+  TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.ItemIndex := 1;
+  TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.ItemIndex := 1;
+
   goverlayform.helixsrNativeDlssCheckBox.Checked := True;
   goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
 
@@ -3459,6 +3491,12 @@ begin
   goverlayform.SaveOptiScalerConfig(True);
   AssertEquals('UPSCALER_TYPE in bgmod.conf is 3 for HelixSR', '3', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
   AssertEquals('HELIXSR_NATIVE_DLSS in bgmod.conf is 1', '1', ReadBgmodConf('Config', 'HELIXSR_NATIVE_DLSS'));
+
+  // Test reload of HelixSR 2.0 settings
+  goverlayform.LoadOptiScalerConfig;
+  AssertEquals('HelixsrNetworkResolutionComboBox item index persisted', 1, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.ItemIndex);
+  AssertEquals('HelixsrInt8ComboBox item index persisted', 1, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.ItemIndex);
+  AssertEquals('HelixsrFgPresetComboBox item index persisted', 1, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.ItemIndex);
 
   // Test toggling Native DLSS off
   goverlayform.helixsrNativeDlssCheckBox.Checked := False;
@@ -3477,6 +3515,9 @@ begin
   AssertTrue('OptiScaler checked', goverlayform.optiscalerRadioButton.Checked);
   AssertTrue('optversionComboBox re-enabled when OptiScaler selected', goverlayform.optversionComboBox.Enabled);
   AssertEquals('Status row 2 label is DLSS Enabler', 'DLSS Enabler', goverlayform.FOsStatNameLbls[2].Caption);
+  AssertFalse('HelixsrNetworkResolutionComboBox hidden when OptiScaler selected', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrNetworkResolutionComboBox.Visible);
+  AssertFalse('HelixsrInt8ComboBox hidden when OptiScaler selected', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrInt8ComboBox.Visible);
+  AssertFalse('HelixsrFgPresetComboBox hidden when OptiScaler selected', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixsrFgPresetComboBox.Visible);
   goverlayform.SaveOptiScalerConfig(True);
   AssertEquals('UPSCALER_TYPE in bgmod.conf is 0 for OptiScaler', '0', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
 
@@ -7517,7 +7558,26 @@ begin
     Missing.Free;
   end;
 
-  // 3. Companion sync: seed OptiScaler.dll in stable cache and test CheckAndInstallHelixSR
+  // 3. HelixSR v2 layout: amd_fidelityfx_dx12.dll can live in HelixSR-fsrfg/
+  // and must still satisfy the mandatory library check.
+  DeleteFile(HelixDir + 'amd_fidelityfx_dx12.dll');
+  ForceDirectories(HelixDir + 'HelixSR-fsrfg');
+  AssignFile(F, HelixDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll');
+  Rewrite(F);
+  WriteLn(F, 'dummy_helix_v2_dll_payload');
+  CloseFile(F);
+
+  Missing := nil;
+  try
+    HasMissingMandatoryLibraries(Missing);
+    if Assigned(Missing) then
+      AssertTrue('Missing list does NOT contain HelixSR when amd_fidelityfx_dx12.dll exists in HelixSR-fsrfg',
+        Missing.IndexOf('HelixSR (OptiScaler & DLSS Model E runtime)') = -1);
+  finally
+    Missing.Free;
+  end;
+
+  // 4. Companion sync: seed OptiScaler.dll in stable cache and test CheckAndInstallHelixSR
   ForceDirectories(StableDir);
   AssignFile(F, StableDir + 'OptiScaler.dll');
   Rewrite(F);
@@ -7535,6 +7595,9 @@ begin
 
   AssertTrue('optiscaler/OptiScaler.dll synchronized from stable cache into optiscaler-helixsr',
     FileExists(HelixDir + 'optiscaler' + PathDelim + 'OptiScaler.dll'));
+
+  AssertTrue('CheckAndInstallHelixSR promotes HelixSR-fsrfg DLL to the HelixSR root',
+    FileExists(HelixDir + 'amd_fidelityfx_dx12.dll'));
 
   // Cleanup
   DeleteDirectory(HelixDir, False);

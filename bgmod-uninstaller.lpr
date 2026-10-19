@@ -1211,6 +1211,7 @@ begin
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
+      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'helixsr-fg');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd.ini');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll');

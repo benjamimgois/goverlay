@@ -37,6 +37,12 @@ type
     FHelixsrSharpnessValLabel: TLabel;
     FHelixsrWaveSizeLabel: TLabel;
     FHelixsrWaveSizeComboBox: TComboBox;
+    FHelixsrInt8Label: TLabel;
+    FHelixsrInt8ComboBox: TComboBox;
+    FHelixsrNetworkResolutionLabel: TLabel;
+    FHelixsrNetworkResolutionComboBox: TComboBox;
+    FHelixsrFgPresetLabel: TLabel;
+    FHelixsrFgPresetComboBox: TComboBox;
     FDlssNrArchLabel: TLabel;
     FDlssNrArchComboBox: TComboBox;
     FDlssNrModelDllLabel: TLabel;
@@ -103,6 +109,9 @@ type
     property HelixSrSharpenerComboBox: TComboBox read FHelixsrSharpenerComboBox;
     property HelixSrSharpnessTrackBar: TTrackBar read FHelixsrSharpnessTrackBar;
     property HelixSrWaveSizeComboBox: TComboBox read FHelixsrWaveSizeComboBox;
+    property HelixsrInt8ComboBox: TComboBox read FHelixsrInt8ComboBox;
+    property HelixsrNetworkResolutionComboBox: TComboBox read FHelixsrNetworkResolutionComboBox;
+    property HelixsrFgPresetComboBox: TComboBox read FHelixsrFgPresetComboBox;
     property DlssNrArchComboBox: TComboBox read FDlssNrArchComboBox;
     property DlssNrRouteComboBox: TComboBox read FDlssNrRouteComboBox;
     property DlssNrModelVerComboBox: TComboBox read FDlssNrModelVerComboBox;
@@ -1216,6 +1225,8 @@ begin
       FHelixsrWaveSizeLabel.Caption := 'Wave size';
       FHelixsrWaveSizeLabel.Parent := FOsFakeSec;
       FHelixsrWaveSizeLabel.Visible := False;
+      FHelixsrWaveSizeLabel.Hint := 'GPU compute subgroup/wave size for neural shader execution. Auto chooses the recommended wave size for your GPU (Wave32 on RDNA/NVIDIA, Wave64 on GCN).';
+      FHelixsrWaveSizeLabel.ShowHint := True;
     end;
 
     if FHelixsrWaveSizeComboBox = nil then
@@ -1230,6 +1241,87 @@ begin
       FHelixsrWaveSizeComboBox.Parent := FOsFakeSec;
       FHelixsrWaveSizeComboBox.Visible := False;
       FHelixsrWaveSizeComboBox.OnChange := @HelixSrControlChange;
+      FHelixsrWaveSizeComboBox.Hint := 'GPU compute subgroup/wave size for neural shader execution. Auto chooses the recommended wave size for your GPU (Wave32 on RDNA/NVIDIA, Wave64 on GCN).';
+      FHelixsrWaveSizeComboBox.ShowHint := True;
+    end;
+
+    if FHelixsrNetworkResolutionLabel = nil then
+    begin
+      FHelixsrNetworkResolutionLabel := TLabel.Create(FForm);
+      FHelixsrNetworkResolutionLabel.Name := 'helixsrNetworkResolutionLabel';
+      FHelixsrNetworkResolutionLabel.Caption := 'Network resolution';
+      FHelixsrNetworkResolutionLabel.Parent := FOsFakeSec;
+      FHelixsrNetworkResolutionLabel.Visible := False;
+      FHelixsrNetworkResolutionLabel.Hint := 'Neural model reconstruction resolution. Fast uses 2x Lanczos upsampling for higher FPS; Full runs inference at native screen resolution for maximum sharpness.';
+      FHelixsrNetworkResolutionLabel.ShowHint := True;
+    end;
+
+    if FHelixsrNetworkResolutionComboBox = nil then
+    begin
+      FHelixsrNetworkResolutionComboBox := TComboBox.Create(FForm);
+      FHelixsrNetworkResolutionComboBox.Name := 'helixsrNetworkResolutionComboBox';
+      FHelixsrNetworkResolutionComboBox.Style := csDropDownList;
+      FHelixsrNetworkResolutionComboBox.Items.Add('Fast (2x Lanczos)');
+      FHelixsrNetworkResolutionComboBox.Items.Add('Full (Screen resolution)');
+      FHelixsrNetworkResolutionComboBox.ItemIndex := 0;
+      FHelixsrNetworkResolutionComboBox.Parent := FOsFakeSec;
+      FHelixsrNetworkResolutionComboBox.Visible := False;
+      FHelixsrNetworkResolutionComboBox.OnChange := @HelixSrControlChange;
+      FHelixsrNetworkResolutionComboBox.Hint := 'Neural model reconstruction resolution. Fast uses 2x Lanczos upsampling for higher FPS; Full runs inference at native screen resolution for maximum sharpness.';
+      FHelixsrNetworkResolutionComboBox.ShowHint := True;
+    end;
+
+    if FHelixsrInt8Label = nil then
+    begin
+      FHelixsrInt8Label := TLabel.Create(FForm);
+      FHelixsrInt8Label.Name := 'helixsrInt8Label';
+      FHelixsrInt8Label.Caption := 'INT8 acceleration';
+      FHelixsrInt8Label.Parent := FOsFakeSec;
+      FHelixsrInt8Label.Visible := False;
+      FHelixsrInt8Label.Hint := 'Hardware-accelerated INT8 quantization for neural shaders. On boosts FPS on modern GPUs; Off uses FP16 full precision.';
+      FHelixsrInt8Label.ShowHint := True;
+    end;
+
+    if FHelixsrInt8ComboBox = nil then
+    begin
+      FHelixsrInt8ComboBox := TComboBox.Create(FForm);
+      FHelixsrInt8ComboBox.Name := 'helixsrInt8ComboBox';
+      FHelixsrInt8ComboBox.Style := csDropDownList;
+      FHelixsrInt8ComboBox.Items.Add('Auto (Default)');
+      FHelixsrInt8ComboBox.Items.Add('On (Force INT8)');
+      FHelixsrInt8ComboBox.Items.Add('Off (Disable INT8)');
+      FHelixsrInt8ComboBox.ItemIndex := 0;
+      FHelixsrInt8ComboBox.Parent := FOsFakeSec;
+      FHelixsrInt8ComboBox.Visible := False;
+      FHelixsrInt8ComboBox.OnChange := @HelixSrControlChange;
+      FHelixsrInt8ComboBox.Hint := 'Hardware-accelerated INT8 quantization for neural shaders. On boosts FPS on modern GPUs; Off uses FP16 full precision.';
+      FHelixsrInt8ComboBox.ShowHint := True;
+    end;
+
+    if FHelixsrFgPresetLabel = nil then
+    begin
+      FHelixsrFgPresetLabel := TLabel.Create(FForm);
+      FHelixsrFgPresetLabel.Name := 'helixsrFgPresetLabel';
+      FHelixsrFgPresetLabel.Caption := 'Frame generation';
+      FHelixsrFgPresetLabel.Parent := FOsFakeSec;
+      FHelixsrFgPresetLabel.Visible := False;
+      FHelixsrFgPresetLabel.Hint := 'DLSS Frame Generation model preset. Light uses preset c for lower latency and higher performance; Full uses DLSS FG 310.3 for maximum visual smoothness.';
+      FHelixsrFgPresetLabel.ShowHint := True;
+    end;
+
+    if FHelixsrFgPresetComboBox = nil then
+    begin
+      FHelixsrFgPresetComboBox := TComboBox.Create(FForm);
+      FHelixsrFgPresetComboBox.Name := 'helixsrFgPresetComboBox';
+      FHelixsrFgPresetComboBox.Style := csDropDownList;
+      FHelixsrFgPresetComboBox.Items.Add('Light (Faster, preset c)');
+      FHelixsrFgPresetComboBox.Items.Add('Full (DLSS FG 310.3)');
+      FHelixsrFgPresetComboBox.ItemIndex := 0;
+      FHelixsrFgPresetComboBox.Parent := FOsFakeSec;
+      FHelixsrFgPresetComboBox.Visible := False;
+      FHelixsrFgPresetComboBox.OnChange := @HelixSrControlChange;
+      FHelixsrFgPresetComboBox.Hint := 'DLSS Frame Generation model preset. Light uses preset c for lower latency and higher performance; Full uses DLSS FG 310.3 for maximum visual smoothness.';
+      FHelixsrFgPresetComboBox.ShowHint := True;
     end;
 
     // DLSS-NR spatial controls
@@ -1589,6 +1681,12 @@ begin
     if Assigned(FHelixsrSharpnessLabel) then StdLbl(FHelixsrSharpnessLabel);
     if Assigned(FHelixsrWaveSizeLabel) then StdLbl(FHelixsrWaveSizeLabel);
     if Assigned(FHelixsrWaveSizeComboBox) then DarkCombo(FHelixsrWaveSizeComboBox);
+    if Assigned(FHelixsrNetworkResolutionLabel) then StdLbl(FHelixsrNetworkResolutionLabel);
+    if Assigned(FHelixsrNetworkResolutionComboBox) then DarkCombo(FHelixsrNetworkResolutionComboBox);
+    if Assigned(FHelixsrInt8Label) then StdLbl(FHelixsrInt8Label);
+    if Assigned(FHelixsrInt8ComboBox) then DarkCombo(FHelixsrInt8ComboBox);
+    if Assigned(FHelixsrFgPresetLabel) then StdLbl(FHelixsrFgPresetLabel);
+    if Assigned(FHelixsrFgPresetComboBox) then DarkCombo(FHelixsrFgPresetComboBox);
     if Assigned(fgInputLabel) then
     begin
       StdLbl(fgInputLabel);
@@ -2067,6 +2165,10 @@ begin
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
     MinOptH := 295;
+    if IsHelixSrActive then
+      MinOptH := 325
+    else if IsDlssNrActive then
+      MinOptH := 405;
     CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -2288,6 +2390,12 @@ begin
       if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
       if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
       if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
+      if Assigned(FHelixsrNetworkResolutionLabel) then FHelixsrNetworkResolutionLabel.Visible := False;
+      if Assigned(FHelixsrNetworkResolutionComboBox) then FHelixsrNetworkResolutionComboBox.Visible := False;
+      if Assigned(FHelixsrInt8Label) then FHelixsrInt8Label.Visible := False;
+      if Assigned(FHelixsrInt8ComboBox) then FHelixsrInt8ComboBox.Visible := False;
+      if Assigned(FHelixsrFgPresetLabel) then FHelixsrFgPresetLabel.Visible := False;
+      if Assigned(FHelixsrFgPresetComboBox) then FHelixsrFgPresetComboBox.Visible := False;
       if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
 
       // Show and position standard Upscaler controls
@@ -2413,6 +2521,12 @@ begin
         if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
         if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
         if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
+        if Assigned(FHelixsrNetworkResolutionLabel) then FHelixsrNetworkResolutionLabel.Visible := False;
+        if Assigned(FHelixsrNetworkResolutionComboBox) then FHelixsrNetworkResolutionComboBox.Visible := False;
+        if Assigned(FHelixsrInt8Label) then FHelixsrInt8Label.Visible := False;
+        if Assigned(FHelixsrInt8ComboBox) then FHelixsrInt8ComboBox.Visible := False;
+        if Assigned(FHelixsrFgPresetLabel) then FHelixsrFgPresetLabel.Visible := False;
+        if Assigned(FHelixsrFgPresetComboBox) then FHelixsrFgPresetComboBox.Visible := False;
 
         // Hide dialog-only and status controls
         if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
@@ -2545,52 +2659,67 @@ begin
           FHelixsrWaveSizeComboBox.SetBounds(10, Y0 + 22, FakeW, 26);
         end;
 
-        // Row 2: Sharpener (aligned with Row 2 of other cards: Label Y0+56, Combo Y0+78)
-        if Assigned(FHelixsrSharpenerLabel) then
+        // Hide Sharpener and Sharpness controls
+        if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
+        if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
+        if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
+
+        // Row 2: Network Resolution (Label Y0+56, Combo Y0+78)
+        if Assigned(FHelixsrNetworkResolutionLabel) then
         begin
-          FHelixsrSharpenerLabel.Parent := FOsFakeSec;
-          FHelixsrSharpenerLabel.Visible := True;
-          FHelixsrSharpenerLabel.SetBounds(10, Y0 + 56, FakeW, 16);
+          FHelixsrNetworkResolutionLabel.Parent := FOsFakeSec;
+          FHelixsrNetworkResolutionLabel.Visible := True;
+          FHelixsrNetworkResolutionLabel.SetBounds(10, Y0 + 56, FakeW, 16);
         end;
-        if Assigned(FHelixsrSharpenerComboBox) then
+        if Assigned(FHelixsrNetworkResolutionComboBox) then
         begin
-          FHelixsrSharpenerComboBox.Parent := FOsFakeSec;
-          FHelixsrSharpenerComboBox.Visible := True;
-          FHelixsrSharpenerComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
+          FHelixsrNetworkResolutionComboBox.Parent := FOsFakeSec;
+          FHelixsrNetworkResolutionComboBox.Visible := True;
+          FHelixsrNetworkResolutionComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
         end;
 
-        // Row 3: Sharpness trackbar
-        if Assigned(FHelixsrSharpnessLabel) then
+        // Row 3: INT8 Acceleration (Label Y0+112, Combo Y0+134)
+        if Assigned(FHelixsrInt8Label) then
         begin
-          FHelixsrSharpnessLabel.Parent := FOsFakeSec;
-          FHelixsrSharpnessLabel.Visible := True;
-          FHelixsrSharpnessLabel.SetBounds(10, Y0 + 112, FakeW - 50, 16);
+          FHelixsrInt8Label.Parent := FOsFakeSec;
+          FHelixsrInt8Label.Visible := True;
+          FHelixsrInt8Label.SetBounds(10, Y0 + 112, FakeW, 16);
         end;
-        if Assigned(FHelixsrSharpnessValLabel) then
+        if Assigned(FHelixsrInt8ComboBox) then
         begin
-          FHelixsrSharpnessValLabel.Parent := FOsFakeSec;
-          FHelixsrSharpnessValLabel.Visible := True;
-          FHelixsrSharpnessValLabel.SetBounds(FakeW - 40, Y0 + 112, 35, 16);
-        end;
-        if Assigned(FHelixsrSharpnessTrackBar) then
-        begin
-          FHelixsrSharpnessTrackBar.Parent := FOsFakeSec;
-          FHelixsrSharpnessTrackBar.Visible := True;
-          FHelixsrSharpnessTrackBar.SetBounds(10, Y0 + 134, FakeW, 24);
+          FHelixsrInt8ComboBox.Parent := FOsFakeSec;
+          FHelixsrInt8ComboBox.Visible := True;
+          FHelixsrInt8ComboBox.SetBounds(10, Y0 + 134, FakeW, 26);
         end;
 
-        // Row 4: Native DLSS toggle
+        // Row 4: Frame Generation (Label Y0+168, Combo Y0+190)
+        if Assigned(FHelixsrFgPresetLabel) then
+        begin
+          FHelixsrFgPresetLabel.Parent := FOsFakeSec;
+          FHelixsrFgPresetLabel.Visible := True;
+          FHelixsrFgPresetLabel.SetBounds(10, Y0 + 168, FakeW, 16);
+        end;
+        if Assigned(FHelixsrFgPresetComboBox) then
+        begin
+          FHelixsrFgPresetComboBox.Parent := FOsFakeSec;
+          FHelixsrFgPresetComboBox.Visible := True;
+          FHelixsrFgPresetComboBox.SetBounds(10, Y0 + 190, FakeW, 26);
+        end;
+
+        // Row 5: Native DLSS toggle (Y0+224)
         if Assigned(FHelixSrNativeDlssToggle) then
         begin
           FHelixSrNativeDlssToggle.Parent := FOsFakeSec;
           FHelixSrNativeDlssToggle.Visible := True;
-          FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 168, FakeW, 20);
+          FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 224, FakeW, 20);
         end
         else if Assigned(helixsrNativeDlssCheckBox) then
         begin
           helixsrNativeDlssCheckBox.Parent := FOsFakeSec;
           helixsrNativeDlssCheckBox.Visible := True;
-          helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 168, FakeW, 20);
+          helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 224, FakeW, 20);
         end;
 
         if Assigned(FHelixSrModeInfoLbl) then
@@ -2631,6 +2760,12 @@ begin
         if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
         if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
         if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
+        if Assigned(FHelixsrNetworkResolutionLabel) then FHelixsrNetworkResolutionLabel.Visible := False;
+        if Assigned(FHelixsrNetworkResolutionComboBox) then FHelixsrNetworkResolutionComboBox.Visible := False;
+        if Assigned(FHelixsrInt8Label) then FHelixsrInt8Label.Visible := False;
+        if Assigned(FHelixsrInt8ComboBox) then FHelixsrInt8ComboBox.Visible := False;
+        if Assigned(FHelixsrFgPresetLabel) then FHelixsrFgPresetLabel.Visible := False;
+        if Assigned(FHelixsrFgPresetComboBox) then FHelixsrFgPresetComboBox.Visible := False;
 
         // Show Reflex / LatencyFlex controls
         if Assigned(FForceReflexToggle) then
@@ -2971,6 +3106,30 @@ begin
         else
           FHelixsrWaveSizeComboBox.ItemIndex := 0;
       end;
+      if Assigned(FHelixsrNetworkResolutionComboBox) then
+      begin
+        if (Settings.HelixSrNetworkResolutionIndex >= 0) and
+           (Settings.HelixSrNetworkResolutionIndex < FHelixsrNetworkResolutionComboBox.Items.Count) then
+          FHelixsrNetworkResolutionComboBox.ItemIndex := Settings.HelixSrNetworkResolutionIndex
+        else
+          FHelixsrNetworkResolutionComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FHelixsrInt8ComboBox) then
+      begin
+        if (Settings.HelixSrInt8Index >= 0) and
+           (Settings.HelixSrInt8Index < FHelixsrInt8ComboBox.Items.Count) then
+          FHelixsrInt8ComboBox.ItemIndex := Settings.HelixSrInt8Index
+        else
+          FHelixsrInt8ComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FHelixsrFgPresetComboBox) then
+      begin
+        if (Settings.HelixSrFgPresetIndex >= 0) and
+           (Settings.HelixSrFgPresetIndex < FHelixsrFgPresetComboBox.Items.Count) then
+          FHelixsrFgPresetComboBox.ItemIndex := Settings.HelixSrFgPresetIndex
+        else
+          FHelixsrFgPresetComboBox.ItemIndex := 0;
+      end;
       if Assigned(FDlssNrArchComboBox) then
       begin
         if (Settings.DlssNrArchIndex >= 0) and (Settings.DlssNrArchIndex < FDlssNrArchComboBox.Items.Count) then
@@ -3143,6 +3302,21 @@ begin
       Settings.HelixSrWaveSizeIndex := FHelixsrWaveSizeComboBox.ItemIndex
     else
       Settings.HelixSrWaveSizeIndex := 0;
+
+    if Assigned(FHelixsrNetworkResolutionComboBox) then
+      Settings.HelixSrNetworkResolutionIndex := FHelixsrNetworkResolutionComboBox.ItemIndex
+    else
+      Settings.HelixSrNetworkResolutionIndex := 0;
+
+    if Assigned(FHelixsrInt8ComboBox) then
+      Settings.HelixSrInt8Index := FHelixsrInt8ComboBox.ItemIndex
+    else
+      Settings.HelixSrInt8Index := 0;
+
+    if Assigned(FHelixsrFgPresetComboBox) then
+      Settings.HelixSrFgPresetIndex := FHelixsrFgPresetComboBox.ItemIndex
+    else
+      Settings.HelixSrFgPresetIndex := 0;
 
     if Assigned(FDlssNrArchComboBox) then
       Settings.DlssNrArchIndex := FDlssNrArchComboBox.ItemIndex

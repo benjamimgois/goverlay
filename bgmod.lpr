@@ -2090,6 +2090,7 @@ begin
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'D3D12_OptiScaler');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'HelixSR');
+  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr-fg');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.ini');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.log');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd');
@@ -2998,15 +2999,24 @@ begin
               else if FileExists(ConfigDir + 'dxgi.dll') then
                 SafeCopyFile(ConfigDir + 'dxgi.dll', IncludeTrailingPathDelimiter(GameDir) + 'dxgi.dll');
 
-              if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
+              if FileExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+                SafeCopyFile(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll')
+              else if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
                 SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll')
               else if FileExists(ConfigDir + 'nvngx.dll') then
                 SafeCopyFile(ConfigDir + 'nvngx.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll');
 
               if FileExists(ConfigDir + 'helixsr.ini') then
                 SafeCopyFile(ConfigDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini')
+              else if FileExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini') then
+                SafeCopyFile(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini')
               else if FileExists(SourceDir + 'helixsr.ini') then
                 SafeCopyFile(SourceDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini');
+
+              if DirectoryExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr-fg') then
+                CopyDirectory(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr-fg', IncludeTrailingPathDelimiter(GameDir) + 'helixsr-fg')
+              else if DirectoryExists(SourceDir + 'helixsr-fg') then
+                CopyDirectory(SourceDir + 'helixsr-fg', IncludeTrailingPathDelimiter(GameDir) + 'helixsr-fg');
 
               SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
               SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
@@ -3029,6 +3039,11 @@ begin
               begin
                 SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
                 SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+              end
+              else if FileExists(SourceDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll') then
+              begin
+                SafeCopyFile(SourceDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+                SafeCopyFile(SourceDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
               end
               else if FileExists(SourceDir + 'OptiScaler.dll') then
               begin
@@ -3058,11 +3073,23 @@ begin
 
               // Deploy HelixSR folder
               ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
-              if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
+              if FileExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+              begin
+                SafeCopyFile(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
+                SafeCopyFile(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll');
+              end
+              else if FileExists(SourceDir + 'amd_fidelityfx_dx12.dll') then
               begin
                 SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.dll');
                 SafeCopyFile(SourceDir + 'amd_fidelityfx_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr_upscaler.dll');
               end;
+
+              // Deploy helixsr-fg folder for DLSS Frame Generation
+              if DirectoryExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr-fg') then
+                CopyDirectory(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr-fg', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr-fg')
+              else if DirectoryExists(SourceDir + 'helixsr-fg') then
+                CopyDirectory(SourceDir + 'helixsr-fg', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr-fg');
+
               if FileExists(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll') then
                 SafeCopyFile(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'amd_fidelityfx_framegeneration_dx12.dll');
               if FileExists(SourceDir + 'amd-fsr' + PathDelim + 'amd_fidelityfx_upscaler_dx12.amd.dll') then
@@ -3071,6 +3098,8 @@ begin
                 SafeCopyFile(ConfigDir + 'HelixSR' + PathDelim + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
               else if FileExists(ConfigDir + 'helixsr.ini') then
                 SafeCopyFile(ConfigDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
+              else if FileExists(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini') then
+                SafeCopyFile(SourceDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini')
               else if FileExists(SourceDir + 'helixsr.ini') then
                 SafeCopyFile(SourceDir + 'helixsr.ini', IncludeTrailingPathDelimiter(GameDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
 

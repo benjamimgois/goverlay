@@ -21,6 +21,8 @@ type
     procedure TestDlssNrConfigRoundTrip;
     procedure TestDlssNrIniGeneration;
     procedure TestDlssNrDirectFileDeploymentAndManifestCleanup;
+    procedure TestHelixSrConfigRoundTrip;
+    procedure TestHelixSrIniGeneration;
   end;
 
   TSandboxIsolationTests = class(TTestCase)
@@ -390,6 +392,75 @@ begin
   AssertFalse('Manifest removed', FileExists(ManifestPath));
   // Verify native game file is preserved untouched
   AssertTrue('Game exe preserved', FileExists(GameDir + 'game.exe'));
+end;
+
+procedure TOptiScalerIniTests.TestHelixSrConfigRoundTrip;
+var
+  Settings, LoadedSettings: TOptiScalerSettings;
+  ErrMsg, LaunchCommand: string;
+begin
+  Settings.ActiveGameName := 'TestHelixSrGame';
+  Settings.Version := '1.0';
+  Settings.Channel := 'stable';
+  Settings.UpscalerTypeItemIndex := 3; // HelixSR
+  Settings.HelixSrNativeDlssChecked := True;
+  Settings.HelixSrSharpenerIndex := 1; // FSR
+  Settings.HelixSrSharpness := 45;
+  Settings.HelixSrWaveSizeIndex := 2; // Wave64
+  Settings.HelixSrNetworkResolutionIndex := 1; // 1440p
+  Settings.HelixSrInt8Index := 1; // Enabled
+  Settings.HelixSrFgPresetIndex := 1; // Full (DLSS FG 310.3)
+
+  AssertTrue('SaveOptiScalerConfig succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+
+  AssertTrue('LoadOptiScalerConfig succeeds', LoadOptiScalerConfig('TestHelixSrGame', LoadedSettings));
+  AssertEquals('UpscalerTypeItemIndex = 3', 3, LoadedSettings.UpscalerTypeItemIndex);
+  AssertTrue('HelixSrNativeDlssChecked is true', LoadedSettings.HelixSrNativeDlssChecked);
+  AssertEquals('HelixSrSharpenerIndex = 1', 1, LoadedSettings.HelixSrSharpenerIndex);
+  AssertEquals('HelixSrSharpness = 45', 45, LoadedSettings.HelixSrSharpness);
+  AssertEquals('HelixSrWaveSizeIndex = 2', 2, LoadedSettings.HelixSrWaveSizeIndex);
+  AssertEquals('HelixSrNetworkResolutionIndex = 1', 1, LoadedSettings.HelixSrNetworkResolutionIndex);
+  AssertEquals('HelixSrInt8Index = 1', 1, LoadedSettings.HelixSrInt8Index);
+  AssertEquals('HelixSrFgPresetIndex = 1', 1, LoadedSettings.HelixSrFgPresetIndex);
+end;
+
+procedure TOptiScalerIniTests.TestHelixSrIniGeneration;
+var
+  Settings: TOptiScalerSettings;
+  ErrMsg, IniPath, LaunchCommand: string;
+  Lines: TStringList;
+begin
+  Settings.ActiveGameName := 'TestHelixSrIni';
+  Settings.Version := '1.0';
+  Settings.Channel := 'stable';
+  Settings.UpscalerTypeItemIndex := 3; // HelixSR
+  Settings.HelixSrNativeDlssChecked := True;
+  Settings.HelixSrSharpenerIndex := 1; // NVIDIA
+  Settings.HelixSrSharpness := 45;
+  Settings.HelixSrWaveSizeIndex := 2; // Wave64
+  Settings.HelixSrNetworkResolutionIndex := 1; // Full
+  Settings.HelixSrInt8Index := 1; // On
+  Settings.HelixSrFgPresetIndex := 1; // Full
+
+  AssertTrue('SaveOptiScalerConfig succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+
+  IniPath := GetGameConfigDir('TestHelixSrIni') + 'helixsr.ini';
+  AssertTrue('helixsr.ini was generated', FileExists(IniPath));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(IniPath);
+    AssertTrue('Sharpener=nvidia present', Pos('Sharpener=nvidia', Lines.Text) > 0);
+    AssertTrue('Sharpness=0.45 present', Pos('Sharpness=0.45', Lines.Text) > 0);
+    AssertTrue('WaveSize=64 present', Pos('WaveSize=64', Lines.Text) > 0);
+    AssertTrue('NetworkResolution=full present', Pos('NetworkResolution=full', Lines.Text) > 0);
+    AssertTrue('Int8=on present', Pos('Int8=on', Lines.Text) > 0);
+    AssertTrue('Preset=full present', Pos('Preset=full', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
 end;
 
 procedure TSandboxIsolationTests.TestIsSafeSandboxDirValid;

@@ -52,6 +52,10 @@ function ExtractReleaseTagFromAtomXml(const AXml: string): string;
 // (https://github.com/<owner>/<repo>/releases.atom). Returns '' on failure.
 function FetchLatestReleaseTagFromAtom(const AOwner, ARepo: string): string;
 
+// Resolve the active HelixSR amd_fidelityfx_dx12.dll path. Prefers the
+// HelixSR-fsrfg subdirectory when present, otherwise the root directory.
+function GetHelixSRDx12DllPath(const ARootPath: string): string;
+
 // Check and automatically install/heal the HelixSR OptiScaler runtime (lonewolf0622/HelixSR)
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
@@ -4195,6 +4199,16 @@ begin
     Result := True;
 end;
 
+function GetHelixSRDx12DllPath(const ARootPath: string): string;
+var
+  Root: string;
+begin
+  Root := IncludeTrailingPathDelimiter(ARootPath);
+  Result := Root + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll';
+  if not FileExists(Result) then
+    Result := Root + 'amd_fidelityfx_dx12.dll';
+end;
+
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   TargetDir, Dx12Dll, OptiDll, SetupScript: string;
@@ -4231,18 +4245,41 @@ var
       end;
     end;
   end;
+
+  procedure PromoteHelixSRPayloads;
+  begin
+    // Promote HelixSR-fsrfg payloads to the runtime root when needed.
+    if FileExists(TargetDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') and
+       (not FileExists(TargetDir + 'amd_fidelityfx_dx12.dll') or AForce) then
+      CopyFile(TargetDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll',
+        TargetDir + 'amd_fidelityfx_dx12.dll');
+    if FileExists(TargetDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini') and
+       not FileExists(TargetDir + 'helixsr.ini') then
+      CopyFile(TargetDir + 'HelixSR-fsrfg' + PathDelim + 'helixsr.ini', TargetDir + 'helixsr.ini');
+    if FileExists(TargetDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll') and
+       not FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+    begin
+      ForceDirectories(TargetDir + 'optiscaler');
+      CopyFile(TargetDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll',
+        TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll');
+    end;
+  end;
 begin
   Result := True;
   TargetDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
   ForceDirectories(TargetDir);
 
-  Dx12Dll := TargetDir + 'amd_fidelityfx_dx12.dll';
+  Dx12Dll := GetHelixSRDx12DllPath(TargetDir);
   OptiDll := TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll';
   SetupScript := TargetDir + 'helixsr-setup.sh';
 
   // Synchronize companion libraries from the stable OptiScaler cache and make
   // sure the HelixSR Freeware License ships alongside the runtime.
   EnsureHelixSRCompanionLibraries(TargetDir);
+
+  // Mirror the v2 layout before deciding whether a download is needed so an
+  // existing HelixSR-fsrfg runtime is promoted to the root path.
+  PromoteHelixSRPayloads;
 
   if not AForce and FileExists(Dx12Dll) and (IsHelixSRCompiled(TargetDir) or (FileExists(SetupScript) and FileExists(OptiDll))) then
   begin
@@ -4363,6 +4400,11 @@ begin
   if FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and not FileExists(TargetDir + 'fakenvapi.ini') then
     CopyFile(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini', TargetDir + 'fakenvapi.ini');
 
+  PromoteHelixSRPayloads;
+
+  Dx12Dll := GetHelixSRDx12DllPath(TargetDir);
+  OptiDll := TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll';
+
   if not FileExists(Dx12Dll) or not FileExists(OptiDll) then
   begin
     WriteLn('[HELIXSR] ERROR: Extraction completed but mandatory DLLs missing');
@@ -4392,7 +4434,7 @@ begin
   else
     Root := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
 
-  DllPath := Root + 'amd_fidelityfx_dx12.dll';
+  DllPath := GetHelixSRDx12DllPath(Root);
   if FileExists(DllPath) then
   begin
     try
@@ -4870,6 +4912,10 @@ begin
 
     if Result then
     begin
+      // Promote the freshly compiled HelixSR-fsrfg runtime to the root path.
+      if FileExists(WorkDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+        CopyFile(WorkDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll',
+          WorkDir + 'amd_fidelityfx_dx12.dll');
       // Ensure OptiScaler companion files are mirrored in root
       if FileExists(WorkDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and not FileExists(WorkDir + 'OptiScaler.dll') then
         CopyFile(WorkDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', WorkDir + 'OptiScaler.dll');
@@ -5123,7 +5169,7 @@ begin
     AMissingList.Add('vkSumi Vulkan layer');
 
   // HelixSR (OptiScaler & DLSS Model E runtime)
-  if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') then
+  if not FileExists(GetHelixSRDx12DllPath(GetBGModOriginalHelixSRPath)) then
     AMissingList.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
 
   // OptiPatcher ASI plugin (OptiScaler)

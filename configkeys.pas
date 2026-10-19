@@ -155,6 +155,11 @@ const
   HELIX_KEY_SHARPENER          = 'Sharpener';
   HELIX_KEY_SHARPNESS          = 'Sharpness';
   HELIX_KEY_WAVESIZE           = 'WaveSize';
+  HELIX_KEY_INT8               = 'Int8';
+  HELIX_KEY_NETWORK_RESOLUTION = 'NetworkResolution';
+  HELIX_KEY_FG_ENABLED         = 'Enabled';
+  HELIX_KEY_FG_PRESET          = 'Preset';
+  HELIX_KEY_FG_MEMORY          = 'Memory';
 
   VKSUMI_KEY_COMPARE           = 'compare';
   VKSUMI_KEY_DALTONIZE         = 'daltonize';
