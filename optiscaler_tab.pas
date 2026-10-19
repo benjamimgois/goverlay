@@ -1088,17 +1088,17 @@ begin
       helixsrNativeDlssCheckBox.ShowHint := True;
       helixsrNativeDlssCheckBox.OnChange := @FForm.helixsrNativeDlssCheckBoxChange;
       helixsrNativeDlssCheckBox.Anchors := [akLeft, akTop];
-      helixsrNativeDlssCheckBox.Parent := FOsSpatialSec;
+      helixsrNativeDlssCheckBox.Parent := FOsFakeSec;
     end;
     if FHelixSrNativeDlssToggle = nil then
-      FHelixSrNativeDlssToggle := PlaceOsToggle(helixsrNativeDlssCheckBox, FOsSpatialSec);
+      FHelixSrNativeDlssToggle := PlaceOsToggle(helixsrNativeDlssCheckBox, FOsFakeSec);
     helixsrNativeDlssCheckBox.Visible := False;
 
     if FHelixSrModeInfoLbl = nil then
     begin
       FHelixSrModeInfoLbl := TLabel.Create(FForm);
       FHelixSrModeInfoLbl.Name := 'FHelixSrModeInfoLbl';
-      FHelixSrModeInfoLbl.Parent := FOsSpatialSec;
+      FHelixSrModeInfoLbl.Parent := FOsFakeSec;
       FHelixSrModeInfoLbl.Caption := '';
       FHelixSrModeInfoLbl.Font.Color := $999999;
       FHelixSrModeInfoLbl.Font.Size := 8;
@@ -1112,7 +1112,7 @@ begin
       FHelixsrSharpenerLabel := TLabel.Create(FForm);
       FHelixsrSharpenerLabel.Name := 'helixsrSharpenerLabel';
       FHelixsrSharpenerLabel.Caption := 'Sharpener';
-      FHelixsrSharpenerLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpenerLabel.Parent := FOsFakeSec;
       FHelixsrSharpenerLabel.Visible := False;
     end;
 
@@ -1125,7 +1125,7 @@ begin
       FHelixsrSharpenerComboBox.Items.Add('NVIDIA Image Sharpening');
       FHelixsrSharpenerComboBox.Items.Add('AMD RCAS');
       FHelixsrSharpenerComboBox.ItemIndex := 0;
-      FHelixsrSharpenerComboBox.Parent := FOsSpatialSec;
+      FHelixsrSharpenerComboBox.Parent := FOsFakeSec;
       FHelixsrSharpenerComboBox.Visible := False;
       FHelixsrSharpenerComboBox.OnChange := @HelixSrControlChange;
     end;
@@ -1135,7 +1135,7 @@ begin
       FHelixsrSharpnessLabel := TLabel.Create(FForm);
       FHelixsrSharpnessLabel.Name := 'helixsrSharpnessLabel';
       FHelixsrSharpnessLabel.Caption := 'Sharpness';
-      FHelixsrSharpnessLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpnessLabel.Parent := FOsFakeSec;
       FHelixsrSharpnessLabel.Visible := False;
     end;
 
@@ -1146,7 +1146,7 @@ begin
       FHelixsrSharpnessValLabel.Caption := '0.10';
       FHelixsrSharpnessValLabel.Font.Color := RGBToColor(48, 190, 240);
       FHelixsrSharpnessValLabel.Font.Style := [fsBold];
-      FHelixsrSharpnessValLabel.Parent := FOsSpatialSec;
+      FHelixsrSharpnessValLabel.Parent := FOsFakeSec;
       FHelixsrSharpnessValLabel.Visible := False;
     end;
 
@@ -1158,7 +1158,7 @@ begin
       FHelixsrSharpnessTrackBar.Max := 100;
       FHelixsrSharpnessTrackBar.Position := 10;
       FHelixsrSharpnessTrackBar.TickStyle := tsNone;
-      FHelixsrSharpnessTrackBar.Parent := FOsSpatialSec;
+      FHelixsrSharpnessTrackBar.Parent := FOsFakeSec;
       FHelixsrSharpnessTrackBar.Visible := False;
       FHelixsrSharpnessTrackBar.OnChange := @HelixSrSharpnessChange;
     end;
@@ -1168,7 +1168,7 @@ begin
       FHelixsrWaveSizeLabel := TLabel.Create(FForm);
       FHelixsrWaveSizeLabel.Name := 'helixsrWaveSizeLabel';
       FHelixsrWaveSizeLabel.Caption := 'Wave size';
-      FHelixsrWaveSizeLabel.Parent := FOsSpatialSec;
+      FHelixsrWaveSizeLabel.Parent := FOsFakeSec;
       FHelixsrWaveSizeLabel.Visible := False;
     end;
 
@@ -1181,7 +1181,7 @@ begin
       FHelixsrWaveSizeComboBox.Items.Add('32 (Wave32)');
       FHelixsrWaveSizeComboBox.Items.Add('64 (Wave64)');
       FHelixsrWaveSizeComboBox.ItemIndex := 0;
-      FHelixsrWaveSizeComboBox.Parent := FOsSpatialSec;
+      FHelixsrWaveSizeComboBox.Parent := FOsFakeSec;
       FHelixsrWaveSizeComboBox.Visible := False;
       FHelixsrWaveSizeComboBox.OnChange := @HelixSrControlChange;
     end;
@@ -2020,7 +2020,7 @@ begin
     else
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
-    MinOptH := 396;
+    MinOptH := 295;
     CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -2103,7 +2103,7 @@ begin
     if ColW < 100 then ColW := 100;
 
     BoxH   := OptH - HDR - 12;
-    if BoxH < 350 then BoxH := 350;
+    if BoxH < 240 then BoxH := 240;
 
     X1 := IMARGIN;
     X2 := IMARGIN + ColW + IGAP;
@@ -2220,157 +2220,74 @@ begin
     begin
       if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      if IsHelixSrActive then
+      if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'Upscaler';
+
+      // Hide DLSS-NR controls
+      if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
+      if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
+      if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+      if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+      if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
+      if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
+      if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
+      if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
+
+      // Hide HelixSR controls from Column 2 (they reside in Column 4)
+      if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
+      if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
+      if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
+      if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
+      if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
+      if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
+      if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
+      if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
+      if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
+      if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
+
+      // Show and position standard Upscaler controls
+      preferredUpscalerLabel.Visible := True;
+      preferredUpscalerComboBox.Visible := True;
+      preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
+      preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
+
+      fsrversionLabel.Visible := True;
+      fsrversionComboBox.Visible := True;
+      fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+
+      if Assigned(spoofCheckBox) then
       begin
-        // Hide DLSS-NR controls
-        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
-        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
-        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
-        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
-        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
-        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
-        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
-        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
-
-        if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'HelixSR';
-
-        // Hide OptiScaler-specific spatial controls
-        preferredUpscalerLabel.Visible := False;
-        preferredUpscalerComboBox.Visible := False;
-        fsrversionLabel.Visible := False;
-        fsrversionComboBox.Visible := False;
-        // Spoof DLSS stays visible; disable it when Native DLSS or NVIDIA driver is active
-        IsNativeDlss := Assigned(helixsrNativeDlssCheckBox) and helixsrNativeDlssCheckBox.Checked;
-        if Assigned(spoofCheckBox) then
-          spoofCheckBox.Enabled := not (IsNativeDlss or (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked));
-
-        if Assigned(FSpoofToggle) then
+        if IsHelixSrActive then
         begin
-          FSpoofToggle.Visible := True;
-          FSpoofToggle.SetBounds(10, Y0 + 204, ColW - 20, 20);
-          FSpoofToggle.Enabled := spoofCheckBox.Enabled;
+          IsNativeDlss := Assigned(helixsrNativeDlssCheckBox) and helixsrNativeDlssCheckBox.Checked;
+          spoofCheckBox.Enabled := not (IsNativeDlss or (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked));
         end
         else
-        begin
-          spoofCheckBox.Visible := True;
-          spoofCheckBox.SetBounds(10, Y0 + 204, ColW - 20, 20);
-        end;
-        if Assigned(FForceFsr4Toggle) then FForceFsr4Toggle.Visible := False
-        else forceFsr4Int8CheckBox.Visible := False;
+          spoofCheckBox.Enabled := not (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked);
+      end;
 
-        // Show HelixSR controls
-        if Assigned(FHelixsrSharpenerLabel) then
-        begin
-          FHelixsrSharpenerLabel.Visible := True;
-          FHelixsrSharpenerLabel.SetBounds(10, Y0, ColW - 20, 16);
-        end;
-        if Assigned(FHelixsrSharpenerComboBox) then
-        begin
-          FHelixsrSharpenerComboBox.Visible := True;
-          FHelixsrSharpenerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
-        end;
-        if Assigned(FHelixsrSharpnessLabel) then
-        begin
-          FHelixsrSharpnessLabel.Visible := True;
-          FHelixsrSharpnessLabel.SetBounds(10, Y0 + 56, ColW - 60, 16);
-        end;
-        if Assigned(FHelixsrSharpnessValLabel) then
-        begin
-          FHelixsrSharpnessValLabel.Visible := True;
-          FHelixsrSharpnessValLabel.SetBounds(ColW - 45, Y0 + 56, 35, 16);
-        end;
-        if Assigned(FHelixsrSharpnessTrackBar) then
-        begin
-          FHelixsrSharpnessTrackBar.Visible := True;
-          FHelixsrSharpnessTrackBar.SetBounds(10, Y0 + 78, ColW - 20, 24);
-        end;
-        if Assigned(FHelixsrWaveSizeLabel) then
-        begin
-          FHelixsrWaveSizeLabel.Visible := True;
-          FHelixsrWaveSizeLabel.SetBounds(10, Y0 + 116, ColW - 20, 16);
-        end;
-        if Assigned(FHelixsrWaveSizeComboBox) then
-        begin
-          FHelixsrWaveSizeComboBox.Visible := True;
-          FHelixsrWaveSizeComboBox.SetBounds(10, Y0 + 138, ComboW, 26);
-        end;
-
-        if Assigned(FHelixSrNativeDlssToggle) then
-        begin
-          FHelixSrNativeDlssToggle.Visible := True;
-          FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 176, ColW - 20, 20);
-        end
-        else if Assigned(helixsrNativeDlssCheckBox) then
-        begin
-          helixsrNativeDlssCheckBox.Visible := True;
-          helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 176, ColW - 20, 20);
-        end;
+      if Assigned(FSpoofToggle) then
+      begin
+        FSpoofToggle.Visible := True;
+        FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
+        FSpoofToggle.Enabled := spoofCheckBox.Enabled;
       end
       else
       begin
-        if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'Upscaler';
-
-        // Hide DLSS-NR controls
-        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
-        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
-        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
-        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
-        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
-        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
-        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
-        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
-
-        // Hide HelixSR controls
-        if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
-        if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
-        if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
-        if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
-        if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
-        if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
-        if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
-        if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
-        if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
-
-        // Show and position OptiScaler-specific spatial controls
-        preferredUpscalerLabel.Visible := True;
-        preferredUpscalerComboBox.Visible := True;
-        preferredUpscalerLabel.SetBounds(10, Y0, ColW - 20, 16);
-        preferredUpscalerComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
-
-        fsrversionLabel.Visible := True;
-        fsrversionComboBox.Visible := True;
-        fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
-        fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
-
-        if Assigned(spoofCheckBox) then
-          spoofCheckBox.Enabled := not (Assigned(nvidiaRadioButton) and nvidiaRadioButton.Checked);
-
-        if Assigned(FSpoofToggle) then
-        begin
-          FSpoofToggle.Visible := True;
-          FSpoofToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
-          FSpoofToggle.Enabled := spoofCheckBox.Enabled;
-        end
-        else
-        begin
-          spoofCheckBox.Visible := True;
-          spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
-        end;
-
-        if Assigned(FForceFsr4Toggle) then
-        begin
-          FForceFsr4Toggle.Visible := True;
-          FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20);
-        end
-        else
-        begin
-          forceFsr4Int8CheckBox.Visible := True;
-          forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
-        end;
+        spoofCheckBox.Visible := True;
+        spoofCheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
       end;
 
-      if Assigned(FHelixSrModeInfoLbl) then
-        FHelixSrModeInfoLbl.Visible := False;
+      if Assigned(FForceFsr4Toggle) then
+      begin
+        FForceFsr4Toggle.Visible := True;
+        FForceFsr4Toggle.SetBounds(10, Y0 + 146, ColW - 20, 20);
+      end
+      else
+      begin
+        forceFsr4Int8CheckBox.Visible := True;
+        forceFsr4Int8CheckBox.SetBounds(10, Y0 + 146, ColW - 20, 20);
+      end;
     end;
 
     // Reflow Sub-card 3: Temporal Upscaler
@@ -2438,6 +2355,18 @@ begin
         // Show and layout DLSS-NR controls (2-column grid matching other columns)
         HalfW := (FakeW - 8) div 2;
         if HalfW < 60 then HalfW := 60;
+
+        // Hide HelixSR controls
+        if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
+        if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
+        if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
+        if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
+        if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
+        if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
+        if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
+        if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
 
         // Hide dialog-only and status controls
         if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
@@ -2521,6 +2450,106 @@ begin
             StyleBitBtnTheme(FDlssNrAdvancedBtn, clWhite, FOsFakeSec.Color);
         end;
       end
+      else if IsHelixSrActive then
+      begin
+        if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := 'HelixSR';
+
+        // Hide Reflex / LatencyFlex controls
+        if Assigned(FForceReflexToggle) then FForceReflexToggle.Visible := False
+        else forcereflexCheckBox.Visible := False;
+        reflexComboBox.Visible := False;
+        if Assigned(FForceLatencyFlexToggle) then FForceLatencyFlexToggle.Visible := False
+        else forcelatencyflexCheckBox.Visible := False;
+        latencyflexComboBox.Visible := False;
+        overrideCheckBox.Visible := False;
+        tracelogCheckBox.Visible := False;
+
+        // Hide DLSS-NR controls
+        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
+        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
+        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
+        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
+        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
+        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
+        if Assigned(FDlssNrPassesLabel) then FDlssNrPassesLabel.Visible := False;
+        if Assigned(FDlssNrPassesComboBox) then FDlssNrPassesComboBox.Visible := False;
+        if Assigned(FDlssNrInt4Toggle) then FDlssNrInt4Toggle.Visible := False;
+        if Assigned(FDlssNrRunBeforeSrToggle) then FDlssNrRunBeforeSrToggle.Visible := False;
+        if Assigned(FDlssNrRenoDxToggle) then FDlssNrRenoDxToggle.Visible := False;
+        if Assigned(FDlssNrPreprocessToggle) then FDlssNrPreprocessToggle.Visible := False;
+        if Assigned(FDlssNrAdvancedBtn) then FDlssNrAdvancedBtn.Visible := False;
+        if Assigned(FDlssNrModelDllLabel) then FDlssNrModelDllLabel.Visible := False;
+        if Assigned(FDlssNrModelDllBrowseBtn) then FDlssNrModelDllBrowseBtn.Visible := False;
+        if Assigned(FDlssNrModelStatusLabel) then FDlssNrModelStatusLabel.Visible := False;
+
+        // Show and layout HelixSR controls inside FOsFakeSec
+        // Row 1: Wave size (aligned with Row 1 of other cards: Label Y0, Combo Y0+22)
+        if Assigned(FHelixsrWaveSizeLabel) then
+        begin
+          FHelixsrWaveSizeLabel.Parent := FOsFakeSec;
+          FHelixsrWaveSizeLabel.Visible := True;
+          FHelixsrWaveSizeLabel.SetBounds(10, Y0, FakeW, 16);
+        end;
+        if Assigned(FHelixsrWaveSizeComboBox) then
+        begin
+          FHelixsrWaveSizeComboBox.Parent := FOsFakeSec;
+          FHelixsrWaveSizeComboBox.Visible := True;
+          FHelixsrWaveSizeComboBox.SetBounds(10, Y0 + 22, FakeW, 26);
+        end;
+
+        // Row 2: Sharpener (aligned with Row 2 of other cards: Label Y0+56, Combo Y0+78)
+        if Assigned(FHelixsrSharpenerLabel) then
+        begin
+          FHelixsrSharpenerLabel.Parent := FOsFakeSec;
+          FHelixsrSharpenerLabel.Visible := True;
+          FHelixsrSharpenerLabel.SetBounds(10, Y0 + 56, FakeW, 16);
+        end;
+        if Assigned(FHelixsrSharpenerComboBox) then
+        begin
+          FHelixsrSharpenerComboBox.Parent := FOsFakeSec;
+          FHelixsrSharpenerComboBox.Visible := True;
+          FHelixsrSharpenerComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
+        end;
+
+        // Row 3: Sharpness trackbar
+        if Assigned(FHelixsrSharpnessLabel) then
+        begin
+          FHelixsrSharpnessLabel.Parent := FOsFakeSec;
+          FHelixsrSharpnessLabel.Visible := True;
+          FHelixsrSharpnessLabel.SetBounds(10, Y0 + 112, FakeW - 50, 16);
+        end;
+        if Assigned(FHelixsrSharpnessValLabel) then
+        begin
+          FHelixsrSharpnessValLabel.Parent := FOsFakeSec;
+          FHelixsrSharpnessValLabel.Visible := True;
+          FHelixsrSharpnessValLabel.SetBounds(FakeW - 40, Y0 + 112, 35, 16);
+        end;
+        if Assigned(FHelixsrSharpnessTrackBar) then
+        begin
+          FHelixsrSharpnessTrackBar.Parent := FOsFakeSec;
+          FHelixsrSharpnessTrackBar.Visible := True;
+          FHelixsrSharpnessTrackBar.SetBounds(10, Y0 + 134, FakeW, 24);
+        end;
+
+        // Row 4: Native DLSS toggle
+        if Assigned(FHelixSrNativeDlssToggle) then
+        begin
+          FHelixSrNativeDlssToggle.Parent := FOsFakeSec;
+          FHelixSrNativeDlssToggle.Visible := True;
+          FHelixSrNativeDlssToggle.SetBounds(10, Y0 + 168, FakeW, 20);
+        end
+        else if Assigned(helixsrNativeDlssCheckBox) then
+        begin
+          helixsrNativeDlssCheckBox.Parent := FOsFakeSec;
+          helixsrNativeDlssCheckBox.Visible := True;
+          helixsrNativeDlssCheckBox.SetBounds(10, Y0 + 168, FakeW, 20);
+        end;
+
+        if Assigned(FHelixSrModeInfoLbl) then
+          FHelixSrModeInfoLbl.Visible := False;
+      end
       else
       begin
         if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := 'Reflex / Antilag';
@@ -2545,17 +2574,43 @@ begin
         if Assigned(FDlssNrModelDllBrowseBtn) then FDlssNrModelDllBrowseBtn.Visible := False;
         if Assigned(FDlssNrModelStatusLabel) then FDlssNrModelStatusLabel.Visible := False;
 
+        // Hide HelixSR controls
+        if Assigned(FHelixsrSharpenerLabel) then FHelixsrSharpenerLabel.Visible := False;
+        if Assigned(FHelixsrSharpenerComboBox) then FHelixsrSharpenerComboBox.Visible := False;
+        if Assigned(FHelixsrSharpnessLabel) then FHelixsrSharpnessLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessValLabel) then FHelixsrSharpnessValLabel.Visible := False;
+        if Assigned(FHelixsrSharpnessTrackBar) then FHelixsrSharpnessTrackBar.Visible := False;
+        if Assigned(FHelixsrWaveSizeLabel) then FHelixsrWaveSizeLabel.Visible := False;
+        if Assigned(FHelixsrWaveSizeComboBox) then FHelixsrWaveSizeComboBox.Visible := False;
+        if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
+        if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
+        if Assigned(FHelixSrModeInfoLbl) then FHelixSrModeInfoLbl.Visible := False;
+
         // Show Reflex / LatencyFlex controls
         if Assigned(FForceReflexToggle) then
-          FForceReflexToggle.SetBounds(10, Y0, FakeW, 20)
+        begin
+          FForceReflexToggle.Visible := True;
+          FForceReflexToggle.SetBounds(10, Y0, FakeW, 20);
+        end
         else
+        begin
+          forcereflexCheckBox.Visible := True;
           forcereflexCheckBox.SetBounds(10, Y0, FakeW, 20);
+        end;
+        reflexComboBox.Visible := True;
         reflexComboBox.SetBounds(10, Y0 + 22, FakeW, 26);
 
         if Assigned(FForceLatencyFlexToggle) then
-          FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, FakeW, 20)
+        begin
+          FForceLatencyFlexToggle.Visible := True;
+          FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, FakeW, 20);
+        end
         else
+        begin
+          forcelatencyflexCheckBox.Visible := True;
           forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FakeW, 20);
+        end;
+        latencyflexComboBox.Visible := True;
         latencyflexComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
 
         overrideCheckBox.Visible := False;

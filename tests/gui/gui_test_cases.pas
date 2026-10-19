@@ -3436,17 +3436,19 @@ begin
   AssertFalse('None radio button unchecked', goverlayform.noneUpscalerRadioButton.Checked);
   AssertFalse('optversionComboBox disabled when HelixSR is active', goverlayform.optversionComboBox.Enabled);
   AssertEquals('Status row 2 label is HelixSR', 'HelixSR', goverlayform.FOsStatNameLbls[2].Caption);
+  AssertEquals('Sub-card 2 title is Upscaler', 'Upscaler', goverlayform.FOsSpatialLbl.Caption);
+  AssertEquals('Sub-card 4 title is HelixSR', 'HelixSR', goverlayform.FOsFakeLbl.Caption);
 
-  // Spoof DLSS visibility and enabled state in standard HelixSR mode
+  // Spoof DLSS visibility and enabled state in standard HelixSR mode (in normal Upscaler card)
   AssertTrue('Spoof toggle visible in HelixSR mode', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Visible);
-  AssertEquals('Spoof toggle Top in HelixSR mode is Y0 + 204', 36 + 204, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Top);
+  AssertEquals('Spoof toggle Top in HelixSR mode is Y0 + 116', 36 + 116, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Top);
   AssertTrue('Spoof toggle enabled in standard HelixSR mode', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).SpoofToggle.Enabled);
   AssertTrue('spoofCheckBox enabled in standard HelixSR mode', goverlayform.spoofCheckBox.Enabled);
 
-  // Native DLSS toggle test
+  // Native DLSS toggle test (in Column 4 HelixSR card)
   AssertNotNull('helixsrNativeDlssCheckBox exists', goverlayform.helixsrNativeDlssCheckBox);
   AssertEquals('helixsrNativeDlssCheckBox caption', 'Native DLSS (Exp.)', goverlayform.helixsrNativeDlssCheckBox.Caption);
-  AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 176', 36 + 176, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
+  AssertEquals('HelixSrNativeDlssToggle Top position is Y0 + 168', 36 + 168, TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).HelixSrNativeDlssToggle.Top);
   goverlayform.helixsrNativeDlssCheckBox.Checked := True;
   goverlayform.helixsrNativeDlssCheckBoxChange(goverlayform.helixsrNativeDlssCheckBox);
 
