@@ -85,6 +85,20 @@ type
     HelixSrSharpenerIndex: Integer;
     HelixSrSharpness: Integer;
     HelixSrWaveSizeIndex: Integer;
+
+    // DLSS-NR options
+    DlssNrArchIndex: Integer;          // 0: Auto, 1: RDNA4, 2: RDNA3
+    DlssNrRouteIndex: Integer;         // 0: OptiScaler, 1: ReShade Feeder, 2: ReShade Vulkan, 3: ReShade DX9
+    DlssNrModelIndex: Integer;         // 0: New model (310.9.16), 1: Old model (310.8.0)
+    DlssNrScaleIndex: Integer;         // 0: 100%, 1: 75%, 2: 50%, 3: 37.5%, 4: 25%
+    DlssNrInt4Checked: Boolean;
+    DlssNrRenoDxChecked: Boolean;
+    DlssNrPreprocessChecked: Boolean;
+    DlssNrPassesIndex: Integer;        // 0: 1 pass, 1: 2 passes, 2: 3 passes
+    DlssNrRunBeforeSrChecked: Boolean;
+    DlssNrFinishedPictureChecked: Boolean;
+    DlssNrSkinProtectionChecked: Boolean;
+    DlssNrModelDllPath: string;
   end;
 
   TMangoHudSettings = record
@@ -908,6 +922,8 @@ var
   VarsIdx, SepPos: Integer;
   Key, Value: string;
   Found: Boolean;
+  DlssNrIniPath, DlssNrSubDir: string;
+  DlssNrLines: TStringList;
 
 
 begin
@@ -953,6 +969,19 @@ begin
       Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '1')
     else
       Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '0');
+
+    Ini.WriteInteger('Config', DLSSNR_KEY_ARCH, Settings.DlssNrArchIndex);
+    Ini.WriteInteger('Config', DLSSNR_KEY_ROUTE, Settings.DlssNrRouteIndex);
+    Ini.WriteInteger('Config', DLSSNR_KEY_MODEL, Settings.DlssNrModelIndex);
+    Ini.WriteInteger('Config', DLSSNR_KEY_SCALE, Settings.DlssNrScaleIndex);
+    Ini.WriteBool('Config', DLSSNR_KEY_INT4, Settings.DlssNrInt4Checked);
+    Ini.WriteBool('Config', DLSSNR_KEY_RENODX, Settings.DlssNrRenoDxChecked);
+    Ini.WriteBool('Config', DLSSNR_KEY_PREPROCESS, Settings.DlssNrPreprocessChecked);
+    Ini.WriteInteger('Config', DLSSNR_KEY_PASSES, Settings.DlssNrPassesIndex);
+    Ini.WriteBool('Config', DLSSNR_KEY_RUN_BEFORE_SR, Settings.DlssNrRunBeforeSrChecked);
+    Ini.WriteBool('Config', DLSSNR_KEY_FINISHED_PICTURE, Settings.DlssNrFinishedPictureChecked);
+    Ini.WriteBool('Config', DLSSNR_KEY_SKIN_PROTECTION, Settings.DlssNrSkinProtectionChecked);
+    Ini.WriteString('Config', DLSSNR_KEY_MODEL_DLL, Settings.DlssNrModelDllPath);
 
     if Settings.EmuFp8Checked then
       Ini.WriteString('Env', 'DXIL_SPIRV_CONFIG', 'wmma_rdna3_workaround')
@@ -1041,6 +1070,9 @@ begin
       begin
         OptiCfg.SetValue(OPTI_KEY_SHORTCUT, SelectedShortcutKey, OPTI_INI_SECTION_MENU);
         OptiCfg.SetValue(OPTI_KEY_SCALE, ScaleValue, OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue('OverlayMenu=', 'true', OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue('ShortcutKeyRequireCtrl=', 'false', OPTI_INI_SECTION_MENU);
+        OptiCfg.SetValue('ShortcutKeyRequireAlt=', 'false', OPTI_INI_SECTION_MENU);
         OptiCfg.SetValue(OPTI_KEY_OVERRIDE_NVAPI, OverrideNvapiDllValue);
         OptiCfg.SetValue(OPTI_KEY_DXGI, DxgiValue);
         OptiCfg.SetValue(OPTI_KEY_LOAD_ASI, LoadAsiPluginsValue);
@@ -1130,6 +1162,30 @@ begin
         else
           OptiCfg.SetValue('Enabled=', 'auto', OPTI_INI_SECTION_FRAMEGEN);
 
+        if Settings.UpscalerTypeItemIndex = 4 then
+        begin
+          OptiCfg.SetValue('Enabled=', 'true', 'DlssNr');
+          OptiCfg.SetValue('WhitePointSource=', '1', 'DlssNr');
+          case Settings.DlssNrPassesIndex of
+            1: OptiCfg.SetValue('Passes=', '2', 'DlssNr');
+            2: OptiCfg.SetValue('Passes=', '3', 'DlssNr');
+          else
+            OptiCfg.SetValue('Passes=', '1', 'DlssNr');
+          end;
+          if Settings.DlssNrRunBeforeSrChecked then
+            OptiCfg.SetValue('RunBeforeSR=', 'true', 'DlssNr')
+          else
+            OptiCfg.SetValue('RunBeforeSR=', 'false', 'DlssNr');
+          if Settings.DlssNrFinishedPictureChecked then
+            OptiCfg.SetValue('FinishedPicture=', 'true', 'DlssNr')
+          else
+            OptiCfg.SetValue('FinishedPicture=', 'false', 'DlssNr');
+          if Settings.DlssNrSkinProtectionChecked then
+            OptiCfg.SetValue('SkinProtection=', 'true', 'DlssNr')
+          else
+            OptiCfg.SetValue('SkinProtection=', 'false', 'DlssNr');
+        end;
+
         try
           OptiCfg.Save;
         except
@@ -1168,6 +1224,91 @@ begin
     end;
     if FileExists(HelixSrIniPath) then
       CopyFile(HelixSrIniPath, GetGameConfigDir(Settings.ActiveGameName) + 'helixsr.ini');
+  end;
+
+  // ##### Save dlssnr-amd.ini file when DLSS-NR is selected #####
+  if Settings.UpscalerTypeItemIndex = 4 then
+  begin
+    DlssNrLines := TStringList.Create;
+    try
+      DlssNrLines.Add('[Network]');
+      if Settings.DlssNrModelIndex = 0 then
+        DlssNrLines.Add('Model = small')
+      else
+        DlssNrLines.Add('Model = original');
+
+      case Settings.DlssNrScaleIndex of
+        0: DlssNrLines.Add('model_scale = 1.0');
+        1: DlssNrLines.Add('model_scale = 0.75');
+        2: DlssNrLines.Add('model_scale = 0.50');
+        3: DlssNrLines.Add('model_scale = 0.375');
+        4: DlssNrLines.Add('model_scale = 0.25');
+      else
+        DlssNrLines.Add('model_scale = 1.0');
+      end;
+
+      case Settings.DlssNrPassesIndex of
+        0: DlssNrLines.Add('passes = 1');
+        1: DlssNrLines.Add('passes = 2');
+        2: DlssNrLines.Add('passes = 3');
+      else
+        DlssNrLines.Add('passes = 1');
+      end;
+
+      if Settings.DlssNrRunBeforeSrChecked then
+        DlssNrLines.Add('run_before_sr = 1')
+      else
+        DlssNrLines.Add('run_before_sr = 0');
+
+      if Settings.DlssNrFinishedPictureChecked then
+        DlssNrLines.Add('finished_picture = 1')
+      else
+        DlssNrLines.Add('finished_picture = 0');
+
+      if Settings.DlssNrSkinProtectionChecked then
+        DlssNrLines.Add('skin_protection = 1')
+      else
+        DlssNrLines.Add('skin_protection = 0');
+
+      DlssNrLines.Add('[Injection]');
+      case Settings.DlssNrRouteIndex of
+        0: DlssNrLines.Add('Route = optiscaler');
+        1: DlssNrLines.Add('Route = reshade');
+        2: DlssNrLines.Add('Route = vulkan');
+        3: DlssNrLines.Add('Route = dx9');
+      else
+        DlssNrLines.Add('Route = optiscaler');
+      end;
+
+      DlssNrLines.Add('[Int4Mixed]');
+      if Settings.DlssNrInt4Checked then
+        DlssNrLines.Add('Enabled = 1')
+      else
+        DlssNrLines.Add('Enabled = 0');
+
+      DlssNrLines.Add('[RenoDX]');
+      if Settings.DlssNrRenoDxChecked then
+        DlssNrLines.Add('Enabled = 1')
+      else
+        DlssNrLines.Add('Enabled = 0');
+
+      DlssNrLines.Add('[Preprocess]');
+      if Settings.DlssNrPreprocessChecked then
+        DlssNrLines.Add('Enabled = 1')
+      else
+        DlssNrLines.Add('Enabled = 0');
+
+      DlssNrIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'dlssnr-amd.ini';
+      ForceDirectories(ExtractFilePath(DlssNrIniPath));
+      DlssNrLines.SaveToFile(DlssNrIniPath);
+
+      // Also write into the dlssnr-amd subfolder when it is present
+      DlssNrSubDir := GetGameConfigDir(Settings.ActiveGameName) + 'dlssnr-amd';
+      if DirectoryExists(DlssNrSubDir) then
+        DlssNrLines.SaveToFile(IncludeTrailingPathDelimiter(DlssNrSubDir) + 'dlssnr-amd.ini');
+    finally
+      DlssNrLines.Free;
+    end;
   end;
 
   // ##### Now modify fakenvapi.ini file #####
@@ -1949,6 +2090,18 @@ begin
       Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       Settings.HelixSrNativeDlssChecked := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0) = 1;
       Settings.UnmanagedIniChecked := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
+      Settings.DlssNrArchIndex := Ini.ReadInteger('Config', DLSSNR_KEY_ARCH, 0);
+      Settings.DlssNrRouteIndex := Ini.ReadInteger('Config', DLSSNR_KEY_ROUTE, 0);
+      Settings.DlssNrModelIndex := Ini.ReadInteger('Config', DLSSNR_KEY_MODEL, 0);
+      Settings.DlssNrScaleIndex := Ini.ReadInteger('Config', DLSSNR_KEY_SCALE, 2);
+      Settings.DlssNrInt4Checked := Ini.ReadBool('Config', DLSSNR_KEY_INT4, False);
+      Settings.DlssNrRenoDxChecked := Ini.ReadBool('Config', DLSSNR_KEY_RENODX, False);
+      Settings.DlssNrPreprocessChecked := Ini.ReadBool('Config', DLSSNR_KEY_PREPROCESS, False);
+      Settings.DlssNrPassesIndex := Ini.ReadInteger('Config', DLSSNR_KEY_PASSES, 0);
+      Settings.DlssNrRunBeforeSrChecked := Ini.ReadBool('Config', DLSSNR_KEY_RUN_BEFORE_SR, False);
+      Settings.DlssNrFinishedPictureChecked := Ini.ReadBool('Config', DLSSNR_KEY_FINISHED_PICTURE, False);
+      Settings.DlssNrSkinProtectionChecked := Ini.ReadBool('Config', DLSSNR_KEY_SKIN_PROTECTION, False);
+      Settings.DlssNrModelDllPath := Ini.ReadString('Config', DLSSNR_KEY_MODEL_DLL, '');
     finally
       Ini.Free;
     end;

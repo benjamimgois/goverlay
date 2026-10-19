@@ -13,7 +13,7 @@ uses
   qt5,
   {$ENDIF}
   qtwidgets,
-  Math, configkeys, StrUtils, helixsr_license_dialog;
+  Math, configkeys, StrUtils, helixsr_license_dialog, dlssnr_advanced_dialog;
 
 type
   TOptiScalerTabHelper = class
@@ -37,9 +37,43 @@ type
     FHelixsrSharpnessValLabel: TLabel;
     FHelixsrWaveSizeLabel: TLabel;
     FHelixsrWaveSizeComboBox: TComboBox;
+    FDlssNrArchLabel: TLabel;
+    FDlssNrArchComboBox: TComboBox;
+    FDlssNrModelDllLabel: TLabel;
+    FDlssNrModelDllBrowseBtn: TBitBtn;
+    FDlssNrModelStatusLabel: TLabel;
+    FDlssNrRouteLabel: TLabel;
+    FDlssNrRouteComboBox: TComboBox;
+    FDlssNrModelVerLabel: TLabel;
+    FDlssNrModelVerComboBox: TComboBox;
+    FDlssNrScaleLabel: TLabel;
+    FDlssNrScaleComboBox: TComboBox;
+    FDlssNrPassesLabel: TLabel;
+    FDlssNrPassesComboBox: TComboBox;
+    FDlssNrInt4CheckBox: TCheckBox;
+    FDlssNrInt4Toggle: TToggleSwitch;
+    FDlssNrRunBeforeSrCheckBox: TCheckBox;
+    FDlssNrRunBeforeSrToggle: TToggleSwitch;
+    FDlssNrAdvancedBtn: TBitBtn;
+    FMainDlssNrToggleLabel: TLabel;
+    FMainDlssNrToggleBtn: TBitBtn;
+    FDlssNrRenoDxCheckBox: TCheckBox;
+    FDlssNrRenoDxToggle: TToggleSwitch;
+    FDlssNrPreprocessCheckBox: TCheckBox;
+    FDlssNrPreprocessToggle: TToggleSwitch;
+    FDlssNrRouteIndex: Integer;
+    FDlssNrFinishedPictureChecked: Boolean;
+    FDlssNrRenoDxChecked: Boolean;
+    FDlssNrPreprocessChecked: Boolean;
+    FDlssNrSkinProtectionChecked: Boolean;
+    FDlssNrModelDllPath: string;
     FOsToggles: TFPList;
     procedure HelixSrSharpnessChange(Sender: TObject);
     procedure HelixSrControlChange(Sender: TObject);
+    procedure DlssNrControlChange(Sender: TObject);
+    procedure DlssNrModelDllBrowseClick(Sender: TObject);
+    procedure DlssNrAdvancedBtnClick(Sender: TObject);
+    procedure UpdateDlssNrStatusUI;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
     procedure HelixLicenseBtnClick(Sender: TObject);
   public
@@ -69,6 +103,19 @@ type
     property HelixSrSharpenerComboBox: TComboBox read FHelixsrSharpenerComboBox;
     property HelixSrSharpnessTrackBar: TTrackBar read FHelixsrSharpnessTrackBar;
     property HelixSrWaveSizeComboBox: TComboBox read FHelixsrWaveSizeComboBox;
+    property DlssNrArchComboBox: TComboBox read FDlssNrArchComboBox;
+    property DlssNrRouteComboBox: TComboBox read FDlssNrRouteComboBox;
+    property DlssNrModelVerComboBox: TComboBox read FDlssNrModelVerComboBox;
+    property DlssNrScaleComboBox: TComboBox read FDlssNrScaleComboBox;
+    property DlssNrPassesComboBox: TComboBox read FDlssNrPassesComboBox;
+    property DlssNrRunBeforeSrToggle: TToggleSwitch read FDlssNrRunBeforeSrToggle;
+    property DlssNrAdvancedBtn: TBitBtn read FDlssNrAdvancedBtn;
+    property MainDlssNrToggleBtn: TBitBtn read FMainDlssNrToggleBtn;
+    property DlssNrModelDllBrowseBtn: TBitBtn read FDlssNrModelDllBrowseBtn;
+    property DlssNrModelStatusLabel: TLabel read FDlssNrModelStatusLabel;
+    property DlssNrInt4Toggle: TToggleSwitch read FDlssNrInt4Toggle;
+    property DlssNrRenoDxToggle: TToggleSwitch read FDlssNrRenoDxToggle;
+    property DlssNrPreprocessToggle: TToggleSwitch read FDlssNrPreprocessToggle;
     property OsToggles: TFPList read FOsToggles;
   end;
 
@@ -76,7 +123,7 @@ function OsHexToKeyStr(const HexStr: string): string;
 
 implementation
 
-uses bgmod_resources, goverlay_system;
+uses bgmod_resources, goverlay_system, optiscaler_update, notificationunit, systemdetector;
 
 constructor TOptiScalerTabHelper.Create(AForm: Tgoverlayform);
 begin
@@ -127,6 +174,107 @@ procedure TOptiScalerTabHelper.HelixSrControlChange(Sender: TObject);
 begin
   if Assigned(FForm) and not FForm.FLoadingConfig then
     FForm.StartAutoSaveTimer;
+end;
+
+procedure TOptiScalerTabHelper.DlssNrControlChange(Sender: TObject);
+begin
+  if Assigned(FForm) and not FForm.FLoadingConfig then
+  begin
+    ReflowOptiScalerTabNew(0);
+    FForm.StartAutoSaveTimer;
+  end;
+end;
+
+procedure TOptiScalerTabHelper.UpdateDlssNrStatusUI;
+begin
+  if Assigned(FDlssNrModelStatusLabel) then
+    FDlssNrModelStatusLabel.Visible := False;
+  if not Assigned(FDlssNrModelDllBrowseBtn) then Exit;
+  if IsDlssNrModelReady then
+  begin
+    FDlssNrModelDllBrowseBtn.Caption := 'nvngx_dlssnr.dll ✓';
+    FDlssNrModelDllBrowseBtn.Hint := 'DLSS-NR weights extracted and ready. Click to re-select nvngx_dlssnr.dll';
+  end
+  else if IsDlssNrInstalled then
+  begin
+    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
+    FDlssNrModelDllBrowseBtn.Hint := 'Select nvngx_dlssnr.dll or archive to extract neural rendering model weights';
+  end
+  else
+  begin
+    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
+    FDlssNrModelDllBrowseBtn.Hint := 'DLSS-NR is not installed';
+  end;
+end;
+
+procedure TOptiScalerTabHelper.DlssNrModelDllBrowseClick(Sender: TObject);
+var
+  Dlg: TOpenDialog;
+  ErrMsg: string;
+begin
+  if not Assigned(FForm) then Exit;
+  Dlg := TOpenDialog.Create(FForm);
+  try
+    Dlg.Title := 'Select nvngx_dlssnr.dll or archive';
+    Dlg.Filter := 'DLSS-NR model (nvngx_dlssnr.dll, *.dll, *.zip, *.tar.gz)|nvngx_dlssnr.dll;*.dll;*.zip;*.tar.gz|All files (*.*)|*.*';
+    Dlg.Options := Dlg.Options + [ofFileMustExist];
+    if not Dlg.Execute then Exit;
+    if ExtractDlssNrModel(Dlg.FileName, ErrMsg) then
+    begin
+      FDlssNrModelDllPath := Dlg.FileName;
+      UpdateDlssNrStatusUI;
+      ShowToast(ntSuccess, 'DLSS-NR model weights extracted', 4000);
+    end
+    else
+    begin
+      if ErrMsg = '' then ErrMsg := 'Model extraction failed';
+      ShowToast(ntError, 'DLSS-NR: ' + ErrMsg, 7000);
+    end;
+  finally
+    Dlg.Free;
+  end;
+  FForm.StartAutoSaveTimer;
+  FForm.RefreshOsStatusDots;
+end;
+
+procedure TOptiScalerTabHelper.DlssNrAdvancedBtnClick(Sender: TObject);
+var
+  AdvSettings: TOptiScalerSettings;
+begin
+  if not Assigned(FForm) then Exit;
+  AdvSettings := Default(TOptiScalerSettings);
+  AdvSettings.DlssNrRouteIndex := FDlssNrRouteIndex;
+  AdvSettings.DlssNrFinishedPictureChecked := FDlssNrFinishedPictureChecked;
+  AdvSettings.DlssNrRenoDxChecked := FDlssNrRenoDxChecked;
+  AdvSettings.DlssNrPreprocessChecked := FDlssNrPreprocessChecked;
+  AdvSettings.DlssNrSkinProtectionChecked := FDlssNrSkinProtectionChecked;
+
+  if ShowDlssNrAdvancedDialog(FForm, AdvSettings) then
+  begin
+    FDlssNrRouteIndex := AdvSettings.DlssNrRouteIndex;
+    FDlssNrFinishedPictureChecked := AdvSettings.DlssNrFinishedPictureChecked;
+    FDlssNrRenoDxChecked := AdvSettings.DlssNrRenoDxChecked;
+    FDlssNrPreprocessChecked := AdvSettings.DlssNrPreprocessChecked;
+    FDlssNrSkinProtectionChecked := AdvSettings.DlssNrSkinProtectionChecked;
+
+    if Assigned(FDlssNrRouteComboBox) and (FDlssNrRouteIndex >= 0) and
+       (FDlssNrRouteIndex < FDlssNrRouteComboBox.Items.Count) then
+      FDlssNrRouteComboBox.ItemIndex := FDlssNrRouteIndex;
+    if Assigned(FDlssNrRenoDxCheckBox) then
+    begin
+      FDlssNrRenoDxCheckBox.Checked := FDlssNrRenoDxChecked;
+      if Assigned(FDlssNrRenoDxToggle) then
+        FDlssNrRenoDxToggle.Checked := FDlssNrRenoDxChecked;
+    end;
+    if Assigned(FDlssNrPreprocessCheckBox) then
+    begin
+      FDlssNrPreprocessCheckBox.Checked := FDlssNrPreprocessChecked;
+      if Assigned(FDlssNrPreprocessToggle) then
+        FDlssNrPreprocessToggle.Checked := FDlssNrPreprocessChecked;
+    end;
+
+    SaveOptiScalerConfig(False);
+  end;
 end;
 
 procedure TOptiScalerTabHelper.SyncAllToggles;
@@ -431,6 +579,29 @@ begin
     helixsrLogoImage.Hint := 'DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders';
     helixsrLogoImage.ShowHint := True;
 
+    dlssnrRadioButton := TRadioButton.Create(FForm);
+    dlssnrRadioButton.Parent := FOsUpscalerCard;
+    dlssnrRadioButton.Caption := '';
+    DarkRadio(dlssnrRadioButton);
+    dlssnrRadioButton.Checked := False;
+    dlssnrRadioButton.OnClick := @dlssnrRadioButtonClick;
+    dlssnrRadioButton.Hint := 'DLSS 5 Neural Rendering (DLSS-NR) for AMD Radeon GPUs';
+    dlssnrRadioButton.ShowHint := True;
+
+    dlssnrLogoImage := TImage.Create(FForm);
+    dlssnrLogoImage.AntialiasingMode := amOn;
+    dlssnrLogoImage.StretchInEnabled  := True;
+    dlssnrLogoImage.StretchOutEnabled := True;
+    dlssnrLogoImage.Parent := FOsUpscalerCard;
+    dlssnrLogoImage.Transparent := True;
+    dlssnrLogoImage.Center := True;
+    dlssnrLogoImage.Proportional := True;
+    dlssnrLogoImage.Stretch := True;
+    dlssnrLogoImage.Cursor := crHandPoint;
+    dlssnrLogoImage.OnClick := @dlssnrLogoImageClick;
+    dlssnrLogoImage.Hint := 'DLSS 5 Neural Rendering (DLSS-NR) for AMD Radeon GPUs';
+    dlssnrLogoImage.ShowHint := True;
+
     dlssEnablerVersionLabel := TLabel.Create(FForm);
     dlssEnablerVersionLabel.Parent := FOsUpscalerCard;
     dlssEnablerVersionLabel.Visible := False;
@@ -466,6 +637,7 @@ begin
     FDlssEnablerPngLogo := TPortableNetworkGraphic.Create;
     FNoneUpscalerPngLogo := TPortableNetworkGraphic.Create;
     FHelixSrPngLogo := TPortableNetworkGraphic.Create;
+    FDlssNrPngLogo := TPortableNetworkGraphic.Create;
 
     IconPath := GetAppBaseDir + 'assets/icons/upscaler_optiscaler.png';
     if not FileExists(IconPath) then
@@ -491,15 +663,23 @@ begin
     if FileExists(IconPath) then
       FHelixSrPngLogo.LoadFromFile(IconPath);
 
+    IconPath := GetAppBaseDir + 'assets/icons/upscaler_dlssnr.png';
+    if not FileExists(IconPath) then
+      IconPath := 'assets/icons/upscaler_dlssnr.png';
+    if FileExists(IconPath) then
+      FDlssNrPngLogo.LoadFromFile(IconPath);
+
     FOptiScalerPngLogoDimmed := CreateDimmedPng(FOptiScalerPngLogo, 35);
     FDlssEnablerPngLogoDimmed := CreateDimmedPng(FDlssEnablerPngLogo, 35);
     FNoneUpscalerPngLogoDimmed := CreateDimmedPng(FNoneUpscalerPngLogo, 35);
     FHelixSrPngLogoDimmed := CreateDimmedPng(FHelixSrPngLogo, 35);
+    FDlssNrPngLogoDimmed := CreateDimmedPng(FDlssNrPngLogo, 35);
 
     optiscalerLogoImage.Picture.Assign(FOptiScalerPngLogo);
     dlssEnablerLogoImage.Picture.Assign(FDlssEnablerPngLogo);
     noneUpscalerLogoImage.Picture.Assign(FNoneUpscalerPngLogo);
     helixsrLogoImage.Picture.Assign(FHelixSrPngLogoDimmed);
+    dlssnrLogoImage.Picture.Assign(FDlssNrPngLogoDimmed);
     UpdateUpscalerImageOpacity;
 
     // ── Card 0b: GPU Driver (Right) ─────────────────────────────────────
@@ -822,6 +1002,35 @@ begin
     dlssenablerToggleBtn.Caption  := '⌨ `';
     dlssenablerToggleBtn.Enabled  := False;
 
+    if FMainDlssNrToggleLabel = nil then
+    begin
+      FMainDlssNrToggleLabel := TLabel.Create(FForm);
+      FMainDlssNrToggleLabel.Name := 'FMainDlssNrToggleLabel';
+    end;
+    FMainDlssNrToggleLabel.AnchorSideLeft.Control   := nil; FMainDlssNrToggleLabel.AnchorSideTop.Control    := nil;
+    FMainDlssNrToggleLabel.AnchorSideRight.Control  := nil; FMainDlssNrToggleLabel.AnchorSideBottom.Control := nil;
+    FMainDlssNrToggleLabel.Anchors := [akLeft, akTop];
+    FMainDlssNrToggleLabel.Caption := 'DLSS-NR menu';
+    FMainDlssNrToggleLabel.Parent  := FOsMainSec;
+    FMainDlssNrToggleLabel.Visible := False;
+
+    if FMainDlssNrToggleBtn = nil then
+    begin
+      FMainDlssNrToggleBtn := TBitBtn.Create(FForm);
+      FMainDlssNrToggleBtn.Name := 'FMainDlssNrToggleBtn';
+    end;
+    FMainDlssNrToggleBtn.AnchorSideLeft.Control   := nil; FMainDlssNrToggleBtn.AnchorSideTop.Control    := nil;
+    FMainDlssNrToggleBtn.AnchorSideRight.Control  := nil; FMainDlssNrToggleBtn.AnchorSideBottom.Control := nil;
+    FMainDlssNrToggleBtn.Anchors  := [akLeft, akTop];
+    FMainDlssNrToggleBtn.Parent   := FOsMainSec;
+    FMainDlssNrToggleBtn.Width    := 100;
+    FMainDlssNrToggleBtn.Height   := 28;
+    FMainDlssNrToggleBtn.Caption  := '⌨ End';
+    FMainDlssNrToggleBtn.Enabled  := False;
+    FMainDlssNrToggleBtn.Hint     := 'In-game shortcut to toggle the DLSS-NR menu';
+    FMainDlssNrToggleBtn.ShowHint := True;
+    FMainDlssNrToggleBtn.Visible  := False;
+
     // --- Sub-card 2: Spatial Upscaler controls ---
     preferredUpscalerLabel.AnchorSideLeft.Control   := nil; preferredUpscalerLabel.AnchorSideTop.Control    := nil;
     preferredUpscalerLabel.AnchorSideRight.Control  := nil; preferredUpscalerLabel.AnchorSideBottom.Control := nil;
@@ -977,6 +1186,146 @@ begin
       FHelixsrWaveSizeComboBox.OnChange := @HelixSrControlChange;
     end;
 
+    // DLSS-NR spatial controls
+    if FDlssNrArchLabel = nil then
+    begin
+      FDlssNrArchLabel := TLabel.Create(FForm);
+      FDlssNrArchLabel.Name := 'FDlssNrArchLabel';
+      FDlssNrArchLabel.Caption := 'Architecture';
+      FDlssNrArchLabel.Parent := FOsFakeSec;
+      FDlssNrArchLabel.Visible := False;
+      StdLbl(FDlssNrArchLabel);
+    end;
+
+    if FDlssNrArchComboBox = nil then
+    begin
+      FDlssNrArchComboBox := TComboBox.Create(FForm);
+      FDlssNrArchComboBox.Name := 'FDlssNrArchComboBox';
+      FDlssNrArchComboBox.Style := csDropDownList;
+      FDlssNrArchComboBox.Items.Add('Auto-detect (' + RDNAArchitectureToString(DetectRDNAArchitecture) + ')');
+      FDlssNrArchComboBox.Items.Add('RDNA 4');
+      FDlssNrArchComboBox.Items.Add('RDNA 3');
+      FDlssNrArchComboBox.ItemIndex := 0;
+      FDlssNrArchComboBox.Hint := 'Target GPU architecture for the DLSS-NR runtime';
+      FDlssNrArchComboBox.ShowHint := True;
+      FDlssNrArchComboBox.Parent := FOsFakeSec;
+      FDlssNrArchComboBox.Visible := False;
+      FDlssNrArchComboBox.OnChange := @DlssNrControlChange;
+      DarkCombo(FDlssNrArchComboBox);
+    end;
+
+    if FDlssNrRouteLabel = nil then
+    begin
+      FDlssNrRouteLabel := TLabel.Create(FForm);
+      FDlssNrRouteLabel.Name := 'FDlssNrRouteLabel';
+      FDlssNrRouteLabel.Caption := 'Route';
+      FDlssNrRouteLabel.Parent := FOsFakeSec;
+      FDlssNrRouteLabel.Visible := False;
+      StdLbl(FDlssNrRouteLabel);
+    end;
+
+    if FDlssNrRouteComboBox = nil then
+    begin
+      FDlssNrRouteComboBox := TComboBox.Create(FForm);
+      FDlssNrRouteComboBox.Name := 'FDlssNrRouteComboBox';
+      FDlssNrRouteComboBox.Style := csDropDownList;
+      FDlssNrRouteComboBox.Items.Add('OptiScaler');
+      FDlssNrRouteComboBox.Items.Add('ReShade');
+      FDlssNrRouteComboBox.Items.Add('Vulkan');
+      FDlssNrRouteComboBox.Items.Add('DX9');
+      FDlssNrRouteComboBox.ItemIndex := 0;
+      FDlssNrRouteComboBox.Hint := 'Injection route used to feed the DLSS-NR pipeline';
+      FDlssNrRouteComboBox.ShowHint := True;
+      FDlssNrRouteComboBox.Parent := FOsFakeSec;
+      FDlssNrRouteComboBox.Visible := False;
+      FDlssNrRouteComboBox.OnChange := @DlssNrControlChange;
+      DarkCombo(FDlssNrRouteComboBox);
+    end;
+
+    if FDlssNrModelVerLabel = nil then
+    begin
+      FDlssNrModelVerLabel := TLabel.Create(FForm);
+      FDlssNrModelVerLabel.Name := 'FDlssNrModelVerLabel';
+      FDlssNrModelVerLabel.Caption := 'Model Version';
+      FDlssNrModelVerLabel.Parent := FOsFakeSec;
+      FDlssNrModelVerLabel.Visible := False;
+      StdLbl(FDlssNrModelVerLabel);
+    end;
+
+    if FDlssNrModelVerComboBox = nil then
+    begin
+      FDlssNrModelVerComboBox := TComboBox.Create(FForm);
+      FDlssNrModelVerComboBox.Name := 'FDlssNrModelVerComboBox';
+      FDlssNrModelVerComboBox.Style := csDropDownList;
+      FDlssNrModelVerComboBox.Items.Add('New (v310.9)');
+      FDlssNrModelVerComboBox.Items.Add('Old (v310.8)');
+      FDlssNrModelVerComboBox.ItemIndex := 0;
+      FDlssNrModelVerComboBox.Hint := 'Neural network model version used by DLSS-NR';
+      FDlssNrModelVerComboBox.ShowHint := True;
+      FDlssNrModelVerComboBox.Parent := FOsFakeSec;
+      FDlssNrModelVerComboBox.Visible := False;
+      FDlssNrModelVerComboBox.OnChange := @DlssNrControlChange;
+      DarkCombo(FDlssNrModelVerComboBox);
+    end;
+
+    if FDlssNrScaleLabel = nil then
+    begin
+      FDlssNrScaleLabel := TLabel.Create(FForm);
+      FDlssNrScaleLabel.Name := 'FDlssNrScaleLabel';
+      FDlssNrScaleLabel.Caption := 'Model Scale';
+      FDlssNrScaleLabel.Parent := FOsFakeSec;
+      FDlssNrScaleLabel.Visible := False;
+      StdLbl(FDlssNrScaleLabel);
+    end;
+
+    if FDlssNrScaleComboBox = nil then
+    begin
+      FDlssNrScaleComboBox := TComboBox.Create(FForm);
+      FDlssNrScaleComboBox.Name := 'FDlssNrScaleComboBox';
+      FDlssNrScaleComboBox.Style := csDropDownList;
+      FDlssNrScaleComboBox.Items.Add('100% (Native)');
+      FDlssNrScaleComboBox.Items.Add('67% (Quality)');
+      FDlssNrScaleComboBox.Items.Add('50% (Performance)');
+      FDlssNrScaleComboBox.Items.Add('33% (Ultra Perf)');
+      if DetectRDNAArchitecture = rdna3 then
+        FDlssNrScaleComboBox.ItemIndex := 2
+      else
+        FDlssNrScaleComboBox.ItemIndex := 0;
+      FDlssNrScaleComboBox.Hint := 'Neural model resolution scale (lower is faster, essential on RDNA3)';
+      FDlssNrScaleComboBox.ShowHint := True;
+      FDlssNrScaleComboBox.Parent := FOsFakeSec;
+      FDlssNrScaleComboBox.Visible := False;
+      FDlssNrScaleComboBox.OnChange := @DlssNrControlChange;
+      DarkCombo(FDlssNrScaleComboBox);
+    end;
+
+    if FDlssNrPassesLabel = nil then
+    begin
+      FDlssNrPassesLabel := TLabel.Create(FForm);
+      FDlssNrPassesLabel.Name := 'FDlssNrPassesLabel';
+      FDlssNrPassesLabel.Caption := 'Passes';
+      FDlssNrPassesLabel.Parent := FOsFakeSec;
+      FDlssNrPassesLabel.Visible := False;
+      StdLbl(FDlssNrPassesLabel);
+    end;
+
+    if FDlssNrPassesComboBox = nil then
+    begin
+      FDlssNrPassesComboBox := TComboBox.Create(FForm);
+      FDlssNrPassesComboBox.Name := 'FDlssNrPassesComboBox';
+      FDlssNrPassesComboBox.Style := csDropDownList;
+      FDlssNrPassesComboBox.Items.Add('1 (Default)');
+      FDlssNrPassesComboBox.Items.Add('2 (Double)');
+      FDlssNrPassesComboBox.Items.Add('3 (Triple)');
+      FDlssNrPassesComboBox.ItemIndex := 0;
+      FDlssNrPassesComboBox.Hint := 'Number of neural reconstruction passes';
+      FDlssNrPassesComboBox.ShowHint := True;
+      FDlssNrPassesComboBox.Parent := FOsFakeSec;
+      FDlssNrPassesComboBox.Visible := False;
+      FDlssNrPassesComboBox.OnChange := @DlssNrControlChange;
+      DarkCombo(FDlssNrPassesComboBox);
+    end;
+
     // --- Sub-card 3: Temporal Upscaler controls ---
     if fgInputLabel = nil then
     begin
@@ -1027,6 +1376,100 @@ begin
     emufp8CheckBox.Anchors := [akLeft, akTop]; emufp8CheckBox.Parent  := FOsTemporalSec;
     if FForceMlfgToggle = nil then
       FForceMlfgToggle := PlaceOsToggle(emufp8CheckBox, FOsTemporalSec);
+
+    // DLSS-NR temporal/options controls
+    if FDlssNrModelDllLabel = nil then
+    begin
+      FDlssNrModelDllLabel := TLabel.Create(FForm);
+      FDlssNrModelDllLabel.Name := 'FDlssNrModelDllLabel';
+      FDlssNrModelDllLabel.Caption := 'Model Weights';
+      FDlssNrModelDllLabel.Parent := FOsFakeSec;
+      FDlssNrModelDllLabel.Visible := False;
+      StdLbl(FDlssNrModelDllLabel);
+    end;
+
+    if FDlssNrModelStatusLabel = nil then
+    begin
+      FDlssNrModelStatusLabel := TLabel.Create(FForm);
+      FDlssNrModelStatusLabel.Name := 'FDlssNrModelStatusLabel';
+      FDlssNrModelStatusLabel.Caption := 'Checking weights...';
+      FDlssNrModelStatusLabel.Parent := FOsFakeSec;
+      FDlssNrModelStatusLabel.Visible := False;
+      StdLbl(FDlssNrModelStatusLabel);
+    end;
+
+    if FDlssNrInt4CheckBox = nil then
+    begin
+      FDlssNrInt4CheckBox := TCheckBox.Create(FForm);
+      FDlssNrInt4CheckBox.Name := 'FDlssNrInt4CheckBox';
+      FDlssNrInt4CheckBox.Caption := 'Int4 Mixed Precision';
+      FDlssNrInt4CheckBox.Hint := 'Enable Int4 quantization for lower VRAM and higher throughput';
+      FDlssNrInt4CheckBox.ShowHint := True;
+      FDlssNrInt4CheckBox.Parent := FOsFakeSec;
+      FDlssNrInt4CheckBox.Visible := False;
+      FDlssNrInt4CheckBox.OnChange := @DlssNrControlChange;
+      DarkCheck(FDlssNrInt4CheckBox);
+      FDlssNrInt4Toggle := PlaceOsToggle(FDlssNrInt4CheckBox, FOsFakeSec);
+      FDlssNrInt4Toggle.Visible := False;
+    end;
+
+    if FDlssNrRenoDxCheckBox = nil then
+    begin
+      FDlssNrRenoDxCheckBox := TCheckBox.Create(FForm);
+      FDlssNrRenoDxCheckBox.Name := 'FDlssNrRenoDxCheckBox';
+      FDlssNrRenoDxCheckBox.Caption := 'RenoDX Color Style';
+      FDlssNrRenoDxCheckBox.Hint := 'Apply HDR color space handling tuned for RenoDX shaders';
+      FDlssNrRenoDxCheckBox.ShowHint := True;
+      FDlssNrRenoDxCheckBox.Parent := FOsFakeSec;
+      FDlssNrRenoDxCheckBox.Visible := False;
+      FDlssNrRenoDxCheckBox.OnChange := @DlssNrControlChange;
+      DarkCheck(FDlssNrRenoDxCheckBox);
+      FDlssNrRenoDxToggle := PlaceOsToggle(FDlssNrRenoDxCheckBox, FOsFakeSec);
+      FDlssNrRenoDxToggle.Visible := False;
+    end;
+
+    if FDlssNrPreprocessCheckBox = nil then
+    begin
+      FDlssNrPreprocessCheckBox := TCheckBox.Create(FForm);
+      FDlssNrPreprocessCheckBox.Name := 'FDlssNrPreprocessCheckBox';
+      FDlssNrPreprocessCheckBox.Caption := 'Preprocess Auto-exposure';
+      FDlssNrPreprocessCheckBox.Hint := 'Auto-exposure preprocessing before neural reconstruction';
+      FDlssNrPreprocessCheckBox.ShowHint := True;
+      FDlssNrPreprocessCheckBox.Parent := FOsFakeSec;
+      FDlssNrPreprocessCheckBox.Visible := False;
+      FDlssNrPreprocessCheckBox.OnChange := @DlssNrControlChange;
+      DarkCheck(FDlssNrPreprocessCheckBox);
+      FDlssNrPreprocessToggle := PlaceOsToggle(FDlssNrPreprocessCheckBox, FOsFakeSec);
+      FDlssNrPreprocessToggle.Visible := False;
+    end;
+
+    if FDlssNrRunBeforeSrCheckBox = nil then
+    begin
+      FDlssNrRunBeforeSrCheckBox := TCheckBox.Create(FForm);
+      FDlssNrRunBeforeSrCheckBox.Name := 'FDlssNrRunBeforeSrCheckBox';
+      FDlssNrRunBeforeSrCheckBox.Caption := 'Run before SR';
+      FDlssNrRunBeforeSrCheckBox.Hint := 'Execute DLSS-NR denoising pass before spatial super-resolution';
+      FDlssNrRunBeforeSrCheckBox.ShowHint := True;
+      FDlssNrRunBeforeSrCheckBox.Parent := FOsFakeSec;
+      FDlssNrRunBeforeSrCheckBox.Visible := False;
+      FDlssNrRunBeforeSrCheckBox.OnChange := @DlssNrControlChange;
+      DarkCheck(FDlssNrRunBeforeSrCheckBox);
+      FDlssNrRunBeforeSrToggle := PlaceOsToggle(FDlssNrRunBeforeSrCheckBox, FOsFakeSec);
+      FDlssNrRunBeforeSrToggle.Visible := False;
+    end;
+
+    if FDlssNrAdvancedBtn = nil then
+    begin
+      FDlssNrAdvancedBtn := TBitBtn.Create(FForm);
+      FDlssNrAdvancedBtn.Name := 'FDlssNrAdvancedBtn';
+      FDlssNrAdvancedBtn.Caption := '⚙ Advanced Settings...';
+      FDlssNrAdvancedBtn.Hint := 'Advanced DLSS-NR pipeline parameters (route, color style, filters)';
+      FDlssNrAdvancedBtn.ShowHint := True;
+      FDlssNrAdvancedBtn.Parent := FOsFakeSec;
+      FDlssNrAdvancedBtn.Visible := False;
+      FDlssNrAdvancedBtn.OnClick := @DlssNrAdvancedBtnClick;
+      StyleBitBtnTheme(FDlssNrAdvancedBtn, IfThen(CurrentTheme = tmLight, LightTextColor, clWhite), FOsFakeSec.Color);
+    end;
 
     // Hide legacy controls
     menuscaleTrackBar.Visible := False;
@@ -1131,6 +1574,10 @@ begin
     StdLbl(shortcutkeyLabel);
     if Assigned(dlssenablerToggleLabel) then
       StdLbl(dlssenablerToggleLabel);
+    if Assigned(FMainDlssNrToggleLabel) then
+      StdLbl(FMainDlssNrToggleLabel);
+    if Assigned(FDlssNrPassesLabel) then
+      StdLbl(FDlssNrPassesLabel);
     DarkCombo(shortcutkeyComboBox);
     // FakeNVAPI section
     DarkCheck(forcereflexCheckBox);
@@ -1266,6 +1713,17 @@ begin
     FOsHelixLicenseBtn.Visible := False;
     FOsHelixLicenseBtn.OnClick := @HelixLicenseBtnClick;
 
+    FDlssNrModelDllBrowseBtn := TBitBtn.Create(FForm);
+    FDlssNrModelDllBrowseBtn.Name := 'FDlssNrModelDllBrowseBtn';
+    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
+    FDlssNrModelDllBrowseBtn.Parent := FOsStatusCard;
+    FDlssNrModelDllBrowseBtn.Font.Size := 8;
+    FDlssNrModelDllBrowseBtn.Font.Style := [fsBold];
+    FDlssNrModelDllBrowseBtn.Cursor := crHandPoint;
+    FDlssNrModelDllBrowseBtn.ShowHint := True;
+    FDlssNrModelDllBrowseBtn.Visible := False;
+    FDlssNrModelDllBrowseBtn.OnClick := @DlssNrModelDllBrowseClick;
+
     RefreshOsStatusDots;
   end;
 end;
@@ -1281,9 +1739,10 @@ var
   Ver, NewTag, VerCaption: string;
   DlssV, FsrV, XessV: string;
   HasAnyUpscaler: Boolean;
-  IsDlssEnablerActive, IsHelixSrActive: Boolean;
+  IsDlssEnablerActive, IsHelixSrActive, IsDlssNrActive: Boolean;
   HelixDir: string;
   HelixVars: TStringList;
+  Arch: TRDNAArchitecture;
 begin
   with FForm do
   begin
@@ -1291,6 +1750,7 @@ begin
 
     IsDlssEnablerActive := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
     IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
+    IsDlssNrActive := Assigned(dlssnrRadioButton) and dlssnrRadioButton.Checked;
 
     if Assigned(FOsHelixLicenseBtn) then
       FOsHelixLicenseBtn.Visible := IsHelixSrActive;
@@ -1304,7 +1764,7 @@ begin
             Ver := optlabel1.Caption;
             VerCaption := IfThen(Ver <> '', Ver, '—');
 
-            if (not IsDlssEnablerActive) and optLabel2.Visible and (optLabel2.Caption <> '') then
+            if (not IsDlssEnablerActive) and (not IsDlssNrActive) and optLabel2.Visible and (optLabel2.Caption <> '') then
             begin
               // The update notice stores the bare tag in Hint; its caption is
               // a sentence and must not be taken apart to recover the tag.
@@ -1348,9 +1808,29 @@ begin
               FOsStatDots[1].Brush.Color := CLR_NONE;
           end;
 
-        2: // DLSS Enabler or HelixSR
+        2: // DLSS Enabler, HelixSR, or DLSS-NR
           begin
-            if IsHelixSrActive then
+            if IsDlssNrActive then
+            begin
+              FOsStatNameLbls[2].Caption := 'DLSS-NR';
+              Arch := DetectRDNAArchitecture;
+              if Assigned(FDlssNrArchComboBox) then
+              begin
+                if FDlssNrArchComboBox.ItemIndex = 1 then Arch := rdna4
+                else if FDlssNrArchComboBox.ItemIndex = 2 then Arch := rdna3;
+              end;
+              Ver := GetDlssNrVersion(RDNAArchitectureToString(Arch));
+              VerCaption := IfThen(Ver <> '', Ver, '—');
+              FOsStatVerLbls[2].Caption    := VerCaption;
+              FOsStatVerLbls[2].Font.Color := CYAN_VER;
+              if IsDlssNrModelReady then
+                FOsStatDots[2].Brush.Color := CLR_OK
+              else if (Ver <> '') and (Ver <> '—') and (Ver <> '--') then
+                FOsStatDots[2].Brush.Color := RGBToColor(230, 160, 40)
+              else
+                FOsStatDots[2].Brush.Color := CLR_NONE;
+            end
+            else if IsHelixSrActive then
             begin
               FOsStatNameLbls[2].Caption := 'HelixSR';
               HelixDir := GetBGModOriginalHelixSRPath;
@@ -1461,6 +1941,13 @@ begin
       FOsHelixLicenseBtn.Top  := FOsStatVerLbls[2].Top + (FOsStatVerLbls[2].Height - FOsHelixLicenseBtn.Height) div 2;
     end;
 
+    if Assigned(FDlssNrModelDllBrowseBtn) and IsDlssNrActive then
+    begin
+      FOsStatVerLbls[2].AdjustSize;
+      FDlssNrModelDllBrowseBtn.Left := FOsStatVerLbls[2].Left + FOsStatVerLbls[2].Width + 8;
+      FDlssNrModelDllBrowseBtn.Top  := FOsStatVerLbls[2].Top + (FOsStatVerLbls[2].Height - FDlssNrModelDllBrowseBtn.Height) div 2;
+    end;
+
     ReflowOptiScalerTabNew(0);
   end;
 end;
@@ -1486,18 +1973,18 @@ var
   W, CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
   StatH: Integer;
   IsCustom, IsUnmanaged: Boolean;
-  IsHelixSrActive: Boolean;
+  IsHelixSrActive, IsDlssNrActive: Boolean;
   IsNativeDlss: Boolean;
   MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
   ColW, i, Col, RowIdx: Integer;
   InnerW, SubCardW, OptH, BoxH, MinOptH: Integer;
-  OptW, FakeW, ColM, X1, X2, X3, X4, Y0: Integer;
+  OptW, FakeW, HalfW, ColM, X1, X2, X3, X4, X5, Y0: Integer;
   ComboW, CheckW, PB_W: Integer;
   SliderW, TotalW, StartX: Integer;
   TBarMargin, TrackL: Integer;
-  LogoH, LogoW_None, LogoW_Opti, LogoW_De, LogoW_Helix: Integer;
-  GroupW_None, GroupW_Opti, GroupW_De, GroupW_Helix, TotalGroupW, GapBetween, SlotW: Integer;
+  LogoH, LogoW_None, LogoW_Opti, LogoW_De, LogoW_Helix, LogoW_DlssNr: Integer;
+  GroupW_None, GroupW_Opti, GroupW_De, GroupW_Helix, GroupW_DlssNr, TotalGroupW, GapBetween, SlotW: Integer;
 begin
   with FForm do
   begin
@@ -1526,13 +2013,14 @@ begin
     IsCustom := Assigned(optversionComboBox) and (optversionComboBox.ItemIndex = 2);
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
     IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
+    IsDlssNrActive := Assigned(dlssnrRadioButton) and dlssnrRadioButton.Checked;
 
     if IsCustom then
       StatH := HDR + 6 + BTN_H + 8 + 26 + STAT_ROWS * ROW_H + 12
     else
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
-    MinOptH := 295;
+    MinOptH := 396;
     CardTop := TotalH - MARGIN - StatH;
     if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
     begin
@@ -1552,22 +2040,25 @@ begin
     begin
       FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
       InnerW := CW - 2 * PAD;
-      SlotW  := InnerW div 4;
+      SlotW  := InnerW div 5;
 
-      LogoW_None  := 48;
-      LogoW_Opti  := 84;
-      LogoW_De    := 88;
-      LogoW_Helix := 98;
+      LogoW_None   := 48;
+      LogoW_Opti   := 84;
+      LogoW_De     := 88;
+      LogoW_Helix  := 98;
+      LogoW_DlssNr := 121;
 
-      GroupW_None  := 22 + LogoW_None;
-      GroupW_Opti  := 22 + LogoW_Opti;
-      GroupW_De    := 22 + LogoW_De;
-      GroupW_Helix := 22 + LogoW_Helix;
+      GroupW_None   := 22 + LogoW_None;
+      GroupW_Opti   := 22 + LogoW_Opti;
+      GroupW_De     := 22 + LogoW_De;
+      GroupW_Helix  := 22 + LogoW_Helix;
+      GroupW_DlssNr := 22 + LogoW_DlssNr;
 
       X1 := PAD + (SlotW - GroupW_None) div 2;
       X2 := PAD + SlotW + (SlotW - GroupW_Opti) div 2;
       X3 := PAD + 2 * SlotW + (SlotW - GroupW_De) div 2;
       X4 := PAD + 3 * SlotW + (SlotW - GroupW_Helix) div 2;
+      X5 := PAD + 4 * SlotW + (SlotW - GroupW_DlssNr) div 2;
 
       // Column 1: None
       if Assigned(noneUpscalerRadioButton) then
@@ -1592,6 +2083,12 @@ begin
         helixsrRadioButton.SetBounds(X4, HDR + (GPU_GH - 20) div 2, 20, 20);
       if Assigned(helixsrLogoImage) then
         helixsrLogoImage.SetBounds(X4 + 22, HDR + (GPU_GH - 36) div 2, LogoW_Helix, 36);
+
+      // Column 5: DLSS-NR
+      if Assigned(dlssnrRadioButton) then
+        dlssnrRadioButton.SetBounds(X5, HDR + (GPU_GH - 20) div 2, 20, 20);
+      if Assigned(dlssnrLogoImage) then
+        dlssnrLogoImage.SetBounds(X5 + 22, HDR + (GPU_GH - 36) div 2, LogoW_DlssNr, 36);
     end;
 
     // ── Card 0b: Standalone GPU Driver Card (Hidden) ─────────────────────
@@ -1606,7 +2103,7 @@ begin
     if ColW < 100 then ColW := 100;
 
     BoxH   := OptH - HDR - 12;
-    if BoxH < 265 then BoxH := 265;
+    if BoxH < 350 then BoxH := 350;
 
     X1 := IMARGIN;
     X2 := IMARGIN + ColW + IGAP;
@@ -1686,15 +2183,35 @@ begin
         FOsShortcutCaptureBtn.SetBounds(10, Y0 + 164, Min(ColW - 20, 120), 26);
       end;
 
-      if Assigned(dlssenablerToggleLabel) then
+      if IsDlssNrActive then
       begin
-        dlssenablerToggleLabel.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
-        dlssenablerToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
-      end;
-      if Assigned(dlssenablerToggleBtn) then
+        if Assigned(dlssenablerToggleLabel) then dlssenablerToggleLabel.Visible := False;
+        if Assigned(dlssenablerToggleBtn) then dlssenablerToggleBtn.Visible := False;
+        if Assigned(FMainDlssNrToggleLabel) then
+        begin
+          FMainDlssNrToggleLabel.Visible := True;
+          FMainDlssNrToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
+        end;
+        if Assigned(FMainDlssNrToggleBtn) then
+        begin
+          FMainDlssNrToggleBtn.Visible := True;
+          FMainDlssNrToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+        end;
+      end
+      else
       begin
-        dlssenablerToggleBtn.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
-        dlssenablerToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+        if Assigned(FMainDlssNrToggleLabel) then FMainDlssNrToggleLabel.Visible := False;
+        if Assigned(FMainDlssNrToggleBtn) then FMainDlssNrToggleBtn.Visible := False;
+        if Assigned(dlssenablerToggleLabel) then
+        begin
+          dlssenablerToggleLabel.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
+          dlssenablerToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
+        end;
+        if Assigned(dlssenablerToggleBtn) then
+        begin
+          dlssenablerToggleBtn.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
+          dlssenablerToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+        end;
       end;
     end;
 
@@ -1705,6 +2222,16 @@ begin
 
       if IsHelixSrActive then
       begin
+        // Hide DLSS-NR controls
+        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
+        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
+        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
+        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
+        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
+        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
+
         if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'HelixSR';
 
         // Hide OptiScaler-specific spatial controls
@@ -1783,6 +2310,16 @@ begin
       begin
         if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'Upscaler';
 
+        // Hide DLSS-NR controls
+        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
+        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
+        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
+        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
+        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
+        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
+
         // Hide HelixSR controls
         if Assigned(FHelixSrNativeDlssToggle) then FHelixSrNativeDlssToggle.Visible := False;
         if Assigned(helixsrNativeDlssCheckBox) then helixsrNativeDlssCheckBox.Visible := False;
@@ -1841,47 +2378,189 @@ begin
     begin
       if Assigned(FOsTemporalLbl) then FOsTemporalLbl.SetBounds(10, 6, ColW - 20, 16);
 
+      if Assigned(FOsTemporalLbl) then FOsTemporalLbl.Caption := 'Frame generation';
+
+      if Assigned(FDlssNrModelDllLabel) then FDlssNrModelDllLabel.Visible := False;
+      if Assigned(FDlssNrModelDllBrowseBtn) then FDlssNrModelDllBrowseBtn.Visible := False;
+      if Assigned(FDlssNrModelStatusLabel) then FDlssNrModelStatusLabel.Visible := False;
+      if Assigned(FDlssNrInt4Toggle) then FDlssNrInt4Toggle.Visible := False;
+      if Assigned(FDlssNrRenoDxToggle) then FDlssNrRenoDxToggle.Visible := False;
+      if Assigned(FDlssNrPreprocessToggle) then FDlssNrPreprocessToggle.Visible := False;
+
+      fgInputLabel.Visible := True;
       fgInputLabel.Enabled := True;
       fgInputLabel.SetBounds(10, Y0, ColW - 20, 16);
+      fgInputComboBox.Visible := True;
       fgInputComboBox.Enabled := True;
       fgInputComboBox.SetBounds(10, Y0 + 22, ComboW, 26);
 
+      fgOutputLabel.Visible := True;
       fgOutputLabel.Enabled := True;
       fgOutputLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
+      fgOutputComboBox.Visible := True;
       fgOutputComboBox.Enabled := True;
       fgOutputComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
 
       if Assigned(FForceMlfgToggle) then
       begin
+        FForceMlfgToggle.Visible := True;
         FForceMlfgToggle.Enabled := True;
         FForceMlfgToggle.SetBounds(10, Y0 + 116, ColW - 20, 20);
       end
       else
       begin
+        emufp8CheckBox.Visible := True;
         emufp8CheckBox.Enabled := True;
         emufp8CheckBox.SetBounds(10, Y0 + 116, ColW - 20, 20);
       end;
     end;
 
-    // Reflow Sub-card 4: Reflex / Antilag
+    // Reflow Sub-card 4: Reflex / Antilag or DLSS-NR
     if Assigned(FOsFakeSec) then
     begin
       if Assigned(FOsFakeLbl) then FOsFakeLbl.SetBounds(10, 6, FOsFakeSec.Width - 20, 16);
+      FakeW := FOsFakeSec.Width - 20;
 
-      if Assigned(FForceReflexToggle) then
-        FForceReflexToggle.SetBounds(10, Y0, FOsFakeSec.Width - 20, 20)
+      if IsDlssNrActive then
+      begin
+        if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := 'DLSS-NR';
+
+        // Hide Reflex / LatencyFlex controls
+        if Assigned(FForceReflexToggle) then FForceReflexToggle.Visible := False
+        else forcereflexCheckBox.Visible := False;
+        reflexComboBox.Visible := False;
+        if Assigned(FForceLatencyFlexToggle) then FForceLatencyFlexToggle.Visible := False
+        else forcelatencyflexCheckBox.Visible := False;
+        latencyflexComboBox.Visible := False;
+        overrideCheckBox.Visible := False;
+        tracelogCheckBox.Visible := False;
+
+        // Show and layout DLSS-NR controls (2-column grid matching other columns)
+        HalfW := (FakeW - 8) div 2;
+        if HalfW < 60 then HalfW := 60;
+
+        // Hide dialog-only and status controls
+        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+        if Assigned(FDlssNrRenoDxToggle) then FDlssNrRenoDxToggle.Visible := False;
+        if Assigned(FDlssNrPreprocessToggle) then FDlssNrPreprocessToggle.Visible := False;
+        if Assigned(FDlssNrModelDllLabel) then FDlssNrModelDllLabel.Visible := False;
+        if Assigned(FDlssNrModelStatusLabel) then FDlssNrModelStatusLabel.Visible := False;
+
+        // Show and layout DLSS-NR controls (stacked comboboxes + toggles + advanced button)
+        // Row 1: Architecture (aligned with Row 1 of other cards: Label Y0, Combo Y0+22)
+        if Assigned(FDlssNrArchLabel) then
+        begin
+          FDlssNrArchLabel.Visible := True;
+          FDlssNrArchLabel.SetBounds(10, Y0, FakeW, 16);
+        end;
+        if Assigned(FDlssNrArchComboBox) then
+        begin
+          FDlssNrArchComboBox.Visible := True;
+          FDlssNrArchComboBox.SetBounds(10, Y0 + 22, FakeW, 26);
+        end;
+
+        // Row 2: Model Version (aligned with Row 2 of other cards: Label Y0+56, Combo Y0+78)
+        if Assigned(FDlssNrModelVerLabel) then
+        begin
+          FDlssNrModelVerLabel.Visible := True;
+          FDlssNrModelVerLabel.SetBounds(10, Y0 + 56, FakeW, 16);
+        end;
+        if Assigned(FDlssNrModelVerComboBox) then
+        begin
+          FDlssNrModelVerComboBox.Visible := True;
+          FDlssNrModelVerComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
+        end;
+
+        // Row 3: Model Scale
+        if Assigned(FDlssNrScaleLabel) then
+        begin
+          FDlssNrScaleLabel.Visible := True;
+          FDlssNrScaleLabel.SetBounds(10, Y0 + 112, FakeW, 16);
+        end;
+        if Assigned(FDlssNrScaleComboBox) then
+        begin
+          FDlssNrScaleComboBox.Visible := True;
+          FDlssNrScaleComboBox.SetBounds(10, Y0 + 134, FakeW, 26);
+        end;
+
+        // Row 4: Passes
+        if Assigned(FDlssNrPassesLabel) then
+        begin
+          FDlssNrPassesLabel.Visible := True;
+          FDlssNrPassesLabel.SetBounds(10, Y0 + 168, FakeW, 16);
+        end;
+        if Assigned(FDlssNrPassesComboBox) then
+        begin
+          FDlssNrPassesComboBox.Visible := True;
+          FDlssNrPassesComboBox.SetBounds(10, Y0 + 190, FakeW, 26);
+        end;
+
+        // Row 5: Int4 Mixed Precision
+        if Assigned(FDlssNrInt4Toggle) then
+        begin
+          FDlssNrInt4Toggle.Visible := True;
+          FDlssNrInt4Toggle.SetBounds(10, Y0 + 224, FakeW, 20);
+        end;
+
+        // Row 6: Run before SR
+        if Assigned(FDlssNrRunBeforeSrToggle) then
+        begin
+          FDlssNrRunBeforeSrToggle.Visible := True;
+          FDlssNrRunBeforeSrToggle.SetBounds(10, Y0 + 250, FakeW, 20);
+        end;
+
+        // Row 7: Advanced Settings button
+        if Assigned(FDlssNrAdvancedBtn) then
+        begin
+          FDlssNrAdvancedBtn.Visible := True;
+          FDlssNrAdvancedBtn.SetBounds(10, Y0 + 278, FakeW, 26);
+          if CurrentTheme = tmLight then
+            StyleBitBtnTheme(FDlssNrAdvancedBtn, LightTextColor, FOsFakeSec.Color)
+          else
+            StyleBitBtnTheme(FDlssNrAdvancedBtn, clWhite, FOsFakeSec.Color);
+        end;
+      end
       else
-        forcereflexCheckBox.SetBounds(10, Y0, FOsFakeSec.Width - 20, 20);
-      reflexComboBox.SetBounds(10, Y0 + 22, FOsFakeSec.Width - 20, 26);
+      begin
+        if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := 'Reflex / Antilag';
 
-      if Assigned(FForceLatencyFlexToggle) then
-        FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, FOsFakeSec.Width - 20, 20)
-      else
-        forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FOsFakeSec.Width - 20, 20);
-      latencyflexComboBox.SetBounds(10, Y0 + 78, FOsFakeSec.Width - 20, 26);
+        // Hide all DLSS-NR controls
+        if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
+        if Assigned(FDlssNrArchComboBox) then FDlssNrArchComboBox.Visible := False;
+        if Assigned(FDlssNrRouteLabel) then FDlssNrRouteLabel.Visible := False;
+        if Assigned(FDlssNrRouteComboBox) then FDlssNrRouteComboBox.Visible := False;
+        if Assigned(FDlssNrModelVerLabel) then FDlssNrModelVerLabel.Visible := False;
+        if Assigned(FDlssNrModelVerComboBox) then FDlssNrModelVerComboBox.Visible := False;
+        if Assigned(FDlssNrScaleLabel) then FDlssNrScaleLabel.Visible := False;
+        if Assigned(FDlssNrScaleComboBox) then FDlssNrScaleComboBox.Visible := False;
+        if Assigned(FDlssNrPassesLabel) then FDlssNrPassesLabel.Visible := False;
+        if Assigned(FDlssNrPassesComboBox) then FDlssNrPassesComboBox.Visible := False;
+        if Assigned(FDlssNrInt4Toggle) then FDlssNrInt4Toggle.Visible := False;
+        if Assigned(FDlssNrRunBeforeSrToggle) then FDlssNrRunBeforeSrToggle.Visible := False;
+        if Assigned(FDlssNrRenoDxToggle) then FDlssNrRenoDxToggle.Visible := False;
+        if Assigned(FDlssNrPreprocessToggle) then FDlssNrPreprocessToggle.Visible := False;
+        if Assigned(FDlssNrAdvancedBtn) then FDlssNrAdvancedBtn.Visible := False;
+        if Assigned(FDlssNrModelDllLabel) then FDlssNrModelDllLabel.Visible := False;
+        if Assigned(FDlssNrModelDllBrowseBtn) then FDlssNrModelDllBrowseBtn.Visible := False;
+        if Assigned(FDlssNrModelStatusLabel) then FDlssNrModelStatusLabel.Visible := False;
 
-      overrideCheckBox.Visible := False;
-      tracelogCheckBox.Visible := False;
+        // Show Reflex / LatencyFlex controls
+        if Assigned(FForceReflexToggle) then
+          FForceReflexToggle.SetBounds(10, Y0, FakeW, 20)
+        else
+          forcereflexCheckBox.SetBounds(10, Y0, FakeW, 20);
+        reflexComboBox.SetBounds(10, Y0 + 22, FakeW, 26);
+
+        if Assigned(FForceLatencyFlexToggle) then
+          FForceLatencyFlexToggle.SetBounds(10, Y0 + 56, FakeW, 20)
+        else
+          forcelatencyflexCheckBox.SetBounds(10, Y0 + 56, FakeW, 20);
+        latencyflexComboBox.SetBounds(10, Y0 + 78, FakeW, 26);
+
+        overrideCheckBox.Visible := False;
+        tracelogCheckBox.Visible := False;
+      end;
     end;
 
     Self.SyncAllToggles;
@@ -1979,6 +2658,21 @@ begin
         end
         else
           FOsHelixLicenseBtn.Visible := False;
+      end;
+
+      if Assigned(FDlssNrModelDllBrowseBtn) and (i = 2) then
+      begin
+        if IsDlssNrActive then
+        begin
+          FOsStatVerLbls[2].AdjustSize;
+          FDlssNrModelDllBrowseBtn.Visible := True;
+          FDlssNrModelDllBrowseBtn.SetBounds(FOsStatVerLbls[2].Left + FOsStatVerLbls[2].Width + 8,
+            Row + (ROW_H - 22) div 2, 160, 22);
+          StyleBitBtnTheme(FDlssNrModelDllBrowseBtn,
+            IfThen(CurrentTheme = tmLight, LightTextColor, clWhite), FOsStatusCard.Color);
+        end
+        else
+          FDlssNrModelDllBrowseBtn.Visible := False;
       end;
     end;
   end;
@@ -2116,6 +2810,20 @@ begin
         dlssenablerRadioButton.Checked := False;
         if Assigned(noneUpscalerRadioButton) then
           noneUpscalerRadioButton.Checked := False;
+        if Assigned(dlssnrRadioButton) then
+          dlssnrRadioButton.Checked := False;
+        optversionComboBox.Enabled := False;
+      end
+      else if Settings.UpscalerTypeItemIndex = 4 then
+      begin
+        if Assigned(dlssnrRadioButton) then
+          dlssnrRadioButton.Checked := True;
+        optiscalerRadioButton.Checked := False;
+        dlssenablerRadioButton.Checked := False;
+        if Assigned(helixsrRadioButton) then
+          helixsrRadioButton.Checked := False;
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := False;
         optversionComboBox.Enabled := False;
       end
       else
@@ -2126,6 +2834,8 @@ begin
           noneUpscalerRadioButton.Checked := False;
         if Assigned(helixsrRadioButton) then
           helixsrRadioButton.Checked := False;
+        if Assigned(dlssnrRadioButton) then
+          dlssnrRadioButton.Checked := False;
         optversionComboBox.Enabled := True;
         if Settings.OptVersionItemIndex in [0, 1, 2] then
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
@@ -2160,6 +2870,74 @@ begin
         else
           FHelixsrWaveSizeComboBox.ItemIndex := 0;
       end;
+      if Assigned(FDlssNrArchComboBox) then
+      begin
+        if (Settings.DlssNrArchIndex >= 0) and (Settings.DlssNrArchIndex < FDlssNrArchComboBox.Items.Count) then
+          FDlssNrArchComboBox.ItemIndex := Settings.DlssNrArchIndex
+        else
+          FDlssNrArchComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FDlssNrRouteComboBox) then
+      begin
+        if (Settings.DlssNrRouteIndex >= 0) and (Settings.DlssNrRouteIndex < FDlssNrRouteComboBox.Items.Count) then
+          FDlssNrRouteComboBox.ItemIndex := Settings.DlssNrRouteIndex
+        else
+          FDlssNrRouteComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FDlssNrModelVerComboBox) then
+      begin
+        if (Settings.DlssNrModelIndex >= 0) and (Settings.DlssNrModelIndex < FDlssNrModelVerComboBox.Items.Count) then
+          FDlssNrModelVerComboBox.ItemIndex := Settings.DlssNrModelIndex
+        else
+          FDlssNrModelVerComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FDlssNrScaleComboBox) then
+      begin
+        if (Settings.DlssNrScaleIndex >= 0) and (Settings.DlssNrScaleIndex < FDlssNrScaleComboBox.Items.Count) then
+          FDlssNrScaleComboBox.ItemIndex := Settings.DlssNrScaleIndex
+        else if DetectRDNAArchitecture = rdna3 then
+          FDlssNrScaleComboBox.ItemIndex := 2
+        else
+          FDlssNrScaleComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FDlssNrInt4CheckBox) then
+      begin
+        FDlssNrInt4CheckBox.Checked := Settings.DlssNrInt4Checked;
+        if Assigned(FDlssNrInt4Toggle) then
+          FDlssNrInt4Toggle.Checked := Settings.DlssNrInt4Checked;
+      end;
+      if Assigned(FDlssNrRenoDxCheckBox) then
+      begin
+        FDlssNrRenoDxCheckBox.Checked := Settings.DlssNrRenoDxChecked;
+        if Assigned(FDlssNrRenoDxToggle) then
+          FDlssNrRenoDxToggle.Checked := Settings.DlssNrRenoDxChecked;
+      end;
+      if Assigned(FDlssNrPreprocessCheckBox) then
+      begin
+        FDlssNrPreprocessCheckBox.Checked := Settings.DlssNrPreprocessChecked;
+        if Assigned(FDlssNrPreprocessToggle) then
+          FDlssNrPreprocessToggle.Checked := Settings.DlssNrPreprocessChecked;
+      end;
+      if Assigned(FDlssNrPassesComboBox) then
+      begin
+        if (Settings.DlssNrPassesIndex >= 0) and (Settings.DlssNrPassesIndex < FDlssNrPassesComboBox.Items.Count) then
+          FDlssNrPassesComboBox.ItemIndex := Settings.DlssNrPassesIndex
+        else
+          FDlssNrPassesComboBox.ItemIndex := 0;
+      end;
+      if Assigned(FDlssNrRunBeforeSrCheckBox) then
+      begin
+        FDlssNrRunBeforeSrCheckBox.Checked := Settings.DlssNrRunBeforeSrChecked;
+        if Assigned(FDlssNrRunBeforeSrToggle) then
+          FDlssNrRunBeforeSrToggle.Checked := Settings.DlssNrRunBeforeSrChecked;
+      end;
+      FDlssNrRouteIndex := Settings.DlssNrRouteIndex;
+      FDlssNrFinishedPictureChecked := Settings.DlssNrFinishedPictureChecked;
+      FDlssNrRenoDxChecked := Settings.DlssNrRenoDxChecked;
+      FDlssNrPreprocessChecked := Settings.DlssNrPreprocessChecked;
+      FDlssNrSkinProtectionChecked := Settings.DlssNrSkinProtectionChecked;
+      FDlssNrModelDllPath := Settings.DlssNrModelDllPath;
+      UpdateDlssNrStatusUI;
       UpdateUpscalerImageOpacity;
       UpdateFrameGenOptionsUI;
     finally
@@ -2242,6 +3020,8 @@ begin
       Settings.UpscalerTypeItemIndex := 1
     else if Assigned(helixsrRadioButton) and helixsrRadioButton.Checked then
       Settings.UpscalerTypeItemIndex := 3
+    else if Assigned(dlssnrRadioButton) and dlssnrRadioButton.Checked then
+      Settings.UpscalerTypeItemIndex := 4
     else
       Settings.UpscalerTypeItemIndex := 0;
 
@@ -2262,6 +3042,49 @@ begin
       Settings.HelixSrWaveSizeIndex := FHelixsrWaveSizeComboBox.ItemIndex
     else
       Settings.HelixSrWaveSizeIndex := 0;
+
+    if Assigned(FDlssNrArchComboBox) then
+      Settings.DlssNrArchIndex := FDlssNrArchComboBox.ItemIndex
+    else
+      Settings.DlssNrArchIndex := 0;
+    if Assigned(FDlssNrRouteComboBox) then
+      Settings.DlssNrRouteIndex := FDlssNrRouteComboBox.ItemIndex
+    else
+      Settings.DlssNrRouteIndex := 0;
+    if Assigned(FDlssNrModelVerComboBox) then
+      Settings.DlssNrModelIndex := FDlssNrModelVerComboBox.ItemIndex
+    else
+      Settings.DlssNrModelIndex := 0;
+    if Assigned(FDlssNrScaleComboBox) then
+      Settings.DlssNrScaleIndex := FDlssNrScaleComboBox.ItemIndex
+    else
+      Settings.DlssNrScaleIndex := 0;
+    if Assigned(FDlssNrInt4CheckBox) then
+      Settings.DlssNrInt4Checked := FDlssNrInt4CheckBox.Checked
+    else
+      Settings.DlssNrInt4Checked := False;
+    if Assigned(FDlssNrRenoDxCheckBox) then
+      Settings.DlssNrRenoDxChecked := FDlssNrRenoDxCheckBox.Checked
+    else
+      Settings.DlssNrRenoDxChecked := False;
+    if Assigned(FDlssNrPreprocessCheckBox) then
+      Settings.DlssNrPreprocessChecked := FDlssNrPreprocessCheckBox.Checked
+    else
+      Settings.DlssNrPreprocessChecked := False;
+    if Assigned(FDlssNrPassesComboBox) then
+      Settings.DlssNrPassesIndex := FDlssNrPassesComboBox.ItemIndex
+    else
+      Settings.DlssNrPassesIndex := 0;
+    if Assigned(FDlssNrRunBeforeSrCheckBox) then
+      Settings.DlssNrRunBeforeSrChecked := FDlssNrRunBeforeSrCheckBox.Checked
+    else
+      Settings.DlssNrRunBeforeSrChecked := False;
+    Settings.DlssNrRouteIndex := FDlssNrRouteIndex;
+    Settings.DlssNrFinishedPictureChecked := FDlssNrFinishedPictureChecked;
+    Settings.DlssNrRenoDxChecked := FDlssNrRenoDxChecked;
+    Settings.DlssNrPreprocessChecked := FDlssNrPreprocessChecked;
+    Settings.DlssNrSkinProtectionChecked := FDlssNrSkinProtectionChecked;
+    Settings.DlssNrModelDllPath := FDlssNrModelDllPath;
 
     try
       if not SaveOptiScalerConfigCore(Settings, ENV_GAMEMODERUN, LAUNCH_COMMAND_SUFFIX, GetPerformanceCheckBox(0).Checked, FActiveGameIsNonSteam, FActiveGameIsNonSteam, ErrMsg, LaunchCommand) then

@@ -2409,6 +2409,14 @@ begin
         MarkerFiles.Free;
       end;
 
+      MarkerFiles := FindAllFiles(GamePath, 'dlssnr-amd-install.txt', True);
+      try
+        for j := 0 to MarkerFiles.Count - 1 do
+          TargetDirs.Add(ExtractFilePath(MarkerFiles[j]));
+      finally
+        MarkerFiles.Free;
+      end;
+
       // Always include top-level GamePath as baseline
       TargetDirs.Add(GamePath);
 
@@ -2426,6 +2434,22 @@ begin
       for j := 0 to TargetDirs.Count - 1 do
       begin
         if not DirectoryExists(TargetDirs[j]) then Continue;
+
+        // Clean up DLSS-NR direct deployed files if install manifest is present
+        if FileExists(IncludeTrailingPathDelimiter(TargetDirs[j]) + 'dlssnr-amd-install.txt') then
+        begin
+          Lines := TStringList.Create;
+          try
+            Lines.LoadFromFile(IncludeTrailingPathDelimiter(TargetDirs[j]) + 'dlssnr-amd-install.txt');
+            for i := 0 to Lines.Count - 1 do
+              if (Trim(Lines[i]) <> '') and FileExists(IncludeTrailingPathDelimiter(TargetDirs[j]) + Trim(Lines[i])) then
+                DeleteFile(IncludeTrailingPathDelimiter(TargetDirs[j]) + Trim(Lines[i]));
+            DeleteFile(IncludeTrailingPathDelimiter(TargetDirs[j]) + 'dlssnr-amd-install.txt');
+          finally
+            Lines.Free;
+          end;
+        end;
+
         ExecuteShellCommand(
           'BGMOD_CONFIG_DIR=' + ShellQuote(GameCfgDir) + ' ' +
           'BGMOD_BACKUPS_DIR=' + ShellQuote(IncludeTrailingPathDelimiter(GameCfgDir) + 'backups') + ' ' +
@@ -2704,6 +2728,7 @@ begin
                FileExists(GameCfgDir + 'MangoHud.conf') or
                FileExists(GameCfgDir + 'vkBasalt.conf') or
                FileExists(GameCfgDir + 'vkSumi.conf') or
+               FileExists(GameCfgDir + 'dlssnr-amd.ini') or
                FileExists(GameCfgDir + 'fakenvapi.ini') then
             begin
               HasMods := True;
@@ -2711,7 +2736,7 @@ begin
 
             if not HasMods and (GamePath <> '') and DirectoryExists(GamePath) then
             begin
-              MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf', True);
+              MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf;dlssnr_amd.dll;dlssnr-amd.ini;dlssnr-amd-install.txt', True);
               try
                 if MarkerFiles.Count > 0 then
                   HasMods := True;
@@ -3050,11 +3075,12 @@ begin
                FileExists(GameCfgDir + 'MangoHud.conf') or
                FileExists(GameCfgDir + 'vkBasalt.conf') or
                FileExists(GameCfgDir + 'vkSumi.conf') or
+               FileExists(GameCfgDir + 'dlssnr-amd.ini') or
                FileExists(GameCfgDir + 'fakenvapi.ini');
 
     if not HasMods and (GamePath <> '') and DirectoryExists(GamePath) then
     begin
-      MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf', True);
+      MarkerFiles := FindAllFiles(IncludeTrailingPathDelimiter(GamePath), 'goverlay.vars;OptiScaler.dll;OptiScaler.ini;bgmod-uninstaller.sh;fgmod-uninstaller.sh;MangoHud.conf;vkBasalt.conf;vkSumi.conf;dlssnr_amd.dll;dlssnr-amd.ini;dlssnr-amd-install.txt', True);
       try
         if MarkerFiles.Count > 0 then
           HasMods := True;

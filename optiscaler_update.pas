@@ -23,6 +23,24 @@ function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProg
 // Fetch the latest HelixSR release (lonewolf0622/HelixSR) tag and .zip asset URL
 function FetchHelixSRLatestRelease(out ATag, AUrl: string): Boolean;
 
+// Fetch the latest DLSS-NR release tag and tar.gz download URL for specified arch ('rdna3' or 'rdna4')
+function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): Boolean;
+
+// Check and automatically install/heal the DLSS-NR runtime for specified arch
+function CheckAndInstallDlssNr(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Extract neural model weights from user-provided nvngx_dlssnr.dll or zip archive
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string): Boolean;
+
+// Check whether the DLSS-NR runtime is installed in central storage
+function IsDlssNrInstalled(const AArch: string = ''): Boolean;
+
+// Check whether extracted DLSS-NR models (dlssnr.bin) exist in central storage
+function IsDlssNrModelReady: Boolean;
+
+// Retrieve the installed DLSS-NR version tag
+function GetDlssNrVersion(const AArch: string = ''): string;
+
 // Extract the latest release tag from a GitHub releases Atom XML feed.
 // Returns the tag string (e.g. v1.2.3) or '' when no entry/tag can be found.
 function ExtractReleaseTagFromAtomXml(const AXml: string): string;
@@ -7959,6 +7977,405 @@ begin
       if Assigned(AFailedFiles) then
         AFailedFiles.Add('vkBasalt ReShade Shaders: ' + E.Message);
     end;
+  end;
+end;
+
+// Query the latest DLSS-NR release for the given architecture from the GitHub
+// API. Fills ATag with the release tag and AUrl with the matching .tar.gz asset
+// URL, falling back to hand-picked baseline URLs when the API is rate limited
+// or unreachable.
+function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): Boolean;
+var
+  Owner, Repo, TmpFile, ApiUrl, RespText, Candidate, LowerCandidate: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  IsRdna3: Boolean;
+  Attempt, TagPos, ColonPos, QuoteStart, QuoteEnd, UrlPos, HttpPos: Integer;
+begin
+  Result := False;
+  ATag := '';
+  AUrl := '';
+  RespText := '';
+
+  IsRdna3 := SameText(AArch, 'rdna3');
+  if IsRdna3 then
+  begin
+    Owner := 'mauri870';
+    Repo := 'DLSSNR-RDNA3';
+  end
+  else
+  begin
+    Owner := 'mochizuki0323';
+    Repo := 'DLSSNR-AMD';
+  end;
+
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'dlssnr_api_' + AArch + '_' + IntToStr(fpgetpid) + '.json';
+
+  for Attempt := 0 to 1 do
+  begin
+    if Attempt = 0 then
+      ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases/latest'
+    else
+      ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases';
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('--max-time');
+      Process.Parameters.Add('15');
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: goverlay');
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(TmpFile);
+      Process.Parameters.Add(ApiUrl);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+    finally
+      Process.Free;
+    end;
+
+    RespText := '';
+    if FileExists(TmpFile) then
+    begin
+      OutputList := TStringList.Create;
+      try
+        OutputList.LoadFromFile(TmpFile);
+        RespText := OutputList.Text;
+      finally
+        OutputList.Free;
+        DeleteFile(TmpFile);
+      end;
+    end;
+
+    if RespText = '' then Continue;
+
+    // Parse "tag_name": "vX.Y.Z"
+    if ATag = '' then
+    begin
+      TagPos := Pos('"tag_name"', RespText);
+      if TagPos > 0 then
+      begin
+        ColonPos := PosEx(':', RespText, TagPos + 10);
+        if ColonPos > 0 then
+        begin
+          QuoteStart := PosEx('"', RespText, ColonPos);
+          if QuoteStart > 0 then
+          begin
+            QuoteEnd := PosEx('"', RespText, QuoteStart + 1);
+            if QuoteEnd > QuoteStart then
+              ATag := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+          end;
+        end;
+      end;
+    end;
+
+    // Locate the first browser_download_url that points to a suitable .tar.gz
+    if AUrl = '' then
+    begin
+      UrlPos := Pos('browser_download_url', RespText);
+      while UrlPos > 0 do
+      begin
+        HttpPos := PosEx('http', RespText, UrlPos);
+        if HttpPos > 0 then
+        begin
+          QuoteEnd := PosEx('"', RespText, HttpPos);
+          if QuoteEnd > HttpPos then
+          begin
+            Candidate := Copy(RespText, HttpPos, QuoteEnd - HttpPos);
+            LowerCandidate := LowerCase(Candidate);
+            if Pos('.tar.gz', LowerCandidate) > 0 then
+            begin
+              if IsRdna3 then
+              begin
+                if (Pos('rdna3', LowerCandidate) > 0) or (Pos('x86_64', LowerCandidate) > 0) then
+                  AUrl := Candidate;
+              end
+              else
+              begin
+                if (Pos('x86_64', LowerCandidate) > 0) and
+                   (Pos('rdna3', LowerCandidate) = 0) and
+                   (Pos('i686', LowerCandidate) = 0) then
+                  AUrl := Candidate;
+              end;
+            end;
+          end;
+        end;
+        if AUrl <> '' then Break;
+        UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+      end;
+    end;
+
+    if (ATag <> '') and (AUrl <> '') then Break;
+  end;
+
+  // Fallback baseline URLs when the API is unavailable, rate limited or offline
+  if (ATag = '') or (AUrl = '') then
+  begin
+    if IsRdna3 then
+    begin
+      ATag := '0.0.6';
+      AUrl := 'https://github.com/mauri870/DLSSNR-RDNA3/releases/download/0.0.6/DLSSNR-AMD-Vulkan-Linux-0.0.6-linux-preview-54-gaa39228-x86_64-rdna3.tar.gz';
+    end
+    else
+    begin
+      ATag := 'v0.0.6-linux-preview';
+      AUrl := 'https://github.com/mochizuki0323/DLSSNR-AMD/releases/download/v0.0.6-linux-preview/DLSSNR-AMD-Vulkan-Linux-0.0.6-linux-preview-x86_64.tar.gz';
+    end;
+  end;
+
+  Result := (ATag <> '') and (AUrl <> '');
+end;
+
+// Check and automatically install/heal the DLSS-NR runtime for the requested
+// architecture. Extracts the release tarball into the central storage and
+// mirrors any previously extracted neural models next to it.
+function CheckAndInstallDlssNr(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  TargetDir, Tag, DownloadUrl, TempTar, VarsPath, ModelsSrcDir, SubDir: string;
+  OptiScalerDir, NrZip: string;
+  VarsList: TStringList;
+  LineIdx: Integer;
+  Process: TProcess;
+  NrSearch: TSearchRec;
+begin
+  Result := False;
+  TargetDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch));
+  ForceDirectories(TargetDir);
+
+  if not AForce and
+     (FileExists(TargetDir + 'dlssnr-amd' + PathDelim + 'dlssnr.bin') or
+      FileExists(TargetDir + 'goverlay.vars') or
+      FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll')) then
+    Exit(True);
+
+  try
+    Tag := '';
+    DownloadUrl := '';
+    if not FetchDlssNrLatestRelease(AArch, Tag, DownloadUrl) then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: could not resolve DLSS-NR release for ', AArch);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR release (' + AArch + ')');
+      Exit(False);
+    end;
+
+    TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'dlssnr_' + AArch + '_' + IntToStr(fpgetpid) + '.tar.gz';
+    if RunCurlWithProgress(DownloadUrl, TempTar, 90, 95, 'Downloading DLSS-NR runtime', AOnProgress) <> 0 then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: DLSS-NR download failed for ', AArch);
+      if FileExists(TempTar) then DeleteFile(TempTar);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR runtime (' + AArch + ')');
+      Exit(False);
+    end;
+
+    if not FileExists(TempTar) then Exit(False);
+
+    // Preferred layout: root directory is a subfolder, so strip it.
+    ExtractTarArchive(TempTar, TargetDir, 1);
+
+    // Fallback: the archive root already holds the files directly.
+    if not (DirectoryExists(TargetDir + 'dlssnr-amd') or
+            FileExists(TargetDir + 'goverlay.vars') or
+            FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll')) then
+      ExtractTarArchive(TempTar, TargetDir, 0);
+
+    DeleteFile(TempTar);
+
+    // The release bundles an OptiScaler-NR package alongside an upstream
+    // extractor. Run it so OptiScaler.dll and its supporting DLLs are
+    // unpacked into the runtime directory, ready for game deployment.
+    OptiScalerDir := IncludeTrailingPathDelimiter(TargetDir) + 'optiscaler';
+    if FileExists(IncludeTrailingPathDelimiter(OptiScalerDir) + 'extract_release.py') then
+    begin
+      NrZip := '';
+      if FindFirst(IncludeTrailingPathDelimiter(OptiScalerDir) + 'OptiScaler-NR-*.zip', faAnyFile, NrSearch) = 0 then
+      begin
+        NrZip := IncludeTrailingPathDelimiter(OptiScalerDir) + NrSearch.Name;
+        FindClose(NrSearch);
+      end;
+      if NrZip <> '' then
+      begin
+        WriteLn('[AUTO-INSTALL] Extracting OptiScaler-NR release: ', NrZip);
+        Process := TProcess.Create(nil);
+        try
+          Process.Executable := 'python3';
+          Process.Parameters.Add(IncludeTrailingPathDelimiter(OptiScalerDir) + 'extract_release.py');
+          Process.Parameters.Add(NrZip);
+          Process.Parameters.Add(OptiScalerDir);
+          Process.Options := [poWaitOnExit];
+          Process.Execute;
+        finally
+          Process.Free;
+        end;
+      end;
+    end;
+
+    // Record the installed tag next to the extracted runtime.
+    VarsPath := TargetDir + 'goverlay.vars';
+    VarsList := TStringList.Create;
+    try
+      if FileExists(VarsPath) then
+        VarsList.LoadFromFile(VarsPath);
+      LineIdx := VarsList.IndexOfName('OPTISCALER_DLSSNR_VERSION');
+      if LineIdx >= 0 then
+        VarsList[LineIdx] := 'OPTISCALER_DLSSNR_VERSION=' + Tag
+      else
+        VarsList.Add('OPTISCALER_DLSSNR_VERSION=' + Tag);
+      VarsList.SaveToFile(VarsPath);
+    finally
+      VarsList.Free;
+    end;
+
+    // Mirror any extracted neural models into the runtime folder.
+    ModelsSrcDir := IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath);
+    if FileExists(ModelsSrcDir + 'dlssnr.bin') then
+    begin
+      SubDir := TargetDir + 'dlssnr-amd' + PathDelim;
+      ForceDirectories(SubDir);
+      CopyFile(ModelsSrcDir + 'dlssnr.bin', SubDir + 'dlssnr.bin');
+      if FileExists(ModelsSrcDir + 'dlssnr-small.bin') then
+        CopyFile(ModelsSrcDir + 'dlssnr-small.bin', SubDir + 'dlssnr-small.bin');
+    end;
+
+    WriteLn('[AUTO-INSTALL] DLSS-NR (', AArch, ') installed: ', Tag);
+    if Assigned(AOnProgress) then
+      AOnProgress(96, 'DLSS-NR runtime ready');
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallDlssNr: ', E.Message);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR runtime (' + AArch + '): ' + E.Message);
+    end;
+  end;
+end;
+
+// Extract the neural model weights from a user-provided nvngx_dlssnr.dll (or
+// archive) using the bundled extract_model.sh helper, then distribute the
+// resulting weights to every installed DLSS-NR runtime.
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string): Boolean;
+var
+  TargetModelsDir, ExtractScript, Rdna3SubDir, Rdna4SubDir: string;
+  Process: TProcess;
+begin
+  Result := False;
+  AErrorMsg := '';
+
+  if not FileExists(ADllPath) then
+  begin
+    AErrorMsg := 'DLSS-NR model file not found: ' + ADllPath;
+    Exit;
+  end;
+
+  TargetModelsDir := IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath);
+  ForceDirectories(TargetModelsDir);
+
+  ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'model-tools' + PathDelim + 'extract_model.sh';
+  if not FileExists(ExtractScript) then
+    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'model-tools' + PathDelim + 'extract_model.sh';
+
+  if not FileExists(ExtractScript) then
+  begin
+    CheckAndInstallDlssNr('rdna3', True);
+    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'model-tools' + PathDelim + 'extract_model.sh';
+    if not FileExists(ExtractScript) then
+    begin
+      CheckAndInstallDlssNr('rdna4', True);
+      ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'model-tools' + PathDelim + 'extract_model.sh';
+    end;
+  end;
+
+  if not FileExists(ExtractScript) then
+  begin
+    AErrorMsg := 'extract_model.sh helper not found';
+    Exit;
+  end;
+
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'bash';
+    Process.Parameters.Add(ExtractScript);
+    Process.Parameters.Add(ADllPath);
+    Process.Parameters.Add(TargetModelsDir);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if not FileExists(TargetModelsDir + 'dlssnr.bin') then
+  begin
+    AErrorMsg := 'Model extraction did not produce dlssnr.bin';
+    Exit;
+  end;
+
+  Rdna3SubDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim;
+  if DirectoryExists(Rdna3SubDir) then
+  begin
+    CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna3SubDir + 'dlssnr.bin');
+    if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
+      CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna3SubDir + 'dlssnr-small.bin');
+  end;
+
+  Rdna4SubDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'dlssnr-amd' + PathDelim;
+  if DirectoryExists(Rdna4SubDir) then
+  begin
+    CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna4SubDir + 'dlssnr.bin');
+    if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
+      CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna4SubDir + 'dlssnr-small.bin');
+  end;
+
+  Result := True;
+end;
+
+// Check whether the DLSS-NR runtime is installed in central storage.
+function IsDlssNrInstalled(const AArch: string = ''): Boolean;
+var
+  TargetDir: string;
+begin
+  TargetDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch));
+  Result := FileExists(TargetDir + 'goverlay.vars') or
+            FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') or
+            DirectoryExists(TargetDir + 'dlssnr-amd');
+end;
+
+// Check whether extracted DLSS-NR models (dlssnr.bin) exist in central storage.
+function IsDlssNrModelReady: Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath) + 'dlssnr.bin') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
+end;
+
+// Read OPTISCALER_DLSSNR_VERSION from a goverlay.vars file, returning '' when absent.
+function ReadDlssNrVersionFromVars(const AVarsPath: string): string;
+var
+  VarsList: TStringList;
+begin
+  Result := '';
+  if not FileExists(AVarsPath) then Exit;
+  VarsList := TStringList.Create;
+  try
+    VarsList.LoadFromFile(AVarsPath);
+    Result := VarsList.Values['OPTISCALER_DLSSNR_VERSION'];
+  finally
+    VarsList.Free;
+  end;
+end;
+
+// Retrieve the installed DLSS-NR version tag.
+function GetDlssNrVersion(const AArch: string = ''): string;
+begin
+  Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch)) + 'goverlay.vars');
+
+  if Result = '' then
+  begin
+    Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'goverlay.vars');
+    if Result = '' then
+      Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'goverlay.vars');
   end;
 end;
 

@@ -71,7 +71,7 @@ type
 implementation
 
 uses
-  apputils, themeunit, configmanager, bgmod_resources, StrUtils, overlay_config, FileUtil, optiscaler_update;
+  apputils, themeunit, configmanager, bgmod_resources, StrUtils, overlay_config, FileUtil, optiscaler_update, systemdetector;
 
 constructor TSidebarNavHelper.Create(AForm: Tgoverlayform);
 begin
@@ -935,6 +935,11 @@ var
   NativeDlss: Integer;
   Settings: TOptiScalerSettings;
   FsrDllSrc: string;
+  Arch: TRDNAArchitecture;
+  ModelsDir, ProxyDllName, FFile: string;
+  DlssNrSrcDir, DlssNrDstDir: string;
+  ManifestList: TStringList;
+  i: Integer;
 begin
   UpscalerType := 0;
   OptChannel := 0;
@@ -956,6 +961,16 @@ begin
     CacheDir := GetDlssEnablerPath(OptChannel <> 1)
   else if UpscalerType = 3 then
     CacheDir := GetBGModOriginalHelixSRPath
+  else if UpscalerType = 4 then
+  begin
+    Arch := DetectRDNAArchitecture;
+    if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then
+    begin
+      if Settings.DlssNrArchIndex = 1 then Arch := rdna4
+      else if Settings.DlssNrArchIndex = 2 then Arch := rdna3;
+    end;
+    CacheDir := GetBGModDlssNrPath(RDNAArchitectureToString(Arch));
+  end
   else
     case OptChannel of
       1: CacheDir := GetBGModOriginalEdgePath;
@@ -1014,6 +1029,142 @@ begin
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'helixsr.ini',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR' + PathDelim + 'helixsr.ini');
     end;
+  end;
+
+  // DLSS-NR deployment (UPSCALER_TYPE = 4): direct-file copy with manifest
+  if UpscalerType = 4 then
+  begin
+    ManifestList := TStringList.Create;
+    try
+      ProxyDllName := 'dxgi.dll';
+      if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then
+      begin
+        if Settings.FilenameItemIndex = 1 then
+          ProxyDllName := 'version.dll';
+      end;
+
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + ProxyDllName);
+        ManifestList.Add('OptiScaler.dll');
+        ManifestList.Add(ProxyDllName);
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + ProxyDllName);
+        ManifestList.Add('OptiScaler.dll');
+        ManifestList.Add(ProxyDllName);
+      end;
+
+      // Supporting OptiScaler backend directory
+      if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler') then
+        ExecuteShellCommand('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler') + ' ' +
+          QuotedStr(AGameCfgDir) + ' 2>/dev/null')
+      else if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler') then
+        ExecuteShellCommand('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler') + ' ' +
+          QuotedStr(AGameCfgDir) + ' 2>/dev/null');
+
+      // OptiScaler.ini template from OptiScaler-NR
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
+      begin
+        if not FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini') then
+          CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.ini',
+                   IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini');
+      end;
+
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'dlssnr_core.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'dlssnr_core.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr_core.dll');
+        ManifestList.Add('dlssnr_core.dll');
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'dlssnr_core.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'dlssnr_core.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr_core.dll');
+        ManifestList.Add('dlssnr_core.dll');
+      end;
+
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'nvngx.dll_dlssnr.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'nvngx.dll_dlssnr.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'nvngx.dll_dlssnr.dll');
+        ManifestList.Add('nvngx.dll_dlssnr.dll');
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'nvngx.dll_dlssnr.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'nvngx.dll_dlssnr.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'nvngx.dll_dlssnr.dll');
+        ManifestList.Add('nvngx.dll_dlssnr.dll');
+      end;
+
+      // Copy the dlssnr-amd runtime directory (weights + Vulkan control layer)
+      DlssNrSrcDir := IncludeTrailingPathDelimiter(CacheDir) + 'dlssnr-amd';
+      DlssNrDstDir := IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd';
+      if DirectoryExists(DlssNrSrcDir) then
+        ExecuteShellCommand('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(DlssNrSrcDir) + '.') + ' ' +
+          QuotedStr(DlssNrDstDir) + ' 2>/dev/null');
+
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.dll');
+        ManifestList.Add('fakenvapi.dll');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.ini') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.ini',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
+        ManifestList.Add('fakenvapi.ini');
+      end;
+
+      ModelsDir := GetBGModDlssNrModelsPath;
+      if FileExists(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr-small.bin') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr-small.bin',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-small.bin');
+        ManifestList.Add('dlssnr-small.bin');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr.bin') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr.bin',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr.bin');
+        ManifestList.Add('dlssnr.bin');
+      end;
+
+      if FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd.ini') then
+        ManifestList.Add('dlssnr-amd.ini');
+
+      ManifestList.SaveToFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd-install.txt');
+    finally
+      ManifestList.Free;
+    end;
+  end
+  else if FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd-install.txt') then
+  begin
+    // Game switched away from DLSS-NR: remove tracked files
+    ManifestList := TStringList.Create;
+    try
+      ManifestList.LoadFromFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd-install.txt');
+      for i := 0 to ManifestList.Count - 1 do
+      begin
+        FFile := Trim(ManifestList[i]);
+        if (FFile <> '') and FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + FFile) then
+          DeleteFile(IncludeTrailingPathDelimiter(AGameCfgDir) + FFile);
+      end;
+      DeleteFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd-install.txt');
+    finally
+      ManifestList.Free;
+    end;
+    DlssNrDstDir := IncludeTrailingPathDelimiter(AGameCfgDir) + 'dlssnr-amd';
+    if DirectoryExists(DlssNrDstDir) then
+      ExecuteShellCommand('rm -rf ' + QuotedStr(DlssNrDstDir) + ' 2>/dev/null');
   end;
 
   // Copy the correct FSR DLL based on the saved version configuration for this game profile

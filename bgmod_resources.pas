@@ -28,6 +28,8 @@ function GetBGModOriginalPath: string;
 function GetBGModOriginalEdgePath: string;
 function GetBGModOriginalHelixSRPath: string;
 function GetBGModOriginalCustomPath: string;
+function GetBGModDlssNrPath(const AArch: string = ''): string;
+function GetBGModDlssNrModelsPath: string;
 
 function GetGOverlayDataPath: string;
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
@@ -209,6 +211,21 @@ begin
   if DataHome = '' then
     DataHome := GetUserDir + '.local/share';
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'optiscaler-custom';
+end;
+
+function GetBGModDlssNrPath(const AArch: string = ''): string;
+begin
+  if SameText(AArch, 'rdna3') then
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr-rdna3'
+  else if SameText(AArch, 'rdna4') then
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr-rdna4'
+  else
+    Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr';
+end;
+
+function GetBGModDlssNrModelsPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr-models';
 end;
 
 function GetGOverlayDataPath: string;

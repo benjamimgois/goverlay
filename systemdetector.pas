@@ -25,6 +25,11 @@ type
   /// </summary>
   TSessionType = (sessionUnknown, sessionX11, sessionWayland);
 
+  /// <summary>
+  /// RDNA GPU Architecture generations for Neural Rendering
+  /// </summary>
+  TRDNAArchitecture = (rdnaUnsupported, rdna3, rdna4);
+
 /// <summary>
 /// Detects if the application is running inside a Flatpak sandbox
 /// </summary>
@@ -72,6 +77,16 @@ function DetectGPUVendor: TGPUVendor;
 /// <param name="Vendor">GPU vendor type</param>
 /// <returns>Vendor name as string (AMD, NVIDIA, Intel, unknown)</returns>
 function GPUVendorToString(Vendor: TGPUVendor): string;
+
+/// <summary>
+/// Detects AMD RDNA architecture (RDNA3 vs RDNA4) from renderer info or sysfs
+/// </summary>
+function DetectRDNAArchitecture: TRDNAArchitecture;
+
+/// <summary>
+/// Converts RDNA architecture enum to display string
+/// </summary>
+function RDNAArchitectureToString(Arch: TRDNAArchitecture): string;
 
 /// <summary>
 /// Checks if NVIDIA kernel module is loaded
@@ -382,6 +397,107 @@ begin
     gpuNVIDIA: Result := 'NVIDIA';
     gpuIntel: Result := 'Intel';
     else Result := 'unknown';
+  end;
+end;
+
+function DetectRDNAArchitecture: TRDNAArchitecture;
+var
+  Haystack, Path, VendorFile, DeviceFile, UeventFile: string;
+  SR: TSearchRec;
+  SL: TStringList;
+  Output: string;
+
+  function HasAny(const Needles: array of string): Boolean;
+  var
+    i: Integer;
+  begin
+    Result := False;
+    for i := Low(Needles) to High(Needles) do
+      if Pos(LowerCase(Needles[i]), Haystack) > 0 then
+        Exit(True);
+  end;
+
+begin
+  Result := rdnaUnsupported;
+  if DetectGPUVendor <> gpuAMD then Exit;
+
+  Haystack := '';
+
+  // Renderer info from glxinfo -B
+  if RunCommand('glxinfo', ['-B'], Output) then
+    Haystack := LowerCase(Output);
+
+  // GPU model name
+  Haystack := Haystack + ' ' + LowerCase(GetSysGPUModel);
+
+  // Sysfs device id and uevent
+  if FindFirst('/sys/class/drm/card*', faAnyFile, SR) = 0 then
+  begin
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          Path := '/sys/class/drm/' + SR.Name + '/device/';
+          if DirectoryExists(Path) then
+          begin
+            VendorFile := Path + 'vendor';
+            DeviceFile := Path + 'device';
+            UeventFile := Path + 'uevent';
+            SL := TStringList.Create;
+            try
+              if FileExists(VendorFile) then
+              begin
+                try
+                  SL.LoadFromFile(VendorFile);
+                  if SL.Count > 0 then
+                    Haystack := Haystack + ' ' + LowerCase(Trim(SL[0]));
+                except
+                end;
+              end;
+              if FileExists(DeviceFile) then
+              begin
+                try
+                  SL.LoadFromFile(DeviceFile);
+                  if SL.Count > 0 then
+                    Haystack := Haystack + ' ' + LowerCase(Trim(SL[0]));
+                except
+                end;
+              end;
+              if FileExists(UeventFile) then
+              begin
+                try
+                  SL.LoadFromFile(UeventFile);
+                  Haystack := Haystack + ' ' + LowerCase(SL.Text);
+                except
+                end;
+              end;
+            finally
+              SL.Free;
+            end;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+
+  // RDNA4 markers
+  if HasAny(['navi4', 'gfx12', 'rx 9', 'radeon 9', '9070', '9060', '9080']) then
+    Exit(rdna4);
+
+  // RDNA3 markers
+  if HasAny(['navi3', 'gfx11', 'rx 7', 'radeon 7', '7900', '7800', '7700', '7600',
+             '780m', '890m', '880m', 'phoenix', 'hawk point', 'strix']) then
+    Exit(rdna3);
+end;
+
+function RDNAArchitectureToString(Arch: TRDNAArchitecture): string;
+begin
+  case Arch of
+    rdna4: Result := 'RDNA4';
+    rdna3: Result := 'RDNA3';
+    else Result := 'Unsupported';
   end;
 end;
 

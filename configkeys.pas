@@ -130,6 +130,24 @@ const
   FAKE_KEY_TRACE_LOGS          = 'enable_trace_logs=';
 
 // ============================================================================
+// DLSS-NR CONFIG KEYS
+// ============================================================================
+
+const
+  DLSSNR_KEY_ARCH              = 'DLSSNR_ARCH';
+  DLSSNR_KEY_ROUTE             = 'DLSSNR_ROUTE';
+  DLSSNR_KEY_MODEL             = 'DLSSNR_MODEL';
+  DLSSNR_KEY_SCALE             = 'DLSSNR_SCALE';
+  DLSSNR_KEY_INT4              = 'DLSSNR_INT4';
+  DLSSNR_KEY_RENODX            = 'DLSSNR_RENODX';
+  DLSSNR_KEY_PREPROCESS        = 'DLSSNR_PREPROCESS';
+  DLSSNR_KEY_PASSES            = 'DLSSNR_PASSES';
+  DLSSNR_KEY_RUN_BEFORE_SR     = 'DLSSNR_RUN_BEFORE_SR';
+  DLSSNR_KEY_FINISHED_PICTURE  = 'DLSSNR_FINISHED_PICTURE';
+  DLSSNR_KEY_SKIN_PROTECTION   = 'DLSSNR_SKIN_PROTECTION';
+  DLSSNR_KEY_MODEL_DLL         = 'DLSSNR_MODEL_DLL';
+
+// ============================================================================
 // HELIXSR / VKSUMI / MAKO CONFIG KEYS
 // ============================================================================
 

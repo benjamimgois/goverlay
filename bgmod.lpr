@@ -261,7 +261,7 @@ begin
   end;
 end;
 
-procedure EnsureOptiScalerLogging(const AIniPath: string);
+procedure EnsureOptiScalerLogging(const AIniPath: string; AUpscalerType: Integer = 0);
 var
   Ini: TIniFile;
 begin
@@ -269,14 +269,26 @@ begin
   try
     Ini := TIniFile.Create(AIniPath);
     try
-      if (Ini.ReadString('Log', 'LogToFile', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogToFile', '') = 'true') then
-        Ini.WriteString('Log', 'LogToFile', 'false');
-      if Ini.ReadString('Log', 'LogToConsole', 'auto') = 'auto' then
+      if AUpscalerType = 4 then
+      begin
+        Ini.WriteString('Log', 'LogToFile', 'true');
         Ini.WriteString('Log', 'LogToConsole', 'true');
-      if Ini.ReadString('Log', 'LogLevel', 'auto') = 'auto' then
-        Ini.WriteString('Log', 'LogLevel', '2');
-      if Ini.ReadString('Log', 'LogFileName', 'auto') = 'auto' then
-        Ini.WriteString('Log', 'LogFileName', 'OptiScaler.log');
+        if (Ini.ReadString('Log', 'LogLevel', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogLevel', '') = '') then
+          Ini.WriteString('Log', 'LogLevel', '0');
+        if Ini.ReadString('Log', 'LogFileName', 'auto') = 'auto' then
+          Ini.WriteString('Log', 'LogFileName', 'OptiScaler.log');
+      end
+      else
+      begin
+        if (Ini.ReadString('Log', 'LogToFile', 'auto') = 'auto') or (Ini.ReadString('Log', 'LogToFile', '') = 'true') then
+          Ini.WriteString('Log', 'LogToFile', 'false');
+        if Ini.ReadString('Log', 'LogToConsole', 'auto') = 'auto' then
+          Ini.WriteString('Log', 'LogToConsole', 'true');
+        if Ini.ReadString('Log', 'LogLevel', 'auto') = 'auto' then
+          Ini.WriteString('Log', 'LogLevel', '2');
+        if Ini.ReadString('Log', 'LogFileName', 'auto') = 'auto' then
+          Ini.WriteString('Log', 'LogFileName', 'OptiScaler.log');
+      end;
     finally
       Ini.Free;
     end;
@@ -378,8 +390,9 @@ end;
 
 procedure SyncGameDirLogsToCentral(const AGameDir, ACentralDir: string);
 var
-  Candidates: array[0..13] of string = (
+  Candidates: array[0..14] of string = (
     'optiscaler.log',
+    'dlssnr-amd.log',
     'dlss-enabler.log',
     'fakenvapi.log',
     'helixsr.log',
@@ -1047,20 +1060,40 @@ var
   FlatpakBase: string;
   UpscalerType: Integer;
   OptChannel: Integer;
+  DlssNrArch: Integer;
   Ini: TIniFile;
   ChannelFolder: string;
+  BaseDir: string;
 begin
   UpscalerType := 0;
   OptChannel := 0;
+  DlssNrArch := 0;
   if FileExists(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf') then
   begin
     Ini := TIniFile.Create(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf');
     try
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
+      DlssNrArch := Ini.ReadInteger('Config', 'DLSSNR_ARCH', 0);
     finally
       Ini.Free;
     end;
+  end;
+
+  // Resolve the base data directory first (Flatpak-aware) so the DLSS-NR
+  // channel fallback below can probe candidate directories.
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    BaseDir := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    BaseDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
   end;
 
   if UpscalerType = 1 then
@@ -1072,6 +1105,23 @@ begin
   end
   else if UpscalerType = 3 then
     ChannelFolder := 'optiscaler-helixsr'
+  else if UpscalerType = 4 then
+  begin
+    if DlssNrArch = 1 then
+      ChannelFolder := 'dlss-nr-rdna4'
+    else
+      ChannelFolder := 'dlss-nr-rdna3';
+
+    // Fall back to the other architecture channel when the selected one
+    // has not been downloaded yet.
+    if not DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + ChannelFolder) then
+    begin
+      if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna3') then
+        ChannelFolder := 'dlss-nr-rdna3'
+      else if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna4') then
+        ChannelFolder := 'dlss-nr-rdna4';
+    end;
+  end
   else if OptChannel = 2 then
     ChannelFolder := 'optiscaler-custom'
   else if OptChannel = 1 then
@@ -1079,19 +1129,7 @@ begin
   else
     ChannelFolder := 'optiscaler-stable';
 
-  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
-  if PosFlatpak > 0 then
-  begin
-    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
-    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + ChannelFolder;
-  end
-  else
-  begin
-    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-    if DataHome = '' then
-      DataHome := GetUserDir + '.local/share';
-    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + ChannelFolder;
-  end;
+  Result := IncludeTrailingPathDelimiter(BaseDir) + ChannelFolder;
   Result := IncludeTrailingPathDelimiter(Result);
 end;
 
@@ -1263,6 +1301,17 @@ begin
         Result := True;
         Exit;
       end;
+    end;
+  end
+  else if UpscalerType = 4 then
+  begin
+    if (not FileExists(LocalPath + DllName)) or
+       (not FileExists(LocalPath + 'dlssnr_core.dll')) or
+       (not DirectoryExists(LocalPath + 'dlssnr-amd')) then
+    begin
+      Log('DLSS-NR files missing in game directory, update needed.');
+      Result := True;
+      Exit;
     end;
   end;
 end;
@@ -1583,7 +1632,7 @@ begin
   end;
 end;
 
-procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean; AUnmanagedIni: Boolean = False);
+procedure SyncOptiScalerIni(const AConfigDir, AGameDir: string; APreserveIni: Boolean; AUnmanagedIni: Boolean = False; AUpscalerType: Integer = 0);
 var
   ConfigIni, GameIni: string;
   AgeConfig, AgeGame: TDateTime;
@@ -1601,7 +1650,7 @@ begin
   if AUnmanagedIni and GameExists then
   begin
     Log('Unmanaged INI mode enabled: preserving GameDir/OptiScaler.ini untouched.');
-    EnsureOptiScalerLogging(GameIni);
+    EnsureOptiScalerLogging(GameIni, AUpscalerType);
     Exit;
   end;
 
@@ -1609,7 +1658,7 @@ begin
   begin
     Log('OptiScaler.ini found only in game directory. Syncing to config directory...');
     SafeCopyFile(GameIni, ConfigIni, True);
-    EnsureOptiScalerLogging(GameIni);
+    EnsureOptiScalerLogging(GameIni, AUpscalerType);
     Exit;
   end;
 
@@ -1617,7 +1666,7 @@ begin
   begin
     Log('OptiScaler.ini not found in game directory. Initializing from config directory...');
     SafeCopyFile(ConfigIni, GameIni, True);
-    EnsureOptiScalerLogging(GameIni);
+    EnsureOptiScalerLogging(GameIni, AUpscalerType);
     Exit;
   end;
 
@@ -1625,7 +1674,7 @@ begin
   begin
     Log('PreserveIni is false. Overwriting OptiScaler.ini in game directory...');
     SafeCopyFile(ConfigIni, GameIni, True);
-    EnsureOptiScalerLogging(GameIni);
+    EnsureOptiScalerLogging(GameIni, AUpscalerType);
     Exit;
   end;
 
@@ -1644,7 +1693,7 @@ begin
     else
       Log('OptiScaler.ini is up to date.');
   end;
-  EnsureOptiScalerLogging(GameIni);
+  EnsureOptiScalerLogging(GameIni, AUpscalerType);
 end;
 
 procedure SyncFakeNvapiIni(const AConfigDir, AGameDir: string);
@@ -1883,6 +1932,7 @@ begin
   begin
     Val := ReadVarFromFile(VarsPath, 'upscalertype');
     if Val = '1' then Exit(1);
+    if Val = '4' then Exit(4);
     if Val = '0' then Exit(0);
 
     Val := ReadVarFromFile(VarsPath, 'dlssenablerversion');
@@ -1891,6 +1941,10 @@ begin
     Val := ReadVarFromFile(VarsPath, 'optiscalerversion');
     if Val <> '' then Exit(0);
   end;
+
+  if FileExists(IncludeTrailingPathDelimiter(TargetDir) + 'dlssnr-amd-install.txt') or
+     DirectoryExists(IncludeTrailingPathDelimiter(TargetDir) + 'dlssnr-amd') then
+    Exit(4);
 
   if DirectoryExists(IncludeTrailingPathDelimiter(TargetDir) + 'OptiScaler') then
     Exit(1);
@@ -2038,6 +2092,12 @@ begin
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'HelixSR');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.ini');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr.log');
+  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd.ini');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr_core.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx.dll_dlssnr.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'nvngx_dlssnr.dll');
+  SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd-install.txt');
   if DirectoryExists(IncludeTrailingPathDelimiter(AGameDir) + 'plugins') then
   begin
     CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
@@ -2554,6 +2614,10 @@ var
   LsfgCentralLogFile: string;
   OptiCentralLogFile, InternalOptiLogPath: string;
   DlssCentralLogFile: string;
+  DlssNrCentralLogFile: string;
+  DlssNrModelsDir: string;
+  VkLayerPath: string;
+  VkInstanceLayers: string;
   MangoCentralLogFile: string;
   SumiCentralLogFile: string;
   BasaltCentralLogFile: string;
@@ -2562,6 +2626,7 @@ var
   AfmfCentralLogFile: string;
   HasAnyToolLogging: Boolean;
   ShowLaunchSplash: Boolean;
+  IsNrIni: Boolean;
   SplashExe, SplashGameTitle: string;
   SplashItems: TStringList;
   PipeFds: array[0..1] of cint;
@@ -3059,6 +3124,160 @@ begin
             Log('Using OptiScaler.dll as proxy DLL ' + DllName);
             SafeCopyFile(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
           end
+          else if UpscalerType = 4 then
+          begin
+            Log('Installing DLSS-NR files in game directory...');
+
+            // OptiScaler.dll runtime + proxy DLL
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+            end
+            else if FileExists(SourceDir + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+            end;
+
+            // DLSS-NR backend library and NGX shims
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'dlssnr_core.dll') then
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'dlssnr_core.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll')
+            else if FileExists(SourceDir + 'dlssnr_core.dll') then
+              SafeCopyFile(SourceDir + 'dlssnr_core.dll', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll');
+
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'nvngx.dll_dlssnr.dll') then
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'nvngx.dll_dlssnr.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll_dlssnr.dll')
+            else if FileExists(SourceDir + 'nvngx.dll_dlssnr.dll') then
+              SafeCopyFile(SourceDir + 'nvngx.dll_dlssnr.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx.dll_dlssnr.dll');
+
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'nvngx_dlssnr.dll') then
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'nvngx_dlssnr.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssnr.dll')
+            else if FileExists(SourceDir + 'nvngx_dlssnr.dll') then
+              SafeCopyFile(SourceDir + 'nvngx_dlssnr.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssnr.dll');
+
+            // Supporting OptiScaler and plugins directories
+            if DirectoryExists(SourceDir + 'OptiScaler') then
+              CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler')
+            else if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler') then
+              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
+
+            if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'plugins') then
+              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins')
+            else if DirectoryExists(SourceDir + 'plugins') then
+              CopyDirectory(SourceDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+
+            // dlssnr-amd runtime directory (weights + Vulkan control layer)
+            if DirectoryExists(SourceDir + 'dlssnr-amd') then
+              CopyDirectory(SourceDir + 'dlssnr-amd', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd');
+            ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd');
+
+            // Central neural model weights
+            OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
+            if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
+            DlssNrModelsDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'dlss-nr-models';
+            if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin') then
+              SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
+            if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin') then
+              SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr-small.bin');
+
+            // Vulkan control layer shipped with the runtime
+            if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'control' + PathDelim + 'layer') then
+              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'control' + PathDelim + 'layer', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'control' + PathDelim + 'layer');
+
+            // dlssnr-amd.ini configuration
+            if FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'dlssnr-amd.ini') then
+              SafeCopyFile(IncludeTrailingPathDelimiter(ConfigDir) + 'dlssnr-amd.ini', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd.ini')
+            else if FileExists(SourceDir + 'ini' + PathDelim + 'dlssnr-amd-optiscaler.ini') then
+              SafeCopyFile(SourceDir + 'ini' + PathDelim + 'dlssnr-amd-optiscaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd.ini');
+
+            // FakeNVAPI for DLSS-NR (NVAPI spoofing on AMD/Intel GPUs)
+            if FileExists(ConfigDir + 'fakenvapi.dll') then
+              SafeCopyFile(ConfigDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll')
+            else if FileExists(SourceDir + 'fakenvapi.dll') then
+              SafeCopyFile(SourceDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll')
+            else if FileExists(OptiBaseDir + 'fakenvapi.dll') then
+              SafeCopyFile(OptiBaseDir + 'fakenvapi.dll', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
+
+            if FileExists(ConfigDir + 'fakenvapi.ini') then
+              SafeCopyFile(ConfigDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini')
+            else if FileExists(SourceDir + 'fakenvapi.ini') then
+              SafeCopyFile(SourceDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini')
+            else if FileExists(OptiBaseDir + 'fakenvapi.ini') then
+              SafeCopyFile(OptiBaseDir + 'fakenvapi.ini', IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.ini');
+
+            // OptiScaler.ini handling + enable the DLSS-NR backend
+            IsNrIni := False;
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+            begin
+              OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+              try
+                IsNrIni := OptiIni.ValueExists('DlssNr', 'RunBeforeSR');
+              finally
+                OptiIni.Free;
+              end;
+            end;
+            if not IsNrIni and FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini') then
+            begin
+              OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(ConfigDir) + 'OptiScaler.ini');
+              try
+                IsNrIni := OptiIni.ValueExists('DlssNr', 'RunBeforeSR');
+              finally
+                OptiIni.Free;
+              end;
+            end;
+
+            if not IsNrIni then
+            begin
+              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini')
+              else if FileExists(SourceDir + 'OptiScaler.ini') then
+                SafeCopyFile(SourceDir + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+            end;
+            SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni, UpscalerType);
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
+            begin
+              OptiIni := TIniFile.Create(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
+              try
+                OptiIni.WriteString('DlssNr', 'Enabled', 'true');
+                OptiIni.WriteString('DlssNr', 'WhitePointSource', '1');
+                if FileExists(IncludeTrailingPathDelimiter(ConfigDir) + 'bgmod.conf') then
+                begin
+                  Ini := TIniFile.Create(IncludeTrailingPathDelimiter(ConfigDir) + 'bgmod.conf');
+                  try
+                    case Ini.ReadInteger('Config', 'DLSSNR_PASSES', 0) of
+                      1: OptiIni.WriteString('DlssNr', 'Passes', '2');
+                      2: OptiIni.WriteString('DlssNr', 'Passes', '3');
+                    else
+                      OptiIni.WriteString('DlssNr', 'Passes', '1');
+                    end;
+                    if Ini.ReadBool('Config', 'DLSSNR_RUN_BEFORE_SR', False) then
+                      OptiIni.WriteString('DlssNr', 'RunBeforeSR', 'true')
+                    else
+                      OptiIni.WriteString('DlssNr', 'RunBeforeSR', 'false');
+                    if Ini.ReadBool('Config', 'DLSSNR_FINISHED_PICTURE', False) then
+                      OptiIni.WriteString('DlssNr', 'FinishedPicture', 'true')
+                    else
+                      OptiIni.WriteString('DlssNr', 'FinishedPicture', 'false');
+                    if Ini.ReadBool('Config', 'DLSSNR_SKIN_PROTECTION', False) then
+                      OptiIni.WriteString('DlssNr', 'SkinProtection', 'true')
+                    else
+                      OptiIni.WriteString('DlssNr', 'SkinProtection', 'false');
+                  finally
+                    Ini.Free;
+                  end;
+                end;
+                OptiIni.WriteString('Libraries', 'NvngxPath', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll'));
+                OptiIni.WriteString('Log', 'LogToFile', 'true');
+                OptiIni.WriteString('Menu', 'OverlayMenu', 'true');
+                OptiIni.WriteString('Menu', 'DisableSplash', 'false');
+                OptiIni.WriteString('Menu', 'ShortcutKeyRequireCtrl', 'false');
+                OptiIni.WriteString('Menu', 'ShortcutKeyRequireAlt', 'false');
+              finally
+                OptiIni.Free;
+              end;
+            end;
+          end
           else if FileExists(SourceDir + 'renames' + PathDelim + DllName) then
           begin
             Log('Using pre-renamed dll ' + DllName);
@@ -3071,7 +3290,8 @@ begin
           end;
           
           // 6. OptiScaler.ini & fakenvapi.ini Handling
-          SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
+          if UpscalerType <> 4 then
+            SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni, UpscalerType);
           SyncFakeNvapiIni(ConfigDir, GameDir);
             
           // 7. Copy plugins/ folder if it exists
@@ -3415,6 +3635,27 @@ begin
     end;
     SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
+
+    // DLSS-NR installs a custom Vulkan implicit layer; expose it to the loader.
+    if (UpscalerType = 4) and
+       DirectoryExists(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'control' + PathDelim + 'layer') then
+    begin
+      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_LAYER_PATH');
+      if VkLayerPath <> '' then
+        VkLayerPath := VkLayerPath + ':' + IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'control' + PathDelim + 'layer'
+      else
+        VkLayerPath := IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'control' + PathDelim + 'layer';
+      SetEnvVarInList(EnvStrings, 'VK_ADD_LAYER_PATH', VkLayerPath);
+      Log('Export VK_ADD_LAYER_PATH=' + VkLayerPath);
+
+      VkInstanceLayers := GetEnvVarFromList(EnvStrings, 'VK_INSTANCE_LAYERS');
+      if VkInstanceLayers <> '' then
+        VkInstanceLayers := VkInstanceLayers + ':' + 'VK_LAYER_DLSSNR_control'
+      else
+        VkInstanceLayers := 'VK_LAYER_DLSSNR_control';
+      SetEnvVarInList(EnvStrings, 'VK_INSTANCE_LAYERS', VkInstanceLayers);
+      Log('Export VK_INSTANCE_LAYERS=' + VkInstanceLayers);
+    end;
   end;
 
   if GOverlayReshade and not IsNativeExecutable(TargetExeName) and not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
@@ -4013,6 +4254,7 @@ begin
   BasaltCentralLogFile := '';
   ReShadeCentralLogFile := '';
   HelixSRCentralLogFile := '';
+  DlssNrCentralLogFile := '';
   AfmfCentralLogFile := '';
   InternalOptiLogPath := '';
 
@@ -4078,6 +4320,15 @@ begin
         InitToolLogFile(HelixSRCentralLogFile, 'HelixSR', GameDir, '');
         Log('HelixSR central log: ' + HelixSRCentralLogFile);
       end;
+    end
+    else if UpscalerType = 4 then
+    begin
+      if CentralLogDir <> '' then
+      begin
+        DlssNrCentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'dlssnr-amd.log';
+        InitToolLogFile(DlssNrCentralLogFile, 'DLSS-NR', GameDir, '');
+        Log('DLSS-NR central log: ' + DlssNrCentralLogFile);
+      end;
     end;
   end;
 
@@ -4140,6 +4391,7 @@ begin
      (BasaltCentralLogFile <> '') or
      (ReShadeCentralLogFile <> '') or
      (HelixSRCentralLogFile <> '') or
+     (DlssNrCentralLogFile <> '') or
      (AfmfCentralLogFile <> '')
   ) then
   begin
@@ -4201,6 +4453,8 @@ begin
           SplashItems.Add('DLSS Enabler')
         else if UpscalerType = 3 then
           SplashItems.Add('HelixSR')
+        else if UpscalerType = 4 then
+          SplashItems.Add('DLSS-NR')
         else
           SplashItems.Add('OptiScaler');
       end;

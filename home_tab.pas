@@ -85,7 +85,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..9] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR');
+  MOD_NAMES: array[0..10] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR', 'DLSS-NR');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -336,12 +336,12 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 10 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 11 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR)
-    for i := 0 to 9 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR)
+    for i := 0 to 10 do
     begin
       Row := CARD_P + 30 + i * ROW_H;
       Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
@@ -446,7 +446,9 @@ const
 var
   Missing: TStringList;
   MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK, HelixSrOK: Boolean;
+  DlssNrOK, DlssNrReady: Boolean;
   MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer, HelixSrVer: string;
+  DlssNrVer: string;
 begin
   with FForm do
   begin
@@ -590,6 +592,22 @@ begin
     if HelixSrVer = '' then HelixSrVer := StrUtils.IfThen(HelixSrOK, 'installed', 'not found');
     FHomeModVerLbls[9].Caption := HelixSrVer;
     FHomeModVerLbls[9].Font.Color := CLR_TEXT_MUTED;
+
+    DlssNrOK := IsDlssNrInstalled;
+    DlssNrReady := IsDlssNrModelReady;
+    if DlssNrOK and DlssNrReady then
+      FHomeModDots[10].Brush.Color := CLR_OK
+    else if DlssNrOK and not DlssNrReady then
+      FHomeModDots[10].Brush.Color := $0044AAFF // Amber for installed but weights missing
+    else
+      FHomeModDots[10].Brush.Color := CLR_MISSING;
+    FHomeModDots[10].Pen.Color := FHomeModDots[10].Brush.Color;
+
+    DlssNrVer := GetDlssNrVersion;
+    if DlssNrVer = '' then
+      DlssNrVer := StrUtils.IfThen(DlssNrOK, 'installed', 'not found');
+    FHomeModVerLbls[10].Caption := DlssNrVer;
+    FHomeModVerLbls[10].Font.Color := CLR_TEXT_MUTED;
   end;
 end;
 

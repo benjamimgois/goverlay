@@ -18,6 +18,9 @@ type
   published
     procedure TestIniRoundTrip;
     procedure TestSectionBracketFlexibility;
+    procedure TestDlssNrConfigRoundTrip;
+    procedure TestDlssNrIniGeneration;
+    procedure TestDlssNrDirectFileDeploymentAndManifestCleanup;
   end;
 
   TSandboxIsolationTests = class(TTestCase)
@@ -87,6 +90,7 @@ type
     procedure TestBgmodProtonArgsInjection;
     procedure TestBgmodNativeLinuxResolution;
     procedure TestBgmodCentralToolLoggingSync;
+    procedure TestBgmodDlssNrDeployment;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -132,10 +136,16 @@ type
     procedure TestSpecialShellCharacters;
   end;
 
+  TRDNAArchitectureTests = class(TTestCase)
+  published
+    procedure TestDetectRDNAArchitectureActiveGpu;
+    procedure TestRDNAArchitectureToString;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix;
+  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -232,6 +242,154 @@ begin
   AssertTrue('FGOutput in FrameGen', Pos('FGOutput=xefg', TextContent) > 0);
   AssertTrue('NewSec section created with brackets', Pos('[newsec]', TextContent) > 0);
   AssertFalse('Unbracketed FrameGen section not created', Pos(#10'FrameGen'#10, TextContent) > 0);
+end;
+
+procedure TOptiScalerIniTests.TestDlssNrConfigRoundTrip;
+var
+  Settings, LoadedSettings: TOptiScalerSettings;
+  ErrMsg, LaunchCommand: string;
+begin
+  Settings.ActiveGameName := 'TestDlssNrGame';
+  Settings.Version := '1.0';
+  Settings.Channel := 'stable';
+  Settings.UpscalerTypeItemIndex := 4; // DLSS-NR
+  Settings.DlssNrArchIndex := 2; // RDNA3
+  Settings.DlssNrRouteIndex := 1; // ReShade Feeder
+  Settings.DlssNrModelIndex := 1; // Old model
+  Settings.DlssNrScaleIndex := 2; // 50%
+  Settings.DlssNrInt4Checked := True;
+  Settings.DlssNrRenoDxChecked := True;
+  Settings.DlssNrPreprocessChecked := True;
+  Settings.DlssNrPassesIndex := 1; // 2 passes
+  Settings.DlssNrRunBeforeSrChecked := True;
+  Settings.DlssNrFinishedPictureChecked := True;
+  Settings.DlssNrSkinProtectionChecked := True;
+  Settings.DlssNrModelDllPath := '/tmp/nvngx_dlssnr.dll';
+
+  AssertTrue('SaveOptiScalerConfig succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+
+  AssertTrue('LoadOptiScalerConfig succeeds', LoadOptiScalerConfig('TestDlssNrGame', LoadedSettings));
+  AssertEquals('UpscalerTypeItemIndex = 4', 4, LoadedSettings.UpscalerTypeItemIndex);
+  AssertEquals('DlssNrArchIndex = 2', 2, LoadedSettings.DlssNrArchIndex);
+  AssertEquals('DlssNrRouteIndex = 1', 1, LoadedSettings.DlssNrRouteIndex);
+  AssertEquals('DlssNrModelIndex = 1', 1, LoadedSettings.DlssNrModelIndex);
+  AssertEquals('DlssNrScaleIndex = 2', 2, LoadedSettings.DlssNrScaleIndex);
+  AssertTrue('DlssNrInt4Checked is true', LoadedSettings.DlssNrInt4Checked);
+  AssertTrue('DlssNrRenoDxChecked is true', LoadedSettings.DlssNrRenoDxChecked);
+  AssertTrue('DlssNrPreprocessChecked is true', LoadedSettings.DlssNrPreprocessChecked);
+  AssertEquals('DlssNrPassesIndex = 1', 1, LoadedSettings.DlssNrPassesIndex);
+  AssertTrue('DlssNrRunBeforeSrChecked is true', LoadedSettings.DlssNrRunBeforeSrChecked);
+  AssertTrue('DlssNrFinishedPictureChecked is true', LoadedSettings.DlssNrFinishedPictureChecked);
+  AssertTrue('DlssNrSkinProtectionChecked is true', LoadedSettings.DlssNrSkinProtectionChecked);
+  AssertEquals('DlssNrModelDllPath matches', '/tmp/nvngx_dlssnr.dll', LoadedSettings.DlssNrModelDllPath);
+end;
+
+procedure TOptiScalerIniTests.TestDlssNrIniGeneration;
+var
+  Settings: TOptiScalerSettings;
+  ErrMsg, IniPath, LaunchCommand: string;
+  Lines: TStringList;
+begin
+  Settings.ActiveGameName := 'TestDlssNrIni';
+  Settings.Version := '1.0';
+  Settings.Channel := 'stable';
+  Settings.UpscalerTypeItemIndex := 4; // DLSS-NR
+  Settings.DlssNrArchIndex := 1; // RDNA4
+  Settings.DlssNrRouteIndex := 0; // OptiScaler
+  Settings.DlssNrModelIndex := 0; // New model
+  Settings.DlssNrScaleIndex := 0; // 100%
+  Settings.DlssNrInt4Checked := False;
+  Settings.DlssNrRenoDxChecked := False;
+  Settings.DlssNrPreprocessChecked := True;
+  Settings.DlssNrPassesIndex := 2; // 3 passes
+  Settings.DlssNrRunBeforeSrChecked := True;
+  Settings.DlssNrFinishedPictureChecked := False;
+  Settings.DlssNrSkinProtectionChecked := True;
+
+  AssertTrue('SaveOptiScalerConfig succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+
+  IniPath := GetGameConfigDir('TestDlssNrIni') + 'dlssnr-amd.ini';
+  AssertTrue('dlssnr-amd.ini was generated', FileExists(IniPath));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(IniPath);
+    AssertTrue('Model = small present', Pos('Model = small', Lines.Text) > 0);
+    AssertTrue('model_scale = 1.0 present', Pos('model_scale = 1.0', Lines.Text) > 0);
+    AssertTrue('Preprocess Enabled = 1 present', Pos('Enabled = 1', Lines.Text) > 0);
+    AssertTrue('passes = 3 present', Pos('passes = 3', Lines.Text) > 0);
+    AssertTrue('run_before_sr = 1 present', Pos('run_before_sr = 1', Lines.Text) > 0);
+    AssertTrue('skin_protection = 1 present', Pos('skin_protection = 1', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TOptiScalerIniTests.TestDlssNrDirectFileDeploymentAndManifestCleanup;
+var
+  GameDir, ManifestPath, FName: string;
+  Manifest, DummyContent: TStringList;
+  i: Integer;
+begin
+  GameDir := IncludeTrailingPathDelimiter(IsolatedHome) + 'mock_dlssnr_game' + PathDelim;
+  ForceDirectories(GameDir);
+
+  DummyContent := TStringList.Create;
+  try
+    DummyContent.Text := 'dummy binary payload';
+    DummyContent.SaveToFile(GameDir + 'game.exe');
+    DummyContent.SaveToFile(GameDir + 'dxgi.dll');
+    DummyContent.SaveToFile(GameDir + 'dlssnr_amd.dll');
+    DummyContent.SaveToFile(GameDir + 'dlssnr-small.bin');
+    DummyContent.SaveToFile(GameDir + 'dlssnr-amd.ini');
+  finally
+    DummyContent.Free;
+  end;
+
+  Manifest := TStringList.Create;
+  try
+    Manifest.Add('dxgi.dll');
+    Manifest.Add('dlssnr_amd.dll');
+    Manifest.Add('dlssnr-small.bin');
+    Manifest.Add('dlssnr-amd.ini');
+    ManifestPath := GameDir + 'dlssnr-amd-install.txt';
+    Manifest.SaveToFile(ManifestPath);
+  finally
+    Manifest.Free;
+  end;
+
+  AssertTrue('Game exe exists', FileExists(GameDir + 'game.exe'));
+  AssertTrue('Proxy dll exists', FileExists(GameDir + 'dxgi.dll'));
+  AssertTrue('DLSS-NR backend dll exists', FileExists(GameDir + 'dlssnr_amd.dll'));
+  AssertTrue('DLSS-NR model exists', FileExists(GameDir + 'dlssnr-small.bin'));
+  AssertTrue('DLSS-NR ini exists', FileExists(GameDir + 'dlssnr-amd.ini'));
+  AssertTrue('Manifest exists', FileExists(ManifestPath));
+
+  // Perform uninstallation cleanup reading manifest
+  Manifest := TStringList.Create;
+  try
+    Manifest.LoadFromFile(ManifestPath);
+    for i := 0 to Manifest.Count - 1 do
+    begin
+      FName := Trim(Manifest[i]);
+      if (FName <> '') and FileExists(GameDir + FName) then
+        DeleteFile(GameDir + FName);
+    end;
+    DeleteFile(ManifestPath);
+  finally
+    Manifest.Free;
+  end;
+
+  // Verify tracked files and manifest are removed
+  AssertFalse('Proxy dll removed', FileExists(GameDir + 'dxgi.dll'));
+  AssertFalse('DLSS-NR backend dll removed', FileExists(GameDir + 'dlssnr_amd.dll'));
+  AssertFalse('DLSS-NR model removed', FileExists(GameDir + 'dlssnr-small.bin'));
+  AssertFalse('DLSS-NR ini removed', FileExists(GameDir + 'dlssnr-amd.ini'));
+  AssertFalse('Manifest removed', FileExists(ManifestPath));
+  // Verify native game file is preserved untouched
+  AssertTrue('Game exe preserved', FileExists(GameDir + 'game.exe'));
 end;
 
 procedure TSandboxIsolationTests.TestIsSafeSandboxDirValid;
@@ -1549,6 +1707,152 @@ begin
   AssertTrue('nvexec.log synced from HelixSR/helixsr-fg subdir', FileExists(CentralLogDir + '/nvexec.log'));
 end;
 
+procedure TBgmodSupervisorTests.TestBgmodDlssNrDeployment;
+var
+  Proc: TProcess;
+  TestGameDir, MockGameDir, RuntimeDir, ModelsDir, OptiIniPath, MockExe, MockRunner: string;
+  F: TextFile;
+  EnvIndex: Integer;
+  Ini: TIniFile;
+begin
+  EnsureBgmodBinary;
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/DlssNrTestGame';
+  ForceDirectories(TestGameDir);
+  MockGameDir := IsolatedHome + '/.local/share/goverlay/mock_game_dlssnr';
+  ForceDirectories(MockGameDir);
+  RuntimeDir := IsolatedHome + '/.local/share/goverlay/dlss-nr-rdna3';
+  ForceDirectories(RuntimeDir + '/optiscaler');
+  ForceDirectories(RuntimeDir + '/optiscaler/control/layer');
+  ForceDirectories(RuntimeDir + '/dlssnr-amd/shaders');
+  ForceDirectories(RuntimeDir + '/ini');
+  ModelsDir := IsolatedHome + '/.local/share/goverlay/dlss-nr-models';
+  ForceDirectories(ModelsDir);
+
+  // Create mock runtime binaries
+  AssignFile(F, RuntimeDir + '/optiscaler/OptiScaler.dll');
+  Rewrite(F);
+  WriteLn(F, 'mock optiscaler-nr dll');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/optiscaler/OptiScaler.ini');
+  Rewrite(F);
+  WriteLn(F, '[General]');
+  WriteLn(F, 'Logging=true');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/optiscaler/dlssnr_core.dll');
+  Rewrite(F);
+  WriteLn(F, 'mock dlssnr core dll');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/optiscaler/nvngx.dll_dlssnr.dll');
+  Rewrite(F);
+  WriteLn(F, 'mock nvngx shim');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/optiscaler/control/layer/libVkLayer_dlssnr_control.so');
+  Rewrite(F);
+  WriteLn(F, 'mock control layer so');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/dlssnr-amd/shaders/test.spv');
+  Rewrite(F);
+  WriteLn(F, 'mock shader');
+  CloseFile(F);
+
+  AssignFile(F, RuntimeDir + '/ini/dlssnr-amd-optiscaler.ini');
+  Rewrite(F);
+  WriteLn(F, '[General]');
+  WriteLn(F, 'Enabled=1');
+  CloseFile(F);
+
+  AssignFile(F, ModelsDir + '/dlssnr.bin');
+  Rewrite(F);
+  WriteLn(F, 'mock model bin');
+  CloseFile(F);
+
+  // Copy bgmod binary to TestGameDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Write mock runner and mock game executable
+  MockExe := MockGameDir + '/game.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, 'mock windows pe binary');
+  CloseFile(F);
+
+  MockRunner := TestGameDir + '/mock_runner.sh';
+  AssignFile(F, MockRunner);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRunner), &755);
+
+  // Write bgmod.conf with UPSCALER_TYPE=4 (DLSS-NR)
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'UPSCALER_TYPE=4');
+  WriteLn(F, 'DLSSNR_ARCH=0');
+  WriteLn(F, 'DLL=dxgi.dll');
+  WriteLn(F, 'PRESERVE_INI=true');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'TARGET_EXE=game.exe');
+  CloseFile(F);
+
+  // Execute bgmod
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockRunner);
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + MockGameDir);
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Verify DLSS-NR files were correctly deployed to MockGameDir
+  AssertTrue('dxgi.dll (OptiScaler-NR) deployed to game dir', FileExists(MockGameDir + '/dxgi.dll'));
+  AssertTrue('OptiScaler.dll deployed to game dir', FileExists(MockGameDir + '/OptiScaler.dll'));
+  AssertTrue('dlssnr_core.dll deployed to game dir', FileExists(MockGameDir + '/dlssnr_core.dll'));
+  AssertTrue('nvngx.dll_dlssnr.dll deployed to game dir', FileExists(MockGameDir + '/nvngx.dll_dlssnr.dll'));
+  AssertTrue('dlssnr-amd folder deployed', DirectoryExists(MockGameDir + '/dlssnr-amd'));
+  AssertTrue('dlssnr-amd/shaders/test.spv deployed', FileExists(MockGameDir + '/dlssnr-amd/shaders/test.spv'));
+  AssertTrue('dlssnr.bin model deployed into dlssnr-amd/', FileExists(MockGameDir + '/dlssnr-amd/dlssnr.bin'));
+  AssertTrue('dlssnr-amd.ini deployed', FileExists(MockGameDir + '/dlssnr-amd.ini'));
+  AssertTrue('control layer deployed', FileExists(MockGameDir + '/dlssnr-amd/control/layer/libVkLayer_dlssnr_control.so'));
+
+  // Verify OptiScaler.ini was generated/patched with DLSS-NR configuration
+  OptiIniPath := MockGameDir + '/OptiScaler.ini';
+  AssertTrue('OptiScaler.ini exists', FileExists(OptiIniPath));
+  Ini := TIniFile.Create(OptiIniPath);
+  try
+    AssertEquals('[DlssNr] Enabled=true', 'true', Ini.ReadString('DlssNr', 'Enabled', ''));
+    AssertEquals('[DlssNr] WhitePointSource=1', '1', Ini.ReadString('DlssNr', 'WhitePointSource', ''));
+    AssertTrue('[Libraries] NvngxPath configured', Pos('dlssnr_core.dll', Ini.ReadString('Libraries', 'NvngxPath', '')) > 0);
+  finally
+    Ini.Free;
+  end;
+end;
+
 procedure TReShadeLogicTests.TestUnixPathToWinePath;
 begin
   AssertEquals('Empty path', '', UnixPathToWinePath(''));
@@ -2000,6 +2304,30 @@ begin
   AssertEquals('Special characters preserved', '''$HOME/`evil`/foo*bar"baz''', ShellQuote('$HOME/`evil`/foo*bar"baz'));
 end;
 
+procedure TRDNAArchitectureTests.TestDetectRDNAArchitectureActiveGpu;
+var
+  Arch: TRDNAArchitecture;
+begin
+  Arch := DetectRDNAArchitecture;
+  // If run on an AMD RDNA3 host (like RX 7900 XTX)
+  if DetectGPUVendor = gpuAMD then
+  begin
+    // Check that it detects RDNA3 or RDNA4, or unsupported
+    AssertTrue('DetectRDNAArchitecture returns a valid enum', Arch in [rdnaUnsupported, rdna3, rdna4]);
+    if Pos('7900', GetSysGPUModel) > 0 then
+      AssertEquals('RX 7900 detected as RDNA3', Ord(rdna3), Ord(Arch));
+  end
+  else
+    AssertEquals('Non-AMD GPU returns rdnaUnsupported', Ord(rdnaUnsupported), Ord(Arch));
+end;
+
+procedure TRDNAArchitectureTests.TestRDNAArchitectureToString;
+begin
+  AssertEquals('RDNA4 string', 'RDNA4', RDNAArchitectureToString(rdna4));
+  AssertEquals('RDNA3 string', 'RDNA3', RDNAArchitectureToString(rdna3));
+  AssertEquals('Unsupported string', 'Unsupported', RDNAArchitectureToString(rdnaUnsupported));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -2016,5 +2344,6 @@ initialization
   RegisterTest(TBgmodSelfUpdateTests);
   RegisterTest(TRuntimeUpdateDowngradeTests);
   RegisterTest(TShellQuoteTests);
+  RegisterTest(TRDNAArchitectureTests);
 
 end.

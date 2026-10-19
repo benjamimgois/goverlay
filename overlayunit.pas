@@ -612,6 +612,8 @@ type
     procedure noneUpscalerLogoImageClick(Sender: TObject);
     procedure helixsrRadioButtonClick(Sender: TObject);
     procedure helixsrLogoImageClick(Sender: TObject);
+    procedure dlssnrRadioButtonClick(Sender: TObject);
+    procedure dlssnrLogoImageClick(Sender: TObject);
     procedure helixsrNativeDlssCheckBoxChange(Sender: TObject);
     procedure UpdateUpscalerImageOpacity;
     procedure optiscalerLabelClick(Sender: TObject);
@@ -801,8 +803,8 @@ type
     // Moved to public:
     {     // Home tab
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..3] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, vkSumi
-    FHomeModVerLbls:   array[0..3] of TLabel;   // version text
+    FHomeModDots:      array[0..10] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, vkSumi
+    FHomeModVerLbls:   array[0..10] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -1145,10 +1147,12 @@ type
     dlssenablerRadioButton: TRadioButton;
     noneUpscalerRadioButton: TRadioButton;
     helixsrRadioButton: TRadioButton;
+    dlssnrRadioButton: TRadioButton;
     optiscalerLogoImage: TImage;
     dlssEnablerLogoImage: TImage;
     noneUpscalerLogoImage: TImage;
     helixsrLogoImage: TImage;
+    dlssnrLogoImage: TImage;
     helixsrNativeDlssCheckBox: TCheckBox;
     dlssEnablerVersionLabel: TLabel;
     streamlineVersionLabel: TLabel;
@@ -1156,10 +1160,12 @@ type
     FDlssEnablerPngLogo: TPortableNetworkGraphic;
     FNoneUpscalerPngLogo: TPortableNetworkGraphic;
     FHelixSrPngLogo: TPortableNetworkGraphic;
+    FDlssNrPngLogo: TPortableNetworkGraphic;
     FOptiScalerPngLogoDimmed: TPortableNetworkGraphic;
     FDlssEnablerPngLogoDimmed: TPortableNetworkGraphic;
     FNoneUpscalerPngLogoDimmed: TPortableNetworkGraphic;
     FHelixSrPngLogoDimmed: TPortableNetworkGraphic;
+    FDlssNrPngLogoDimmed: TPortableNetworkGraphic;
     FOsStatDots:     array[0..5] of TShape;
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel;
@@ -1175,8 +1181,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..9] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR
-    FHomeModVerLbls:   array[0..9] of TLabel;   // version text
+    FHomeModDots:      array[0..10] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR
+    FHomeModVerLbls:   array[0..10] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -3051,10 +3057,12 @@ begin
   FreeAndNil(FDlssEnablerPngLogo);
   FreeAndNil(FNoneUpscalerPngLogo);
   FreeAndNil(FHelixSrPngLogo);
+  FreeAndNil(FDlssNrPngLogo);
   FreeAndNil(FOptiScalerPngLogoDimmed);
   FreeAndNil(FDlssEnablerPngLogoDimmed);
   FreeAndNil(FNoneUpscalerPngLogoDimmed);
   FreeAndNil(FHelixSrPngLogoDimmed);
+  FreeAndNil(FDlssNrPngLogoDimmed);
   FreeAndNil(FOptiScalerHelper);
   FreeAndNil(FLosslessScalingHelper);
   FreeAndNil(FReshadeHelper);
@@ -5802,6 +5810,8 @@ begin
       noneUpscalerRadioButton.Checked := False;
     if Assigned(helixsrRadioButton) then
       helixsrRadioButton.Checked := False;
+    if Assigned(dlssnrRadioButton) then
+      dlssnrRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5901,6 +5911,8 @@ begin
       noneUpscalerRadioButton.Checked := False;
     if Assigned(helixsrRadioButton) then
       helixsrRadioButton.Checked := False;
+    if Assigned(dlssnrRadioButton) then
+      dlssnrRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -5948,6 +5960,8 @@ begin
       dlssenablerRadioButton.Checked := False;
     if Assigned(helixsrRadioButton) then
       helixsrRadioButton.Checked := False;
+    if Assigned(dlssnrRadioButton) then
+      dlssnrRadioButton.Checked := False;
   end;
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
@@ -6004,6 +6018,50 @@ begin
   end;
 end;
 
+procedure Tgoverlayform.dlssnrLogoImageClick(Sender: TObject);
+begin
+  if Assigned(dlssnrRadioButton) then
+  begin
+    dlssnrRadioButton.Checked := True;
+    dlssnrRadioButtonClick(dlssnrRadioButton);
+  end;
+end;
+
+procedure Tgoverlayform.dlssnrRadioButtonClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if Assigned(dlssnrRadioButton) and not dlssnrRadioButton.Checked then Exit;
+  if Assigned(dlssnrRadioButton) then
+  begin
+    dlssnrRadioButton.Checked := True;
+    if Assigned(optiscalerRadioButton) then optiscalerRadioButton.Checked := False;
+    if Assigned(dlssenablerRadioButton) then dlssenablerRadioButton.Checked := False;
+    if Assigned(noneUpscalerRadioButton) then noneUpscalerRadioButton.Checked := False;
+    if Assigned(helixsrRadioButton) then helixsrRadioButton.Checked := False;
+
+    if Assigned(filenameComboBox) then
+    begin
+      if IsReshadeActive and SameText(GetReshadeProxyDll, 'dxgi.dll') then
+      begin
+        Idx := filenameComboBox.Items.IndexOf('version.dll');
+        if Idx >= 0 then filenameComboBox.ItemIndex := Idx;
+      end
+      else
+      begin
+        Idx := filenameComboBox.Items.IndexOf('dxgi.dll');
+        if Idx >= 0 then filenameComboBox.ItemIndex := Idx;
+      end;
+    end;
+    UpdateUpscalerImageOpacity;
+    StartAutoSaveTimer;
+    if FActiveGameName <> '' then
+      CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
+    if Assigned(FOptiScalerHelper) then
+      TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+  end;
+end;
+
 procedure Tgoverlayform.helixsrNativeDlssCheckBoxChange(Sender: TObject);
 begin
   StartAutoSaveTimer;
@@ -6034,6 +6092,8 @@ begin
       dlssenablerRadioButton.Checked := False;
     if Assigned(noneUpscalerRadioButton) then
       noneUpscalerRadioButton.Checked := False;
+    if Assigned(dlssnrRadioButton) then
+      dlssnrRadioButton.Checked := False;
 
     if Assigned(filenameComboBox) then
     begin
@@ -6181,6 +6241,21 @@ begin
     begin
       if Assigned(FHelixSrPngLogoDimmed) then
         helixsrLogoImage.Picture.Assign(FHelixSrPngLogoDimmed);
+    end;
+  end;
+
+  if Assigned(dlssnrLogoImage) and Assigned(dlssnrRadioButton) then
+  begin
+    dlssnrLogoImage.Enabled := True;
+    if dlssnrRadioButton.Checked then
+    begin
+      if Assigned(FDlssNrPngLogo) then
+        dlssnrLogoImage.Picture.Assign(FDlssNrPngLogo);
+    end
+    else
+    begin
+      if Assigned(FDlssNrPngLogoDimmed) then
+        dlssnrLogoImage.Picture.Assign(FDlssNrPngLogoDimmed);
     end;
   end;
 end;
