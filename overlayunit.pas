@@ -105,6 +105,26 @@ type
     property Success: Boolean read FSuccess;
   end;
 
+  { TDlssNrExtractThread - runs DLSS-NR neural model extraction in background
+    without blocking the GUI }
+  TDlssNrExtractThread = class(TThread)
+  private
+    FOwner:     TObject;
+    FModelPath: string;
+    FPercent:   Integer;
+    FStatus:    string;
+    FSuccess:   Boolean;
+    FErrorMsg:  string;
+    procedure DoUpdateProgress;
+    procedure OnExtractProgress(APercent: Integer; const AStatus: string);
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOwner: TObject; const AModelPath: string);
+    property Success: Boolean read FSuccess;
+    property ErrorMsg: string read FErrorMsg;
+  end;
+
   { TChangelogFetchThread - fetches release notes in background and shows popup }
   TChangelogFetchThread = class(TThread)
   private
@@ -11158,6 +11178,61 @@ begin
     begin
       FSuccess := False;
       WriteLn('[HELIXSR] Compile error: ', E.Message);
+    end;
+  end;
+end;
+
+{ TDlssNrExtractThread }
+
+constructor TDlssNrExtractThread.Create(AOwner: TObject; const AModelPath: string);
+begin
+  inherited Create(True);
+  FOwner := AOwner;
+  FModelPath := AModelPath;
+  FSuccess := False;
+  FErrorMsg := '';
+  FPercent := 0;
+  FStatus := '';
+  FreeOnTerminate := False;
+end;
+
+procedure TDlssNrExtractThread.DoUpdateProgress;
+var
+  MainForm: Tgoverlayform;
+begin
+  if Assigned(FOwner) and (FOwner is Tgoverlayform) then
+  begin
+    MainForm := Tgoverlayform(FOwner);
+    if Assigned(MainForm.updateProgressBar) and MainForm.updateProgressBar.Visible then
+      MainForm.updateProgressBar.Position := FPercent;
+    if Assigned(MainForm.updatestatusLabel) and MainForm.updatestatusLabel.Visible then
+    begin
+      if FStatus <> '' then
+        MainForm.updatestatusLabel.Caption := Format('%s (%d%%)', [FStatus, FPercent])
+      else
+        MainForm.updatestatusLabel.Caption := Format('%d%%', [FPercent]);
+    end;
+  end;
+end;
+
+procedure TDlssNrExtractThread.OnExtractProgress(APercent: Integer; const AStatus: string);
+begin
+  if Terminated then Exit;
+  FPercent := APercent;
+  FStatus := AStatus;
+  Synchronize(@DoUpdateProgress);
+end;
+
+procedure TDlssNrExtractThread.Execute;
+begin
+  try
+    FSuccess := ExtractDlssNrModel(FModelPath, FErrorMsg, @OnExtractProgress);
+  except
+    on E: Exception do
+    begin
+      FSuccess := False;
+      FErrorMsg := E.Message;
+      WriteLn('[DLSS-NR] Extract error: ', E.Message);
     end;
   end;
 end;

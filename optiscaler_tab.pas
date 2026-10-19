@@ -211,6 +211,9 @@ procedure TOptiScalerTabHelper.DlssNrModelDllBrowseClick(Sender: TObject);
 var
   Dlg: TOpenDialog;
   ErrMsg: string;
+  ExtractThread: TDlssNrExtractThread;
+  ExtractSuccess: Boolean;
+  SelectedFile: string;
 begin
   if not Assigned(FForm) then Exit;
   Dlg := TOpenDialog.Create(FForm);
@@ -219,20 +222,63 @@ begin
     Dlg.Filter := 'DLSS-NR model (nvngx_dlssnr.dll, *.dll, *.zip, *.tar.gz)|nvngx_dlssnr.dll;*.dll;*.zip;*.tar.gz|All files (*.*)|*.*';
     Dlg.Options := Dlg.Options + [ofFileMustExist];
     if not Dlg.Execute then Exit;
-    if ExtractDlssNrModel(Dlg.FileName, ErrMsg) then
-    begin
-      FDlssNrModelDllPath := Dlg.FileName;
-      UpdateDlssNrStatusUI;
-      ShowToast(ntSuccess, 'DLSS-NR model weights extracted', 4000);
-    end
-    else
-    begin
-      if ErrMsg = '' then ErrMsg := 'Model extraction failed';
-      ShowToast(ntError, 'DLSS-NR: ' + ErrMsg, 7000);
-    end;
+    SelectedFile := Dlg.FileName;
   finally
     Dlg.Free;
   end;
+
+  if SelectedFile = '' then Exit;
+
+  // Switch controls in Software Status card to embedded progress mode
+  if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Visible := False;
+  if Assigned(FForm.checkupdBitBtn) then FForm.checkupdBitBtn.Visible := False;
+  if Assigned(FForm.updateBitBtn) then FForm.updateBitBtn.Visible := False;
+  if Assigned(FForm.updateProgressBar) then
+  begin
+    FForm.updateProgressBar.Position := 0;
+    FForm.updateProgressBar.Visible := True;
+  end;
+  if Assigned(FForm.updatestatusLabel) then
+  begin
+    FForm.updatestatusLabel.Caption := 'Preparing DLSS-NR model extraction... (0%)';
+    FForm.updatestatusLabel.Visible := True;
+  end;
+  if Assigned(FDlssNrModelDllBrowseBtn) then
+    FDlssNrModelDllBrowseBtn.Enabled := False;
+  Application.ProcessMessages;
+
+  ExtractThread := TDlssNrExtractThread.Create(FForm, SelectedFile);
+  try
+    ExtractThread.Start;
+    while not ExtractThread.Finished do
+    begin
+      Application.ProcessMessages;
+      Sleep(16);
+    end;
+    ExtractSuccess := ExtractThread.Success;
+    ErrMsg := ExtractThread.ErrorMsg;
+  finally
+    if Assigned(FForm.updateProgressBar) then FForm.updateProgressBar.Visible := False;
+    if Assigned(FForm.updatestatusLabel) then FForm.updatestatusLabel.Visible := False;
+    if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Visible := True;
+    if Assigned(FForm.checkupdBitBtn) then FForm.checkupdBitBtn.Visible := True;
+    if Assigned(FDlssNrModelDllBrowseBtn) then
+      FDlssNrModelDllBrowseBtn.Enabled := True;
+    ExtractThread.Free;
+  end;
+
+  if ExtractSuccess then
+  begin
+    FDlssNrModelDllPath := SelectedFile;
+    UpdateDlssNrStatusUI;
+    ShowToast(ntSuccess, 'DLSS-NR model weights extracted successfully!', 4000);
+  end
+  else
+  begin
+    if ErrMsg = '' then ErrMsg := 'Model extraction failed';
+    ShowToast(ntError, 'DLSS-NR: ' + ErrMsg, 7000);
+  end;
+
   FForm.StartAutoSaveTimer;
   FForm.RefreshOsStatusDots;
 end;

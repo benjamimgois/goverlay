@@ -30,7 +30,10 @@ function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): 
 function CheckAndInstallDlssNr(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 // Extract neural model weights from user-provided nvngx_dlssnr.dll or zip archive
-function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string): Boolean;
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+
+// Ensure extract_model.sh has structured progress markers for UI tracking
+procedure SanitizeDlssNrExtractScript(const AScriptPath: string);
 
 // Check whether the DLSS-NR runtime is installed in central storage
 function IsDlssNrInstalled(const AArch: string = ''): Boolean;
@@ -8253,13 +8256,125 @@ begin
   end;
 end;
 
+procedure SanitizeDlssNrExtractScript(const AScriptPath: string);
+var
+  Lines: TStringList;
+  Text: string;
+begin
+  if not FileExists(AScriptPath) then Exit;
+  Lines := TStringList.Create;
+  try
+    try
+      Lines.LoadFromFile(AScriptPath);
+      Text := Lines.Text;
+      if Pos('[DLSS-NR]', Text) > 0 then Exit; // already sanitized
+
+      // Insert structured progress markers into extract_model.sh stages
+      Text := StringReplace(Text,
+        'if ! python3 "$here/inspect_nr.py" "$src" --output "$work/probe"',
+        'echo "[DLSS-NR] 10% Probing model DLL..."' + LineEnding +
+        'if ! python3 "$here/inspect_nr.py" "$src" --output "$work/probe"',
+        [rfReplaceAll]);
+
+      Text := StringReplace(Text,
+        'cp -- "$here/$2" "$w/graph/descriptor.json"',
+        'cp -- "$here/$2" "$w/graph/descriptor.json"' + LineEnding +
+        '    echo "[DLSS-NR] 25% Inspecting neural weights ($1)..."',
+        [rfReplaceAll]);
+
+      Text := StringReplace(Text,
+        'python3 unpack_swin_family.py',
+        'echo "[DLSS-NR] 40% Unpacking Swin transformer layers ($1)..."' + LineEnding +
+        '     python3 unpack_swin_family.py',
+        [rfReplaceAll]);
+
+      Text := StringReplace(Text,
+        'python3 unpack_splitswin.py',
+        'echo "[DLSS-NR] 55% Unpacking Split-Swin and ViT layers ($1)..."' + LineEnding +
+        '     python3 unpack_splitswin.py',
+        [rfReplaceAll]);
+
+      Text := StringReplace(Text,
+        'python3 pack_model.py',
+        'echo "[DLSS-NR] 75% Packing neural model $6..."' + LineEnding +
+        '     python3 pack_model.py',
+        [rfReplaceAll]);
+
+      Lines.Text := Text;
+      Lines.SaveToFile(AScriptPath);
+    except
+      on E: Exception do
+        WriteLn('[DLSS-NR] Warning: Could not sanitize extract_model.sh: ', E.Message);
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
 // Extract the neural model weights from a user-provided nvngx_dlssnr.dll (or
 // archive) using the bundled extract_model.sh helper, then distribute the
 // resulting weights to every installed DLSS-NR runtime.
-function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string): Boolean;
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   TargetModelsDir, ExtractScript, Rdna3SubDir, Rdna4SubDir: string;
   Process: TProcess;
+  Buffer: array[0..4095] of Byte;
+  Pending, Line, PctStr, LabelStr: string;
+  Count, i, PctPos, StartPos, PctVal: Integer;
+  LastTick: QWord;
+  EstimatedPct: Integer;
+
+  procedure EmitProgressLine(const ALine: string);
+  var
+    L: string;
+  begin
+    L := LowerCase(ALine);
+    // Parse percent if present: e.g. "[DLSS-NR] 45% Unpacking..." or "45% Unpacking..."
+    PctPos := Pos('%', ALine);
+    if PctPos > 1 then
+    begin
+      StartPos := PctPos - 1;
+      while (StartPos >= 1) and (ALine[StartPos] in ['0'..'9', ' ']) do
+        Dec(StartPos);
+      PctStr := Trim(Copy(ALine, StartPos + 1, PctPos - StartPos - 1));
+      PctVal := StrToIntDef(PctStr, -1);
+      if (PctVal >= 0) and (PctVal <= 100) then
+      begin
+        LabelStr := Trim(Copy(ALine, PctPos + 1, MaxInt));
+        if LabelStr = '' then
+          LabelStr := 'Extracting DLSS-NR model weights...';
+        if PctVal > EstimatedPct then
+          EstimatedPct := PctVal;
+        if Assigned(AOnProgress) then
+          AOnProgress(PctVal, LabelStr);
+        Exit;
+      end;
+    end;
+
+    // Detect keywords from stdout/stderr for error tracking
+    if (Pos('cannot read nvngx_dlssnr', L) > 0) or (Pos('differ from the tested model', L) > 0) or
+       (Pos('is not nvngx_dlssnr', L) > 0) or (Pos('no such file', L) > 0) or
+       (Pos('error', L) > 0) or (Pos('failed', L) > 0) then
+      AErrorMsg := Trim(ALine);
+
+    if not Assigned(AOnProgress) then Exit;
+
+    if (Pos('probe', L) > 0) or (Pos('probing', L) > 0) then
+      AOnProgress(15, 'Probing DLSS-NR model DLL...')
+    else if Pos('unpack_swin', L) > 0 then
+      AOnProgress(35, 'Unpacking Swin transformer layers...')
+    else if Pos('unpack_splitswin', L) > 0 then
+      AOnProgress(45, 'Unpacking split-swin neural blocks...')
+    else if Pos('unpack_vit', L) > 0 then
+      AOnProgress(55, 'Unpacking Vision Transformer layers...')
+    else if (Pos('unpack_preblock', L) > 0) or (Pos('unpack_postblock', L) > 0) then
+      AOnProgress(65, 'Unpacking convolution pre/post-blocks...')
+    else if (Pos('pack_model', L) > 0) or (Pos('packing', L) > 0) or (Pos('dlssnr.bin', L) > 0) then
+      AOnProgress(75, 'Packing neural model binaries...')
+    else if Pos('entries', L) > 0 then
+      AOnProgress(85, 'Verifying model checksums and integrity...');
+  end;
+
 begin
   Result := False;
   AErrorMsg := '';
@@ -8270,6 +8385,9 @@ begin
     Exit;
   end;
 
+  if Assigned(AOnProgress) then
+    AOnProgress(5, 'Validating nvngx_dlssnr.dll...');
+
   TargetModelsDir := IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath);
   ForceDirectories(TargetModelsDir);
 
@@ -8279,11 +8397,15 @@ begin
 
   if not FileExists(ExtractScript) then
   begin
-    CheckAndInstallDlssNr('rdna3', True);
+    if Assigned(AOnProgress) then
+      AOnProgress(10, 'Downloading DLSS-NR tools (RDNA3)...');
+    CheckAndInstallDlssNr('rdna3', True, AOnProgress);
     ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'model-tools' + PathDelim + 'extract_model.sh';
     if not FileExists(ExtractScript) then
     begin
-      CheckAndInstallDlssNr('rdna4', True);
+      if Assigned(AOnProgress) then
+        AOnProgress(15, 'Downloading DLSS-NR tools (RDNA4)...');
+      CheckAndInstallDlssNr('rdna4', True, AOnProgress);
       ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'model-tools' + PathDelim + 'extract_model.sh';
     end;
   end;
@@ -8294,23 +8416,94 @@ begin
     Exit;
   end;
 
+  SanitizeDlssNrExtractScript(ExtractScript);
+
+  if Assigned(AOnProgress) then
+    AOnProgress(15, 'Executing DLSS-NR model extractor...');
+
   Process := TProcess.Create(nil);
   try
     Process.Executable := 'bash';
     Process.Parameters.Add(ExtractScript);
     Process.Parameters.Add(ADllPath);
     Process.Parameters.Add(TargetModelsDir);
-    Process.Options := [poWaitOnExit];
+    Process.Options := [poUsePipes, poStderrToOutPut];
     Process.Execute;
+
+    EstimatedPct := 15;
+    LastTick := GetTickCount64;
+    Pending := '';
+
+    while Process.Running or (Process.Output.NumBytesAvailable > 0) do
+    begin
+      Count := Process.Output.NumBytesAvailable;
+      if Count > SizeOf(Buffer) then
+        Count := SizeOf(Buffer);
+      if Count > 0 then
+      begin
+        Count := Process.Output.Read(Buffer, Count);
+        if Count > 0 then
+        begin
+          SetLength(Pending, Length(Pending) + Count);
+          Move(Buffer[0], Pending[Length(Pending) - Count + 1], Count);
+
+          repeat
+            i := Pos(#10, Pending);
+            if i > 0 then
+            begin
+              Line := Trim(Copy(Pending, 1, i - 1));
+              Delete(Pending, 1, i);
+              if Line <> '' then
+              begin
+                WriteLn('[DLSS-NR] ', Line);
+                EmitProgressLine(Line);
+              end;
+            end;
+          until i = 0;
+        end;
+      end
+      else
+      begin
+        Sleep(25);
+        if Process.Running and (GetTickCount64 - LastTick > 800) then
+        begin
+          LastTick := GetTickCount64;
+          if EstimatedPct < 85 then
+          begin
+            Inc(EstimatedPct, 5);
+            if Assigned(AOnProgress) then
+              AOnProgress(EstimatedPct, 'Processing neural model weights...');
+          end;
+        end;
+      end;
+    end;
+
+    if Pending <> '' then
+    begin
+      Line := Trim(Pending);
+      if Line <> '' then
+      begin
+        WriteLn('[DLSS-NR] ', Line);
+        EmitProgressLine(Line);
+      end;
+    end;
+
+    Process.WaitOnExit;
   finally
     Process.Free;
   end;
 
   if not FileExists(TargetModelsDir + 'dlssnr.bin') then
   begin
-    AErrorMsg := 'Model extraction did not produce dlssnr.bin';
+    if AErrorMsg = '' then
+      AErrorMsg := 'Model extraction did not produce dlssnr.bin';
+    if Assigned(AOnProgress) then
+      AOnProgress(100, 'DLSS-NR model extraction failed.');
     Exit;
   end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(90, 'Deploying weights to DLSS-NR runtimes...');
 
   Rdna3SubDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim;
   if DirectoryExists(Rdna3SubDir) then
@@ -8327,6 +8520,9 @@ begin
     if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
       CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna4SubDir + 'dlssnr-small.bin');
   end;
+
+  if Assigned(AOnProgress) then
+    AOnProgress(100, 'DLSS-NR model weights ready.');
 
   Result := True;
 end;
