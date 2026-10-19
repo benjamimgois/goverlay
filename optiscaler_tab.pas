@@ -249,7 +249,7 @@ begin
   end;
   if Assigned(FForm.updatestatusLabel) then
   begin
-    FForm.updatestatusLabel.Caption := 'Preparing DLSS-NR model extraction... (0%)';
+    FForm.updatestatusLabel.Caption := 'Preparing DLSS-NR model extraction...';
     FForm.updatestatusLabel.Visible := True;
   end;
   if Assigned(FDlssNrModelDllBrowseBtn) then

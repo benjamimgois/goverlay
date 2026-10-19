@@ -21,6 +21,7 @@ type
     procedure TestDlssNrConfigRoundTrip;
     procedure TestDlssNrIniGeneration;
     procedure TestDlssNrDirectFileDeploymentAndManifestCleanup;
+    procedure TestIsDlssNrInstalledFallbackArchitecture;
     procedure TestHelixSrConfigRoundTrip;
     procedure TestHelixSrIniGeneration;
   end;
@@ -392,6 +393,30 @@ begin
   AssertFalse('Manifest removed', FileExists(ManifestPath));
   // Verify native game file is preserved untouched
   AssertTrue('Game exe preserved', FileExists(GameDir + 'game.exe'));
+end;
+
+procedure TOptiScalerIniTests.TestIsDlssNrInstalledFallbackArchitecture;
+var
+  DlssNrDir: string;
+  Vars: TStringList;
+begin
+  DlssNrDir := IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/goverlay/dlss-nr-rdna3' + PathDelim;
+  ForceDirectories(DlssNrDir);
+
+  Vars := TStringList.Create;
+  try
+    Vars.Add('OPTISCALER_DLSSNR_VERSION=1.0');
+    Vars.SaveToFile(DlssNrDir + 'goverlay.vars');
+
+    AssertTrue('default arch detects rdna3 installation', IsDlssNrInstalled(''));
+    AssertTrue('explicit rdna3 detects installation', IsDlssNrInstalled('rdna3'));
+  finally
+    Vars.Free;
+    if FileExists(DlssNrDir + 'goverlay.vars') then
+      DeleteFile(DlssNrDir + 'goverlay.vars');
+    if DirectoryExists(DlssNrDir) then
+      RemoveDir(DlssNrDir);
+  end;
 end;
 
 procedure TOptiScalerIniTests.TestHelixSrConfigRoundTrip;

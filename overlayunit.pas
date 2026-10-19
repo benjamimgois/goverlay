@@ -97,11 +97,11 @@ type
     FStatus:  string;
     FSuccess: Boolean;
     procedure DoUpdateProgress;
-    procedure OnCompileProgress(APercent: Integer; const AStatus: string);
   protected
     procedure Execute; override;
   public
     constructor Create(AOwner: TObject);
+    procedure OnCompileProgress(APercent: Integer; const AStatus: string);
     property Success: Boolean read FSuccess;
   end;
 
@@ -116,11 +116,11 @@ type
     FSuccess:   Boolean;
     FErrorMsg:  string;
     procedure DoUpdateProgress;
-    procedure OnExtractProgress(APercent: Integer; const AStatus: string);
   protected
     procedure Execute; override;
   public
     constructor Create(AOwner: TObject; const AModelPath: string);
+    procedure OnExtractProgress(APercent: Integer; const AStatus: string);
     property Success: Boolean read FSuccess;
     property ErrorMsg: string read FErrorMsg;
   end;
@@ -11154,9 +11154,7 @@ begin
     if Assigned(MainForm.updatestatusLabel) and MainForm.updatestatusLabel.Visible then
     begin
       if FStatus <> '' then
-        MainForm.updatestatusLabel.Caption := Format('%s (%d%%)', [FStatus, FPercent])
-      else
-        MainForm.updatestatusLabel.Caption := Format('%d%%', [FPercent]);
+        MainForm.updatestatusLabel.Caption := FStatus;
     end;
   end;
 end;
@@ -11208,9 +11206,7 @@ begin
     if Assigned(MainForm.updatestatusLabel) and MainForm.updatestatusLabel.Visible then
     begin
       if FStatus <> '' then
-        MainForm.updatestatusLabel.Caption := Format('%s (%d%%)', [FStatus, FPercent])
-      else
-        MainForm.updatestatusLabel.Caption := Format('%d%%', [FPercent]);
+        MainForm.updatestatusLabel.Caption := FStatus;
     end;
   end;
 end;

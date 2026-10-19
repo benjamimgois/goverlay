@@ -596,11 +596,20 @@ begin
     DlssNrOK := IsDlssNrInstalled;
     DlssNrReady := IsDlssNrModelReady;
     if DlssNrOK and DlssNrReady then
-      FHomeModDots[10].Brush.Color := CLR_OK
+    begin
+      FHomeModDots[10].Brush.Color := CLR_OK;
+      FHomeModDots[10].Hint := 'DLSS-NR is installed and neural weights are ready';
+    end
     else if DlssNrOK and not DlssNrReady then
-      FHomeModDots[10].Brush.Color := $0044AAFF // Amber for installed but weights missing
+    begin
+      FHomeModDots[10].Brush.Color := $0044AAFF; // Amber for installed but weights missing
+      FHomeModDots[10].Hint := 'DLSS-NR runtime is installed, but neural model weights need extraction';
+    end
     else
+    begin
       FHomeModDots[10].Brush.Color := CLR_MISSING;
+      FHomeModDots[10].Hint := 'DLSS-NR is not installed';
+    end;
     FHomeModDots[10].Pen.Color := FHomeModDots[10].Brush.Color;
 
     DlssNrVer := GetDlssNrVersion;

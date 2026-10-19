@@ -158,6 +158,7 @@ type
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
     procedure TestFastGamesTabReturnAndInPlaceBadgeUpdate;
     procedure TestDownloadProgressNoFloatingBanner;
+    procedure TestDownloadProgressSinglePercentage;
     procedure TestLsfgSteamBetaNoticeDialog;
     procedure TestMethodLogoDimming;
     procedure TestCloneGlobalConfigsToGameCard;
@@ -5045,6 +5046,9 @@ begin
   AssertTrue('HelixSR status dot assigned', Assigned(goverlayform.FHomeModDots[9]));
   AssertTrue('HelixSR version label assigned', Assigned(goverlayform.FHomeModVerLbls[9]));
   AssertTrue('HelixSR version label text not empty', goverlayform.FHomeModVerLbls[9].Caption <> '');
+  AssertTrue('DLSS-NR status dot assigned', Assigned(goverlayform.FHomeModDots[10]));
+  AssertTrue('DLSS-NR version label assigned', Assigned(goverlayform.FHomeModVerLbls[10]));
+  AssertTrue('DLSS-NR version label text not empty', goverlayform.FHomeModVerLbls[10].Caption <> '');
 
   if not Assigned(aboutForm) then
     Application.CreateForm(TaboutForm, aboutForm);
@@ -6952,6 +6956,53 @@ begin
   AssertFalse('FFloatingProgress not visible during ReshadeGitProgress', goverlayform.FFloatingProgress.Visible);
   if Assigned(goverlayform.FReshadeProgressBar) then
     AssertEquals('FReshadeProgressBar updated in-card', 50, goverlayform.FReshadeProgressBar.Position);
+end;
+
+procedure TGoverlayGuiTests.TestDownloadProgressSinglePercentage;
+var
+  ExtractThread: TDlssNrExtractThread;
+  CompileThread: THelixSRCompileThread;
+  OrigBarVisible, OrigLabelVisible: Boolean;
+  OrigBarPosition: Integer;
+  OrigCaption: string;
+begin
+  OrigBarVisible := goverlayform.updateProgressBar.Visible;
+  OrigLabelVisible := goverlayform.updatestatusLabel.Visible;
+  OrigBarPosition := goverlayform.updateProgressBar.Position;
+  OrigCaption := goverlayform.updatestatusLabel.Caption;
+  try
+    goverlayform.updateProgressBar.Visible := True;
+    goverlayform.updatestatusLabel.Visible := True;
+
+    ExtractThread := TDlssNrExtractThread.Create(goverlayform, '');
+    try
+      ExtractThread.OnExtractProgress(95, 'Downloading DLSS-NR runtime');
+      CheckSynchronize;
+      AssertEquals('DLSS-NR progress bar position', 95,
+        goverlayform.updateProgressBar.Position);
+      AssertEquals('DLSS-NR status label has no duplicate percentage',
+        'Downloading DLSS-NR runtime', goverlayform.updatestatusLabel.Caption);
+    finally
+      ExtractThread.Free;
+    end;
+
+    CompileThread := THelixSRCompileThread.Create(goverlayform);
+    try
+      CompileThread.OnCompileProgress(85, 'Compiling Direct3D 12 shaders...');
+      CheckSynchronize;
+      AssertEquals('HelixSR progress bar position', 85,
+        goverlayform.updateProgressBar.Position);
+      AssertEquals('HelixSR status label has no duplicate percentage',
+        'Compiling Direct3D 12 shaders...', goverlayform.updatestatusLabel.Caption);
+    finally
+      CompileThread.Free;
+    end;
+  finally
+    goverlayform.updateProgressBar.Position := OrigBarPosition;
+    goverlayform.updateProgressBar.Visible := OrigBarVisible;
+    goverlayform.updatestatusLabel.Caption := OrigCaption;
+    goverlayform.updatestatusLabel.Visible := OrigLabelVisible;
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestLsfgSteamBetaNoticeDialog;

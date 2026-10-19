@@ -3526,7 +3526,7 @@ begin
                   if (CurPct <> LastPct) and Assigned(AOnProgress) then
                   begin
                     LastPct := CurPct;
-                    AOnProgress(CurPct, AStatusPrefix + Format(' (%d%%)', [Round(PctVal)]));
+                    AOnProgress(CurPct, AStatusPrefix);
                   end;
                 end;
               end;
@@ -8577,11 +8577,24 @@ end;
 function IsDlssNrInstalled(const AArch: string = ''): Boolean;
 var
   TargetDir: string;
+
+  function CheckDir(const ADir: string): Boolean;
+  begin
+    Result := FileExists(ADir + 'goverlay.vars') or
+              FileExists(ADir + 'optiscaler' + PathDelim + 'OptiScaler.dll') or
+              DirectoryExists(ADir + 'dlssnr-amd');
+  end;
+
 begin
   TargetDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch));
-  Result := FileExists(TargetDir + 'goverlay.vars') or
-            FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') or
-            DirectoryExists(TargetDir + 'dlssnr-amd');
+  Result := CheckDir(TargetDir);
+
+  if not Result and (AArch = '') then
+  begin
+    Result := CheckDir(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')));
+    if not Result then
+      Result := CheckDir(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')));
+  end;
 end;
 
 // Check whether extracted DLSS-NR models (dlssnr.bin) exist in central storage.
