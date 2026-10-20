@@ -5,6 +5,7 @@ unit changelogunit;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
   LCLIntf, LCLType, Process, md5, StrUtils, FileUtil;
 
@@ -323,7 +324,7 @@ begin
   FTitleLabel.Font.Size := 12;
   FTitleLabel.Font.Style := [fsBold];
   FTitleLabel.Font.Color := clWhite;
-  FTitleLabel.Caption := '🚀 What''s New in Goverlay';
+  FTitleLabel.Caption := rsWhatSNewInGoverlay;
   FTitleLabel.OnMouseDown := @HeaderMouseDown;
   FTitleLabel.OnMouseMove := @HeaderMouseMove;
   FTitleLabel.OnMouseUp := @HeaderMouseUp;
@@ -637,7 +638,7 @@ begin
   Block.StatusLbl.Layout := tlCenter;
   Block.StatusLbl.Font.Size := 9;
   Block.StatusLbl.Font.Color := RGBToColor(140, 155, 180);
-  Block.StatusLbl.Caption := '⏳ Loading image...';
+  Block.StatusLbl.Caption := rsLoadingImage;
 
   Block.ImageCtrl := TImage.Create(Block.Panel);
   Block.ImageCtrl.Parent := Block.Panel;
@@ -805,7 +806,7 @@ var
   i: Integer;
   Line, Trimmed, ImgUrl, CurHeader: string;
 begin
-  FTitleLabel.Caption := '🚀 What''s New in Goverlay ' + AVersion;
+  FTitleLabel.Caption := rsWhatSNewInGoverlay2 + AVersion;
   ClearBlocks;
 
   if Trim(AText) = '' then

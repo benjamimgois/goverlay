@@ -5,6 +5,7 @@ unit reshade_tab;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
   ComCtrls, Math, themeunit, constants, hintsunit, apputils;
 
@@ -276,7 +277,7 @@ begin
     if Assigned(FHelper.FUpdateBtn) then
     begin
       FHelper.FUpdateBtn.Enabled := True;
-      FHelper.FUpdateBtn.Caption := 'Check updates';
+      FHelper.FUpdateBtn.Caption := rsCheckUpdates2;
     end;
     if Assigned(FHelper.FForm) and (FHelper.FForm is Tgoverlayform) then
       Tgoverlayform(FHelper.FForm).RefreshHomeModuleStatus;
@@ -532,7 +533,7 @@ begin
   // Informational label for None state
   FNoneNoticeLbl := TLabel.Create(FBgPanel);
   FNoneNoticeLbl.Parent := FBgPanel;
-  FNoneNoticeLbl.Caption := 'Post-processing is disabled. Select ReShade or vkBasalt above to configure effects.';
+  FNoneNoticeLbl.Caption := rsPostProcessingIsDisabledSelectReShade;
   FNoneNoticeLbl.Font.Color := IfThen(IsLight, clGray, clMedGray);
   FNoneNoticeLbl.Font.Size := 10;
   FNoneNoticeLbl.Alignment := taCenter;
@@ -551,7 +552,7 @@ begin
 
   FToggleTitleLbl := TLabel.Create(FConfigCard);
   FToggleTitleLbl.Parent := FConfigCard;
-  FToggleTitleLbl.Caption := 'Toggle:';
+  FToggleTitleLbl.Caption := rsToggle;
   FToggleTitleLbl.Font.Color := TxtClr;
   FToggleTitleLbl.SetBounds(CARD_P, 38, 55, 20);
 
@@ -581,7 +582,7 @@ begin
 
   FProxyTitleLbl := TLabel.Create(FConfigCard);
   FProxyTitleLbl.Parent := FConfigCard;
-  FProxyTitleLbl.Caption := 'Proxy DLL:';
+  FProxyTitleLbl.Caption := rsProxyDLL2;
   FProxyTitleLbl.Font.Color := TxtClr;
   FProxyTitleLbl.SetBounds(250, 38, 75, 20);
 
@@ -597,7 +598,7 @@ begin
   FPreviousProxyIndex := 0;
   FProxyComboBox.OnChange := @OnProxyChange;
   FProxyComboBox.SetBounds(330, 34, 220, 28);
-  FProxyComboBox.Hint := 'OptiScaler Co-existence: ReShade and OptiScaler cannot share the same Proxy DLL. Choose a different DLL (e.g. d3d11.dll or version.dll).';
+  FProxyComboBox.Hint := rsOptiScalerCoExistenceReShadeAndOptiScaler;
   FProxyComboBox.ShowHint := True;
 
   // ----------------------------------------------------
@@ -611,7 +612,7 @@ begin
 
   FOpenShadersBtn := TBitBtn.Create(FShadersCard);
   FOpenShadersBtn.Parent := FShadersCard;
-  FOpenShadersBtn.Caption := 'Open Shaders Directory';
+  FOpenShadersBtn.Caption := rsOpenShadersDirectory;
   FOpenShadersBtn.Cursor := crHandPoint;
   FOpenShadersBtn.OnClick := @OnOpenShadersBtnClick;
   FOpenShadersBtn.SetBounds(Max(150, FShadersCard.Width - CARD_P - 180), 6, 180, 26);
@@ -649,7 +650,7 @@ begin
 
     FPackStatusLbls[i] := TLabel.Create(PPanel);
     FPackStatusLbls[i].Parent := PPanel;
-    FPackStatusLbls[i].Caption := 'Checking...';
+    FPackStatusLbls[i].Caption := rsChecking;
     FPackStatusLbls[i].Font.Size := 9;
     FPackStatusLbls[i].Font.Color := TxtClr;
     FPackStatusLbls[i].SetBounds(PPanel.Width - 230, 16, 100, 20);
@@ -657,7 +658,7 @@ begin
     FPackActionBtns[i] := TBitBtn.Create(PPanel);
     FPackActionBtns[i].Parent := PPanel;
     FPackActionBtns[i].Tag := i;
-    FPackActionBtns[i].Caption := 'Install';
+    FPackActionBtns[i].Caption := rsInstall;
     FPackActionBtns[i].Cursor := crHandPoint;
     FPackActionBtns[i].OnClick := @OnPackActionClick;
     FPackActionBtns[i].SetBounds(PPanel.Width - 120, 12, 110, 28);
@@ -709,7 +710,7 @@ begin
 
   FUpdateBtn := TBitBtn.Create(FStatusCard);
   FUpdateBtn.Parent := FStatusCard;
-  FUpdateBtn.Caption := 'Check updates';
+  FUpdateBtn.Caption := rsCheckUpdates2;
   FUpdateBtn.Cursor := crHandPoint;
   FUpdateBtn.OnClick := @OnUpdateBtnClick;
   FUpdateBtn.SetBounds(FStatVerLbl.Left + FStatVerLbl.Width + 16, 36, 130, 28);
@@ -1110,7 +1111,7 @@ begin
         FConfigCard.SetBounds(MARGIN, CurY, TargetCardW, OPTIONS_H);
         if Assigned(FConfigTitleLbl) then
         begin
-          FConfigTitleLbl.Caption := 'Options';
+          FConfigTitleLbl.Caption := rsOptions;
           FConfigTitleLbl.SetBounds(CARD_P, 8, 120, 20);
         end;
 
@@ -1297,7 +1298,7 @@ begin
     if HasDll then
     begin
       FStatDot.Brush.Color := CLR_OK;
-      FStatVerLbl.Caption := GetReShadeInstalledVersion + ' (Add-on Edition)';
+      FStatVerLbl.Caption := GetReShadeInstalledVersion + rsAddOnEdition;
       FStatVerLbl.Font.Color := CYAN_VER;
     end
     else
@@ -1354,15 +1355,15 @@ begin
     FPackActionBtns[i].Enabled := True;
     if IsInstalled then
     begin
-      FPackStatusLbls[i].Caption := '✔ Installed';
+      FPackStatusLbls[i].Caption := rsInstalled2;
       FPackStatusLbls[i].Font.Color := clGreen;
-      FPackActionBtns[i].Caption := 'Re-install';
+      FPackActionBtns[i].Caption := rsReInstall;
     end
     else
     begin
-      FPackStatusLbls[i].Caption := 'Not installed';
+      FPackStatusLbls[i].Caption := rsNotInstalled;
       FPackStatusLbls[i].Font.Color := clMedGray;
-      FPackActionBtns[i].Caption := 'Install';
+      FPackActionBtns[i].Caption := rsInstall;
     end;
   end;
 end;
@@ -1378,7 +1379,7 @@ begin
   if (Idx >= 0) and (Idx < RESHADE_PACK_COUNT) then
   begin
     Btn.Enabled := False;
-    Btn.Caption := 'Downloading...';
+    Btn.Caption := rsDownloading;
     TReshadeAsyncInstallThread.Create(Self, Idx, False);
   end;
 end;
@@ -1386,7 +1387,7 @@ end;
 procedure TReshadeTabHelper.OnUpdateBtnClick(Sender: TObject);
 begin
   FUpdateBtn.Enabled := False;
-  FUpdateBtn.Caption := 'Updating...';
+  FUpdateBtn.Caption := rsUpdating;
   TReshadeAsyncInstallThread.Create(Self, -1, True);
 end;
 
@@ -1447,7 +1448,7 @@ begin
   else if Application.Title = 'goverlay-gui-tests' then
     Result := mrYes
   else
-    Result := MessageDlg('Proxy DLL Conflict',
+    Result := MessageDlg(rsProxyDLLConflict,
       'OptiScaler is currently using "dxgi.dll".' + LineEnding + LineEnding +
       'ReShade works best with "dxgi.dll" because it supports both DirectX 11 and DirectX 12 games, whereas other ReShade proxies are tied to a specific DirectX version.' + LineEnding + LineEnding +
       'OptiScaler works reliably with "version.dll".' + LineEnding + LineEnding +

@@ -425,96 +425,96 @@ begin
   FForm.FAntilagCheckBox.Parent      := FForm;
   FForm.FAntilagCheckBox.Visible     := False;
   FForm.FAntilagCheckBox.Name        := 'antilagCheckBox';
-  FForm.FAntilagCheckBox.Caption     := 'Enable AMD Anti-Lag 2';
+  FForm.FAntilagCheckBox.Caption     := rsEnableAMDAntiLag2;
 
   // Hidden checkboxes for upgrade tweaks (not in LFM — created dynamically)
   FForm.FFSR4UpgradeCheckBox := TCheckBox.Create(FForm);
   FForm.FFSR4UpgradeCheckBox.Parent  := FForm;
   FForm.FFSR4UpgradeCheckBox.Visible := False;
   FForm.FFSR4UpgradeCheckBox.Name    := 'fsr4upgradeCheckBox';
-  FForm.FFSR4UpgradeCheckBox.Caption := 'Automatically upgrade FSR to the latest version';
+  FForm.FFSR4UpgradeCheckBox.Caption := rsAutomaticallyUpgradeFSRToTheLatest;
 
   FForm.FDLSSUpgradeCheckBox := TCheckBox.Create(FForm);
   FForm.FDLSSUpgradeCheckBox.Parent  := FForm;
   FForm.FDLSSUpgradeCheckBox.Visible := False;
   FForm.FDLSSUpgradeCheckBox.Name    := 'dlssupgradeCheckBox';
-  FForm.FDLSSUpgradeCheckBox.Caption := 'Automatically upgrade DLSS to the latest version';
+  FForm.FDLSSUpgradeCheckBox.Caption := rsAutomaticallyUpgradeDLSSToTheLatest;
 
   FForm.FXeSSUpgradeCheckBox := TCheckBox.Create(FForm);
   FForm.FXeSSUpgradeCheckBox.Parent  := FForm;
   FForm.FXeSSUpgradeCheckBox.Visible := False;
   FForm.FXeSSUpgradeCheckBox.Name    := 'xessupgradeCheckBox';
-  FForm.FXeSSUpgradeCheckBox.Caption := 'Automatically upgrade XeSS to the latest version';
+  FForm.FXeSSUpgradeCheckBox.Caption := rsAutomaticallyUpgradeXeSSToTheLatest;
 
   FForm.FReEngineRTCheckBox := TCheckBox.Create(FForm);
   FForm.FReEngineRTCheckBox.Parent  := FForm;
   FForm.FReEngineRTCheckBox.Visible := False;
   FForm.FReEngineRTCheckBox.Name    := 'reenginertCheckBox';
-  FForm.FReEngineRTCheckBox.Caption := 'Enable RE Engine Ray Tracing workaround';
+  FForm.FReEngineRTCheckBox.Caption := rsEnableREEngineRayTracingWorkaround;
 
   FForm.FLowLatencyCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyCheckBox.Parent  := FForm;
   FForm.FLowLatencyCheckBox.Visible := False;
   FForm.FLowLatencyCheckBox.Name    := 'lowLatencyCheckBox';
-  FForm.FLowLatencyCheckBox.Caption := 'Expose to enable the layer';
+  FForm.FLowLatencyCheckBox.Caption := rsExposeToEnableTheLayer;
   FForm.FLowLatencyCheckBox.Hint    := 'Needs Korthos low latency';
 
   FForm.FLowLatencyReflexCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyReflexCheckBox.Parent  := FForm;
   FForm.FLowLatencyReflexCheckBox.Visible := False;
   FForm.FLowLatencyReflexCheckBox.Name    := 'lowLatencyReflexCheckBox';
-  FForm.FLowLatencyReflexCheckBox.Caption := 'Expose Reflex support';
-  FForm.FLowLatencyReflexCheckBox.Hint    := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)';
+  FForm.FLowLatencyReflexCheckBox.Caption := rsExposeReflexSupport;
+  FForm.FLowLatencyReflexCheckBox.Hint    := rsExposeReflexSupportVKNVLow;
 
   FForm.FLowLatencySpoofNvidiaCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencySpoofNvidiaCheckBox.Parent  := FForm;
   FForm.FLowLatencySpoofNvidiaCheckBox.Visible := False;
   FForm.FLowLatencySpoofNvidiaCheckBox.Name    := 'lowLatencySpoofNvidiaCheckBox';
-  FForm.FLowLatencySpoofNvidiaCheckBox.Caption := 'Report device as NVIDIA GPU';
-  FForm.FLowLatencySpoofNvidiaCheckBox.Hint    := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)';
+  FForm.FLowLatencySpoofNvidiaCheckBox.Caption := rsReportDeviceAsNVIDIAGPU;
+  FForm.FLowLatencySpoofNvidiaCheckBox.Hint    := rsReportDeviceAsNVIDIAGPUBreaks;
 
   FForm.FLowLatencyHideAmdGpuCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyHideAmdGpuCheckBox.Parent  := FForm;
   FForm.FLowLatencyHideAmdGpuCheckBox.Visible := False;
   FForm.FLowLatencyHideAmdGpuCheckBox.Name    := 'lowLatencyHideAmdGpuCheckBox';
-  FForm.FLowLatencyHideAmdGpuCheckBox.Caption := 'Also hide AMD GPU';
-  FForm.FLowLatencyHideAmdGpuCheckBox.Hint    := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)';
+  FForm.FLowLatencyHideAmdGpuCheckBox.Caption := rsAlsoHideAMDGPU;
+  FForm.FLowLatencyHideAmdGpuCheckBox.Hint    := rsAlsoHideAMDGPUButIt;
 
   FForm.FProtonVkd3dLowLatencyCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonVkd3dLowLatencyCheckBox.Parent  := FForm;
   FForm.FProtonVkd3dLowLatencyCheckBox.Visible := False;
   FForm.FProtonVkd3dLowLatencyCheckBox.Name    := 'protonVkd3dLowLatencyCheckBox';
-  FForm.FProtonVkd3dLowLatencyCheckBox.Caption := 'Enable PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY';
+  FForm.FProtonVkd3dLowLatencyCheckBox.Caption := rsEnablePROTONVKD3DLOWLATENCYPROTONDXVK;
 
   FForm.FProtonLocalShaderCacheCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonLocalShaderCacheCheckBox.Parent  := FForm;
   FForm.FProtonLocalShaderCacheCheckBox.Visible := False;
   FForm.FProtonLocalShaderCacheCheckBox.Name    := 'protonLocalShaderCacheCheckBox';
-  FForm.FProtonLocalShaderCacheCheckBox.Caption := 'Enable PROTON_LOCAL_SHADER_CACHE';
+  FForm.FProtonLocalShaderCacheCheckBox.Caption := rsEnablePROTONLOCALSHADERCACHE;
 
   FForm.FProtonDiscordBridgeCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonDiscordBridgeCheckBox.Parent  := FForm;
   FForm.FProtonDiscordBridgeCheckBox.Visible := False;
   FForm.FProtonDiscordBridgeCheckBox.Name    := 'protonDiscordBridgeCheckBox';
-  FForm.FProtonDiscordBridgeCheckBox.Caption := 'Enable PROTON_DISCORD_BRIDGE';
+  FForm.FProtonDiscordBridgeCheckBox.Caption := rsEnablePROTONDISCORDBRIDGE;
 
   FForm.FProtonVkd3dHeapCheckBox := TCheckBox.Create(FForm);
   FForm.FProtonVkd3dHeapCheckBox.Parent  := FForm;
   FForm.FProtonVkd3dHeapCheckBox.Visible := False;
   FForm.FProtonVkd3dHeapCheckBox.Name    := 'protonVkd3dHeapCheckBox';
-  FForm.FProtonVkd3dHeapCheckBox.Caption := 'Enable VKD3D_CONFIG=descriptor_heap';
+  FForm.FProtonVkd3dHeapCheckBox.Caption := rsEnableVKD3DCONFIGDescriptorHeap;
 
   FForm.FNvidiaDlssRROverrideCheckBox := TCheckBox.Create(FForm);
   FForm.FNvidiaDlssRROverrideCheckBox.Parent  := FForm;
   FForm.FNvidiaDlssRROverrideCheckBox.Visible := False;
   FForm.FNvidiaDlssRROverrideCheckBox.Name    := 'nvidiaDlssRROverrideCheckBox';
-  FForm.FNvidiaDlssRROverrideCheckBox.Caption := 'Enable NGX_DLSS_RR_OVERRIDE';
+  FForm.FNvidiaDlssRROverrideCheckBox.Caption := rsEnableNGXDLSSRROVERRIDE;
 
   FForm.FVkd3dRtasSizeMultCheckBox := TCheckBox.Create(FForm);
   FForm.FVkd3dRtasSizeMultCheckBox.Parent  := FForm;
   FForm.FVkd3dRtasSizeMultCheckBox.Visible := False;
   FForm.FVkd3dRtasSizeMultCheckBox.Name    := 'vkd3dRtasSizeMultCheckBox';
-  FForm.FVkd3dRtasSizeMultCheckBox.Caption := 'Enable VKD3D_RTAS_SIZE_MULT';
+  FForm.FVkd3dRtasSizeMultCheckBox.Caption := rsEnableVKD3DRTASSIZEMULT;
   FForm.FVkd3dRtasSizeMultValue := '8';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
@@ -1976,11 +1976,11 @@ begin
                    (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
                   (not FForm.IsLowLatencyInstalled) then
           begin
-            ShowMessage('vulkan-low-latency-layer is not installed. Please install Korthos low latency layer first.');
+            ShowMessage(rsVulkanLowLatencyLayerIsNot);
           end
           else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
           begin
-            ShowMessage('gamemode is not installed. Please install the gamemode package first.');
+            ShowMessage(rsGamemodeIsNotInstalledPleaseInstall);
           end
           else
           begin
@@ -2148,7 +2148,7 @@ begin
 
     if not IsLaunchArgument(Val) then
     begin
-      ShowMessage('Invalid launch argument. Must start with "-", "--", or "+".');
+      ShowMessage(rsInvalidLaunchArgumentMustStartWith);
       Exit;
     end;
 

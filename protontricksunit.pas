@@ -177,7 +177,7 @@ begin
   closeButton.Enabled := False;
   winVerComboBox.Enabled := False;
   FGameGrid.Enabled := False;
-  statusLabel.Caption := 'Applying Windows version ' + WinVer + ' to ' +
+  statusLabel.Caption := rsApplyingWindowsVersion + WinVer + rsTo +
     FGameGrid.Cells[0, FGameGrid.Row] + '...';
   applyProgressBar.Visible := True;
   Application.ProcessMessages;
@@ -215,12 +215,12 @@ begin
 
   if ExitCode = 0 then
   begin
-    statusLabel.Caption := '✓ Applied ' + WinVer + ' successfully!';
+    statusLabel.Caption := rsApplied + WinVer + rsSuccessfully;
     LoadGames;
   end
   else
   begin
-    statusLabel.Caption := '✗ protontricks exited with code ' + IntToStr(ExitCode) + '.';
+    statusLabel.Caption := rsProtontricksExitedWithCode + IntToStr(ExitCode) + '.';
     ShowMessage(Format(rsProtontricksFailed, [ExitCode]));
   end;
 end;
@@ -465,7 +465,7 @@ begin
         Break;
       end;
     if HasUnknown then
-      statusLabel.Caption := '⚠ Games on external drives show "unknown". Grant access via Flatseal → Filesystem.';
+      statusLabel.Caption := rsGamesOnExternalDrivesShowUnknown;
   end;
 end;
 

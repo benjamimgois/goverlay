@@ -5,6 +5,7 @@ unit goverlay_system;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Process, FileUtil, LCLIntf, Graphics, Buttons, Dialogs,
   fpjson, jsonparser, StrUtils, constants, systemdetector, apputils, configmanager;
 
@@ -275,7 +276,7 @@ begin
     begin
       if Assigned(UpdateButton) then
       begin
-        UpdateButton.Caption := 'New Version ' + LatestVersion + ' available';
+        UpdateButton.Caption := rsNewVersion + LatestVersion + rsAvailable;
         UpdateButton.BorderSpacing.Bottom := 60;
         UpdateButton.Visible := True;
       end;

@@ -5,6 +5,7 @@ unit lossless_scaling_tab;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
   Clipbrd, IniFiles, Math, themeunit, constants, hintsunit, apputils, configkeys, configmanager, systemdetector, toggle_switch;
 
@@ -862,7 +863,7 @@ begin
     end;
     if Assigned(FHelper.FLsLsfgInstallBtn) then
     begin
-      FHelper.FLsLsfgInstallBtn.Caption := 'Install update';
+      FHelper.FLsLsfgInstallBtn.Caption := rsInstallUpdate;
       FHelper.FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
       FHelper.FLsLsfgInstallBtn.Enabled := True;
     end;
@@ -977,7 +978,7 @@ begin
     end;
     if Assigned(FHelper.FLsAfmfInstallBtn) then
     begin
-      FHelper.FLsAfmfInstallBtn.Caption := 'Install update';
+      FHelper.FLsAfmfInstallBtn.Caption := rsInstallUpdate;
       FHelper.FLsAfmfInstallBtn.Visible := not IsRunningInFlatpak;
       FHelper.FLsAfmfInstallBtn.Enabled := True;
     end;
@@ -1098,7 +1099,7 @@ begin
     end;
     if Assigned(FLsInstallBtn) then
     begin
-      FLsInstallBtn.Caption := 'Install update';
+      FLsInstallBtn.Caption := rsInstallUpdate;
       FLsInstallBtn.Visible := True;
       FLsInstallBtn.Enabled := True;
     end;
@@ -1117,7 +1118,7 @@ begin
     begin
       if Assigned(FLsEngineStatusLabel) then
       begin
-        FLsEngineStatusLabel.Caption := '● MAKO ' + CleanLocal + ' is up to date';
+        FLsEngineStatusLabel.Caption := rsMAKO + CleanLocal + rsIsUpToDate;
         FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
       end;
       if Assigned(FLsInstallBtn) then
@@ -1204,7 +1205,7 @@ begin
   if OptiActive and not (Assigned(FForm) and (FForm is Tgoverlayform) and Tgoverlayform(FForm).FLoadingConfig) then
   begin
     if (Application.Title = 'goverlay-gui-tests') or
-       (MessageDlg('Frame Interpolation Conflict',
+       (MessageDlg(rsFrameInterpolationConflict,
          'OptiScaler / DLSS Enabler is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable OptiScaler and activate AFMF?',
          mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
@@ -1236,7 +1237,7 @@ end;
 procedure TLosslessScalingTabHelper.AfmfMinFpsTrackBarChange(Sender: TObject);
 begin
   if Assigned(FAfmfMinFpsValueLabel) and Assigned(FAfmfMinFpsTrackBar) then
-    FAfmfMinFpsValueLabel.Caption := IntToStr(FAfmfMinFpsTrackBar.Position) + ' FPS';
+    FAfmfMinFpsValueLabel.Caption := IntToStr(FAfmfMinFpsTrackBar.Position) + rsFPS;
   ControlStateChange(Sender);
 end;
 
@@ -1296,10 +1297,10 @@ begin
       end
       else
         FLsDllPathEdit.Text := DetectSteamLosslessDll(True);
-      FLsDllPathEdit.TextHint := 'Path to lsfg-vk.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/lsfg-vk.dll)';
+      FLsDllPathEdit.TextHint := rsPathToLsfgVkDllE;
       if Assigned(FLsBrowseDllBtn) then
       begin
-        FLsBrowseDllBtn.Hint := 'Browse for lsfg-vk.dll';
+        FLsBrowseDllBtn.Hint := rsBrowseForLsfgVkDll;
         FLsBrowseDllBtn.ShowHint := True;
       end;
     end
@@ -1312,10 +1313,10 @@ begin
       end
       else
         FLsDllPathEdit.Text := DetectSteamLosslessDll(False);
-      FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
+      FLsDllPathEdit.TextHint := rsPathToLosslessDllEG;
       if Assigned(FLsBrowseDllBtn) then
       begin
-        FLsBrowseDllBtn.Hint := 'Browse for Lossless.dll';
+        FLsBrowseDllBtn.Hint := rsBrowseForLosslessDll;
         FLsBrowseDllBtn.ShowHint := True;
       end;
     end;
@@ -1333,18 +1334,18 @@ begin
     begin
       FLsMultiplierTrackBar.Position := 1;
       if Assigned(FLsMultiplierValueLabel) then
-        FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+        FLsMultiplierValueLabel.Caption := rs1xDisabled;
     end;
   end;
 
   if Assigned(FLsMultiplierTrackBar) and Assigned(FLsMultiplierValueLabel) then
   begin
     if (FLsMultiplierTrackBar.Position <= 1) and (AMethod = imLsfg) then
-      FLsMultiplierValueLabel.Caption := '1x (Bypass)'
+      FLsMultiplierValueLabel.Caption := rs1xBypass
     else if (FLsMultiplierTrackBar.Position <= 1) then
-      FLsMultiplierValueLabel.Caption := '1x (Disabled)'
+      FLsMultiplierValueLabel.Caption := rs1xDisabled
     else
-      FLsMultiplierValueLabel.Caption := IntToStr(FLsMultiplierTrackBar.Position) + 'x FPS';
+      FLsMultiplierValueLabel.Caption := IntToStr(FLsMultiplierTrackBar.Position) + rsXFPS;
   end;
 
   UpdateMethodImageOpacity;
@@ -1563,7 +1564,7 @@ begin
     FLsStatDots[1].Brush.Color := CLR_OK;
     if Assigned(FLsEngineStatusLabel) then
     begin
-      FLsEngineStatusLabel.Caption := 'Installed';
+      FLsEngineStatusLabel.Caption := rsInstalled;
       FLsEngineStatusLabel.Font.Color := CYAN_VER;
       FLsEngineStatusLabel.Hint := MakoLib;
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
@@ -1574,7 +1575,7 @@ begin
     FLsStatDots[1].Brush.Color := CLR_NONE;
     if Assigned(FLsEngineStatusLabel) then
     begin
-      FLsEngineStatusLabel.Caption := 'Not installed';
+      FLsEngineStatusLabel.Caption := rsNotInstalled;
       FLsEngineStatusLabel.Font.Color := RGBToColor(255, 90, 95);
       FLsEngineStatusLabel.Hint := '';
       FLsEngineStatusLabel.ShowHint := False;
@@ -1619,7 +1620,7 @@ begin
         if LsfgVer <> '' then
           FLsLsfgStatusLabel.Caption := LsfgVer
         else
-          FLsLsfgStatusLabel.Caption := 'Installed';
+          FLsLsfgStatusLabel.Caption := rsInstalled;
         FLsLsfgStatusLabel.Font.Color := CYAN_VER;
       end;
       FLsLsfgStatusLabel.Hint := LsfgLib;
@@ -1630,7 +1631,7 @@ begin
     begin
       if Assigned(FLsLsfgInstallBtn) then
       begin
-        FLsLsfgInstallBtn.Caption := 'Install update';
+        FLsLsfgInstallBtn.Caption := rsInstallUpdate;
         FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
         FLsLsfgInstallBtn.Enabled := True;
       end;
@@ -1646,14 +1647,14 @@ begin
     FLsStatDots[2].Brush.Color := CLR_NONE;
     if Assigned(FLsLsfgStatusLabel) then
     begin
-      FLsLsfgStatusLabel.Caption := 'Not installed';
+      FLsLsfgStatusLabel.Caption := rsNotInstalled;
       FLsLsfgStatusLabel.Font.Color := RGBToColor(255, 90, 95);
       FLsLsfgStatusLabel.Hint := '';
       FLsLsfgStatusLabel.ShowHint := False;
     end;
     if Assigned(FLsLsfgInstallBtn) then
     begin
-      FLsLsfgInstallBtn.Caption := 'Install runtime';
+      FLsLsfgInstallBtn.Caption := rsInstallRuntime;
       FLsLsfgInstallBtn.Visible := not IsRunningInFlatpak;
       FLsLsfgInstallBtn.Enabled := True;
     end;
@@ -1690,7 +1691,7 @@ begin
         if AfmfVer <> '' then
           FLsAfmfStatusLabel.Caption := AfmfVer
         else
-          FLsAfmfStatusLabel.Caption := 'Installed';
+          FLsAfmfStatusLabel.Caption := rsInstalled;
         FLsAfmfStatusLabel.Font.Color := CYAN_VER;
       end;
       FLsAfmfStatusLabel.Hint := AfmfLib;
@@ -1701,7 +1702,7 @@ begin
     begin
       if Assigned(FLsAfmfInstallBtn) then
       begin
-        FLsAfmfInstallBtn.Caption := 'Install update';
+        FLsAfmfInstallBtn.Caption := rsInstallUpdate;
         FLsAfmfInstallBtn.Visible := not IsRunningInFlatpak;
         FLsAfmfInstallBtn.Enabled := True;
       end;
@@ -1717,14 +1718,14 @@ begin
     FLsStatDots[3].Brush.Color := CLR_NONE;
     if Assigned(FLsAfmfStatusLabel) then
     begin
-      FLsAfmfStatusLabel.Caption := 'Not installed';
+      FLsAfmfStatusLabel.Caption := rsNotInstalled;
       FLsAfmfStatusLabel.Font.Color := RGBToColor(255, 90, 95);
       FLsAfmfStatusLabel.Hint := '';
       FLsAfmfStatusLabel.ShowHint := False;
     end;
     if Assigned(FLsAfmfInstallBtn) then
     begin
-      FLsAfmfInstallBtn.Caption := 'Install runtime';
+      FLsAfmfInstallBtn.Caption := rsInstallRuntime;
       FLsAfmfInstallBtn.Visible := not IsRunningInFlatpak;
       FLsAfmfInstallBtn.Enabled := True;
     end;
@@ -2460,7 +2461,7 @@ begin
 
   FLsMigrationAlertTitleLbl := TLabel.Create(FLsMigrationAlertCard);
   FLsMigrationAlertTitleLbl.Parent := FLsMigrationAlertCard;
-  FLsMigrationAlertTitleLbl.Caption := 'lsfg-vk 2.0 Migration Hazards Detected';
+  FLsMigrationAlertTitleLbl.Caption := rsLsfgVk20MigrationHazards;
   FLsMigrationAlertTitleLbl.Font.Size := 9;
   FLsMigrationAlertTitleLbl.Font.Style := [fsBold];
   FLsMigrationAlertTitleLbl.Font.Color := clWhite;
@@ -2468,14 +2469,14 @@ begin
 
   FLsMigrationAlertDescLbl := TLabel.Create(FLsMigrationAlertCard);
   FLsMigrationAlertDescLbl.Parent := FLsMigrationAlertCard;
-  FLsMigrationAlertDescLbl.Caption := 'Steam beta branch missing (lsfg-vk.dll) or legacy 1.x files found.';
+  FLsMigrationAlertDescLbl.Caption := rsSteamBetaBranchMissingLsfgVk;
   FLsMigrationAlertDescLbl.Font.Size := 8;
   FLsMigrationAlertDescLbl.Font.Color := RGBToColor(220, 205, 190);
   FLsMigrationAlertDescLbl.AutoSize := True;
 
   FLsMigrationAlertBtn := TBitBtn.Create(FLsMigrationAlertCard);
   FLsMigrationAlertBtn.Parent := FLsMigrationAlertCard;
-  FLsMigrationAlertBtn.Caption := 'Migration Assistant';
+  FLsMigrationAlertBtn.Caption := rsMigrationAssistant;
   FLsMigrationAlertBtn.Cursor := crHandPoint;
   FLsMigrationAlertBtn.OnClick := @MigrationAlertBtnClick;
   StyleActionButton(FLsMigrationAlertBtn);
@@ -2496,7 +2497,7 @@ begin
   FLsNoneRadio.Caption := '';
   FLsNoneRadio.Checked := False;
   FLsNoneRadio.OnClick := @MethodNoneClick;
-  FLsNoneRadio.Hint := 'Disable frame generation and interpolation';
+  FLsNoneRadio.Hint := rsDisableFrameGenerationAndInterpolation;
   FLsNoneRadio.ShowHint := True;
   StyleToggleControl(FLsNoneRadio);
 
@@ -2511,17 +2512,17 @@ begin
   FLsNoneImage.Stretch := True;
   FLsNoneImage.Cursor := crHandPoint;
   FLsNoneImage.OnClick := @MethodNoneClick;
-  FLsNoneImage.Hint := 'Disable frame generation and interpolation';
+  FLsNoneImage.Hint := rsDisableFrameGenerationAndInterpolation;
   FLsNoneImage.ShowHint := True;
 
   FLsNoneLbl := TLabel.Create(FForm);
   FLsNoneLbl.Parent := FLsMethodCard;
-  FLsNoneLbl.Caption := 'None';
+  FLsNoneLbl.Caption := rsNone;
   FLsNoneLbl.Font.Style := [fsBold];
   FLsNoneLbl.Font.Size := 9;
   FLsNoneLbl.Cursor := crHandPoint;
   FLsNoneLbl.OnClick := @MethodNoneClick;
-  FLsNoneLbl.Hint := 'Disable frame generation and interpolation';
+  FLsNoneLbl.Hint := rsDisableFrameGenerationAndInterpolation;
   FLsNoneLbl.ShowHint := True;
   FLsNoneLbl.Visible := False;
 
@@ -2531,7 +2532,7 @@ begin
   FLsLsfgRadio.Caption := '';
   FLsLsfgRadio.Checked := False;
   FLsLsfgRadio.OnClick := @MethodLsfgClick;
-  FLsLsfgRadio.Hint := 'Open-source Vulkan layer for Lossless Scaling Frame Generation (LSFG) with wide game compatibility';
+  FLsLsfgRadio.Hint := rsOpenSourceVulkanLayerForLossless;
   FLsLsfgRadio.ShowHint := True;
   StyleToggleControl(FLsLsfgRadio);
 
@@ -2546,7 +2547,7 @@ begin
   FLsLsfgImage.Stretch := True;
   FLsLsfgImage.Cursor := crHandPoint;
   FLsLsfgImage.OnClick := @MethodLsfgClick;
-  FLsLsfgImage.Hint := 'Open-source Vulkan layer for Lossless Scaling Frame Generation (LSFG) with wide game compatibility';
+  FLsLsfgImage.Hint := rsOpenSourceVulkanLayerForLossless;
   FLsLsfgImage.ShowHint := True;
 
   FLsLsfgLbl := TLabel.Create(FForm);
@@ -2558,7 +2559,7 @@ begin
   FLsLsfgLbl.AutoSize := True;
   FLsLsfgLbl.Cursor := crHandPoint;
   FLsLsfgLbl.OnClick := @MethodLsfgClick;
-  FLsLsfgLbl.Hint := 'Open-source Vulkan layer for Lossless Scaling Frame Generation (LSFG) with wide game compatibility';
+  FLsLsfgLbl.Hint := rsOpenSourceVulkanLayerForLossless;
   FLsLsfgLbl.ShowHint := True;
   FLsLsfgLbl.Visible := False;
 
@@ -2568,7 +2569,7 @@ begin
   FLsMakoRadio.Caption := '';
   FLsMakoRadio.Checked := False;
   FLsMakoRadio.OnClick := @MethodMakoClick;
-  FLsMakoRadio.Hint := 'High-performance frame generation and spatial upscaling engine with adaptive framerate modes';
+  FLsMakoRadio.Hint := rsHighPerformanceFrameGenerationAndSpatial;
   FLsMakoRadio.ShowHint := True;
   StyleToggleControl(FLsMakoRadio);
 
@@ -2583,7 +2584,7 @@ begin
   FLsMakoImage.Stretch := True;
   FLsMakoImage.Cursor := crHandPoint;
   FLsMakoImage.OnClick := @MethodMakoClick;
-  FLsMakoImage.Hint := 'High-performance frame generation and spatial upscaling engine with adaptive framerate modes';
+  FLsMakoImage.Hint := rsHighPerformanceFrameGenerationAndSpatial;
   FLsMakoImage.ShowHint := True;
 
   FLsMakoLbl := TLabel.Create(FForm);
@@ -2595,7 +2596,7 @@ begin
   FLsMakoLbl.AutoSize := True;
   FLsMakoLbl.Cursor := crHandPoint;
   FLsMakoLbl.OnClick := @MethodMakoClick;
-  FLsMakoLbl.Hint := 'High-performance frame generation and spatial upscaling engine with adaptive framerate modes';
+  FLsMakoLbl.Hint := rsHighPerformanceFrameGenerationAndSpatial;
   FLsMakoLbl.ShowHint := True;
   FLsMakoLbl.Visible := False;
 
@@ -2605,7 +2606,7 @@ begin
   FLsAfmfRadio.Caption := '';
   FLsAfmfRadio.Checked := False;
   FLsAfmfRadio.OnClick := @MethodAfmfClick;
-  FLsAfmfRadio.Hint := 'AMD Fluid Motion Frames driver-level optical flow frame interpolation for Vulkan applications';
+  FLsAfmfRadio.Hint := rsAMDFluidMotionFramesDriverLevel;
   FLsAfmfRadio.ShowHint := True;
   StyleToggleControl(FLsAfmfRadio);
 
@@ -2620,7 +2621,7 @@ begin
   FLsAfmfImage.Stretch := True;
   FLsAfmfImage.Cursor := crHandPoint;
   FLsAfmfImage.OnClick := @MethodAfmfClick;
-  FLsAfmfImage.Hint := 'AMD Fluid Motion Frames driver-level optical flow frame interpolation for Vulkan applications';
+  FLsAfmfImage.Hint := rsAMDFluidMotionFramesDriverLevel;
   FLsAfmfImage.ShowHint := True;
 
   FLsAfmfLbl := TLabel.Create(FForm);
@@ -2632,7 +2633,7 @@ begin
   FLsAfmfLbl.AutoSize := True;
   FLsAfmfLbl.Cursor := crHandPoint;
   FLsAfmfLbl.OnClick := @MethodAfmfClick;
-  FLsAfmfLbl.Hint := 'AMD Fluid Motion Frames driver-level optical flow frame interpolation for Vulkan applications';
+  FLsAfmfLbl.Hint := rsAMDFluidMotionFramesDriverLevel;
   FLsAfmfLbl.ShowHint := True;
   FLsAfmfLbl.Visible := False;
 
@@ -2694,8 +2695,8 @@ begin
   // Target GPU Device (integrated inside Frame Generation card)
   FLsGpuTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsGpuTitleLbl.Parent := FLsFrameGenCard;
-  FLsGpuTitleLbl.Caption := 'Target GPU Device';
-  FLsGpuTitleLbl.Hint := 'Target GPU device to use for frame generation and upscaling';
+  FLsGpuTitleLbl.Caption := rsTargetGPUDevice;
+  FLsGpuTitleLbl.Hint := rsTargetGPUDeviceToUseFor;
   FLsGpuTitleLbl.ShowHint := True;
   FLsGpuTitleLbl.ShowAccelChar := False;
   FLsGpuTitleLbl.Visible := False;
@@ -2704,7 +2705,7 @@ begin
   FLsGpuComboBox := TComboBox.Create(FLsFrameGenCard);
   FLsGpuComboBox.Parent := FLsFrameGenCard;
   FLsGpuComboBox.Style := csDropDownList;
-  FLsGpuComboBox.Hint := 'Target GPU device to use for frame generation and upscaling';
+  FLsGpuComboBox.Hint := rsTargetGPUDeviceToUseFor;
   FLsGpuComboBox.ShowHint := True;
   FLsGpuComboBox.OnChange := @ControlStateChange;
   FLsGpuComboBox.Visible := False;
@@ -2713,7 +2714,7 @@ begin
 
   FLsDisabledNoticeLbl := TLabel.Create(FLsFrameGenCard);
   FLsDisabledNoticeLbl.Parent := FLsFrameGenCard;
-  FLsDisabledNoticeLbl.Caption := 'Frame generation is disabled. Select an interpolation engine above (lsfg-vk or MAKO) to enable and configure settings.';
+  FLsDisabledNoticeLbl.Caption := rsFrameGenerationIsDisabledSelectAn;
   FLsDisabledNoticeLbl.Font.Color := CLR_TEXT_MUTED;
   FLsDisabledNoticeLbl.Font.Size := 9;
   FLsDisabledNoticeLbl.Visible := False;
@@ -2721,8 +2722,8 @@ begin
   // Mode Selection
   FLsFgModeTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFgModeTitleLbl.Parent := FLsFrameGenCard;
-  FLsFgModeTitleLbl.Caption := 'Frame Generation Mode';
-  FLsFgModeTitleLbl.Hint := 'Choose between Fixed Multiplier (2x-5x) or Adaptive Frame Generation';
+  FLsFgModeTitleLbl.Caption := rsFrameGenerationMode;
+  FLsFgModeTitleLbl.Hint := rsChooseBetweenFixedMultiplier2x5x;
   FLsFgModeTitleLbl.ShowHint := True;
   FLsFgModeTitleLbl.Visible := False;
   StyleLabel(FLsFgModeTitleLbl, lrControlLabel);
@@ -2740,8 +2741,8 @@ begin
   // Fixed Multiplier Sliders
   FLsMultiplierTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierTitleLbl.Parent := FLsFrameGenCard;
-  FLsMultiplierTitleLbl.Caption := 'Multiplier';
-  FLsMultiplierTitleLbl.Hint := 'Frame generation multiplier: 1x (disabled), 2x, 3x, 4x, 5x';
+  FLsMultiplierTitleLbl.Caption := rsMultiplier;
+  FLsMultiplierTitleLbl.Hint := rsFrameGenerationMultiplier1xDisabled2x;
   FLsMultiplierTitleLbl.ShowHint := True;
   FLsMultiplierTitleLbl.Visible := False;
   StyleLabel(FLsMultiplierTitleLbl, lrControlLabel);
@@ -2752,14 +2753,14 @@ begin
   FLsMultiplierTrackBar.Max := 5;
   FLsMultiplierTrackBar.Position := 1;
   FLsMultiplierTrackBar.TickStyle := tsNone;
-  FLsMultiplierTrackBar.Hint := 'Frame generation multiplier: 1x (disabled), 2x, 3x, 4x, 5x';
+  FLsMultiplierTrackBar.Hint := rsFrameGenerationMultiplier1xDisabled2x;
   FLsMultiplierTrackBar.ShowHint := True;
   FLsMultiplierTrackBar.Visible := False;
   FLsMultiplierTrackBar.OnChange := @MultiplierChange;
   
   FLsMultiplierValueLabel := TLabel.Create(FLsFrameGenCard);
   FLsMultiplierValueLabel.Parent := FLsFrameGenCard;
-  FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+  FLsMultiplierValueLabel.Caption := rs1xDisabled;
   FLsMultiplierValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsMultiplierValueLabel.Font.Style := [fsBold];
   FLsMultiplierValueLabel.Visible := False;
@@ -2767,8 +2768,8 @@ begin
   // Adaptive Controls
   FLsTargetFpsTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsTargetFpsTitleLbl.Parent := FLsFrameGenCard;
-  FLsTargetFpsTitleLbl.Caption := 'Target FPS';
-  FLsTargetFpsTitleLbl.Hint := 'Dynamic multiplier targets this framerate based on input FPS (30 - 240 FPS)';
+  FLsTargetFpsTitleLbl.Caption := rsTargetFPS;
+  FLsTargetFpsTitleLbl.Hint := rsDynamicMultiplierTargetsThisFramerateBased;
   FLsTargetFpsTitleLbl.ShowHint := True;
   FLsTargetFpsTitleLbl.Visible := False;
   StyleLabel(FLsTargetFpsTitleLbl, lrControlLabel);
@@ -2779,7 +2780,7 @@ begin
   FLsTargetFpsTrackBar.Max := 240;
   FLsTargetFpsTrackBar.Position := 90;
   FLsTargetFpsTrackBar.TickStyle := tsNone;
-  FLsTargetFpsTrackBar.Hint := 'Dynamic multiplier targets this framerate based on input FPS';
+  FLsTargetFpsTrackBar.Hint := rsDynamicMultiplierTargetsThisFramerateBased2;
   FLsTargetFpsTrackBar.ShowHint := True;
   FLsTargetFpsTrackBar.Visible := False;
   FLsTargetFpsTrackBar.OnChange := @TargetFpsChange;
@@ -2793,8 +2794,8 @@ begin
 
   FLsAdaptiveMaxMultTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsAdaptiveMaxMultTitleLbl.Parent := FLsFrameGenCard;
-  FLsAdaptiveMaxMultTitleLbl.Caption := 'Max Multiplier Ceiling';
-  FLsAdaptiveMaxMultTitleLbl.Hint := 'Maximum multiplier allowed in adaptive mode';
+  FLsAdaptiveMaxMultTitleLbl.Caption := rsMaxMultiplierCeiling;
+  FLsAdaptiveMaxMultTitleLbl.Hint := rsMaximumMultiplierAllowedInAdaptiveMode;
   FLsAdaptiveMaxMultTitleLbl.ShowHint := True;
   FLsAdaptiveMaxMultTitleLbl.Visible := False;
   StyleLabel(FLsAdaptiveMaxMultTitleLbl, lrControlLabel);
@@ -2814,8 +2815,8 @@ begin
   FLsSteady2xCapCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsSteady2xCapCheckBox.Parent := FLsFrameGenCard;
   FLsSteady2xCapCheckBox.ParentColor := True;
-  FLsSteady2xCapCheckBox.Caption := 'Steady 2x Base FPS Cap';
-  FLsSteady2xCapCheckBox.Hint := 'Prevents multiplier churning between 1x and 2x by enforcing target/2 base cap';
+  FLsSteady2xCapCheckBox.Caption := rsSteady2xBaseFPSCap;
+  FLsSteady2xCapCheckBox.Hint := rsPreventsMultiplierChurningBetween1xAnd;
   FLsSteady2xCapCheckBox.ShowHint := True;
   FLsSteady2xCapCheckBox.OnChange := @ControlStateChange;
   FLsSteady2xCapCheckBox.Visible := False;
@@ -2830,8 +2831,8 @@ begin
   FLsSmoothCadenceCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsSmoothCadenceCheckBox.Parent := FLsFrameGenCard;
   FLsSmoothCadenceCheckBox.ParentColor := True;
-  FLsSmoothCadenceCheckBox.Caption := 'Smooth Cadence';
-  FLsSmoothCadenceCheckBox.Hint := 'Smooth transitions during multiplier switching';
+  FLsSmoothCadenceCheckBox.Caption := rsSmoothCadence;
+  FLsSmoothCadenceCheckBox.Hint := rsSmoothTransitionsDuringMultiplierSwitching;
   FLsSmoothCadenceCheckBox.ShowHint := True;
   FLsSmoothCadenceCheckBox.OnChange := @ControlStateChange;
   FLsSmoothCadenceCheckBox.Visible := False;
@@ -2846,8 +2847,8 @@ begin
   // Flow Scale
   FLsFlowScaleTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsFlowScaleTitleLbl.Parent := FLsFrameGenCard;
-  FLsFlowScaleTitleLbl.Caption := 'Flow Scale';
-  FLsFlowScaleTitleLbl.Hint := 'Motion estimation resolution scale (default 90% recommended by MAKO)';
+  FLsFlowScaleTitleLbl.Caption := rsFlowScale;
+  FLsFlowScaleTitleLbl.Hint := rsMotionEstimationResolutionScaleDefault90;
   FLsFlowScaleTitleLbl.ShowHint := True;
   FLsFlowScaleTitleLbl.Visible := False;
   StyleLabel(FLsFlowScaleTitleLbl, lrControlLabel);
@@ -2858,7 +2859,7 @@ begin
   FLsFlowScaleTrackBar.Max := 100;
   FLsFlowScaleTrackBar.Position := 100;
   FLsFlowScaleTrackBar.TickStyle := tsNone;
-  FLsFlowScaleTrackBar.Hint := 'Motion estimation resolution scale';
+  FLsFlowScaleTrackBar.Hint := rsMotionEstimationResolutionScale;
   FLsFlowScaleTrackBar.ShowHint := True;
   FLsFlowScaleTrackBar.Visible := False;
   FLsFlowScaleTrackBar.OnChange := @FlowScaleChange;
@@ -2873,8 +2874,8 @@ begin
   // Base FPS Cap
   FLsBaseFpsCapTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsBaseFpsCapTitleLbl.Parent := FLsFrameGenCard;
-  FLsBaseFpsCapTitleLbl.Caption := 'Base FPS Cap';
-  FLsBaseFpsCapTitleLbl.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
+  FLsBaseFpsCapTitleLbl.Caption := rsBaseFPSCap;
+  FLsBaseFpsCapTitleLbl.Hint := rsLimitsTheGameSNativeBase;
   FLsBaseFpsCapTitleLbl.ShowHint := True;
   FLsBaseFpsCapTitleLbl.Visible := False;
   StyleLabel(FLsBaseFpsCapTitleLbl, lrControlLabel);
@@ -2885,14 +2886,14 @@ begin
   FLsBaseFpsCapTrackBar.Max := 240;
   FLsBaseFpsCapTrackBar.Position := 0;
   FLsBaseFpsCapTrackBar.TickStyle := tsNone;
-  FLsBaseFpsCapTrackBar.Hint := 'Limits the game''s native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)';
+  FLsBaseFpsCapTrackBar.Hint := rsLimitsTheGameSNativeBase;
   FLsBaseFpsCapTrackBar.ShowHint := True;
   FLsBaseFpsCapTrackBar.Visible := False;
   FLsBaseFpsCapTrackBar.OnChange := @BaseFpsCapChange;
 
   FLsBaseFpsCapValueLabel := TLabel.Create(FLsFrameGenCard);
   FLsBaseFpsCapValueLabel.Parent := FLsFrameGenCard;
-  FLsBaseFpsCapValueLabel.Caption := 'Disabled';
+  FLsBaseFpsCapValueLabel.Caption := rsDisabled;
   FLsBaseFpsCapValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsBaseFpsCapValueLabel.Font.Style := [fsBold];
   FLsBaseFpsCapValueLabel.Visible := False;
@@ -2900,8 +2901,8 @@ begin
   // Refresh Threshold
   FLsRefreshThresholdTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsRefreshThresholdTitleLbl.Parent := FLsFrameGenCard;
-  FLsRefreshThresholdTitleLbl.Caption := 'Refresh Threshold';
-  FLsRefreshThresholdTitleLbl.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
+  FLsRefreshThresholdTitleLbl.Caption := rsRefreshThreshold;
+  FLsRefreshThresholdTitleLbl.Hint := rsMinimumDisplayRefreshRateHzRequired;
   FLsRefreshThresholdTitleLbl.ShowHint := True;
   FLsRefreshThresholdTitleLbl.Visible := False;
   StyleLabel(FLsRefreshThresholdTitleLbl, lrControlLabel);
@@ -2912,14 +2913,14 @@ begin
   FLsRefreshThresholdTrackBar.Max := 240;
   FLsRefreshThresholdTrackBar.Position := 0;
   FLsRefreshThresholdTrackBar.TickStyle := tsNone;
-  FLsRefreshThresholdTrackBar.Hint := 'Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)';
+  FLsRefreshThresholdTrackBar.Hint := rsMinimumDisplayRefreshRateHzRequired;
   FLsRefreshThresholdTrackBar.ShowHint := True;
   FLsRefreshThresholdTrackBar.Visible := False;
   FLsRefreshThresholdTrackBar.OnChange := @RefreshThresholdChange;
 
   FLsRefreshThresholdValueLabel := TLabel.Create(FLsFrameGenCard);
   FLsRefreshThresholdValueLabel.Parent := FLsFrameGenCard;
-  FLsRefreshThresholdValueLabel.Caption := 'Disabled';
+  FLsRefreshThresholdValueLabel.Caption := rsDisabled;
   FLsRefreshThresholdValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FLsRefreshThresholdValueLabel.Font.Style := [fsBold];
   FLsRefreshThresholdValueLabel.Visible := False;
@@ -2928,8 +2929,8 @@ begin
   FLsFgLiveCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsFgLiveCheckBox.Parent := FLsFrameGenCard;
   FLsFgLiveCheckBox.ParentColor := True;
-  FLsFgLiveCheckBox.Caption := 'Live FG Switch';
-  FLsFgLiveCheckBox.Hint := 'Toggle frame generation runtime activation';
+  FLsFgLiveCheckBox.Caption := rsLiveFGSwitch;
+  FLsFgLiveCheckBox.Hint := rsToggleFrameGenerationRuntimeActivation;
   FLsFgLiveCheckBox.ShowHint := True;
   FLsFgLiveCheckBox.OnChange := @ControlStateChange;
   FLsFgLiveCheckBox.Visible := False;
@@ -2944,8 +2945,8 @@ begin
   FLsAllowFp16CheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsAllowFp16CheckBox.Parent := FLsFrameGenCard;
   FLsAllowFp16CheckBox.ParentColor := True;
-  FLsAllowFp16CheckBox.Caption := 'FP16 Acceleration';
-  FLsAllowFp16CheckBox.Hint := 'Uses 16-bit half-precision math for frame generation. Recommended ON for AMD GPUs (significant performance uplift), but recommended OFF for NVIDIA GPUs.';
+  FLsAllowFp16CheckBox.Caption := rsFP16Acceleration;
+  FLsAllowFp16CheckBox.Hint := rsUses16BitHalfPrecisionMath;
   FLsAllowFp16CheckBox.ShowHint := True;
   FLsAllowFp16CheckBox.OnChange := @ControlStateChange;
   FLsAllowFp16CheckBox.Visible := False;
@@ -2960,8 +2961,8 @@ begin
   FLsPerfModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPerfModeCheckBox.Parent := FLsFrameGenCard;
   FLsPerfModeCheckBox.ParentColor := True;
-  FLsPerfModeCheckBox.Caption := 'Performance Mode';
-  FLsPerfModeCheckBox.Hint := 'Switches to the lighter LSFG neural network model, reducing GPU render time by 30-40% with minimal image quality loss. Recommended if the game is GPU-bound.';
+  FLsPerfModeCheckBox.Caption := rsPerformanceMode;
+  FLsPerfModeCheckBox.Hint := rsSwitchesToTheLighterLSFGNeural;
   FLsPerfModeCheckBox.ShowHint := True;
   FLsPerfModeCheckBox.OnChange := @ControlStateChange;
   FLsPerfModeCheckBox.Visible := False;
@@ -2976,8 +2977,8 @@ begin
   FLsUltraPerfCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsUltraPerfCheckBox.Parent := FLsFrameGenCard;
   FLsUltraPerfCheckBox.ParentColor := True;
-  FLsUltraPerfCheckBox.Caption := 'Ultra Performance';
-  FLsUltraPerfCheckBox.Hint := 'Aggressive Vulkan compute optimizations (downsamples optical flow vectors and skips high-precision passes). Maximizes FPS on low-end GPUs or handhelds, but may introduce visual artifacts.';
+  FLsUltraPerfCheckBox.Caption := rsUltraPerformance;
+  FLsUltraPerfCheckBox.Hint := rsAggressiveVulkanComputeOptimizationsDownsamp;
   FLsUltraPerfCheckBox.ShowHint := True;
   FLsUltraPerfCheckBox.OnChange := @ControlStateChange;
   FLsUltraPerfCheckBox.Visible := False;
@@ -2992,7 +2993,7 @@ begin
   // Compatibility Toggles for Tests
   FLsHdrModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsHdrModeCheckBox.Parent := FLsFrameGenCard;
-  FLsHdrModeCheckBox.Caption := 'HDR Mode';
+  FLsHdrModeCheckBox.Caption := rsHDRMode;
   FLsHdrModeCheckBox.Visible := False;
   FLsHdrModeToggle := TToggleSwitch.Create(FForm);
   FLsHdrModeToggle.Parent := FLsFrameGenCard;
@@ -3001,8 +3002,8 @@ begin
 
   FLsNoFp16CheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsNoFp16CheckBox.Parent := FLsFrameGenCard;
-  FLsNoFp16CheckBox.Caption := 'Disable FP16 / Half-Precision';
-  FLsNoFp16CheckBox.Hint := 'Has a giant performance uplift on AMD GPUs.';
+  FLsNoFp16CheckBox.Caption := rsDisableFP16HalfPrecision;
+  FLsNoFp16CheckBox.Hint := rsHasAGiantPerformanceUpliftOn;
   FLsNoFp16CheckBox.OnChange := @ControlStateChange;
   FLsNoFp16CheckBox.Visible := False;
   FLsNoFp16Toggle := TToggleSwitch.Create(FForm);
@@ -3014,8 +3015,8 @@ begin
   FLsOverridePresentModeCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsOverridePresentModeCheckBox.Parent := FLsFrameGenCard;
   FLsOverridePresentModeCheckBox.ParentColor := True;
-  FLsOverridePresentModeCheckBox.Caption := 'Override Present Mode';
-  FLsOverridePresentModeCheckBox.Hint := 'Forces the presentation engine to use the selected pacing mode. Recommended: On (upstream default).';
+  FLsOverridePresentModeCheckBox.Caption := rsOverridePresentMode;
+  FLsOverridePresentModeCheckBox.Hint := rsForcesThePresentationEngineToUse;
   FLsOverridePresentModeCheckBox.ShowHint := True;
   FLsOverridePresentModeCheckBox.Checked := True;
   FLsOverridePresentModeCheckBox.OnChange := @ControlStateChange;
@@ -3031,8 +3032,8 @@ begin
   FLsPreserveSwapchainCheckBox := TCheckBox.Create(FLsFrameGenCard);
   FLsPreserveSwapchainCheckBox.Parent := FLsFrameGenCard;
   FLsPreserveSwapchainCheckBox.ParentColor := True;
-  FLsPreserveSwapchainCheckBox.Caption := 'Preserve Swapchain Count';
-  FLsPreserveSwapchainCheckBox.Hint := 'Preserves the application swapchain image count. May resolve issues with games sensitive to swapchain resizing. Recommended: Off (upstream default).';
+  FLsPreserveSwapchainCheckBox.Caption := rsPreserveSwapchainCount;
+  FLsPreserveSwapchainCheckBox.Hint := rsPreservesTheApplicationSwapchainImageCount;
   FLsPreserveSwapchainCheckBox.ShowHint := True;
   FLsPreserveSwapchainCheckBox.Checked := False;
   FLsPreserveSwapchainCheckBox.OnChange := @ControlStateChange;
@@ -3048,8 +3049,8 @@ begin
   // Dropdowns (Pacing)
   FLsPacingTitleLbl := TLabel.Create(FLsFrameGenCard);
   FLsPacingTitleLbl.Parent := FLsFrameGenCard;
-  FLsPacingTitleLbl.Caption := 'Pacing Mode';
-  FLsPacingTitleLbl.Hint := 'Frame pacing mode to use';
+  FLsPacingTitleLbl.Caption := rsPacingMode;
+  FLsPacingTitleLbl.Hint := rsFramePacingModeToUse;
   FLsPacingTitleLbl.ShowHint := True;
   FLsPacingTitleLbl.Visible := False;
   StyleLabel(FLsPacingTitleLbl, lrControlLabel);
@@ -3060,7 +3061,7 @@ begin
   FLsPacingComboBox.Items.Add('vsync (Default / Recommended)');
   FLsPacingComboBox.Items.Add('none (No Frame Pacing)');
   FLsPacingComboBox.ItemIndex := 0;
-  FLsPacingComboBox.Hint := 'Frame pacing synchronization mode (vsync or none)';
+  FLsPacingComboBox.Hint := rsFramePacingSynchronizationModeVsyncOr;
   FLsPacingComboBox.ShowHint := True;
   FLsPacingComboBox.OnChange := @ControlStateChange;
   FLsPacingComboBox.Visible := False;
@@ -3079,8 +3080,8 @@ begin
   FLsScalingEnableCheckBox := TCheckBox.Create(FLsSpatialCard);
   FLsScalingEnableCheckBox.Parent := FLsSpatialCard;
   FLsScalingEnableCheckBox.ParentColor := True;
-  FLsScalingEnableCheckBox.Caption := 'Enable Spatial Scaling';
-  FLsScalingEnableCheckBox.Hint := 'Upscale the game resolution before frame generation';
+  FLsScalingEnableCheckBox.Caption := rsEnableSpatialScaling;
+  FLsScalingEnableCheckBox.Hint := rsUpscaleTheGameResolutionBeforeFrame;
   FLsScalingEnableCheckBox.ShowHint := True;
   FLsScalingEnableCheckBox.OnChange := @ControlStateChange;
   FLsScalingEnableCheckBox.Visible := False;
@@ -3094,8 +3095,8 @@ begin
 
   FLsScalingMethodTitleLbl := TLabel.Create(FLsSpatialCard);
   FLsScalingMethodTitleLbl.Parent := FLsSpatialCard;
-  FLsScalingMethodTitleLbl.Caption := 'Scaling Method';
-  FLsScalingMethodTitleLbl.Hint := 'Upscaling algorithm (LS1 requires Lossless.dll)';
+  FLsScalingMethodTitleLbl.Caption := rsScalingMethod;
+  FLsScalingMethodTitleLbl.Hint := rsUpscalingAlgorithmLS1RequiresLosslessDll;
   FLsScalingMethodTitleLbl.ShowHint := True;
   StyleLabel(FLsScalingMethodTitleLbl, lrControlLabel);
 
@@ -3113,8 +3114,8 @@ begin
 
   FLsScalingFactorTitleLbl := TLabel.Create(FLsSpatialCard);
   FLsScalingFactorTitleLbl.Parent := FLsSpatialCard;
-  FLsScalingFactorTitleLbl.Caption := 'Scaling Factor';
-  FLsScalingFactorTitleLbl.Hint := 'Resolution scale factor: 1.00x to 2.00x';
+  FLsScalingFactorTitleLbl.Caption := rsScalingFactor;
+  FLsScalingFactorTitleLbl.Hint := rsResolutionScaleFactor100xTo;
   FLsScalingFactorTitleLbl.ShowHint := True;
   StyleLabel(FLsScalingFactorTitleLbl, lrControlLabel);
 
@@ -3124,7 +3125,7 @@ begin
   FLsScalingFactorTrackBar.Max := 200;
   FLsScalingFactorTrackBar.Position := 150;
   FLsScalingFactorTrackBar.TickStyle := tsNone;
-  FLsScalingFactorTrackBar.Hint := 'Scale factor: 1.00x to 2.00x';
+  FLsScalingFactorTrackBar.Hint := rsScaleFactor100xTo2;
   FLsScalingFactorTrackBar.ShowHint := True;
   FLsScalingFactorTrackBar.OnChange := @ScalingFactorChange;
 
@@ -3137,7 +3138,7 @@ begin
   FLsScalingSharpnessTitleLbl := TLabel.Create(FLsSpatialCard);
   FLsScalingSharpnessTitleLbl.Parent := FLsSpatialCard;
   FLsScalingSharpnessTitleLbl.Caption := 'Sharpness';
-  FLsScalingSharpnessTitleLbl.Hint := 'Post-upscale sharpening amount (0.00 to 1.00)';
+  FLsScalingSharpnessTitleLbl.Hint := rsPostUpscaleSharpeningAmount000;
   FLsScalingSharpnessTitleLbl.ShowHint := True;
   StyleLabel(FLsScalingSharpnessTitleLbl, lrControlLabel);
 
@@ -3147,7 +3148,7 @@ begin
   FLsScalingSharpnessTrackBar.Max := 100;
   FLsScalingSharpnessTrackBar.Position := 80;
   FLsScalingSharpnessTrackBar.TickStyle := tsNone;
-  FLsScalingSharpnessTrackBar.Hint := 'Sharpness amount';
+  FLsScalingSharpnessTrackBar.Hint := rsSharpnessAmount;
   FLsScalingSharpnessTrackBar.ShowHint := True;
   FLsScalingSharpnessTrackBar.OnChange := @ScalingSharpnessChange;
 
@@ -3160,8 +3161,8 @@ begin
   FLsScalingSupersamplingCheckBox := TCheckBox.Create(FLsSpatialCard);
   FLsScalingSupersamplingCheckBox.Parent := FLsSpatialCard;
   FLsScalingSupersamplingCheckBox.ParentColor := True;
-  FLsScalingSupersamplingCheckBox.Caption := 'Quality Supersampling';
-  FLsScalingSupersamplingCheckBox.Hint := 'Enhance edge anti-aliasing during upscaling';
+  FLsScalingSupersamplingCheckBox.Caption := rsQualitySupersampling;
+  FLsScalingSupersamplingCheckBox.Hint := rsEnhanceEdgeAntiAliasingDuringUpscaling;
   FLsScalingSupersamplingCheckBox.ShowHint := True;
   FLsScalingSupersamplingCheckBox.OnChange := @ControlStateChange;
   FLsScalingSupersamplingCheckBox.Visible := False;
@@ -3187,8 +3188,8 @@ begin
 
   FAfmfPerfModeTitleLbl := TLabel.Create(FAfmfPerfCard);
   FAfmfPerfModeTitleLbl.Parent := FAfmfPerfCard;
-  FAfmfPerfModeTitleLbl.Caption := 'Performance Mode';
-  FAfmfPerfModeTitleLbl.Hint := 'Toggles optical flow performance and quality balance (AFMF_PERFORMANCE_MODE)';
+  FAfmfPerfModeTitleLbl.Caption := rsPerformanceMode;
+  FAfmfPerfModeTitleLbl.Hint := rsTogglesOpticalFlowPerformanceAndQuality;
   FAfmfPerfModeTitleLbl.ShowHint := True;
   StyleLabel(FAfmfPerfModeTitleLbl, lrControlLabel);
 
@@ -3199,15 +3200,15 @@ begin
   FAfmfPerfModeComboBox.Items.Add('Quality');
   FAfmfPerfModeComboBox.Items.Add('Performance');
   FAfmfPerfModeComboBox.ItemIndex := 0;
-  FAfmfPerfModeComboBox.Hint := 'Optical flow trade-off between speed and visual fidelity';
+  FAfmfPerfModeComboBox.Hint := rsOpticalFlowTradeOffBetweenSpeed;
   FAfmfPerfModeComboBox.ShowHint := True;
   FAfmfPerfModeComboBox.OnChange := @AfmfControlChange;
   StyleInputControl(FAfmfPerfModeComboBox);
 
   FAfmfSearchModeTitleLbl := TLabel.Create(FAfmfPerfCard);
   FAfmfSearchModeTitleLbl.Parent := FAfmfPerfCard;
-  FAfmfSearchModeTitleLbl.Caption := 'Search Mode';
-  FAfmfSearchModeTitleLbl.Hint := 'Search radius for motion vectors (AFMF_SEARCH_MODE)';
+  FAfmfSearchModeTitleLbl.Caption := rsSearchMode;
+  FAfmfSearchModeTitleLbl.Hint := rsSearchRadiusForMotionVectorsAFMF;
   FAfmfSearchModeTitleLbl.ShowHint := True;
   StyleLabel(FAfmfSearchModeTitleLbl, lrControlLabel);
 
@@ -3218,15 +3219,15 @@ begin
   FAfmfSearchModeComboBox.Items.Add('Standard');
   FAfmfSearchModeComboBox.Items.Add('High');
   FAfmfSearchModeComboBox.ItemIndex := 0;
-  FAfmfSearchModeComboBox.Hint := 'Motion vector search radius';
+  FAfmfSearchModeComboBox.Hint := rsMotionVectorSearchRadius;
   FAfmfSearchModeComboBox.ShowHint := True;
   FAfmfSearchModeComboBox.OnChange := @AfmfControlChange;
   StyleInputControl(FAfmfSearchModeComboBox);
 
   FAfmfFastMotionTitleLbl := TLabel.Create(FAfmfPerfCard);
   FAfmfFastMotionTitleLbl.Parent := FAfmfPerfCard;
-  FAfmfFastMotionTitleLbl.Caption := 'Fast Motion Fallback';
-  FAfmfFastMotionTitleLbl.Hint := 'Behavior during fast camera pans (AFMF_FAST_MOTION_RESPONSE)';
+  FAfmfFastMotionTitleLbl.Caption := rsFastMotionFallback;
+  FAfmfFastMotionTitleLbl.Hint := rsBehaviorDuringFastCameraPansAFMF;
   FAfmfFastMotionTitleLbl.ShowHint := True;
   StyleLabel(FAfmfFastMotionTitleLbl, lrControlLabel);
 
@@ -3236,7 +3237,7 @@ begin
   FAfmfFastMotionComboBox.Items.Add('Blend (Smoother)');
   FAfmfFastMotionComboBox.Items.Add('Repeat (Crisper)');
   FAfmfFastMotionComboBox.ItemIndex := 0;
-  FAfmfFastMotionComboBox.Hint := 'Fallback strategy when motion is too rapid for vector calculation';
+  FAfmfFastMotionComboBox.Hint := rsFallbackStrategyWhenMotionIsToo;
   FAfmfFastMotionComboBox.ShowHint := True;
   FAfmfFastMotionComboBox.OnChange := @AfmfControlChange;
   StyleInputControl(FAfmfFastMotionComboBox);
@@ -3256,8 +3257,8 @@ begin
   FAfmfPacingCheckBox := TCheckBox.Create(FAfmfPacingCard);
   FAfmfPacingCheckBox.Parent := FAfmfPacingCard;
   FAfmfPacingCheckBox.ParentColor := True;
-  FAfmfPacingCheckBox.Caption := 'Frame Pacing';
-  FAfmfPacingCheckBox.Hint := 'Smooths frame presentation timing (AFMF_PACING)';
+  FAfmfPacingCheckBox.Caption := rsFramePacing;
+  FAfmfPacingCheckBox.Hint := rsSmoothsFramePresentationTimingAFMFPACING;
   FAfmfPacingCheckBox.ShowHint := True;
   FAfmfPacingCheckBox.Checked := True;
   FAfmfPacingCheckBox.OnChange := @AfmfControlChange;
@@ -3274,8 +3275,8 @@ begin
   FAfmfGovernorCheckBox := TCheckBox.Create(FAfmfPacingCard);
   FAfmfGovernorCheckBox.Parent := FAfmfPacingCard;
   FAfmfGovernorCheckBox.ParentColor := True;
-  FAfmfGovernorCheckBox.Caption := 'GPU Governor';
-  FAfmfGovernorCheckBox.Hint := 'Allows GPU clock governor to throttle for power efficiency (AFMF_GOVERNOR)';
+  FAfmfGovernorCheckBox.Caption := rsGPUGovernor;
+  FAfmfGovernorCheckBox.Hint := rsAllowsGPUClockGovernorToThrottle;
   FAfmfGovernorCheckBox.ShowHint := True;
   FAfmfGovernorCheckBox.Checked := False;
   FAfmfGovernorCheckBox.OnChange := @AfmfControlChange;
@@ -3291,8 +3292,8 @@ begin
 
   FAfmfPresentModeTitleLbl := TLabel.Create(FAfmfPacingCard);
   FAfmfPresentModeTitleLbl.Parent := FAfmfPacingCard;
-  FAfmfPresentModeTitleLbl.Caption := 'Present Mode';
-  FAfmfPresentModeTitleLbl.Hint := 'Swapchain presentation mode (AFMF_PRESENT_MODE)';
+  FAfmfPresentModeTitleLbl.Caption := rsPresentMode;
+  FAfmfPresentModeTitleLbl.Hint := rsSwapchainPresentationModeAFMFPRESENTMODE;
   FAfmfPresentModeTitleLbl.ShowHint := True;
   StyleLabel(FAfmfPresentModeTitleLbl, lrControlLabel);
 
@@ -3302,15 +3303,15 @@ begin
   FAfmfPresentModeComboBox.Items.Add('Auto (Recommended)');
   FAfmfPresentModeComboBox.Items.Add('Keep Swapchain Mode');
   FAfmfPresentModeComboBox.ItemIndex := 0;
-  FAfmfPresentModeComboBox.Hint := 'Controls whether presentation mode is automatically adjusted';
+  FAfmfPresentModeComboBox.Hint := rsControlsWhetherPresentationModeIsAutomatical;
   FAfmfPresentModeComboBox.ShowHint := True;
   FAfmfPresentModeComboBox.OnChange := @AfmfControlChange;
   StyleInputControl(FAfmfPresentModeComboBox);
 
   FAfmfMinFpsTitleLbl := TLabel.Create(FAfmfPacingCard);
   FAfmfMinFpsTitleLbl.Parent := FAfmfPacingCard;
-  FAfmfMinFpsTitleLbl.Caption := 'Minimum FPS Floor';
-  FAfmfMinFpsTitleLbl.Hint := 'Bypasses frame interpolation if game FPS drops below this floor (AFMF_MIN_FPS)';
+  FAfmfMinFpsTitleLbl.Caption := rsMinimumFPSFloor;
+  FAfmfMinFpsTitleLbl.Hint := rsBypassesFrameInterpolationIfGameFPS;
   FAfmfMinFpsTitleLbl.ShowHint := True;
   StyleLabel(FAfmfMinFpsTitleLbl, lrControlLabel);
 
@@ -3320,7 +3321,7 @@ begin
   FAfmfMinFpsTrackBar.Max := 120;
   FAfmfMinFpsTrackBar.Position := 30;
   FAfmfMinFpsTrackBar.TickStyle := tsNone;
-  FAfmfMinFpsTrackBar.Hint := 'Minimum base framerate required for AFMF interpolation (0 = Uncapped)';
+  FAfmfMinFpsTrackBar.Hint := rsMinimumBaseFramerateRequiredForAFMF;
   FAfmfMinFpsTrackBar.ShowHint := True;
   FAfmfMinFpsTrackBar.OnChange := @AfmfMinFpsTrackBarChange;
 
@@ -3345,8 +3346,8 @@ begin
   FAfmfHudDetectCheckBox := TCheckBox.Create(FAfmfOptCard);
   FAfmfHudDetectCheckBox.Parent := FAfmfOptCard;
   FAfmfHudDetectCheckBox.ParentColor := True;
-  FAfmfHudDetectCheckBox.Caption := 'HUD Detection';
-  FAfmfHudDetectCheckBox.Hint := 'Excludes static user interface and text elements from motion estimation (AFMF_HUD_DETECT)';
+  FAfmfHudDetectCheckBox.Caption := rsHUDDetection;
+  FAfmfHudDetectCheckBox.Hint := rsExcludesStaticUserInterfaceAndText;
   FAfmfHudDetectCheckBox.ShowHint := True;
   FAfmfHudDetectCheckBox.Checked := True;
   FAfmfHudDetectCheckBox.OnChange := @AfmfControlChange;
@@ -3363,8 +3364,8 @@ begin
   FAfmfGamescopeCheckBox := TCheckBox.Create(FAfmfOptCard);
   FAfmfGamescopeCheckBox.Parent := FAfmfOptCard;
   FAfmfGamescopeCheckBox.ParentColor := True;
-  FAfmfGamescopeCheckBox.Caption := 'Gamescope Compatibility';
-  FAfmfGamescopeCheckBox.Hint := 'Allocates extra swapchain images for Gamescope compositors (AFMF_GAMESCOPE)';
+  FAfmfGamescopeCheckBox.Caption := rsGamescopeCompatibility;
+  FAfmfGamescopeCheckBox.Hint := rsAllocatesExtraSwapchainImagesForGamescope;
   FAfmfGamescopeCheckBox.ShowHint := True;
   FAfmfGamescopeCheckBox.Checked := False;
   FAfmfGamescopeCheckBox.OnChange := @AfmfControlChange;
@@ -3381,8 +3382,8 @@ begin
   FAfmfDirectIngestCheckBox := TCheckBox.Create(FAfmfOptCard);
   FAfmfDirectIngestCheckBox.Parent := FAfmfOptCard;
   FAfmfDirectIngestCheckBox.ParentColor := True;
-  FAfmfDirectIngestCheckBox.Caption := 'Direct Ingest';
-  FAfmfDirectIngestCheckBox.Hint := 'Bypasses intermediate color copies during optical flow ingest (AFMF_DIRECT_INGEST)';
+  FAfmfDirectIngestCheckBox.Caption := rsDirectIngest;
+  FAfmfDirectIngestCheckBox.Hint := rsBypassesIntermediateColorCopiesDuringOptical;
   FAfmfDirectIngestCheckBox.ShowHint := True;
   FAfmfDirectIngestCheckBox.Checked := False;
   FAfmfDirectIngestCheckBox.OnChange := @AfmfControlChange;
@@ -3399,8 +3400,8 @@ begin
   FAfmfDirectOutputCheckBox := TCheckBox.Create(FAfmfOptCard);
   FAfmfDirectOutputCheckBox.Parent := FAfmfOptCard;
   FAfmfDirectOutputCheckBox.ParentColor := True;
-  FAfmfDirectOutputCheckBox.Caption := 'Direct Output';
-  FAfmfDirectOutputCheckBox.Hint := 'Writes generated frames directly to swapchain render targets (AFMF_DIRECT_OUTPUT)';
+  FAfmfDirectOutputCheckBox.Caption := rsDirectOutput;
+  FAfmfDirectOutputCheckBox.Hint := rsWritesGeneratedFramesDirectlyToSwapchain;
   FAfmfDirectOutputCheckBox.ShowHint := True;
   FAfmfDirectOutputCheckBox.Checked := False;
   FAfmfDirectOutputCheckBox.OnChange := @AfmfControlChange;
@@ -3417,8 +3418,8 @@ begin
   FAfmfAsyncCheckBox := TCheckBox.Create(FAfmfOptCard);
   FAfmfAsyncCheckBox.Parent := FAfmfOptCard;
   FAfmfAsyncCheckBox.ParentColor := True;
-  FAfmfAsyncCheckBox.Caption := 'Async Compute Queue';
-  FAfmfAsyncCheckBox.Hint := 'Executes optical flow shaders on asynchronous compute queue (AFMF_ASYNC)';
+  FAfmfAsyncCheckBox.Caption := rsAsyncComputeQueue;
+  FAfmfAsyncCheckBox.Hint := rsExecutesOpticalFlowShadersOnAsynchronous;
   FAfmfAsyncCheckBox.ShowHint := True;
   FAfmfAsyncCheckBox.Checked := False;
   FAfmfAsyncCheckBox.OnChange := @AfmfControlChange;
@@ -3434,8 +3435,8 @@ begin
 
   FAfmfStaticSadTitleLbl := TLabel.Create(FAfmfOptCard);
   FAfmfStaticSadTitleLbl.Parent := FAfmfOptCard;
-  FAfmfStaticSadTitleLbl.Caption := 'Static Block SAD Threshold';
-  FAfmfStaticSadTitleLbl.Hint := 'Sum of Absolute Differences threshold for stationary blocks (AFMF_STATIC_BLOCK_SAD)';
+  FAfmfStaticSadTitleLbl.Caption := rsStaticBlockSADThreshold;
+  FAfmfStaticSadTitleLbl.Hint := rsSumOfAbsoluteDifferencesThresholdFor;
   FAfmfStaticSadTitleLbl.ShowHint := True;
   StyleLabel(FAfmfStaticSadTitleLbl, lrControlLabel);
 
@@ -3445,13 +3446,13 @@ begin
   FAfmfStaticSadTrackBar.Max := 100;
   FAfmfStaticSadTrackBar.Position := 0;
   FAfmfStaticSadTrackBar.TickStyle := tsNone;
-  FAfmfStaticSadTrackBar.Hint := 'Sensitivity for detecting stationary blocks (0 = Auto/Disabled)';
+  FAfmfStaticSadTrackBar.Hint := rsSensitivityForDetectingStationaryBlocks0;
   FAfmfStaticSadTrackBar.ShowHint := True;
   FAfmfStaticSadTrackBar.OnChange := @AfmfStaticSadTrackBarChange;
 
   FAfmfStaticSadValueLabel := TLabel.Create(FAfmfOptCard);
   FAfmfStaticSadValueLabel.Parent := FAfmfOptCard;
-  FAfmfStaticSadValueLabel.Caption := 'Auto';
+  FAfmfStaticSadValueLabel.Caption := rsAuto;
   FAfmfStaticSadValueLabel.Font.Color := CLR_TEXT_ACCENT;
   FAfmfStaticSadValueLabel.Font.Style := [fsBold];
 
@@ -3469,8 +3470,8 @@ begin
 
   FAfmfLogTitleLbl := TLabel.Create(FAfmfDiagCard);
   FAfmfLogTitleLbl.Parent := FAfmfDiagCard;
-  FAfmfLogTitleLbl.Caption := 'Logging Verbosity';
-  FAfmfLogTitleLbl.Hint := 'Controls AFMF layer stdout/stderr debug output (AFMF_LOG)';
+  FAfmfLogTitleLbl.Caption := rsLoggingVerbosity;
+  FAfmfLogTitleLbl.Hint := rsControlsAFMFLayerStdoutStderrDebug;
   FAfmfLogTitleLbl.ShowHint := True;
   StyleLabel(FAfmfLogTitleLbl, lrControlLabel);
 
@@ -3481,7 +3482,7 @@ begin
   FAfmfLogComboBox.Items.Add('Info');
   FAfmfLogComboBox.Items.Add('Debug');
   FAfmfLogComboBox.ItemIndex := 0;
-  FAfmfLogComboBox.Hint := 'Diagnostic log level';
+  FAfmfLogComboBox.Hint := rsDiagnosticLogLevel;
   FAfmfLogComboBox.ShowHint := True;
   FAfmfLogComboBox.OnChange := @AfmfControlChange;
   StyleInputControl(FAfmfLogComboBox);
@@ -3489,8 +3490,8 @@ begin
   FAfmfProfileCheckBox := TCheckBox.Create(FAfmfDiagCard);
   FAfmfProfileCheckBox.Parent := FAfmfDiagCard;
   FAfmfProfileCheckBox.ParentColor := True;
-  FAfmfProfileCheckBox.Caption := 'Profiling Timers';
-  FAfmfProfileCheckBox.Hint := 'Measures optical flow shader execution times (AFMF_PROFILE)';
+  FAfmfProfileCheckBox.Caption := rsProfilingTimers;
+  FAfmfProfileCheckBox.Hint := rsMeasuresOpticalFlowShaderExecutionTimes;
   FAfmfProfileCheckBox.ShowHint := True;
   FAfmfProfileCheckBox.Checked := False;
   FAfmfProfileCheckBox.OnChange := @AfmfControlChange;
@@ -3550,7 +3551,7 @@ begin
   FLsDllPathEdit.ReadOnly := True;
   FLsDllPathEdit.AutoSelect := False;
   FLsDllPathEdit.TabStop := False;
-  FLsDllPathEdit.TextHint := 'Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)';
+  FLsDllPathEdit.TextHint := rsPathToLosslessDllEG;
   FLsDllPathEdit.OnChange := @DllPathChange;
   StyleInputControl(FLsDllPathEdit);
 
@@ -3561,13 +3562,13 @@ begin
   FLsBrowseDllBtn.ImageIndex := 24;
   FLsBrowseDllBtn.Cursor := crHandPoint;
   FLsBrowseDllBtn.OnClick := @BrowseDllClick;
-  FLsBrowseDllBtn.Hint := 'Browse for Lossless.dll';
+  FLsBrowseDllBtn.Hint := rsBrowseForLosslessDll;
   FLsBrowseDllBtn.ShowHint := True;
   StyleActionButton(FLsBrowseDllBtn);
 
   FLsDllStatusLabel := TLabel.Create(FLsStatusCard);
   FLsDllStatusLabel.Parent := FLsStatusCard;
-  FLsDllStatusLabel.Caption := '● DLL file located';
+  FLsDllStatusLabel.Caption := rsDLLFileLocated;
   FLsDllStatusLabel.Font.Style := [fsBold];
   FLsDllStatusLabel.Font.Size := 9;
   FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
@@ -3586,7 +3587,7 @@ begin
 
   FLsEngineStatusLabel := TLabel.Create(FLsStatusCard);
   FLsEngineStatusLabel.Parent := FLsStatusCard;
-  FLsEngineStatusLabel.Caption := '● Checking MAKO...';
+  FLsEngineStatusLabel.Caption := rsCheckingMAKO;
   FLsEngineStatusLabel.Font.Name := UI_FONT_FAMILY;
   FLsEngineStatusLabel.Font.Style := [];
   FLsEngineStatusLabel.Font.Size := 9;
@@ -3594,7 +3595,7 @@ begin
 
   FLsMakoNoteLabel := TLabel.Create(FLsStatusCard);
   FLsMakoNoteLabel.Parent := FLsStatusCard;
-  FLsMakoNoteLabel.Caption := '(Incompatible with Wayland and HDR)';
+  FLsMakoNoteLabel.Caption := rsIncompatibleWithWaylandAndHDR;
   FLsMakoNoteLabel.Font.Name := UI_FONT_FAMILY;
   FLsMakoNoteLabel.Font.Style := [];
   FLsMakoNoteLabel.Font.Size := 9;
@@ -3604,7 +3605,7 @@ begin
 
   FLsCheckUpdatesBtn := TBitBtn.Create(FLsStatusCard);
   FLsCheckUpdatesBtn.Parent := FLsStatusCard;
-  FLsCheckUpdatesBtn.Caption := 'Check Updates';
+  FLsCheckUpdatesBtn.Caption := rsCheckUpdates;
   FLsCheckUpdatesBtn.Cursor := crHandPoint;
   FLsCheckUpdatesBtn.OnClick := @CheckUpdatesClick;
   FLsCheckUpdatesBtn.Visible := False;
@@ -3612,7 +3613,7 @@ begin
 
   FLsInstallBtn := TBitBtn.Create(FLsStatusCard);
   FLsInstallBtn.Parent := FLsStatusCard;
-  FLsInstallBtn.Caption := 'Install MAKO';
+  FLsInstallBtn.Caption := rsInstallMAKO;
   FLsInstallBtn.Cursor := crHandPoint;
   FLsInstallBtn.OnClick := @InstallMakoClick;
   FLsInstallBtn.Visible := False;
@@ -3621,7 +3622,7 @@ begin
   // Row 2: lsfg-vk
   FLsLsfgStatusLabel := TLabel.Create(FLsStatusCard);
   FLsLsfgStatusLabel.Parent := FLsStatusCard;
-  FLsLsfgStatusLabel.Caption := '● Checking lsfg-vk layer...';
+  FLsLsfgStatusLabel.Caption := rsCheckingLsfgVkLayer;
   FLsLsfgStatusLabel.Font.Name := UI_FONT_FAMILY;
   FLsLsfgStatusLabel.Font.Style := [];
   FLsLsfgStatusLabel.Font.Size := 9;
@@ -3629,7 +3630,7 @@ begin
 
   FLsLsfgInstallBtn := TBitBtn.Create(FLsStatusCard);
   FLsLsfgInstallBtn.Parent := FLsStatusCard;
-  FLsLsfgInstallBtn.Caption := 'Install runtime';
+  FLsLsfgInstallBtn.Caption := rsInstallRuntime;
   FLsLsfgInstallBtn.Cursor := crHandPoint;
   FLsLsfgInstallBtn.OnClick := @InstallLsfgClick;
   FLsLsfgInstallBtn.Visible := False;
@@ -3637,9 +3638,9 @@ begin
 
   FLsLsfgAssistantBtn := TBitBtn.Create(FLsStatusCard);
   FLsLsfgAssistantBtn.Parent := FLsStatusCard;
-  FLsLsfgAssistantBtn.Caption := 'lsfg-vk Assistant';
+  FLsLsfgAssistantBtn.Caption := rsLsfgVkAssistant;
   FLsLsfgAssistantBtn.Cursor := crHandPoint;
-  FLsLsfgAssistantBtn.Hint := 'Open the lsfg-vk assistant and troubleshooting dialog';
+  FLsLsfgAssistantBtn.Hint := rsOpenTheLsfgVkAssistantAnd;
   FLsLsfgAssistantBtn.ShowHint := True;
   FLsLsfgAssistantBtn.OnClick := @LsfgAssistantBtnClick;
   FLsLsfgAssistantBtn.Visible := True;
@@ -3648,7 +3649,7 @@ begin
   // Row 3: AFMF
   FLsAfmfStatusLabel := TLabel.Create(FLsStatusCard);
   FLsAfmfStatusLabel.Parent := FLsStatusCard;
-  FLsAfmfStatusLabel.Caption := '● Checking AFMF layer...';
+  FLsAfmfStatusLabel.Caption := rsCheckingAFMFLayer;
   FLsAfmfStatusLabel.Font.Name := UI_FONT_FAMILY;
   FLsAfmfStatusLabel.Font.Style := [];
   FLsAfmfStatusLabel.Font.Size := 9;
@@ -3656,7 +3657,7 @@ begin
 
   FLsAfmfInstallBtn := TBitBtn.Create(FLsStatusCard);
   FLsAfmfInstallBtn.Parent := FLsStatusCard;
-  FLsAfmfInstallBtn.Caption := 'Install runtime';
+  FLsAfmfInstallBtn.Caption := rsInstallRuntime;
   FLsAfmfInstallBtn.Cursor := crHandPoint;
   FLsAfmfInstallBtn.OnClick := @InstallAfmfClick;
   FLsAfmfInstallBtn.Visible := False;
@@ -4358,7 +4359,7 @@ begin
       
     if Assigned(FLsDllStatusLabel) then
     begin
-      FLsDllStatusLabel.Caption := '● DLL file located';
+      FLsDllStatusLabel.Caption := rsDLLFileLocated;
       FLsDllStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
       FLsDllStatusLabel.Visible := False;
     end;
@@ -4374,9 +4375,9 @@ begin
     if Assigned(FLsDllStatusLabel) then
     begin
       if FInterpolationMethod = imLsfg then
-        FLsDllStatusLabel.Caption := '● Switch Lossless Scaling to lsfg-vk beta branch in Steam'
+        FLsDllStatusLabel.Caption := rsSwitchLosslessScalingToLsfgVk
       else
-        FLsDllStatusLabel.Caption := '● Install Lossless scaling on steam or point the correct file path';
+        FLsDllStatusLabel.Caption := rsInstallLosslessScalingOnSteamOr;
       FLsDllStatusLabel.Font.Color := RGBToColor(255, 90, 95);
       FLsDllStatusLabel.Visible := False;
     end;
@@ -4431,7 +4432,7 @@ begin
       FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
       if Assigned(FLsInstallBtn) then
       begin
-        FLsInstallBtn.Caption := 'Install update';
+        FLsInstallBtn.Caption := rsInstallUpdate;
         FLsInstallBtn.Visible := True;
         FLsInstallBtn.Enabled := True;
       end;
@@ -4457,7 +4458,7 @@ begin
   end
   else if IsMakoInstalled then
   begin
-    FLsEngineStatusLabel.Caption := 'Installed';
+    FLsEngineStatusLabel.Caption := rsInstalled;
     FLsEngineStatusLabel.Font.Color := $00F0BE30;
     FLsEngineStatusLabel.Hint := MakoLib;
     FLsEngineStatusLabel.ShowHint := (MakoLib <> '');
@@ -4465,13 +4466,13 @@ begin
   end
   else
   begin
-    FLsEngineStatusLabel.Caption := 'Not installed';
+    FLsEngineStatusLabel.Caption := rsNotInstalled;
     FLsEngineStatusLabel.Font.Color := RGBToColor(255, 90, 95);
     FLsEngineStatusLabel.Hint := '';
     FLsEngineStatusLabel.ShowHint := False;
     if Assigned(FLsInstallBtn) then
     begin
-      FLsInstallBtn.Caption := 'Install MAKO';
+      FLsInstallBtn.Caption := rsInstallMAKO;
       FLsInstallBtn.Visible := True;
       FLsInstallBtn.Enabled := True;
     end;
@@ -4503,7 +4504,7 @@ begin
 
   if RemoteVer = '' then
   begin
-    FLsEngineStatusLabel.Caption := '● Could not check for updates (GitHub offline/rate-limited)';
+    FLsEngineStatusLabel.Caption := rsCouldNotCheckForUpdatesGitHub;
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_MUTED;
     Exit;
   end;
@@ -4517,7 +4518,7 @@ begin
   begin
     FMakoUpdateAvailable := False;
     FMakoRemoteVer := RemoteVer;
-    FLsEngineStatusLabel.Caption := '● MAKO ' + LocalVer + ' is up to date';
+    FLsEngineStatusLabel.Caption := rsMAKO + LocalVer + rsIsUpToDate;
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
     if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
     UpdateStatusCard;
@@ -4532,7 +4533,7 @@ begin
     FLsEngineStatusLabel.Font.Color := $0044AAFF;
     if Assigned(FLsInstallBtn) then
     begin
-      FLsInstallBtn.Caption := 'Install update';
+      FLsInstallBtn.Caption := rsInstallUpdate;
       FLsInstallBtn.Visible := True;
       FLsInstallBtn.Enabled := True;
     end;
@@ -4543,11 +4544,11 @@ begin
   end
   else if (LocalVer = '') and (RemoteVer <> '') then
   begin
-    FLsEngineStatusLabel.Caption := '● Latest release is ' + RemoteVer + ' (Click Install)';
+    FLsEngineStatusLabel.Caption := rsLatestReleaseIs + RemoteVer + rsClickInstall;
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_ACCENT;
     if Assigned(FLsInstallBtn) then
     begin
-      FLsInstallBtn.Caption := 'Install MAKO';
+      FLsInstallBtn.Caption := rsInstallMAKO;
       FLsInstallBtn.Visible := True;
       FLsInstallBtn.Enabled := True;
     end;
@@ -4556,7 +4557,7 @@ begin
   end
   else
   begin
-    FLsEngineStatusLabel.Caption := '● MAKO ' + LocalVer;
+    FLsEngineStatusLabel.Caption := rsMAKO + LocalVer;
     FLsEngineStatusLabel.Font.Color := CLR_TEXT_SUCCESS;
     if Assigned(FLsInstallBtn) then FLsInstallBtn.Visible := False;
     UpdateStatusCard;
@@ -4569,7 +4570,7 @@ begin
   FLsCheckUpdatesBtn.Enabled := False;
   FLsProgressBar.Position := 0;
   FLsProgressBar.Visible := True;
-  FLsProgressLabel.Caption := 'Starting MAKO installation...';
+  FLsProgressLabel.Caption := rsStartingMAKOInstallation;
   FLsProgressLabel.Visible := True;
   ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
   TMakoInstallThread.Create(Self).Start;
@@ -4586,7 +4587,7 @@ begin
   end;
   if Assigned(FLsProgressLabel) then
   begin
-    FLsProgressLabel.Caption := 'Starting lsfg-vk installation...';
+    FLsProgressLabel.Caption := rsStartingLsfgVkInstallation;
     FLsProgressLabel.Visible := True;
   end;
   ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
@@ -4603,7 +4604,7 @@ end;
 procedure TLosslessScalingTabHelper.TargetFpsChange(Sender: TObject);
 begin
   if Assigned(FLsTargetFpsValueLabel) and Assigned(FLsTargetFpsTrackBar) then
-    FLsTargetFpsValueLabel.Caption := IntToStr(FLsTargetFpsTrackBar.Position) + ' FPS';
+    FLsTargetFpsValueLabel.Caption := IntToStr(FLsTargetFpsTrackBar.Position) + rsFPS;
   ControlStateChange(Sender);
 end;
 
@@ -4612,9 +4613,9 @@ begin
   if Assigned(FLsBaseFpsCapValueLabel) and Assigned(FLsBaseFpsCapTrackBar) then
   begin
     if FLsBaseFpsCapTrackBar.Position = 0 then
-      FLsBaseFpsCapValueLabel.Caption := 'Disabled'
+      FLsBaseFpsCapValueLabel.Caption := rsDisabled
     else
-      FLsBaseFpsCapValueLabel.Caption := IntToStr(FLsBaseFpsCapTrackBar.Position) + ' FPS';
+      FLsBaseFpsCapValueLabel.Caption := IntToStr(FLsBaseFpsCapTrackBar.Position) + rsFPS;
   end;
   ControlStateChange(Sender);
 end;
@@ -4624,7 +4625,7 @@ begin
   if Assigned(FLsRefreshThresholdValueLabel) and Assigned(FLsRefreshThresholdTrackBar) then
   begin
     if FLsRefreshThresholdTrackBar.Position = 0 then
-      FLsRefreshThresholdValueLabel.Caption := 'Disabled'
+      FLsRefreshThresholdValueLabel.Caption := rsDisabled
     else
       FLsRefreshThresholdValueLabel.Caption := IntToStr(FLsRefreshThresholdTrackBar.Position) + ' Hz';
   end;
@@ -4913,11 +4914,11 @@ begin
   if Assigned(FLsMultiplierValueLabel) then
   begin
     if (PosVal <= 1) and (FInterpolationMethod = imLsfg) then
-      FLsMultiplierValueLabel.Caption := '1x (Bypass)'
+      FLsMultiplierValueLabel.Caption := rs1xBypass
     else if PosVal <= 1 then
-      FLsMultiplierValueLabel.Caption := '1x (Disabled)'
+      FLsMultiplierValueLabel.Caption := rs1xDisabled
     else
-      FLsMultiplierValueLabel.Caption := IntToStr(PosVal) + 'x FPS';
+      FLsMultiplierValueLabel.Caption := IntToStr(PosVal) + rsXFPS;
   end;
   if (PosVal > 1) and (FInterpolationMethod = imNone) then
     SetInterpolationMethod(imLsfg);
@@ -4943,12 +4944,12 @@ begin
   try
     if FInterpolationMethod = imLsfg then
     begin
-      OD.Title := 'Select lsfg-vk.dll';
+      OD.Title := rsSelectLsfgVkDll;
       OD.Filter := 'Lossless Scaling Vulkan DLL (lsfg-vk.dll)|lsfg-vk.dll|Dynamic Libraries (*.dll)|*.dll|All Files (*)|*';
     end
     else
     begin
-      OD.Title := 'Select Lossless.dll';
+      OD.Title := rsSelectLosslessDll;
       OD.Filter := 'Lossless Scaling DLL (Lossless.dll)|Lossless.dll|Dynamic Libraries (*.dll)|*.dll|All Files (*)|*';
     end;
     if Trim(FLsDllPathEdit.Text) <> '' then
@@ -5791,7 +5792,7 @@ begin
     FLsFgModeComboBox.ItemIndex := 0;
     FLsMultiplierTrackBar.Position := 1;
     if Assigned(FLsMultiplierValueLabel) then
-      FLsMultiplierValueLabel.Caption := '1x (Disabled)';
+      FLsMultiplierValueLabel.Caption := rs1xDisabled;
     FLsTargetFpsTrackBar.Position := 90;
     if Assigned(FLsTargetFpsValueLabel) then
       FLsTargetFpsValueLabel.Caption := '90 FPS';
@@ -5804,10 +5805,10 @@ begin
       FLsFlowScaleValueLabel.Caption := '100%';
     FLsBaseFpsCapTrackBar.Position := 0;
     if Assigned(FLsBaseFpsCapValueLabel) then
-      FLsBaseFpsCapValueLabel.Caption := 'Disabled';
+      FLsBaseFpsCapValueLabel.Caption := rsDisabled;
     FLsRefreshThresholdTrackBar.Position := 0;
     if Assigned(FLsRefreshThresholdValueLabel) then
-      FLsRefreshThresholdValueLabel.Caption := 'Disabled';
+      FLsRefreshThresholdValueLabel.Caption := rsDisabled;
 
     FLsFgLiveCheckBox.Checked := True;
     FLsAllowFp16CheckBox.Checked := True;
@@ -5984,7 +5985,7 @@ begin
 
       FLsTargetFpsTrackBar.Position := MakoCfg.TargetFps;
       if Assigned(FLsTargetFpsValueLabel) then
-        FLsTargetFpsValueLabel.Caption := IntToStr(MakoCfg.TargetFps) + ' FPS';
+        FLsTargetFpsValueLabel.Caption := IntToStr(MakoCfg.TargetFps) + rsFPS;
 
       if (MakoCfg.AdaptiveMaxMultiplier >= 2) and (MakoCfg.AdaptiveMaxMultiplier <= 5) then
         FLsAdaptiveMaxMultComboBox.ItemIndex := MakoCfg.AdaptiveMaxMultiplier - 2;

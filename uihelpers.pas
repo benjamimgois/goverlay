@@ -5,6 +5,7 @@ unit uihelpers;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Buttons, Graphics,
   constants;
 
@@ -111,7 +112,7 @@ begin
     Btn := TBitBtn(AForm.FindComponent('gupdateBitBtn'));
     // Only set the default caption if the update check hasn't already shown the button
     if not Btn.Visible then
-      Btn.Caption := 'Update';
+      Btn.Caption := rsUpdate;
   end;
 end;
 

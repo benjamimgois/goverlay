@@ -977,25 +977,25 @@ begin
   FGameCardMenu.Images := FGameMenuImgList;
 
   OpenFolderItem := TMenuItem.Create(FGameCardMenu);
-  OpenFolderItem.Caption := 'Open install folder';
+  OpenFolderItem.Caption := rsOpenInstallFolder;
   OpenFolderItem.ImageIndex := 0;
   OpenFolderItem.OnClick := @GameCardOpenFolderClick;
   FGameCardMenu.Items.Add(OpenFolderItem);
 
   FOpenPrefixMenuItem := TMenuItem.Create(FGameCardMenu);
-  FOpenPrefixMenuItem.Caption := 'Open prefix folder';
+  FOpenPrefixMenuItem.Caption := rsOpenPrefixFolder;
   FOpenPrefixMenuItem.ImageIndex := 1;
   FOpenPrefixMenuItem.OnClick := @GameCardOpenPrefixClick;
   FGameCardMenu.Items.Add(FOpenPrefixMenuItem);
 
   FCloneGlobalMenuItem := TMenuItem.Create(FGameCardMenu);
-  FCloneGlobalMenuItem.Caption := 'Clone global configs';
+  FCloneGlobalMenuItem.Caption := rsCloneGlobalConfigs;
   FCloneGlobalMenuItem.ImageIndex := 3;
   FCloneGlobalMenuItem.OnClick := @GameCardCloneGlobalClick;
   FGameCardMenu.Items.Add(FCloneGlobalMenuItem);
 
   FUninstallMenuItem := TMenuItem.Create(FGameCardMenu);
-  FUninstallMenuItem.Caption := 'Uninstall changes';
+  FUninstallMenuItem.Caption := rsUninstallChanges;
   FUninstallMenuItem.ImageIndex := 2;
   FUninstallMenuItem.OnClick := @GameCardUninstallClick;
   FGameCardMenu.Items.Add(FUninstallMenuItem);
@@ -1061,7 +1061,7 @@ begin
   FPreviewBtn.Font.Size   := 10;
   FPreviewBtn.Font.Style  := [fsBold];
   FPreviewBtn.Font.Name   := 'Noto Sans';
-  FPreviewBtn.Hint        := 'Launch a quick preview cube (pascube / vkcube)';
+  FPreviewBtn.Hint        := rsLaunchAQuickPreviewCubePascube;
   FPreviewBtn.ShowHint    := True;
   FPreviewBtn.OnClick     := @PreviewBtnClick;
 
@@ -1072,7 +1072,7 @@ begin
   commandPanel.BorderSpacing.Right     := 6;
 
   // Informative hint for the launch-command box
-  commandPanel.Hint := 'Copy this command and paste it into the game''s Launch Options in Steam.';
+  commandPanel.Hint := rsCopyThisCommandAndPasteIt;
   commandPanel.ShowHint := True;
 
   end;
@@ -1381,7 +1381,7 @@ begin
         IconPath := GetAppBaseDir + 'assets/icons/steam-icon.png';
         if FileExists(IconPath) then
           try BdgImg.Picture.LoadFromFile(IconPath); except end;
-        BdgImg.Hint         := 'Steam Game';
+        BdgImg.Hint         := rsSteamGame;
         BdgImg.ShowHint     := True;
         BdgImg.BringToFront;
         BdgImg.OnMouseEnter := @GameCardMouseEnter;
@@ -2480,7 +2480,7 @@ begin
   // Reset badge mask
   Panel.Tag := 0;
 
-  SendNotification('Goverlay', 'Changes uninstalled for ' + GameName, GetIconFile);
+  SendNotification('Goverlay', rsChangesUninstalledFor + GameName, GetIconFile);
   end;
 end;
 
@@ -2676,7 +2676,7 @@ end;
 procedure TGamesTabHelper.ActionPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   if not (Sender is TControl) then Exit;
-  TControl(Sender).Hint := 'Game options';
+  TControl(Sender).Hint := rsGameOptions;
   TControl(Sender).ShowHint := True;
 end;
 
@@ -3100,7 +3100,7 @@ begin
     if CloneGlobalConfigToGame(GameName, GamePath) then
     begin
       UpdateGameCardBadge(GameName);
-      SendNotification('Goverlay', 'Global configurations cloned for ' + GameName, GetIconFile);
+      SendNotification('Goverlay', rsGlobalConfigurationsClonedFor + GameName, GetIconFile);
     end;
   end;
 end;
@@ -3120,7 +3120,7 @@ begin
 
   FolderDlg := TSelectDirectoryDialog.Create(FForm);
   try
-    FolderDlg.Title := 'Select a non-Steam game folder';
+    FolderDlg.Title := rsSelectANonSteamGameFolder;
     if not FolderDlg.Execute then Exit;
     SelectedDir := FolderDlg.FileName;
   finally
@@ -3235,13 +3235,13 @@ begin
 
     // 1. Add game folder...
     AddItem := TMenuItem.Create(FGamesPopupMenu);
-    AddItem.Caption := 'Add game folder...';
+    AddItem.Caption := rsAddGameFolder;
     AddItem.OnClick := @AddFolderMenuItemClick;
     FGamesPopupMenu.Items.Add(AddItem);
 
     // 2. Remove game folder ▸ (Sub-menu)
     RemoveMenu := TMenuItem.Create(FGamesPopupMenu);
-    RemoveMenu.Caption := 'Remove game folder';
+    RemoveMenu.Caption := rsRemoveGameFolder;
     FGamesPopupMenu.Items.Add(RemoveMenu);
 
     NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
@@ -3268,7 +3268,7 @@ begin
       if AddedCount = 0 then
       begin
         SubItem := TMenuItem.Create(RemoveMenu);
-        SubItem.Caption := '(No custom folders added)';
+        SubItem.Caption := rsNoCustomFoldersAdded;
         SubItem.Enabled := False;
         RemoveMenu.Add(SubItem);
       end;
@@ -3283,7 +3283,7 @@ begin
 
     // 4. Refresh game library
     RefreshItem := TMenuItem.Create(FGamesPopupMenu);
-    RefreshItem.Caption := 'Refresh game library';
+    RefreshItem.Caption := rsRefreshGameLibrary;
     RefreshItem.OnClick := @RefreshLibraryMenuItemClick;
     FGamesPopupMenu.Items.Add(RefreshItem);
 
@@ -3322,7 +3322,7 @@ begin
         if FolderPath = '' then Continue;
         
         SubItem := TMenuItem.Create(nil);
-        SubItem.Caption := 'Remove: ' + FolderPath;
+        SubItem.Caption := rsRemove + FolderPath;
         // The click handler removes this exact path. It reads it from here
         // rather than from the caption, which is display text.
         SubItem.Hint := FolderPath;
@@ -3336,7 +3336,7 @@ begin
     if AddedCount = 0 then
     begin
       SubItem := TMenuItem.Create(nil);
-      SubItem.Caption := '(No non-Steam folders added)';
+      SubItem.Caption := rsNoNonSteamFoldersAdded;
       SubItem.Enabled := False;
       FRemoveFoldersMenu.Items.Add(SubItem);
     end;

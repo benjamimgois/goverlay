@@ -5,6 +5,7 @@ unit lsfg_migration_dialog;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
   Buttons, LCLIntf, Process;
 
@@ -185,7 +186,7 @@ begin
 
   FTitleLabel := TLabel.Create(Self);
   FTitleLabel.Parent := FHeaderPanel;
-  FTitleLabel.Caption := 'lsfg-vk 2.0 Migration & Health Assistant';
+  FTitleLabel.Caption := rsLsfgVk20MigrationHealth;
   FTitleLabel.Font.Size := 13;
   FTitleLabel.Font.Style := [fsBold];
   FTitleLabel.Font.Color := clWhite;
@@ -193,7 +194,7 @@ begin
 
   FSubtitleLabel := TLabel.Create(Self);
   FSubtitleLabel.Parent := FHeaderPanel;
-  FSubtitleLabel.Caption := 'Follow the guided steps below to ensure Lossless Scaling is configured for the 2.0 Vulkan pipeline.';
+  FSubtitleLabel.Caption := rsFollowTheGuidedStepsBelowTo;
   FSubtitleLabel.Font.Size := 9;
   FSubtitleLabel.Font.Color := CLR_TEXT;
   FSubtitleLabel.SetBounds(PAD, 36, DLG_W - 2 * PAD, 18);
@@ -207,14 +208,14 @@ begin
 
   FRefreshBtn := TBitBtn.Create(Self);
   FRefreshBtn.Parent := FBottomPanel;
-  FRefreshBtn.Caption := 'Refresh Checks';
+  FRefreshBtn.Caption := rsRefreshChecks;
   FRefreshBtn.Cursor := crHandPoint;
   FRefreshBtn.SetBounds(PAD, 10, 140, 32);
   FRefreshBtn.OnClick := @RefreshClick;
 
   FCloseBtn := TBitBtn.Create(Self);
   FCloseBtn.Parent := FBottomPanel;
-  FCloseBtn.Caption := 'Close';
+  FCloseBtn.Caption := rsClose;
   FCloseBtn.Cursor := crHandPoint;
   FCloseBtn.SetBounds(DLG_W - PAD - 100, 10, 100, 32);
   FCloseBtn.OnClick := @CloseClick;
@@ -246,7 +247,7 @@ begin
 
   FStep1Title := TLabel.Create(FStep1Panel);
   FStep1Title.Parent := FStep1Panel;
-  FStep1Title.Caption := 'Step 1: Switch Lossless Scaling to the "lsfg-vk" Beta Branch';
+  FStep1Title.Caption := rsStep1SwitchLosslessScalingTo;
   FStep1Title.Font.Size := 10;
   FStep1Title.Font.Style := [fsBold];
   FStep1Title.Font.Color := clWhite;
@@ -254,7 +255,7 @@ begin
 
   FStep1Status := TLabel.Create(FStep1Panel);
   FStep1Status.Parent := FStep1Panel;
-  FStep1Status.Caption := 'Checking Steam installation...';
+  FStep1Status.Caption := rsCheckingSteamInstallation;
   FStep1Status.Font.Size := 9;
   FStep1Status.Font.Style := [fsBold];
   FStep1Status.Font.Color := CLR_WARN;
@@ -262,7 +263,7 @@ begin
 
   FStep1Desc := TLabel.Create(FStep1Panel);
   FStep1Desc.Parent := FStep1Panel;
-  FStep1Desc.Caption := 'Upstream lsfg-vk 2.0 requires the native Vulkan bindless shaders in lsfg-vk.dll.' + LineEnding +
+  FStep1Desc.Caption := rsUpstreamLsfgVk20Requires + LineEnding +
                         'In Steam: Library -> Right-click "Lossless Scaling" -> Properties... -> Betas -> select "lsfg-vk - beta".';
   FStep1Desc.Font.Size := 8;
   FStep1Desc.Font.Color := CLR_TEXT;
@@ -277,7 +278,7 @@ begin
   FStep1Thumbnail.Center := True;
   FStep1Thumbnail.AntialiasingMode := amOn;
   FStep1Thumbnail.Cursor := crHandPoint;
-  FStep1Thumbnail.Hint := 'Click to view Steam Betas guide';
+  FStep1Thumbnail.Hint := rsClickToViewSteamBetasGuide;
   FStep1Thumbnail.ShowHint := True;
   FStep1Thumbnail.OnClick := @Step1GuideClick;
 
@@ -292,14 +293,14 @@ begin
 
   FStep1GuideBtn := TBitBtn.Create(FStep1Panel);
   FStep1GuideBtn.Parent := FStep1Panel;
-  FStep1GuideBtn.Caption := 'Steam Guide';
+  FStep1GuideBtn.Caption := rsSteamGuide;
   FStep1GuideBtn.Cursor := crHandPoint;
   FStep1GuideBtn.SetBounds(CARD_W - 280, 90, 124, 30);
   FStep1GuideBtn.OnClick := @Step1GuideClick;
 
   FStep1OpenBtn := TBitBtn.Create(FStep1Panel);
   FStep1OpenBtn.Parent := FStep1Panel;
-  FStep1OpenBtn.Caption := 'Open Steam Folder';
+  FStep1OpenBtn.Caption := rsOpenSteamFolder;
   FStep1OpenBtn.Cursor := crHandPoint;
   FStep1OpenBtn.SetBounds(CARD_W - 146, 90, 134, 30);
   FStep1OpenBtn.OnClick := @OpenFolderClick;
@@ -323,7 +324,7 @@ begin
 
   FStep2Title := TLabel.Create(FStep2Panel);
   FStep2Title.Parent := FStep2Panel;
-  FStep2Title.Caption := 'Step 2: Clean Conflicting 1.x System Layers (Root Required)';
+  FStep2Title.Caption := rsStep2CleanConflicting1X;
   FStep2Title.Font.Size := 10;
   FStep2Title.Font.Style := [fsBold];
   FStep2Title.Font.Color := clWhite;
@@ -331,7 +332,7 @@ begin
 
   FStep2Status := TLabel.Create(FStep2Panel);
   FStep2Status.Parent := FStep2Panel;
-  FStep2Status.Caption := 'Checking for legacy 1.x files...';
+  FStep2Status.Caption := rsCheckingForLegacy1XFiles;
   FStep2Status.Font.Size := 9;
   FStep2Status.Font.Style := [fsBold];
   FStep2Status.Font.Color := CLR_WARN;
@@ -339,7 +340,7 @@ begin
 
   FStep2Desc := TLabel.Create(FStep2Panel);
   FStep2Desc.Parent := FStep2Panel;
-  FStep2Desc.Caption := 'Legacy 1.x implicit layers hook games automatically and cause parse or crash errors with 2.0.' + LineEnding +
+  FStep2Desc.Caption := rsLegacy1XImplicitLayersHook + LineEnding +
                         'Click below to remove legacy layer files (/etc/vulkan, /usr/lib64) via pkexec.';
   FStep2Desc.Font.Size := 8;
   FStep2Desc.Font.Color := CLR_TEXT;
@@ -348,7 +349,7 @@ begin
 
   FStep2CleanBtn := TBitBtn.Create(FStep2Panel);
   FStep2CleanBtn.Parent := FStep2Panel;
-  FStep2CleanBtn.Caption := 'Clean Legacy Files (Root)';
+  FStep2CleanBtn.Caption := rsCleanLegacyFilesRoot;
   FStep2CleanBtn.Cursor := crHandPoint;
   FStep2CleanBtn.SetBounds(CARD_W - 190, 96, 176, 30);
   FStep2CleanBtn.OnClick := @CleanLegacyClick;
@@ -372,7 +373,7 @@ begin
 
   FStep3Title := TLabel.Create(FStep3Panel);
   FStep3Title.Parent := FStep3Panel;
-  FStep3Title.Caption := 'Step 3: Remove Deprecated Distro Packages';
+  FStep3Title.Caption := rsStep3RemoveDeprecatedDistroPackages;
   FStep3Title.Font.Size := 10;
   FStep3Title.Font.Style := [fsBold];
   FStep3Title.Font.Color := clWhite;
@@ -380,7 +381,7 @@ begin
 
   FStep3Desc := TLabel.Create(FStep3Panel);
   FStep3Desc.Parent := FStep3Panel;
-  FStep3Desc.Caption := 'If you installed lsfg-vk from AUR or a package manager (e.g. lsfg-vk-git), we recommend uninstalling it:' + LineEnding +
+  FStep3Desc.Caption := rsIfYouInstalledLsfgVkFrom + LineEnding +
                         '  Arch / Manjaro: sudo pacman -R lsfg-vk-git   or   yay -R lsfg-vk-git' + LineEnding +
                         'Goverlay manages the 2.0 layer automatically in ~/.local/share/vulkan.';
   FStep3Desc.Font.Size := 8;
@@ -415,7 +416,7 @@ begin
 
   FStep4Status := TLabel.Create(FStep4Panel);
   FStep4Status.Parent := FStep4Panel;
-  FStep4Status.Caption := 'Checking user configuration schema...';
+  FStep4Status.Caption := rsCheckingUserConfigurationSchema;
   FStep4Status.Font.Size := 9;
   FStep4Status.Font.Style := [fsBold];
   FStep4Status.Font.Color := CLR_WARN;
@@ -423,7 +424,7 @@ begin
 
   FStep4Desc := TLabel.Create(FStep4Panel);
   FStep4Desc.Parent := FStep4Panel;
-  FStep4Desc.Caption := 'lsfg-vk 2.0 expects version = 2 and [[profile]] syntax. Legacy 1.x configurations will trigger schema parse errors.' + LineEnding +
+  FStep4Desc.Caption := rsLsfgVk20ExpectsVersion + LineEnding +
                         'Click below to back up the legacy file to conf.toml.v1.bak and create a valid 2.0 template.';
   FStep4Desc.Font.Size := 8;
   FStep4Desc.Font.Color := CLR_TEXT;
@@ -432,7 +433,7 @@ begin
 
   FStep4UpdateBtn := TBitBtn.Create(FStep4Panel);
   FStep4UpdateBtn.Parent := FStep4Panel;
-  FStep4UpdateBtn.Caption := 'Update Configuration';
+  FStep4UpdateBtn.Caption := rsUpdateConfiguration;
   FStep4UpdateBtn.Cursor := crHandPoint;
   FStep4UpdateBtn.SetBounds(CARD_W - 170, 90, 156, 30);
   FStep4UpdateBtn.OnClick := @UpdateConfigClick;
@@ -498,18 +499,18 @@ begin
       Proc.Execute;
       if Proc.ExitCode = 0 then
       begin
-        FStep2ResultLbl.Caption := 'Legacy files removed successfully!';
+        FStep2ResultLbl.Caption := rsLegacyFilesRemovedSuccessfully;
         FStep2ResultLbl.Font.Color := CLR_OK;
       end
       else
       begin
-        FStep2ResultLbl.Caption := 'Cleanup canceled or failed (code ' + IntToStr(Proc.ExitCode) + ')';
+        FStep2ResultLbl.Caption := rsCleanupCanceledOrFailedCode + IntToStr(Proc.ExitCode) + ')';
         FStep2ResultLbl.Font.Color := CLR_FAIL;
       end;
     except
       on E: Exception do
       begin
-        FStep2ResultLbl.Caption := 'Execution error: ' + E.Message;
+        FStep2ResultLbl.Caption := rsExecutionError + E.Message;
         FStep2ResultLbl.Font.Color := CLR_FAIL;
       end;
     end;
@@ -530,14 +531,14 @@ begin
     if Helper.ModernizeUserConfig(BakPath) then
     begin
       if BakPath <> '' then
-        FStep4ResultLbl.Caption := 'Backup created (' + ExtractFileName(BakPath) + ') and v2 written!'
+        FStep4ResultLbl.Caption := rsBackupCreated + ExtractFileName(BakPath) + rsAndV2Written
       else
-        FStep4ResultLbl.Caption := 'Default v2 config generated successfully!';
+        FStep4ResultLbl.Caption := rsDefaultV2ConfigGeneratedSuccessfully;
       FStep4ResultLbl.Font.Color := CLR_OK;
     end
     else
     begin
-      FStep4ResultLbl.Caption := 'Failed to update configuration';
+      FStep4ResultLbl.Caption := rsFailedToUpdateConfiguration;
       FStep4ResultLbl.Font.Color := CLR_FAIL;
     end;
   end;
@@ -569,19 +570,19 @@ begin
   if (BetaDllPath <> '') and FileExists(BetaDllPath) then
   begin
     FStep1Dot.Brush.Color := CLR_OK;
-    FStep1Status.Caption := '● lsfg-vk.dll is installed and detected.';
+    FStep1Status.Caption := rsLsfgVkDllIsInstalledAnd;
     FStep1Status.Font.Color := CLR_OK;
   end
   else if HasBetaIssue then
   begin
     FStep1Dot.Brush.Color := CLR_FAIL;
-    FStep1Status.Caption := '● lsfg-vk.dll missing! Steam beta branch required.';
+    FStep1Status.Caption := rsLsfgVkDllMissingSteamBeta;
     FStep1Status.Font.Color := CLR_FAIL;
   end
   else
   begin
     FStep1Dot.Brush.Color := CLR_WARN;
-    FStep1Status.Caption := '● Lossless Scaling folder not found or lsfg-vk.dll missing.';
+    FStep1Status.Caption := rsLosslessScalingFolderNotFoundOr;
     FStep1Status.Font.Color := CLR_WARN;
   end;
 
@@ -591,13 +592,13 @@ begin
     if Helper.CheckLegacySystemLayersHealth(LegacyList) then
     begin
       FStep2Dot.Brush.Color := CLR_FAIL;
-      FStep2Status.Caption := '● ' + IntToStr(LegacyList.Count) + ' legacy 1.x layer file(s) found in system!';
+      FStep2Status.Caption := '● ' + IntToStr(LegacyList.Count) + rsLegacy1XLayerFileS;
       FStep2Status.Font.Color := CLR_FAIL;
     end
     else
     begin
       FStep2Dot.Brush.Color := CLR_OK;
-      FStep2Status.Caption := '● No legacy 1.x layers detected in system.';
+      FStep2Status.Caption := rsNoLegacy1XLayersDetected;
       FStep2Status.Font.Color := CLR_OK;
     end;
   finally
@@ -609,13 +610,13 @@ begin
   if HasConfigIssue then
   begin
     FStep4Dot.Brush.Color := CLR_FAIL;
-    FStep4Status.Caption := '● Outdated v1 configuration syntax detected.';
+    FStep4Status.Caption := rsOutdatedV1ConfigurationSyntaxDetected;
     FStep4Status.Font.Color := CLR_FAIL;
   end
   else
   begin
     FStep4Dot.Brush.Color := CLR_OK;
-    FStep4Status.Caption := '● Configuration is up to date (version = 2).';
+    FStep4Status.Caption := rsConfigurationIsUpToDateVersion;
     FStep4Status.Font.Color := CLR_OK;
   end;
 

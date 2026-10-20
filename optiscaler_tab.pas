@@ -5,6 +5,7 @@ unit optiscaler_tab;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, toggle_switch,
   {$IFDEF LCLqt6}
@@ -205,17 +206,17 @@ begin
   if IsDlssNrModelReady then
   begin
     FDlssNrModelDllBrowseBtn.Caption := 'nvngx_dlssnr.dll ✓';
-    FDlssNrModelDllBrowseBtn.Hint := 'DLSS-NR weights extracted and ready. Click to re-select nvngx_dlssnr.dll';
+    FDlssNrModelDllBrowseBtn.Hint := rsDLSSNRWeightsExtractedAndReady;
   end
   else if IsDlssNrInstalled then
   begin
-    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
-    FDlssNrModelDllBrowseBtn.Hint := 'Select nvngx_dlssnr.dll or archive to extract neural rendering model weights';
+    FDlssNrModelDllBrowseBtn.Caption := rsSelectNvngxDlssnrDll;
+    FDlssNrModelDllBrowseBtn.Hint := rsSelectNvngxDlssnrDllOrArchive;
   end
   else
   begin
-    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
-    FDlssNrModelDllBrowseBtn.Hint := 'DLSS-NR is not installed';
+    FDlssNrModelDllBrowseBtn.Caption := rsSelectNvngxDlssnrDll;
+    FDlssNrModelDllBrowseBtn.Hint := rsDLSSNRIsNotInstalled;
   end;
 end;
 
@@ -256,16 +257,16 @@ begin
         begin
           Lbl := TLabel(FForm.FDlssNrMissingBanner.Controls[j]);
           if Lbl.Font.Bold then
-            Lbl.Caption := 'DLSS-NR requires nvngx_dlssnr.dll'
+            Lbl.Caption := rsDLSSNRRequiresNvngxDlssnrDll
           else if Lbl.Font.Size = 9 then
-            Lbl.Caption := 'nvngx_dlssnr.dll is required to use the DLSS-NR method. Select the DLL to extract model weights.';
+            Lbl.Caption := rsNvngxDlssnrDllIsRequiredTo;
         end
         else if FForm.FDlssNrMissingBanner.Controls[j] is TBitBtn then
         begin
           Btn := TBitBtn(FForm.FDlssNrMissingBanner.Controls[j]);
           if Btn.Caption = 'View Status' then
           begin
-            Btn.Caption := 'Select DLL...';
+            Btn.Caption := rsSelectDLL;
             Btn.Width := 104;
           end;
         end;
@@ -299,7 +300,7 @@ begin
   if not Assigned(FForm) then Exit;
   Dlg := TOpenDialog.Create(FForm);
   try
-    Dlg.Title := 'Select nvngx_dlssnr.dll or archive';
+    Dlg.Title := rsSelectNvngxDlssnrDllOrArchive2;
     Dlg.Filter := 'DLSS-NR model (nvngx_dlssnr.dll, *.dll, *.zip, *.tar.gz)|nvngx_dlssnr.dll;*.dll;*.zip;*.tar.gz|All files (*.*)|*.*';
     Dlg.Options := Dlg.Options + [ofFileMustExist];
     if not Dlg.Execute then Exit;
@@ -330,7 +331,7 @@ begin
   end;
   if Assigned(FForm.updatestatusLabel) then
   begin
-    FForm.updatestatusLabel.Caption := 'Preparing DLSS-NR model extraction...';
+    FForm.updatestatusLabel.Caption := rsPreparingDLSSNRModelExtraction;
     FForm.updatestatusLabel.Visible := True;
   end;
   if Assigned(FDlssNrModelDllBrowseBtn) then
@@ -654,7 +655,7 @@ begin
     DarkRadio(optiscalerRadioButton);
     optiscalerRadioButton.Checked := True;
     optiscalerRadioButton.OnClick := @optiscalerRadioButtonClick;
-    optiscalerRadioButton.Hint := 'Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends';
+    optiscalerRadioButton.Hint := rsUniversalUpscalerMiddlewareTranslatingDLSSXe;
     optiscalerRadioButton.ShowHint := True;
 
     dlssenablerRadioButton := TRadioButton.Create(FForm);
@@ -663,7 +664,7 @@ begin
     DarkRadio(dlssenablerRadioButton);
     dlssenablerRadioButton.Checked := False;
     dlssenablerRadioButton.OnClick := @dlssenablerRadioButtonClick;
-    dlssenablerRadioButton.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
+    dlssenablerRadioButton.Hint := rsOptiscalerMultiFrameGenerationInDirectX;
     dlssenablerRadioButton.ShowHint := True;
 
     helixsrRadioButton := TRadioButton.Create(FForm);
@@ -672,7 +673,7 @@ begin
     DarkRadio(helixsrRadioButton);
     helixsrRadioButton.Checked := False;
     helixsrRadioButton.OnClick := @helixsrRadioButtonClick;
-    helixsrRadioButton.Hint := 'DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders';
+    helixsrRadioButton.Hint := rsDLSSModelENeuralUpscalerFor;
     helixsrRadioButton.ShowHint := True;
 
     optiscalerLogoImage := TImage.Create(FForm);
@@ -686,7 +687,7 @@ begin
     optiscalerLogoImage.Stretch := True;
     optiscalerLogoImage.Cursor := crHandPoint;
     optiscalerLogoImage.OnClick := @optiscalerLogoImageClick;
-    optiscalerLogoImage.Hint := 'Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends';
+    optiscalerLogoImage.Hint := rsUniversalUpscalerMiddlewareTranslatingDLSSXe;
     optiscalerLogoImage.ShowHint := True;
 
     dlssEnablerLogoImage := TImage.Create(FForm);
@@ -700,7 +701,7 @@ begin
     dlssEnablerLogoImage.Stretch := True;
     dlssEnablerLogoImage.Cursor := crHandPoint;
     dlssEnablerLogoImage.OnClick := @dlssEnablerLogoImageClick;
-    dlssEnablerLogoImage.Hint := 'Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination';
+    dlssEnablerLogoImage.Hint := rsOptiscalerMultiFrameGenerationInDirectX;
     dlssEnablerLogoImage.ShowHint := True;
 
     helixsrLogoImage := TImage.Create(FForm);
@@ -714,7 +715,7 @@ begin
     helixsrLogoImage.Stretch := True;
     helixsrLogoImage.Cursor := crHandPoint;
     helixsrLogoImage.OnClick := @helixsrLogoImageClick;
-    helixsrLogoImage.Hint := 'DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders';
+    helixsrLogoImage.Hint := rsDLSSModelENeuralUpscalerFor;
     helixsrLogoImage.ShowHint := True;
 
     dlssnrRadioButton := TRadioButton.Create(FForm);
@@ -723,7 +724,7 @@ begin
     DarkRadio(dlssnrRadioButton);
     dlssnrRadioButton.Checked := False;
     dlssnrRadioButton.OnClick := @dlssnrRadioButtonClick;
-    dlssnrRadioButton.Hint := 'DLSS 5 Neural Rendering (DLSS-NR) for AMD Radeon GPUs';
+    dlssnrRadioButton.Hint := rsDLSS5NeuralRenderingDLSSNR;
     dlssnrRadioButton.ShowHint := True;
 
     dlssnrLogoImage := TImage.Create(FForm);
@@ -737,7 +738,7 @@ begin
     dlssnrLogoImage.Stretch := True;
     dlssnrLogoImage.Cursor := crHandPoint;
     dlssnrLogoImage.OnClick := @dlssnrLogoImageClick;
-    dlssnrLogoImage.Hint := 'DLSS 5 Neural Rendering (DLSS-NR) for AMD Radeon GPUs';
+    dlssnrLogoImage.Hint := rsDLSS5NeuralRenderingDLSSNR;
     dlssnrLogoImage.ShowHint := True;
 
     dlssEnablerVersionLabel := TLabel.Create(FForm);
@@ -754,7 +755,7 @@ begin
     DarkRadio(noneUpscalerRadioButton);
     noneUpscalerRadioButton.Checked := False;
     noneUpscalerRadioButton.OnClick := @noneUpscalerRadioButtonClick;
-    noneUpscalerRadioButton.Hint := 'Disable upscaling middleware and run games with native rendering';
+    noneUpscalerRadioButton.Hint := rsDisableUpscalingMiddlewareAndRunGames;
     noneUpscalerRadioButton.ShowHint := True;
 
     noneUpscalerLogoImage := TImage.Create(FForm);
@@ -768,7 +769,7 @@ begin
     noneUpscalerLogoImage.Stretch := True;
     noneUpscalerLogoImage.Cursor := crHandPoint;
     noneUpscalerLogoImage.OnClick := @noneUpscalerLogoImageClick;
-    noneUpscalerLogoImage.Hint := 'Disable upscaling middleware and run games with native rendering';
+    noneUpscalerLogoImage.Hint := rsDisableUpscalingMiddlewareAndRunGames;
     noneUpscalerLogoImage.ShowHint := True;
 
     FOptiScalerPngLogo := TPortableNetworkGraphic.Create;
@@ -962,7 +963,7 @@ begin
     // --- Sub-card 1: Main controls ---
     filenameLabel.AnchorSideLeft.Control   := nil; filenameLabel.AnchorSideTop.Control    := nil;
     filenameLabel.AnchorSideRight.Control  := nil; filenameLabel.AnchorSideBottom.Control := nil;
-    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Caption := 'Proxy DLL'; filenameLabel.Parent  := FOsMainSec;
+    filenameLabel.Anchors := [akLeft, akTop]; filenameLabel.Caption := rsProxyDLL; filenameLabel.Parent  := FOsMainSec;
 
     filenameComboBox.AnchorSideLeft.Control   := nil; filenameComboBox.AnchorSideTop.Control    := nil;
     filenameComboBox.AnchorSideRight.Control  := nil; filenameComboBox.AnchorSideBottom.Control := nil;
@@ -973,7 +974,7 @@ begin
     begin
       gpudriverLabel := TLabel.Create(FForm);
       gpudriverLabel.Name := 'gpudriverLabel';
-      gpudriverLabel.Caption := 'GPU Driver';
+      gpudriverLabel.Caption := rsGPUDriver;
     end;
     gpudriverLabel.AnchorSideLeft.Control   := nil; gpudriverLabel.AnchorSideTop.Control    := nil;
     gpudriverLabel.AnchorSideRight.Control  := nil; gpudriverLabel.AnchorSideBottom.Control := nil;
@@ -996,7 +997,7 @@ begin
         gpudriverComboBox.Items.Add('NVIDIA');
       end;
       gpudriverComboBox.ItemIndex := 0;
-      gpudriverComboBox.Hint := 'GPU driver backend for OptiScaler (DLSS spoofing, Reflex, and LatencyFlex)';
+      gpudriverComboBox.Hint := rsGPUDriverBackendForOptiScalerDLSS;
       gpudriverComboBox.ShowHint := True;
       gpudriverComboBox.OnChange := @gpudriverComboBoxChange;
     end;
@@ -1007,7 +1008,7 @@ begin
 
     menuLabel.AnchorSideLeft.Control   := nil; menuLabel.AnchorSideTop.Control    := nil;
     menuLabel.AnchorSideRight.Control  := nil; menuLabel.AnchorSideBottom.Control := nil;
-    menuLabel.Anchors := [akLeft, akTop]; menuLabel.Caption := 'Menu scale';
+    menuLabel.Anchors := [akLeft, akTop]; menuLabel.Caption := rsMenuScale;
     menuLabel.Parent  := FOsMainSec;
     menuLabel.Visible := False;
 
@@ -1039,7 +1040,7 @@ begin
     begin
       loglevelLabel := TLabel.Create(FForm);
       loglevelLabel.Name := 'loglevelLabel';
-      loglevelLabel.Caption := 'Log level';
+      loglevelLabel.Caption := rsLogLevel;
     end;
     loglevelLabel.AnchorSideLeft.Control   := nil; loglevelLabel.AnchorSideTop.Control    := nil;
     loglevelLabel.AnchorSideRight.Control  := nil; loglevelLabel.AnchorSideBottom.Control := nil;
@@ -1058,7 +1059,7 @@ begin
       loglevelComboBox.Items.Add('3 - Warning');
       loglevelComboBox.Items.Add('4 - Error');
       loglevelComboBox.ItemIndex := 2;
-      loglevelComboBox.Hint := 'Verbosity level of OptiScaler logs. Higher verbosity (Trace / Debug) may impact gameplay performance. Default is 2 (Info).';
+      loglevelComboBox.Hint := rsVerbosityLevelOfOptiScalerLogsHigher;
       loglevelComboBox.ShowHint := True;
       loglevelComboBox.OnChange := @loglevelComboBoxChange;
     end;
@@ -1084,7 +1085,7 @@ begin
       FOsPatcherListBtn.Flat := True;
       FOsPatcherListBtn.Transparent := True;
       FOsPatcherListBtn.Caption := '🔗';
-      FOsPatcherListBtn.Hint := 'Games supported';
+      FOsPatcherListBtn.Hint := rsGamesSupported;
       FOsPatcherListBtn.ShowHint := True;
       FOsPatcherListBtn.Cursor := crHandPoint;
       FOsPatcherListBtn.OnClick := @patcherlistLabelClick;
@@ -1095,7 +1096,7 @@ begin
 
     shortcutkeyLabel.AnchorSideLeft.Control   := nil; shortcutkeyLabel.AnchorSideTop.Control    := nil;
     shortcutkeyLabel.AnchorSideRight.Control  := nil; shortcutkeyLabel.AnchorSideBottom.Control := nil;
-    shortcutkeyLabel.Anchors  := [akLeft, akTop]; shortcutkeyLabel.Caption  := 'Optiscaler toggle';
+    shortcutkeyLabel.Anchors  := [akLeft, akTop]; shortcutkeyLabel.Caption  := rsOptiscalerToggle;
     shortcutkeyLabel.Parent   := FOsMainSec;
 
     shortcutImage.Visible := False;
@@ -1123,7 +1124,7 @@ begin
     dlssenablerToggleLabel.AnchorSideLeft.Control   := nil; dlssenablerToggleLabel.AnchorSideTop.Control    := nil;
     dlssenablerToggleLabel.AnchorSideRight.Control  := nil; dlssenablerToggleLabel.AnchorSideBottom.Control := nil;
     dlssenablerToggleLabel.Anchors := [akLeft, akTop];
-    dlssenablerToggleLabel.Caption := 'DLSS-Enabler toggle';
+    dlssenablerToggleLabel.Caption := rsDLSSEnablerToggle;
     dlssenablerToggleLabel.Parent  := FOsMainSec;
 
     if dlssenablerToggleBtn = nil then
@@ -1148,7 +1149,7 @@ begin
     FMainDlssNrToggleLabel.AnchorSideLeft.Control   := nil; FMainDlssNrToggleLabel.AnchorSideTop.Control    := nil;
     FMainDlssNrToggleLabel.AnchorSideRight.Control  := nil; FMainDlssNrToggleLabel.AnchorSideBottom.Control := nil;
     FMainDlssNrToggleLabel.Anchors := [akLeft, akTop];
-    FMainDlssNrToggleLabel.Caption := 'DLSS-NR menu';
+    FMainDlssNrToggleLabel.Caption := rsDLSSNRMenu;
     FMainDlssNrToggleLabel.Parent  := FOsMainSec;
     FMainDlssNrToggleLabel.Visible := False;
 
@@ -1165,7 +1166,7 @@ begin
     FMainDlssNrToggleBtn.Height   := 28;
     FMainDlssNrToggleBtn.Caption  := '⌨ End';
     FMainDlssNrToggleBtn.Enabled  := False;
-    FMainDlssNrToggleBtn.Hint     := 'In-game shortcut to toggle the DLSS-NR menu';
+    FMainDlssNrToggleBtn.Hint     := rsInGameShortcutToToggleThe;
     FMainDlssNrToggleBtn.ShowHint := True;
     FMainDlssNrToggleBtn.Visible  := False;
 
@@ -1182,7 +1183,7 @@ begin
     fsrversionLabel.AnchorSideRight.Control  := nil; fsrversionLabel.AnchorSideBottom.Control := nil;
     fsrversionLabel.Anchors := [akLeft, akTop];
     fsrversionLabel.Parent  := FOsSpatialSec;
-    fsrversionLabel.Caption := 'FSR Version';
+    fsrversionLabel.Caption := rsFSRVersion;
     fsrversionLabel.Visible := True;
 
     fsrversionComboBox.AnchorSideLeft.Control   := nil; fsrversionComboBox.AnchorSideTop.Control    := nil;
@@ -1207,8 +1208,8 @@ begin
     begin
       forceFsr4Int8CheckBox := TCheckBox.Create(FForm);
       forceFsr4Int8CheckBox.Name := 'forceFsr4Int8CheckBox';
-      forceFsr4Int8CheckBox.Caption := 'Force FSR4-i8';
-      forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
+      forceFsr4Int8CheckBox.Caption := rsForceFSR4I8;
+      forceFsr4Int8CheckBox.Hint := rsForceFSR4I8 + LineEnding + rsForceINT8ModelOnUnsupportedGPUs;
       forceFsr4Int8CheckBox.ShowHint := True;
       forceFsr4Int8CheckBox.AnchorSideLeft.Control   := nil; forceFsr4Int8CheckBox.AnchorSideTop.Control    := nil;
       forceFsr4Int8CheckBox.AnchorSideRight.Control  := nil; forceFsr4Int8CheckBox.AnchorSideBottom.Control := nil;
@@ -1221,8 +1222,8 @@ begin
     begin
       helixsrNativeDlssCheckBox := TCheckBox.Create(FForm);
       helixsrNativeDlssCheckBox.Name := 'helixsrNativeDlssCheckBox';
-      helixsrNativeDlssCheckBox.Caption := 'Native DLSS (Exp.)';
-      helixsrNativeDlssCheckBox.Hint := 'Native DLSS (Experimental)' + LineEnding + 'Bypass OptiScaler using direct DLSS loader (Single-player only, anti-cheat ban risk)';
+      helixsrNativeDlssCheckBox.Caption := rsNativeDLSSExp;
+      helixsrNativeDlssCheckBox.Hint := rsNativeDLSSExperimental + LineEnding + rsBypassOptiScalerUsingDirectDLSSLoader;
       helixsrNativeDlssCheckBox.ShowHint := True;
       helixsrNativeDlssCheckBox.OnChange := @FForm.helixsrNativeDlssCheckBoxChange;
       helixsrNativeDlssCheckBox.Anchors := [akLeft, akTop];
@@ -1305,10 +1306,10 @@ begin
     begin
       FHelixsrWaveSizeLabel := TLabel.Create(FForm);
       FHelixsrWaveSizeLabel.Name := 'helixsrWaveSizeLabel';
-      FHelixsrWaveSizeLabel.Caption := 'Wave size';
+      FHelixsrWaveSizeLabel.Caption := rsWaveSize;
       FHelixsrWaveSizeLabel.Parent := FOsFakeSec;
       FHelixsrWaveSizeLabel.Visible := False;
-      FHelixsrWaveSizeLabel.Hint := 'GPU compute subgroup/wave size for neural shader execution. Auto chooses the recommended wave size for your GPU (Wave32 on RDNA/NVIDIA, Wave64 on GCN).';
+      FHelixsrWaveSizeLabel.Hint := rsGPUComputeSubgroupWaveSizeFor;
       FHelixsrWaveSizeLabel.ShowHint := True;
     end;
 
@@ -1324,7 +1325,7 @@ begin
       FHelixsrWaveSizeComboBox.Parent := FOsFakeSec;
       FHelixsrWaveSizeComboBox.Visible := False;
       FHelixsrWaveSizeComboBox.OnChange := @HelixSrControlChange;
-      FHelixsrWaveSizeComboBox.Hint := 'GPU compute subgroup/wave size for neural shader execution. Auto chooses the recommended wave size for your GPU (Wave32 on RDNA/NVIDIA, Wave64 on GCN).';
+      FHelixsrWaveSizeComboBox.Hint := rsGPUComputeSubgroupWaveSizeFor;
       FHelixsrWaveSizeComboBox.ShowHint := True;
     end;
 
@@ -1332,10 +1333,10 @@ begin
     begin
       FHelixsrNetworkResolutionLabel := TLabel.Create(FForm);
       FHelixsrNetworkResolutionLabel.Name := 'helixsrNetworkResolutionLabel';
-      FHelixsrNetworkResolutionLabel.Caption := 'Network resolution';
+      FHelixsrNetworkResolutionLabel.Caption := rsNetworkResolution;
       FHelixsrNetworkResolutionLabel.Parent := FOsFakeSec;
       FHelixsrNetworkResolutionLabel.Visible := False;
-      FHelixsrNetworkResolutionLabel.Hint := 'Neural model reconstruction resolution. Fast uses 2x Lanczos upsampling for higher FPS; Full runs inference at native screen resolution for maximum sharpness.';
+      FHelixsrNetworkResolutionLabel.Hint := rsNeuralModelReconstructionResolutionFastUses;
       FHelixsrNetworkResolutionLabel.ShowHint := True;
     end;
 
@@ -1350,7 +1351,7 @@ begin
       FHelixsrNetworkResolutionComboBox.Parent := FOsFakeSec;
       FHelixsrNetworkResolutionComboBox.Visible := False;
       FHelixsrNetworkResolutionComboBox.OnChange := @HelixSrControlChange;
-      FHelixsrNetworkResolutionComboBox.Hint := 'Neural model reconstruction resolution. Fast uses 2x Lanczos upsampling for higher FPS; Full runs inference at native screen resolution for maximum sharpness.';
+      FHelixsrNetworkResolutionComboBox.Hint := rsNeuralModelReconstructionResolutionFastUses;
       FHelixsrNetworkResolutionComboBox.ShowHint := True;
     end;
 
@@ -1358,10 +1359,10 @@ begin
     begin
       FHelixsrInt8Label := TLabel.Create(FForm);
       FHelixsrInt8Label.Name := 'helixsrInt8Label';
-      FHelixsrInt8Label.Caption := 'INT8 acceleration';
+      FHelixsrInt8Label.Caption := rsINT8Acceleration;
       FHelixsrInt8Label.Parent := FOsFakeSec;
       FHelixsrInt8Label.Visible := False;
-      FHelixsrInt8Label.Hint := 'Hardware-accelerated INT8 quantization for neural shaders. On boosts FPS on modern GPUs; Off uses FP16 full precision.';
+      FHelixsrInt8Label.Hint := rsHardwareAcceleratedINT8QuantizationForNeural;
       FHelixsrInt8Label.ShowHint := True;
     end;
 
@@ -1377,7 +1378,7 @@ begin
       FHelixsrInt8ComboBox.Parent := FOsFakeSec;
       FHelixsrInt8ComboBox.Visible := False;
       FHelixsrInt8ComboBox.OnChange := @HelixSrControlChange;
-      FHelixsrInt8ComboBox.Hint := 'Hardware-accelerated INT8 quantization for neural shaders. On boosts FPS on modern GPUs; Off uses FP16 full precision.';
+      FHelixsrInt8ComboBox.Hint := rsHardwareAcceleratedINT8QuantizationForNeural;
       FHelixsrInt8ComboBox.ShowHint := True;
     end;
 
@@ -1385,10 +1386,10 @@ begin
     begin
       FHelixsrFgPresetLabel := TLabel.Create(FForm);
       FHelixsrFgPresetLabel.Name := 'helixsrFgPresetLabel';
-      FHelixsrFgPresetLabel.Caption := 'Frame generation';
+      FHelixsrFgPresetLabel.Caption := rsFrameGeneration;
       FHelixsrFgPresetLabel.Parent := FOsFakeSec;
       FHelixsrFgPresetLabel.Visible := False;
-      FHelixsrFgPresetLabel.Hint := 'DLSS Frame Generation model preset. Light uses preset c for lower latency and higher performance; Full uses DLSS FG 310.3 for maximum visual smoothness.';
+      FHelixsrFgPresetLabel.Hint := rsDLSSFrameGenerationModelPresetLight;
       FHelixsrFgPresetLabel.ShowHint := True;
     end;
 
@@ -1403,7 +1404,7 @@ begin
       FHelixsrFgPresetComboBox.Parent := FOsFakeSec;
       FHelixsrFgPresetComboBox.Visible := False;
       FHelixsrFgPresetComboBox.OnChange := @HelixSrControlChange;
-      FHelixsrFgPresetComboBox.Hint := 'DLSS Frame Generation model preset. Light uses preset c for lower latency and higher performance; Full uses DLSS FG 310.3 for maximum visual smoothness.';
+      FHelixsrFgPresetComboBox.Hint := rsDLSSFrameGenerationModelPresetLight;
       FHelixsrFgPresetComboBox.ShowHint := True;
     end;
 
@@ -1412,7 +1413,7 @@ begin
     begin
       FDlssNrArchLabel := TLabel.Create(FForm);
       FDlssNrArchLabel.Name := 'FDlssNrArchLabel';
-      FDlssNrArchLabel.Caption := 'Architecture';
+      FDlssNrArchLabel.Caption := rsArchitecture;
       FDlssNrArchLabel.Parent := FOsFakeSec;
       FDlssNrArchLabel.Visible := False;
       StdLbl(FDlssNrArchLabel);
@@ -1427,7 +1428,7 @@ begin
       FDlssNrArchComboBox.Items.Add('RDNA 4');
       FDlssNrArchComboBox.Items.Add('RDNA 3');
       FDlssNrArchComboBox.ItemIndex := 0;
-      FDlssNrArchComboBox.Hint := 'Target GPU architecture for the DLSS-NR runtime';
+      FDlssNrArchComboBox.Hint := rsTargetGPUArchitectureForTheDLSS;
       FDlssNrArchComboBox.ShowHint := True;
       FDlssNrArchComboBox.Parent := FOsFakeSec;
       FDlssNrArchComboBox.Visible := False;
@@ -1439,7 +1440,7 @@ begin
     begin
       FDlssNrRouteLabel := TLabel.Create(FForm);
       FDlssNrRouteLabel.Name := 'FDlssNrRouteLabel';
-      FDlssNrRouteLabel.Caption := 'Route';
+      FDlssNrRouteLabel.Caption := rsRoute;
       FDlssNrRouteLabel.Parent := FOsFakeSec;
       FDlssNrRouteLabel.Visible := False;
       StdLbl(FDlssNrRouteLabel);
@@ -1455,7 +1456,7 @@ begin
       FDlssNrRouteComboBox.Items.Add('Vulkan');
       FDlssNrRouteComboBox.Items.Add('DX9');
       FDlssNrRouteComboBox.ItemIndex := 0;
-      FDlssNrRouteComboBox.Hint := 'Injection route used to feed the DLSS-NR pipeline';
+      FDlssNrRouteComboBox.Hint := rsInjectionRouteUsedToFeedThe;
       FDlssNrRouteComboBox.ShowHint := True;
       FDlssNrRouteComboBox.Parent := FOsFakeSec;
       FDlssNrRouteComboBox.Visible := False;
@@ -1467,7 +1468,7 @@ begin
     begin
       FDlssNrModelVerLabel := TLabel.Create(FForm);
       FDlssNrModelVerLabel.Name := 'FDlssNrModelVerLabel';
-      FDlssNrModelVerLabel.Caption := 'Model Version';
+      FDlssNrModelVerLabel.Caption := rsModelVersion;
       FDlssNrModelVerLabel.Parent := FOsFakeSec;
       FDlssNrModelVerLabel.Visible := False;
       StdLbl(FDlssNrModelVerLabel);
@@ -1481,7 +1482,7 @@ begin
       FDlssNrModelVerComboBox.Items.Add('New (v310.9)');
       FDlssNrModelVerComboBox.Items.Add('Old (v310.8)');
       FDlssNrModelVerComboBox.ItemIndex := 0;
-      FDlssNrModelVerComboBox.Hint := 'Neural network model version used by DLSS-NR';
+      FDlssNrModelVerComboBox.Hint := rsNeuralNetworkModelVersionUsedBy;
       FDlssNrModelVerComboBox.ShowHint := True;
       FDlssNrModelVerComboBox.Parent := FOsFakeSec;
       FDlssNrModelVerComboBox.Visible := False;
@@ -1493,7 +1494,7 @@ begin
     begin
       FDlssNrScaleLabel := TLabel.Create(FForm);
       FDlssNrScaleLabel.Name := 'FDlssNrScaleLabel';
-      FDlssNrScaleLabel.Caption := 'Model Scale';
+      FDlssNrScaleLabel.Caption := rsModelScale;
       FDlssNrScaleLabel.Parent := FOsFakeSec;
       FDlssNrScaleLabel.Visible := False;
       StdLbl(FDlssNrScaleLabel);
@@ -1512,7 +1513,7 @@ begin
         FDlssNrScaleComboBox.ItemIndex := 2
       else
         FDlssNrScaleComboBox.ItemIndex := 0;
-      FDlssNrScaleComboBox.Hint := 'Neural model resolution scale (lower is faster, essential on RDNA3)';
+      FDlssNrScaleComboBox.Hint := rsNeuralModelResolutionScaleLowerIs;
       FDlssNrScaleComboBox.ShowHint := True;
       FDlssNrScaleComboBox.Parent := FOsFakeSec;
       FDlssNrScaleComboBox.Visible := False;
@@ -1524,7 +1525,7 @@ begin
     begin
       FDlssNrPassesLabel := TLabel.Create(FForm);
       FDlssNrPassesLabel.Name := 'FDlssNrPassesLabel';
-      FDlssNrPassesLabel.Caption := 'Passes';
+      FDlssNrPassesLabel.Caption := rsPasses;
       FDlssNrPassesLabel.Parent := FOsFakeSec;
       FDlssNrPassesLabel.Visible := False;
       StdLbl(FDlssNrPassesLabel);
@@ -1539,7 +1540,7 @@ begin
       FDlssNrPassesComboBox.Items.Add('2 (Double)');
       FDlssNrPassesComboBox.Items.Add('3 (Triple)');
       FDlssNrPassesComboBox.ItemIndex := 0;
-      FDlssNrPassesComboBox.Hint := 'Number of neural reconstruction passes';
+      FDlssNrPassesComboBox.Hint := rsNumberOfNeuralReconstructionPasses;
       FDlssNrPassesComboBox.ShowHint := True;
       FDlssNrPassesComboBox.Parent := FOsFakeSec;
       FDlssNrPassesComboBox.Visible := False;
@@ -1552,7 +1553,7 @@ begin
     begin
       fgInputLabel := TLabel.Create(FForm);
       fgInputLabel.Name := 'fgInputLabel';
-      fgInputLabel.Caption := 'FG Input';
+      fgInputLabel.Caption := rsFGInput;
     end;
     fgInputLabel.AnchorSideLeft.Control   := nil; fgInputLabel.AnchorSideTop.Control    := nil;
     fgInputLabel.AnchorSideRight.Control  := nil; fgInputLabel.AnchorSideBottom.Control := nil;
@@ -1572,7 +1573,7 @@ begin
     begin
       fgOutputLabel := TLabel.Create(FForm);
       fgOutputLabel.Name := 'fgOutputLabel';
-      fgOutputLabel.Caption := 'FG Output';
+      fgOutputLabel.Caption := rsFGOutput;
     end;
     fgOutputLabel.AnchorSideLeft.Control   := nil; fgOutputLabel.AnchorSideTop.Control    := nil;
     fgOutputLabel.AnchorSideRight.Control  := nil; fgOutputLabel.AnchorSideBottom.Control := nil;
@@ -1589,8 +1590,8 @@ begin
     fgOutputComboBox.AnchorSideRight.Control  := nil; fgOutputComboBox.AnchorSideBottom.Control := nil;
     fgOutputComboBox.Anchors := [akLeft, akTop]; fgOutputComboBox.Parent  := FOsTemporalSec;
 
-    emufp8CheckBox.Caption := 'Force MLFG in RDNA3';
-    emufp8CheckBox.Hint    := 'Emulate FP8 to active MLFG';
+    emufp8CheckBox.Caption := rsForceMLFGInRDNA3;
+    emufp8CheckBox.Hint    := rsEmulateFP8ToActiveMLFG;
     emufp8CheckBox.ShowHint := True;
     emufp8CheckBox.AnchorSideLeft.Control   := nil; emufp8CheckBox.AnchorSideTop.Control    := nil;
     emufp8CheckBox.AnchorSideRight.Control  := nil; emufp8CheckBox.AnchorSideBottom.Control := nil;
@@ -1603,7 +1604,7 @@ begin
     begin
       FDlssNrModelDllLabel := TLabel.Create(FForm);
       FDlssNrModelDllLabel.Name := 'FDlssNrModelDllLabel';
-      FDlssNrModelDllLabel.Caption := 'Model Weights';
+      FDlssNrModelDllLabel.Caption := rsModelWeights;
       FDlssNrModelDllLabel.Parent := FOsFakeSec;
       FDlssNrModelDllLabel.Visible := False;
       StdLbl(FDlssNrModelDllLabel);
@@ -1613,7 +1614,7 @@ begin
     begin
       FDlssNrModelStatusLabel := TLabel.Create(FForm);
       FDlssNrModelStatusLabel.Name := 'FDlssNrModelStatusLabel';
-      FDlssNrModelStatusLabel.Caption := 'Checking weights...';
+      FDlssNrModelStatusLabel.Caption := rsCheckingWeights;
       FDlssNrModelStatusLabel.Parent := FOsFakeSec;
       FDlssNrModelStatusLabel.Visible := False;
       StdLbl(FDlssNrModelStatusLabel);
@@ -1623,8 +1624,8 @@ begin
     begin
       FDlssNrInt4CheckBox := TCheckBox.Create(FForm);
       FDlssNrInt4CheckBox.Name := 'FDlssNrInt4CheckBox';
-      FDlssNrInt4CheckBox.Caption := 'Int4 Mixed Precision';
-      FDlssNrInt4CheckBox.Hint := 'Enable Int4 quantization for lower VRAM and higher throughput';
+      FDlssNrInt4CheckBox.Caption := rsInt4MixedPrecision;
+      FDlssNrInt4CheckBox.Hint := rsEnableInt4QuantizationForLowerVRAM;
       FDlssNrInt4CheckBox.ShowHint := True;
       FDlssNrInt4CheckBox.Parent := FOsFakeSec;
       FDlssNrInt4CheckBox.Visible := False;
@@ -1638,8 +1639,8 @@ begin
     begin
       FDlssNrRenoDxCheckBox := TCheckBox.Create(FForm);
       FDlssNrRenoDxCheckBox.Name := 'FDlssNrRenoDxCheckBox';
-      FDlssNrRenoDxCheckBox.Caption := 'RenoDX Color Style';
-      FDlssNrRenoDxCheckBox.Hint := 'Apply HDR color space handling tuned for RenoDX shaders';
+      FDlssNrRenoDxCheckBox.Caption := rsRenoDXColorStyle;
+      FDlssNrRenoDxCheckBox.Hint := rsApplyHDRColorSpaceHandlingTuned;
       FDlssNrRenoDxCheckBox.ShowHint := True;
       FDlssNrRenoDxCheckBox.Parent := FOsFakeSec;
       FDlssNrRenoDxCheckBox.Visible := False;
@@ -1653,8 +1654,8 @@ begin
     begin
       FDlssNrPreprocessCheckBox := TCheckBox.Create(FForm);
       FDlssNrPreprocessCheckBox.Name := 'FDlssNrPreprocessCheckBox';
-      FDlssNrPreprocessCheckBox.Caption := 'Preprocess Auto-exposure';
-      FDlssNrPreprocessCheckBox.Hint := 'Auto-exposure preprocessing before neural reconstruction';
+      FDlssNrPreprocessCheckBox.Caption := rsPreprocessAutoExposure;
+      FDlssNrPreprocessCheckBox.Hint := rsAutoExposurePreprocessingBeforeNeuralReconst;
       FDlssNrPreprocessCheckBox.ShowHint := True;
       FDlssNrPreprocessCheckBox.Parent := FOsFakeSec;
       FDlssNrPreprocessCheckBox.Visible := False;
@@ -1668,8 +1669,8 @@ begin
     begin
       FDlssNrRunBeforeSrCheckBox := TCheckBox.Create(FForm);
       FDlssNrRunBeforeSrCheckBox.Name := 'FDlssNrRunBeforeSrCheckBox';
-      FDlssNrRunBeforeSrCheckBox.Caption := 'Run before SR';
-      FDlssNrRunBeforeSrCheckBox.Hint := 'Execute DLSS-NR denoising pass before spatial super-resolution';
+      FDlssNrRunBeforeSrCheckBox.Caption := rsRunBeforeSR;
+      FDlssNrRunBeforeSrCheckBox.Hint := rsExecuteDLSSNRDenoisingPassBefore;
       FDlssNrRunBeforeSrCheckBox.ShowHint := True;
       FDlssNrRunBeforeSrCheckBox.Parent := FOsFakeSec;
       FDlssNrRunBeforeSrCheckBox.Visible := False;
@@ -1683,8 +1684,8 @@ begin
     begin
       FDlssNrAdvancedBtn := TBitBtn.Create(FForm);
       FDlssNrAdvancedBtn.Name := 'FDlssNrAdvancedBtn';
-      FDlssNrAdvancedBtn.Caption := '⚙ Advanced Settings...';
-      FDlssNrAdvancedBtn.Hint := 'Advanced DLSS-NR pipeline parameters (route, color style, filters)';
+      FDlssNrAdvancedBtn.Caption := rsAdvancedSettings;
+      FDlssNrAdvancedBtn.Hint := rsAdvancedDLSSNRPipelineParametersRoute;
       FDlssNrAdvancedBtn.ShowHint := True;
       FDlssNrAdvancedBtn.Parent := FOsFakeSec;
       FDlssNrAdvancedBtn.Visible := False;
@@ -1751,7 +1752,7 @@ begin
     DarkCheck(spoofCheckBox);
     DarkCheck(emufp8CheckBox);
     DarkCheck(forceFsr4Int8CheckBox);
-    forceFsr4Int8CheckBox.Hint := 'Force FSR4-i8' + LineEnding + 'Force INT8 model on unsupported GPUs';
+    forceFsr4Int8CheckBox.Hint := rsForceFSR4I8 + LineEnding + rsForceINT8ModelOnUnsupportedGPUs;
     forceFsr4Int8CheckBox.ShowHint := True;
     forceFsr4Int8CheckBox.Visible := False;
     DarkCheck(optipatcherCheckBox);
@@ -1827,8 +1828,8 @@ begin
     begin
       unmanagedIniCheckBox := TCheckBox.Create(FForm);
       unmanagedIniCheckBox.Name := 'unmanagedIniCheckBox';
-      unmanagedIniCheckBox.Caption := 'In-game menu configuration only';
-      unmanagedIniCheckBox.Hint := 'Do not overwrite OptiScaler.ini from Goverlay (configure in-game instead)';
+      unmanagedIniCheckBox.Caption := rsInGameMenuConfigurationOnly;
+      unmanagedIniCheckBox.Hint := rsDoNotOverwriteOptiScalerIniFrom;
       unmanagedIniCheckBox.ShowHint := True;
       unmanagedIniCheckBox.Anchors := [akLeft, akTop];
       unmanagedIniCheckBox.Parent := FOsStatusCard;
@@ -1839,7 +1840,7 @@ begin
     if FUnmanagedIniToggle = nil then
     begin
       FUnmanagedIniToggle := PlaceOsToggle(unmanagedIniCheckBox, FOsStatusCard);
-      FUnmanagedIniToggle.Hint := 'Do not overwrite OptiScaler.ini from Goverlay (configure in-game instead)';
+      FUnmanagedIniToggle.Hint := rsDoNotOverwriteOptiScalerIniFrom;
       FUnmanagedIniToggle.ShowHint := True;
       FUnmanagedIniToggle.Visible := False;
     end;
@@ -1848,7 +1849,7 @@ begin
     begin
       FOsCustomInfoLbl := TLabel.Create(FForm);
       FOsCustomInfoLbl.Parent := FOsStatusCard;
-      FOsCustomInfoLbl.Caption := '* Missing companion libraries inherited from stable cache';
+      FOsCustomInfoLbl.Caption := rsMissingCompanionLibrariesInheritedFromStable;
       FOsCustomInfoLbl.Font.Color := $888888;
       FOsCustomInfoLbl.Font.Size := 8;
       FOsCustomInfoLbl.AutoSize := True;
@@ -1859,7 +1860,7 @@ begin
     updateBitBtn.Parent      := FOsStatusCard;
     updateBitBtn.Anchors     := [akLeft, akTop];
     updateBitBtn.Visible     := True;
-    updateBitBtn.Caption     := 'Update';
+    updateBitBtn.Caption     := rsUpdate;
     updateBitBtn.Font.Color  := clWhite;
     updateBitBtn.Font.Size   := 9;
     updateBitBtn.Font.Style  := [fsBold];
@@ -1933,7 +1934,7 @@ begin
     FOsHelixLicenseBtn := TBitBtn.Create(FForm);
     FOsHelixLicenseBtn.Parent  := FOsStatusCard;
     FOsHelixLicenseBtn.Name    := 'helixsrLicenseBtn';
-    FOsHelixLicenseBtn.Caption := 'License';
+    FOsHelixLicenseBtn.Caption := rsLicense;
     FOsHelixLicenseBtn.Font.Size := 8;
     FOsHelixLicenseBtn.Font.Style := [fsBold];
     FOsHelixLicenseBtn.Cursor  := crHandPoint;
@@ -1942,7 +1943,7 @@ begin
 
     FDlssNrModelDllBrowseBtn := TBitBtn.Create(FForm);
     FDlssNrModelDllBrowseBtn.Name := 'FDlssNrModelDllBrowseBtn';
-    FDlssNrModelDllBrowseBtn.Caption := 'Select nvngx_dlssnr.dll...';
+    FDlssNrModelDllBrowseBtn.Caption := rsSelectNvngxDlssnrDll;
     FDlssNrModelDllBrowseBtn.Parent := FOsStatusCard;
     FDlssNrModelDllBrowseBtn.Font.Size := 8;
     FDlssNrModelDllBrowseBtn.Font.Style := [fsBold];
@@ -2462,7 +2463,7 @@ begin
     begin
       if Assigned(FOsSpatialLbl) then FOsSpatialLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := 'Upscaler';
+      if Assigned(FOsSpatialLbl) then FOsSpatialLbl.Caption := rsUpscaler;
 
       // Hide DLSS-NR controls
       if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
@@ -2543,7 +2544,7 @@ begin
     begin
       if Assigned(FOsTemporalLbl) then FOsTemporalLbl.SetBounds(10, 6, ColW - 20, 16);
 
-      if Assigned(FOsTemporalLbl) then FOsTemporalLbl.Caption := 'Frame generation';
+      if Assigned(FOsTemporalLbl) then FOsTemporalLbl.Caption := rsFrameGeneration;
 
       if Assigned(FDlssNrModelDllLabel) then FDlssNrModelDllLabel.Visible := False;
       if Assigned(FDlssNrModelDllBrowseBtn) then FDlssNrModelDllBrowseBtn.Visible := False;
@@ -2821,7 +2822,7 @@ begin
       end
       else
       begin
-        if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := 'Reflex / Antilag';
+        if Assigned(FOsFakeLbl) then FOsFakeLbl.Caption := rsReflexAntilag;
 
         // Hide all DLSS-NR controls
         if Assigned(FDlssNrArchLabel) then FDlssNrArchLabel.Visible := False;
@@ -2938,7 +2939,7 @@ begin
     if IsUnmanaged then
     begin
       preferredUpscalerComboBox.Enabled := False;
-      preferredUpscalerComboBox.Hint := 'Upscaler is configured via in-game menu (unmanaged mode)';
+      preferredUpscalerComboBox.Hint := rsUpscalerIsConfiguredViaInGame;
       if Assigned(fgInputComboBox) then fgInputComboBox.Enabled := False;
       if Assigned(fgOutputComboBox) then fgOutputComboBox.Enabled := False;
     end
@@ -3562,7 +3563,7 @@ begin
 
   if IsDLSSEnabler then
   begin
-    FForm.fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
+    FForm.fgInputComboBox.Hint := rsSelectedFGInputSource + LineEnding +
       'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline and DLSSG' + LineEnding +
       'nvngxfg - Limited to FSR 3 FG (MFG with DLSS Enabler''s dll). Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
       'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
@@ -3571,7 +3572,7 @@ begin
   end
   else
   begin
-    FForm.fgInputComboBox.Hint := 'Selected FG Input/Source:' + LineEnding +
+    FForm.fgInputComboBox.Hint := rsSelectedFGInputSource + LineEnding +
       'dlssg - Can be used with any FG Output. Supports Hudless out of the box. Limited to games that use Streamline v2 and DLSSG' + LineEnding +
       'nukems - Limited to FSR 3 FG. Requires DLSSG in the game. Supports Hudless out of the box. Uses Streamline swapchain for pacing.' + LineEnding +
       'fsrfg - Can be used with any FG Output. Supports Hudless out of the box.' + LineEnding +
@@ -3610,7 +3611,7 @@ begin
 
   if IsDLSSEnabler then
   begin
-    FForm.fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
+    FForm.fgOutputComboBox.Hint := rsSelectedFGOutput + LineEnding +
       'fsrfg - requires amd_fidelityfx_dx12.dll OR amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
       'xefg - requires libxess_fg.dll and libxell.dll' + LineEnding +
       'nvngxfg - requires dlssg_to_fsr3_amd_is_better.dll OR dlss-enabler-headless.dll' + LineEnding +
@@ -3619,7 +3620,7 @@ begin
   end
   else
   begin
-    FForm.fgOutputComboBox.Hint := 'Selected FG Output:' + LineEnding +
+    FForm.fgOutputComboBox.Hint := rsSelectedFGOutput + LineEnding +
       'fsrfg - requires amd_fidelityfx_dx12.dll or amd_fidelityfx_loader_dx12.dll + amd_fidelityfx_framegeneration_dx12.dll' + LineEnding +
       'xefg - requires libxess_fg.dll, libxell.dll and latest fakenvapi dll' + LineEnding +
       'nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well';

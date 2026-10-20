@@ -17,6 +17,7 @@ unit floating_dock;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, Buttons,
   LCLIntf, LCLType;
 
@@ -759,14 +760,14 @@ begin
     FFinishHovered  := NewFinishHovered;
 
     case Btn of
-      btnMenu:    FPillBox.Hint := 'Options & presets menu';
+      btnMenu:    FPillBox.Hint := rsOptionsPresetsMenu;
       btnPreview:
         if FPreviewRunning then
-          FPillBox.Hint := 'Stop 3D preview (PasCube running in live sync)'
+          FPillBox.Hint := rsStop3DPreviewPasCubeRunningIn
         else
-          FPillBox.Hint := 'Launch a quick 3D preview (PasCube / vkcube)';
-      btnAdd:     FPillBox.Hint := 'Add action';
-      btnFinish:  FPillBox.Hint := 'Get your Steam / Heroic launch command';
+          FPillBox.Hint := rsLaunchAQuick3DPreviewPasCube;
+      btnAdd:     FPillBox.Hint := rsAddAction;
+      btnFinish:  FPillBox.Hint := rsGetYourSteamHeroicLaunchCommand;
       else        FPillBox.Hint := '';
     end;
     FPillBox.ShowHint := (Btn <> btnNone);

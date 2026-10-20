@@ -340,6 +340,7 @@ msgid "Are you sure you want to uninstall all changes for \"%s\"?"
 msgstr ""
 
 #: goverlay_strings.rsuninstallchangestitle
+#: goverlay_strings.rsuninstallchanges
 msgid "Uninstall changes"
 msgstr ""
 
@@ -405,6 +406,7 @@ msgid "Open-source tool providing a unified interface to configure MangoHud, vkB
 msgstr ""
 
 #: taboutform.licensetabsheet.caption
+#: goverlay_strings.rslicense
 msgid "License"
 msgstr ""
 
@@ -437,6 +439,7 @@ msgid "Remove selected application"
 msgstr ""
 
 #: tgoverlayform.activegpulabel.caption
+#: goverlay_strings.rsactivegpu
 msgid "Active GPU"
 msgstr ""
 
@@ -582,6 +585,7 @@ msgid "0"
 msgstr ""
 
 #: tgoverlayform.checkupdbitbtn.caption
+#: goverlay_strings.rscheckupdates2
 msgid "Check updates"
 msgstr ""
 
@@ -890,6 +894,7 @@ msgid "dxgi.dll"
 msgstr ""
 
 #: tgoverlayform.filenamelabel.caption
+#: goverlay_strings.rsproxydll
 msgid "Proxy DLL"
 msgstr ""
 
@@ -1117,6 +1122,7 @@ msgid "Latest"
 msgstr ""
 
 #: tgoverlayform.fsrversionlabel.caption
+#: goverlay_strings.rsfsrversion
 msgid "FSR Version"
 msgstr ""
 
@@ -1239,6 +1245,7 @@ msgid "Select GPU to use"
 msgstr ""
 
 #: tgoverlayform.gpudrivergroupbox.caption
+#: goverlay_strings.rsgpudriver
 msgid "GPU Driver"
 msgstr ""
 
@@ -1526,6 +1533,7 @@ msgid "Shift_L+F2"
 msgstr ""
 
 #: tgoverlayform.logtogglelabel.caption
+#: goverlay_strings.rsloggingtoggle
 msgid "Logging toggle"
 msgstr ""
 
@@ -1679,10 +1687,12 @@ msgid "offset Y"
 msgstr ""
 
 #: tgoverlayform.openconfigfilemenuitem.caption
+#: goverlay_strings.rsopenconfigfolder
 msgid "Open config folder"
 msgstr ""
 
 #: tgoverlayform.openlogfilemenuitem.caption
+#: goverlay_strings.rsopenlogfolder
 msgid "Open log folder"
 msgstr ""
 
@@ -1691,6 +1701,7 @@ msgid "Basic Options"
 msgstr ""
 
 #: tgoverlayform.optionslabel.caption
+#: goverlay_strings.rsoptions
 msgid "Options"
 msgstr ""
 
@@ -1775,6 +1786,7 @@ msgid "you may need to set this to true in if Fakenvapi isn't automatically load
 msgstr ""
 
 #: tgoverlayform.patcherlistlabel.caption
+#: goverlay_strings.rsgamessupported
 msgid "Games supported"
 msgstr ""
 
@@ -1892,6 +1904,7 @@ msgid "Active Effects"
 msgstr ""
 
 #: tgoverlayform.reshaderefreshbitbtn.caption
+#: goverlay_strings.rsupdate
 msgctxt "tgoverlayform.reshaderefreshbitbtn.caption"
 msgid "Update"
 msgstr ""
@@ -2022,6 +2035,7 @@ msgid "System"
 msgstr ""
 
 #: tgoverlayform.thememenuitem.caption
+#: goverlay_strings.rsswitchtolighttheme
 msgid "Switch to Light theme"
 msgstr ""
 
@@ -2148,6 +2162,7 @@ msgid "Key that will enable and disable effects"
 msgstr ""
 
 #: tgoverlayform.vkbtogglekeycombobox.text
+#: goverlay_strings.rshome
 msgid "Home"
 msgstr ""
 
@@ -2252,6 +2267,7 @@ msgid "howtoForm"
 msgstr ""
 
 #: thowtoform.closehowtobitbtn.caption
+#: goverlay_strings.rsclose
 msgctxt "thowtoform.closehowtobitbtn.caption"
 msgid "Close"
 msgstr ""
@@ -2303,3 +2319,1706 @@ msgctxt "tprotontricksform.winvercombobox.texthint"
 msgid "Windows Version"
 msgstr ""
 
+#: goverlay_strings.rsopensourcetoolprovidingaunified
+msgid "Open-source tool providing a unified interface to configure different gaming tools"
+msgstr ""
+
+#: goverlay_strings.rscredits
+msgid "Credits:"
+msgstr ""
+
+#: goverlay_strings.rsprojectlinks
+msgid "Project links:"
+msgstr ""
+
+#: goverlay_strings.rswhatsnewingoverlay
+msgid "🚀 What's New in Goverlay"
+msgstr ""
+
+#: goverlay_strings.rsloadingimage
+msgid "⏳ Loading image..."
+msgstr ""
+
+#: goverlay_strings.rswhatsnewingoverlay2
+msgid "🚀 What's New in Goverlay "
+msgstr ""
+
+#: goverlay_strings.rsfinishconfiguration
+msgid "Finish Configuration"
+msgstr ""
+
+#: goverlay_strings.rsapplythegeneratedlaunchcommandto
+msgid "Apply the generated launch command to your game launcher"
+msgstr ""
+
+#: goverlay_strings.rslaunchcommand
+msgid "Launch command:"
+msgstr ""
+
+#: goverlay_strings.rscopy
+msgid "  Copy"
+msgstr ""
+
+#: goverlay_strings.rscopied
+msgid "  Copied!"
+msgstr ""
+
+#: goverlay_strings.rsoptionspresetsmenu
+msgid "Options & presets menu"
+msgstr ""
+
+#: goverlay_strings.rsstop3dpreviewpascuberunningin
+msgid "Stop 3D preview (PasCube running in live sync)"
+msgstr ""
+
+#: goverlay_strings.rslaunchaquick3dpreviewpascube
+msgid "Launch a quick 3D preview (PasCube / vkcube)"
+msgstr ""
+
+#: goverlay_strings.rsaddaction
+msgid "Add action"
+msgstr ""
+
+#: goverlay_strings.rsgetyoursteamheroiclaunchcommand
+msgid "Get your Steam / Heroic launch command"
+msgstr ""
+
+#: goverlay_strings.rsopeninstallfolder
+msgid "Open install folder"
+msgstr ""
+
+#: goverlay_strings.rsopenprefixfolder
+msgid "Open prefix folder"
+msgstr ""
+
+#: goverlay_strings.rscloneglobalconfigs
+msgid "Clone global configs"
+msgstr ""
+
+#: goverlay_strings.rslaunchaquickpreviewcubepascube
+msgid "Launch a quick preview cube (pascube / vkcube)"
+msgstr ""
+
+#: goverlay_strings.rscopythiscommandandpasteit
+msgid "Copy this command and paste it into the game's Launch Options in Steam."
+msgstr ""
+
+#: goverlay_strings.rssteamgame
+msgid "Steam Game"
+msgstr ""
+
+#: goverlay_strings.rschangesuninstalledfor
+msgid "Changes uninstalled for "
+msgstr ""
+
+#: goverlay_strings.rsgameoptions
+msgid "Game options"
+msgstr ""
+
+#: goverlay_strings.rsglobalconfigurationsclonedfor
+msgid "Global configurations cloned for "
+msgstr ""
+
+#: goverlay_strings.rsselectanonsteamgamefolder
+msgid "Select a non-Steam game folder"
+msgstr ""
+
+#: goverlay_strings.rsaddgamefolder
+msgid "Add game folder..."
+msgstr ""
+
+#: goverlay_strings.rsremovegamefolder
+msgid "Remove game folder"
+msgstr ""
+
+#: goverlay_strings.rsnocustomfoldersadded
+msgid "(No custom folders added)"
+msgstr ""
+
+#: goverlay_strings.rsrefreshgamelibrary
+msgid "Refresh game library"
+msgstr ""
+
+#: goverlay_strings.rsremove
+msgid "Remove: "
+msgstr ""
+
+#: goverlay_strings.rsnononsteamfoldersadded
+msgid "(No non-Steam folders added)"
+msgstr ""
+
+#: goverlay_strings.rsnewversion
+msgid "New Version "
+msgstr ""
+
+#: goverlay_strings.rsavailable
+msgid " available"
+msgstr ""
+
+#: goverlay_strings.rsclearconfiguration
+msgid "Clear configuration"
+msgstr ""
+
+#: goverlay_strings.rsoskernel
+msgid "OS / Kernel"
+msgstr ""
+
+#: goverlay_strings.rsdriver
+msgid "Driver"
+msgstr ""
+
+#: goverlay_strings.rsinstallation
+msgid "Installation"
+msgstr ""
+
+#: goverlay_strings.rsclientid
+msgid "Client ID: "
+msgstr ""
+
+#: goverlay_strings.rsclientid2
+msgid "Client ID"
+msgstr ""
+
+#: goverlay_strings.rspascubenickname
+msgid "Pascube nickname: "
+msgstr ""
+
+#: goverlay_strings.rsclicktoedit
+msgid "  [click to edit]"
+msgstr ""
+
+#: goverlay_strings.rspascubenicknameanonymousclicktoset
+msgid "Pascube nickname: Anonymous  [click to set]"
+msgstr ""
+
+#: goverlay_strings.rsclicktosetdisplaynicknamefor
+msgid "Click to set display nickname for leaderboards"
+msgstr ""
+
+#: goverlay_strings.rsaddonedition
+msgid " (Add-on Edition)"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrisinstalledandneural
+msgid "DLSS-NR is installed and neural weights are ready"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrruntimeisinstalledbut
+msgid "DLSS-NR runtime is installed, but neural model weights need extraction"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrisnotinstalled
+msgid "DLSS-NR is not installed"
+msgstr ""
+
+#: goverlay_strings.rswatchtutorial
+msgid "▶  Watch Tutorial"
+msgstr ""
+
+#: goverlay_strings.rsstopvideo
+msgid "✕  Stop Video"
+msgstr ""
+
+#: goverlay_strings.rsinstallupdate
+msgid "Install update"
+msgstr ""
+
+#: goverlay_strings.rsmako
+msgid "● MAKO "
+msgstr ""
+
+#: goverlay_strings.rsisuptodate
+msgid " is up to date"
+msgstr ""
+
+#: goverlay_strings.rsframeinterpolationconflict
+msgid "Frame Interpolation Conflict"
+msgstr ""
+
+#: goverlay_strings.rsfps
+msgid " FPS"
+msgstr ""
+
+#: goverlay_strings.rspathtolsfgvkdlle
+msgid "Path to lsfg-vk.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/lsfg-vk.dll)"
+msgstr ""
+
+#: goverlay_strings.rsbrowseforlsfgvkdll
+msgid "Browse for lsfg-vk.dll"
+msgstr ""
+
+#: goverlay_strings.rspathtolosslessdlleg
+msgid "Path to Lossless.dll (e.g. ~/.local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll)"
+msgstr ""
+
+#: goverlay_strings.rsbrowseforlosslessdll
+msgid "Browse for Lossless.dll"
+msgstr ""
+
+#: goverlay_strings.rs1xdisabled
+msgid "1x (Disabled)"
+msgstr ""
+
+#: goverlay_strings.rs1xbypass
+msgid "1x (Bypass)"
+msgstr ""
+
+#: goverlay_strings.rsxfps
+msgid "x FPS"
+msgstr ""
+
+#: goverlay_strings.rsinstalled
+msgid "Installed"
+msgstr ""
+
+#: goverlay_strings.rsnotinstalled
+msgid "Not installed"
+msgstr ""
+
+#: goverlay_strings.rsinstallruntime
+msgid "Install runtime"
+msgstr ""
+
+#: goverlay_strings.rslsfgvk20migrationhazards
+msgid "lsfg-vk 2.0 Migration Hazards Detected"
+msgstr ""
+
+#: goverlay_strings.rssteambetabranchmissinglsfgvk
+msgid "Steam beta branch missing (lsfg-vk.dll) or legacy 1.x files found."
+msgstr ""
+
+#: goverlay_strings.rsmigrationassistant
+msgid "Migration Assistant"
+msgstr ""
+
+#: goverlay_strings.rsdisableframegenerationandinterpolation
+msgid "Disable frame generation and interpolation"
+msgstr ""
+
+#: goverlay_strings.rsnone
+msgid "None"
+msgstr ""
+
+#: goverlay_strings.rsopensourcevulkanlayerforlossless
+msgid "Open-source Vulkan layer for Lossless Scaling Frame Generation (LSFG) with wide game compatibility"
+msgstr ""
+
+#: goverlay_strings.rshighperformanceframegenerationandspatial
+msgid "High-performance frame generation and spatial upscaling engine with adaptive framerate modes"
+msgstr ""
+
+#: goverlay_strings.rsamdfluidmotionframesdriverlevel
+msgid "AMD Fluid Motion Frames driver-level optical flow frame interpolation for Vulkan applications"
+msgstr ""
+
+#: goverlay_strings.rstargetgpudevice
+msgid "Target GPU Device"
+msgstr ""
+
+#: goverlay_strings.rstargetgpudevicetousefor
+msgid "Target GPU device to use for frame generation and upscaling"
+msgstr ""
+
+#: goverlay_strings.rsframegenerationisdisabledselectan
+msgid "Frame generation is disabled. Select an interpolation engine above (lsfg-vk or MAKO) to enable and configure settings."
+msgstr ""
+
+#: goverlay_strings.rsframegenerationmode
+msgid "Frame Generation Mode"
+msgstr ""
+
+#: goverlay_strings.rschoosebetweenfixedmultiplier2x5x
+msgid "Choose between Fixed Multiplier (2x-5x) or Adaptive Frame Generation"
+msgstr ""
+
+#: goverlay_strings.rsmultiplier
+msgid "Multiplier"
+msgstr ""
+
+#: goverlay_strings.rsframegenerationmultiplier1xdisabled2x
+msgid "Frame generation multiplier: 1x (disabled), 2x, 3x, 4x, 5x"
+msgstr ""
+
+#: goverlay_strings.rstargetfps
+msgid "Target FPS"
+msgstr ""
+
+#: goverlay_strings.rsdynamicmultipliertargetsthisframeratebased
+msgid "Dynamic multiplier targets this framerate based on input FPS (30 - 240 FPS)"
+msgstr ""
+
+#: goverlay_strings.rsdynamicmultipliertargetsthisframeratebased2
+msgid "Dynamic multiplier targets this framerate based on input FPS"
+msgstr ""
+
+#: goverlay_strings.rsmaxmultiplierceiling
+msgid "Max Multiplier Ceiling"
+msgstr ""
+
+#: goverlay_strings.rsmaximummultiplierallowedinadaptivemode
+msgid "Maximum multiplier allowed in adaptive mode"
+msgstr ""
+
+#: goverlay_strings.rssteady2xbasefpscap
+msgid "Steady 2x Base FPS Cap"
+msgstr ""
+
+#: goverlay_strings.rspreventsmultiplierchurningbetween1xand
+msgid "Prevents multiplier churning between 1x and 2x by enforcing target/2 base cap"
+msgstr ""
+
+#: goverlay_strings.rssmoothcadence
+msgid "Smooth Cadence"
+msgstr ""
+
+#: goverlay_strings.rssmoothtransitionsduringmultiplierswitching
+msgid "Smooth transitions during multiplier switching"
+msgstr ""
+
+#: goverlay_strings.rsflowscale
+msgid "Flow Scale"
+msgstr ""
+
+#: goverlay_strings.rsmotionestimationresolutionscaledefault90
+msgid "Motion estimation resolution scale (default 90% recommended by MAKO)"
+msgstr ""
+
+#: goverlay_strings.rsmotionestimationresolutionscale
+msgid "Motion estimation resolution scale"
+msgstr ""
+
+#: goverlay_strings.rsbasefpscap
+msgid "Base FPS Cap"
+msgstr ""
+
+#: goverlay_strings.rslimitsthegamesnativebase
+msgid "Limits the game's native base framerate before interpolation to maintain steady pacing and GPU headroom (0 = Disabled / Uncapped)"
+msgstr ""
+
+#: goverlay_strings.rsdisabled
+msgid "Disabled"
+msgstr ""
+
+#: goverlay_strings.rsrefreshthreshold
+msgid "Refresh Threshold"
+msgstr ""
+
+#: goverlay_strings.rsminimumdisplayrefreshratehzrequired
+msgid "Minimum display refresh rate (Hz) required to engage frame generation. Automatically bypasses frame generation if your monitor refresh rate is below this threshold (0 = Disabled / Always active)"
+msgstr ""
+
+#: goverlay_strings.rslivefgswitch
+msgid "Live FG Switch"
+msgstr ""
+
+#: goverlay_strings.rstoggleframegenerationruntimeactivation
+msgid "Toggle frame generation runtime activation"
+msgstr ""
+
+#: goverlay_strings.rsfp16acceleration
+msgid "FP16 Acceleration"
+msgstr ""
+
+#: goverlay_strings.rsuses16bithalfprecisionmath
+msgid "Uses 16-bit half-precision math for frame generation. Recommended ON for AMD GPUs (significant performance uplift), but recommended OFF for NVIDIA GPUs."
+msgstr ""
+
+#: goverlay_strings.rsperformancemode
+msgid "Performance Mode"
+msgstr ""
+
+#: goverlay_strings.rsswitchestothelighterlsfgneural
+msgid "Switches to the lighter LSFG neural network model, reducing GPU render time by 30-40% with minimal image quality loss. Recommended if the game is GPU-bound."
+msgstr ""
+
+#: goverlay_strings.rsultraperformance
+msgid "Ultra Performance"
+msgstr ""
+
+#: goverlay_strings.rsaggressivevulkancomputeoptimizationsdownsamp
+msgid "Aggressive Vulkan compute optimizations (downsamples optical flow vectors and skips high-precision passes). Maximizes FPS on low-end GPUs or handhelds, but may introduce visual artifacts."
+msgstr ""
+
+#: goverlay_strings.rshdrmode
+msgid "HDR Mode"
+msgstr ""
+
+#: goverlay_strings.rsdisablefp16halfprecision
+msgid "Disable FP16 / Half-Precision"
+msgstr ""
+
+#: goverlay_strings.rshasagiantperformanceuplifton
+msgid "Has a giant performance uplift on AMD GPUs."
+msgstr ""
+
+#: goverlay_strings.rsoverridepresentmode
+msgid "Override Present Mode"
+msgstr ""
+
+#: goverlay_strings.rsforcesthepresentationenginetouse
+msgid "Forces the presentation engine to use the selected pacing mode. Recommended: On (upstream default)."
+msgstr ""
+
+#: goverlay_strings.rspreserveswapchaincount
+msgid "Preserve Swapchain Count"
+msgstr ""
+
+#: goverlay_strings.rspreservestheapplicationswapchainimagecount
+msgid "Preserves the application swapchain image count. May resolve issues with games sensitive to swapchain resizing. Recommended: Off (upstream default)."
+msgstr ""
+
+#: goverlay_strings.rspacingmode
+msgid "Pacing Mode"
+msgstr ""
+
+#: goverlay_strings.rsframepacingmodetouse
+msgid "Frame pacing mode to use"
+msgstr ""
+
+#: goverlay_strings.rsframepacingsynchronizationmodevsyncor
+msgid "Frame pacing synchronization mode (vsync or none)"
+msgstr ""
+
+#: goverlay_strings.rsenablespatialscaling
+msgid "Enable Spatial Scaling"
+msgstr ""
+
+#: goverlay_strings.rsupscalethegameresolutionbeforeframe
+msgid "Upscale the game resolution before frame generation"
+msgstr ""
+
+#: goverlay_strings.rsscalingmethod
+msgid "Scaling Method"
+msgstr ""
+
+#: goverlay_strings.rsupscalingalgorithmls1requireslosslessdll
+msgid "Upscaling algorithm (LS1 requires Lossless.dll)"
+msgstr ""
+
+#: goverlay_strings.rsscalingfactor
+msgid "Scaling Factor"
+msgstr ""
+
+#: goverlay_strings.rsresolutionscalefactor100xto
+msgid "Resolution scale factor: 1.00x to 2.00x"
+msgstr ""
+
+#: goverlay_strings.rsscalefactor100xto2
+msgid "Scale factor: 1.00x to 2.00x"
+msgstr ""
+
+#: goverlay_strings.rspostupscalesharpeningamount000
+msgid "Post-upscale sharpening amount (0.00 to 1.00)"
+msgstr ""
+
+#: goverlay_strings.rssharpnessamount
+msgid "Sharpness amount"
+msgstr ""
+
+#: goverlay_strings.rsqualitysupersampling
+msgid "Quality Supersampling"
+msgstr ""
+
+#: goverlay_strings.rsenhanceedgeantialiasingduringupscaling
+msgid "Enhance edge anti-aliasing during upscaling"
+msgstr ""
+
+#: goverlay_strings.rstogglesopticalflowperformanceandquality
+msgid "Toggles optical flow performance and quality balance (AFMF_PERFORMANCE_MODE)"
+msgstr ""
+
+#: goverlay_strings.rsopticalflowtradeoffbetweenspeed
+msgid "Optical flow trade-off between speed and visual fidelity"
+msgstr ""
+
+#: goverlay_strings.rssearchmode
+msgid "Search Mode"
+msgstr ""
+
+#: goverlay_strings.rssearchradiusformotionvectorsafmf
+msgid "Search radius for motion vectors (AFMF_SEARCH_MODE)"
+msgstr ""
+
+#: goverlay_strings.rsmotionvectorsearchradius
+msgid "Motion vector search radius"
+msgstr ""
+
+#: goverlay_strings.rsfastmotionfallback
+msgid "Fast Motion Fallback"
+msgstr ""
+
+#: goverlay_strings.rsbehaviorduringfastcamerapansafmf
+msgid "Behavior during fast camera pans (AFMF_FAST_MOTION_RESPONSE)"
+msgstr ""
+
+#: goverlay_strings.rsfallbackstrategywhenmotionistoo
+msgid "Fallback strategy when motion is too rapid for vector calculation"
+msgstr ""
+
+#: goverlay_strings.rsframepacing
+msgid "Frame Pacing"
+msgstr ""
+
+#: goverlay_strings.rssmoothsframepresentationtimingafmfpacing
+msgid "Smooths frame presentation timing (AFMF_PACING)"
+msgstr ""
+
+#: goverlay_strings.rsgpugovernor
+msgid "GPU Governor"
+msgstr ""
+
+#: goverlay_strings.rsallowsgpuclockgovernortothrottle
+msgid "Allows GPU clock governor to throttle for power efficiency (AFMF_GOVERNOR)"
+msgstr ""
+
+#: goverlay_strings.rspresentmode
+msgid "Present Mode"
+msgstr ""
+
+#: goverlay_strings.rsswapchainpresentationmodeafmfpresentmode
+msgid "Swapchain presentation mode (AFMF_PRESENT_MODE)"
+msgstr ""
+
+#: goverlay_strings.rscontrolswhetherpresentationmodeisautomatical
+msgid "Controls whether presentation mode is automatically adjusted"
+msgstr ""
+
+#: goverlay_strings.rsminimumfpsfloor
+msgid "Minimum FPS Floor"
+msgstr ""
+
+#: goverlay_strings.rsbypassesframeinterpolationifgamefps
+msgid "Bypasses frame interpolation if game FPS drops below this floor (AFMF_MIN_FPS)"
+msgstr ""
+
+#: goverlay_strings.rsminimumbaseframeraterequiredforafmf
+msgid "Minimum base framerate required for AFMF interpolation (0 = Uncapped)"
+msgstr ""
+
+#: goverlay_strings.rshuddetection
+msgid "HUD Detection"
+msgstr ""
+
+#: goverlay_strings.rsexcludesstaticuserinterfaceandtext
+msgid "Excludes static user interface and text elements from motion estimation (AFMF_HUD_DETECT)"
+msgstr ""
+
+#: goverlay_strings.rsgamescopecompatibility
+msgid "Gamescope Compatibility"
+msgstr ""
+
+#: goverlay_strings.rsallocatesextraswapchainimagesforgamescope
+msgid "Allocates extra swapchain images for Gamescope compositors (AFMF_GAMESCOPE)"
+msgstr ""
+
+#: goverlay_strings.rsdirectingest
+msgid "Direct Ingest"
+msgstr ""
+
+#: goverlay_strings.rsbypassesintermediatecolorcopiesduringoptical
+msgid "Bypasses intermediate color copies during optical flow ingest (AFMF_DIRECT_INGEST)"
+msgstr ""
+
+#: goverlay_strings.rsdirectoutput
+msgid "Direct Output"
+msgstr ""
+
+#: goverlay_strings.rswritesgeneratedframesdirectlytoswapchain
+msgid "Writes generated frames directly to swapchain render targets (AFMF_DIRECT_OUTPUT)"
+msgstr ""
+
+#: goverlay_strings.rsasynccomputequeue
+msgid "Async Compute Queue"
+msgstr ""
+
+#: goverlay_strings.rsexecutesopticalflowshadersonasynchronous
+msgid "Executes optical flow shaders on asynchronous compute queue (AFMF_ASYNC)"
+msgstr ""
+
+#: goverlay_strings.rsstaticblocksadthreshold
+msgid "Static Block SAD Threshold"
+msgstr ""
+
+#: goverlay_strings.rssumofabsolutedifferencesthresholdfor
+msgid "Sum of Absolute Differences threshold for stationary blocks (AFMF_STATIC_BLOCK_SAD)"
+msgstr ""
+
+#: goverlay_strings.rssensitivityfordetectingstationaryblocks0
+msgid "Sensitivity for detecting stationary blocks (0 = Auto/Disabled)"
+msgstr ""
+
+#: goverlay_strings.rsauto
+msgid "Auto"
+msgstr ""
+
+#: goverlay_strings.rsloggingverbosity
+msgid "Logging Verbosity"
+msgstr ""
+
+#: goverlay_strings.rscontrolsafmflayerstdoutstderrdebug
+msgid "Controls AFMF layer stdout/stderr debug output (AFMF_LOG)"
+msgstr ""
+
+#: goverlay_strings.rsdiagnosticloglevel
+msgid "Diagnostic log level"
+msgstr ""
+
+#: goverlay_strings.rsprofilingtimers
+msgid "Profiling Timers"
+msgstr ""
+
+#: goverlay_strings.rsmeasuresopticalflowshaderexecutiontimes
+msgid "Measures optical flow shader execution times (AFMF_PROFILE)"
+msgstr ""
+
+#: goverlay_strings.rsdllfilelocated
+msgid "● DLL file located"
+msgstr ""
+
+#: goverlay_strings.rscheckingmako
+msgid "● Checking MAKO..."
+msgstr ""
+
+#: goverlay_strings.rsincompatiblewithwaylandandhdr
+msgid "(Incompatible with Wayland and HDR)"
+msgstr ""
+
+#: goverlay_strings.rscheckupdates
+msgid "Check Updates"
+msgstr ""
+
+#: goverlay_strings.rsinstallmako
+msgid "Install MAKO"
+msgstr ""
+
+#: goverlay_strings.rscheckinglsfgvklayer
+msgid "● Checking lsfg-vk layer..."
+msgstr ""
+
+#: goverlay_strings.rslsfgvkassistant
+msgid "lsfg-vk Assistant"
+msgstr ""
+
+#: goverlay_strings.rsopenthelsfgvkassistantand
+msgid "Open the lsfg-vk assistant and troubleshooting dialog"
+msgstr ""
+
+#: goverlay_strings.rscheckingafmflayer
+msgid "● Checking AFMF layer..."
+msgstr ""
+
+#: goverlay_strings.rsswitchlosslessscalingtolsfgvk
+msgid "● Switch Lossless Scaling to lsfg-vk beta branch in Steam"
+msgstr ""
+
+#: goverlay_strings.rsinstalllosslessscalingonsteamor
+msgid "● Install Lossless scaling on steam or point the correct file path"
+msgstr ""
+
+#: goverlay_strings.rscouldnotcheckforupdatesgithub
+msgid "● Could not check for updates (GitHub offline/rate-limited)"
+msgstr ""
+
+#: goverlay_strings.rslatestreleaseis
+msgid "● Latest release is "
+msgstr ""
+
+#: goverlay_strings.rsclickinstall
+msgid " (Click Install)"
+msgstr ""
+
+#: goverlay_strings.rsstartingmakoinstallation
+msgid "Starting MAKO installation..."
+msgstr ""
+
+#: goverlay_strings.rsstartinglsfgvkinstallation
+msgid "Starting lsfg-vk installation..."
+msgstr ""
+
+#: goverlay_strings.rsselectlsfgvkdll
+msgid "Select lsfg-vk.dll"
+msgstr ""
+
+#: goverlay_strings.rsselectlosslessdll
+msgid "Select Lossless.dll"
+msgstr ""
+
+#: goverlay_strings.rslsfgvk20migrationhealth
+msgid "lsfg-vk 2.0 Migration & Health Assistant"
+msgstr ""
+
+#: goverlay_strings.rsfollowtheguidedstepsbelowto
+msgid "Follow the guided steps below to ensure Lossless Scaling is configured for the 2.0 Vulkan pipeline."
+msgstr ""
+
+#: goverlay_strings.rsrefreshchecks
+msgid "Refresh Checks"
+msgstr ""
+
+#: goverlay_strings.rsstep1switchlosslessscalingto
+msgid "Step 1: Switch Lossless Scaling to the \"lsfg-vk\" Beta Branch"
+msgstr ""
+
+#: goverlay_strings.rscheckingsteaminstallation
+msgid "Checking Steam installation..."
+msgstr ""
+
+#: goverlay_strings.rsupstreamlsfgvk20requires
+msgid "Upstream lsfg-vk 2.0 requires the native Vulkan bindless shaders in lsfg-vk.dll."
+msgstr ""
+
+#: goverlay_strings.rsclicktoviewsteambetasguide
+msgid "Click to view Steam Betas guide"
+msgstr ""
+
+#: goverlay_strings.rssteamguide
+msgid "Steam Guide"
+msgstr ""
+
+#: goverlay_strings.rsopensteamfolder
+msgid "Open Steam Folder"
+msgstr ""
+
+#: goverlay_strings.rsstep2cleanconflicting1x
+msgid "Step 2: Clean Conflicting 1.x System Layers (Root Required)"
+msgstr ""
+
+#: goverlay_strings.rscheckingforlegacy1xfiles
+msgid "Checking for legacy 1.x files..."
+msgstr ""
+
+#: goverlay_strings.rslegacy1ximplicitlayershook
+msgid "Legacy 1.x implicit layers hook games automatically and cause parse or crash errors with 2.0."
+msgstr ""
+
+#: goverlay_strings.rscleanlegacyfilesroot
+msgid "Clean Legacy Files (Root)"
+msgstr ""
+
+#: goverlay_strings.rsstep3removedeprecateddistropackages
+msgid "Step 3: Remove Deprecated Distro Packages"
+msgstr ""
+
+#: goverlay_strings.rsifyouinstalledlsfgvkfrom
+msgid "If you installed lsfg-vk from AUR or a package manager (e.g. lsfg-vk-git), we recommend uninstalling it:"
+msgstr ""
+
+#: goverlay_strings.rscheckinguserconfigurationschema
+msgid "Checking user configuration schema..."
+msgstr ""
+
+#: goverlay_strings.rslsfgvk20expectsversion
+msgid "lsfg-vk 2.0 expects version = 2 and [[profile]] syntax. Legacy 1.x configurations will trigger schema parse errors."
+msgstr ""
+
+#: goverlay_strings.rsupdateconfiguration
+msgid "Update Configuration"
+msgstr ""
+
+#: goverlay_strings.rslegacyfilesremovedsuccessfully
+msgid "Legacy files removed successfully!"
+msgstr ""
+
+#: goverlay_strings.rscleanupcanceledorfailedcode
+msgid "Cleanup canceled or failed (code "
+msgstr ""
+
+#: goverlay_strings.rsexecutionerror
+msgid "Execution error: "
+msgstr ""
+
+#: goverlay_strings.rsbackupcreated
+msgid "Backup created ("
+msgstr ""
+
+#: goverlay_strings.rsandv2written
+msgid ") and v2 written!"
+msgstr ""
+
+#: goverlay_strings.rsdefaultv2configgeneratedsuccessfully
+msgid "Default v2 config generated successfully!"
+msgstr ""
+
+#: goverlay_strings.rsfailedtoupdateconfiguration
+msgid "Failed to update configuration"
+msgstr ""
+
+#: goverlay_strings.rslsfgvkdllisinstalledand
+msgid "● lsfg-vk.dll is installed and detected."
+msgstr ""
+
+#: goverlay_strings.rslsfgvkdllmissingsteambeta
+msgid "● lsfg-vk.dll missing! Steam beta branch required."
+msgstr ""
+
+#: goverlay_strings.rslosslessscalingfoldernotfoundor
+msgid "● Lossless Scaling folder not found or lsfg-vk.dll missing."
+msgstr ""
+
+#: goverlay_strings.rslegacy1xlayerfiles
+msgid " legacy 1.x layer file(s) found in system!"
+msgstr ""
+
+#: goverlay_strings.rsnolegacy1xlayersdetected
+msgid "● No legacy 1.x layers detected in system."
+msgstr ""
+
+#: goverlay_strings.rsoutdatedv1configurationsyntaxdetected
+msgid "● Outdated v1 configuration syntax detected."
+msgstr ""
+
+#: goverlay_strings.rsconfigurationisuptodateversion
+msgid "● Configuration is up to date (version = 2)."
+msgstr ""
+
+#: goverlay_strings.rssteambetabranchrequiredforlsfg
+msgid "Steam Beta Branch Required for lsfg-vk 2.0"
+msgstr ""
+
+#: goverlay_strings.rslosslessscalingmustbeconfiguredin
+msgid "Lossless Scaling must be configured in Steam to download the required Vulkan shaders (lsfg-vk.dll)."
+msgstr ""
+
+#: goverlay_strings.rsdonotshowthisnoticeagain
+msgid "Do not show this notice again"
+msgstr ""
+
+#: goverlay_strings.rsgotit
+msgid "Got It"
+msgstr ""
+
+#: goverlay_strings.rssteamlibrarylosslessscalingrightclick
+msgid "Steam > Library > Lossless Scaling (Right Click) > Properties... > Game Versions && Betas > Select \"lsfg-vk\""
+msgstr ""
+
+#: goverlay_strings.rsfollowthesestepsinsteam
+msgid "Follow these steps in Steam:"
+msgstr ""
+
+#: goverlay_strings.rs1opensteamfindlosslessscaling
+msgid "1. Open Steam, find \"Lossless Scaling\" in your Library, and right-click it."
+msgstr ""
+
+#: goverlay_strings.rs2clickpropertiesfromthecontext
+msgid "2. Click \"Properties...\" from the context menu."
+msgstr ""
+
+#: goverlay_strings.rs3navigatetobetasgameversions
+msgid "3. Navigate to \"Betas\" (Game Versions && Betas) on the left sidebar."
+msgstr ""
+
+#: goverlay_strings.rs4selectthelsfgvkbranch
+msgid "4. Select the \"lsfg-vk\" branch (Required files for lsfg-vk) and wait for Steam to update."
+msgstr ""
+
+#: goverlay_strings.rstimeformatconfiguration
+msgid "Time Format Configuration"
+msgstr ""
+
+#: goverlay_strings.rsselectapresetorcustomizethe
+msgid "Select a preset or customize the std::put_time / strftime format string."
+msgstr ""
+
+#: goverlay_strings.rspreset
+msgid "Preset:"
+msgstr ""
+
+#: goverlay_strings.rsformatstring
+msgid "Format string:"
+msgstr ""
+
+#: goverlay_strings.rspreview
+msgid "Preview:"
+msgstr ""
+
+#: goverlay_strings.rsstdputtimereferencethh
+msgid "std::put_time reference: %T (HH:MM:SS), %R (HH:MM), %p (AM/PM), %d (day), %m (month), %Y (year)"
+msgstr ""
+
+#: goverlay_strings.rsempty
+msgid "(empty)"
+msgstr ""
+
+#: goverlay_strings.rshorizontalstrech
+msgid "Horizontal Strech"
+msgstr ""
+
+#: goverlay_strings.rstextoutline
+msgid "Text outline"
+msgstr ""
+
+#: goverlay_strings.rsrendershighcontrastoutlinearoundtext
+msgid "Renders high-contrast outline around text"
+msgstr ""
+
+#: goverlay_strings.rsfpslimit
+msgid "⚡ FPS Limit"
+msgstr ""
+
+#: goverlay_strings.rseg30601200
+msgid "e.g. 30,60,120,0 — 0 to unlimited"
+msgstr ""
+
+#: goverlay_strings.rsframetime
+msgid "Frame Time +"
+msgstr ""
+
+#: goverlay_strings.rsshowdetailedframetimingbreakdown
+msgid "Show detailed frame timing breakdown"
+msgstr ""
+
+#: goverlay_strings.rsconfiguretimeformat
+msgid "Configure time format"
+msgstr ""
+
+#: goverlay_strings.rsbenchmarkviewer
+msgid "Benchmark viewer"
+msgstr ""
+
+#: goverlay_strings.rs0off
+msgid "0 (Off)"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrweightsextractedandready
+msgid "DLSS-NR weights extracted and ready. Click to re-select nvngx_dlssnr.dll"
+msgstr ""
+
+#: goverlay_strings.rsselectnvngxdlssnrdll
+msgid "Select nvngx_dlssnr.dll..."
+msgstr ""
+
+#: goverlay_strings.rsselectnvngxdlssnrdllorarchive
+msgid "Select nvngx_dlssnr.dll or archive to extract neural rendering model weights"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrrequiresnvngxdlssnrdll
+msgid "DLSS-NR requires nvngx_dlssnr.dll"
+msgstr ""
+
+#: goverlay_strings.rsnvngxdlssnrdllisrequiredto
+msgid "nvngx_dlssnr.dll is required to use the DLSS-NR method. Select the DLL to extract model weights."
+msgstr ""
+
+#: goverlay_strings.rsselectdll
+msgid "Select DLL..."
+msgstr ""
+
+#: goverlay_strings.rsselectnvngxdlssnrdllorarchive2
+msgid "Select nvngx_dlssnr.dll or archive"
+msgstr ""
+
+#: goverlay_strings.rspreparingdlssnrmodelextraction
+msgid "Preparing DLSS-NR model extraction..."
+msgstr ""
+
+#: goverlay_strings.rsuniversalupscalermiddlewaretranslatingdlssxe
+msgid "Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends"
+msgstr ""
+
+#: goverlay_strings.rsoptiscalermultiframegenerationindirectx
+msgid "Optiscaler + Multi-Frame Generation in DirectX 12 games, Ghostbuster, Phazed HUD and Screen-Space Ray-Traced Global Illumination"
+msgstr ""
+
+#: goverlay_strings.rsdlssmodeleneuralupscalerfor
+msgid "DLSS Model E neural upscaler for AMD Radeon GPUs running on Direct3D 12 compute shaders"
+msgstr ""
+
+#: goverlay_strings.rsdlss5neuralrenderingdlssnr
+msgid "DLSS 5 Neural Rendering (DLSS-NR) for AMD Radeon GPUs"
+msgstr ""
+
+#: goverlay_strings.rsdisableupscalingmiddlewareandrungames
+msgid "Disable upscaling middleware and run games with native rendering"
+msgstr ""
+
+#: goverlay_strings.rsgpudriverbackendforoptiscalerdlss
+msgid "GPU driver backend for OptiScaler (DLSS spoofing, Reflex, and LatencyFlex)"
+msgstr ""
+
+#: goverlay_strings.rsmenuscale
+msgid "Menu scale"
+msgstr ""
+
+#: goverlay_strings.rsloglevel
+msgid "Log level"
+msgstr ""
+
+#: goverlay_strings.rsverbositylevelofoptiscalerlogshigher
+msgid "Verbosity level of OptiScaler logs. Higher verbosity (Trace / Debug) may impact gameplay performance. Default is 2 (Info)."
+msgstr ""
+
+#: goverlay_strings.rsoptiscalertoggle
+msgid "Optiscaler toggle"
+msgstr ""
+
+#: goverlay_strings.rsdlssenablertoggle
+msgid "DLSS-Enabler toggle"
+msgstr ""
+
+#: goverlay_strings.rsdlssnrmenu
+msgid "DLSS-NR menu"
+msgstr ""
+
+#: goverlay_strings.rsingameshortcuttotogglethe
+msgid "In-game shortcut to toggle the DLSS-NR menu"
+msgstr ""
+
+#: goverlay_strings.rsforcefsr4i8
+msgid "Force FSR4-i8"
+msgstr ""
+
+#: goverlay_strings.rsforceint8modelonunsupportedgpus
+msgid "Force INT8 model on unsupported GPUs"
+msgstr ""
+
+#: goverlay_strings.rsnativedlssexp
+msgid "Native DLSS (Exp.)"
+msgstr ""
+
+#: goverlay_strings.rsnativedlssexperimental
+msgid "Native DLSS (Experimental)"
+msgstr ""
+
+#: goverlay_strings.rsbypassoptiscalerusingdirectdlssloader
+msgid "Bypass OptiScaler using direct DLSS loader (Single-player only, anti-cheat ban risk)"
+msgstr ""
+
+#: goverlay_strings.rswavesize
+msgid "Wave size"
+msgstr ""
+
+#: goverlay_strings.rsgpucomputesubgroupwavesizefor
+msgid "GPU compute subgroup/wave size for neural shader execution. Auto chooses the recommended wave size for your GPU (Wave32 on RDNA/NVIDIA, Wave64 on GCN)."
+msgstr ""
+
+#: goverlay_strings.rsnetworkresolution
+msgid "Network resolution"
+msgstr ""
+
+#: goverlay_strings.rsneuralmodelreconstructionresolutionfastuses
+msgid "Neural model reconstruction resolution. Fast uses 2x Lanczos upsampling for higher FPS; Full runs inference at native screen resolution for maximum sharpness."
+msgstr ""
+
+#: goverlay_strings.rsint8acceleration
+msgid "INT8 acceleration"
+msgstr ""
+
+#: goverlay_strings.rshardwareacceleratedint8quantizationforneural
+msgid "Hardware-accelerated INT8 quantization for neural shaders. On boosts FPS on modern GPUs; Off uses FP16 full precision."
+msgstr ""
+
+#: goverlay_strings.rsframegeneration
+msgid "Frame generation"
+msgstr ""
+
+#: goverlay_strings.rsdlssframegenerationmodelpresetlight
+msgid "DLSS Frame Generation model preset. Light uses preset c for lower latency and higher performance; Full uses DLSS FG 310.3 for maximum visual smoothness."
+msgstr ""
+
+#: goverlay_strings.rsarchitecture
+msgid "Architecture"
+msgstr ""
+
+#: goverlay_strings.rstargetgpuarchitectureforthedlss
+msgid "Target GPU architecture for the DLSS-NR runtime"
+msgstr ""
+
+#: goverlay_strings.rsroute
+msgid "Route"
+msgstr ""
+
+#: goverlay_strings.rsinjectionrouteusedtofeedthe
+msgid "Injection route used to feed the DLSS-NR pipeline"
+msgstr ""
+
+#: goverlay_strings.rsmodelversion
+msgid "Model Version"
+msgstr ""
+
+#: goverlay_strings.rsneuralnetworkmodelversionusedby
+msgid "Neural network model version used by DLSS-NR"
+msgstr ""
+
+#: goverlay_strings.rsmodelscale
+msgid "Model Scale"
+msgstr ""
+
+#: goverlay_strings.rsneuralmodelresolutionscaleloweris
+msgid "Neural model resolution scale (lower is faster, essential on RDNA3)"
+msgstr ""
+
+#: goverlay_strings.rspasses
+msgid "Passes"
+msgstr ""
+
+#: goverlay_strings.rsnumberofneuralreconstructionpasses
+msgid "Number of neural reconstruction passes"
+msgstr ""
+
+#: goverlay_strings.rsfginput
+msgid "FG Input"
+msgstr ""
+
+#: goverlay_strings.rsfgoutput
+msgid "FG Output"
+msgstr ""
+
+#: goverlay_strings.rsforcemlfginrdna3
+msgid "Force MLFG in RDNA3"
+msgstr ""
+
+#: goverlay_strings.rsemulatefp8toactivemlfg
+msgid "Emulate FP8 to active MLFG"
+msgstr ""
+
+#: goverlay_strings.rsmodelweights
+msgid "Model Weights"
+msgstr ""
+
+#: goverlay_strings.rscheckingweights
+msgid "Checking weights..."
+msgstr ""
+
+#: goverlay_strings.rsint4mixedprecision
+msgid "Int4 Mixed Precision"
+msgstr ""
+
+#: goverlay_strings.rsenableint4quantizationforlowervram
+msgid "Enable Int4 quantization for lower VRAM and higher throughput"
+msgstr ""
+
+#: goverlay_strings.rsrenodxcolorstyle
+msgid "RenoDX Color Style"
+msgstr ""
+
+#: goverlay_strings.rsapplyhdrcolorspacehandlingtuned
+msgid "Apply HDR color space handling tuned for RenoDX shaders"
+msgstr ""
+
+#: goverlay_strings.rspreprocessautoexposure
+msgid "Preprocess Auto-exposure"
+msgstr ""
+
+#: goverlay_strings.rsautoexposurepreprocessingbeforeneuralreconst
+msgid "Auto-exposure preprocessing before neural reconstruction"
+msgstr ""
+
+#: goverlay_strings.rsrunbeforesr
+msgid "Run before SR"
+msgstr ""
+
+#: goverlay_strings.rsexecutedlssnrdenoisingpassbefore
+msgid "Execute DLSS-NR denoising pass before spatial super-resolution"
+msgstr ""
+
+#: goverlay_strings.rsadvancedsettings
+msgid "⚙ Advanced Settings..."
+msgstr ""
+
+#: goverlay_strings.rsadvanceddlssnrpipelineparametersroute
+msgid "Advanced DLSS-NR pipeline parameters (route, color style, filters)"
+msgstr ""
+
+#: goverlay_strings.rsingamemenuconfigurationonly
+msgid "In-game menu configuration only"
+msgstr ""
+
+#: goverlay_strings.rsdonotoverwriteoptiscalerinifrom
+msgid "Do not overwrite OptiScaler.ini from Goverlay (configure in-game instead)"
+msgstr ""
+
+#: goverlay_strings.rsmissingcompanionlibrariesinheritedfromstable
+msgid "* Missing companion libraries inherited from stable cache"
+msgstr ""
+
+#: goverlay_strings.rsupscaler
+msgid "Upscaler"
+msgstr ""
+
+#: goverlay_strings.rsreflexantilag
+msgid "Reflex / Antilag"
+msgstr ""
+
+#: goverlay_strings.rsupscalerisconfiguredviaingame
+msgid "Upscaler is configured via in-game menu (unmanaged mode)"
+msgstr ""
+
+#: goverlay_strings.rsselectedfginputsource
+msgid "Selected FG Input/Source:"
+msgstr ""
+
+#: goverlay_strings.rsselectedfgoutput
+msgid "Selected FG Output:"
+msgstr ""
+
+#: goverlay_strings.rsupdateavailable
+msgid "Update Available "
+msgstr ""
+
+#: goverlay_strings.rsupdateavailable2
+msgid " Update available "
+msgstr ""
+
+#: goverlay_strings.rsselectcustomoptiscalerfoldercontainingoptisc
+msgid "Select Custom OptiScaler Folder (containing OptiScaler.dll)"
+msgstr ""
+
+#: goverlay_strings.rsselectfolder
+msgid "Select Folder..."
+msgstr ""
+
+#: goverlay_strings.rschooselocalfolderwithcustomoptiscaler
+msgid "Choose local folder with custom OptiScaler build"
+msgstr ""
+
+#: goverlay_strings.rscheckforoptiscalerupdates
+msgid "Check for OptiScaler updates"
+msgstr ""
+
+#: goverlay_strings.rssearchingforupdates
+msgid "Searching for updates..."
+msgstr ""
+
+#: goverlay_strings.rsinstalloptiscaler
+msgid "Install OptiScaler"
+msgstr ""
+
+#: goverlay_strings.rsnoconfigurationfileslocatedcreatingfiles
+msgid "No configuration files located, creating files and folders."
+msgstr ""
+
+#: goverlay_strings.rsnoconfigurationfileslocatedforvkbasalt
+msgid "No configuration files located for vkbasalt, creating files and folders."
+msgstr ""
+
+#: goverlay_strings.rsnoupdatesforoptiscaleravailable
+msgid "No updates for OptiScaler available"
+msgstr ""
+
+#: goverlay_strings.rsreloadingcustomuserpreset
+msgid "Reloading custom user preset"
+msgstr ""
+
+#: goverlay_strings.rsinitializationdownloadlogs
+msgid "Initialization & Download Logs"
+msgstr ""
+
+#: goverlay_strings.rsgoverlayinitializationlogs
+msgid "  💻 Goverlay Initialization Logs"
+msgstr ""
+
+#: goverlay_strings.rsdetails
+msgid ">_ Details"
+msgstr ""
+
+#: goverlay_strings.rscolorgrading
+msgid "Color Grading"
+msgstr ""
+
+#: goverlay_strings.rsframeinterpolation
+msgid "Frame Interpolation"
+msgstr ""
+
+#: goverlay_strings.rsenvvars
+msgid "EnvVars"
+msgstr ""
+
+#: goverlay_strings.rsarguments
+msgid "Arguments"
+msgstr ""
+
+#: goverlay_strings.rssaved
+msgid "✓ Saved"
+msgstr ""
+
+#: goverlay_strings.rssearchctrlf
+msgid "🔍 Search... (Ctrl+F)"
+msgstr ""
+
+#: goverlay_strings.rsprotontricksintegrationisnotavailablein
+msgid "Protontricks integration is not available in the Flatpak version."
+msgstr ""
+
+#: goverlay_strings.rssaveacustomconffileload
+msgid "Save a custom.conf file load the custom config"
+msgstr ""
+
+#: goverlay_strings.rsstatus
+msgid "Status"
+msgstr ""
+
+#: goverlay_strings.rsmissing
+msgid "Missing: "
+msgstr ""
+
+#: goverlay_strings.rsgamemodeisnotinstalledinstallgamemode
+msgid "GameMode is not installed - install gamemode package to enable this feature"
+msgstr ""
+
+#: goverlay_strings.rspascubewasnotlocatedusingvkcube
+msgid "PasCube was not located, using vkcube instead"
+msgstr ""
+
+#: goverlay_strings.rspascubeandvkcubewerenotlocated
+msgid "PasCube and VkCube were not located."
+msgstr ""
+
+#: goverlay_strings.rsusehistogramforframetimeinformation
+msgid "Use histogram for frametime information"
+msgstr ""
+
+#: goverlay_strings.rsuseregularcurveforframetimeinformation
+msgid "Use regular curve for frametime information"
+msgstr ""
+
+#: goverlay_strings.rsisnotinstalled
+msgid " is not installed"
+msgstr ""
+
+#: goverlay_strings.rsmissingflatpakextensionrun
+msgid "Missing Flatpak extension. Run:  "
+msgstr ""
+
+#: goverlay_strings.rssystempackagenotfoundpleaseinstall
+msgid "System package not found. Please install '"
+msgstr ""
+
+#: goverlay_strings.rsusingyourpackagemanager
+msgid "' using your package manager."
+msgstr ""
+
+#: goverlay_strings.rsrecheck
+msgid "Re-check"
+msgstr ""
+
+#: goverlay_strings.rsallrequireddependenciesdetected
+msgid "All required dependencies detected."
+msgstr ""
+
+#: goverlay_strings.rspreparinghelixsrneuralcompilation
+msgid "Preparing HelixSR neural compilation..."
+msgstr ""
+
+#: goverlay_strings.rsdownloadingreshadeshadersd
+msgid "Downloading reshade shaders: %d%%"
+msgstr ""
+
+#: goverlay_strings.rsuseverticalbarsforcoreload
+msgid "Use vertical bars for core load"
+msgstr ""
+
+#: goverlay_strings.rsusepercentagenumbersforcoreload
+msgid "Use percentage numbers for core load"
+msgstr ""
+
+#: goverlay_strings.rsdisplay01lowfps
+msgid "Display 0.1% low fps"
+msgstr ""
+
+#: goverlay_strings.rsdisplay1lowfps
+msgid "Display 1% low fps"
+msgstr ""
+
+#: goverlay_strings.rssettingssavedascustomconfig
+msgid "Settings saved as custom config"
+msgstr ""
+
+#: goverlay_strings.rsconfigurationloadedsuccessfully
+msgid " configuration loaded successfully"
+msgstr ""
+
+#: goverlay_strings.rsconfigurationexportedto
+msgid "Configuration exported to: "
+msgstr ""
+
+#: goverlay_strings.rsswitchtodarktheme
+msgid "Switch to Dark theme"
+msgstr ""
+
+#: goverlay_strings.rssteamdeckpreset
+msgid "Steam Deck Preset "
+msgstr ""
+
+#: goverlay_strings.rssavedsuccessfully
+msgid " saved successfully!"
+msgstr ""
+
+#: goverlay_strings.rscapturekey
+msgid "Capture Key"
+msgstr ""
+
+#: goverlay_strings.rspressthekeycombinationyouwant
+msgid "Press the key combination you want to use as shortcut."
+msgstr ""
+
+#: goverlay_strings.rspressesctocancel
+msgid "(Press ESC to cancel)"
+msgstr ""
+
+#: goverlay_strings.rsglobalconfigurationsclonedsuccessfullyfor
+msgid "Global configurations cloned successfully for "
+msgstr ""
+
+#: goverlay_strings.rspascubeandvkcubenotfound
+msgid "PasCube and VkCube not found."
+msgstr ""
+
+#: goverlay_strings.rsapplyingwindowsversion
+msgid "Applying Windows version "
+msgstr ""
+
+#: goverlay_strings.rsto
+msgid " to "
+msgstr ""
+
+#: goverlay_strings.rsapplied
+msgid "✓ Applied "
+msgstr ""
+
+#: goverlay_strings.rssuccessfully
+msgid " successfully!"
+msgstr ""
+
+#: goverlay_strings.rsprotontricksexitedwithcode
+msgid "✗ protontricks exited with code "
+msgstr ""
+
+#: goverlay_strings.rsgamesonexternaldrivesshowunknown
+msgid "⚠ Games on external drives show \"unknown\". Grant access via Flatseal → Filesystem."
+msgstr ""
+
+#: goverlay_strings.rspostprocessingisdisabledselectreshade
+msgid "Post-processing is disabled. Select ReShade or vkBasalt above to configure effects."
+msgstr ""
+
+#: goverlay_strings.rstoggle
+msgid "Toggle:"
+msgstr ""
+
+#: goverlay_strings.rsproxydll2
+msgid "Proxy DLL:"
+msgstr ""
+
+#: goverlay_strings.rsoptiscalercoexistencereshadeandoptiscaler
+msgid "OptiScaler Co-existence: ReShade and OptiScaler cannot share the same Proxy DLL. Choose a different DLL (e.g. d3d11.dll or version.dll)."
+msgstr ""
+
+#: goverlay_strings.rsopenshadersdirectory
+msgid "Open Shaders Directory"
+msgstr ""
+
+#: goverlay_strings.rschecking
+msgid "Checking..."
+msgstr ""
+
+#: goverlay_strings.rsinstall
+msgid "Install"
+msgstr ""
+
+#: goverlay_strings.rsinstalled2
+msgid "✔ Installed"
+msgstr ""
+
+#: goverlay_strings.rsreinstall
+msgid "Re-install"
+msgstr ""
+
+#: goverlay_strings.rsdownloading
+msgid "Downloading..."
+msgstr ""
+
+#: goverlay_strings.rsupdating
+msgid "Updating..."
+msgstr ""
+
+#: goverlay_strings.rsproxydllconflict
+msgid "Proxy DLL Conflict"
+msgstr ""
+
+#: goverlay_strings.rswineprefix
+msgid "Wine Prefix"
+msgstr ""
+
+#: goverlay_strings.rsautolaunchpascube
+msgid "Auto launch PasCube"
+msgstr ""
+
+#: goverlay_strings.rscreatesteamshortcut
+msgid "Create Steam shortcut"
+msgstr ""
+
+#: goverlay_strings.rsshowlaunchsplashscreen
+msgid "Show launch splash screen"
+msgstr ""
+
+#: goverlay_strings.rsvideotutorial
+msgid "Video tutorial"
+msgstr ""
+
+#: goverlay_strings.rsenableamdantilag2
+msgid "Enable AMD Anti-Lag 2"
+msgstr ""
+
+#: goverlay_strings.rsautomaticallyupgradefsrtothelatest
+msgid "Automatically upgrade FSR to the latest version"
+msgstr ""
+
+#: goverlay_strings.rsautomaticallyupgradedlsstothelatest
+msgid "Automatically upgrade DLSS to the latest version"
+msgstr ""
+
+#: goverlay_strings.rsautomaticallyupgradexesstothelatest
+msgid "Automatically upgrade XeSS to the latest version"
+msgstr ""
+
+#: goverlay_strings.rsenablereengineraytracingworkaround
+msgid "Enable RE Engine Ray Tracing workaround"
+msgstr ""
+
+#: goverlay_strings.rsexposetoenablethelayer
+msgid "Expose to enable the layer"
+msgstr ""
+
+#: goverlay_strings.rsexposereflexsupport
+msgid "Expose Reflex support"
+msgstr ""
+
+#: goverlay_strings.rsexposereflexsupportvknvlow
+msgid "Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)"
+msgstr ""
+
+#: goverlay_strings.rsreportdeviceasnvidiagpu
+msgid "Report device as NVIDIA GPU"
+msgstr ""
+
+#: goverlay_strings.rsreportdeviceasnvidiagpubreaks
+msgid "Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)"
+msgstr ""
+
+#: goverlay_strings.rsalsohideamdgpu
+msgid "Also hide AMD GPU"
+msgstr ""
+
+#: goverlay_strings.rsalsohideamdgpubutit
+msgid "Also hide AMD GPU, but it's safer than SPOOF_NVIDIA (Needs Korthos low latency)"
+msgstr ""
+
+#: goverlay_strings.rsenableprotonvkd3dlowlatencyprotondxvk
+msgid "Enable PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY"
+msgstr ""
+
+#: goverlay_strings.rsenableprotonlocalshadercache
+msgid "Enable PROTON_LOCAL_SHADER_CACHE"
+msgstr ""
+
+#: goverlay_strings.rsenableprotondiscordbridge
+msgid "Enable PROTON_DISCORD_BRIDGE"
+msgstr ""
+
+#: goverlay_strings.rsenablevkd3dconfigdescriptorheap
+msgid "Enable VKD3D_CONFIG=descriptor_heap"
+msgstr ""
+
+#: goverlay_strings.rsenablengxdlssrroverride
+msgid "Enable NGX_DLSS_RR_OVERRIDE"
+msgstr ""
+
+#: goverlay_strings.rsenablevkd3drtassizemult
+msgid "Enable VKD3D_RTAS_SIZE_MULT"
+msgstr ""
+
+#: goverlay_strings.rsvulkanlowlatencylayerisnot
+msgid "vulkan-low-latency-layer is not installed. Please install Korthos low latency layer first."
+msgstr ""
+
+#: goverlay_strings.rsgamemodeisnotinstalledpleaseinstall
+msgid "gamemode is not installed. Please install the gamemode package first."
+msgstr ""
+
+#: goverlay_strings.rsinvalidlaunchargumentmuststartwith
+msgid "Invalid launch argument. Must start with \"-\", \"--\", or \"+\"."
+msgstr ""
+
+#: goverlay_strings.rsreshadeeffects
+msgid "Reshade Effects"
+msgstr ""
+
+#: goverlay_strings.rsbuiltineffects
+msgid "Built-in Effects"
+msgstr ""
+
+#: goverlay_strings.rscolorlut
+msgid "Color LUT"
+msgstr ""
+
+#: goverlay_strings.rsbrowse
+msgid "Browse..."
+msgstr ""
+
+#: goverlay_strings.rseffectpipeline
+msgid "Effect Pipeline"
+msgstr ""
+
+#: goverlay_strings.rsrestoredefaults
+msgid "Restore Defaults"
+msgstr ""
+
+#: goverlay_strings.rsresetallvkbasaltslidersandactive
+msgid "Reset all vkBasalt sliders and active effects"
+msgstr ""
+
+#: goverlay_strings.rssplitcompare
+msgid "Split compare"
+msgstr ""
+
+#: goverlay_strings.rssplitcompareab
+msgid "Split compare (A/B)"
+msgstr ""
+
+#: goverlay_strings.rssplitsscreencomparingoriginalimageleft
+msgid "Splits screen comparing original image (left) with color-graded image (right)"
+msgstr ""
+
+#: goverlay_strings.rscolorblindness
+msgid "Color blindness:"
+msgstr ""
+
+#: goverlay_strings.rscolorblindnesscompensationdaltonize
+msgid "Color blindness compensation (Daltonize)"
+msgstr ""
+
+#: goverlay_strings.rstogglekey
+msgid "Toggle key:"
+msgstr ""
+
+#: goverlay_strings.rsrestoredefault
+msgid "Restore default"
+msgstr ""
+
+#: goverlay_strings.rsselect3dlutfile
+msgid "Select 3D LUT File"
+msgstr ""
+
+#: goverlay_strings.rsdownloadingreshadeshaders
+msgid "Downloading reshade shaders..."
+msgstr ""
+
+#: goverlay_strings.rsstarting
+msgid "Starting..."
+msgstr ""
+
+#: goverlay_strings.rsupdatingrepository
+msgid "Updating repository..."
+msgstr ""
+
+#: goverlay_strings.rscloningrepository
+msgid "Cloning repository..."
+msgstr ""
+
+#: goverlay_strings.rscompleted
+msgid "Completed"
+msgstr ""
+
+#: goverlay_strings.rsreshadeshadersareready
+msgid "Reshade shaders are ready"
+msgstr ""

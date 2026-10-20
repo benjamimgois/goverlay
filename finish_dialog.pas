@@ -5,6 +5,7 @@ unit finish_dialog;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
   Buttons, ImgList, LCLIntf, LCLType, Clipbrd, Math, StrUtils;
 
@@ -237,7 +238,7 @@ begin
   // Title
   FTitleLabel              := TLabel.Create(Self);
   FTitleLabel.Parent       := FHeaderPanel;
-  FTitleLabel.Caption      := 'Finish Configuration';
+  FTitleLabel.Caption      := rsFinishConfiguration;
   FTitleLabel.Font.Name    := 'Noto Sans';
   FTitleLabel.Font.Size    := 13;
   FTitleLabel.Font.Style   := [fsBold];
@@ -252,7 +253,7 @@ begin
   // Subtitle
   FSubtitleLabel             := TLabel.Create(Self);
   FSubtitleLabel.Parent      := FHeaderPanel;
-  FSubtitleLabel.Caption     := 'Apply the generated launch command to your game launcher';
+  FSubtitleLabel.Caption     := rsApplyTheGeneratedLaunchCommandTo;
   FSubtitleLabel.Font.Name   := 'Noto Sans';
   FSubtitleLabel.Font.Size   := 9;
   FSubtitleLabel.Font.Color  := RGBToColor(140, 150, 168);
@@ -363,7 +364,7 @@ begin
   // --- Launch command label ---
   FCmdLabel            := TLabel.Create(Self);
   FCmdLabel.Parent     := Self;
-  FCmdLabel.Caption    := 'Launch command:';
+  FCmdLabel.Caption    := rsLaunchCommand;
   FCmdLabel.Font.Name  := 'Noto Sans';
   FCmdLabel.Font.Size  := 9;
   FCmdLabel.Font.Color := RGBToColor(156, 163, 175);
@@ -419,7 +420,7 @@ begin
   // Copy button
   FCopyBtn            := TSpeedButton.Create(Self);
   FCopyBtn.Parent     := FCmdPanel;
-  FCopyBtn.Caption    := '  Copy';
+  FCopyBtn.Caption    := rsCopy;
   FCopyBtn.Font.Name  := 'Noto Sans';
   FCopyBtn.Font.Size  := 9;
   FCopyBtn.Font.Style := [fsBold];
@@ -720,14 +721,14 @@ begin
   end;
   Clipboard.AsText := CmdText;
   FCopiedTick := 90;  // show feedback for ~3 s at 30fps
-  FCopyBtn.Caption    := '  Copied!';
+  FCopyBtn.Caption    := rsCopied;
   FCopyBtn.Font.Color := RGBToColor(48, 220, 120);
 end;
 
 procedure TFinishDialogForm.ResetCopyBtn;
 begin
   FCopiedTick := 0;
-  FCopyBtn.Caption    := '  Copy';
+  FCopyBtn.Caption    := rsCopy;
   FCopyBtn.Font.Color := clWhite;
 end;
 

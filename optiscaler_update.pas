@@ -618,7 +618,7 @@ begin
         // Hint carries the bare tag for RefreshOsStatusDots; the caption is
         // the sentence the user reads and is not parsed back.
         FOptiTab.FOptiLabel2.Hint := FOptiTab.FormatDlssEnablerDisplayTag(FLatestOptiTag);
-        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FOptiTab.FOptiLabel2.Hint;
+        FOptiTab.FOptiLabel2.Caption := rsUpdateAvailable + FOptiTab.FOptiLabel2.Hint;
         FOptiTab.FOptiLabel2.Font.Color := clLime;
         FOptiTab.FOptiLabel2.Visible := True;
         if Assigned(FOptiTab.FUpdateBtn) then
@@ -640,7 +640,7 @@ begin
       if (FLatestOptiTag <> '') and ((CurrentVersion = '') or (CurrentVersion = '—') or (CurrentVersion = '--')) then
       begin
         FOptiTab.FOptiLabel2.Hint := FLatestOptiTag;
-        FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+        FOptiTab.FOptiLabel2.Caption := rsUpdateAvailable + FLatestOptiTag;
         FOptiTab.FOptiLabel2.Font.Color := clLime;
         FOptiTab.FOptiLabel2.Visible := True;
         HasUpdates := True;
@@ -667,7 +667,7 @@ begin
         if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
         begin
           FOptiTab.FOptiLabel2.Hint := FLatestOptiTag;
-          FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
+          FOptiTab.FOptiLabel2.Caption := rsUpdateAvailable + FLatestOptiTag;
           FOptiTab.FOptiLabel2.Font.Color := clLime;
           FOptiTab.FOptiLabel2.Visible := True;
           HasUpdates := True;
@@ -689,7 +689,7 @@ begin
       begin
         if Assigned(FOptiTab.FDeckyLabel2) then
         begin
-          FOptiTab.FDeckyLabel2.Caption := ' Update available ' + '(' + FLatestDeckyVersion + ')';
+          FOptiTab.FDeckyLabel2.Caption := rsUpdateAvailable2 + '(' + FLatestDeckyVersion + ')';
           FOptiTab.FDeckyLabel2.Visible := True;
           FOptiTab.FDeckyLabel2.Font.Color := clLime;
           HasUpdates := True;
@@ -717,7 +717,7 @@ begin
       FOptiTab.FCheckupdBtn.Visible := False;
     if Assigned(FOptiTab.FUpdateBtn) then
     begin
-      FOptiTab.FUpdateBtn.Caption := 'Update';
+      FOptiTab.FUpdateBtn.Caption := rsUpdate;
       FOptiTab.FUpdateBtn.Visible := True;
     end;
   end
@@ -2012,7 +2012,7 @@ begin
 
   DirDlg := TSelectDirectoryDialog.Create(nil);
   try
-    DirDlg.Title := 'Select Custom OptiScaler Folder (containing OptiScaler.dll)';
+    DirDlg.Title := rsSelectCustomOptiScalerFolderContainingOptiSc;
     DirDlg.InitialDir := GetUserDir;
     if DirDlg.Execute then
     begin
@@ -2050,8 +2050,8 @@ begin
   begin
     if Assigned(FCheckupdBtn) then
     begin
-      FCheckupdBtn.Caption := 'Select Folder...';
-      FCheckupdBtn.Hint := 'Choose local folder with custom OptiScaler build';
+      FCheckupdBtn.Caption := rsSelectFolder;
+      FCheckupdBtn.Hint := rsChooseLocalFolderWithCustomOptiScaler;
       FCheckupdBtn.Visible := True;
       FCheckupdBtn.Enabled := True;
     end;
@@ -2064,8 +2064,8 @@ begin
   begin
     if Assigned(FCheckupdBtn) then
     begin
-      FCheckupdBtn.Caption := 'Check updates';
-      FCheckupdBtn.Hint := 'Check for OptiScaler updates';
+      FCheckupdBtn.Caption := rsCheckUpdates2;
+      FCheckupdBtn.Hint := rsCheckForOptiScalerUpdates;
     end;
   end;
 end;
@@ -2397,7 +2397,7 @@ begin
   if Assigned(FOptiLabel2) then
   begin
     FOptiLabel2.Hint := '';
-    FOptiLabel2.Caption := 'Searching for updates...';
+    FOptiLabel2.Caption := rsSearchingForUpdates;
     FOptiLabel2.Font.Color := clAqua;
     FOptiLabel2.Visible := True;
   end;
@@ -2504,7 +2504,7 @@ begin
         if Assigned(FDeckyLabel2) then
         begin
           try
-            FDeckyLabel2.Caption := ' Update available ' + '(' + LatestDeckyVersion + ')';
+            FDeckyLabel2.Caption := rsUpdateAvailable2 + '(' + LatestDeckyVersion + ')';
             FDeckyLabel2.Visible := True;
             FDeckyLabel2.Font.Color := clLime;
             Application.ProcessMessages;
@@ -2594,7 +2594,7 @@ begin
     // Set button to "Update" mode
     if Assigned(FUpdateBtn) then
     begin
-      FUpdateBtn.Caption := 'Update';
+      FUpdateBtn.Caption := rsUpdate;
       FUpdateBtn.visible := false;
       FCheckupdBtn.visible := true;
     end;
@@ -2614,7 +2614,7 @@ begin
     if Assigned(FUpdateBtn) then
     begin
       FUpdateBtn.AutoSize:=true;
-      FUpdateBtn.Caption := 'Install OptiScaler';
+      FUpdateBtn.Caption := rsInstallOptiScaler;
       FUpdateBtn.visible := true;
       FCheckupdBtn.visible := false;
       FUpdateBtn.Color:=clteal;

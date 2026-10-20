@@ -123,7 +123,7 @@ begin
   TitleLbl := TLabel.Create(FVkReshadeCard);
   TitleLbl.Parent      := FVkReshadeCard;
   StyleLabel(TitleLbl, lrCardTitle);
-  TitleLbl.Caption     := 'Reshade Effects';
+  TitleLbl.Caption     := rsReshadeEffects;
   TitleLbl.SetBounds(12, 10, 200, 22);
 
   // Hide old dual-listbox UI (data still kept in hidden listboxes for save/load)
@@ -166,7 +166,7 @@ begin
   TitleLbl := TLabel.Create(FVkBuiltinCard);
   TitleLbl.Parent      := FVkBuiltinCard;
   StyleLabel(TitleLbl, lrCardTitle);
-  TitleLbl.Caption     := 'Built-in Effects';
+  TitleLbl.Caption     := rsBuiltInEffects;
   TitleLbl.SetBounds(12, 10, 200, 22);
 
   // Clear LFM anchors to prevent conflicting alignment
@@ -271,7 +271,7 @@ begin
 
   FVkLutLabel := TLabel.Create(FForm);
   FVkLutLabel.Parent := FVkBuiltinCard;
-  FVkLutLabel.Caption := 'Color LUT';
+  FVkLutLabel.Caption := rsColorLUT;
   FVkLutLabel.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FVkLutLabel.Font.Style := [fsBold];
   FVkLutLabel.Font.Size := 9;
@@ -297,7 +297,7 @@ begin
 
   FVkLutBrowseBtn := TBitBtn.Create(FForm);
   FVkLutBrowseBtn.Parent := FVkBuiltinCard;
-  FVkLutBrowseBtn.Caption := 'Browse...';
+  FVkLutBrowseBtn.Caption := rsBrowse;
   FVkLutBrowseBtn.Cursor := crHandPoint;
   FVkLutBrowseBtn.OnClick := @VkLutBrowseBtnClick;
   FVkLutBrowseBtn.Anchors := [akLeft, akTop];
@@ -324,7 +324,7 @@ begin
   TitleLbl := TLabel.Create(FVkPipelineCard);
   TitleLbl.Parent      := FVkPipelineCard;
   StyleLabel(TitleLbl, lrCardTitle);
-  TitleLbl.Caption     := 'Effect Pipeline';
+  TitleLbl.Caption     := rsEffectPipeline;
   TitleLbl.SetBounds(12, 8, 280, 20);
 
   FVkPipelinePB := TPaintBox.Create(FForm);
@@ -359,12 +359,12 @@ begin
   FVkToggleTitleLbl := TLabel.Create(FVkToggleCard);
   FVkToggleTitleLbl.Parent      := FVkToggleCard;
   StyleMainCard(FVkToggleCard, FVkToggleTitleLbl, 'Options');
-  FVkToggleTitleLbl.Caption     := 'Options';
+  FVkToggleTitleLbl.Caption     := rsOptions;
   FVkToggleTitleLbl.SetBounds(12, 8, 120, 20);
 
   FVkToggleLabel := TLabel.Create(FVkToggleCard);
   FVkToggleLabel.Parent      := FVkToggleCard;
-  FVkToggleLabel.Caption     := 'Toggle:';
+  FVkToggleLabel.Caption     := rsToggle;
   if CurrentTheme = tmLight then
     FVkToggleLabel.Font.Color := LightTextColor
   else
@@ -390,8 +390,8 @@ begin
   // ── Restore defaults button (in place of Proxy DLL combobox)
   FVkRestoreBtn := TBitBtn.Create(FVkToggleCard);
   FVkRestoreBtn.Parent   := FVkToggleCard;
-  FVkRestoreBtn.Caption  := 'Restore Defaults';
-  FVkRestoreBtn.Hint     := 'Reset all vkBasalt sliders and active effects';
+  FVkRestoreBtn.Caption  := rsRestoreDefaults;
+  FVkRestoreBtn.Hint     := rsResetAllVkBasaltSlidersAndActive;
   FVkRestoreBtn.ShowHint := True;
   FVkRestoreBtn.Anchors  := [akLeft, akTop];
   FVkRestoreBtn.Cursor   := crHandPoint;
@@ -823,8 +823,8 @@ begin
     FVsCompareCB := TCheckBox.Create(FForm);
     FVsCompareCB.Parent := FForm;
     FVsCompareCB.Visible := False;
-    FVsCompareCB.Caption := 'Split compare';
-    FVsCompareCB.Hint := 'Split compare (A/B)' + LineEnding + 'Splits screen comparing original image (left) with color-graded image (right)';
+    FVsCompareCB.Caption := rsSplitCompare;
+    FVsCompareCB.Hint := rsSplitCompareAB + LineEnding + rsSplitsScreenComparingOriginalImageLeft;
     FVsCompareCB.ShowHint := True;
     FVsCompareCB.OnChange := @VsCompareToggleChange;
 
@@ -837,7 +837,7 @@ begin
     // Color blindness compensation (Daltonize) in Options card
     FVsDaltonizeLabel := TLabel.Create(Card);
     FVsDaltonizeLabel.Parent := Card;
-    FVsDaltonizeLabel.Caption := 'Color blindness:';
+    FVsDaltonizeLabel.Caption := rsColorBlindness;
     FVsDaltonizeLabel.Font.Name := UI_FONT_FAMILY;
     FVsDaltonizeLabel.Font.Size := 9;
     FVsDaltonizeLabel.Font.Style := [fsBold];
@@ -854,14 +854,14 @@ begin
     FVsDaltonizeCombo.Items.Add('Tritanopia (Blue-blind)');
     FVsDaltonizeCombo.ItemIndex := 0;
     FVsDaltonizeCombo.OnChange := @VsDaltonizeComboChange;
-    FVsDaltonizeCombo.Hint := 'Color blindness compensation (Daltonize)';
+    FVsDaltonizeCombo.Hint := rsColorBlindnessCompensationDaltonize;
     FVsDaltonizeCombo.ShowHint := True;
     StyleInputControl(FVsDaltonizeCombo);
 
     // Toggle key
     FVsToggleKeyLbl := TLabel.Create(Card);
     FVsToggleKeyLbl.Parent := Card;
-    FVsToggleKeyLbl.Caption := 'Toggle key:';
+    FVsToggleKeyLbl.Caption := rsToggleKey;
     FVsToggleKeyLbl.Font.Name := UI_FONT_FAMILY;
     FVsToggleKeyLbl.Font.Size := 9;
     FVsToggleKeyLbl.Font.Style := [fsBold];
@@ -881,7 +881,7 @@ begin
     // Restore default
     FVsRestoreBtn := TBitBtn.Create(Card);
     FVsRestoreBtn.Parent      := Card;
-    FVsRestoreBtn.Caption     := 'Restore default';
+    FVsRestoreBtn.Caption     := rsRestoreDefault;
     FVsRestoreBtn.Anchors     := [akLeft, akTop];
     FVsRestoreBtn.Cursor      := crHandPoint;
     FVsRestoreBtn.OnClick     := @VsRestoreBtnClick;
@@ -1339,7 +1339,7 @@ var
 begin
   Dlg := TOpenDialog.Create(nil);
   try
-    Dlg.Title := 'Select 3D LUT File';
+    Dlg.Title := rsSelect3DLUTFile;
     Dlg.Filter := 'All Supported LUT Files (*.cube;*.png)|*.cube;*.CUBE;*.png;*.PNG|Adobe 3D LUT (*.cube)|*.cube;*.CUBE|HaldCLUT PNG (*.png)|*.png;*.PNG|All Files (*)|*';
     if Assigned(FForm.FVkLutPathEdit) and (Trim(FForm.FVkLutPathEdit.Text) <> '') and
        DirectoryExists(ExtractFileDir(FForm.FVkLutPathEdit.Text)) then
@@ -1418,7 +1418,7 @@ var
     if FForm.updateProgressBar.Max <> 100 then FForm.updateProgressBar.Max := 100;
     FForm.updateProgressBar.Position := Pct;
     if FForm.FAutoDownloadingReshade then
-      FForm.pbarLabel.Caption := Format('Downloading reshade shaders: %d%%', [Pct])
+      FForm.pbarLabel.Caption := Format(rsDownloadingReshadeShadersD, [Pct])
     else if Phase <> '' then
       FForm.pbarLabel.Caption := Format('%s: %d%%', [Phase, Pct])
     else
@@ -1546,9 +1546,9 @@ begin
       updateProgressBar.Position := 0;
       
       if FAutoDownloadingReshade then
-        pbarLabel.Caption := 'Downloading reshade shaders...'
+        pbarLabel.Caption := rsDownloadingReshadeShaders
       else
-        pbarLabel.Caption := 'Starting...';
+        pbarLabel.Caption := rsStarting;
         
       Phase := '';
       Chunk := '';
@@ -1571,20 +1571,20 @@ begin
             // Clone or pull repository
             if DirectoryExists(RepoDir) then
             begin
-              pbarLabel.Caption := 'Updating repository...';
+              pbarLabel.Caption := rsUpdatingRepository;
               Success := GitHelper.Pull(RepoDir);
             end
             else
             begin
-              pbarLabel.Caption := 'Cloning repository...';
+              pbarLabel.Caption := rsCloningRepository;
               Success := GitHelper.Clone(URL_RESHADE_SHADERS_REPO, RepoDir);
             end;
 
             if Success then
             begin
               ApplyPercent(100);
-              pbarLabel.Caption := 'Completed';
-              SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
+              pbarLabel.Caption := rsCompleted;
+              SendNotification('Goverlay', rsReshadeShadersAreReady, GetIconFile);
             end;
 
           finally
@@ -1620,8 +1620,8 @@ begin
           if P.ExitStatus = 0 then
           begin
             ApplyPercent(100);
-            pbarLabel.Caption := 'Completed';
-            SendNotification('Goverlay', 'Reshade shaders are ready', GetIconFile);
+            pbarLabel.Caption := rsCompleted;
+            SendNotification('Goverlay', rsReshadeShadersAreReady, GetIconFile);
           end
           else
             ShowMessage(Format(rsReshadeSyncFailed, [P.ExitStatus]));

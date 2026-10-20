@@ -212,7 +212,7 @@ begin
     // ── Tab sheet ────────────────────────────────────────────────────────────
     FHomeTabSheet := ComCtrls.TTabSheet.Create(goverlayPageControl);
     FHomeTabSheet.PageControl := goverlayPageControl;
-    FHomeTabSheet.Caption     := 'Home';
+    FHomeTabSheet.Caption     := rsHome;
     FHomeTabSheet.TabVisible  := False;
     FHomeTabSheet.Color       := BG;
 
@@ -236,7 +236,7 @@ begin
     FClearConfigBtn.BevelOuter  := bvNone;
     FClearConfigBtn.BevelInner  := bvNone;
     FClearConfigBtn.ParentColor := True;     // transparent (matches card background)
-    FClearConfigBtn.Caption     := 'Clear configuration';
+    FClearConfigBtn.Caption     := rsClearConfiguration;
     FClearConfigBtn.Font.Name   := 'Noto Sans';
     FClearConfigBtn.Font.Size   := 8;
     FClearConfigBtn.Font.Color  := TXT_CLR;
@@ -274,7 +274,7 @@ begin
         begin 
           IconFile := 'data/icons/system/os.png'; 
           Lbl.Caption := GetSysLinuxDistribution + ' (' + GetKernelVersion + ')'; 
-          Ico.Hint := 'OS / Kernel'; 
+          Ico.Hint := rsOSKernel; 
         end;
         1: 
         begin 
@@ -292,28 +292,28 @@ begin
         begin 
           IconFile := 'data/icons/system/driver.png'; 
           Lbl.Caption := GetSysGPUDriver; 
-          Ico.Hint := 'Driver'; 
+          Ico.Hint := rsDriver; 
         end;
         4: 
         begin 
           IconFile := 'data/icons/system/package.png'; 
           Lbl.Caption := GetGOverlayInstallationType; 
-          Ico.Hint := 'Installation'; 
+          Ico.Hint := rsInstallation; 
         end;
         5:
         begin
           IconFile := 'data/icons/system/fingerprint.png';
-          Lbl.Caption := 'Client ID: ' + GetGoverlayClientID;
-          Ico.Hint := 'Client ID';
+          Lbl.Caption := rsClientID + GetGoverlayClientID;
+          Ico.Hint := rsClientID2;
         end;
         6:
         begin
           IconFile := 'data/icons/system/user.png';
           if GetUserNickname <> '' then
-            Lbl.Caption := 'Pascube nickname: ' + GetUserNickname + '  [click to edit]'
+            Lbl.Caption := rsPascubeNickname + GetUserNickname + rsClickToEdit
           else
-            Lbl.Caption := 'Pascube nickname: Anonymous  [click to set]';
-          Ico.Hint := 'Click to set display nickname for leaderboards';
+            Lbl.Caption := rsPascubeNicknameAnonymousClickToSet;
+          Ico.Hint := rsClickToSetDisplayNicknameFor;
           Lbl.Cursor := crHandPoint;
           Ico.Cursor := crHandPoint;
           Lbl.OnClick := @NicknameClick;
@@ -558,7 +558,7 @@ begin
     end;
 
     if ReShadeOK then
-      FHomeModVerLbls[7].Caption := GetReShadeInstalledVersion + ' (Add-on Edition)'
+      FHomeModVerLbls[7].Caption := GetReShadeInstalledVersion + rsAddOnEdition
     else
       FHomeModVerLbls[7].Caption := 'not found';
     FHomeModVerLbls[7].Font.Color := CLR_TEXT_MUTED;
@@ -598,17 +598,17 @@ begin
     if DlssNrOK and DlssNrReady then
     begin
       FHomeModDots[10].Brush.Color := CLR_OK;
-      FHomeModDots[10].Hint := 'DLSS-NR is installed and neural weights are ready';
+      FHomeModDots[10].Hint := rsDLSSNRIsInstalledAndNeural;
     end
     else if DlssNrOK and not DlssNrReady then
     begin
       FHomeModDots[10].Brush.Color := $0044AAFF; // Amber for installed but weights missing
-      FHomeModDots[10].Hint := 'DLSS-NR runtime is installed, but neural model weights need extraction';
+      FHomeModDots[10].Hint := rsDLSSNRRuntimeIsInstalledBut;
     end
     else
     begin
       FHomeModDots[10].Brush.Color := CLR_MISSING;
-      FHomeModDots[10].Hint := 'DLSS-NR is not installed';
+      FHomeModDots[10].Hint := rsDLSSNRIsNotInstalled;
     end;
     FHomeModDots[10].Pen.Color := FHomeModDots[10].Brush.Color;
 

@@ -5,6 +5,7 @@ unit mangohud_ui;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
   StdCtrls, Buttons, Menus, LCLtype, Types, Grids,
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, overlay_utils,
@@ -184,7 +185,7 @@ begin
 
   TitleLabel := TLabel.Create(HeaderPanel);
   TitleLabel.Parent := HeaderPanel;
-  TitleLabel.Caption := 'Time Format Configuration';
+  TitleLabel.Caption := rsTimeFormatConfiguration;
   TitleLabel.Font.Style := [fsBold];
   TitleLabel.Font.Size := 11;
   TitleLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
@@ -193,7 +194,7 @@ begin
 
   SubLabel := TLabel.Create(HeaderPanel);
   SubLabel.Parent := HeaderPanel;
-  SubLabel.Caption := 'Select a preset or customize the std::put_time / strftime format string.';
+  SubLabel.Caption := rsSelectAPresetOrCustomizeThe;
   SubLabel.Font.Size := 8;
   SubLabel.Font.Color := IfThen(IsLight, $00606060, $00A0A0A0);
   SubLabel.Left := 16;
@@ -201,7 +202,7 @@ begin
 
   PresetLabel := TLabel.Create(Self);
   PresetLabel.Parent := Self;
-  PresetLabel.Caption := 'Preset:';
+  PresetLabel.Caption := rsPreset;
   PresetLabel.Font.Size := 9;
   PresetLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
   PresetLabel.Left := 16;
@@ -226,7 +227,7 @@ begin
 
   FormatLabel := TLabel.Create(Self);
   FormatLabel.Parent := Self;
-  FormatLabel.Caption := 'Format string:';
+  FormatLabel.Caption := rsFormatString;
   FormatLabel.Font.Size := 9;
   FormatLabel.Font.Color := IfThen(IsLight, clBlack, clWhite);
   FormatLabel.Left := 16;
@@ -257,7 +258,7 @@ begin
 
   PrevTitle := TLabel.Create(PrevPanel);
   PrevTitle.Parent := PrevPanel;
-  PrevTitle.Caption := 'Preview:';
+  PrevTitle.Caption := rsPreview;
   PrevTitle.Font.Style := [fsBold];
   PrevTitle.Font.Size := 9;
   PrevTitle.Font.Color := IfThen(IsLight, clBlack, clWhite);
@@ -275,7 +276,7 @@ begin
 
   HintLbl := TLabel.Create(Self);
   HintLbl.Parent := Self;
-  HintLbl.Caption := 'std::put_time reference: %T (HH:MM:SS), %R (HH:MM), %p (AM/PM), %d (day), %m (month), %Y (year)';
+  HintLbl.Caption := rsStdPutTimeReferenceTHH;
   HintLbl.Font.Size := 7;
   HintLbl.Font.Color := IfThen(IsLight, $00707070, $008E9CA8);
   HintLbl.Left := 16;
@@ -368,7 +369,7 @@ begin
   if S <> '' then
     FPreviewLabel.Caption := S
   else
-    FPreviewLabel.Caption := '(empty)';
+    FPreviewLabel.Caption := rsEmpty;
 end;
 
 function TMangoHudTimeFormatDialog.GetFormatString: string;
@@ -1110,7 +1111,7 @@ begin
   // "Active GPU" section label
   Lbl := TLabel.Create(FVisualGpuBar);
   Lbl.Parent      := FVisualGpuBar;
-  Lbl.Caption     := 'Active GPU';
+  Lbl.Caption     := rsActiveGPU;
   Lbl.Font.Style  := [fsBold];
   Lbl.Font.Size   := 9;
   Lbl.Font.Color  := TextColor;
@@ -1212,7 +1213,7 @@ begin
   begin
     horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
     horizontalstrechCheckBox.Parent := FVisualHudBar;
-    horizontalstrechCheckBox.Caption := 'Horizontal Strech';
+    horizontalstrechCheckBox.Caption := rsHorizontalStrech;
     horizontalstrechCheckBox.Visible := False;
   end;
   FhorizontalstrechToggle := TToggleSwitch.Create(FForm);
@@ -1236,10 +1237,10 @@ begin
     textoutlineCheckBox := TCheckBox.Create(FVisualHudBar);
     textoutlineCheckBox.Name := 'textoutlineCheckBox';
     textoutlineCheckBox.Parent := FVisualHudBar;
-    textoutlineCheckBox.Caption := 'Text outline';
+    textoutlineCheckBox.Caption := rsTextOutline;
     textoutlineCheckBox.Visible := False;
   end;
-  textoutlineCheckBox.Hint := 'Text outline' + LineEnding + 'Renders high-contrast outline around text';
+  textoutlineCheckBox.Hint := rsTextOutline + LineEnding + rsRendersHighContrastOutlineAroundText;
   textoutlineCheckBox.ShowHint := True;
   FtextoutlineToggle := TToggleSwitch.Create(FForm);
   FtextoutlineToggle.Parent := FVisualHudBar;
@@ -1755,7 +1756,7 @@ begin
   // Title label with lightning icon
   FFpsLimitTitleLbl := TLabel.Create(FForm);
   FFpsLimitTitleLbl.Parent := FPerfLimitSec;
-  FFpsLimitTitleLbl.Caption := '⚡ FPS Limit';
+  FFpsLimitTitleLbl.Caption := rsFPSLimit;
   FFpsLimitTitleLbl.Font.Name := 'Noto Sans';
   FFpsLimitTitleLbl.Font.Color := TextColor;
   FFpsLimitTitleLbl.Font.Style := [fsBold];
@@ -1794,7 +1795,7 @@ begin
   // Small hint label below the edit
   FFpsLimitHintLbl := TLabel.Create(FForm);
   FFpsLimitHintLbl.Parent := FPerfLimitSec;
-  FFpsLimitHintLbl.Caption := 'e.g. 30,60,120,0 — 0 to unlimited';
+  FFpsLimitHintLbl.Caption := rsEG30601200;
   FFpsLimitHintLbl.Font.Name := 'Noto Sans';
   FFpsLimitHintLbl.Font.Color := IfThen(IsLight, $00777777, $009E9E9E);
   FFpsLimitHintLbl.Font.Size := 8;
@@ -2024,8 +2025,8 @@ begin
   begin
     frametimedetailedCheckBox := TCheckBox.Create(FForm);
     frametimedetailedCheckBox.Name := 'frametimedetailedCheckBox';
-    frametimedetailedCheckBox.Caption := 'Frame Time +';
-    frametimedetailedCheckBox.Hint := 'Show detailed frame timing breakdown';
+    frametimedetailedCheckBox.Caption := rsFrameTime;
+    frametimedetailedCheckBox.Hint := rsShowDetailedFrameTimingBreakdown;
     frametimedetailedCheckBox.ShowHint := True;
   end;
   frametimedetailedCheckBox.Parent  := FPerfInfoSec;
@@ -3114,7 +3115,7 @@ begin
   FTimeConfigBtn.Font.Size := 9;
   FTimeConfigBtn.Cursor := crHandPoint;
   FTimeConfigBtn.SetBounds(FtimeToggle.Left + FtimeToggle.Width + 4, FtimeToggle.Top, 22, 20);
-  FTimeConfigBtn.Hint := 'Configure time format';
+  FTimeConfigBtn.Hint := rsConfigureTimeFormat;
   FTimeConfigBtn.ShowHint := True;
   FTimeConfigBtn.Enabled := timeCheckBox.Checked;
   FTimeConfigBtn.OnClick := @TimeConfigBtnClick;
@@ -3204,7 +3205,7 @@ begin
 
   // Bottom row: Logging toggle
   Place(logtoggleLabel, FExtLogCard, 356, 106 + HDR);
-  logtoggleLabel.Caption     := 'Logging toggle';
+  logtoggleLabel.Caption     := rsLoggingToggle;
   logtoggleLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   logtoggleLabel.Font.Style  := [fsBold];
   logtoggleLabel.Transparent := True;
@@ -3230,7 +3231,7 @@ begin
   FExtGplotLabel.Parent      := FExtLogCard;
   FExtGplotLabel.Left        := 512;
   FExtGplotLabel.Top         := 106 + HDR;
-  FExtGplotLabel.Caption     := 'Benchmark viewer';
+  FExtGplotLabel.Caption     := rsBenchmarkViewer;
   FExtGplotLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FExtGplotLabel.Font.Style  := [fsBold];
   FExtGplotLabel.Transparent := True;
@@ -3636,7 +3637,7 @@ begin
     fontsizevalueLabel.Caption := '24px';
     
     afTrackBar.Position := 0;
-    afvalueLabel.Caption := '0 (Off)';
+    afvalueLabel.Caption := rs0Off;
     
     mipmapTrackBar.Position := 0;
     mipmapvalueLabel.Caption := IntToStr(mipmapTrackBar.Position);
@@ -4250,7 +4251,7 @@ begin
       begin
         afTrackBar.Position := IntValue;
         if afTrackBar.Position = 0 then
-          afvalueLabel.Caption := '0 (Off)'
+          afvalueLabel.Caption := rs0Off
         else
           afvalueLabel.Caption := IntToStr(afTrackBar.Position) + 'x';
       end;

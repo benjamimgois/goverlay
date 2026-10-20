@@ -1979,7 +1979,7 @@ begin
 
     // Show notification if no updates available
     if not HasUpdates then
-      SendNotification('Goverlay', 'No updates for OptiScaler available', GetIconFile);
+      SendNotification('Goverlay', rsNoUpdatesForOptiScalerAvailable, GetIconFile);
 
     // Refresh status dots so the new version tag appears next to the installed version
     RefreshOsStatusDots;
@@ -2107,7 +2107,7 @@ begin
   fpsonlyBitbtn.Color:=clDefault;
   usercustomBitbtn.Color:=$007F5500;
 
-  SendNotification('MangoHud', 'Reloading custom user preset', GetIconFile);
+  SendNotification('MangoHud', rsReloadingCustomUserPreset, GetIconFile);
 end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
@@ -3325,7 +3325,7 @@ begin
   end;
 
   FSplashLogForm := TForm.Create(nil);
-  FSplashLogForm.Caption := 'Initialization & Download Logs';
+  FSplashLogForm.Caption := rsInitializationDownloadLogs;
   FSplashLogForm.Width := 680;
   FSplashLogForm.Height := 420;
   FSplashLogForm.Position := poScreenCenter;
@@ -3337,7 +3337,7 @@ begin
   LogHeader.Parent := FSplashLogForm;
   LogHeader.Align := alTop;
   LogHeader.Height := 32;
-  LogHeader.Caption := '  💻 Goverlay Initialization Logs';
+  LogHeader.Caption := rsGoverlayInitializationLogs;
   LogHeader.Font.Name := 'Noto Sans';
   LogHeader.Font.Size := 11;
   LogHeader.Font.Style := [fsBold];
@@ -3484,7 +3484,7 @@ begin
   // 5. Details Button (Bottom right corner with terminal icon prompt ">_ Details")
   FSplashDetailsButton := TSpeedButton.Create(FSplashForm);
   FSplashDetailsButton.Parent    := FSplashForm;
-  FSplashDetailsButton.Caption   := '>_ Details';
+  FSplashDetailsButton.Caption   := rsDetails;
   FSplashDetailsButton.Font.Name := 'Noto Sans';
   FSplashDetailsButton.Font.Size := 9;
   FSplashDetailsButton.Font.Style := [fsBold];
@@ -3761,23 +3761,23 @@ begin
   // Create Color Grading (vkSumi) tab sheet (must exist before BuildVkSumiTab)
   vksumiTabSheet := TTabSheet.Create(goverlayPageControl);
   vksumiTabSheet.PageControl := goverlayPageControl;
-  vksumiTabSheet.Caption     := 'Color Grading';
+  vksumiTabSheet.Caption     := rsColorGrading;
   vksumiTabSheet.TabVisible  := False;
   vksumiTabSheet.PageIndex   := vkbasaltTabSheet.PageIndex + 1;
 
   // Create Frame Interpolation tab sheet
   losslessScalingTabSheet := TTabSheet.Create(goverlayPageControl);
   losslessScalingTabSheet.PageControl := goverlayPageControl;
-  losslessScalingTabSheet.Caption     := 'Frame Interpolation';
+  losslessScalingTabSheet.Caption     := rsFrameInterpolation;
   losslessScalingTabSheet.TabVisible  := False;
   losslessScalingTabSheet.PageIndex   := optiscalertabsheet.PageIndex + 1;
   losslessScalingTabSheet.OnShow      := @losslessScalingTabSheetShow;
 
   // Tweaks sub-tabs: EnvVars and Arguments
-  tweaksTabSheet.Caption := 'EnvVars';
+  tweaksTabSheet.Caption := rsEnvVars;
   launchArgsTabSheet := TTabSheet.Create(goverlayPageControl);
   launchArgsTabSheet.PageControl := goverlayPageControl;
-  launchArgsTabSheet.Caption     := 'Arguments';
+  launchArgsTabSheet.Caption     := rsArguments;
   launchArgsTabSheet.TabVisible  := False;
   launchArgsTabSheet.PageIndex   := tweaksTabSheet.PageIndex + 1;
   launchArgsTabSheet.OnShow      := @launchArgsTabSheetShow;
@@ -3831,12 +3831,12 @@ begin
   end;
 
   if Assigned(openConfigFileMenuItem) then
-    openConfigFileMenuItem.Caption := 'Open config folder';
+    openConfigFileMenuItem.Caption := rsOpenConfigFolder;
   if Assigned(openLogFileMenuItem) then
-    openLogFileMenuItem.Caption := 'Open log folder';
+    openLogFileMenuItem.Caption := rsOpenLogFolder;
 
   cloneGlobalDockMenuItem := TMenuItem.Create(popsaveMenu);
-  cloneGlobalDockMenuItem.Caption := 'Clone global configs';
+  cloneGlobalDockMenuItem.Caption := rsCloneGlobalConfigs;
   cloneGlobalDockMenuItem.ImageIndex := 24;
   cloneGlobalDockMenuItem.Visible := False;
   cloneGlobalDockMenuItem.OnClick := @CloneGlobalDockMenuItemClick;
@@ -3853,7 +3853,7 @@ begin
   savedStatusLabel.AnchorSideBottom.Side := asrCenter;
   savedStatusLabel.Anchors := [akRight, akBottom];
   savedStatusLabel.BorderSpacing.Right := 16;
-  savedStatusLabel.Caption := '✓ Saved';
+  savedStatusLabel.Caption := rsSaved;
   savedStatusLabel.Font.Name := 'Noto Sans';
   savedStatusLabel.Font.Size := 10;
   savedStatusLabel.Font.Style := [fsBold];
@@ -3910,7 +3910,7 @@ begin
   searchEdit.Width := 191;
   searchEdit.Height := 22;
   searchEdit.Font.Size := 9;
-  searchEdit.TextHint := '🔍 Search... (Ctrl+F)';
+  searchEdit.TextHint := rsSearchCtrlF;
   searchEdit.OnChange := @SearchEditChange;
   searchEdit.Visible := False;
   searchEdit.Tag := 9999;
@@ -4035,7 +4035,7 @@ begin
     if Assigned(FWinePrefixMenuItem) then
     begin
       FWinePrefixMenuItem.Enabled := False;
-      FWinePrefixMenuItem.Hint := 'Protontricks integration is not available in the Flatpak version.';
+      FWinePrefixMenuItem.Hint := rsProtontricksIntegrationIsNotAvailableIn;
     end;
   end;
 
@@ -4111,7 +4111,7 @@ begin
   if not FileExists(CUSTOMCFGFILE) then
   begin
     usercustomBitbtn.Enabled:=false;
-    usercustomBitbtn.Hint:='Save a custom.conf file load the custom config';
+    usercustomBitbtn.Hint:=rsSaveACustomConfFileLoad;
   end;
 
 
@@ -4128,20 +4128,20 @@ begin
    if Missing.Count = 0 then
    begin
     dependencieSpeedbutton.ImageIndex := 0 ; //green icon
-    dependenciesLabel.Caption := 'Status' ;
+    dependenciesLabel.Caption := rsStatus ;
     if Assigned(FDepsMenuItem) then
     begin
-      FDepsMenuItem.Caption := 'Status';
+      FDepsMenuItem.Caption := rsStatus;
       FDepsMenuItem.ImageIndex := 0; // green icon
     end;
    end
   else
   begin
     dependencieSpeedbutton.ImageIndex := 1 ;  //red icon
-    dependenciesLabel.Caption := ('Missing: ' + LineEnding + Missing.Text);
+    dependenciesLabel.Caption := (rsMissing + LineEnding + Missing.Text);
     if Assigned(FDepsMenuItem) then
     begin
-      FDepsMenuItem.Caption := 'Status';
+      FDepsMenuItem.Caption := rsStatus;
       FDepsMenuItem.ImageIndex := 1; // red icon
     end;
     
@@ -4149,7 +4149,7 @@ begin
     if Missing.IndexOf(DEP_GAMEMODE) >= 0 then
     begin
       gamemodeCheckBox.Enabled := False;
-      gamemodeCheckBox.Hint := 'GameMode is not installed - install gamemode package to enable this feature';
+      gamemodeCheckBox.Hint := rsGameModeIsNotInstalledInstallGamemode;
       gamemodeCheckBox.ShowHint := True;
     end;
   end;
@@ -4268,7 +4268,7 @@ begin
      fontsizevalueLabel.Caption:=inttostr(fontsizeTrackbar.Position);
      fontcombobox.ItemIndex:=0;
      if afTrackbar.Position = 0 then
-       afvalueLabel.Caption:= '0 (Off)'
+       afvalueLabel.Caption:= rs0Off
      else
        afvalueLabel.Caption:= IntToStr(afTrackbar.Position) + 'x';
      mipmapvalueLabel.Caption:= IntToStr(mipmapTrackbar.Position);
@@ -4376,7 +4376,7 @@ begin
           gpudriverComboBox.Items.Add('Mesa (Auto)');
           gpudriverComboBox.Items.Add('NVIDIA');
         end;
-        gpudriverComboBox.Hint := 'GPU driver backend for OptiScaler (DLSS spoofing, Reflex, and LatencyFlex)';
+        gpudriverComboBox.Hint := rsGPUDriverBackendForOptiScalerDLSS;
         gpudriverComboBox.ShowHint := True;
       end;
 
@@ -4869,14 +4869,14 @@ begin
          ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
-         SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+         SendNotification('Goverlay', rsPasCubeWasNotLocatedUsingVkcube, GetIconFile);
          if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
             ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube-wayland &')
          else
             ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
       end
       else
-         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+         SendNotification('Goverlay', rsPasCubeAndVkCubeWereNotLocated, GetIconFile);
   end
   else
   begin
@@ -4885,14 +4885,14 @@ begin
          ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + ' &')
       else if IsCommandAvailable('vkcube') then
       begin
-        SendNotification('Goverlay', 'PasCube was not located, using vkcube instead', GetIconFile);
+        SendNotification('Goverlay', rsPasCubeWasNotLocatedUsingVkcube, GetIconFile);
         if USERSESSION = 'wayland' then
           ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube --wsi wayland &')
         else
           ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
       end
       else
-         SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
+         SendNotification('Goverlay', rsPasCubeAndVkCubeWereNotLocated, GetIconFile);
   end;
 end;
 
@@ -5021,12 +5021,12 @@ begin
     8: begin
       frametimetypeBitBtn.ImageIndex:=7;
       frametimetypeBitBtn.Caption:= 'Histogram';
-      frametimetypeBitBtn.Hint:='Use histogram for frametime information';
+      frametimetypeBitBtn.Hint:=rsUseHistogramForFrametimeInformation;
     end;
     7: begin
       frametimetypeBitBtn.ImageIndex:=8;
       frametimetypeBitBtn.Caption:= 'Curve';
-      frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
+      frametimetypeBitBtn.Hint:=rsUseRegularCurveForFrametimeInformation;
     end;
  end;
 end;
@@ -5163,7 +5163,7 @@ begin
   TitleLbl := TLabel.Create(Self);
   TitleLbl.Parent := Banner;
   TitleLbl.Tag := 9995;
-  TitleLbl.Caption := AToolName + ' is not installed';
+  TitleLbl.Caption := AToolName + rsIsNotInstalled;
   TitleLbl.Font.Bold := True;
   TitleLbl.Font.Size := 10;
   TitleLbl.Font.Color := TextClr;
@@ -5175,9 +5175,9 @@ begin
   DescLbl.Parent := Banner;
   DescLbl.Tag := 9995;
   if IsRunningInFlatpak then
-    DescLbl.Caption := 'Missing Flatpak extension. Run:  ' + AFlatpakCmd
+    DescLbl.Caption := rsMissingFlatpakExtensionRun + AFlatpakCmd
   else
-    DescLbl.Caption := 'System package not found. Please install ''' + ANativePkg + ''' using your package manager.';
+    DescLbl.Caption := rsSystemPackageNotFoundPleaseInstall + ANativePkg + rsUsingYourPackageManager;
   DescLbl.Font.Size := 9;
   DescLbl.Font.Color := SubTextClr;
   DescLbl.Transparent := True;
@@ -5187,7 +5187,7 @@ begin
   RecheckBtn := TBitBtn.Create(Self);
   RecheckBtn.Parent := Banner;
   RecheckBtn.Tag := 9995;
-  RecheckBtn.Caption := 'Re-check';
+  RecheckBtn.Caption := rsReCheck;
   RecheckBtn.Cursor := crHandPoint;
   RecheckBtn.OnClick := AOnRecheck;
   RecheckBtn.Width := 96;
@@ -5221,7 +5221,7 @@ begin
   InvalidateDependenciesCache;
   UpdateToolMissingDependencyBanners;
   if IsMangoHudInstalled and IsVkBasaltInstalled then
-    SendNotification('GOverlay', 'All required dependencies detected.', GetIconFile);
+    SendNotification('GOverlay', rsAllRequiredDependenciesDetected, GetIconFile);
 end;
 
 procedure Tgoverlayform.ViewStatusClick(Sender: TObject);
@@ -5841,7 +5841,7 @@ begin
      (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
   begin
     if (Application.Title = 'goverlay-gui-tests') or
-       (MessageDlg('Frame Interpolation Conflict',
+       (MessageDlg(rsFrameInterpolationConflict,
          'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable Frame Interpolation and activate OptiScaler?',
          mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
@@ -5943,7 +5943,7 @@ begin
      (TLosslessScalingTabHelper(FLosslessScalingHelper).InterpolationMethod = imAfmf) then
   begin
     if (Application.Title = 'goverlay-gui-tests') or
-       (MessageDlg('Frame Interpolation Conflict',
+       (MessageDlg(rsFrameInterpolationConflict,
          'AMD Fluid Motion Frames (AFMF) is currently active. AFMF is incompatible with concurrent upscaling or frame generation layers.' + LineEnding + LineEnding +
          'Do you want to disable Frame Interpolation and activate DLSS Enabler?',
          mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
@@ -6207,7 +6207,7 @@ begin
     end;
     if Assigned(updatestatusLabel) then
     begin
-      updatestatusLabel.Caption := 'Preparing HelixSR neural compilation...';
+      updatestatusLabel.Caption := rsPreparingHelixSRNeuralCompilation;
       updatestatusLabel.Visible := True;
     end;
     Application.ProcessMessages;
@@ -6387,7 +6387,7 @@ begin
   if Assigned(FReshadePhaseLabel) then
   begin
     if FAutoDownloadingReshade then
-      FReshadePhaseLabel.Caption := Format('Downloading reshade shaders: %d%%', [APercent])
+      FReshadePhaseLabel.Caption := Format(rsDownloadingReshadeShadersD, [APercent])
     else if APhase <> '' then
       FReshadePhaseLabel.Caption := Format('%s: %d%%', [APhase, APercent])
     else
@@ -6492,12 +6492,12 @@ begin
     6: begin
       coreloadtypeBitBtn.ImageIndex:=7;
       coreloadtypeBitBtn.Caption:= 'Graph';
-      coreloadtypeBitBtn.Hint:='Use vertical bars for core load';
+      coreloadtypeBitBtn.Hint:=rsUseVerticalBarsForCoreLoad;
     end;
     7: begin
       coreloadtypeBitBtn.ImageIndex:=6;
       coreloadtypeBitBtn.Caption:= 'Percent';
-      coreloadtypeBitBtn.Hint:='Use percentage numbers for core load';
+      coreloadtypeBitBtn.Hint:=rsUsePercentageNumbersForCoreLoad;
 
     end;
  end;
@@ -6614,7 +6614,7 @@ procedure Tgoverlayform.afTrackBarChange(Sender: TObject);
 begin
   //Display new values and trackbar changes
   if afTrackbar.Position = 0 then
-    afvalueLabel.Caption:= '0 (Off)'
+    afvalueLabel.Caption:= rs0Off
   else
     afvalueLabel.Caption:= IntToStr(afTrackbar.Position) + 'x';
   StartAutoSaveTimer;
@@ -6804,12 +6804,12 @@ begin
     9: begin
       fpsavgBitBtn.ImageIndex:=10;
       fpsavgBitBtn.Caption:= '0.1% low';
-      fpsavgBitBtn.Hint:='Display 0.1% low fps';
+      fpsavgBitBtn.Hint:=rsDisplay01LowFps;
     end;
     10: begin
       fpsavgBitBtn.ImageIndex:=9;
       fpsavgBitBtn.Caption:= '1% low';
-      fpsavgBitBtn.Hint:='Display 1% low fps';
+      fpsavgBitBtn.Hint:=rsDisplay1LowFps;
     end;
  end;
 end;
@@ -7230,8 +7230,8 @@ begin
   emufp8CheckBox.Visible := False;
   emufp8CheckBox.Enabled := True;
 
-  emufp8CheckBox.Caption := 'Force MLFG in RDNA3';
-  emufp8CheckBox.Hint := 'Emulate FP8 to active MLFG';
+  emufp8CheckBox.Caption := rsForceMLFGInRDNA3;
+  emufp8CheckBox.Hint := rsEmulateFP8ToActiveMLFG;
 
   // forceFsr4Int8CheckBox is linked to TToggleSwitch (keep underlying checkbox hidden)
   if Assigned(forceFsr4Int8CheckBox) then
@@ -7372,8 +7372,8 @@ end;
 procedure Tgoverlayform.UpdateDockMenuItemsVisibility;
 begin
   // Menu items: "Save options" and "Load config" (when available) come first, followed by "Open config folder" and "Open log folder"
-  openConfigFileMenuItem.Caption := 'Open config folder';
-  openLogFileMenuItem.Caption := 'Open log folder';
+  openConfigFileMenuItem.Caption := rsOpenConfigFolder;
+  openLogFileMenuItem.Caption := rsOpenLogFolder;
   openConfigFileMenuItem.Visible := True;
   openLogFileMenuItem.Visible := True;
 
@@ -7789,7 +7789,7 @@ begin
   UpdatePresetCardVisuals;
 
   // Notification
-  SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
+  SendNotification('Goverlay', rsSettingsSavedAsCustomConfig, GetIconFile);
 end;
 
 function Tgoverlayform.GetActiveTabConfigFile: string;
@@ -8051,7 +8051,7 @@ begin
         else
           LoadMangoHudConfig;
 
-        SendNotification('Goverlay', ToolName + ' configuration loaded successfully', GetIconFile);
+        SendNotification('Goverlay', ToolName + rsConfigurationLoadedSuccessfully, GetIconFile);
       end;
     end;
   finally
@@ -8082,7 +8082,7 @@ begin
           if FileExists(VKBASALTCFGFILE) then
           begin
             ExecuteShellCommand('cp ' + VKBASALTCFGFILE + ' ' + DestinationFile);
-            SendNotification('vkBasalt', 'Configuration exported to: ' + DestinationFile, GetIconFile);
+            SendNotification('vkBasalt', rsConfigurationExportedTo + DestinationFile, GetIconFile);
           end
           else
             ShowMessage(rsVkBasaltDirMissing);
@@ -8101,7 +8101,7 @@ begin
             ExecuteShellCommand('cp ' + MANGOHUDCFGFILE + ' ' + DestinationFile);
             
             // Show notification
-            SendNotification('MangoHud', 'Configuration exported to: ' + DestinationFile, GetIconFile);
+            SendNotification('MangoHud', rsConfigurationExportedTo + DestinationFile, GetIconFile);
           end
           else
           begin
@@ -8220,9 +8220,9 @@ begin
 
   // Update settings menu theme item caption
   if NewTheme = tmLight then
-    themeMenuItem.Caption := 'Switch to Dark theme'
+    themeMenuItem.Caption := rsSwitchToDarkTheme
   else
-    themeMenuItem.Caption := 'Switch to Light theme';
+    themeMenuItem.Caption := rsSwitchToLightTheme;
 
   // Restore nav rail colors (theme engine overwrites the dynamic panels)
   RestoreNavRailColors;
@@ -8361,7 +8361,7 @@ begin
       ExistingLines.SaveToFile(PresetsFilePath);
 
       // Send notification via D-Bus
-      SendNotification('Goverlay', 'Steam Deck Preset ' + IntToStr(PresetNumber) + ' saved successfully!');
+      SendNotification('Goverlay', rsSteamDeckPreset + IntToStr(PresetNumber) + rsSavedSuccessfully);
 
     finally
       ExistingLines.Free;
@@ -8887,7 +8887,7 @@ begin
     FFloatingToast.ShowToast('Settings saved')
   else if Assigned(savedStatusLabel) then
   begin
-    savedStatusLabel.Caption := '✓ Saved';
+    savedStatusLabel.Caption := rsSaved;
     savedStatusLabel.Visible := True;
   end;
 
@@ -9429,7 +9429,7 @@ begin
     FCaptureForm.Height := 100;
     FCaptureForm.BorderStyle := bsSingle;
     FCaptureForm.BorderIcons := [biSystemMenu];
-    FCaptureForm.Caption := 'Capture Key';
+    FCaptureForm.Caption := rsCaptureKey;
     FCaptureForm.Color := IfThen(CurrentTheme = tmLight, clWhite, $00362E2E);
     FCaptureForm.KeyPreview := True;
     FCaptureForm.OnKeyDown := @CaptureFormKeyDown;
@@ -9444,7 +9444,7 @@ begin
     Lbl.Font.Name := 'Noto Sans';
     Lbl.Font.Size := 10;
     Lbl.Font.Color := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
-    Lbl.Caption := 'Press the key combination you want to use as shortcut.' + sLineBreak + '(Press ESC to cancel)';
+    Lbl.Caption := rsPressTheKeyCombinationYouWant + sLineBreak + rsPressESCToCancel;
 
     FCaptureForm.ShowModal;
   finally
@@ -10092,7 +10092,7 @@ begin
     if Assigned(commandPaintBox) then
       commandPaintBox.Invalidate;
 
-    SendNotification('Goverlay', 'Global configurations cloned successfully for ' + FActiveGameName, GetIconFile);
+    SendNotification('Goverlay', rsGlobalConfigurationsClonedSuccessfullyFor + FActiveGameName, GetIconFile);
   end;
 end;
 function Tgoverlayform.GetMangoHudVersion: string;
@@ -10733,7 +10733,7 @@ begin
       FFADock.PreviewRunning := True;
   end
   else
-    SendNotification('Goverlay', 'PasCube and VkCube not found.', GetIconFile);
+    SendNotification('Goverlay', rsPasCubeAndVkCubeNotFound, GetIconFile);
 end;
 
 procedure Tgoverlayform.ShowGameThumb(ACard: TPanel);

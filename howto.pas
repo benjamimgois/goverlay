@@ -227,7 +227,7 @@ begin
   // Play button on steamSheet
   FPlayBtn := TSpeedButton.Create(steamSheet);
   FPlayBtn.Parent := steamSheet;
-  FPlayBtn.Caption := '▶  Watch Tutorial';
+  FPlayBtn.Caption := rsWatchTutorial;
   FPlayBtn.Font.Style := [fsBold];
   FPlayBtn.Font.Size := 11;
   FPlayBtn.Width := 160;
@@ -240,7 +240,7 @@ begin
   // Stop button (hidden initially)
   FStopBtn := TSpeedButton.Create(steamSheet);
   FStopBtn.Parent := steamSheet;
-  FStopBtn.Caption := '✕  Stop Video';
+  FStopBtn.Caption := rsStopVideo;
   FStopBtn.Font.Style := [fsBold];
   FStopBtn.Font.Size := 10;
   FStopBtn.Width := 120;

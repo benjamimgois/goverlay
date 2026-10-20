@@ -5,6 +5,7 @@ unit lsfg_steam_beta_dialog;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
   Buttons, LCLIntf;
 
@@ -230,7 +231,7 @@ begin
 
   FTitleLabel := TLabel.Create(Self);
   FTitleLabel.Parent := FHeaderPanel;
-  FTitleLabel.Caption := 'Steam Beta Branch Required for lsfg-vk 2.0';
+  FTitleLabel.Caption := rsSteamBetaBranchRequiredForLsfg;
   FTitleLabel.Font.Size := 13;
   FTitleLabel.Font.Style := [fsBold];
   FTitleLabel.Font.Color := clWhite;
@@ -238,7 +239,7 @@ begin
 
   FSubtitleLabel := TLabel.Create(Self);
   FSubtitleLabel.Parent := FHeaderPanel;
-  FSubtitleLabel.Caption := 'Lossless Scaling must be configured in Steam to download the required Vulkan shaders (lsfg-vk.dll).';
+  FSubtitleLabel.Caption := rsLosslessScalingMustBeConfiguredIn;
   FSubtitleLabel.Font.Size := 9;
   FSubtitleLabel.Font.Color := CLR_TEXT;
   FSubtitleLabel.SetBounds(PAD, 36, DLG_W - 2 * PAD, 18);
@@ -252,7 +253,7 @@ begin
 
   FDoNotShowAgainCheck := TCheckBox.Create(Self);
   FDoNotShowAgainCheck.Parent := FBottomPanel;
-  FDoNotShowAgainCheck.Caption := 'Do not show this notice again';
+  FDoNotShowAgainCheck.Caption := rsDoNotShowThisNoticeAgain;
   FDoNotShowAgainCheck.Font.Size := 9;
   FDoNotShowAgainCheck.Font.Color := CLR_TEXT;
   FDoNotShowAgainCheck.SetBounds(PAD, 18, 250, 24);
@@ -265,21 +266,21 @@ begin
 
   FMigrationBtn := TBitBtn.Create(Self);
   FMigrationBtn.Parent := FBottomPanel;
-  FMigrationBtn.Caption := 'Migration Assistant';
+  FMigrationBtn.Caption := rsMigrationAssistant;
   FMigrationBtn.Cursor := crHandPoint;
   FMigrationBtn.SetBounds(DLG_W - PAD - 410, 14, 150, 32);
   FMigrationBtn.OnClick := @MigrationAssistantClick;
 
   FOpenFolderBtn := TBitBtn.Create(Self);
   FOpenFolderBtn.Parent := FBottomPanel;
-  FOpenFolderBtn.Caption := 'Open Steam Folder';
+  FOpenFolderBtn.Caption := rsOpenSteamFolder;
   FOpenFolderBtn.Cursor := crHandPoint;
   FOpenFolderBtn.SetBounds(DLG_W - PAD - 250, 14, 150, 32);
   FOpenFolderBtn.OnClick := @OpenFolderClick;
 
   FCloseBtn := TBitBtn.Create(Self);
   FCloseBtn.Parent := FBottomPanel;
-  FCloseBtn.Caption := 'Got It';
+  FCloseBtn.Caption := rsGotIt;
   FCloseBtn.Cursor := crHandPoint;
   FCloseBtn.SetBounds(DLG_W - PAD - 90, 14, 90, 32);
   FCloseBtn.OnClick := @CloseClick;
@@ -321,7 +322,7 @@ begin
 
   FImageCaption := TLabel.Create(FImageCard);
   FImageCaption.Parent := FImageCard;
-  FImageCaption.Caption := 'Steam > Library > Lossless Scaling (Right Click) > Properties... > Game Versions && Betas > Select "lsfg-vk"';
+  FImageCaption.Caption := rsSteamLibraryLosslessScalingRightClick;
   FImageCaption.Font.Size := 9;
   FImageCaption.Font.Style := [fsBold];
   FImageCaption.Font.Color := CLR_WARN;
@@ -340,7 +341,7 @@ begin
 
   FStepsTitle := TLabel.Create(FStepsCard);
   FStepsTitle.Parent := FStepsCard;
-  FStepsTitle.Caption := 'Follow these steps in Steam:';
+  FStepsTitle.Caption := rsFollowTheseStepsInSteam;
   FStepsTitle.Font.Size := 10;
   FStepsTitle.Font.Style := [fsBold];
   FStepsTitle.Font.Color := clWhite;
@@ -348,28 +349,28 @@ begin
 
   FStep1Lbl := TLabel.Create(FStepsCard);
   FStep1Lbl.Parent := FStepsCard;
-  FStep1Lbl.Caption := '1. Open Steam, find "Lossless Scaling" in your Library, and right-click it.';
+  FStep1Lbl.Caption := rs1OpenSteamFindLosslessScaling;
   FStep1Lbl.Font.Size := 9;
   FStep1Lbl.Font.Color := CLR_TEXT;
   FStep1Lbl.SetBounds(16, 38, CARD_W - 32, 18);
 
   FStep2Lbl := TLabel.Create(FStepsCard);
   FStep2Lbl.Parent := FStepsCard;
-  FStep2Lbl.Caption := '2. Click "Properties..." from the context menu.';
+  FStep2Lbl.Caption := rs2ClickPropertiesFromTheContext;
   FStep2Lbl.Font.Size := 9;
   FStep2Lbl.Font.Color := CLR_TEXT;
   FStep2Lbl.SetBounds(16, 62, CARD_W - 32, 18);
 
   FStep3Lbl := TLabel.Create(FStepsCard);
   FStep3Lbl.Parent := FStepsCard;
-  FStep3Lbl.Caption := '3. Navigate to "Betas" (Game Versions && Betas) on the left sidebar.';
+  FStep3Lbl.Caption := rs3NavigateToBetasGameVersions;
   FStep3Lbl.Font.Size := 9;
   FStep3Lbl.Font.Color := CLR_TEXT;
   FStep3Lbl.SetBounds(16, 86, CARD_W - 32, 18);
 
   FStep4Lbl := TLabel.Create(FStepsCard);
   FStep4Lbl.Parent := FStepsCard;
-  FStep4Lbl.Caption := '4. Select the "lsfg-vk" branch (Required files for lsfg-vk) and wait for Steam to update.';
+  FStep4Lbl.Caption := rs4SelectTheLsfgVkBranch;
   FStep4Lbl.Font.Size := 9;
   FStep4Lbl.Font.Color := CLR_TEXT;
   FStep4Lbl.SetBounds(16, 110, CARD_W - 32, 18);

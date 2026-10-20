@@ -201,8 +201,8 @@ begin
   end;
 
   // Update description and credits captions dynamically at runtime
-  descLabel.Caption := 'Open-source tool providing a unified interface to configure different gaming tools';
-  creditsHeaderLabel.Caption := 'Credits:';
+  descLabel.Caption := rsOpenSourceToolProvidingAUnified;
+  creditsHeaderLabel.Caption := rsCredits;
   creditsLabel.Height := 180;
   creditsLabel.Caption := 
     'FlightlessMango – MangoHud'#10 +
@@ -214,7 +214,7 @@ begin
     'PancakeTAS – lsfg-vk'#10 +
     'eugeniosegala – MAKO'#10 +
     'serialexperimentslainnnn – afmf-linux';
-  linksHeaderLabel.Caption := 'Project links:';
+  linksHeaderLabel.Caption := rsProjectLinks;
   linksLabel.Caption := 'github.com/benjamimgois/goverlay';
 
   ApplyTheme(Self, CurrentTheme);

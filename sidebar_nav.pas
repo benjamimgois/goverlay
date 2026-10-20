@@ -5,6 +5,7 @@ unit sidebar_nav;
 interface
 
 uses
+  goverlay_strings,
   Classes, SysUtils, Controls, ExtCtrls, Buttons, Graphics, Types, Dialogs, Math, Forms, Menus, IniFiles, StdCtrls, ComCtrls,
   overlayunit;
 
@@ -323,7 +324,7 @@ begin
 
   // Dependencies status item at the top of the settings menu
   FForm.FDepsMenuItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FDepsMenuItem.Caption := 'Status';
+  FForm.FDepsMenuItem.Caption := rsStatus;
   FForm.FDepsMenuItem.ImageIndex := 0;
   FForm.FDepsMenuItem.Enabled := True;
   FForm.FDepsMenuItem.OnClick := @FForm.ShowHomeTab;
@@ -336,7 +337,7 @@ begin
 
   // Wine Prefix menu item directly below Status
   FForm.FWinePrefixMenuItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FWinePrefixMenuItem.Caption := 'Wine Prefix';
+  FForm.FWinePrefixMenuItem.Caption := rsWinePrefix;
   FForm.FWinePrefixMenuItem.ImageIndex := 37;
   FForm.FWinePrefixMenuItem.Enabled := True;
   FForm.FWinePrefixMenuItem.OnClick := @FForm.protontricksManagerButtonClick;
@@ -349,7 +350,7 @@ begin
 
   // Auto-launch cube toggle
   FForm.FCubeAutoLaunchItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FCubeAutoLaunchItem.Caption := 'Auto launch PasCube';
+  FForm.FCubeAutoLaunchItem.Caption := rsAutoLaunchPasCube;
   FForm.FCubeAutoLaunchItem.ImageIndex := 4;
   FForm.FCubeAutoLaunchItem.Checked := FForm.FCubeAutoLaunch;
   FForm.FCubeAutoLaunchItem.Visible := False;
@@ -363,14 +364,14 @@ begin
 
   // Create Steam shortcut
   FForm.FCreateSteamShortcutItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FCreateSteamShortcutItem.Caption := 'Create Steam shortcut';
+  FForm.FCreateSteamShortcutItem.Caption := rsCreateSteamShortcut;
   FForm.FCreateSteamShortcutItem.ImageIndex := 3;
   FForm.FCreateSteamShortcutItem.OnClick := @FForm.CreateSteamShortcutMenuItemClick;
   FForm.settingsMenu.Items.Insert(6, FForm.FCreateSteamShortcutItem);
 
   // Launch splash screen toggle
   FForm.FLaunchSplashItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FLaunchSplashItem.Caption := 'Show launch splash screen';
+  FForm.FLaunchSplashItem.Caption := rsShowLaunchSplashScreen;
   FForm.FLaunchSplashItem.AutoCheck := True;
   FForm.FLaunchSplashItem.Checked := FForm.FShowLaunchSplash;
   FForm.FLaunchSplashItem.OnClick := @FForm.LaunchSplashMenuItemClick;
@@ -382,7 +383,7 @@ begin
 
   // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
-  FForm.FHowToMenuItem.Caption := 'Video tutorial';
+  FForm.FHowToMenuItem.Caption := rsVideoTutorial;
   FForm.FHowToMenuItem.ImageIndex := 18;
   FForm.FHowToMenuItem.Visible := False;
 
