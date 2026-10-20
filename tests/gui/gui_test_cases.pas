@@ -78,6 +78,7 @@ type
     procedure TestFloatingActionDockAndFinishDialog;
     procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
     procedure TestLaunchSplashSettingsMenuItem;
+    procedure TestBootSplashFullBrandingLogo;
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
     procedure TestDlssEnablerChannelUpdateSuppressesDowngrades;
@@ -2742,6 +2743,19 @@ begin
     finally
       Ini.Free;
     end;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestBootSplashFullBrandingLogo;
+begin
+  goverlayform.ShowBootSplash('Testing startup logo...');
+  try
+    AssertNotNull('SplashForm should be created', goverlayform.SplashForm);
+    AssertNotNull('SplashBrandingImage should be created', goverlayform.SplashBrandingImage);
+    AssertNotNull('SplashBrandingImage Graphic should be assigned', goverlayform.SplashBrandingImage.Picture.Graphic);
+    AssertTrue('SplashBrandingImage width should be full logo width (>= 200px)', goverlayform.SplashBrandingImage.Picture.Width >= 200);
+  finally
+    goverlayform.HideBootSplash;
   end;
 end;
 

@@ -919,10 +919,10 @@ type
     procedure AddSplashLog(const AMsg: string);
     procedure OnSplashDetailsClick(Sender: TObject);
     procedure OnSplashLogFormClose(Sender: TObject; var CloseAction: TCloseAction);
-    procedure ShowBootSplash(const AStatus: string);
+    // Exposed: procedure ShowBootSplash(const AStatus: string);
     procedure SplashFormPaint(Sender: TObject);
     procedure UpdateBootSplash(APercent: Integer; const AStatus: string);
-    procedure HideBootSplash;
+    // Exposed: procedure HideBootSplash;
     procedure StartupDownloadsAsync(Data: PtrInt);
     // Exposed: procedure BuildSettingsButton;
     // Exposed: procedure RestoreNavRailColors;
@@ -1448,6 +1448,10 @@ type
     FMockVkSumiInstalled: Integer;   // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockLowLatencyInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockDlssNrModelReady: Integer; // -1 = real detection, 0 = mock missing, 1 = mock ready
+    property SplashForm: TForm read FSplashForm;
+    property SplashBrandingImage: TImage read FSplashBrandingImage;
+    procedure ShowBootSplash(const AStatus: string);
+    procedure HideBootSplash;
     destructor Destroy; override;
     procedure InvalidateDependenciesCache;
     function GetCachedMissingDeps: TStringList;
@@ -3359,6 +3363,8 @@ begin
   FSplashLogForm.Show;
 end;
 
+{$I goverlay_splash_data.inc}
+
 procedure Tgoverlayform.ShowBootSplash(const AStatus: string);
 const
   SW = 580;
@@ -3366,6 +3372,8 @@ const
 var
   BrandingFile: string;
   LogoImg: TPicture;
+  MemStream: TMemoryStream;
+  PngImg: TPortableNetworkGraphic;
 begin
   if Assigned(FSplashForm) then Exit;
 
@@ -3395,17 +3403,25 @@ begin
 
   BrandingFile := GetAppBaseDir + 'data/goverlay_splash_small.png';
   if not FileExists(BrandingFile) then
+    BrandingFile := GetAppBaseDir + 'goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
     BrandingFile := 'data/goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := '/usr/share/goverlay/data/goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := '/usr/local/share/goverlay/data/goverlay_splash_small.png';
+  if not FileExists(BrandingFile) then
+    BrandingFile := '/app/share/goverlay/data/goverlay_splash_small.png';
   if not FileExists(BrandingFile) then
     BrandingFile := GetAppBaseDir + 'data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
     BrandingFile := 'data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
-    BrandingFile := GetAppBaseDir + 'data/goverlay_logo.png';
+    BrandingFile := '/usr/share/goverlay/data/goverlay_splash.png';
   if not FileExists(BrandingFile) then
-    BrandingFile := GetIconFile;
+    BrandingFile := GetAppBaseDir + 'data/goverlay_logo.png';
 
-  if FileExists(BrandingFile) then
+  if (BrandingFile <> '') and FileExists(BrandingFile) then
   begin
     LogoImg := TPicture.Create;
     try
@@ -3413,6 +3429,21 @@ begin
       FSplashBrandingImage.Picture.Assign(LogoImg);
     finally
       LogoImg.Free;
+    end;
+  end
+  else
+  begin
+    // Embedded fallback: load built-in full splash branding logo
+    MemStream := TMemoryStream.Create;
+    PngImg := TPortableNetworkGraphic.Create;
+    try
+      MemStream.WriteBuffer(GOVERLAY_SPLASH_DATA[0], SizeOf(GOVERLAY_SPLASH_DATA));
+      MemStream.Position := 0;
+      PngImg.LoadFromStream(MemStream);
+      FSplashBrandingImage.Picture.Assign(PngImg);
+    finally
+      PngImg.Free;
+      MemStream.Free;
     end;
   end;
 

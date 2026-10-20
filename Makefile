@@ -69,6 +69,8 @@ install: goverlay pascube bgmod bgmod-uninstaller bgmod-splash data/goverlay.sh
 	cp -r assets/* $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/
 	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-shortcut.py
 	chmod +x $(DESTDIR)$(prefix)$(datadir)/goverlay/assets/goverlay-steam-launch.sh
+	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data
+	cp data/*.png $(DESTDIR)$(prefix)$(datadir)/goverlay/data/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons
 	cp -r data/icons/* $(DESTDIR)$(prefix)$(datadir)/goverlay/data/icons/
 	install -d $(DESTDIR)$(prefix)$(datadir)/goverlay/data/steam_grid
