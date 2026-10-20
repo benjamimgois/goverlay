@@ -4032,3 +4032,251 @@ msgstr "已完成"
 #: goverlay_strings.rsreshadeshadersareready
 msgid "Reshade shaders are ready"
 msgstr "ReShade 着色器已就绪"
+
+#: tweaks_md3.pas
+msgid "Activate Vulkan capture for OBS Studio"
+msgstr "为 OBS Studio 启用 Vulkan 捕获"
+
+#: tweaks_md3.pas
+msgid "Allows 32-bit games to use more than 2GB RAM"
+msgstr "允许 32 位游戏使用超过 2GB 内存"
+
+#: tweaks_md3.pas
+msgid "Alternative descriptor heap"
+msgstr "替代描述符堆"
+
+#: tweaks_md3.pas
+msgid "Delay in heap allocation (Wine)"
+msgstr "延迟堆分配（Wine）"
+
+#: tweaks_md3.pas
+msgid "Disable joystick subsystem"
+msgstr "禁用摇杆子系统"
+
+#: tweaks_md3.pas
+msgid "Disables fast clear optimization (AMD)"
+msgstr "禁用快速清除优化（AMD）"
+
+#: tweaks_md3.pas
+msgid "Emulates RT on older AMD GPUs"
+msgstr "在旧 AMD 显卡上模拟光线追踪"
+
+#: tweaks_md3.pas
+msgid "Experimental"
+msgstr "实验性"
+
+#: tweaks_md3.pas
+msgid "Force DirectX 11 backend"
+msgstr "强制 DirectX 11 后端"
+
+#: tweaks_md3.pas
+msgid "Force DirectX 12 backend"
+msgstr "强制 DirectX 12 后端"
+
+#: tweaks_md3.pas
+msgid "Force native Vulkan renderer"
+msgstr "强制使用原生 Vulkan 渲染"
+
+#: tweaks_md3.pas
+msgid "Latency reduction"
+msgstr "降低延迟"
+
+#: tweaks_md3.pas
+msgid "Launch Arguments"
+msgstr "启动参数"
+
+#: tweaks_md3.pas
+msgid "Memory optimization for AMD GPUs"
+msgstr "AMD 显卡内存优化"
+
+#: tweaks_md3.pas
+msgid "Multiplier for Ray Tracing Acceleration Structures size"
+msgstr "光线追踪加速结构尺寸倍数"
+
+#: tweaks_md3.pas
+msgid "Simulate Steam Deck hardware"
+msgstr "模拟 Steam Deck 硬件"
+
+#: tweaks_md3.pas
+msgid "Skip intro videos and logos"
+msgstr "跳过开场动画与 Logo"
+
+#: tweaks_md3.pas
+msgid "Use Feral Gamemode set of optimisations"
+msgstr "使用 Feral Gamemode 优化套件"
+
+#: tweaks_md3.pas
+msgid "Use SDL input instead steam input"
+msgstr "用 SDL 输入代替 Steam 输入"
+
+#: tweaks_md3.pas
+msgid "Windows 64-bit compatibility"
+msgstr "Windows 64 位兼容模式"
+
+#: tweaks_md3.pas
+msgid "[MESA] Enable AMD Anti-Lag 2"
+msgstr "[MESA] 启用 AMD Anti-Lag 2"
+
+#: tweaks_md3.pas
+msgid "[MESA] Uses OpenGL over Vulkan translation (ZINK)"
+msgstr "[MESA] 通过 ZINK 在 Vulkan 上运行 OpenGL"
+
+#: tweaks_md3.pas
+msgid "[cachyos] Sets CPU governor to performance"
+msgstr "[cachyos] 把 CPU 调频器设为性能模式"
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Also hide AMD GPU"
+msgstr "[low_latency_layer] 同时隐藏 AMD 显卡"
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Expose Reflex support"
+msgstr "[low_latency_layer] 暴露 Reflex 支持"
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Expose to enable the layer"
+msgstr "[low_latency_layer] 设置后启用该层"
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Report device as NVIDIA GPU"
+msgstr "[low_latency_layer] 把设备上报为 NVIDIA 显卡"
+
+#: tweaks_md3.pas
+msgid "[nvidia] Activates Ray Reconstruction"
+msgstr "[nvidia] 启用光线重建"
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] Enable Discord's Rich Presence."
+msgstr "[proton-cachyos] 启用 Discord 动态状态"
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] Enable per-game shader cache"
+msgstr "[proton-cachyos] 启用按游戏区分的着色器缓存"
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] low-latency frame pacing (DX11 & DX12)"
+msgstr "[proton-cachyos] 低延迟帧节奏（DX11 与 DX12）"
+
+#: tweaks_md3.pas
+msgid " Variables"
+msgstr " 变量"
+
+#: tweaks_md3.pas
+msgid " active"
+msgstr " 项启用"
+
+#: tweaks_md3.pas
+msgid "Add Environment Variable"
+msgstr "添加环境变量"
+
+#: tweaks_md3.pas
+msgid "Add Launch Argument"
+msgstr "添加启动参数"
+
+#: tweaks_md3.pas
+msgid "Alternative descriptor heap for D3D12. Fixes ray tracing in Control Resonant and similar titles, but may decrease performance or crash in other games."
+msgstr "D3D12 的替代描述符堆。可修复 Control Resonant 等游戏的光线追踪，但其他游戏可能掉帧或崩溃。"
+
+#: tweaks_md3.pas
+msgid "Custom Arguments"
+msgstr "自定义启动参数"
+
+#: tweaks_md3.pas
+msgid "Custom environment variable"
+msgstr "自定义环境变量"
+
+#: tweaks_md3.pas
+msgid "Custom items added in Global mode are cataloged and can be toggled per game."
+msgstr "在全局模式下新增的自定义项会被收录，可按游戏单独开关。"
+
+#: tweaks_md3.pas
+msgid "Custom launch argument"
+msgstr "自定义启动参数"
+
+#: tweaks_md3.pas
+msgid "Disables Wine detection in RE Engine games to avoid crashes or black screens."
+msgstr "在 RE 引擎游戏中关闭 Wine 检测，避免崩溃或黑屏。"
+
+#: tweaks_md3.pas
+msgid "Enter launch argument (-arg or +arg):"
+msgstr "输入启动参数（-arg 或 +arg）："
+
+#: tweaks_md3.pas
+msgid "Enter multiplier for Ray Tracing Acceleration Structures size:"
+msgstr "输入光线追踪加速结构的尺寸倍数："
+
+#: tweaks_md3.pas
+msgid "Experimental options can cause instability or crashes. Use with caution."
+msgstr "实验性选项可能导致不稳定甚至崩溃，请谨慎使用。"
+
+#: tweaks_md3.pas
+msgid "Forces NVIDIA DLSS Ray Reconstruction on supported hardware and titles."
+msgstr "在支持的硬件和游戏中强制启用 NVIDIA DLSS 光线重建。"
+
+#: tweaks_md3.pas
+msgid "Forces OpenGL to run over Vulkan via Mesa Zink driver (experimental)."
+msgstr "通过 Mesa Zink 驱动让 OpenGL 跑在 Vulkan 上（实验性）。"
+
+#: tweaks_md3.pas
+msgid "Game-specific custom variable"
+msgstr "仅对当前游戏的变量"
+
+#: tweaks_md3.pas
+msgid "Game-specific launch argument"
+msgstr "仅对当前游戏的启动参数"
+
+#: tweaks_md3.pas
+msgid "GameMode is not installed"
+msgstr "未安装 GameMode"
+
+#: tweaks_md3.pas
+msgid "Global catalog argument"
+msgstr "全局设定中的参数"
+
+#: tweaks_md3.pas
+msgid "Global catalog items are listed below. Toggling applies only to this game."
+msgstr "下面列出的是全局设定中的项目，这里的开关只对当前游戏生效。"
+
+#: tweaks_md3.pas
+msgid "Global catalog preset"
+msgstr "全局设定中的预设"
+
+#: tweaks_md3.pas
+msgid "Korthos Low Latency is not installed"
+msgstr "未安装 Korthos 低延迟层"
+
+#: tweaks_md3.pas
+msgid "Multiplies Ray Tracing Acceleration Structures buffer size by 8 to prevent RT out-of-memory crashes."
+msgstr "把光线追踪加速结构的缓冲区放大 8 倍，避免光追因显存不足而崩溃。"
+
+#: tweaks_md3.pas
+msgid "Needs Korthos low latency"
+msgstr "需要 Korthos 低延迟层"
+
+#: tweaks_md3.pas
+msgid "Predefined Arguments"
+msgstr "预定义启动参数"
+
+#: tweaks_md3.pas
+msgid "System package not found. Please install 'gamemode' using your package manager."
+msgstr "系统里找不到该软件包，请用包管理器安装 gamemode。"
+
+#: tweaks_md3.pas
+msgid "System package not found. Please install 'vulkan-low-latency-layer' using your package manager."
+msgstr "系统里找不到该软件包，请用包管理器安装 vulkan-low-latency-layer。"
+
+#: tweaks_md3.pas
+msgid "VKD3D RTAS Size Multiplier"
+msgstr "VKD3D RTAS 尺寸倍数"
+
+#: tweaks_md3.pas
+msgid "Works only with CachyOS"
+msgstr "仅在 CachyOS 上有效"
+
+#: tweaks_md3.pas
+msgid "＋ No custom arguments added yet. Click the + button to create one."
+msgstr "＋ 还没有自定义参数，点 + 按钮新建一个。"
+
+#: tweaks_md3.pas
+msgid "＋ No custom variables added yet. Click the + button to create one."
+msgstr "＋ 还没有自定义变量，点 + 按钮新建一个。"

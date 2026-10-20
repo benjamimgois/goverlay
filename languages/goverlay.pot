@@ -4022,3 +4022,251 @@ msgstr ""
 #: goverlay_strings.rsreshadeshadersareready
 msgid "Reshade shaders are ready"
 msgstr ""
+
+#: tweaks_md3.pas
+msgid "Activate Vulkan capture for OBS Studio"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Allows 32-bit games to use more than 2GB RAM"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Alternative descriptor heap"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Delay in heap allocation (Wine)"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Disable joystick subsystem"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Disables fast clear optimization (AMD)"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Emulates RT on older AMD GPUs"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Experimental"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Force DirectX 11 backend"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Force DirectX 12 backend"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Force native Vulkan renderer"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Latency reduction"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Launch Arguments"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Memory optimization for AMD GPUs"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Multiplier for Ray Tracing Acceleration Structures size"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Simulate Steam Deck hardware"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Skip intro videos and logos"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Use Feral Gamemode set of optimisations"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Use SDL input instead steam input"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Windows 64-bit compatibility"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[MESA] Enable AMD Anti-Lag 2"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[MESA] Uses OpenGL over Vulkan translation (ZINK)"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[cachyos] Sets CPU governor to performance"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Also hide AMD GPU"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Expose Reflex support"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Expose to enable the layer"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[low_latency_layer] Report device as NVIDIA GPU"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[nvidia] Activates Ray Reconstruction"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] Enable Discord's Rich Presence."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] Enable per-game shader cache"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "[proton-cachyos] low-latency frame pacing (DX11 & DX12)"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid " Variables"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid " active"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Add Environment Variable"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Add Launch Argument"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Alternative descriptor heap for D3D12. Fixes ray tracing in Control Resonant and similar titles, but may decrease performance or crash in other games."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Custom Arguments"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Custom environment variable"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Custom items added in Global mode are cataloged and can be toggled per game."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Custom launch argument"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Disables Wine detection in RE Engine games to avoid crashes or black screens."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Enter launch argument (-arg or +arg):"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Enter multiplier for Ray Tracing Acceleration Structures size:"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Experimental options can cause instability or crashes. Use with caution."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Forces NVIDIA DLSS Ray Reconstruction on supported hardware and titles."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Forces OpenGL to run over Vulkan via Mesa Zink driver (experimental)."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Game-specific custom variable"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Game-specific launch argument"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "GameMode is not installed"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Global catalog argument"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Global catalog items are listed below. Toggling applies only to this game."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Global catalog preset"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Korthos Low Latency is not installed"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Multiplies Ray Tracing Acceleration Structures buffer size by 8 to prevent RT out-of-memory crashes."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Needs Korthos low latency"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Predefined Arguments"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "System package not found. Please install 'gamemode' using your package manager."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "System package not found. Please install 'vulkan-low-latency-layer' using your package manager."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "VKD3D RTAS Size Multiplier"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "Works only with CachyOS"
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "＋ No custom arguments added yet. Click the + button to create one."
+msgstr ""
+
+#: tweaks_md3.pas
+msgid "＋ No custom variables added yet. Click the + button to create one."
+msgstr ""

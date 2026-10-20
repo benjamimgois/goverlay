@@ -34,51 +34,14 @@ const
   TWEAK_CAT_ARGS         = 6;
 
   PREDEFINED_ARG_COUNT = 5;
-  PREDEFINED_ARGS: array[0..PREDEFINED_ARG_COUNT - 1] of TPredefinedArg = (
-    (Arg: '-novid';  Description: 'Skip intro videos and logos'),
-    (Arg: '-vulkan'; Description: 'Force native Vulkan renderer'),
-    (Arg: '-dx11';   Description: 'Force DirectX 11 backend'),
-    (Arg: '-dx12';   Description: 'Force DirectX 12 backend'),
-    (Arg: '-nojoy';  Description: 'Disable joystick subsystem')
-  );
-
   TWEAK_ROW_COUNT = 34;
-  TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates RT on older AMD GPUs'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: '[MESA] Uses OpenGL over Vulkan translation (ZINK)'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'game-performance';                 Description: '[cachyos] Sets CPU governor to performance'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY'; Description: '[proton-cachyos] low-latency frame pacing (DX11 & DX12)'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap'; Description: 'Alternative descriptor heap'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                         Description: '[nvidia] Activates Ray Reconstruction'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                            Description: 'Multiplier for Ray Tracing Acceleration Structures size')
-  );
+
+var
+  // Filled by InitTweakTables.  The captions are resourcestrings and a typed
+  // const cannot hold those, so the tables are variables now; CheckBox stays
+  // nil and is resolved through GetTweakRowCheckBox.
+  PREDEFINED_ARGS: array[0..PREDEFINED_ARG_COUNT - 1] of TPredefinedArg;
+  TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow;
 
 type
   TTweaksMD3Helper = class
@@ -107,6 +70,8 @@ function GetTweakRowCheckBox(Form: Tgoverlayform; Index: Integer): TCheckBox;
 function TweakCategoryName(ACategory: Integer): string;
 function FindPredefinedArg(const AArg: string; out ADesc: string): Boolean;
 function IsLaunchArgument(const AText: string): Boolean;
+// Fills the tweak tables from the resourcestrings.
+procedure InitTweakTables;
 
 implementation
 
@@ -122,16 +87,100 @@ uses
 function TweakCategoryName(ACategory: Integer): string;
 begin
   case ACategory of
-    TWEAK_CAT_GENERAL:      Result := 'General';
-    TWEAK_CAT_GRAPHICS:     Result := 'Graphics';
-    TWEAK_CAT_PERF:         Result := 'Performance';
-    TWEAK_CAT_LATENCY:      Result := 'Latency reduction';
-    TWEAK_CAT_EXPERIMENTAL: Result := 'Experimental';
-    TWEAK_CAT_CUSTOM:       Result := 'Custom';
-    TWEAK_CAT_ARGS:         Result := 'Launch Arguments';
+    TWEAK_CAT_GENERAL:      Result := rsGeneral;
+    TWEAK_CAT_GRAPHICS:     Result := rsGraphics;
+    TWEAK_CAT_PERF:         Result := rsPerformance;
+    TWEAK_CAT_LATENCY:      Result := rsLatencyReduction;
+    TWEAK_CAT_EXPERIMENTAL: Result := rsExperimental;
+    TWEAK_CAT_CUSTOM:       Result := rsCustom;
+    TWEAK_CAT_ARGS:         Result := rsLaunchArguments;
   else
     Result := '';
   end;
+end;
+
+procedure InitTweakTables;
+begin
+  // Called once, from InitTweaksMD3: by then the catalogue is loaded and
+  // the resourcestrings hold the translated captions.
+  PREDEFINED_ARGS[0].Arg := '-novid';
+  PREDEFINED_ARGS[0].Description := rsSkipIntroVideosAndLogos;
+  PREDEFINED_ARGS[1].Arg := '-vulkan';
+  PREDEFINED_ARGS[1].Description := rsForceNativeVulkanRenderer;
+  PREDEFINED_ARGS[2].Arg := '-dx11';
+  PREDEFINED_ARGS[2].Description := rsForceDirectX11Backend;
+  PREDEFINED_ARGS[3].Arg := '-dx12';
+  PREDEFINED_ARGS[3].Description := rsForceDirectX12Backend;
+  PREDEFINED_ARGS[4].Arg := '-nojoy';
+  PREDEFINED_ARGS[4].Description := rsDisableJoystickSubsystem;
+  TWEAK_ROWS[0].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[0].VarName := 'SteamDeck=1';
+  TWEAK_ROWS[0].Description := rsSimulateSteamDeckHardware;
+  TWEAK_ROWS[1].Category := TWEAK_CAT_PERF; TWEAK_ROWS[1].VarName := '#gamemode';
+  TWEAK_ROWS[1].Description := rsUseFeralGamemodeSetOfOptimisations;
+  TWEAK_ROWS[2].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[2].VarName := 'PROTON_ENABLE_HDR=1';
+  TWEAK_ROWS[2].Description := rsEnableHDR;
+  TWEAK_ROWS[3].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[3].VarName := 'PROTON_ENABLE_WAYLAND=1';
+  TWEAK_ROWS[3].Description := rsEnableWayland;
+  TWEAK_ROWS[4].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[4].VarName := 'PROTON_LOG=1';
+  TWEAK_ROWS[4].Description := rsActiveProtonLogs;
+  TWEAK_ROWS[5].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[5].VarName := 'PROTON_USE_SDL=1';
+  TWEAK_ROWS[5].Description := rsUseSDLInputInsteadSteamInput;
+  TWEAK_ROWS[6].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[6].VarName := 'OBS_VKCAPTURE=1';
+  TWEAK_ROWS[6].Description := rsActivateVulkanCaptureForOBSStudio;
+  TWEAK_ROWS[7].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[7].VarName := 'RADV_PERFTEST=rt,emulate_rt';
+  TWEAK_ROWS[7].Description := rsEmulatesRTOnOlderAMDGPUs;
+  TWEAK_ROWS[8].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[8].VarName := 'PROTON_HIDE_NVIDIA_GPU=1';
+  TWEAK_ROWS[8].Description := rsHideNvidiaGPU;
+  TWEAK_ROWS[9].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[9].VarName := 'PROTON_ENABLE_NVAPI=1';
+  TWEAK_ROWS[9].Description := rsForceEnableNVAPI;
+  TWEAK_ROWS[10].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[10].VarName := 'PROTON_USE_WINED3D=1';
+  TWEAK_ROWS[10].Description := rsUseOldWINED3D;
+  TWEAK_ROWS[11].Category := TWEAK_CAT_EXPERIMENTAL; TWEAK_ROWS[11].VarName := 'MESA_LOADER_DRIVER_OVERRIDE=zink';
+  TWEAK_ROWS[11].Description := rsMESAUsesOpenGLOverVulkanTranslation;
+  TWEAK_ROWS[12].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[12].VarName := 'RADV_DEBUG=nofastclears';
+  TWEAK_ROWS[12].Description := rsDisablesFastClearOptimizationAMD;
+  TWEAK_ROWS[13].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[13].VarName := 'PROTON_FSR4_UPGRADE=1';
+  TWEAK_ROWS[13].Description := rsAutomaticallyUpgradeFSRToTheLatest;
+  TWEAK_ROWS[14].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[14].VarName := 'PROTON_DLSS_UPGRADE=1';
+  TWEAK_ROWS[14].Description := rsAutomaticallyUpgradeDLSSToTheLatest;
+  TWEAK_ROWS[15].Category := TWEAK_CAT_GRAPHICS; TWEAK_ROWS[15].VarName := 'PROTON_XESS_UPGRADE=1';
+  TWEAK_ROWS[15].Description := rsAutomaticallyUpgradeXeSSToTheLatest;
+  TWEAK_ROWS[16].Category := TWEAK_CAT_PERF; TWEAK_ROWS[16].VarName := 'game-performance';
+  TWEAK_ROWS[16].Description := rsCachyosSetsCPUGovernorToPerformance;
+  TWEAK_ROWS[17].Category := TWEAK_CAT_PERF; TWEAK_ROWS[17].VarName := 'PROTON_USE_WOW64=1';
+  TWEAK_ROWS[17].Description := rsWindows64BitCompatibility;
+  TWEAK_ROWS[18].Category := TWEAK_CAT_PERF; TWEAK_ROWS[18].VarName := 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1';
+  TWEAK_ROWS[18].Description := rsAllows32BitGamesToUse;
+  TWEAK_ROWS[19].Category := TWEAK_CAT_PERF; TWEAK_ROWS[19].VarName := 'STAGING_SHARED_MEMORY=1';
+  TWEAK_ROWS[19].Description := rsMemoryOptimizationForAMDGPUs;
+  TWEAK_ROWS[20].Category := TWEAK_CAT_PERF; TWEAK_ROWS[20].VarName := 'PROTON_NO_NTSYNC=1';
+  TWEAK_ROWS[20].Description := rsDisableNTSYNC;
+  TWEAK_ROWS[21].Category := TWEAK_CAT_PERF; TWEAK_ROWS[21].VarName := 'PROTON_HEAP_DELAY_FREE=1';
+  TWEAK_ROWS[21].Description := rsDelayInHeapAllocationWine;
+  TWEAK_ROWS[22].Category := TWEAK_CAT_EXPERIMENTAL; TWEAK_ROWS[22].VarName := '#winedetectionenable=false';
+  TWEAK_ROWS[22].Description := rsEnableREEngineRayTracingWorkaround;
+  TWEAK_ROWS[23].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[23].VarName := 'LOW_LATENCY_LAYER=1';
+  TWEAK_ROWS[23].Description := rsLowLatencyLayerExposeToEnable;
+  TWEAK_ROWS[24].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[24].VarName := 'LOW_LATENCY_LAYER_REFLEX=1';
+  TWEAK_ROWS[24].Description := rsLowLatencyLayerExposeReflexSupport;
+  TWEAK_ROWS[25].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[25].VarName := 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';
+  TWEAK_ROWS[25].Description := rsLowLatencyLayerReportDeviceAs;
+  TWEAK_ROWS[26].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[26].VarName := 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';
+  TWEAK_ROWS[26].Description := rsLowLatencyLayerAlsoHideAMD;
+  TWEAK_ROWS[27].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[27].VarName := 'ENABLE_LAYER_MESA_ANTI_LAG=1';
+  TWEAK_ROWS[27].Description := rsMESAEnableAMDAntiLag2;
+  TWEAK_ROWS[28].Category := TWEAK_CAT_LATENCY; TWEAK_ROWS[28].VarName := 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY';
+  TWEAK_ROWS[28].Description := rsProtonCachyosLowLatencyFramePacing;
+  TWEAK_ROWS[29].Category := TWEAK_CAT_PERF; TWEAK_ROWS[29].VarName := 'PROTON_LOCAL_SHADER_CACHE=1';
+  TWEAK_ROWS[29].Description := rsProtonCachyosEnablePerGameShader;
+  TWEAK_ROWS[30].Category := TWEAK_CAT_GENERAL; TWEAK_ROWS[30].VarName := 'PROTON_DISCORD_BRIDGE=1';
+  TWEAK_ROWS[30].Description := rsProtonCachyosEnableDiscordSRich;
+  TWEAK_ROWS[31].Category := TWEAK_CAT_EXPERIMENTAL; TWEAK_ROWS[31].VarName := 'VKD3D_CONFIG=descriptor_heap';
+  TWEAK_ROWS[31].Description := rsAlternativeDescriptorHeap;
+  TWEAK_ROWS[32].Category := TWEAK_CAT_EXPERIMENTAL; TWEAK_ROWS[32].VarName := 'NGX_DLSS_RR_OVERRIDE=on';
+  TWEAK_ROWS[32].Description := rsNvidiaActivatesRayReconstruction;
+  TWEAK_ROWS[33].Category := TWEAK_CAT_EXPERIMENTAL; TWEAK_ROWS[33].VarName := 'VKD3D_RTAS_SIZE_MULT=8';
+  TWEAK_ROWS[33].Description := rsMultiplierForRayTracingAccelerationStructure;
 end;
 
 function FindPredefinedArg(const AArg: string; out ADesc: string): Boolean;
@@ -358,6 +407,7 @@ procedure TTweaksMD3Helper.InitTweaksMD3;
 var
   i: Integer;
 begin
+  InitTweakTables;
   // Default all categories expanded
   FForm.FTweaksCatExpanded[0] := True;
   FForm.FTweaksCatExpanded[1] := True;
@@ -457,7 +507,7 @@ begin
   FForm.FLowLatencyCheckBox.Visible := False;
   FForm.FLowLatencyCheckBox.Name    := 'lowLatencyCheckBox';
   FForm.FLowLatencyCheckBox.Caption := rsExposeToEnableTheLayer;
-  FForm.FLowLatencyCheckBox.Hint    := 'Needs Korthos low latency';
+  FForm.FLowLatencyCheckBox.Hint    := rsNeedsKorthosLowLatency;
 
   FForm.FLowLatencyReflexCheckBox := TCheckBox.Create(FForm);
   FForm.FLowLatencyReflexCheckBox.Parent  := FForm;
@@ -711,9 +761,9 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
         BadgeBorder := RGBToColor(36, 110, 150);
         BadgeTxtColor := RGBToColor(80, 195, 245);
         if AIsArg then
-          CleanDesc := 'Global catalog argument'
+          CleanDesc := rsGlobalCatalogArgument
         else
-          CleanDesc := 'Global catalog preset';
+          CleanDesc := rsGlobalCatalogPreset;
       end
       else if (FForm.FActiveGameName <> '') and (ADesc = 'Local') then
       begin
@@ -723,16 +773,16 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
         BadgeBorder := RGBToColor(130, 75, 160);
         BadgeTxtColor := RGBToColor(215, 155, 255);
         if AIsArg then
-          CleanDesc := 'Game-specific launch argument'
+          CleanDesc := rsGameSpecificLaunchArgument
         else
-          CleanDesc := 'Game-specific custom variable';
+          CleanDesc := rsGameSpecificCustomVariable;
       end
       else
       begin
         if AIsArg then
-          CleanDesc := 'Custom launch argument'
+          CleanDesc := rsCustomLaunchArgument
         else
-          CleanDesc := 'Custom environment variable';
+          CleanDesc := rsCustomEnvironmentVariable;
       end;
 
       // Title line: AVar (monospace, bold)
@@ -988,11 +1038,11 @@ begin
     PB.Canvas.Font.Style := [fsBold];
     PB.Canvas.Font.Color := clWhite;
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(CardLeft + 12, Y + 8, 'Predefined Arguments');
+    PB.Canvas.TextOut(CardLeft + 12, Y + 8, rsPredefinedArguments);
 
     if ActiveArgCount > 0 then
     begin
-      ActiveStr := IntToStr(ActiveArgCount) + ' active';
+      ActiveStr := IntToStr(ActiveArgCount) + rsActive;
       DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
     end;
 
@@ -1052,9 +1102,9 @@ begin
     PB.Canvas.Font.Color := RGBToColor(145, 160, 185);
     PB.Canvas.Brush.Style := bsClear;
     if FForm.FActiveGameName = '' then
-      PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Custom items added in Global mode are cataloged and can be toggled per game.')
+      PB.Canvas.TextOut(CardLeft + 28, Y + 10, rsCustomItemsAddedInGlobalMode)
     else
-      PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Global catalog items are listed below. Toggling applies only to this game.');
+      PB.Canvas.TextOut(CardLeft + 28, Y + 10, rsGlobalCatalogItemsAreListedBelow);
 
     Inc(Y, INFO_BANNER_H + CARD_GAP);
 
@@ -1096,11 +1146,11 @@ begin
     PB.Canvas.Font.Style := [fsBold];
     PB.Canvas.Font.Color := clWhite;
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(CardLeft + 12, Y + 8, 'Custom Arguments');
+    PB.Canvas.TextOut(CardLeft + 12, Y + 8, rsCustomArguments);
 
     if ActiveArgCount > 0 then
     begin
-      ActiveStr := IntToStr(ActiveArgCount) + ' active';
+      ActiveStr := IntToStr(ActiveArgCount) + rsActive;
       DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
     end;
 
@@ -1137,7 +1187,7 @@ begin
       PB.Canvas.Font.Style := [];
       PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
       PB.Canvas.Brush.Style := bsClear;
-      PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No custom arguments added yet. Click the + button to create one.');
+      PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, rsNoCustomArgumentsAddedYetClick);
     end;
 
     Inc(Y, CardH + CARD_GAP);
@@ -1231,7 +1281,7 @@ begin
 
     if ActiveCount > 0 then
     begin
-      ActiveStr := IntToStr(ActiveCount) + ' active';
+      ActiveStr := IntToStr(ActiveCount) + rsActive;
       DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
     end;
 
@@ -1255,7 +1305,7 @@ begin
       PB.Canvas.Font.Style := [];
       PB.Canvas.Font.Color := RGBToColor(220, 200, 170);
       PB.Canvas.Brush.Style := bsClear;
-      PB.Canvas.TextOut(InnerLeft + 26, Y + CARD_HDR_H + 10, 'Experimental options can cause instability or crashes. Use with caution.');
+      PB.Canvas.TextOut(InnerLeft + 26, Y + CARD_HDR_H + 10, rsExperimentalOptionsCanCauseInstabilityOr);
     end;
 
     // Draw Items
@@ -1325,9 +1375,9 @@ begin
   PB.Canvas.Font.Color := RGBToColor(145, 160, 185);
   PB.Canvas.Brush.Style := bsClear;
   if FForm.FActiveGameName = '' then
-    PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Custom items added in Global mode are cataloged and can be toggled per game.')
+    PB.Canvas.TextOut(CardLeft + 28, Y + 10, rsCustomItemsAddedInGlobalMode)
   else
-    PB.Canvas.TextOut(CardLeft + 28, Y + 10, 'Global catalog items are listed below. Toggling applies only to this game.');
+    PB.Canvas.TextOut(CardLeft + 28, Y + 10, rsGlobalCatalogItemsAreListedBelow);
 
   Inc(Y, INFO_BANNER_H + CARD_GAP);
 
@@ -1375,11 +1425,11 @@ begin
   PB.Canvas.Font.Style := [fsBold];
   PB.Canvas.Font.Color := clWhite;
   PB.Canvas.Brush.Style := bsClear;
-  PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_CUSTOM) + ' Variables');
+  PB.Canvas.TextOut(CardLeft + 12, Y + 8, TweakCategoryName(TWEAK_CAT_CUSTOM) + rsVariables);
 
   if ActiveCustomCount > 0 then
   begin
-    ActiveStr := IntToStr(ActiveCustomCount) + ' active';
+    ActiveStr := IntToStr(ActiveCustomCount) + rsActive;
     DrawActivePill(PB.Canvas, CardRight - 12, Y + 8, ActiveStr);
   end;
 
@@ -1414,7 +1464,7 @@ begin
     PB.Canvas.Font.Style := [];
     PB.Canvas.Font.Color := RGBToColor(135, 145, 165);
     PB.Canvas.Brush.Style := bsClear;
-    PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, '＋ No custom variables added yet. Click the + button to create one.');
+    PB.Canvas.TextOut(InnerLeft + 6, Y + CARD_HDR_H + 9, rsNoCustomVariablesAddedYetClick);
   end;
 
   Inc(Y, CardH + CARD_GAP);
@@ -1619,44 +1669,44 @@ begin
       begin
         FForm.FTweaksHoverIdx := RowIdx;
         if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1' then
-          TweakHint := 'Needs Korthos low latency'
+          TweakHint := rsNeedsKorthosLowLatency
         else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1' then
-          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)'
+          TweakHint := rsExposeReflexSupportVKNVLow
         else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1' then
-          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)'
+          TweakHint := rsReportDeviceAsNVIDIAGPUBreaks
         else if TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"' then
-          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)'
+          TweakHint := rsAlsoHideAMDGPUButIt
         else if TWEAK_ROWS[i].VarName = '#gamemode' then
-          TweakHint := 'Use Feral Gamemode set of optimisations'
+          TweakHint := rsUseFeralGamemodeSetOfOptimisations
         else if TWEAK_ROWS[i].VarName = 'ENABLE_LAYER_MESA_ANTI_LAG=1' then
           TweakHint := ''
         else if (Pos('PROTON_VKD3D_LOWLATENCY', TWEAK_ROWS[i].VarName) > 0) or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
            (TWEAK_ROWS[i].VarName = 'game-performance') then
-          TweakHint := 'Works only with CachyOS'
+          TweakHint := rsWorksOnlyWithCachyOS
         else if Pos('descriptor_heap', TWEAK_ROWS[i].VarName) > 0 then
-          TweakHint := 'Alternative descriptor heap for D3D12. Fixes ray tracing in Control Resonant and similar titles, but may decrease performance or crash in other games.'
+          TweakHint := rsAlternativeDescriptorHeapForD3D12Fixes
         else if TWEAK_ROWS[i].VarName = 'NGX_DLSS_RR_OVERRIDE=on' then
-          TweakHint := 'Forces NVIDIA DLSS Ray Reconstruction on supported hardware and titles.'
+          TweakHint := rsForcesNVIDIADLSSRayReconstructionOn
         else if TWEAK_ROWS[i].VarName = 'VKD3D_RTAS_SIZE_MULT=8' then
-          TweakHint := 'Multiplies Ray Tracing Acceleration Structures buffer size by 8 to prevent RT out-of-memory crashes.'
+          TweakHint := rsMultipliesRayTracingAccelerationStructuresBu
         else if TWEAK_ROWS[i].VarName = 'MESA_LOADER_DRIVER_OVERRIDE=zink' then
-          TweakHint := 'Forces OpenGL to run over Vulkan via Mesa Zink driver (experimental).'
+          TweakHint := rsForcesOpenGLToRunOverVulkan
         else if TWEAK_ROWS[i].VarName = '#winedetectionenable=false' then
-          TweakHint := 'Disables Wine detection in RE Engine games to avoid crashes or black screens.';
+          TweakHint := rsDisablesWineDetectionInREEngine;
 
-        if (Pos('Needs Korthos low latency', TweakHint) > 0) and (not FForm.IsLowLatencyInstalled) then
+        if (Pos(rsNeedsKorthosLowLatency, TweakHint) > 0) and (not FForm.IsLowLatencyInstalled) then
         begin
           TweakHint := TweakHint + ' (NOT INSTALLED)';
-          FForm.ShowTweaksMissingBanner('Korthos Low Latency is not installed',
-            'System package not found. Please install ''vulkan-low-latency-layer'' using your package manager.');
+          FForm.ShowTweaksMissingBanner(rsKorthosLowLatencyIsNotInstalled,
+            rsSystemPackageNotFoundPleaseInstall2);
         end
         else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
         begin
           TweakHint := TweakHint + ' (NOT INSTALLED)';
-          FForm.ShowTweaksMissingBanner('GameMode is not installed',
-            'System package not found. Please install ''gamemode'' using your package manager.');
+          FForm.ShowTweaksMissingBanner(rsGameModeIsNotInstalled,
+            rsSystemPackageNotFoundPleaseInstall3);
         end
         else
           FForm.HideTweaksMissingBanner;
@@ -1988,7 +2038,7 @@ begin
             begin
               PromptVal := FForm.FVkd3dRtasSizeMultValue;
               if PromptVal = '' then PromptVal := '8';
-              if InputQuery('VKD3D RTAS Size Multiplier', 'Enter multiplier for Ray Tracing Acceleration Structures size:', PromptVal) then
+              if InputQuery(rsVKD3DRTASSizeMultiplier, rsEnterMultiplierForRayTracingAcceleration, PromptVal) then
               begin
                 PromptVal := Trim(PromptVal);
                 if PromptVal = '' then PromptVal := '8';
@@ -2142,8 +2192,8 @@ begin
 
   if IsArgTab then
   begin
-    Val := Trim(InputBox('Add Launch Argument',
-                         'Enter launch argument (-arg or +arg):', ''));
+    Val := Trim(InputBox(rsAddLaunchArgument,
+                         rsEnterLaunchArgumentArgOrArg, ''));
     if Val = '' then Exit;
 
     if not IsLaunchArgument(Val) then
@@ -2171,7 +2221,7 @@ begin
   end
   else
   begin
-    Val := Trim(InputBox('Add Environment Variable',
+    Val := Trim(InputBox(rsAddEnvironmentVariable,
                          'Enter variable (KEY=VALUE):', ''));
     if Val = '' then Exit;
 
@@ -2282,7 +2332,7 @@ begin
   BasicCard.SetBounds(4, 2, FForm.tweaksTabSheet.ClientWidth - 8, 214);
   BasicCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(BasicCard);
-  MakeLbl(BasicCard, 'Basic Tweaks');
+  MakeLbl(BasicCard, rsBasicTweaks);
 
   HalfW  := (BasicCard.Width - 12) div 2;
   GenSec := MakeSec(BasicCard, 'General',  4,            HDR + GAP, HalfW, 214 - HDR - GAP - 4);
@@ -2316,7 +2366,7 @@ begin
   AdvCard.SetBounds(4, 221, FForm.tweaksTabSheet.ClientWidth - 8, 210);
   AdvCard.Anchors    := [akLeft, akTop, akRight];
   MakeBar(AdvCard);
-  MakeLbl(AdvCard, 'Advanced Tweaks');
+  MakeLbl(AdvCard, rsAdvancedTweaks);
 
   HalfW   := (AdvCard.Width - 12) div 2;
   PerfSec := MakeSec(AdvCard, 'Performance', 4,             HDR + GAP, HalfW, 210 - HDR - GAP - 4);
