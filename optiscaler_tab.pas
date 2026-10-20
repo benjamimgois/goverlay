@@ -78,8 +78,10 @@ type
     procedure HelixSrControlChange(Sender: TObject);
     procedure DlssNrControlChange(Sender: TObject);
     procedure DlssNrModelDllBrowseClick(Sender: TObject);
+    procedure DlssNrBannerSelectDllClick(Sender: TObject);
     procedure DlssNrAdvancedBtnClick(Sender: TObject);
     procedure UpdateDlssNrStatusUI;
+    function IsDlssNrModelReadyEffective: Boolean;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
     procedure HelixLicenseBtnClick(Sender: TObject);
   public
@@ -89,6 +91,7 @@ type
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure OsScrollBoxResize(Sender: TObject);
     procedure RefreshOsStatusDots;
+    procedure UpdateDlssNrBanner;
     procedure LoadOptiScalerConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure UpdateFrameGenOptionsUI;
@@ -216,6 +219,74 @@ begin
   end;
 end;
 
+function TOptiScalerTabHelper.IsDlssNrModelReadyEffective: Boolean;
+begin
+  if Assigned(FForm) and (FForm.FMockDlssNrModelReady >= 0) then
+    Result := (FForm.FMockDlssNrModelReady = 1)
+  else
+    Result := IsDlssNrModelReady;
+end;
+
+procedure TOptiScalerTabHelper.UpdateDlssNrBanner;
+var
+  IsDlssNrActive, NeedsBanner: Boolean;
+  j: Integer;
+  Lbl: TLabel;
+  Btn: TBitBtn;
+begin
+  if not Assigned(FForm) or not Assigned(FForm.FOsBgPanel) then Exit;
+  IsDlssNrActive := Assigned(FForm.dlssnrRadioButton) and FForm.dlssnrRadioButton.Checked;
+  NeedsBanner := IsDlssNrActive and (not IsDlssNrModelReadyEffective);
+
+  if NeedsBanner then
+  begin
+    if not Assigned(FForm.FDlssNrMissingBanner) then
+    begin
+      FForm.FDlssNrMissingBanner := FForm.CreateDependencyWarningBanner(
+        FForm.FOsBgPanel,
+        'DLSS-NR',
+        '',
+        '',
+        @FForm.RecheckDependenciesClick,
+        @DlssNrBannerSelectDllClick
+      );
+      for j := 0 to FForm.FDlssNrMissingBanner.ControlCount - 1 do
+      begin
+        if FForm.FDlssNrMissingBanner.Controls[j] is TLabel then
+        begin
+          Lbl := TLabel(FForm.FDlssNrMissingBanner.Controls[j]);
+          if Lbl.Font.Bold then
+            Lbl.Caption := 'DLSS-NR requires nvngx_dlssnr.dll'
+          else if Lbl.Font.Size = 9 then
+            Lbl.Caption := 'nvngx_dlssnr.dll is required to use the DLSS-NR method. Select the DLL to extract model weights.';
+        end
+        else if FForm.FDlssNrMissingBanner.Controls[j] is TBitBtn then
+        begin
+          Btn := TBitBtn(FForm.FDlssNrMissingBanner.Controls[j]);
+          if Btn.Caption = 'View Status' then
+          begin
+            Btn.Caption := 'Select DLL...';
+            Btn.Width := 104;
+          end;
+        end;
+      end;
+    end;
+    FForm.FDlssNrMissingBanner.Parent := FForm.FOsBgPanel;
+    FForm.FDlssNrMissingBanner.Visible := True;
+    FForm.FDlssNrMissingBanner.BringToFront;
+  end
+  else
+  begin
+    if Assigned(FForm.FDlssNrMissingBanner) then
+      FForm.FDlssNrMissingBanner.Visible := False;
+  end;
+end;
+
+procedure TOptiScalerTabHelper.DlssNrBannerSelectDllClick(Sender: TObject);
+begin
+  DlssNrModelDllBrowseClick(Sender);
+end;
+
 procedure TOptiScalerTabHelper.DlssNrModelDllBrowseClick(Sender: TObject);
 var
   Dlg: TOpenDialog;
@@ -280,6 +351,8 @@ begin
   begin
     FDlssNrModelDllPath := SelectedFile;
     UpdateDlssNrStatusUI;
+    UpdateDlssNrBanner;
+    ReflowOptiScalerTabNew(0);
     ShowToast(ntSuccess, 'DLSS-NR model weights extracted successfully!', 4000);
   end
   else
@@ -2115,7 +2188,7 @@ const
   IGAP    = 6;
 var
   W, CW, CardW, CardTop, Y, Row, DotY, TotalH, ItemW, LogoW: Integer;
-  StatH: Integer;
+  StatH, BannerH, TopOffset: Integer;
   IsCustom, IsUnmanaged: Boolean;
   IsHelixSrActive, IsDlssNrActive: Boolean;
   IsNativeDlss: Boolean;
@@ -2169,16 +2242,27 @@ begin
       MinOptH := 325
     else if IsDlssNrActive then
       MinOptH := 405;
+
+    if Assigned(FDlssNrMissingBanner) and FDlssNrMissingBanner.Visible then
+    begin
+      BannerH := 72 + GAP;
+      FDlssNrMissingBanner.SetBounds(MARGIN, MARGIN, CW, 72);
+      FDlssNrMissingBanner.BringToFront;
+    end
+    else
+      BannerH := 0;
+    TopOffset := MARGIN + BannerH;
+
     CardTop := TotalH - MARGIN - StatH;
-    if CardTop < MARGIN + GPU_H + GAP + MinOptH + GAP then
+    if CardTop < TopOffset + GPU_H + GAP + MinOptH + GAP then
     begin
       OptH := MinOptH;
-      CardTop := MARGIN + GPU_H + GAP + OptH + GAP;
+      CardTop := TopOffset + GPU_H + GAP + OptH + GAP;
       TotalH := CardTop + StatH + MARGIN;
     end
     else
     begin
-      OptH := CardTop - GAP - (MARGIN + GPU_H + GAP);
+      OptH := CardTop - GAP - (TopOffset + GPU_H + GAP);
     end;
 
     FOsBgPanel.SetBounds(0, 0, W, Max(FOsScrollBox.ClientHeight, TotalH));
@@ -2186,7 +2270,7 @@ begin
     // ── Card 0: Upscaler Method (Full Width) ────────────────────────────
     if Assigned(FOsUpscalerCard) then
     begin
-      FOsUpscalerCard.SetBounds(MARGIN, MARGIN, CW, GPU_H);
+      FOsUpscalerCard.SetBounds(MARGIN, TopOffset, CW, GPU_H);
       InnerW := CW - 2 * PAD;
       SlotW  := InnerW div 5;
 
@@ -2244,7 +2328,7 @@ begin
       FOsGpuCard.Visible := False;
 
     // ── Card 1: Options (4 Equal Columns: Main 25%, Spatial 25%, Temporal 25%, Reflex/Antilag 25%) ──
-    FOsOptionsCard.SetBounds(MARGIN, MARGIN + GPU_H + GAP, CW, OptH);
+    FOsOptionsCard.SetBounds(MARGIN, TopOffset + GPU_H + GAP, CW, OptH);
 
     InnerW := CW - 2 * IMARGIN;
     ColW   := (InnerW - 3 * IGAP) div 4;
@@ -3216,6 +3300,7 @@ begin
     // Manually trigger the sync updates once after loading to ensure UI matches the loaded state
     fsrversionComboBoxChange(nil);
     Self.SyncAllToggles;
+    Self.UpdateDlssNrBanner;
     Self.ReflowOptiScalerTabNew(0);
   end;
 end;

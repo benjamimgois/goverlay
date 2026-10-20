@@ -261,10 +261,6 @@
         <Filename Value="helixsr_license_dialog.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit37>
-      <Unit38>
-        <Filename Value="gplot_form.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit38>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

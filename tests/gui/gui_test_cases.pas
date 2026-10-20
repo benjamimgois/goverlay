@@ -5549,11 +5549,31 @@ begin
     goverlayform.TweaksMD3MouseLeave(nil);
     AssertFalse('FTweaksMissingBanner is hidden on mouse leave',
       goverlayform.FTweaksMissingBanner.Visible);
+
+    // 8. Test DLSS-NR missing model banner
+    goverlayform.optiscalerLabelClick(nil);
+    goverlayform.FMockDlssNrModelReady := 0; // force missing
+    goverlayform.dlssnrRadioButton.Checked := True;
+    goverlayform.dlssnrRadioButtonClick(nil);
+
+    AssertTrue('FDlssNrMissingBanner is assigned when DLSS-NR model is missing',
+      Assigned(goverlayform.FDlssNrMissingBanner));
+    AssertTrue('FDlssNrMissingBanner is visible when DLSS-NR method is selected and model is missing',
+      goverlayform.FDlssNrMissingBanner.Visible);
+    AssertTrue('FDlssNrMissingBanner is positioned above FOsUpscalerCard',
+      goverlayform.FDlssNrMissingBanner.Top < goverlayform.FOsUpscalerCard.Top);
+
+    // Switching away to OptiScaler hides the DLSS-NR banner
+    goverlayform.optiscalerRadioButton.Checked := True;
+    goverlayform.optiscalerRadioButtonClick(nil);
+    AssertFalse('FDlssNrMissingBanner is hidden when switching to OptiScaler method',
+      goverlayform.FDlssNrMissingBanner.Visible);
   finally
     goverlayform.FMockMangoHudInstalled := -1;
     goverlayform.FMockVkBasaltInstalled := -1;
     goverlayform.FMockVkSumiInstalled := -1;
     goverlayform.FMockLowLatencyInstalled := -1;
+    goverlayform.FMockDlssNrModelReady := -1;
     goverlayform.UpdateToolMissingDependencyBanners;
   end;
 end;
@@ -7444,6 +7464,9 @@ begin
     Dlg.SetChangelogText('1.9.4', SampleNotes);
     AssertEquals('Changelog dialog width should be 680', 680, Dlg.Width);
     AssertEquals('Changelog dialog height should be 520', 520, Dlg.Height);
+    AssertNotNull('HeaderPanel should be created', Dlg.HeaderPanel);
+    AssertTrue('HeaderPanel OnPaint handler should be assigned', Assigned(Dlg.HeaderPanel.OnPaint));
+    AssertTrue('Close icon OnMouseDown handler should be assigned', Assigned(Dlg.CloseIconLabel.OnMouseDown));
     AssertNotNull('ScrollBox should be created', Dlg.ScrollBox);
     AssertTrue('Blocks should be populated', Dlg.Blocks.Count >= 4);
 

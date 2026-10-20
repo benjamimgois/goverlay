@@ -1440,12 +1440,14 @@ type
     FVkBasaltMissingBanner: TPanel;
     FVkSumiMissingBanner: TPanel;
     FTweaksMissingBanner: TPanel;
+    FDlssNrMissingBanner: TPanel;
     FCachedMissingDeps: TStringList;
     FCachedDepsValid: Boolean;
     FMockMangoHudInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockVkBasaltInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockVkSumiInstalled: Integer;   // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockLowLatencyInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
+    FMockDlssNrModelReady: Integer; // -1 = real detection, 0 = mock missing, 1 = mock ready
     destructor Destroy; override;
     procedure InvalidateDependenciesCache;
     function GetCachedMissingDeps: TStringList;
@@ -3623,6 +3625,7 @@ begin
   FMockVkBasaltInstalled := -1;
   FMockVkSumiInstalled := -1;
   FMockLowLatencyInstalled := -1;
+  FMockDlssNrModelReady := -1;
   FIntelCpuOverrideForTest := -1;
   FCachedMissingDeps := nil;
   FCachedDepsValid := False;
@@ -5293,7 +5296,11 @@ begin
   if (goverlayPageControl.ActivePage = vksumiTabSheet) and (vksumiTabSheet.ClientWidth > 0) then
     ReflowVkSumiTab(vksumiTabSheet.ClientWidth);
 
-  // 4. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
+  // 4. DLSS-NR Banner
+  if Assigned(FOptiScalerHelper) then
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+
+  // 5. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
   HideTweaksMissingBanner;
 
   if ((goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet)) and Assigned(FTweaksPaintBox) then
@@ -5859,6 +5866,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -5950,6 +5958,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -5986,6 +5995,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -6074,6 +6084,11 @@ begin
       end;
     end;
     UpdateUpscalerImageOpacity;
+    if Assigned(FOptiScalerHelper) then
+    begin
+      TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+      TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+    end;
     StartAutoSaveTimer;
     if FActiveGameName <> '' then
       CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
@@ -6137,6 +6152,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;

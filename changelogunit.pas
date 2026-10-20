@@ -36,12 +36,16 @@ type
     FDragStart: TPoint;
     FClosing: Boolean;
     procedure FormPaint(Sender: TObject);
+    procedure HeaderPanelPaint(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
     procedure HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure HeaderMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure HeaderMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure CloseBtnClick(Sender: TObject);
+    procedure CloseIconMouseEnter(Sender: TObject);
+    procedure CloseIconMouseLeave(Sender: TObject);
+    procedure CloseIconMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure ImageCardPaint(Sender: TObject);
     procedure ClearBlocks;
     procedure Relayout;
@@ -58,6 +62,8 @@ type
     procedure SetChangelogText(const AVersion, AText: string);
     property ScrollBox: TScrollBox read FScrollBox;
     property Blocks: TFPList read FBlocks;
+    property HeaderPanel: TPanel read FHeaderPanel;
+    property CloseIconLabel: TLabel read FCloseIconLbl;
   end;
 
   TChangelogImageThread = class(TThread)
@@ -79,7 +85,11 @@ procedure ShowChangelogPopup(const AVersion, AText: string);
 implementation
 
 uses
-  themeunit;
+  themeunit
+  {$IFDEF LCLqt6}
+  , qt6, qtwidgets
+  {$ENDIF}
+  ;
 
 const
   FORM_W = 680;
@@ -301,6 +311,7 @@ begin
   FHeaderPanel.BevelOuter := bvNone;
   FHeaderPanel.BevelInner := bvNone;
   FHeaderPanel.Color := Color;
+  FHeaderPanel.OnPaint := @HeaderPanelPaint;
   FHeaderPanel.OnMouseDown := @HeaderMouseDown;
   FHeaderPanel.OnMouseMove := @HeaderMouseMove;
   FHeaderPanel.OnMouseUp := @HeaderMouseUp;
@@ -308,7 +319,7 @@ begin
   // Title Label
   FTitleLabel := TLabel.Create(Self);
   FTitleLabel.Parent := FHeaderPanel;
-  FTitleLabel.SetBounds(20, 14, Width - 60, 26);
+  FTitleLabel.SetBounds(20, 14, Width - 70, 26);
   FTitleLabel.Font.Size := 12;
   FTitleLabel.Font.Style := [fsBold];
   FTitleLabel.Font.Color := clWhite;
@@ -328,6 +339,9 @@ begin
   FCloseIconLbl.Alignment := taCenter;
   FCloseIconLbl.Cursor := crHandPoint;
   FCloseIconLbl.OnClick := @CloseBtnClick;
+  FCloseIconLbl.OnMouseDown := @CloseIconMouseDown;
+  FCloseIconLbl.OnMouseEnter := @CloseIconMouseEnter;
+  FCloseIconLbl.OnMouseLeave := @CloseIconMouseLeave;
 
   // ScrollBox for Rich Changelog
   FScrollBox := TScrollBox.Create(Self);
@@ -371,6 +385,25 @@ begin
   Canvas.Rectangle(0, 0, Width, Height);
 end;
 
+procedure TChangelogForm.HeaderPanelPaint(Sender: TObject);
+var
+  P: TPanel;
+begin
+  if not (Sender is TPanel) then Exit;
+  P := TPanel(Sender);
+
+  P.Canvas.Brush.Color := Color;
+  P.Canvas.Brush.Style := bsSolid;
+  P.Canvas.FillRect(P.ClientRect);
+
+  P.Canvas.Pen.Color := RGBToColor(45, 55, 80);
+  P.Canvas.Pen.Width := 2;
+  P.Canvas.MoveTo(1, P.Height);
+  P.Canvas.LineTo(1, 1);
+  P.Canvas.LineTo(P.Width - 2, 1);
+  P.Canvas.LineTo(P.Width - 2, P.Height);
+end;
+
 procedure TChangelogForm.ImageCardPaint(Sender: TObject);
 var
   P: TPanel;
@@ -390,9 +423,42 @@ begin
 end;
 
 procedure TChangelogForm.HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+{$IFDEF LCLqt6}
+var
+  W: QWidgetH;
+  WinHandle: QWindowH;
+{$ENDIF}
 begin
+  if Sender = FCloseIconLbl then
+  begin
+    Close;
+    Exit;
+  end;
+
+  if (Sender = FHeaderPanel) and
+    (X >= FCloseIconLbl.Left - 6) and
+    (X <= FCloseIconLbl.Left + FCloseIconLbl.Width + 6) and
+    (Y >= FCloseIconLbl.Top - 6) and
+    (Y <= FCloseIconLbl.Top + FCloseIconLbl.Height + 6) then
+  begin
+    Close;
+    Exit;
+  end;
+
   if Button = mbLeft then
   begin
+    {$IFDEF LCLqt6}
+    if HandleAllocated then
+    begin
+      W := QWidget_window(TQtWidget(Handle).Widget);
+      if Assigned(W) then
+      begin
+        WinHandle := QWidget_windowHandle(W);
+        if Assigned(WinHandle) and QWindow_startSystemMove(WinHandle) then
+          Exit;
+      end;
+    end;
+    {$ENDIF}
     FDragging := True;
     FDragStart := Mouse.CursorPos;
   end;
@@ -420,6 +486,22 @@ end;
 procedure TChangelogForm.CloseBtnClick(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TChangelogForm.CloseIconMouseEnter(Sender: TObject);
+begin
+  FCloseIconLbl.Font.Color := clWhite;
+end;
+
+procedure TChangelogForm.CloseIconMouseLeave(Sender: TObject);
+begin
+  FCloseIconLbl.Font.Color := RGBToColor(160, 170, 190);
+end;
+
+procedure TChangelogForm.CloseIconMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbLeft then
+    Close;
 end;
 
 procedure TChangelogForm.ClearBlocks;

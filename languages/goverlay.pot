@@ -145,6 +145,7 @@ msgid ""
 msgstr ""
 
 #: goverlay_strings.rsintelfixnoflatpak
+#, object-pascal-format
 msgid ""
 "Intel CPU power monitoring fix is not available directly inside Flatpak.\n"
 "\n"
@@ -152,7 +153,7 @@ msgid ""
 "\n"
 "To apply this fix, run the following command in a terminal on your host system:\n"
 "\n"
-"echo 'ACTION==\"add|change\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl*\", RUN+=\"/bin/chmod o+r /sys/%p/energy_uj\"' | sudo tee /etc/udev/rules.d/70-intel-rapl.rules && sudo udevadm control --reload-rules && sudo udevadm trigger"
+"echo 'ACTION==\\\"add|change\\\", SUBSYSTEM==\\\"powercap\\\", KERNEL==\\\"intel-rapl*\\\", RUN+=\\\"/bin/chmod o+r /sys/%p/energy_uj\\\"' | sudo tee /etc/udev/rules.d/70-intel-rapl.rules && sudo udevadm control --reload-rules && sudo udevadm trigger"
 msgstr ""
 
 #: goverlay_strings.rsintelfixremoved
