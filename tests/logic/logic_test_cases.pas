@@ -19,9 +19,12 @@ type
     procedure TestIniRoundTrip;
     procedure TestSectionBracketFlexibility;
     procedure TestDlssNrConfigRoundTrip;
+    procedure TestDlssNrResolvedArchPersistence;
     procedure TestDlssNrIniGeneration;
     procedure TestDlssNrDirectFileDeploymentAndManifestCleanup;
     procedure TestIsDlssNrInstalledFallbackArchitecture;
+    procedure TestDlssNrArchitecturePathResolution;
+    procedure TestExtractDlssNrModelTargetsRequestedArch;
     procedure TestHelixSrConfigRoundTrip;
     procedure TestHelixSrIniGeneration;
   end;
@@ -94,6 +97,7 @@ type
     procedure TestBgmodNativeLinuxResolution;
     procedure TestBgmodCentralToolLoggingSync;
     procedure TestBgmodDlssNrDeployment;
+    procedure TestBgmodDlssNrResolvedArchDeployment;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -142,13 +146,17 @@ type
   TRDNAArchitectureTests = class(TTestCase)
   published
     procedure TestDetectRDNAArchitectureActiveGpu;
+    procedure TestDetectRDNAArchitectureFromTextRDNA4;
+    procedure TestDetectRDNAArchitectureFromTextRDNA3;
+    procedure TestDetectRDNAArchitectureFromTextUnsupported;
     procedure TestRDNAArchitectureToString;
+    procedure TestGetBGModDlssNrPathArch;
   end;
 
 implementation
 
 uses
-  themeunit, configfile, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
+  themeunit, configfile, configkeys, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -275,6 +283,7 @@ begin
   AssertTrue('LoadOptiScalerConfig succeeds', LoadOptiScalerConfig('TestDlssNrGame', LoadedSettings));
   AssertEquals('UpscalerTypeItemIndex = 4', 4, LoadedSettings.UpscalerTypeItemIndex);
   AssertEquals('DlssNrArchIndex = 2', 2, LoadedSettings.DlssNrArchIndex);
+  AssertEquals('DlssNrResolvedArch = 2', 2, LoadedSettings.DlssNrResolvedArch);
   AssertEquals('DlssNrRouteIndex = 1', 1, LoadedSettings.DlssNrRouteIndex);
   AssertEquals('DlssNrModelIndex = 1', 1, LoadedSettings.DlssNrModelIndex);
   AssertEquals('DlssNrScaleIndex = 2', 2, LoadedSettings.DlssNrScaleIndex);
@@ -286,6 +295,63 @@ begin
   AssertTrue('DlssNrFinishedPictureChecked is true', LoadedSettings.DlssNrFinishedPictureChecked);
   AssertTrue('DlssNrSkinProtectionChecked is true', LoadedSettings.DlssNrSkinProtectionChecked);
   AssertEquals('DlssNrModelDllPath matches', '/tmp/nvngx_dlssnr.dll', LoadedSettings.DlssNrModelDllPath);
+end;
+
+procedure TOptiScalerIniTests.TestDlssNrResolvedArchPersistence;
+var
+  Settings, LoadedSettings: TOptiScalerSettings;
+  ErrMsg, LaunchCommand, ConfPath: string;
+  Ini: TIniFile;
+  ResolvedArch: Integer;
+begin
+  Settings := Default(TOptiScalerSettings);
+  Settings.ActiveGameName := 'TestDlssNrResolvedArch';
+  Settings.Version := '1.0';
+  Settings.Channel := 'stable';
+  Settings.UpscalerTypeItemIndex := 4;
+  ConfPath := GetGameConfigDir(Settings.ActiveGameName) + 'bgmod.conf';
+
+  Settings.DlssNrArchIndex := 1;
+  AssertTrue('Save RDNA4 override succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+  AssertEquals('Resolved field is RDNA4', 1, Settings.DlssNrResolvedArch);
+  Ini := TIniFile.Create(ConfPath);
+  try
+    AssertEquals('DLSSNR_RESOLVED_ARCH written as 1', 1,
+      Ini.ReadInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, 0));
+  finally
+    Ini.Free;
+  end;
+  AssertTrue('Load RDNA4 override succeeds', LoadOptiScalerConfig(Settings.ActiveGameName, LoadedSettings));
+  AssertEquals('DLSSNR_RESOLVED_ARCH loaded as 1', 1, LoadedSettings.DlssNrResolvedArch);
+
+  Settings.DlssNrArchIndex := 2;
+  AssertTrue('Save RDNA3 override succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+  AssertEquals('Resolved field is RDNA3', 2, Settings.DlssNrResolvedArch);
+  Ini := TIniFile.Create(ConfPath);
+  try
+    AssertEquals('DLSSNR_RESOLVED_ARCH written as 2', 2,
+      Ini.ReadInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, 0));
+  finally
+    Ini.Free;
+  end;
+  AssertTrue('Load RDNA3 override succeeds', LoadOptiScalerConfig(Settings.ActiveGameName, LoadedSettings));
+  AssertEquals('DLSSNR_RESOLVED_ARCH loaded as 2', 2, LoadedSettings.DlssNrResolvedArch);
+
+  Settings.DlssNrArchIndex := 0;
+  AssertTrue('Save auto detection succeeds',
+    SaveOptiScalerConfigCore(Settings, '', '', False, False, False, ErrMsg, LaunchCommand));
+  Ini := TIniFile.Create(ConfPath);
+  try
+    ResolvedArch := Ini.ReadInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, 0);
+  finally
+    Ini.Free;
+  end;
+  AssertTrue('Auto detection writes a concrete architecture', (ResolvedArch = 1) or (ResolvedArch = 2));
+  AssertEquals('Resolved field matches written auto value', ResolvedArch, Settings.DlssNrResolvedArch);
+  AssertTrue('Load auto detection succeeds', LoadOptiScalerConfig(Settings.ActiveGameName, LoadedSettings));
+  AssertEquals('DLSSNR_RESOLVED_ARCH loaded auto value', ResolvedArch, LoadedSettings.DlssNrResolvedArch);
 end;
 
 procedure TOptiScalerIniTests.TestDlssNrIniGeneration;
@@ -416,6 +482,92 @@ begin
       DeleteFile(DlssNrDir + 'goverlay.vars');
     if DirectoryExists(DlssNrDir) then
       RemoveDir(DlssNrDir);
+  end;
+end;
+
+procedure TOptiScalerIniTests.TestDlssNrArchitecturePathResolution;
+var
+  Rdna3Path, Rdna4Path: string;
+begin
+  Rdna3Path := ExcludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3'));
+  Rdna4Path := ExcludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4'));
+
+  AssertEquals('RDNA3 path suffix', 'dlss-nr-rdna3',
+    Copy(Rdna3Path, Length(Rdna3Path) - Length('dlss-nr-rdna3') + 1, MaxInt));
+  AssertEquals('RDNA4 path suffix', 'dlss-nr-rdna4',
+    Copy(Rdna4Path, Length(Rdna4Path) - Length('dlss-nr-rdna4') + 1, MaxInt));
+end;
+
+procedure TOptiScalerIniTests.TestExtractDlssNrModelTargetsRequestedArch;
+var
+  DataRoot, Rdna3Dir, Rdna4Dir, ModelsDir: string;
+  DllPath, ErrorMsg, UsedScript: string;
+  ScriptLines, MarkerLines: TStringList;
+  MarkerPath: string;
+
+  procedure WriteExtractScript(const AToolsDir: string);
+  begin
+    ForceDirectories(AToolsDir);
+    ScriptLines := TStringList.Create;
+    try
+      ScriptLines.Add('#!/usr/bin/env bash');
+      ScriptLines.Add('echo "$0" > "$2/used-script.txt"');
+      ScriptLines.Add('printf ''fake model weights'' > "$2/dlssnr.bin"');
+      ScriptLines.SaveToFile(AToolsDir + 'extract_model.sh');
+    finally
+      ScriptLines.Free;
+    end;
+  end;
+
+begin
+  DataRoot := IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/goverlay' + PathDelim;
+  Rdna3Dir := IncludeTrailingPathDelimiter(DataRoot + 'dlss-nr-rdna3');
+  Rdna4Dir := IncludeTrailingPathDelimiter(DataRoot + 'dlss-nr-rdna4');
+  ModelsDir := IncludeTrailingPathDelimiter(DataRoot + 'dlss-nr-models');
+  DllPath := IsolatedHome + PathDelim + 'nvngx_dlssnr_test.dll';
+  MarkerPath := ModelsDir + 'used-script.txt';
+
+  WriteExtractScript(Rdna3Dir + 'model-tools' + PathDelim);
+  WriteExtractScript(Rdna4Dir + 'model-tools' + PathDelim);
+
+  ScriptLines := TStringList.Create;
+  try
+    ScriptLines.Add('dummy dlss-nr model dll');
+    ScriptLines.SaveToFile(DllPath);
+  finally
+    ScriptLines.Free;
+  end;
+
+  try
+    AssertTrue('RDNA4 extraction succeeds', ExtractDlssNrModel(DllPath, ErrorMsg, nil, 'rdna4'));
+    AssertEquals('No extraction error', '', ErrorMsg);
+    AssertTrue('Model output created', FileExists(ModelsDir + 'dlssnr.bin'));
+
+    UsedScript := '';
+    if FileExists(MarkerPath) then
+    begin
+      MarkerLines := TStringList.Create;
+      try
+        MarkerLines.LoadFromFile(MarkerPath);
+        UsedScript := Trim(MarkerLines.Text);
+      finally
+        MarkerLines.Free;
+      end;
+    end;
+    AssertTrue('RDNA4 extractor script used', Pos('dlss-nr-rdna4', UsedScript) > 0);
+  finally
+    if FileExists(DllPath) then DeleteFile(DllPath);
+    if FileExists(ModelsDir + 'dlssnr.bin') then DeleteFile(ModelsDir + 'dlssnr.bin');
+    if FileExists(MarkerPath) then DeleteFile(MarkerPath);
+    if FileExists(Rdna3Dir + 'model-tools' + PathDelim + 'extract_model.sh') then
+      DeleteFile(Rdna3Dir + 'model-tools' + PathDelim + 'extract_model.sh');
+    if FileExists(Rdna4Dir + 'model-tools' + PathDelim + 'extract_model.sh') then
+      DeleteFile(Rdna4Dir + 'model-tools' + PathDelim + 'extract_model.sh');
+    if DirectoryExists(Rdna3Dir + 'model-tools' + PathDelim) then RemoveDir(Rdna3Dir + 'model-tools' + PathDelim);
+    if DirectoryExists(Rdna4Dir + 'model-tools' + PathDelim) then RemoveDir(Rdna4Dir + 'model-tools' + PathDelim);
+    if DirectoryExists(Rdna3Dir) then RemoveDir(Rdna3Dir);
+    if DirectoryExists(Rdna4Dir) then RemoveDir(Rdna4Dir);
+    if DirectoryExists(ModelsDir) then RemoveDir(ModelsDir);
   end;
 end;
 
@@ -1949,6 +2101,150 @@ begin
   end;
 end;
 
+procedure TBgmodSupervisorTests.TestBgmodDlssNrResolvedArchDeployment;
+var
+  Proc: TProcess;
+  TestGameDir, MockGameDir, Runtime4Dir, Runtime3Dir, ModelsDir, MockExe, MockRunner: string;
+  F: TextFile;
+  EnvIndex: Integer;
+  Lines: TStringList;
+  DeployedContent: string;
+
+  procedure WriteMockRuntime(const RuntimeDir, Marker: string);
+  begin
+    ForceDirectories(RuntimeDir + '/optiscaler/control/layer');
+    ForceDirectories(RuntimeDir + '/dlssnr-amd/shaders');
+    ForceDirectories(RuntimeDir + '/ini');
+
+    AssignFile(F, RuntimeDir + '/optiscaler/OptiScaler.dll');
+    Rewrite(F);
+    WriteLn(F, Marker);
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/optiscaler/OptiScaler.ini');
+    Rewrite(F);
+    WriteLn(F, '[General]');
+    WriteLn(F, 'Logging=true');
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/optiscaler/dlssnr_core.dll');
+    Rewrite(F);
+    WriteLn(F, Marker);
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/optiscaler/nvngx.dll_dlssnr.dll');
+    Rewrite(F);
+    WriteLn(F, Marker);
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/optiscaler/control/layer/libVkLayer_dlssnr_control.so');
+    Rewrite(F);
+    WriteLn(F, Marker);
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/dlssnr-amd/shaders/test.spv');
+    Rewrite(F);
+    WriteLn(F, Marker);
+    CloseFile(F);
+
+    AssignFile(F, RuntimeDir + '/ini/dlssnr-amd-optiscaler.ini');
+    Rewrite(F);
+    WriteLn(F, '[General]');
+    WriteLn(F, 'Enabled=1');
+    CloseFile(F);
+  end;
+
+begin
+  EnsureBgmodBinary;
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/DlssNrResolvedArchTestGame';
+  ForceDirectories(TestGameDir);
+  MockGameDir := IsolatedHome + '/.local/share/goverlay/mock_game_dlssnr_resolved';
+  ForceDirectories(MockGameDir);
+  Runtime4Dir := IsolatedHome + '/.local/share/goverlay/dlss-nr-rdna4';
+  Runtime3Dir := IsolatedHome + '/.local/share/goverlay/dlss-nr-rdna3';
+  ModelsDir := IsolatedHome + '/.local/share/goverlay/dlss-nr-models';
+
+  WriteMockRuntime(Runtime4Dir, 'rdna4-runtime');
+  ForceDirectories(Runtime3Dir);
+  ForceDirectories(ModelsDir);
+
+  AssignFile(F, ModelsDir + '/dlssnr.bin');
+  Rewrite(F);
+  WriteLn(F, 'mock model bin');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockExe := MockGameDir + '/game.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, 'mock windows pe binary');
+  CloseFile(F);
+
+  MockRunner := TestGameDir + '/mock_runner.sh';
+  AssignFile(F, MockRunner);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRunner), &755);
+
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'UPSCALER_TYPE=4');
+  WriteLn(F, 'DLSSNR_ARCH=0');
+  WriteLn(F, 'DLSSNR_RESOLVED_ARCH=1');
+  WriteLn(F, 'DLL=dxgi.dll');
+  WriteLn(F, 'PRESERVE_INI=true');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'TARGET_EXE=game.exe');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockRunner);
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + MockGameDir);
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  DeployedContent := '';
+  if FileExists(MockGameDir + '/OptiScaler.dll') then
+  begin
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(MockGameDir + '/OptiScaler.dll');
+      DeployedContent := Lines.Text;
+    finally
+      Lines.Free;
+    end;
+  end;
+
+  AssertTrue('RDNA4 runtime OptiScaler.dll deployed', FileExists(MockGameDir + '/OptiScaler.dll'));
+  AssertTrue('DLSSNR_RESOLVED_ARCH=1 selected dlss-nr-rdna4', Pos('rdna4-runtime', DeployedContent) > 0);
+  AssertFalse('RDNA3 runtime was not selected', Pos('rdna3-runtime', DeployedContent) > 0);
+end;
+
 procedure TReShadeLogicTests.TestUnixPathToWinePath;
 begin
   AssertEquals('Empty path', '', UnixPathToWinePath(''));
@@ -2417,11 +2713,47 @@ begin
     AssertEquals('Non-AMD GPU returns rdnaUnsupported', Ord(rdnaUnsupported), Ord(Arch));
 end;
 
+procedure TRDNAArchitectureTests.TestDetectRDNAArchitectureFromTextRDNA4;
+begin
+  AssertEquals('Navi 44 PCI id', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('1002:7590')));
+  AssertEquals('Navi 44 sysfs id', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('0x7590')));
+  AssertEquals('RX 9060 XT', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('AMD Radeon RX 9060 XT')));
+  AssertEquals('Navi 48 PCI id', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('1002:7500')));
+  AssertEquals('Navi 48 name', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('Navi 48')));
+  AssertEquals('gfx1200', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('gfx1200')));
+  AssertEquals('RX 9070', Ord(rdna4), Ord(DetectRDNAArchitectureFromText('rx 9070')));
+end;
+
+procedure TRDNAArchitectureTests.TestDetectRDNAArchitectureFromTextRDNA3;
+begin
+  AssertEquals('RX 7900', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('AMD Radeon RX 7900 XTX')));
+  AssertEquals('gfx1100', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('gfx1100')));
+  AssertEquals('RX 7800', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('RX 7800 XT')));
+  AssertEquals('Radeon 780M', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('Radeon 780M')));
+  AssertEquals('Phoenix', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('Phoenix APU')));
+  AssertEquals('Strix', Ord(rdna3), Ord(DetectRDNAArchitectureFromText('Strix Point')));
+end;
+
+procedure TRDNAArchitectureTests.TestDetectRDNAArchitectureFromTextUnsupported;
+begin
+  AssertEquals('RX 6800', Ord(rdnaUnsupported), Ord(DetectRDNAArchitectureFromText('AMD Radeon RX 6800 XT')));
+  AssertEquals('gfx1030', Ord(rdnaUnsupported), Ord(DetectRDNAArchitectureFromText('gfx1030')));
+  AssertEquals('Navi 21 PCI id', Ord(rdnaUnsupported), Ord(DetectRDNAArchitectureFromText('1002:73bf')));
+  AssertEquals('Empty string', Ord(rdnaUnsupported), Ord(DetectRDNAArchitectureFromText('')));
+end;
+
 procedure TRDNAArchitectureTests.TestRDNAArchitectureToString;
 begin
   AssertEquals('RDNA4 string', 'RDNA4', RDNAArchitectureToString(rdna4));
   AssertEquals('RDNA3 string', 'RDNA3', RDNAArchitectureToString(rdna3));
   AssertEquals('Unsupported string', 'Unsupported', RDNAArchitectureToString(rdnaUnsupported));
+end;
+
+procedure TRDNAArchitectureTests.TestGetBGModDlssNrPathArch;
+begin
+  AssertTrue('RDNA4 path ends with dlss-nr-rdna4', Pos('dlss-nr-rdna4', GetBGModDlssNrPath('rdna4')) > 0);
+  AssertTrue('RDNA3 path ends with dlss-nr-rdna3', Pos('dlss-nr-rdna3', GetBGModDlssNrPath('rdna3')) > 0);
+  AssertTrue('Default path ends with dlss-nr', Pos('dlss-nr', GetBGModDlssNrPath('')) > 0);
 end;
 
 initialization

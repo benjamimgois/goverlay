@@ -135,6 +135,7 @@ const
 
 const
   DLSSNR_KEY_ARCH              = 'DLSSNR_ARCH';
+  DLSSNR_KEY_RESOLVED_ARCH     = 'DLSSNR_RESOLVED_ARCH';
   DLSSNR_KEY_ROUTE             = 'DLSSNR_ROUTE';
   DLSSNR_KEY_MODEL             = 'DLSSNR_MODEL';
   DLSSNR_KEY_SCALE             = 'DLSSNR_SCALE';

@@ -84,6 +84,13 @@ function GPUVendorToString(Vendor: TGPUVendor): string;
 function DetectRDNAArchitecture: TRDNAArchitecture;
 
 /// <summary>
+/// Detects AMD RDNA architecture (RDNA3 vs RDNA4) from arbitrary text
+/// </summary>
+/// <param name="Haystack">Text to inspect (case-insensitive)</param>
+/// <returns>Detected RDNA architecture</returns>
+function DetectRDNAArchitectureFromText(const Haystack: string): TRDNAArchitecture;
+
+/// <summary>
 /// Converts RDNA architecture enum to display string
 /// </summary>
 function RDNAArchitectureToString(Arch: TRDNAArchitecture): string;
@@ -400,12 +407,9 @@ begin
   end;
 end;
 
-function DetectRDNAArchitecture: TRDNAArchitecture;
+function DetectRDNAArchitectureFromText(const Haystack: string): TRDNAArchitecture;
 var
-  Haystack, Path, VendorFile, DeviceFile, UeventFile: string;
-  SR: TSearchRec;
-  SL: TStringList;
-  Output: string;
+  Text: string;
 
   function HasAny(const Needles: array of string): Boolean;
   var
@@ -413,9 +417,36 @@ var
   begin
     Result := False;
     for i := Low(Needles) to High(Needles) do
-      if Pos(LowerCase(Needles[i]), Haystack) > 0 then
+      if Pos(Needles[i], Text) > 0 then
         Exit(True);
   end;
+
+begin
+  Result := rdnaUnsupported;
+  Text := LowerCase(Haystack);
+
+  // RDNA4 names and device IDs
+  if HasAny(['navi4', 'navi 4', 'gfx12', 'rx 9', 'radeon 9', '9070', '9060',
+             '9080', '9050',
+             // Navi 44
+             '7590', '7591', '7592', '7593', '7580', '7581', '7582', '7583',
+             // Navi 48
+             '7500', '7501', '7502', '7503', '7504', '7505', '7506', '751f']) then
+    Exit(rdna4);
+
+  // RDNA3 names
+  if HasAny(['navi3', 'gfx11', 'rx 7', 'radeon 7', '7900', '7800', '7700',
+             '7600', '780m', '890m', '880m', 'phoenix', 'hawk point',
+             'strix']) then
+    Exit(rdna3);
+end;
+
+function DetectRDNAArchitecture: TRDNAArchitecture;
+var
+  Haystack, Path, VendorFile, DeviceFile, UeventFile: string;
+  SR: TSearchRec;
+  SL: TStringList;
+  Output: string;
 
 begin
   Result := rdnaUnsupported;
@@ -482,14 +513,7 @@ begin
     end;
   end;
 
-  // RDNA4 markers
-  if HasAny(['navi4', 'gfx12', 'rx 9', 'radeon 9', '9070', '9060', '9080']) then
-    Exit(rdna4);
-
-  // RDNA3 markers
-  if HasAny(['navi3', 'gfx11', 'rx 7', 'radeon 7', '7900', '7800', '7700', '7600',
-             '780m', '890m', '880m', 'phoenix', 'hawk point', 'strix']) then
-    Exit(rdna3);
+  Result := DetectRDNAArchitectureFromText(Haystack);
 end;
 
 function RDNAArchitectureToString(Arch: TRDNAArchitecture): string;

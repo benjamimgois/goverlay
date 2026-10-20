@@ -111,6 +111,7 @@ type
   private
     FOwner:     TObject;
     FModelPath: string;
+    FArch:      string;
     FPercent:   Integer;
     FStatus:    string;
     FSuccess:   Boolean;
@@ -119,7 +120,7 @@ type
   protected
     procedure Execute; override;
   public
-    constructor Create(AOwner: TObject; const AModelPath: string);
+    constructor Create(AOwner: TObject; const AModelPath: string; const AArch: string = '');
     procedure OnExtractProgress(APercent: Integer; const AStatus: string);
     property Success: Boolean read FSuccess;
     property ErrorMsg: string read FErrorMsg;
@@ -11229,11 +11230,12 @@ end;
 
 { TDlssNrExtractThread }
 
-constructor TDlssNrExtractThread.Create(AOwner: TObject; const AModelPath: string);
+constructor TDlssNrExtractThread.Create(AOwner: TObject; const AModelPath: string; const AArch: string = '');
 begin
   inherited Create(True);
   FOwner := AOwner;
   FModelPath := AModelPath;
+  FArch := AArch;
   FSuccess := False;
   FErrorMsg := '';
   FPercent := 0;
@@ -11269,7 +11271,7 @@ end;
 procedure TDlssNrExtractThread.Execute;
 begin
   try
-    FSuccess := ExtractDlssNrModel(FModelPath, FErrorMsg, @OnExtractProgress);
+    FSuccess := ExtractDlssNrModel(FModelPath, FErrorMsg, @OnExtractProgress, FArch);
   except
     on E: Exception do
     begin

@@ -294,6 +294,7 @@ var
   ExtractThread: TDlssNrExtractThread;
   ExtractSuccess: Boolean;
   SelectedFile: string;
+  TargetArchStr: string;
 begin
   if not Assigned(FForm) then Exit;
   Dlg := TOpenDialog.Create(FForm);
@@ -308,6 +309,15 @@ begin
   end;
 
   if SelectedFile = '' then Exit;
+
+  TargetArchStr := '';
+  if Assigned(FDlssNrArchComboBox) then
+  begin
+    if FDlssNrArchComboBox.ItemIndex = 1 then TargetArchStr := 'rdna4'
+    else if FDlssNrArchComboBox.ItemIndex = 2 then TargetArchStr := 'rdna3';
+  end;
+  if (TargetArchStr = '') and (DetectRDNAArchitecture = rdna4) then
+    TargetArchStr := 'rdna4';
 
   // Switch controls in Software Status card to embedded progress mode
   if Assigned(FForm.optversionComboBox) then FForm.optversionComboBox.Visible := False;
@@ -327,7 +337,7 @@ begin
     FDlssNrModelDllBrowseBtn.Enabled := False;
   Application.ProcessMessages;
 
-  ExtractThread := TDlssNrExtractThread.Create(FForm, SelectedFile);
+  ExtractThread := TDlssNrExtractThread.Create(FForm, SelectedFile, TargetArchStr);
   try
     ExtractThread.Start;
     while not ExtractThread.Finished do
@@ -3407,6 +3417,16 @@ begin
       Settings.DlssNrArchIndex := FDlssNrArchComboBox.ItemIndex
     else
       Settings.DlssNrArchIndex := 0;
+
+    if Settings.DlssNrArchIndex = 1 then
+      Settings.DlssNrResolvedArch := 1
+    else if Settings.DlssNrArchIndex = 2 then
+      Settings.DlssNrResolvedArch := 2
+    else if DetectRDNAArchitecture = rdna4 then
+      Settings.DlssNrResolvedArch := 1
+    else
+      Settings.DlssNrResolvedArch := 2;
+
     if Assigned(FDlssNrRouteComboBox) then
       Settings.DlssNrRouteIndex := FDlssNrRouteComboBox.ItemIndex
     else

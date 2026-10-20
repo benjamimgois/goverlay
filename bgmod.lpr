@@ -1053,6 +1053,95 @@ begin
   end;
 end;
 
+function DetectRDNAArchitectureSysfs: Integer;
+var
+  SR: TSearchRec;
+  DeviceDir, Vendor, DeviceId, Uevent, Haystack: string;
+  Markers: array[0..31] of string;
+  i: Integer;
+
+  function ReadText(const APath: string): string;
+  var
+    Lines: TStringList;
+  begin
+    Result := '';
+    if not FileExists(APath) then Exit;
+    Lines := TStringList.Create;
+    try
+      try
+        Lines.LoadFromFile(APath);
+        Result := LowerCase(Lines.Text);
+      except
+        Result := '';
+      end;
+    finally
+      Lines.Free;
+    end;
+  end;
+
+begin
+  Result := 2;
+  Markers[0] := 'navi4';
+  Markers[1] := 'navi 4';
+  Markers[2] := 'navi44';
+  Markers[3] := 'navi 44';
+  Markers[4] := 'navi48';
+  Markers[5] := 'navi 48';
+  Markers[6] := 'gfx12';
+  Markers[7] := 'rx 9';
+  Markers[8] := 'rx9';
+  Markers[9] := 'radeon 9';
+  Markers[10] := '9070';
+  Markers[11] := '9060';
+  Markers[12] := '9080';
+  Markers[13] := '9050';
+  Markers[14] := '7590';
+  Markers[15] := '7591';
+  Markers[16] := '7592';
+  Markers[17] := '7593';
+  Markers[18] := '7500';
+  Markers[19] := '7501';
+  Markers[20] := '7502';
+  Markers[21] := '7503';
+  Markers[22] := '7504';
+  Markers[23] := '7505';
+  Markers[24] := '7506';
+  Markers[25] := 'rdna4';
+  Markers[26] := 'rdna 4';
+  Markers[27] := 'navi4x';
+  Markers[28] := 'gfx1200';
+  Markers[29] := 'gfx1201';
+  Markers[30] := 'gfx1202';
+  Markers[31] := '';
+
+  if FindFirst('/sys/class/drm/card*', faAnyFile, SR) = 0 then
+  try
+    repeat
+      DeviceDir := IncludeTrailingPathDelimiter('/sys/class/drm/' + SR.Name) + 'device';
+      if DirectoryExists(DeviceDir) then
+      begin
+        Vendor := ReadText(DeviceDir + '/vendor');
+        if Pos('1002', Vendor) > 0 then
+        begin
+          DeviceId := ReadText(DeviceDir + '/device');
+          Uevent := ReadText(DeviceDir + '/uevent');
+          Haystack := DeviceId + ' ' + Uevent;
+          for i := Low(Markers) to High(Markers) do
+          begin
+            if (Markers[i] <> '') and (Pos(Markers[i], Haystack) > 0) then
+            begin
+              Result := 1;
+              Exit;
+            end;
+          end;
+        end;
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
 function GetGlobalBGModPath(const LocalBgmodPath: string): string;
 var
   DataHome: string;
@@ -1061,6 +1150,8 @@ var
   UpscalerType: Integer;
   OptChannel: Integer;
   DlssNrArch: Integer;
+  DlssNrResolvedArch: Integer;
+  EffectiveArch: Integer;
   Ini: TIniFile;
   ChannelFolder: string;
   BaseDir: string;
@@ -1068,6 +1159,7 @@ begin
   UpscalerType := 0;
   OptChannel := 0;
   DlssNrArch := 0;
+  DlssNrResolvedArch := 0;
   if FileExists(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf') then
   begin
     Ini := TIniFile.Create(IncludeTrailingPathDelimiter(LocalBgmodPath) + 'bgmod.conf');
@@ -1075,6 +1167,7 @@ begin
       UpscalerType := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
       OptChannel := Ini.ReadInteger('Config', 'OPT_CHANNEL', 0);
       DlssNrArch := Ini.ReadInteger('Config', 'DLSSNR_ARCH', 0);
+      DlssNrResolvedArch := Ini.ReadInteger('Config', 'DLSSNR_RESOLVED_ARCH', 0);
     finally
       Ini.Free;
     end;
@@ -1108,18 +1201,37 @@ begin
   else if UpscalerType = 4 then
   begin
     if DlssNrArch = 1 then
-      ChannelFolder := 'dlss-nr-rdna4'
+      EffectiveArch := 1
+    else if DlssNrArch = 2 then
+      EffectiveArch := 2
+    else if DlssNrResolvedArch in [1, 2] then
+      EffectiveArch := DlssNrResolvedArch
     else
-      ChannelFolder := 'dlss-nr-rdna3';
+      EffectiveArch := DetectRDNAArchitectureSysfs;
 
-    // Fall back to the other architecture channel when the selected one
-    // has not been downloaded yet.
+    if EffectiveArch = 1 then
+    begin
+      ChannelFolder := 'dlss-nr-rdna4';
+      Log('DLSS-NR target architecture: RDNA4');
+    end
+    else
+    begin
+      ChannelFolder := 'dlss-nr-rdna3';
+      Log('DLSS-NR target architecture: RDNA3');
+    end;
+
     if not DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + ChannelFolder) then
     begin
-      if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna3') then
-        ChannelFolder := 'dlss-nr-rdna3'
-      else if DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna4') then
+      if (ChannelFolder = 'dlss-nr-rdna4') and DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna3') then
+      begin
+        Log('Warning: Target DLSS-NR channel ' + ChannelFolder + ' not found in ' + BaseDir + '; falling back to dlss-nr-rdna3');
+        ChannelFolder := 'dlss-nr-rdna3';
+      end
+      else if (ChannelFolder = 'dlss-nr-rdna3') and DirectoryExists(IncludeTrailingPathDelimiter(BaseDir) + 'dlss-nr-rdna4') then
+      begin
+        Log('Warning: Target DLSS-NR channel ' + ChannelFolder + ' not found in ' + BaseDir + '; falling back to dlss-nr-rdna4');
         ChannelFolder := 'dlss-nr-rdna4';
+      end;
     end;
   end
   else if OptChannel = 2 then

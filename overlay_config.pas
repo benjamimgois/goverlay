@@ -91,6 +91,7 @@ type
 
     // DLSS-NR options
     DlssNrArchIndex: Integer;          // 0: Auto, 1: RDNA4, 2: RDNA3
+    DlssNrResolvedArch: Integer;       // 1: RDNA4, 2: RDNA3
     DlssNrRouteIndex: Integer;         // 0: OptiScaler, 1: ReShade Feeder, 2: ReShade Vulkan, 3: ReShade DX9
     DlssNrModelIndex: Integer;         // 0: New model (310.9.16), 1: Old model (310.8.0)
     DlssNrScaleIndex: Integer;         // 0: 100%, 1: 75%, 2: 50%, 3: 37.5%, 4: 25%
@@ -288,7 +289,7 @@ function IsVkSumiAtDefaults(const Positions: array of Integer): Boolean;
 function IsVkBasaltBuiltInEffect(const AName: string): Boolean;
 function SaveVkBasaltConfig(const Settings: TVkBasaltSettings; out ErrMsg: string): Boolean;
 function SaveVkSumiConfig(const Settings: TVkSumiSettings; out ErrMsg: string): Boolean;
-function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
+function SaveOptiScalerConfigCore(var Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
 
 function LoadVkBasaltConfig(const CfgFile: string; const AvEffectsList, ActEffectsList: TStrings; out Settings: TVkBasaltSettings; const PipelineList: TStrings = nil): Boolean;
 function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings): Boolean;
@@ -896,8 +897,9 @@ begin
   end;
 end;
 
-function SaveOptiScalerConfigCore(const Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
+function SaveOptiScalerConfigCore(var Settings: TOptiScalerSettings; const EnvGamemodeRun, LaunchCommandSuffix: string; GeneralCheckbox1Checked, ActiveGameIsNonSteam, ActiveGameIsNonSteamLocal: Boolean; out ErrMsg: string; out LaunchCommand: string): Boolean;
 var
+  ResolvedArch: Integer;
   SelectedDllName, DllNameWithoutExt: string;
   OptiScalerIniPath, HelixSrIniPath: string;
   OptiCfg: TConfigFile;
@@ -976,7 +978,28 @@ begin
     else
       Ini.WriteString('Config', 'OPT_UNMANAGED_INI', '0');
 
+    ResolvedArch := Settings.DlssNrArchIndex;
+    if (ResolvedArch <> 1) and (ResolvedArch <> 2) then
+    begin
+      if DetectRDNAArchitecture = rdna4 then
+        ResolvedArch := 1
+      else
+        ResolvedArch := 2;
+    end;
+    Settings.DlssNrResolvedArch := ResolvedArch;
+
     Ini.WriteInteger('Config', DLSSNR_KEY_ARCH, Settings.DlssNrArchIndex);
+    ResolvedArch := Settings.DlssNrArchIndex;
+    if (ResolvedArch <> 1) and (ResolvedArch <> 2) then
+    begin
+      if DetectRDNAArchitecture = rdna4 then
+        ResolvedArch := 1
+      else
+        ResolvedArch := 2;
+    end;
+    Settings.DlssNrResolvedArch := ResolvedArch;
+    Ini.WriteInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, ResolvedArch);
+    Ini.WriteInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, ResolvedArch);
     Ini.WriteInteger('Config', DLSSNR_KEY_ROUTE, Settings.DlssNrRouteIndex);
     Ini.WriteInteger('Config', DLSSNR_KEY_MODEL, Settings.DlssNrModelIndex);
     Ini.WriteInteger('Config', DLSSNR_KEY_SCALE, Settings.DlssNrScaleIndex);
@@ -2116,6 +2139,7 @@ begin
       Settings.HelixSrNativeDlssChecked := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0) = 1;
       Settings.UnmanagedIniChecked := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
       Settings.DlssNrArchIndex := Ini.ReadInteger('Config', DLSSNR_KEY_ARCH, 0);
+      Settings.DlssNrResolvedArch := Ini.ReadInteger('Config', DLSSNR_KEY_RESOLVED_ARCH, 0);
       Settings.DlssNrRouteIndex := Ini.ReadInteger('Config', DLSSNR_KEY_ROUTE, 0);
       Settings.DlssNrModelIndex := Ini.ReadInteger('Config', DLSSNR_KEY_MODEL, 0);
       Settings.DlssNrScaleIndex := Ini.ReadInteger('Config', DLSSNR_KEY_SCALE, 2);

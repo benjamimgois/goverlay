@@ -30,7 +30,7 @@ function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): 
 function CheckAndInstallDlssNr(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 // Extract neural model weights from user-provided nvngx_dlssnr.dll or zip archive
-function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil; const AArch: string = ''): Boolean;
 
 // Ensure extract_model.sh has structured progress markers for UI tracking
 procedure SanitizeDlssNrExtractScript(const AScriptPath: string);
@@ -8360,9 +8360,10 @@ end;
 // Extract the neural model weights from a user-provided nvngx_dlssnr.dll (or
 // archive) using the bundled extract_model.sh helper, then distribute the
 // resulting weights to every installed DLSS-NR runtime.
-function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil; const AArch: string = ''): Boolean;
 var
   TargetModelsDir, ExtractScript, Rdna3SubDir, Rdna4SubDir: string;
+  PrimaryArch, FallbackArch: string;
   Process: TProcess;
   Buffer: array[0..4095] of Byte;
   Pending, Line, PctStr, LabelStr: string;
@@ -8437,22 +8438,38 @@ begin
   TargetModelsDir := IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath);
   ForceDirectories(TargetModelsDir);
 
-  ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'model-tools' + PathDelim + 'extract_model.sh';
+  PrimaryArch := LowerCase(Trim(AArch));
+  if (PrimaryArch <> 'rdna4') and (PrimaryArch <> 'rdna3') then
+  begin
+    if DetectRDNAArchitecture = rdna4 then
+      PrimaryArch := 'rdna4'
+    else
+      PrimaryArch := 'rdna3';
+  end;
+  if PrimaryArch = 'rdna4' then
+    FallbackArch := 'rdna3'
+  else
+    FallbackArch := 'rdna4';
+
+  if not DirectoryExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath(PrimaryArch))) then
+    CheckAndInstallDlssNr(PrimaryArch, False, AOnProgress);
+
+  ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(PrimaryArch)) + 'model-tools' + PathDelim + 'extract_model.sh';
   if not FileExists(ExtractScript) then
-    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'model-tools' + PathDelim + 'extract_model.sh';
+    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(FallbackArch)) + 'model-tools' + PathDelim + 'extract_model.sh';
 
   if not FileExists(ExtractScript) then
   begin
     if Assigned(AOnProgress) then
-      AOnProgress(10, 'Downloading DLSS-NR tools (RDNA3)...');
-    CheckAndInstallDlssNr('rdna3', True, AOnProgress);
-    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'model-tools' + PathDelim + 'extract_model.sh';
+      AOnProgress(10, 'Downloading DLSS-NR tools (' + PrimaryArch + ')...');
+    CheckAndInstallDlssNr(PrimaryArch, True, AOnProgress);
+    ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(PrimaryArch)) + 'model-tools' + PathDelim + 'extract_model.sh';
     if not FileExists(ExtractScript) then
     begin
       if Assigned(AOnProgress) then
-        AOnProgress(15, 'Downloading DLSS-NR tools (RDNA4)...');
-      CheckAndInstallDlssNr('rdna4', True, AOnProgress);
-      ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'model-tools' + PathDelim + 'extract_model.sh';
+        AOnProgress(15, 'Downloading DLSS-NR tools (' + FallbackArch + ')...');
+      CheckAndInstallDlssNr(FallbackArch, True, AOnProgress);
+      ExtractScript := IncludeTrailingPathDelimiter(GetBGModDlssNrPath(FallbackArch)) + 'model-tools' + PathDelim + 'extract_model.sh';
     end;
   end;
 
