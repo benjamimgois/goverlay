@@ -133,6 +133,7 @@ type
     procedure TestMissingDependencyWarningBanners;
     procedure TestPerformanceFiltersLayoutOnResize;
     procedure TestPerformanceVkNemuControlsAndLaunchEnv;
+    procedure TestVkNemuInstallationAndIdempotency;
     procedure TestMangoHudFrameTimingDetailed;
     procedure TestMangoHudMetricsCompactToggles;
     procedure TestMangoHudVisualCompactToggles;
@@ -5694,6 +5695,26 @@ begin
   AssertEquals('Timeout restored from config', 5, goverlayform.FVkNemuTimeoutSpin.Value);
   AssertEquals('Delay restored from config', 3, goverlayform.FVkNemuDelaySpin.Value);
   AssertTrue('vkNemu remains enabled after load', goverlayform.FVkNemuToggle.Checked);
+end;
+
+procedure TGoverlayGuiTests.TestVkNemuInstallationAndIdempotency;
+var
+  TargetSoFile, TargetJsonFile: string;
+begin
+  TargetSoFile := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vknemu' + PathDelim + 'libVkLayer_vknemu.so';
+  TargetJsonFile := GetUserVulkanImplicitDir + 'vknemu.json';
+
+  // Perform install
+  AssertTrue('CheckAndInstallVkNemu succeeds', CheckAndInstallVkNemu(False));
+  AssertTrue('libVkLayer_vknemu.so exists', FileExists(TargetSoFile));
+  AssertTrue('libVkLayer_vknemu.so is valid shared library', IsValidSharedLibrary(TargetSoFile, 10000));
+  AssertTrue('vknemu.json exists', FileExists(TargetJsonFile));
+  AssertTrue('IsVkNemuInstalled returns true', IsVkNemuInstalled);
+
+  // Second run must be idempotent (must not delete the file)
+  AssertTrue('Second call to CheckAndInstallVkNemu succeeds', CheckAndInstallVkNemu(False));
+  AssertTrue('libVkLayer_vknemu.so still exists and is not deleted', FileExists(TargetSoFile));
+  AssertTrue('IsVkNemuInstalled remains true', IsVkNemuInstalled);
 end;
 
 procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;

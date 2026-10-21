@@ -114,6 +114,8 @@ function CheckAndInstallStreamlineSDK(AIsStable: Boolean = True; AForce: Boolean
 // Validate if a shared library file exists and has valid ELF header and size
 function IsValidSharedLibrary(const APath: string; AMinSizeBytes: Int64 = 65536): Boolean;
 
+function GetUserVulkanImplicitDir: string;
+
 // Sanitize implicit Vulkan layer manifests (removes stale/corrupted manifests)
 procedure SanitizeImplicitVulkanLayers;
 
@@ -5143,7 +5145,7 @@ begin
   TargetJsonFile := GetUserVulkanImplicitDir + 'vknemu.json';
 
   Result := FileExists(TargetSoFile) and
-            IsValidSharedLibrary(TargetSoFile) and
+            IsValidSharedLibrary(TargetSoFile, 10000) and
             FileExists(TargetJsonFile);
 end;
 
@@ -6267,7 +6269,7 @@ begin
               if QuoteEnd > QuoteStart then
               begin
                 CandidateUrl := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
-                if (Pos('-debug', CandidateUrl) = 0) and (Pos('http', CandidateUrl) = 1) then
+                if (Pos('-debug', CandidateUrl) = 0) and (Pos('lib32-', CandidateUrl) = 0) and (Pos('http', CandidateUrl) = 1) then
                 begin
                   if Pos('.pkg.tar.zst', CandidateUrl) > 0 then
                   begin
@@ -6523,7 +6525,7 @@ begin
       Exit(True);
     end;
 
-    if (FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) and FileExists(TargetJsonFile)) then
+    if (FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile, 10000) and FileExists(TargetJsonFile)) then
     begin
       if not IsVkNemuUpdateAvailable then
       begin
@@ -6595,7 +6597,7 @@ begin
               if QuoteEnd > QuoteStart then
               begin
                 CandidateUrl := Copy(RespText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
-                if (Pos('-debug', CandidateUrl) = 0) and (Pos('http', CandidateUrl) = 1) then
+                if (Pos('-debug', CandidateUrl) = 0) and (Pos('lib32-', CandidateUrl) = 0) and (Pos('http', CandidateUrl) = 1) then
                 begin
                   if Pos('.pkg.tar.zst', CandidateUrl) > 0 then
                   begin
@@ -6707,7 +6709,7 @@ begin
       DeleteDirectory(TempExtractDir, False);
     end;
 
-    if FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile) then
+    if FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile, 10000) then
     begin
       // Create/Update vknemu.json
       JsonSL := TStringList.Create;
