@@ -2704,10 +2704,11 @@ var
   AfmfPerfMode, AfmfSearchMode, AfmfFastMotion, AfmfPacing, AfmfGovernor, AfmfPresentMode: string;
   AfmfMinFps, AfmfHudDetect, AfmfGamescope, AfmfDirectIngest, AfmfDirectOutput, AfmfAsync: string;
   AfmfStaticSad, AfmfLog, AfmfProfile: string;
+  VkNemuIdleFps, VkNemuTimeout, VkNemuUnfocused, VkNemuInput, VkNemuDelay: string;
   ProfileName, CurProfile: string;
   LsfgMult: Integer;
   TomlLines: TStringList;
-  GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni, UnmanagedIni: Boolean;
+  GOverlayMangoHud, GOverlayVkBasalt, GOverlayVkSumi, GOverlayVkNemu, GOverlayOptiscaler, GOverlayTweaks, GOverlayLossless, PreserveIni, UnmanagedIni: Boolean;
   InstalledUpscaler: Integer;
   Ini: TIniFile;
   EnvList, EnvStrings, ActiveArgsList, ArgsConfigList: TStringList;
@@ -2863,6 +2864,12 @@ begin
   GOverlayMangoHud := False;
   GOverlayVkBasalt := False;
   GOverlayVkSumi := False;
+  GOverlayVkNemu := False;
+  VkNemuIdleFps := '30';
+  VkNemuTimeout := '2';
+  VkNemuUnfocused := '1';
+  VkNemuInput := 'all';
+  VkNemuDelay := '0';
   GOverlayOptiscaler := False;
   GOverlayReshade := False;
   GOverlayTweaks := False;
@@ -2886,6 +2893,12 @@ begin
       GOverlayMangoHud := Ini.ReadString('Config', 'GOVERLAY_MANGOHUD', '0') = '1';
       GOverlayVkBasalt := Ini.ReadString('Config', 'GOVERLAY_VKBASALT', '0') = '1';
       GOverlayVkSumi := Ini.ReadString('Config', 'GOVERLAY_VKSUMI', '0') = '1';
+      GOverlayVkNemu := Ini.ReadString('Config', 'GOVERLAY_VKNEMU', '0') = '1';
+      VkNemuIdleFps := Ini.ReadString('Config', 'VKNEMU_IDLE_FPS', '30');
+      VkNemuTimeout := Ini.ReadString('Config', 'VKNEMU_TIMEOUT', '2');
+      VkNemuUnfocused := Ini.ReadString('Config', 'VKNEMU_UNFOCUSED', '1');
+      VkNemuInput := Ini.ReadString('Config', 'VKNEMU_INPUT', 'all');
+      VkNemuDelay := Ini.ReadString('Config', 'VKNEMU_DELAY', '0');
       GOverlayOptiscaler := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       GOverlayReshade := Ini.ReadString('Config', 'GOVERLAY_RESHADE', '0') = '1';
       ReshadeDllName := Ini.ReadString('Config', 'RESHADE_DLL', 'dxgi.dll');
@@ -3002,6 +3015,7 @@ begin
   Log('Config: MangoHud=' + BoolToStr(GOverlayMangoHud, '1', '0') + 
       ', vkBasalt=' + BoolToStr(GOverlayVkBasalt, '1', '0') + 
       ', vkSumi=' + BoolToStr(GOverlayVkSumi, '1', '0') + 
+      ', vkNemu=' + BoolToStr(GOverlayVkNemu, '1', '0') +
       ', ReShade=' + BoolToStr(GOverlayReshade, '1', '0') +
       ', OptiScaler=' + BoolToStr(GOverlayOptiscaler, '1', '0') + 
       ', Tweaks=' + BoolToStr(GOverlayTweaks, '1', '0') +
@@ -3760,6 +3774,26 @@ begin
     Log('Export: ENABLE_VKSUMI=1');
     SetEnvVarInList(EnvStrings, 'VKSUMI_DEBUG', '1');
     Log('Export: VKSUMI_DEBUG=1');
+  end;
+  if GOverlayVkNemu then
+  begin
+    SetEnvVarInList(EnvStrings, 'VKNEMU', '1');
+    Log('Export: VKNEMU=1');
+    SetEnvVarInList(EnvStrings, 'VKNEMU_IDLE_FPS', VkNemuIdleFps);
+    Log('Export: VKNEMU_IDLE_FPS=' + VkNemuIdleFps);
+    SetEnvVarInList(EnvStrings, 'VKNEMU_TIMEOUT', VkNemuTimeout);
+    Log('Export: VKNEMU_TIMEOUT=' + VkNemuTimeout);
+    SetEnvVarInList(EnvStrings, 'VKNEMU_UNFOCUSED', VkNemuUnfocused);
+    Log('Export: VKNEMU_UNFOCUSED=' + VkNemuUnfocused);
+    SetEnvVarInList(EnvStrings, 'VKNEMU_INPUT', VkNemuInput);
+    Log('Export: VKNEMU_INPUT=' + VkNemuInput);
+    SetEnvVarInList(EnvStrings, 'VKNEMU_DELAY', VkNemuDelay);
+    Log('Export: VKNEMU_DELAY=' + VkNemuDelay);
+  end
+  else
+  begin
+    SetEnvVarInList(EnvStrings, 'DISABLE_VKNEMU', '1');
+    Log('Export: DISABLE_VKNEMU=1');
   end;
   if GOverlayOptiscaler and not IsNativeExecutable(TargetExeName) then
   begin
@@ -4620,6 +4654,9 @@ begin
 
       if GOverlayVkSumi then
         SplashItems.Add('vkSumi');
+
+      if GOverlayVkNemu then
+        SplashItems.Add('vkNemu');
 
       if GOverlayTweaks then
         SplashItems.Add('Environment Variables');

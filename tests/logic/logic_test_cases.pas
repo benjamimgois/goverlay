@@ -98,6 +98,7 @@ type
     procedure TestBgmodCentralToolLoggingSync;
     procedure TestBgmodDlssNrDeployment;
     procedure TestBgmodDlssNrResolvedArchDeployment;
+    procedure TestBgmodVkNemuEnvironmentExport;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -2243,6 +2244,84 @@ begin
   AssertTrue('RDNA4 runtime OptiScaler.dll deployed', FileExists(MockGameDir + '/OptiScaler.dll'));
   AssertTrue('DLSSNR_RESOLVED_ARCH=1 selected dlss-nr-rdna4', Pos('rdna4-runtime', DeployedContent) > 0);
   AssertFalse('RDNA3 runtime was not selected', Pos('rdna3-runtime', DeployedContent) > 0);
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodVkNemuEnvironmentExport;
+var
+  Proc: TProcess;
+  TestGameDir, MockGameFile, OutFile: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content: string;
+begin
+  EnsureBgmodBinary;
+  TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/VkNemuTestGame';
+  ForceDirectories(TestGameDir);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockGameFile := TestGameDir + '/mockgame.sh';
+  OutFile := TestGameDir + '/env_output.txt';
+  if FileExists(OutFile) then DeleteFile(OutFile);
+
+  AssignFile(F, MockGameFile);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'env > env_output.txt');
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockGameFile), &755);
+
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_VKNEMU=1');
+  WriteLn(F, 'VKNEMU_IDLE_FPS=42');
+  WriteLn(F, 'VKNEMU_TIMEOUT=7');
+  WriteLn(F, 'VKNEMU_UNFOCUSED=1');
+  WriteLn(F, 'VKNEMU_INPUT=keyboard');
+  WriteLn(F, 'VKNEMU_DELAY=4');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockGameFile);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := TestGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  AssertTrue('env_output.txt should be created', FileExists(OutFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutFile);
+    Content := Lines.Text;
+
+    AssertTrue('Should export VKNEMU=1', Pos('VKNEMU=1', Content) > 0);
+    AssertTrue('Should export VKNEMU_IDLE_FPS=42', Pos('VKNEMU_IDLE_FPS=42', Content) > 0);
+    AssertTrue('Should export VKNEMU_TIMEOUT=7', Pos('VKNEMU_TIMEOUT=7', Content) > 0);
+    AssertTrue('Should export VKNEMU_UNFOCUSED=1', Pos('VKNEMU_UNFOCUSED=1', Content) > 0);
+    AssertTrue('Should export VKNEMU_INPUT=keyboard', Pos('VKNEMU_INPUT=keyboard', Content) > 0);
+    AssertTrue('Should export VKNEMU_DELAY=4', Pos('VKNEMU_DELAY=4', Content) > 0);
+  finally
+    Lines.Free;
+  end;
 end;
 
 procedure TReShadeLogicTests.TestUnixPathToWinePath;

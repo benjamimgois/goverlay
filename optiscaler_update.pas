@@ -6698,6 +6698,7 @@ begin
         if FoundFiles.Count > 0 then
         begin
           CopyFile(FoundFiles[0], TargetSoFile);
+          fpChmod(TargetSoFile, &755);
           WriteLn('[AUTO-INSTALL] Extracted libVkLayer_vknemu.so to: ', TargetSoFile);
         end;
       finally
@@ -6711,6 +6712,7 @@ begin
 
     if FileExists(TargetSoFile) and IsValidSharedLibrary(TargetSoFile, 10000) then
     begin
+      fpChmod(TargetSoFile, &755);
       // Create/Update vknemu.json
       JsonSL := TStringList.Create;
       try
