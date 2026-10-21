@@ -169,6 +169,18 @@ const
   MAKO_KEY_DISABLE_STEAM_OVERLAY = 'disable_steam_overlay';
 
 // ============================================================================
+// VKNEMU CONFIG KEYS
+// ============================================================================
+
+const
+  VKNEMU_KEY_ENABLED       = 'vknemu_enabled';
+  VKNEMU_KEY_IDLE_FPS      = 'vknemu_idle_fps';
+  VKNEMU_KEY_TIMEOUT       = 'vknemu_timeout';
+  VKNEMU_KEY_UNFOCUSED     = 'vknemu_unfocused';
+  VKNEMU_KEY_INPUT         = 'vknemu_input';
+  VKNEMU_KEY_DELAY         = 'vknemu_delay';
+
+// ============================================================================
 // MANGOHUD CONFIG KEYS (complement to constants.pas)
 // ============================================================================
 

@@ -132,6 +132,7 @@ type
     procedure TestVkBasaltShadersListDeduplicationAndExclusions;
     procedure TestMissingDependencyWarningBanners;
     procedure TestPerformanceFiltersLayoutOnResize;
+    procedure TestPerformanceVkNemuControlsAndLaunchEnv;
     procedure TestMangoHudFrameTimingDetailed;
     procedure TestMangoHudMetricsCompactToggles;
     procedure TestMangoHudVisualCompactToggles;
@@ -5641,6 +5642,58 @@ begin
     goverlayform.afvalueLabel.Left >= goverlayform.afTrackBar.Left + goverlayform.afTrackBar.Width);
   AssertTrue('mipmapvalueLabel is right of mipmapTrackBar at maximized width',
     goverlayform.mipmapvalueLabel.Left >= goverlayform.mipmapTrackBar.Left + goverlayform.mipmapTrackBar.Width);
+end;
+
+procedure TGoverlayGuiTests.TestPerformanceVkNemuControlsAndLaunchEnv;
+var
+  EnvStr: string;
+begin
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  goverlayform.performanceTabSheet.Show;
+
+  // Verify controls exist in FPerfLimitSec
+  AssertNotNull('FVkNemuSectionLbl is assigned', goverlayform.FVkNemuSectionLbl);
+  AssertNotNull('FVkNemuToggle is assigned', goverlayform.FVkNemuToggle);
+  AssertNotNull('FVkNemuIdleFpsSpin is assigned', goverlayform.FVkNemuIdleFpsSpin);
+  AssertNotNull('FVkNemuTimeoutSpin is assigned', goverlayform.FVkNemuTimeoutSpin);
+  AssertNotNull('FVkNemuInputCombo is assigned', goverlayform.FVkNemuInputCombo);
+  AssertNotNull('FVkNemuUnfocusedToggle is assigned', goverlayform.FVkNemuUnfocusedToggle);
+  AssertNotNull('FVkNemuDelaySpin is assigned', goverlayform.FVkNemuDelaySpin);
+
+  // When disabled, GetVkNemuLaunchEnv should suppress layer
+  goverlayform.FVkNemuToggle.Checked := False;
+  goverlayform.VkNemuToggleChange(nil);
+  EnvStr := goverlayform.GetVkNemuLaunchEnv;
+  AssertTrue('GetVkNemuLaunchEnv returns disable token when off', Pos('DISABLE_VKNEMU=1', EnvStr) > 0);
+  AssertFalse('Child controls disabled when toggle off', goverlayform.FVkNemuIdleFpsSpin.Enabled);
+
+  // When enabled, values should be exported
+  goverlayform.FVkNemuToggle.Checked := True;
+  goverlayform.VkNemuToggleChange(nil);
+  AssertTrue('Child controls enabled when toggle on', goverlayform.FVkNemuIdleFpsSpin.Enabled);
+
+  goverlayform.FVkNemuIdleFpsSpin.Value := 45;
+  goverlayform.FVkNemuTimeoutSpin.Value := 5;
+  goverlayform.FVkNemuDelaySpin.Value := 3;
+  goverlayform.FVkNemuInputCombo.ItemIndex := 1; // keyboard
+
+  EnvStr := goverlayform.GetVkNemuLaunchEnv;
+  AssertTrue('VKNEMU=1 in launch env', Pos('VKNEMU=1', EnvStr) > 0);
+  AssertTrue('VKNEMU_IDLE_FPS=45 in launch env', Pos('VKNEMU_IDLE_FPS=45', EnvStr) > 0);
+  AssertTrue('VKNEMU_TIMEOUT=5 in launch env', Pos('VKNEMU_TIMEOUT=5', EnvStr) > 0);
+  AssertTrue('VKNEMU_INPUT=keyboard in launch env', Pos('VKNEMU_INPUT=keyboard', EnvStr) > 0);
+  AssertTrue('VKNEMU_DELAY=3 in launch env', Pos('VKNEMU_DELAY=3', EnvStr) > 0);
+
+  // Test config persistence round-trip
+  goverlayform.SaveVkNemuConfig;
+  goverlayform.FLoadingConfig := True;
+  goverlayform.FVkNemuIdleFpsSpin.Value := 20;
+  goverlayform.FLoadingConfig := False;
+  goverlayform.LoadVkNemuConfig;
+  AssertEquals('Idle FPS restored from config', 45, goverlayform.FVkNemuIdleFpsSpin.Value);
+  AssertEquals('Timeout restored from config', 5, goverlayform.FVkNemuTimeoutSpin.Value);
+  AssertEquals('Delay restored from config', 3, goverlayform.FVkNemuDelaySpin.Value);
+  AssertTrue('vkNemu remains enabled after load', goverlayform.FVkNemuToggle.Checked);
 end;
 
 procedure TGoverlayGuiTests.TestFinishConfigurationDialogModernSteamUI;

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Graphics, Dialogs, ExtCtrls, Math,
-  StdCtrls, Buttons, Menus, LCLtype, Types, Grids,
+  StdCtrls, Buttons, Menus, LCLtype, Types, Grids, Spin,
   themeunit, constants, hintsunit, apputils, overlayunit, overlay_config, systemdetector, ComCtrls, overlay_utils,
   {$IFDEF LCLqt6}
   qt6,
@@ -93,6 +93,7 @@ type
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
     procedure PresetCardPaint(Sender: TObject);
+    procedure LimitSubCardPaint(Sender: TObject);
     procedure PresetCardClick(Sender: TObject);
     procedure PresetCardMouseEnter(Sender: TObject);
     procedure PresetCardMouseLeave(Sender: TObject);
@@ -762,6 +763,66 @@ begin
   Card.Canvas.Pen.Width   := 1;
   Card.Canvas.Brush.Style := bsSolid;
   end;
+end;
+
+
+procedure TMangoHudUiHelper.LimitSubCardPaint(Sender: TObject);
+const
+  DARK_BG     = $003C2822;  // rgb(34, 40, 60) — distinct elevated card surface
+  DARK_BRD    = $00644638;  // rgb(56, 70, 100) — crisp, defined card border
+  LIGHT_BG    = $00FCF8F6;  // rgb(246, 248, 252) — distinct light surface
+  LIGHT_BRD   = $00D8C8BE;  // rgb(190, 200, 216) — crisp light border
+  CORNER_R    = 8;
+var
+  Card: TPanel;
+  BgClear, BgColor, BorderColor: TColor;
+begin
+  if not (Sender is TPanel) then Exit;
+  Card := TPanel(Sender);
+
+  if CurrentTheme = tmLight then
+  begin
+    BgClear     := $00F0F0F0;
+    BgColor     := LIGHT_BG;
+    BorderColor := LIGHT_BRD;
+  end
+  else
+  begin
+    BgClear     := $002E1E1A;  // Parent Card background rgb(26, 30, 46)
+    BgColor     := DARK_BG;
+    BorderColor := DARK_BRD;
+  end;
+
+  if Card.Parent is TWinControl then
+    BgClear := TWinControl(Card.Parent).Color;
+
+  // 1. Wipe client area with parent background for antialiasing
+  Card.Canvas.Brush.Color := BgClear;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgClear;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.FillRect(Card.ClientRect);
+
+  {$IFDEF LCLqt6}
+  if Card.Canvas.Handle <> 0 then
+    TQtDeviceContext(Card.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
+
+  // 2. Rounded background fill
+  Card.Canvas.Brush.Color := BgColor;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.RoundRect(0, 0, Card.Width, Card.Height, CORNER_R * 2, CORNER_R * 2);
+
+  // 3. Rounded border stroke
+  Card.Canvas.Brush.Style := bsClear;
+  Card.Canvas.Pen.Color   := BorderColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.RoundRect(1, 1, Card.Width - 1, Card.Height - 1, CORNER_R * 2, CORNER_R * 2);
+
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.Brush.Style := bsSolid;
 end;
 
 
@@ -1766,15 +1827,15 @@ begin
   FFpsLimitTitleLbl.SetBounds(ContL + 6, ContT + 8, 140, 20);
   FFpsLimitTitleLbl.Anchors := [akLeft, akTop];
 
-  // Create the edit — very large font for readability
+  // Create the edit — modern proportionate font
   FFpsLimitEdit := TEdit.Create(FForm);
   FFpsLimitEdit.Parent := FPerfLimitSec;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 34, 232, 44);
-  FFpsLimitEdit.Constraints.MinWidth := 232;
-  FFpsLimitEdit.Constraints.MaxWidth := 232;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 30, 200, 36);
+  FFpsLimitEdit.Constraints.MinWidth := 180;
+  FFpsLimitEdit.Constraints.MaxWidth := 220;
   FFpsLimitEdit.Anchors := [akLeft, akTop];
   FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
-  FFpsLimitEdit.Font.Size := 24;
+  FFpsLimitEdit.Font.Size := 18;
   FFpsLimitEdit.Font.Color := TextColor;
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
@@ -1815,15 +1876,15 @@ begin
   fpscolor2SpinEdit.SetBounds(ContL + ContW div 2 - 35, ContT + 165, 70, 26);
   fpscolor3SpinEdit.SetBounds(ContL + ContW - 81,      ContT + 165, 70, 26);
 
-  // ── Method / Limit toggle key pinned to the bottom of the card ───────────
-  methodLabel.SetBounds(ContL + 6, ContT + ContH - 70, 60, 18);
+  // ── Method / Limit toggle key pinned above the vkNemu section ─────────────
+  methodLabel.SetBounds(ContL + 6, 185, 60, 18);
   methodLabel.Font.Color := TextColor;
 
-  fpslimmetComboBox.SetBounds(ContL + 6, ContT + ContH - 48, 110, 32);
+  fpslimmetComboBox.SetBounds(ContL + 6, 203, 110, 32);
 
-  limtoggleLabel.SetBounds(ContL + 140, ContT + ContH - 70, 120, 18);
+  limtoggleLabel.SetBounds(ContL + 140, 185, 120, 18);
   if Assigned(FLimitCaptureBtn) then
-    FLimitCaptureBtn.SetBounds(ContL + 140, ContT + ContH - 48, 160, 28);
+    FLimitCaptureBtn.SetBounds(ContL + 140, 203, 160, 28);
   end;
 end;
 
@@ -1850,7 +1911,7 @@ const
     IsLight: Boolean;
     BgColor, TextColor: TColor;
     HalfW: Integer;
-    Sec1, Sec2: TPanel;
+    Sec1, Sec2, SecNemu: TPanel;
   begin
     with FForm do
     begin
@@ -2108,6 +2169,90 @@ begin
   // FPS Limit — single comma-separated input field
   BuildFpsLimitEdit;
   FfpscolorToggle := PlacePerfToggle(fpscolorCheckBox, FPerfLimitSec);
+
+  // vkNemu divider and idle frame limiter controls
+  FVkNemuDivider := TPanel.Create(FForm);
+  FVkNemuDivider.Parent := FPerfLimitSec;
+  FVkNemuDivider.BevelOuter := bvNone;
+  FVkNemuDivider.Caption := '';
+  FVkNemuDivider.Color := IfThen(CurrentTheme = tmLight, $00D0D5E0, $003C3026);
+  FVkNemuDivider.Height := 1;
+  FVkNemuDivider.Visible := True;
+
+  FVkNemuSectionLbl := TLabel.Create(FForm);
+  FVkNemuSectionLbl.Parent := FPerfLimitSec;
+  StyleLabel(FVkNemuSectionLbl, lrSectionTitle);
+  FVkNemuSectionLbl.Caption := 'Idle Limiter (vkNemu)';
+  FVkNemuSectionLbl.AutoSize := False;
+
+  FVkNemuCheckBox := TCheckBox.Create(FForm);
+  FVkNemuCheckBox.Parent := FPerfLimitSec;
+  FVkNemuCheckBox.Caption := '';
+  FVkNemuCheckBox.Visible := False;
+  FVkNemuToggle := PlacePerfToggle(FVkNemuCheckBox, FPerfLimitSec);
+  FVkNemuToggle.OnClick := @FForm.VkNemuToggleChange;
+
+  FVkNemuIdleFpsLbl := TLabel.Create(FForm);
+  FVkNemuIdleFpsLbl.Parent := FPerfLimitSec;
+  StyleLabel(FVkNemuIdleFpsLbl, lrControlLabel);
+  FVkNemuIdleFpsLbl.Caption := 'Idle FPS';
+  FVkNemuIdleFpsLbl.AutoSize := False;
+
+  FVkNemuIdleFpsSpin := TSpinEdit.Create(FForm);
+  FVkNemuIdleFpsSpin.Parent := FPerfLimitSec;
+  FVkNemuIdleFpsSpin.MinValue := 10;
+  FVkNemuIdleFpsSpin.MaxValue := 360;
+  FVkNemuIdleFpsSpin.Value := 30;
+  FVkNemuIdleFpsSpin.OnChange := @FForm.VkNemuControlChange;
+
+  FVkNemuTimeoutLbl := TLabel.Create(FForm);
+  FVkNemuTimeoutLbl.Parent := FPerfLimitSec;
+  StyleLabel(FVkNemuTimeoutLbl, lrControlLabel);
+  FVkNemuTimeoutLbl.Caption := 'Timeout (s)';
+  FVkNemuTimeoutLbl.AutoSize := False;
+
+  FVkNemuTimeoutSpin := TSpinEdit.Create(FForm);
+  FVkNemuTimeoutSpin.Parent := FPerfLimitSec;
+  FVkNemuTimeoutSpin.MinValue := 1;
+  FVkNemuTimeoutSpin.MaxValue := 60;
+  FVkNemuTimeoutSpin.Value := 2;
+  FVkNemuTimeoutSpin.OnChange := @FForm.VkNemuControlChange;
+
+  FVkNemuInputLbl := TLabel.Create(FForm);
+  FVkNemuInputLbl.Parent := FPerfLimitSec;
+  StyleLabel(FVkNemuInputLbl, lrControlLabel);
+  FVkNemuInputLbl.Caption := 'Wake Input';
+  FVkNemuInputLbl.AutoSize := False;
+
+  FVkNemuInputCombo := TComboBox.Create(FForm);
+  FVkNemuInputCombo.Parent := FPerfLimitSec;
+  FVkNemuInputCombo.Style := csDropDownList;
+  FVkNemuInputCombo.Items.Add('all');
+  FVkNemuInputCombo.Items.Add('keyboard');
+  FVkNemuInputCombo.Items.Add('gamepad');
+  FVkNemuInputCombo.Items.Add('none');
+  FVkNemuInputCombo.ItemIndex := 0;
+  FVkNemuInputCombo.OnChange := @FForm.VkNemuControlChange;
+
+  FVkNemuUnfocusedCheckBox := TCheckBox.Create(FForm);
+  FVkNemuUnfocusedCheckBox.Parent := FPerfLimitSec;
+  FVkNemuUnfocusedCheckBox.Caption := 'Cap on window unfocus';
+  FVkNemuUnfocusedCheckBox.Visible := False;
+  FVkNemuUnfocusedToggle := PlacePerfToggle(FVkNemuUnfocusedCheckBox, FPerfLimitSec);
+  FVkNemuUnfocusedToggle.OnClick := @FForm.VkNemuControlChange;
+
+  FVkNemuDelayLbl := TLabel.Create(FForm);
+  FVkNemuDelayLbl.Parent := FPerfLimitSec;
+  StyleLabel(FVkNemuDelayLbl, lrControlLabel);
+  FVkNemuDelayLbl.Caption := 'Delay (s)';
+  FVkNemuDelayLbl.AutoSize := False;
+
+  FVkNemuDelaySpin := TSpinEdit.Create(FForm);
+  FVkNemuDelaySpin.Parent := FPerfLimitSec;
+  FVkNemuDelaySpin.MinValue := 0;
+  FVkNemuDelaySpin.MaxValue := 60;
+  FVkNemuDelaySpin.Value := 0;
+  FVkNemuDelaySpin.OnChange := @FForm.VkNemuControlChange;
   end;
 end;
 
@@ -2130,8 +2275,10 @@ var
   ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
+  VkColW, VkCol1, VkCol2, VkCol3, VkSpinW, VkComboW: Integer;
   TabH, ActiveRow2H, FilterSecH: Integer;
   FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
+  TotalLeftH, MangoH, NemuTop, NemuH, GapCards, ColGap: Integer;
 begin
   with FForm do
   begin
@@ -2280,45 +2427,25 @@ begin
       end;
     end;
 
-    // Reposition dynamic elements in FPS Limit card based on final width/height of FPerfLimitSec
+    // Reposition controls in the MangoHud Limit sub-card
     if Assigned(FPerfLimitSec) then
     begin
-      ContW := FPerfLimitSec.Width - 24;
-      ContH := FPerfLimitSec.Height - 32;
-
       if Assigned(FFpsLimitTitleLbl) then
-      begin
-        FFpsLimitTitleLbl.Left := 0;
-        FFpsLimitTitleLbl.Width := FPerfLimitSec.ClientWidth;
-        FFpsLimitTitleLbl.Top := 4;
-      end;
+        FFpsLimitTitleLbl.SetBounds(0, 10, FPerfLimitSec.ClientWidth, 18);
       if Assigned(FFpsLimitEdit) then
-      begin
-        FFpsLimitEdit.Width := 232;
-        FFpsLimitEdit.Constraints.MinWidth := 232;
-        FFpsLimitEdit.Constraints.MaxWidth := 232;
-        FFpsLimitEdit.Left := (FPerfLimitSec.ClientWidth - FFpsLimitEdit.Width) div 2;
-        FFpsLimitEdit.Top := 22;
-      end;
+        FFpsLimitEdit.SetBounds((FPerfLimitSec.ClientWidth - 190) div 2, 32, 190, 34);
       if Assigned(FFpsLimitHintLbl) then
-      begin
-        FFpsLimitHintLbl.Left := 0;
-        FFpsLimitHintLbl.Width := FPerfLimitSec.ClientWidth;
-        if Assigned(FFpsLimitEdit) then
-          FFpsLimitHintLbl.Top := FFpsLimitEdit.Top + FFpsLimitEdit.Height + 6
-        else
-          FFpsLimitHintLbl.Top := 72;
-        FFpsLimitHintLbl.Height := 18;
-      end;
+        FFpsLimitHintLbl.SetBounds(0, 69, FPerfLimitSec.ClientWidth, 16);
 
       if Assigned(FfpscolorToggle) then
       begin
         FfpscolorToggle.Left := (FPerfLimitSec.ClientWidth - FfpscolorToggle.Width) div 2;
+        FfpscolorToggle.Top := 94;
       end;
 
-      ColW := 80;
-      SpinW := 70;
-      ColorGap := -4;
+      ColW := 75;
+      SpinW := 65;
+      ColorGap := -2;
       ColorGroupW := 3 * ColW + 2 * ColorGap;
       ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
 
@@ -2329,38 +2456,77 @@ begin
       fpscolor2SpinEdit.Left := fpscolor2ColorButton.Left + (ColW - SpinW) div 2;
       fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
 
-      GroupH := 81;
-      MiddleStart := FFpsLimitHintLbl.Top + FFpsLimitHintLbl.Height + 6;
-      MiddleEnd := FPerfLimitSec.Height - 70;
-      GroupTop := MiddleStart + (MiddleEnd - MiddleStart - GroupH) div 2;
-
-      if Assigned(FfpscolorToggle) then
-        FfpscolorToggle.Top := GroupTop;
-      fpscolor1ColorButton.Top := GroupTop + 21 + 8;
+      fpscolor1ColorButton.Top := 122;
       fpscolor2ColorButton.Top := fpscolor1ColorButton.Top;
       fpscolor3ColorButton.Top := fpscolor1ColorButton.Top;
-
-      fpscolor2SpinEdit.Top := fpscolor1ColorButton.Top + 18 + 8;
+      fpscolor2SpinEdit.Top := fpscolor1ColorButton.Top + 24;
       fpscolor3SpinEdit.Top := fpscolor2SpinEdit.Top;
 
-      ComboW := 110;
-      BtnW := 100;
-      MiddleGap := 24;
+      ComboW := 120;
+      BtnW := 120;
+      MiddleGap := 20;
       TotalRowW := ComboW + MiddleGap + BtnW;
       RowStart := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
 
       methodLabel.Left := RowStart;
-      methodLabel.Top := FPerfLimitSec.Height - 70;
+      methodLabel.Top := 178;
       fpslimmetComboBox.Left := RowStart;
-      fpslimmetComboBox.Top := FPerfLimitSec.Height - 48;
+      fpslimmetComboBox.Top := 196;
 
       limtoggleLabel.Left := RowStart + ComboW + MiddleGap;
-      limtoggleLabel.Top := FPerfLimitSec.Height - 70;
+      limtoggleLabel.Top := 178;
       if Assigned(FLimitCaptureBtn) then
       begin
         FLimitCaptureBtn.Left := RowStart + ComboW + MiddleGap;
-        FLimitCaptureBtn.Top := FPerfLimitSec.Height - 48;
+        FLimitCaptureBtn.Top := 196;
         FLimitCaptureBtn.Width := BtnW;
+      end;
+      // Reposition vkNemu Idle Limiter controls in lower half of FPerfLimitSec
+      if Assigned(FVkNemuDivider) then
+      begin
+        FVkNemuDivider.SetBounds(14, 238, FPerfLimitSec.ClientWidth - 28, 1);
+        FVkNemuDivider.Visible := True;
+      end;
+
+      if Assigned(FVkNemuSectionLbl) then
+        FVkNemuSectionLbl.SetBounds(14, 254, FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
+      if Assigned(FVkNemuToggle) then
+      begin
+        FVkNemuToggle.Left := FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 14;
+        FVkNemuToggle.Top := 252;
+      end;
+
+      ColGap := 16;
+      ColW := (FPerfLimitSec.ClientWidth - 28 - ColGap) div 2;
+      if ColW < 90 then ColW := 90;
+      Col1Left := 14;
+      Col2Left := Col1Left + ColW + ColGap;
+
+      // Row 1: Idle FPS | Timeout (s)
+      if Assigned(FVkNemuIdleFpsLbl) then
+        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 282, ColW, 16);
+      if Assigned(FVkNemuIdleFpsSpin) then
+        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 300, ColW, 28);
+      if Assigned(FVkNemuTimeoutLbl) then
+        FVkNemuTimeoutLbl.SetBounds(Col2Left, 282, ColW, 16);
+      if Assigned(FVkNemuTimeoutSpin) then
+        FVkNemuTimeoutSpin.SetBounds(Col2Left, 300, ColW, 28);
+
+      // Row 2: Wake Input | Delay (s)
+      if Assigned(FVkNemuInputLbl) then
+        FVkNemuInputLbl.SetBounds(Col1Left, 340, ColW, 16);
+      if Assigned(FVkNemuInputCombo) then
+        FVkNemuInputCombo.SetBounds(Col1Left, 358, ColW, 28);
+      if Assigned(FVkNemuDelayLbl) then
+        FVkNemuDelayLbl.SetBounds(Col2Left, 340, ColW, 16);
+      if Assigned(FVkNemuDelaySpin) then
+        FVkNemuDelaySpin.SetBounds(Col2Left, 358, ColW, 28);
+
+      // Row 3: Cap on window unfocus
+      if Assigned(FVkNemuUnfocusedToggle) then
+      begin
+        FVkNemuUnfocusedToggle.Left := Col1Left;
+        FVkNemuUnfocusedToggle.Top := 398;
       end;
     end;
   end;
@@ -2444,6 +2610,9 @@ begin
       end;
     end;
   end;
+
+  if Assigned(FVkNemuDivider) then
+    FVkNemuDivider.Color := IfThen(CurrentTheme = tmLight, $00E0E0E0, $00342620);
 
   // VSYNC row labels: update font color for theme change
   if Assigned(FVsyncRows[0]) or Assigned(FVsyncRows[1]) then

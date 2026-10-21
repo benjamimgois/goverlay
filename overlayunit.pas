@@ -17,7 +17,7 @@ uses
   {$ENDIF}
   qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils,
-  goverlay_strings,
+  goverlay_strings, toggle_switch,
   floating_dock, finish_dialog, floating_overlay, pasplot_form;
 
 
@@ -692,6 +692,11 @@ type
     procedure TriggerAutoSave;
     procedure StartAutoSaveTimer;
     procedure ShowSavedStatus;
+    procedure VkNemuToggleChange(Sender: TObject);
+    procedure VkNemuControlChange(Sender: TObject);
+    function  GetVkNemuLaunchEnv: string;
+    procedure LoadVkNemuConfig;
+    procedure SaveVkNemuConfig;
     procedure LoadVkBasaltConfig;
     procedure reshadeTabSheetShow(Sender: TObject);
     procedure ReshadeTabSheetResize(Sender: TObject);
@@ -1138,6 +1143,20 @@ type
     function  GetReshadeProxyDll: string;
   public
     FLoadingConfig: Boolean;
+    FVkNemuSectionLbl:        TLabel;
+    FVkNemuToggle:            TToggleSwitch;
+    FVkNemuCheckBox:          TCheckBox;
+    FVkNemuDivider:           TPanel;
+    FVkNemuIdleFpsSpin:       TSpinEdit;
+    FVkNemuIdleFpsLbl:        TLabel;
+    FVkNemuTimeoutSpin:       TSpinEdit;
+    FVkNemuTimeoutLbl:        TLabel;
+    FVkNemuInputCombo:        TComboBox;
+    FVkNemuInputLbl:          TLabel;
+    FVkNemuUnfocusedToggle:   TToggleSwitch;
+    FVkNemuUnfocusedCheckBox: TCheckBox;
+    FVkNemuDelaySpin:         TSpinEdit;
+    FVkNemuDelayLbl:          TLabel;
     FIntelCpuOverrideForTest: Integer; // -1: auto, 0: false, 1: true
     FPreviousFilenameIndex: Integer;
     FLastLosslessShowTick: QWord;
@@ -1252,6 +1271,7 @@ type
     FPerfInfoSec: TPanel;
     FPerfVsyncSec: TPanel;
     FPerfLimitSec: TPanel;
+    FVkNemuSec: TPanel;
     FPerfFiltersSec: TPanel;
     // FPS Limit custom input (replaces chip grid)
     FFpsLimitEdit:   TEdit;              // comma-separated FPS values
@@ -1808,7 +1828,7 @@ function IsProcessRunningPure(const ProcName: string): Boolean;
 implementation
 
 uses
-  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, toggle_switch, notificationunit, reshade_tab
+  xlib, x, tweaks_md3, games_tab, vkbasalt_tab, mangohud_ui, goverlay_system, optiscaler_tab, home_tab, sidebar_nav, changelogunit, lossless_scaling_tab, lsfg_migration_dialog, notificationunit, reshade_tab
   {$IFDEF LCLqt6}
   , qtobjects
   {$ENDIF}
@@ -2560,6 +2580,7 @@ end;
 procedure Tgoverlayform.LoadMangoHudConfig;
 begin
   TMangoHudUiHelper(FMangoHelper).LoadMangoHudConfig;
+  LoadVkNemuConfig;
 end;
 
 
@@ -2577,6 +2598,208 @@ end;
 procedure Tgoverlayform.SaveMangoHudConfig;
 begin
   TMangoHudUiHelper(FMangoHelper).SaveMangoHudConfig;
+  SaveVkNemuConfig;
+end;
+
+procedure Tgoverlayform.VkNemuToggleChange(Sender: TObject);
+var
+  AEnabled: Boolean;
+begin
+  if not Assigned(FVkNemuToggle) then Exit;
+
+  AEnabled := FVkNemuToggle.Checked;
+  if Assigned(FVkNemuCheckBox) then
+    FVkNemuCheckBox.Checked := AEnabled;
+
+  if Assigned(FVkNemuSectionLbl) then   FVkNemuSectionLbl.Enabled   := True;
+  if Assigned(FVkNemuIdleFpsLbl) then   FVkNemuIdleFpsLbl.Enabled   := AEnabled;
+  if Assigned(FVkNemuIdleFpsSpin) then  FVkNemuIdleFpsSpin.Enabled  := AEnabled;
+  if Assigned(FVkNemuTimeoutLbl) then   FVkNemuTimeoutLbl.Enabled   := AEnabled;
+  if Assigned(FVkNemuTimeoutSpin) then  FVkNemuTimeoutSpin.Enabled  := AEnabled;
+  if Assigned(FVkNemuInputLbl) then     FVkNemuInputLbl.Enabled     := AEnabled;
+  if Assigned(FVkNemuInputCombo) then   FVkNemuInputCombo.Enabled   := AEnabled;
+  if Assigned(FVkNemuUnfocusedToggle) then FVkNemuUnfocusedToggle.Enabled := AEnabled;
+  if Assigned(FVkNemuUnfocusedCheckBox) then FVkNemuUnfocusedCheckBox.Enabled := AEnabled;
+  if Assigned(FVkNemuDelayLbl) then     FVkNemuDelayLbl.Enabled     := AEnabled;
+  if Assigned(FVkNemuDelaySpin) then    FVkNemuDelaySpin.Enabled    := AEnabled;
+
+  if not FLoadingConfig then
+    TriggerAutoSave;
+end;
+
+procedure Tgoverlayform.VkNemuControlChange(Sender: TObject);
+begin
+  if not FLoadingConfig then
+    TriggerAutoSave;
+end;
+
+function Tgoverlayform.GetVkNemuLaunchEnv: string;
+var
+  IdleFps, TimeoutVal, DelayVal: Integer;
+  InputMode: string;
+begin
+  if not Assigned(FVkNemuToggle) then
+    Exit('');
+
+  if not FVkNemuToggle.Checked then
+    Exit('DISABLE_VKNEMU=1 ');
+
+  if Assigned(FVkNemuIdleFpsSpin) then IdleFps := FVkNemuIdleFpsSpin.Value else IdleFps := 30;
+  if Assigned(FVkNemuTimeoutSpin) then TimeoutVal := FVkNemuTimeoutSpin.Value else TimeoutVal := 2;
+  if Assigned(FVkNemuDelaySpin) then DelayVal := FVkNemuDelaySpin.Value else DelayVal := 0;
+  if Assigned(FVkNemuInputCombo) and (Trim(FVkNemuInputCombo.Text) <> '') then
+    InputMode := LowerCase(Trim(FVkNemuInputCombo.Text))
+  else
+    InputMode := 'all';
+
+  Result := 'VKNEMU=1 VKNEMU_IDLE_FPS=' + IntToStr(IdleFps) +
+            ' VKNEMU_TIMEOUT=' + IntToStr(TimeoutVal) +
+            ' VKNEMU_UNFOCUSED=' + IfThen(Assigned(FVkNemuUnfocusedToggle) and FVkNemuUnfocusedToggle.Checked, '1', '0') +
+            ' VKNEMU_INPUT=' + InputMode + ' ';
+  if DelayVal > 0 then
+    Result := Result + 'VKNEMU_DELAY=' + IntToStr(DelayVal) + ' ';
+end;
+
+procedure Tgoverlayform.LoadVkNemuConfig;
+var
+  WasLoading: Boolean;
+  GlobalPath, GamePath, ConfigPath: string;
+  Ini: TIniFile;
+  AEnabled: Boolean;
+  IdleFps, TimeoutVal, DelayVal: Integer;
+  AUnfocused: Boolean;
+  InputMode: string;
+
+  procedure ReadBgmod(const APath: string);
+  begin
+    if not FileExists(APath) then Exit;
+    Ini := TIniFile.Create(APath);
+    try
+      AEnabled   := Ini.ReadBool('Config', 'GOVERLAY_VKNEMU', AEnabled);
+      IdleFps    := Ini.ReadInteger('Config', 'VKNEMU_IDLE_FPS', IdleFps);
+      TimeoutVal := Ini.ReadInteger('Config', 'VKNEMU_TIMEOUT', TimeoutVal);
+      AUnfocused := Ini.ReadBool('Config', 'VKNEMU_UNFOCUSED', AUnfocused);
+      InputMode  := Ini.ReadString('Config', 'VKNEMU_INPUT', InputMode);
+      DelayVal   := Ini.ReadInteger('Config', 'VKNEMU_DELAY', DelayVal);
+    finally
+      Ini.Free;
+    end;
+  end;
+
+begin
+  WasLoading := FLoadingConfig;
+  FLoadingConfig := True;
+  try
+    AEnabled   := False;
+    IdleFps    := 30;
+    TimeoutVal := 2;
+    AUnfocused := True;
+    InputMode  := 'all';
+    DelayVal   := 0;
+
+    GlobalPath := GetGameConfigDir('') + 'bgmod.conf';
+    GamePath   := '';
+    if FActiveGameName <> '' then
+      GamePath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
+
+    if FileExists(GlobalPath) or ((GamePath <> '') and FileExists(GamePath)) then
+    begin
+      ReadBgmod(GlobalPath);
+      if GamePath <> '' then
+        ReadBgmod(GamePath);
+    end
+    else
+    begin
+      ConfigPath := GetConfigFilePath;
+      if FileExists(ConfigPath) then
+      begin
+        Ini := TIniFile.Create(ConfigPath);
+        try
+          AEnabled   := Ini.ReadBool('vkNemu', VKNEMU_KEY_ENABLED, AEnabled);
+          IdleFps    := Ini.ReadInteger('vkNemu', VKNEMU_KEY_IDLE_FPS, IdleFps);
+          TimeoutVal := Ini.ReadInteger('vkNemu', VKNEMU_KEY_TIMEOUT, TimeoutVal);
+          AUnfocused := Ini.ReadBool('vkNemu', VKNEMU_KEY_UNFOCUSED, AUnfocused);
+          InputMode  := Ini.ReadString('vkNemu', VKNEMU_KEY_INPUT, InputMode);
+          DelayVal   := Ini.ReadInteger('vkNemu', VKNEMU_KEY_DELAY, DelayVal);
+        finally
+          Ini.Free;
+        end;
+      end;
+    end;
+
+    if Assigned(FVkNemuCheckBox) then FVkNemuCheckBox.Checked := AEnabled;
+    if Assigned(FVkNemuIdleFpsSpin) then FVkNemuIdleFpsSpin.Value := IdleFps;
+    if Assigned(FVkNemuTimeoutSpin) then FVkNemuTimeoutSpin.Value := TimeoutVal;
+    if Assigned(FVkNemuUnfocusedCheckBox) then FVkNemuUnfocusedCheckBox.Checked := AUnfocused;
+    if Assigned(FVkNemuInputCombo) then FVkNemuInputCombo.Text := InputMode;
+    if Assigned(FVkNemuDelaySpin) then FVkNemuDelaySpin.Value := DelayVal;
+
+    if Assigned(FVkNemuToggle) and Assigned(FVkNemuCheckBox) then
+      FVkNemuToggle.Checked := FVkNemuCheckBox.Checked;
+    if Assigned(FVkNemuUnfocusedToggle) and Assigned(FVkNemuUnfocusedCheckBox) then
+      FVkNemuUnfocusedToggle.Checked := FVkNemuUnfocusedCheckBox.Checked;
+
+    VkNemuToggleChange(nil);
+  finally
+    FLoadingConfig := WasLoading;
+  end;
+end;
+
+procedure Tgoverlayform.SaveVkNemuConfig;
+var
+  AEnabled, AUnfocused: Boolean;
+  IdleFps, TimeoutVal, DelayVal: Integer;
+  InputMode, BgmodPath, ConfigPath: string;
+  Ini: TIniFile;
+
+  procedure WriteBgmod(const APath: string);
+  begin
+    ForceDirectories(ExtractFilePath(APath));
+    Ini := TIniFile.Create(APath);
+    try
+      Ini.WriteString('Config', 'GOVERLAY_VKNEMU', IfThen(AEnabled, '1', '0'));
+      Ini.WriteInteger('Config', 'VKNEMU_IDLE_FPS', IdleFps);
+      Ini.WriteInteger('Config', 'VKNEMU_TIMEOUT', TimeoutVal);
+      Ini.WriteString('Config', 'VKNEMU_UNFOCUSED', IfThen(AUnfocused, '1', '0'));
+      Ini.WriteString('Config', 'VKNEMU_INPUT', InputMode);
+      Ini.WriteInteger('Config', 'VKNEMU_DELAY', DelayVal);
+    finally
+      Ini.Free;
+    end;
+  end;
+
+begin
+  if not Assigned(FVkNemuToggle) then Exit;
+
+  AEnabled := FVkNemuToggle.Checked;
+  if Assigned(FVkNemuIdleFpsSpin) then IdleFps := FVkNemuIdleFpsSpin.Value else IdleFps := 30;
+  if Assigned(FVkNemuTimeoutSpin) then TimeoutVal := FVkNemuTimeoutSpin.Value else TimeoutVal := 2;
+  if Assigned(FVkNemuUnfocusedToggle) then AUnfocused := FVkNemuUnfocusedToggle.Checked else AUnfocused := True;
+  if Assigned(FVkNemuInputCombo) and (Trim(FVkNemuInputCombo.Text) <> '') then
+    InputMode := LowerCase(Trim(FVkNemuInputCombo.Text))
+  else
+    InputMode := 'all';
+  if Assigned(FVkNemuDelaySpin) then DelayVal := FVkNemuDelaySpin.Value else DelayVal := 0;
+
+  BgmodPath := GetGameConfigDir(FActiveGameName) + 'bgmod.conf';
+  WriteBgmod(BgmodPath);
+
+  if FActiveGameName = '' then
+    WriteBgmod(GetGameConfigDir('') + 'bgmod.conf');
+
+  ConfigPath := GetConfigFilePath;
+  ForceDirectories(ExtractFilePath(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    Ini.WriteString('vkNemu', VKNEMU_KEY_ENABLED, IfThen(AEnabled, '1', '0'));
+    Ini.WriteInteger('vkNemu', VKNEMU_KEY_IDLE_FPS, IdleFps);
+    Ini.WriteInteger('vkNemu', VKNEMU_KEY_TIMEOUT, TimeoutVal);
+    Ini.WriteString('vkNemu', VKNEMU_KEY_UNFOCUSED, IfThen(AUnfocused, '1', '0'));
+    Ini.WriteString('vkNemu', VKNEMU_KEY_INPUT, InputMode);
+    Ini.WriteInteger('vkNemu', VKNEMU_KEY_DELAY, DelayVal);
+  finally
+    Ini.Free;
+  end;
 end;
 
 procedure Tgoverlayform.SyncAllToggles;
@@ -4873,7 +5096,7 @@ begin
          if (USERSESSION = 'wayland') and IsCommandAvailable('vkcube-wayland') then
             ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube-wayland &')
          else
-            ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetVkNemuLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + 'vkcube &');
       end
       else
          SendNotification('Goverlay', 'PasCube and VkCube were not located.', GetIconFile);
@@ -10713,7 +10936,7 @@ begin
     RestoreIfMaximized;
     ExecuteGUICommand('killall pascube vkcube 2>/dev/null; true');
     Sleep(100);
-    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
+    ExecuteGUICommand(GetMangoHudLaunchEnv + GetVkBasaltLaunchEnv + GetVkSumiLaunchEnv + GetVkNemuLaunchEnv + GetLosslessScalingLaunchEnv + GetTweaksLaunchEnv + GetGOverlayPackageEnv + GetPasCubeCommand + ' --version "' + GVERSION + '"' + GetPasCubeNicknameParam + GetPasCubeUncappedParam + GetPasCubeLosslessParam + ' &');
     FBenchmarkWasRunning := True;
     FBenchmarkStarted := False;
     FBenchmarkStartTicks := 0;
@@ -11165,6 +11388,7 @@ begin
     CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
     CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)
     CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
+    CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
     CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
     CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
     CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 90%)
