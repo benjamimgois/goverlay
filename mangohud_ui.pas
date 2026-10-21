@@ -2227,6 +2227,7 @@ begin
   FVkNemuInputCombo := TComboBox.Create(FForm);
   FVkNemuInputCombo.Parent := FPerfLimitSec;
   FVkNemuInputCombo.Style := csDropDownList;
+  FVkNemuInputCombo.Constraints.MinHeight := 28;
   FVkNemuInputCombo.Items.Add('all');
   FVkNemuInputCombo.Items.Add('keyboard');
   FVkNemuInputCombo.Items.Add('gamepad');
@@ -2278,7 +2279,7 @@ var
   VkColW, VkCol1, VkCol2, VkCol3, VkSpinW, VkComboW: Integer;
   TabH, ActiveRow2H, FilterSecH: Integer;
   FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
-  TotalLeftH, MangoH, NemuTop, NemuH, GapCards, ColGap: Integer;
+  TotalLeftH, MangoH, NemuTop, NemuH, GapCards, ColGap, ControlH: Integer;
 begin
   with FForm do
   begin
@@ -2502,25 +2503,32 @@ begin
       Col1Left := 14;
       Col2Left := Col1Left + ColW + ColGap;
 
+      ControlH := 28;
+      if Assigned(FVkNemuDelaySpin) and (FVkNemuDelaySpin.Height > ControlH) then
+        ControlH := FVkNemuDelaySpin.Height;
+
       // Row 1: Idle FPS | Timeout (s)
       if Assigned(FVkNemuIdleFpsLbl) then
         FVkNemuIdleFpsLbl.SetBounds(Col1Left, 282, ColW, 16);
       if Assigned(FVkNemuIdleFpsSpin) then
-        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 300, ColW, 28);
+        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 300, ColW, ControlH);
       if Assigned(FVkNemuTimeoutLbl) then
         FVkNemuTimeoutLbl.SetBounds(Col2Left, 282, ColW, 16);
       if Assigned(FVkNemuTimeoutSpin) then
-        FVkNemuTimeoutSpin.SetBounds(Col2Left, 300, ColW, 28);
+        FVkNemuTimeoutSpin.SetBounds(Col2Left, 300, ColW, ControlH);
 
       // Row 2: Wake Input | Delay (s)
       if Assigned(FVkNemuInputLbl) then
         FVkNemuInputLbl.SetBounds(Col1Left, 340, ColW, 16);
       if Assigned(FVkNemuInputCombo) then
-        FVkNemuInputCombo.SetBounds(Col1Left, 358, ColW, 28);
+      begin
+        FVkNemuInputCombo.Constraints.MinHeight := ControlH;
+        FVkNemuInputCombo.SetBounds(Col1Left, 358, ColW, ControlH);
+      end;
       if Assigned(FVkNemuDelayLbl) then
         FVkNemuDelayLbl.SetBounds(Col2Left, 340, ColW, 16);
       if Assigned(FVkNemuDelaySpin) then
-        FVkNemuDelaySpin.SetBounds(Col2Left, 358, ColW, 28);
+        FVkNemuDelaySpin.SetBounds(Col2Left, 358, ColW, ControlH);
 
       // Row 3: Cap on window unfocus
       if Assigned(FVkNemuUnfocusedToggle) then

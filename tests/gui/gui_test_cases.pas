@@ -5664,6 +5664,10 @@ begin
   AssertNotNull('FVkNemuUnfocusedToggle is assigned', goverlayform.FVkNemuUnfocusedToggle);
   AssertNotNull('FVkNemuDelaySpin is assigned', goverlayform.FVkNemuDelaySpin);
 
+  // Both Wake Input (combo) and Delay (spin) must have the exact same height
+  AssertEquals('FVkNemuInputCombo and FVkNemuDelaySpin must have matching height',
+    goverlayform.FVkNemuDelaySpin.Height, goverlayform.FVkNemuInputCombo.Height);
+
   // When disabled, GetVkNemuLaunchEnv should suppress layer
   goverlayform.FVkNemuToggle.Checked := False;
   goverlayform.VkNemuToggleChange(nil);
