@@ -69,7 +69,7 @@ const
   ROW_H      = 26;
   DOT_SZ     = 12;
   SEC_GAP    = 10;
-  COL_W      = 200;
+  COL_W      = 360;  // 2-column width for Libraries and Dependencies
   ACCENT_W   = 4;    // left accent bar width
   // accent colors per section
   ACC_MOD    = $004488CC;  // blue  — Module Status
@@ -374,15 +374,15 @@ begin
     end;
     Inc(Y, Card.Height + SEC_GAP);
 
-    // ── Card 2: Dependencies (3×2 grid) ──────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
+    // ── Card 2: Dependencies (2 columns) ─────────────────────────────────────
+    Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
     MkTitle(Card, 'Dependencies', CARD_P);
     MkSep(Card, CARD_P + 22);
 
     for i := 0 to 6 do
     begin
-      Row  := CARD_P + 30 + (i div 3) * ROW_H;
-      ColX := CARD_P + (i mod 3) * COL_W;
+      ColX := CARD_P + (i div 4) * COL_W;
+      Row  := CARD_P + 30 + (i mod 4) * ROW_H;
 
       Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
       Dot.ShowHint := True;
@@ -393,10 +393,9 @@ begin
       Lbl.Caption    := DEP_NAMES[i];
       Lbl.Font.Color := TXT_CLR;
       Lbl.Font.Size  := 9;
-      Lbl.Left       := ColX + DOT_SZ + 6;
+      Lbl.Left       := ColX + DOT_SZ + 8;
       Lbl.Top        := Row + (ROW_H - 16) div 2;
-      Lbl.Width      := COL_W - DOT_SZ - 10;
-      Lbl.AutoSize   := False;
+      Lbl.AutoSize   := True;
       Lbl.ShowHint   := True;
       FHomeDepLbls[i] := Lbl;
     end;
