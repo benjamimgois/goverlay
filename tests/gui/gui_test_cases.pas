@@ -5065,6 +5065,9 @@ begin
   AssertTrue('DLSS-NR status dot assigned', Assigned(goverlayform.FHomeModDots[10]));
   AssertTrue('DLSS-NR version label assigned', Assigned(goverlayform.FHomeModVerLbls[10]));
   AssertTrue('DLSS-NR version label text not empty', goverlayform.FHomeModVerLbls[10].Caption <> '');
+  AssertTrue('vkNemu status dot assigned', Assigned(goverlayform.FHomeModDots[11]));
+  AssertTrue('vkNemu version label assigned', Assigned(goverlayform.FHomeModVerLbls[11]));
+  AssertTrue('vkNemu version label text not empty', goverlayform.FHomeModVerLbls[11].Caption <> '');
 
   if not Assigned(aboutForm) then
     Application.CreateForm(TaboutForm, aboutForm);

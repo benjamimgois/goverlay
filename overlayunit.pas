@@ -829,8 +829,8 @@ type
     // Moved to public:
     {     // Home tab
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..10] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, vkSumi
-    FHomeModVerLbls:   array[0..10] of TLabel;   // version text
+    FHomeModDots:      array[0..11] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, vkSumi
+    FHomeModVerLbls:   array[0..11] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -1110,6 +1110,8 @@ type
     function  GetMangoHudVersion: string;
     function  GetVkBasaltVersion: string;
     function  GetVkSumiVersion: string;
+    function  GetVkNemuVersion: string;
+    procedure RefreshHomeVkNemuStatus;
     function  FindBinPath(const BinName: string): string;
     function  FindLibPath(const LibName: string): string;
 
@@ -1221,8 +1223,8 @@ type
 
     // Home tab fields (moved from private)
     FHomeTabSheet:     TTabSheet;
-    FHomeModDots:      array[0..10] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR
-    FHomeModVerLbls:   array[0..10] of TLabel;   // version text
+    FHomeModDots:      array[0..11] of TShape;   // status dots: MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR, vkNemu
+    FHomeModVerLbls:   array[0..11] of TLabel;   // version text
     FHomeOptiLbls:     array[0..4] of TLabel;   // library version labels: FakeNvAPI, Optipatcher, FSR, XeSS, DLSS
     FHomeLibDots:      array[0..4] of TShape;   // library status dots
     FHomeDepDots:      array[0..7] of TShape;
@@ -10331,6 +10333,17 @@ end;
 function Tgoverlayform.GetVkSumiVersion: string;
 begin
   Result := THomeTabHelper(FHomeHelper).GetVkSumiVersion;
+end;
+
+function Tgoverlayform.GetVkNemuVersion: string;
+begin
+  Result := THomeTabHelper(FHomeHelper).GetVkNemuVersion;
+end;
+
+procedure Tgoverlayform.RefreshHomeVkNemuStatus;
+begin
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeVkNemuStatus;
 end;
 
 function Tgoverlayform.FindBinPath(const BinName: string): string;

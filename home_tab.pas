@@ -46,6 +46,8 @@ type
     function  GetHelixSrVersion: string;
     function  IsDlssEnablerInstalled: Boolean;
     function  GetDlssEnablerVersion: string;
+    function  GetVkNemuVersion: string;
+    procedure RefreshHomeVkNemuStatus;
     function  FindBinPath(const BinName: string): string;
     function  FindLibPath(const LibName: string): string;
   end;
@@ -85,7 +87,7 @@ var
     {$ENDIF}
     'Nerd Fonts',
     'Korthos low latency');
-  MOD_NAMES: array[0..10] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR', 'DLSS-NR');
+  MOD_NAMES: array[0..11] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR', 'DLSS-NR', 'vkNemu');
 
 var
   Content:   ExtCtrls.TPanel;
@@ -336,15 +338,16 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Libraries ────────────────────────────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 11 * ROW_H + 4);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 6 * ROW_H + 4);
     MkTitle(Card, 'Libraries', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR)
-    for i := 0 to 10 do
+    // Module rows (MangoHud, vkBasalt, OptiScaler, DLSS Enabler, vkSumi, lsfg-vk, MAKO, ReShade, afmf-linux, HelixSR, DLSS-NR, vkNemu)
+    for i := 0 to 11 do
     begin
-      Row := CARD_P + 30 + i * ROW_H;
-      Dot := MkDot(Card, CARD_P, Row + (ROW_H - DOT_SZ) div 2);
+      ColX := CARD_P + (i div 6) * 360;
+      Row := CARD_P + 30 + (i mod 6) * ROW_H;
+      Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
       Dot.ShowHint := True;
       FHomeModDots[i] := Dot;
 
@@ -353,7 +356,7 @@ begin
       Lbl.Caption    := MOD_NAMES[i];
       Lbl.Font.Color := TXT_CLR;
       Lbl.Font.Size  := 9;
-      Lbl.Left       := CARD_P + DOT_SZ + 8;
+      Lbl.Left       := ColX + DOT_SZ + 8;
       Lbl.Top        := Row + (ROW_H - 16) div 2;
       Lbl.AutoSize   := True;
       Lbl.ShowHint   := True;
@@ -363,7 +366,7 @@ begin
       Lbl.Caption    := '—';
       Lbl.Font.Color := MUTED_CLR;
       Lbl.Font.Size  := 9;
-      Lbl.Left       := CARD_P + DOT_SZ + 8 + 110;
+      Lbl.Left       := ColX + DOT_SZ + 8 + 110;
       Lbl.Top        := Row + (ROW_H - 16) div 2;
       Lbl.AutoSize   := True;
       Lbl.ShowHint   := True;
@@ -447,8 +450,9 @@ var
   Missing: TStringList;
   MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK, HelixSrOK: Boolean;
   DlssNrOK, DlssNrReady: Boolean;
+  VkNemuOK: Boolean;
   MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer, HelixSrVer: string;
-  DlssNrVer: string;
+  DlssNrVer, VkNemuVer: string;
 begin
   with FForm do
   begin
@@ -617,6 +621,16 @@ begin
       DlssNrVer := StrUtils.IfThen(DlssNrOK, 'installed', 'not found');
     FHomeModVerLbls[10].Caption := DlssNrVer;
     FHomeModVerLbls[10].Font.Color := CLR_TEXT_MUTED;
+
+    VkNemuOK := IsVkNemuInstalled;
+    FHomeModDots[11].Brush.Color := Math.IfThen(VkNemuOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[11].Pen.Color := FHomeModDots[11].Brush.Color;
+    VkNemuVer := Self.GetVkNemuVersion;
+    if VkNemuVer = '' then VkNemuVer := StrUtils.IfThen(VkNemuOK, 'installed', 'not found');
+    while (VkNemuVer <> '') and (VkNemuVer[1] in ['v', 'V']) do
+      Delete(VkNemuVer, 1, 1);
+    FHomeModVerLbls[11].Caption := VkNemuVer;
+    FHomeModVerLbls[11].Font.Color := CLR_TEXT_MUTED;
   end;
 end;
 
@@ -1302,6 +1316,70 @@ begin
     Ver := 'v1.9.0';
 
   Result := Ver;
+end;
+
+function THomeTabHelper.GetVkNemuVersion: string;
+var
+  P: TProcess;
+  S: TStringList;
+  LocalVer: string;
+begin
+  Result := '';
+
+  // 1. Check local user-space version recorded by GOverlay
+  LocalVer := ReadLocalVkNemuVersion;
+  if LocalVer <> '' then
+    Exit(LocalVer);
+
+  // 2. Fall back to package managers for system-wide installs
+  if IsRunningInFlatpak then Exit;
+  P := TProcess.Create(nil);
+  try
+    P.Executable := FindDefaultExecutablePath('sh');
+    P.Parameters.Add('-c');
+    P.Parameters.Add('pacman -Q vknemu 2>/dev/null | awk ''{print $2}'' || ' +
+                     'dpkg-query -W -f=''${Version}'' vknemu 2>/dev/null || ' +
+                     'rpm -q --qf ''%{VERSION}'' vknemu 2>/dev/null || echo ""');
+    P.Options := [poUsePipes, poWaitOnExit];
+    try
+      P.Execute;
+      S := TStringList.Create;
+      try
+        S.LoadFromStream(P.Output);
+        if S.Count > 0 then Result := Trim(S[0]);
+      finally S.Free; end;
+    except end;
+  finally P.Free; end;
+end;
+
+procedure THomeTabHelper.RefreshHomeVkNemuStatus;
+const
+  CLR_OK      = $0044CC55;
+  CLR_MISSING = $005555EE;
+var
+  VkNemuOK: Boolean;
+  VkNemuVer: string;
+begin
+  with FForm do
+  begin
+    if not Assigned(FHomeModDots[11]) then Exit;
+
+    VkNemuOK := IsVkNemuInstalled;
+    FHomeModDots[11].Brush.Color := Math.IfThen(VkNemuOK, CLR_OK, CLR_MISSING);
+    FHomeModDots[11].Pen.Color := FHomeModDots[11].Brush.Color;
+
+    VkNemuVer := Self.GetVkNemuVersion;
+    if VkNemuVer = '' then
+      VkNemuVer := StrUtils.IfThen(VkNemuOK, 'installed', 'not found');
+    while (VkNemuVer <> '') and (VkNemuVer[1] in ['v', 'V']) do
+      Delete(VkNemuVer, 1, 1);
+
+    if Assigned(FHomeModVerLbls[11]) then
+    begin
+      FHomeModVerLbls[11].Caption := VkNemuVer;
+      FHomeModVerLbls[11].Font.Color := CLR_TEXT_MUTED;
+    end;
+  end;
 end;
 
 function THomeTabHelper.FindBinPath(const BinName: string): string;
