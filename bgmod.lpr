@@ -1441,6 +1441,7 @@ end;
 //    sizes are preserved.
 function IsProxyDllName(const FileName: string): Boolean; forward;
 function ReadVarFromFile(const FilePath, Key: string): string; forward;
+function IsGOverlaySourcePayload(const AGameDir, ASourceDir, FileName: string): Boolean; forward;
 
 function IsGOverlayProxyFile(const TargetDir, FileName: string): Boolean;
 var
@@ -2031,6 +2032,13 @@ begin
       else
         Log('Skipping deletion of third-party proxy DLL: ' + FullFile);
     end
+    else if LowerCase(ExtractFileExt(FileName)) = '.dll' then
+    begin
+      if IsGOverlaySourcePayload(TargetDir, SourceDir, FileName) then
+        SafeDeleteFile(FullFile)
+      else
+        Log('Skipping deletion of non-GOverlay DLL: ' + FullFile);
+    end
     else
       SafeDeleteFile(FullFile);
   end;
@@ -2202,18 +2210,44 @@ begin
 end;
 
 // True only when the game file exists and its size matches the payload
-// distributed by GOverlay in ASourceDir. When no source payload exists (or
-// sizes differ), the file is treated as genuine and must not be deleted.
+// distributed by GOverlay in ASourceDir (or standard central cache folders).
+// When no source payload exists (or sizes differ), the file is treated as genuine
+// and must not be deleted.
 function IsGOverlaySourcePayload(const AGameDir, ASourceDir, FileName: string): Boolean;
 var
-  GameFile, SrcFile: string;
+  GameFile, SrcFile, DataHome, GlobalPath: string;
+  Folders: array[0..3] of string;
+  f: Integer;
 begin
   Result := False;
-  if (AGameDir = '') or (ASourceDir = '') then Exit;
+  if AGameDir = '' then Exit;
   GameFile := IncludeTrailingPathDelimiter(AGameDir) + FileName;
-  SrcFile := IncludeTrailingPathDelimiter(ASourceDir) + FileName;
-  if not FileExists(GameFile) or not FileExists(SrcFile) then Exit;
-  Result := GetFileSize(GameFile) = GetFileSize(SrcFile);
+  if not FileExists(GameFile) then Exit;
+
+  // 1. Check specified source directory
+  if ASourceDir <> '' then
+  begin
+    SrcFile := IncludeTrailingPathDelimiter(ASourceDir) + FileName;
+    if FileExists(SrcFile) and (GetFileSize(GameFile) = GetFileSize(SrcFile)) then
+      Exit(True);
+  end;
+
+  // 2. Fallback to central cache directories
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome = '' then
+    DataHome := GetUserDir + '.local/share';
+  GlobalPath := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim;
+  Folders[0] := GlobalPath + 'optiscaler-stable';
+  Folders[1] := GlobalPath + 'optiscaler-edge';
+  Folders[2] := GlobalPath + 'bgmod';
+  Folders[3] := '/usr/share/goverlay';
+
+  for f := 0 to High(Folders) do
+  begin
+    SrcFile := IncludeTrailingPathDelimiter(Folders[f]) + FileName;
+    if FileExists(SrcFile) and (GetFileSize(GameFile) = GetFileSize(SrcFile)) then
+      Exit(True);
+  end;
 end;
 
 function IsOptiScalerDirExternallyManaged(const AGameDir: string): Boolean;

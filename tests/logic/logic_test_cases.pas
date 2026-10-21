@@ -100,6 +100,7 @@ type
     procedure TestBgmodDlssNrResolvedArchDeployment;
     procedure TestBgmodVkNemuEnvironmentExport;
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
+    procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
     procedure TestBgmodLauncherRuleSpacelessGameName;
   end;
 
@@ -2419,6 +2420,97 @@ begin
     AssertEquals('version.dll content must be untouched CET', 'CET_CYBER_ENGINE_TWEAKS_THIRD_PARTY', Trim(Lines.Text));
     Lines.LoadFromFile(MockGameDir + '/nvngx_dlss.dll');
     AssertEquals('nvngx_dlss.dll content must be untouched native', 'ORIGINAL_NATIVE_DLSS', Trim(Lines.Text));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockExe, CacheDir: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  EnsureBgmodBinary;
+  MockGameDir := IsolatedHome + '/games/Cyberpunk2077/bin/x64';
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Cyberpunk 2077';
+  ForceDirectories(MockGameDir);
+  ForceDirectories(TestGameCfgDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Mock game executable (script with .exe name that runs true)
+  MockExe := MockGameDir + '/Cyberpunk2077.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockExe), &755);
+
+  // Genuine game files that must survive cleanup
+  AssignFile(F, MockGameDir + '/nvngx_dlss.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_DLSS'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/sl.dlss.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_STREAMLINE'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/version.dll'); Rewrite(F); WriteLn(F, 'CET_CYBER_ENGINE_TWEAKS_THIRD_PARTY'); CloseFile(F);
+
+  // Seed the standard central cache with GOverlay payloads
+  CacheDir := IsolatedHome + '/.local/share/goverlay/optiscaler-stable';
+  ForceDirectories(CacheDir);
+  AssignFile(F, CacheDir + '/nvngx_dlss.dll'); Rewrite(F); WriteLn(F, 'DIFFERENT_GOverlay_OPTISCALER_DLSS_PAYLOAD_SIZE'); CloseFile(F);
+  AssignFile(F, CacheDir + '/fakenvapi.dll'); Rewrite(F); WriteLn(F, 'MOCK_FAKENVAPI_PAYLOAD'); CloseFile(F);
+
+  // Actual leftovers from a previous OptiScaler install
+  AssignFile(F, MockGameDir + '/OptiScaler.ini'); Rewrite(F); WriteLn(F, '[Config]'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/fakenvapi.dll'); Rewrite(F); WriteLn(F, 'MOCK_FAKENVAPI_PAYLOAD'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/goverlay.vars'); Rewrite(F); WriteLn(F, 'optiscalerversion=0.7.2'); CloseFile(F);
+
+  // Configure bgmod.conf with OptiScaler disabled
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+  WriteLn(F, 'DLL=version.dll');
+  CloseFile(F);
+
+  // Run bgmod launching MockExe
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly with 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // GOverlay leftovers must be removed, genuine game DLLs must be preserved
+  AssertFalse('OptiScaler.ini must be deleted', FileExists(MockGameDir + '/OptiScaler.ini'));
+  AssertFalse('fakenvapi.dll must be deleted', FileExists(MockGameDir + '/fakenvapi.dll'));
+  AssertTrue('nvngx_dlss.dll must not be deleted', FileExists(MockGameDir + '/nvngx_dlss.dll'));
+  AssertTrue('sl.dlss.dll must not be deleted', FileExists(MockGameDir + '/sl.dlss.dll'));
+  AssertTrue('version.dll must not be deleted', FileExists(MockGameDir + '/version.dll'));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(MockGameDir + '/nvngx_dlss.dll');
+    AssertEquals('nvngx_dlss.dll content must be untouched native', 'ORIGINAL_NATIVE_DLSS', Trim(Lines.Text));
+    Lines.LoadFromFile(MockGameDir + '/version.dll');
+    AssertEquals('version.dll content must be untouched CET', 'CET_CYBER_ENGINE_TWEAKS_THIRD_PARTY', Trim(Lines.Text));
   finally
     Lines.Free;
   end;
