@@ -1485,16 +1485,12 @@ begin
     finally
       Ini.Free;
     end;
-    if (RecordedProxy <> '') and SameText(RecordedProxy, FileName) then
-    begin
-      Result := True;
-      Exit;
-    end;
-    if (RecordedReshade <> '') and SameText(RecordedReshade, FileName) then
-    begin
-      Result := True;
-      Exit;
-    end;
+    // Do not trust the configured filename alone: fall through to payload size
+    // verification so third-party proxies sharing the same name (e.g. Cyber
+    // Engine Tweaks version.dll or RED4ext winmm.dll) are never claimed.
+    if ((RecordedProxy <> '') and SameText(RecordedProxy, FileName)) or
+       ((RecordedReshade <> '') and SameText(RecordedReshade, FileName)) then
+      Log('Proxy ' + FileName + ' recorded in bgmod.conf; verifying file payload before cleanup.');
   end;
 
   // Fallback 2: if dlssenablerversion is present in legacy goverlay.vars without proxydll,
@@ -1518,6 +1514,16 @@ begin
   begin
     if (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(BgmodPath) + 'renames' + PathDelim + FileName)) or
        (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(BgmodPath) + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // 1b. Check the per-game ConfigDir payload
+  if ConfigDir <> '' then
+  begin
+    if TargetSize = GetFileSize(IncludeTrailingPathDelimiter(ConfigDir) + FileName) then
     begin
       Result := True;
       Exit;
@@ -1588,6 +1594,56 @@ begin
   for i := 0 to High(ProxyDlls) do
     if SameText(FileName, ProxyDlls[i]) then
       Exit(True);
+end;
+
+// Returns True only when actual OptiScaler/upscaler leftovers are present.
+// A goverlay.vars file containing only reshadeproxy (ReShade metadata) must
+// NOT trigger OptiScaler cleanup.
+function HasOptiScalerLeftovers(const TargetDir, ADllName: string): Boolean;
+var
+  VarsFile, GamePath: string;
+  Keys: array[0..4] of string;
+  i: Integer;
+begin
+  Result := False;
+  GamePath := IncludeTrailingPathDelimiter(TargetDir);
+  VarsFile := GamePath + 'goverlay.vars';
+
+  if FileExists(VarsFile) then
+  begin
+    Keys[0] := 'proxydll';
+    Keys[1] := 'upscalertype';
+    Keys[2] := 'dlssenablerversion';
+    Keys[3] := 'optiscalerversion';
+    Keys[4] := 'fsrversion';
+    for i := 0 to High(Keys) do
+    begin
+      if ReadVarFromFile(VarsFile, Keys[i]) <> '' then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+
+  if FileExists(GamePath + 'OptiScaler.dll') or
+     FileExists(GamePath + 'OptiScaler.ini') or
+     FileExists(GamePath + 'fakenvapi.dll') or
+     FileExists(GamePath + 'dlssg_to_fsr3_amd_is_better.dll') or
+     DirectoryExists(GamePath + 'D3D12_OptiScaler') then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // No OptiScaler-specific marker was found. A goverlay.vars containing only
+  // reshadeproxy is ReShade metadata and must never trigger OptiScaler
+  // cleanup, even though IsGOverlayProxyFile recognizes ReShade proxies.
+  if FileExists(VarsFile) and (ReadVarFromFile(VarsFile, 'reshadeproxy') <> '') then
+    Exit(False);
+
+  if IsGOverlayProxyFile(TargetDir, ADllName) then
+    Result := True;
 end;
 
 procedure CopyDirectoryFiltered(const SrcDir, DestDir: string);
@@ -2145,11 +2201,47 @@ begin
     Result := 'Z:\' + Result;
 end;
 
+// True only when the game file exists and its size matches the payload
+// distributed by GOverlay in ASourceDir. When no source payload exists (or
+// sizes differ), the file is treated as genuine and must not be deleted.
+function IsGOverlaySourcePayload(const AGameDir, ASourceDir, FileName: string): Boolean;
+var
+  GameFile, SrcFile: string;
+begin
+  Result := False;
+  if (AGameDir = '') or (ASourceDir = '') then Exit;
+  GameFile := IncludeTrailingPathDelimiter(AGameDir) + FileName;
+  SrcFile := IncludeTrailingPathDelimiter(ASourceDir) + FileName;
+  if not FileExists(GameFile) or not FileExists(SrcFile) then Exit;
+  Result := GetFileSize(GameFile) = GetFileSize(SrcFile);
+end;
+
+function IsOptiScalerDirExternallyManaged(const AGameDir: string): Boolean;
+const
+  Markers: array[0..3] of string = (
+    '__folder_managed_by_vortex',
+    'vortex.deployment.json',
+    '__folder_managed_by_mod_manager',
+    '.mod_manager_managed'
+  );
+var
+  Dir: string;
+  i: Integer;
+begin
+  Result := False;
+  Dir := IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler' + PathDelim;
+  if not DirectoryExists(Dir) then Exit;
+  for i := 0 to High(Markers) do
+    if FileExists(Dir + Markers[i]) then
+      Exit(True);
+end;
+
 function IsNativeGameDll(const FileName: string): Boolean;
 begin
   Result := (FileName = 'd3dcompiler_47.dll') or
             (FileName = 'nvngx.dll') or
             (FileName = 'amd_fidelityfx_dx12.dll') or
+            (FileName = 'amd_fidelityfx_loader_dx12.dll') or
             (FileName = 'amd_fidelityfx_framegeneration_dx12.dll') or
             (FileName = 'amd_fidelityfx_upscaler_dx12.dll') or
             (FileName = 'amd_fidelityfx_vk.dll') or
@@ -2199,7 +2291,10 @@ begin
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'fakenvapi.dll');
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
 
-  SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
+  if IsOptiScalerDirExternallyManaged(AGameDir) then
+    Log('OptiScaler directory is managed externally by Vortex or another mod manager; skipping deletion.')
+  else
+    SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'D3D12_OptiScaler');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'HelixSR');
   SafeDeleteDirectory(IncludeTrailingPathDelimiter(AGameDir) + 'helixsr-fg');
@@ -2291,7 +2386,10 @@ begin
               TargetSub := Trim(Copy(EntryVal, 1, PosPipe - 1));
               Repl := Trim(Copy(EntryVal, PosPipe + 1, MaxInt));
               
-              if (Pos(CleanKey, Arg) > 0) and (Pos(TargetSub, Arg) > 0) then
+              if ((Pos(CleanKey, Arg) > 0) or
+                  (Pos(StringReplace(CleanKey, ' ', '', [rfReplaceAll]),
+                       StringReplace(Arg, ' ', '', [rfReplaceAll])) > 0)) and
+                 (Pos(TargetSub, Arg) > 0) then
               begin
                 Arg := StringReplace(Arg, TargetSub, Repl, [rfReplaceAll, rfIgnoreCase]);
                 Break;
@@ -3522,10 +3620,7 @@ begin
       else
       begin
         Log('OptiScaler is disabled, checking for cleanup...');
-        if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars') or
-           FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll') or
-           FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') or
-           IsGOverlayProxyFile(GameDir, DllName) then
+        if HasOptiScalerLeftovers(GameDir, DllName) then
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
           for i := 0 to High(OrigDlls) do
@@ -3558,7 +3653,10 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
           SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
-          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
+          if IsOptiScalerDirExternallyManaged(GameDir) then
+            Log('OptiScaler directory is managed externally by Vortex or another mod manager; skipping deletion.')
+          else
+            SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
           CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');

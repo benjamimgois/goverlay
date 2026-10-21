@@ -99,6 +99,8 @@ type
     procedure TestBgmodDlssNrDeployment;
     procedure TestBgmodDlssNrResolvedArchDeployment;
     procedure TestBgmodVkNemuEnvironmentExport;
+    procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
+    procedure TestBgmodLauncherRuleSpacelessGameName;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -2319,6 +2321,178 @@ begin
     AssertTrue('Should export VKNEMU_UNFOCUSED=1', Pos('VKNEMU_UNFOCUSED=1', Content) > 0);
     AssertTrue('Should export VKNEMU_INPUT=keyboard', Pos('VKNEMU_INPUT=keyboard', Content) > 0);
     AssertTrue('Should export VKNEMU_DELAY=4', Pos('VKNEMU_DELAY=4', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockExe, VortexDir: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  EnsureBgmodBinary;
+  MockGameDir := IsolatedHome + '/games/Cyberpunk2077/bin/x64';
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Cyberpunk 2077';
+  ForceDirectories(MockGameDir);
+  ForceDirectories(TestGameCfgDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Mock game executable (script with .exe name that runs true)
+  MockExe := MockGameDir + '/Cyberpunk2077.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockExe), &755);
+
+  // Create genuine native game files and third-party mod files
+  AssignFile(F, MockGameDir + '/nvngx_dlss.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_DLSS'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/sl.dlss.dll'); Rewrite(F); WriteLn(F, 'ORIGINAL_NATIVE_STREAMLINE'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/version.dll'); Rewrite(F); WriteLn(F, 'CET_CYBER_ENGINE_TWEAKS_THIRD_PARTY'); CloseFile(F);
+
+  // Create OptiScaler folder managed by Vortex
+  VortexDir := MockGameDir + '/OptiScaler';
+  ForceDirectories(VortexDir);
+  AssignFile(F, VortexDir + '/__folder_managed_by_vortex'); Rewrite(F); WriteLn(F, 'VORTEX_MARKER'); CloseFile(F);
+
+  // goverlay.vars in GameDir created by a previous ReShade run (contains ONLY reshadeproxy)
+  AssignFile(F, MockGameDir + '/goverlay.vars'); Rewrite(F);
+  WriteLn(F, 'reshadeproxy=dxgi.dll');
+  CloseFile(F);
+
+  // Configure bgmod.conf with ReShade enabled, OptiScaler disabled, DLL=version.dll (conflict dialog saved), RESHADE_DLL=dxgi.dll
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+  WriteLn(F, 'DLL=version.dll');
+  WriteLn(F, 'RESHADE_DLL=dxgi.dll');
+  CloseFile(F);
+
+  // Seed ReShade data dir so ReShade deployment succeeds without error
+  ForceDirectories(IsolatedHome + '/.local/share/goverlay/reshade/bin');
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/reshade/bin/ReShade64.dll'); Rewrite(F);
+  WriteLn(F, 'MOCK_RESHADE_64_PAYLOAD');
+  CloseFile(F);
+
+  // Run bgmod launching MockExe
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly with 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Verify that vendor DLLs, CET version.dll, and Vortex OptiScaler directory are PRESERVED!
+  AssertTrue('nvngx_dlss.dll must not be deleted', FileExists(MockGameDir + '/nvngx_dlss.dll'));
+  AssertTrue('sl.dlss.dll must not be deleted', FileExists(MockGameDir + '/sl.dlss.dll'));
+  AssertTrue('version.dll must not be deleted', FileExists(MockGameDir + '/version.dll'));
+  AssertTrue('OptiScaler directory must not be deleted', DirectoryExists(VortexDir));
+  AssertTrue('Vortex marker must not be deleted', FileExists(VortexDir + '/__folder_managed_by_vortex'));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(MockGameDir + '/version.dll');
+    AssertEquals('version.dll content must be untouched CET', 'CET_CYBER_ENGINE_TWEAKS_THIRD_PARTY', Trim(Lines.Text));
+    Lines.LoadFromFile(MockGameDir + '/nvngx_dlss.dll');
+    AssertEquals('nvngx_dlss.dll content must be untouched native', 'ORIGINAL_NATIVE_DLSS', Trim(Lines.Text));
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodLauncherRuleSpacelessGameName;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockPrelauncher, MockRealExe, LogFile: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  EnsureBgmodBinary;
+  // Heroic/GOG uses "Cyberpunk2077" without a space
+  MockGameDir := IsolatedHome + '/games/Cyberpunk2077';
+  ForceDirectories(MockGameDir + '/bin/x64');
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Cyberpunk 2077';
+  ForceDirectories(TestGameCfgDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockPrelauncher := MockGameDir + '/REDprelauncher.exe';
+  AssignFile(F, MockPrelauncher); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockPrelauncher), &755);
+
+  MockRealExe := MockGameDir + '/bin/x64/Cyberpunk2077.exe';
+  AssignFile(F, MockRealExe); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRealExe), &755);
+
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'CENTRAL_LOGS=1');
+  CloseFile(F);
+
+  // Run bgmod passing the launcher executable
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockPrelauncher);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // Check central bgmod.log to verify GameDir was resolved to bin/x64/
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/Cyberpunk 2077/bgmod.log';
+  AssertTrue('bgmod.log should exist', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Resolved GameDir should point to bin/x64/', Pos('bin/x64', Lines.Text) > 0);
+    AssertTrue('Resolved TargetExeName should be Cyberpunk2077.exe', Pos('exe: Cyberpunk2077.exe', Lines.Text) > 0);
   finally
     Lines.Free;
   end;

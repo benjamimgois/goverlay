@@ -648,16 +648,12 @@ begin
     finally
       Ini.Free;
     end;
-    if (RecordedProxy <> '') and SameText(RecordedProxy, FileName) then
-    begin
-      Result := True;
-      Exit;
-    end;
-    if (RecordedReshade <> '') and SameText(RecordedReshade, FileName) then
-    begin
-      Result := True;
-      Exit;
-    end;
+    // Do not trust the configured filename alone: fall through to payload size
+    // verification so third-party proxies sharing the same name (e.g. Cyber
+    // Engine Tweaks version.dll or RED4ext winmm.dll) are never claimed.
+    if ((RecordedProxy <> '') and SameText(RecordedProxy, FileName)) or
+       ((RecordedReshade <> '') and SameText(RecordedReshade, FileName)) then
+      Log('Proxy ' + FileName + ' recorded in bgmod.conf; verifying file payload before cleanup.');
   end;
 
   // Fallback 2: if dlssenablerversion is present in legacy goverlay.vars without proxydll,
@@ -682,6 +678,17 @@ begin
   begin
     if (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(GlobalPath) + 'renames' + PathDelim + FileName)) or
        (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(GlobalPath) + 'OptiScaler.dll')) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // 1b. Check the per-game config payload
+  TempCfg := GetEnvironmentVariable('BGMOD_CONFIG_DIR');
+  if TempCfg <> '' then
+  begin
+    if TargetSize = GetFileSize(IncludeTrailingPathDelimiter(TempCfg) + FileName) then
     begin
       Result := True;
       Exit;
@@ -744,6 +751,41 @@ begin
             SameText(FileName, 'opengl32.dll') or
             SameText(FileName, 'ReShade64.dll') or
             SameText(FileName, 'ReShade32.dll');
+end;
+
+// True only when the game file exists and its size matches the payload
+// distributed by GOverlay in ASourceDir. When no source payload exists (or
+// sizes differ), the file is treated as genuine and must not be deleted.
+function IsGOverlaySourcePayload(const AGameDir, ASourceDir, FileName: string): Boolean;
+var
+  GameFile, SrcFile: string;
+begin
+  Result := False;
+  if (AGameDir = '') or (ASourceDir = '') then Exit;
+  GameFile := IncludeTrailingPathDelimiter(AGameDir) + FileName;
+  SrcFile := IncludeTrailingPathDelimiter(ASourceDir) + FileName;
+  if not FileExists(GameFile) or not FileExists(SrcFile) then Exit;
+  Result := GetFileSize(GameFile) = GetFileSize(SrcFile);
+end;
+
+function IsOptiScalerDirExternallyManaged(const AGameDir: string): Boolean;
+const
+  Markers: array[0..3] of string = (
+    '__folder_managed_by_vortex',
+    'vortex.deployment.json',
+    '__folder_managed_by_mod_manager',
+    '.mod_manager_managed'
+  );
+var
+  Dir: string;
+  i: Integer;
+begin
+  Result := False;
+  Dir := IncludeTrailingPathDelimiter(AGameDir) + 'OptiScaler' + PathDelim;
+  if not DirectoryExists(Dir) then Exit;
+  for i := 0 to High(Markers) do
+    if FileExists(Dir + Markers[i]) then
+      Exit(True);
 end;
 
 procedure CleanDirectory(const SrcDir, DestDir: string);
@@ -1208,7 +1250,10 @@ begin
       // Remove plugins folder (only files matching global plugins)
       CleanDirectory(IncludeTrailingPathDelimiter(GetBGModPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
       RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
-      SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
+      if IsOptiScalerDirExternallyManaged(GameDir) then
+        Log('OptiScaler directory is managed externally by Vortex or another mod manager; skipping deletion.')
+      else
+        SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
       SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'helixsr-fg');
