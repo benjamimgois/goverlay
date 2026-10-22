@@ -3016,6 +3016,7 @@ procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
 begin
   if Assigned(FMangoHelper) then
   begin
+    TMangoHudUiHelper(FMangoHelper).ReflowMetricsTab(metricsTabSheet.ClientWidth);
     TMangoHudUiHelper(FMangoHelper).UpdateMetricsCardTheme;
     TMangoHudUiHelper(FMangoHelper).SyncMetricsToggles;
   end;

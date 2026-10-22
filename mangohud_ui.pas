@@ -61,6 +61,10 @@ type
     FframetimegraphToggle, FframetimedetailedToggle: TToggleSwitch;
     FvpsToggle, FftraceToggle, FframecountToggle, FfpscolorToggle: TToggleSwitch;
 
+    // Metrics Tab Sub-Cards
+    FGpuCoreSec, FGpuThermalSec, FGpuPowerSec, FGpuInfoSec: TPanel;
+    FCpuCoreSec, FCpuThermalSec, FCpuMemSec: TPanel;
+
     // GPU Metric Toggles
     FgpuavgloadToggle, FgpuloadcolorToggle, FvramusageToggle, FgpufreqToggle, FgpumemfreqToggle: TToggleSwitch;
     FgputempToggle, FgpumemtempToggle, FgpujunctempToggle, FgpufanToggle: TToggleSwitch;
@@ -110,6 +114,7 @@ type
     procedure UpdatePerfCardTheme;
     procedure InitMetricsTab;
     procedure ReflowMetricsTab(AContentW: Integer);
+    procedure MtScrollBoxResize(Sender: TObject);
     procedure SyncMetricsToggles;
     procedure UpdateMetricsCardTheme;
     procedure InitExtrasTab;
@@ -2910,6 +2915,17 @@ const
     end;
   end;
 
+  procedure MakeSubSec(out Sec: TPanel; AParent: TPanel);
+  begin
+    Sec := TPanel.Create(FForm);
+    Sec.Parent      := AParent;
+    Sec.Caption     := '';
+    Sec.BevelOuter  := bvNone;
+    Sec.ParentColor := False;
+    Sec.Color       := CARD_BG;
+    Sec.OnPaint     := @FForm.SubCardPaint;
+  end;
+
   // Reparent a control directly to a card, clearing all anchor dependencies and
   // placing it at (ALeft, ATop) relative to the card.  All controls land directly
   // on the TPanel — no GroupBox in the hierarchy.
@@ -2966,6 +2982,7 @@ begin
   FMtScrollBox.Color       := RGBToColor(22, 26, 40);
   FMtScrollBox.ParentColor := False;
   ApplyModernScrollBarStylesheet(FMtScrollBox);
+  FMtScrollBox.OnResize := @MtScrollBoxResize;
 
   FMtBgPanel := TPanel.Create(FForm);
   FMtBgPanel.Parent     := FMtScrollBox;
@@ -2985,6 +3002,21 @@ begin
   // ── Card 0: GPU Metrics ─────────────────────────────────────────────────
   // All Y values = LFM position + HDR (34) to offset below the card header.
   MakeCard(FMtGpuCard, 'GPU Metrics');
+
+  // Thematic sub-cards
+  MakeSubSec(FGpuCoreSec,    FMtGpuCard);
+  MakeSubSec(FGpuThermalSec, FMtGpuCard);
+  MakeSubSec(FGpuPowerSec,   FMtGpuCard);
+  MakeSubSec(FGpuInfoSec,    FMtGpuCard);
+
+  mainmetricLabel.Caption := '⚡ Core & Memory Telemetry';
+  gputempLabel.Caption    := '🌡️ Thermals & Cooling';
+  gpupowerLabel.Caption   := '🔋 Power & Efficiency';
+  gpuinfoLabel.Caption    := 'ℹ️ Hardware & Process';
+  mainmetricLabel.ShowAccelChar := False;
+  gputempLabel.ShowAccelChar    := False;
+  gpupowerLabel.ShowAccelChar   := False;
+  gpuinfoLabel.ShowAccelChar    := False;
 
   // Name edit (centered in LFM at Left=285, Top=3)
   Place(gpunameEdit, FMtGpuCard, 285, 3 + HDR);
@@ -3062,6 +3094,18 @@ begin
   // ── Card 1: CPU / Memory Metrics ────────────────────────────────────────
   MakeCard(FMtCpuCard, 'CPU / Memory Metrics');
 
+  // Thematic sub-cards
+  MakeSubSec(FCpuCoreSec,    FMtCpuCard);
+  MakeSubSec(FCpuThermalSec, FMtCpuCard);
+  MakeSubSec(FCpuMemSec,     FMtCpuCard);
+
+  cpumainmetricsLabel.Caption := '⚡ Processor Core & Freq';
+  cputempLabel.Caption        := '🌡️ Thermals & Power';
+  memLabel.Caption            := '💾 Memory & Storage IO';
+  cpumainmetricsLabel.ShowAccelChar := False;
+  cputempLabel.ShowAccelChar        := False;
+  memLabel.ShowAccelChar            := False;
+
   // Name edit (Left=285, Top=3)
   Place(cpunameEdit, FMtCpuCard, 285, 3 + HDR);
   cpunameEdit.Color      := CARD_BG;
@@ -3127,6 +3171,65 @@ begin
   cpuImage.Anchors := [akLeft, akTop];
   cpuImage.Parent  := FMtCpuCard;
   cpuImage.Top     := 5 + HDR;
+
+  // ── Reparent controls into their thematic sub-cards ─────────────────────
+  mainmetricLabel.Parent       := FGpuCoreSec;
+  FgpuavgloadToggle.Parent     := FGpuCoreSec;
+  FgpuloadcolorToggle.Parent   := FGpuCoreSec;
+  gpuload1ColorButton.Parent   := FGpuCoreSec;
+  gpuload2ColorButton.Parent   := FGpuCoreSec;
+  gpuload3ColorButton.Parent   := FGpuCoreSec;
+  FvramusageToggle.Parent      := FGpuCoreSec;
+  vramColorButton.Parent       := FGpuCoreSec;
+  FgpufreqToggle.Parent        := FGpuCoreSec;
+  FgpumemfreqToggle.Parent     := FGpuCoreSec;
+
+  gputempLabel.Parent          := FGpuThermalSec;
+  FgputempToggle.Parent        := FGpuThermalSec;
+  FgpumemtempToggle.Parent     := FGpuThermalSec;
+  FgpujunctempToggle.Parent    := FGpuThermalSec;
+  FgpufanToggle.Parent         := FGpuThermalSec;
+
+  gpupowerLabel.Parent         := FGpuPowerSec;
+  FgpupowerToggle.Parent       := FGpuPowerSec;
+  FgpuvoltageToggle.Parent     := FGpuPowerSec;
+  FgputhrottlingToggle.Parent  := FGpuPowerSec;
+  FgputhrottlinggraphToggle.Parent := FGpuPowerSec;
+  FgpuefficiencyToggle.Parent  := FGpuPowerSec;
+  gpuframesjouleBitBtn.Parent  := FGpuPowerSec;
+  FgpupowerlimitToggle.Parent  := FGpuPowerSec;
+
+  gpuinfoLabel.Parent          := FGpuInfoSec;
+  FgpumodelToggle.Parent       := FGpuInfoSec;
+  FvulkandriverToggle.Parent   := FGpuInfoSec;
+  FprocvramToggle.Parent       := FGpuInfoSec;
+
+  cpumainmetricsLabel.Parent   := FCpuCoreSec;
+  FcpuavgloadToggle.Parent     := FCpuCoreSec;
+  FcpuloadcolorToggle.Parent   := FCpuCoreSec;
+  cpuload1ColorButton.Parent   := FCpuCoreSec;
+  cpuload2ColorButton.Parent   := FCpuCoreSec;
+  cpuload3ColorButton.Parent   := FCpuCoreSec;
+  FcpuloadcoreToggle.Parent    := FCpuCoreSec;
+  coreloadtypeBitBtn.Parent    := FCpuCoreSec;
+  FcpufreqToggle.Parent        := FCpuCoreSec;
+  FcpucoretypeToggle.Parent    := FCpuCoreSec;
+
+  cputempLabel.Parent          := FCpuThermalSec;
+  FcputempToggle.Parent        := FCpuThermalSec;
+  FcpupowerToggle.Parent       := FCpuThermalSec;
+  intelpowerfixBitBtn.Parent   := FCpuThermalSec;
+  FcpuefficiencyToggle.Parent  := FCpuThermalSec;
+  cpuframesjouleBitBtn.Parent  := FCpuThermalSec;
+  FramtempToggle.Parent        := FCpuThermalSec;
+
+  memLabel.Parent              := FCpuMemSec;
+  FramusageToggle.Parent       := FCpuMemSec;
+  ramColorButton.Parent        := FCpuMemSec;
+  FdiskioToggle.Parent         := FCpuMemSec;
+  iordrwColorButton.Parent     := FCpuMemSec;
+  FprocmemToggle.Parent        := FCpuMemSec;
+  FswapusageToggle.Parent      := FCpuMemSec;
   end;
 
   // Apply the initial theme so the tab is styled from the first paint
@@ -3176,6 +3279,15 @@ begin
   UpdateGenericCardTheme(FMtGpuCard);
   UpdateGenericCardTheme(FMtCpuCard);
 
+  // Thematic sub-cards and their child labels / controls
+  UpdateGenericCardTheme(FGpuCoreSec);
+  UpdateGenericCardTheme(FGpuThermalSec);
+  UpdateGenericCardTheme(FGpuPowerSec);
+  UpdateGenericCardTheme(FGpuInfoSec);
+  UpdateGenericCardTheme(FCpuCoreSec);
+  UpdateGenericCardTheme(FCpuThermalSec);
+  UpdateGenericCardTheme(FCpuMemSec);
+
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
     SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 6px; }' +
@@ -3202,15 +3314,23 @@ end;
 
 procedure TMangoHudUiHelper.ReflowMetricsTab(AContentW: Integer);
 const
-  MARGIN = 4;
-  GAP    = 6;
-  HDR    = 34;
-  BASE_GPU_H = 315;
-  BASE_CPU_H = 300;
+  MARGIN       = 4;
+  GAP          = 8;
+  DOCK_PADDING = 80;
+  Sec1H_GPU    = 114;
+  Sec2H_GPU    = 142;
+  SecH_CPU     = 114;
+  SecMemH_CPU  = 94;
+  Col1X        = 12;
+  R1Y          = 28;
+  R2Y          = 56;
+  R3Y          = 84;
+  R4Y          = 112;
 var
-  CW, TotalH, CardTop, AvailH, ActiveGpuH, ActiveCpuH: Integer;
-  ColW, X0, X1, X2, X3, X4, X5: Integer;
-  YOff1, YOff2, YOff3, CpuYOff1, CpuYOff2: Integer;
+  CW, SecW, Sec1Left, Sec2Left: Integer;
+  Row1Top, Row2Top, ActiveGpuH: Integer;
+  CpuRow1Top, CpuRow2Top, ActiveCpuH: Integer;
+  Col2X, MemCol1, MemCol2, TotalH: Integer;
 begin
   with FForm do
   begin
@@ -3220,130 +3340,126 @@ begin
 
   FMtScrollBox.HorzScrollBar.Range := 0;
 
-  AvailH := FMtScrollBox.ClientHeight - 3 * MARGIN - GAP;
-  if AvailH > (BASE_GPU_H + BASE_CPU_H) then
-  begin
-    ActiveGpuH := Max(BASE_GPU_H, Round(AvailH * 0.52));
-    ActiveCpuH := Max(BASE_CPU_H, AvailH - ActiveGpuH);
-  end
-  else
-  begin
-    ActiveGpuH := BASE_GPU_H;
-    ActiveCpuH := BASE_CPU_H;
-  end;
+  // ── Sub-card grid metrics ───────────────────────────────────────────────
+  SecW := (CW - 3 * GAP) div 2;
+  Sec1Left := GAP;
+  Sec2Left := Sec1Left + SecW + GAP;
 
-  TotalH := MARGIN + ActiveGpuH + GAP + ActiveCpuH + MARGIN;
+  Row1Top    := 56;
+  Row2Top    := Row1Top + Sec1H_GPU + GAP;
+  ActiveGpuH := Row2Top + Sec2H_GPU + 10;
+
+  CpuRow1Top  := 56;
+  CpuRow2Top  := CpuRow1Top + SecH_CPU + GAP;
+  ActiveCpuH  := CpuRow2Top + SecMemH_CPU + 10;
+
+  TotalH := MARGIN + ActiveGpuH + GAP + ActiveCpuH + DOCK_PADDING;
   if FMtScrollBox.ClientHeight > TotalH then
     TotalH := FMtScrollBox.ClientHeight;
   FMtBgPanel.SetBounds(0, 0, FMtScrollBox.ClientWidth, TotalH);
+  FMtScrollBox.VertScrollBar.Range := TotalH;
 
-  // GPU card
+  // GPU card and CPU card
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
-  // GPU image: right-aligned, 5px from right edge
-  gpuImage.Left := CW - gpuImage.Width - 5;
-  // Center GPU name edit & color button
-  gpunameEdit.Left    := (CW - gpunameEdit.Width) div 2;
-  gpuColorButton.Left := (CW - gpuColorButton.Width) div 2;
+  FMtCpuCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP, CW, ActiveCpuH);
 
-  // CPU card
-  CardTop := MARGIN + ActiveGpuH + GAP;
-  FMtCpuCard.SetBounds(MARGIN, CardTop, CW, ActiveCpuH);
-  // CPU image: right-aligned
-  cpuImage.Left := CW - cpuImage.Width - 5;
-  // Center CPU name edit & color button
-  cpunameEdit.Left    := (CW - cpunameEdit.Width) div 2;
-  cpuColorButton.Left := (CW - cpuColorButton.Width) div 2;
+  // Header controls: image right-aligned, name edit & color button centered
+  gpunameEdit.SetBounds((CW - 200) div 2, 6, 200, 24);
+  gpuColorButton.SetBounds((CW - 200) div 2, 32, 200, 4);
+  gpuImage.Top  := 6;
+  gpuImage.Left := CW - gpuImage.Width - 10;
+  cpunameEdit.SetBounds((CW - 200) div 2, 6, 200, 24);
+  cpuColorButton.SetBounds((CW - 200) div 2, 32, 200, 4);
+  cpuImage.Top  := 6;
+  cpuImage.Left := CW - cpuImage.Width - 12;
 
-  // Compute dynamic column positions across CW
-  ColW := Max(115, (CW - 50) div 6);
-  X0 := 11;
-  X1 := X0 + ColW;
-  X2 := X0 + ColW * 2;
-  X3 := X0 + ColW * 3;
-  X4 := X0 + ColW * 4;
-  X5 := X0 + ColW * 5;
+  // Position GPU sub-cards
+  FGpuCoreSec.SetBounds(Sec1Left, Row1Top, SecW, Sec1H_GPU);
+  FGpuThermalSec.SetBounds(Sec2Left, Row1Top, SecW, Sec1H_GPU);
+  FGpuPowerSec.SetBounds(Sec1Left, Row2Top, SecW, Sec2H_GPU);
+  FGpuInfoSec.SetBounds(Sec2Left, Row2Top, SecW, Sec2H_GPU);
 
-  // Compute dynamic vertical section offsets
-  YOff1 := Max(0, (ActiveGpuH - BASE_GPU_H) div 3);
-  YOff2 := Max(0, ((ActiveGpuH - BASE_GPU_H) * 2) div 3);
-  YOff3 := Max(0, ActiveGpuH - BASE_GPU_H);
+  // Position CPU sub-cards
+  FCpuCoreSec.SetBounds(Sec1Left, CpuRow1Top, SecW, SecH_CPU);
+  FCpuThermalSec.SetBounds(Sec2Left, CpuRow1Top, SecW, SecH_CPU);
+  FCpuMemSec.SetBounds(Sec1Left, CpuRow2Top, CW - 2 * GAP, SecMemH_CPU);
 
-  CpuYOff1 := Max(0, (ActiveCpuH - BASE_CPU_H) div 2);
-  CpuYOff2 := Max(0, ActiveCpuH - BASE_CPU_H);
+  // ── Controls inside sub-cards (inline secondary controls) ───────────────
+  Col2X := SecW div 2 + 6;
 
-  // Reposition GPU Metrics controls dynamically across X0..X5 and Y offsets
-  mainmetricLabel.Top            := 56 + HDR;
-  if Assigned(FgpuavgloadToggle) then begin FgpuavgloadToggle.Left := X0; FgpuavgloadToggle.Top := 77 + HDR; end;
-  if Assigned(FgpuloadcolorToggle) then begin FgpuloadcolorToggle.Left := X1; FgpuloadcolorToggle.Top := 77 + HDR; end;
-  gpuload1ColorButton.Left       := X1;
-  gpuload1ColorButton.Top        := 99 + HDR;
-  gpuload2ColorButton.Left       := X1 + 30;
-  gpuload2ColorButton.Top        := 99 + HDR;
-  gpuload3ColorButton.Left       := X1 + 61;
-  gpuload3ColorButton.Top        := 99 + HDR;
-  if Assigned(FvramusageToggle) then begin FvramusageToggle.Left := X2; FvramusageToggle.Top := 77 + HDR; end;
-  vramColorButton.Left           := X2 - 2;
-  vramColorButton.Top            := 99 + HDR;
-  if Assigned(FgpufreqToggle) then begin FgpufreqToggle.Left := X3; FgpufreqToggle.Top := 77 + HDR; end;
-  if Assigned(FgpumemfreqToggle) then begin FgpumemfreqToggle.Left := X4; FgpumemfreqToggle.Top := 77 + HDR; end;
+  // FGpuCoreSec
+  mainmetricLabel.SetBounds(12, 8, SecW - 24, 18);
+  FgpuavgloadToggle.Left := Col1X; FgpuavgloadToggle.Top := R1Y;
+  FgpufreqToggle.Left := Col2X; FgpufreqToggle.Top := R1Y;
+  FgpuloadcolorToggle.Left := Col1X; FgpuloadcolorToggle.Top := R2Y;
+  gpuload1ColorButton.SetBounds(Col1X + FgpuloadcolorToggle.Width + 4, R2Y + 3, 18, 14);
+  gpuload2ColorButton.SetBounds(gpuload1ColorButton.Left + 20, R2Y + 3, 18, 14);
+  gpuload3ColorButton.SetBounds(gpuload2ColorButton.Left + 20, R2Y + 3, 18, 14);
+  FgpumemfreqToggle.Left := Col2X; FgpumemfreqToggle.Top := R2Y;
+  FvramusageToggle.Left := Col1X; FvramusageToggle.Top := R3Y;
+  vramColorButton.SetBounds(Col1X + FvramusageToggle.Width + 4, R3Y + 3, 24, 14);
 
-  gputempLabel.Top               := 113 + HDR + YOff1;
-  if Assigned(FgputempToggle) then begin FgputempToggle.Left := X0; FgputempToggle.Top := 134 + HDR + YOff1; end;
-  if Assigned(FgpumemtempToggle) then begin FgpumemtempToggle.Left := X1; FgpumemtempToggle.Top := 134 + HDR + YOff1; end;
-  if Assigned(FgpujunctempToggle) then begin FgpujunctempToggle.Left := X2; FgpujunctempToggle.Top := 134 + HDR + YOff1; end;
-  if Assigned(FgpufanToggle) then begin FgpufanToggle.Left := X3; FgpufanToggle.Top := 134 + HDR + YOff1; end;
+  // FGpuThermalSec
+  gputempLabel.SetBounds(12, 8, SecW - 24, 18);
+  FgputempToggle.Left := Col1X; FgputempToggle.Top := R1Y;
+  FgpumemtempToggle.Left := Col2X; FgpumemtempToggle.Top := R1Y;
+  FgpujunctempToggle.Left := Col1X; FgpujunctempToggle.Top := R2Y;
+  FgpufanToggle.Left := Col2X; FgpufanToggle.Top := R2Y;
 
-  gpupowerLabel.Top              := 170 + HDR + YOff2;
-  if Assigned(FgpupowerToggle) then begin FgpupowerToggle.Left := X0; FgpupowerToggle.Top := 191 + HDR + YOff2; end;
-  if Assigned(FgpuvoltageToggle) then begin FgpuvoltageToggle.Left := X1; FgpuvoltageToggle.Top := 191 + HDR + YOff2; end;
-  if Assigned(FgputhrottlingToggle) then begin FgputhrottlingToggle.Left := X2; FgputhrottlingToggle.Top := 191 + HDR + YOff2; end;
-  if Assigned(FgputhrottlinggraphToggle) then begin FgputhrottlinggraphToggle.Left := X3; FgputhrottlinggraphToggle.Top := 191 + HDR + YOff2; end;
-  if Assigned(FgpuefficiencyToggle) then begin FgpuefficiencyToggle.Left := X4; FgpuefficiencyToggle.Top := 191 + HDR + YOff2; end;
-  if Assigned(FgpupowerlimitToggle) then begin FgpupowerlimitToggle.Left := X5; FgpupowerlimitToggle.Top := 191 + HDR + YOff2; end;
-  gpuframesjouleBitBtn.Left      := X4 - 3;
-  gpuframesjouleBitBtn.Top       := 213 + HDR + YOff2;
+  // FGpuPowerSec (4 distinct rows, no collision between Efficiency button and Power Limit)
+  gpupowerLabel.SetBounds(12, 8, SecW - 24, 18);
+  FgpupowerToggle.Left := Col1X; FgpupowerToggle.Top := R1Y;
+  FgpuvoltageToggle.Left := Col2X; FgpuvoltageToggle.Top := R1Y;
+  FgputhrottlingToggle.Left := Col1X; FgputhrottlingToggle.Top := R2Y;
+  FgputhrottlinggraphToggle.Left := Col2X; FgputhrottlinggraphToggle.Top := R2Y;
+  FgpupowerlimitToggle.Left := Col1X; FgpupowerlimitToggle.Top := R3Y;
+  FgpuefficiencyToggle.Left := Col1X; FgpuefficiencyToggle.Top := R4Y;
+  gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R4Y, 110, 22);
 
-  gpuinfoLabel.Top               := 227 + HDR + YOff3;
-  if Assigned(FgpumodelToggle) then begin FgpumodelToggle.Left := X0; FgpumodelToggle.Top := 248 + HDR + YOff3; end;
-  if Assigned(FvulkandriverToggle) then begin FvulkandriverToggle.Left := X1; FvulkandriverToggle.Top := 248 + HDR + YOff3; end;
-  if Assigned(FprocvramToggle) then begin FprocvramToggle.Left := X2; FprocvramToggle.Top := 248 + HDR + YOff3; end;
+  // FGpuInfoSec
+  gpuinfoLabel.SetBounds(12, 8, SecW - 24, 18);
+  FgpumodelToggle.Left := Col1X; FgpumodelToggle.Top := R1Y;
+  FvulkandriverToggle.Left := Col2X; FvulkandriverToggle.Top := R1Y;
+  FprocvramToggle.Left := Col1X; FprocvramToggle.Top := R2Y;
 
-  // Reposition CPU Metrics controls dynamically across X0..X5 and CpuYOffs
-  cpumainmetricsLabel.Top        := 45 + HDR;
-  if Assigned(FcpuavgloadToggle) then begin FcpuavgloadToggle.Left := X0; FcpuavgloadToggle.Top := 66 + HDR; end;
-  if Assigned(FcpuloadcolorToggle) then begin FcpuloadcolorToggle.Left := X1; FcpuloadcolorToggle.Top := 66 + HDR; end;
-  cpuload1ColorButton.Left       := X1;
-  cpuload1ColorButton.Top        := 88 + HDR;
-  cpuload2ColorButton.Left       := X1 + 30;
-  cpuload2ColorButton.Top        := 88 + HDR;
-  cpuload3ColorButton.Left       := X1 + 61;
-  cpuload3ColorButton.Top        := 88 + HDR;
-  if Assigned(FcpuloadcoreToggle) then begin FcpuloadcoreToggle.Left := X2; FcpuloadcoreToggle.Top := 66 + HDR; end;
-  coreloadtypeBitBtn.Left        := X2 - 2;
-  coreloadtypeBitBtn.Top         := 88 + HDR;
-  if Assigned(FcpufreqToggle) then begin FcpufreqToggle.Left := X3; FcpufreqToggle.Top := 66 + HDR; end;
-  if Assigned(FcpucoretypeToggle) then begin FcpucoretypeToggle.Left := X4; FcpucoretypeToggle.Top := 66 + HDR; end;
+  // FCpuCoreSec
+  cpumainmetricsLabel.SetBounds(12, 8, SecW - 24, 18);
+  FcpuavgloadToggle.Left := Col1X; FcpuavgloadToggle.Top := R1Y;
+  FcpufreqToggle.Left := Col2X; FcpufreqToggle.Top := R1Y;
+  FcpuloadcolorToggle.Left := Col1X; FcpuloadcolorToggle.Top := R2Y;
+  cpuload1ColorButton.SetBounds(Col1X + FcpuloadcolorToggle.Width + 4, R2Y + 3, 18, 14);
+  cpuload2ColorButton.SetBounds(cpuload1ColorButton.Left + 20, R2Y + 3, 18, 14);
+  cpuload3ColorButton.SetBounds(cpuload2ColorButton.Left + 20, R2Y + 3, 18, 14);
+  FcpucoretypeToggle.Left := Col2X; FcpucoretypeToggle.Top := R2Y;
+  FcpuloadcoreToggle.Left := Col1X; FcpuloadcoreToggle.Top := R3Y;
+  coreloadtypeBitBtn.SetBounds(Col1X + FcpuloadcoreToggle.Width + 4, R3Y, 75, 22);
 
-  cputempLabel.Top               := 113 + HDR + CpuYOff1;
-  if Assigned(FcputempToggle) then begin FcputempToggle.Left := X0; FcputempToggle.Top := 134 + HDR + CpuYOff1; end;
-  if Assigned(FcpupowerToggle) then begin FcpupowerToggle.Left := X1; FcpupowerToggle.Top := 134 + HDR + CpuYOff1; end;
-  intelpowerfixBitBtn.Left       := X1 + 105;
-  intelpowerfixBitBtn.Top        := 135 + HDR + CpuYOff1;
-  if Assigned(FcpuefficiencyToggle) then begin FcpuefficiencyToggle.Left := X2; FcpuefficiencyToggle.Top := 134 + HDR + CpuYOff1; end;
-  cpuframesjouleBitBtn.Left      := X2 - 3;
-  cpuframesjouleBitBtn.Top       := 156 + HDR + CpuYOff1;
-  if Assigned(FramtempToggle) then begin FramtempToggle.Left := X3; FramtempToggle.Top := 134 + HDR + CpuYOff1; end;
+  // FCpuThermalSec
+  cputempLabel.SetBounds(12, 8, SecW - 24, 18);
+  FcputempToggle.Left := Col1X; FcputempToggle.Top := R1Y;
+  FramtempToggle.Left := Col2X; FramtempToggle.Top := R1Y;
+  FcpupowerToggle.Left := Col1X; FcpupowerToggle.Top := R2Y;
+  intelpowerfixBitBtn.SetBounds(Col1X + FcpupowerToggle.Width + 4, R2Y, 105, 22);
+  FcpuefficiencyToggle.Left := Col1X; FcpuefficiencyToggle.Top := R3Y;
+  cpuframesjouleBitBtn.SetBounds(Col1X + FcpuefficiencyToggle.Width + 6, R3Y, 110, 22);
 
-  memLabel.Top                   := 181 + HDR + CpuYOff2;
-  if Assigned(FramusageToggle) then begin FramusageToggle.Left := X0; FramusageToggle.Top := 202 + HDR + CpuYOff2; end;
-  ramColorButton.Left            := X0 - 6;
-  ramColorButton.Top             := 224 + HDR + CpuYOff2;
-  if Assigned(FdiskioToggle) then begin FdiskioToggle.Left := X1; FdiskioToggle.Top := 202 + HDR + CpuYOff2; end;
-  iordrwColorButton.Left         := X1 - 6;
-  iordrwColorButton.Top          := 224 + HDR + CpuYOff2;
-  if Assigned(FprocmemToggle) then begin FprocmemToggle.Left := X2; FprocmemToggle.Top := 202 + HDR + CpuYOff2; end;
-  if Assigned(FswapusageToggle) then begin FswapusageToggle.Left := X3; FswapusageToggle.Top := 202 + HDR + CpuYOff2; end;
+  // FCpuMemSec (2 rows of 2 columns, generous space)
+  memLabel.SetBounds(12, 8, CW - 24, 18);
+  MemCol1 := 12;
+  MemCol2 := (CW - 2 * GAP) div 2 + 6;
+  FramusageToggle.Left := MemCol1; FramusageToggle.Top := R1Y;
+  ramColorButton.SetBounds(MemCol1 + FramusageToggle.Width + 4, R1Y + 3, 24, 14);
+  FprocmemToggle.Left := MemCol2; FprocmemToggle.Top := R1Y;
+  FdiskioToggle.Left := MemCol1; FdiskioToggle.Top := R2Y;
+  iordrwColorButton.SetBounds(MemCol1 + FdiskioToggle.Width + 4, R2Y + 3, 24, 14);
+  FswapusageToggle.Left := MemCol2; FswapusageToggle.Top := R2Y;
   end;
+end;
+
+procedure TMangoHudUiHelper.MtScrollBoxResize(Sender: TObject);
+begin
+  if Assigned(FForm.FMtScrollBox) then
+    ReflowMetricsTab(FForm.FMtScrollBox.ClientWidth);
 end;
 
 procedure TMangoHudUiHelper.SyncMetricsToggles;
