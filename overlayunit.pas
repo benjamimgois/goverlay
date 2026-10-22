@@ -1159,6 +1159,7 @@ type
     FVkNemuUnfocusedCheckBox: TCheckBox;
     FVkNemuDelaySpin:         TSpinEdit;
     FVkNemuDelayLbl:          TLabel;
+    FVkNemuFlowCard:          TPanel;
     FIntelCpuOverrideForTest: Integer; // -1: auto, 0: false, 1: true
     FPreviousFilenameIndex: Integer;
     FLastLosslessShowTick: QWord;
@@ -1627,6 +1628,7 @@ type
     procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
     procedure UpdateGenericCardTheme(Card: TPanel);
     procedure ReshadeGitProgress(APhase: string; APercent: Integer);
+    procedure UpdateVkNemuFlowDiagram;
   end;
 
 
@@ -2629,8 +2631,15 @@ begin
     TriggerAutoSave;
 end;
 
+procedure Tgoverlayform.UpdateVkNemuFlowDiagram;
+begin
+  if Assigned(FVkNemuFlowCard) then
+    FVkNemuFlowCard.Invalidate;
+end;
+
 procedure Tgoverlayform.VkNemuControlChange(Sender: TObject);
 begin
+  UpdateVkNemuFlowDiagram;
   if not FLoadingConfig then
     TriggerAutoSave;
 end;
@@ -2742,6 +2751,7 @@ begin
       FVkNemuUnfocusedToggle.Checked := FVkNemuUnfocusedCheckBox.Checked;
 
     VkNemuToggleChange(nil);
+    UpdateVkNemuFlowDiagram;
   finally
     FLoadingConfig := WasLoading;
   end;

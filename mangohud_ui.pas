@@ -94,6 +94,7 @@ type
     procedure UpdatePresetCardVisuals;
     procedure PresetCardPaint(Sender: TObject);
     procedure LimitSubCardPaint(Sender: TObject);
+    procedure VkNemuFlowCardPaint(Sender: TObject);
     procedure PresetCardClick(Sender: TObject);
     procedure PresetCardMouseEnter(Sender: TObject);
     procedure PresetCardMouseLeave(Sender: TObject);
@@ -820,6 +821,136 @@ begin
   Card.Canvas.Pen.Color   := BorderColor;
   Card.Canvas.Pen.Width   := 1;
   Card.Canvas.RoundRect(1, 1, Card.Width - 1, Card.Height - 1, CORNER_R * 2, CORNER_R * 2);
+
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.Brush.Style := bsSolid;
+end;
+
+
+procedure TMangoHudUiHelper.VkNemuFlowCardPaint(Sender: TObject);
+const
+  DARK_BG      = $00241A14;  // rgb(20, 26, 36)
+  DARK_BRD     = $003C3026;  // rgb(38, 48, 60)
+  LIGHT_BG     = $00F0F5F2;  // rgb(242, 245, 240)
+  LIGHT_BRD    = $00D0D5E0;
+  CLR_EMERALD  = $006EE744;  // rgb(68, 231, 110)
+  CLR_SLATE    = $00949AA8;  // rgb(168, 154, 148)
+  CLR_ARROW    = $00808898;  // rgb(152, 136, 128)
+  CLR_AMBER    = $0038C8F8;  // rgb(248, 200, 56)
+  CORNER_R     = 8;
+var
+  Card: TPanel;
+  BgClear, BgColor, BorderColor: TColor;
+  W, H, X1, X2, X3, Arrow1X, Arrow2X: Integer;
+  TitleY, SubY, ArrowY: Integer;
+  IdleFps, TimeoutVal, DelayVal: Integer;
+  InputModeStr: string;
+
+  procedure DrawCentered(ACenterX, AY: Integer; const AText: string;
+                         ASize: Integer; AStyle: TFontStyles; AColor: TColor);
+  begin
+    Card.Canvas.Font.Name    := 'Noto Sans';
+    Card.Canvas.Font.Size    := ASize;
+    Card.Canvas.Font.Style   := AStyle;
+    Card.Canvas.Font.Color   := AColor;
+    Card.Canvas.Font.Quality := fqAntialiased;
+    Card.Canvas.Brush.Style  := bsClear;
+    Card.Canvas.TextOut(ACenterX - (Card.Canvas.TextWidth(AText) div 2), AY, AText);
+  end;
+
+begin
+  if not (Sender is TPanel) then Exit;
+  Card := TPanel(Sender);
+
+  if CurrentTheme = tmLight then
+  begin
+    BgClear     := $00F0F0F0;
+    BgColor     := LIGHT_BG;
+    BorderColor := LIGHT_BRD;
+  end
+  else
+  begin
+    BgClear     := $002E1E1A;
+    BgColor     := DARK_BG;
+    BorderColor := DARK_BRD;
+  end;
+
+  if Card.Parent is TWinControl then
+    BgClear := TWinControl(Card.Parent).Color;
+
+  W := Card.ClientWidth;
+  H := Card.ClientHeight;
+
+  // Clear the client area so rounded corners blend with the parent surface.
+  Card.Canvas.Brush.Color := BgClear;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgClear;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.FillRect(Card.ClientRect);
+
+  {$IFDEF LCLqt6}
+  if Card.Canvas.Handle <> 0 then
+    TQtDeviceContext(Card.Canvas.Handle).setRenderHint(QPainterAntialiasing, True);
+  {$ENDIF}
+
+  // Rounded surface fill.
+  Card.Canvas.Brush.Color := BgColor;
+  Card.Canvas.Brush.Style := bsSolid;
+  Card.Canvas.Pen.Color   := BgColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.RoundRect(0, 0, W, H, CORNER_R, CORNER_R);
+
+  // Rounded border stroke.
+  Card.Canvas.Brush.Style := bsClear;
+  Card.Canvas.Pen.Color   := BorderColor;
+  Card.Canvas.Pen.Width   := 1;
+  Card.Canvas.RoundRect(1, 1, W - 1, H - 1, CORNER_R, CORNER_R);
+
+  // Live values
+  if Assigned(FForm.FVkNemuIdleFpsSpin) then
+    IdleFps := FForm.FVkNemuIdleFpsSpin.Value
+  else
+    IdleFps := 30;
+  if Assigned(FForm.FVkNemuTimeoutSpin) then
+    TimeoutVal := FForm.FVkNemuTimeoutSpin.Value
+  else
+    TimeoutVal := 2;
+  if Assigned(FForm.FVkNemuDelaySpin) then
+    DelayVal := FForm.FVkNemuDelaySpin.Value
+  else
+    DelayVal := 0;
+  if Assigned(FForm.FVkNemuInputCombo) and (Trim(FForm.FVkNemuInputCombo.Text) <> '') then
+    InputModeStr := LowerCase(Trim(FForm.FVkNemuInputCombo.Text))
+  else
+    InputModeStr := 'all';
+
+  // Flow geometry
+  X2       := W div 2;
+  X1       := 56;
+  X3       := W - 56;
+  Arrow1X  := (X1 + X2) div 2;
+  Arrow2X  := (X2 + X3) div 2;
+  TitleY   := 9;
+  SubY     := 30;
+  ArrowY   := 19;
+
+  // Node 1: Active Game
+  DrawCentered(X1, TitleY, 'Active Game', 9, [fsBold], CLR_EMERALD);
+  DrawCentered(X1, SubY, 'Max FPS', 8, [], CLR_SLATE);
+
+  // Arrow 1: idle timeout
+  DrawCentered(Arrow1X, ArrowY, Format('-[ %ds ]->', [TimeoutVal]), 8, [], CLR_ARROW);
+
+  // Node 2: Standby
+  DrawCentered(X2, TitleY, 'Standby', 9, [fsBold], CLR_AMBER);
+  DrawCentered(X2, SubY, Format('%d FPS', [IdleFps]), 8, [fsBold], CLR_AMBER);
+
+  // Arrow 2: wake input mode
+  DrawCentered(Arrow2X, ArrowY, Format('-[ %s ]->', [InputModeStr]), 8, [], CLR_ARROW);
+
+  // Node 3: Resume
+  DrawCentered(X3, TitleY, 'Resume', 9, [fsBold], CLR_EMERALD);
+  DrawCentered(X3, SubY, Format('%ds delay', [DelayVal]), 8, [], CLR_SLATE);
 
   Card.Canvas.Pen.Width   := 1;
   Card.Canvas.Brush.Style := bsSolid;
@@ -2182,8 +2313,15 @@ begin
   FVkNemuSectionLbl := TLabel.Create(FForm);
   FVkNemuSectionLbl.Parent := FPerfLimitSec;
   StyleLabel(FVkNemuSectionLbl, lrSectionTitle);
-  FVkNemuSectionLbl.Caption := 'Idle Limiter (vkNemu)';
+  FVkNemuSectionLbl.Caption := '🌙 Idle Limiter (vkNemu)';
   FVkNemuSectionLbl.AutoSize := False;
+
+  FVkNemuFlowCard := TPanel.Create(FForm);
+  FVkNemuFlowCard.Parent := FPerfLimitSec;
+  FVkNemuFlowCard.BevelOuter := bvNone;
+  FVkNemuFlowCard.OnPaint := @VkNemuFlowCardPaint;
+  FVkNemuFlowCard.ParentColor := False;
+  FVkNemuFlowCard.DoubleBuffered := True;
 
   FVkNemuCheckBox := TCheckBox.Create(FForm);
   FVkNemuCheckBox.Parent := FPerfLimitSec;
@@ -2208,7 +2346,7 @@ begin
   FVkNemuTimeoutLbl := TLabel.Create(FForm);
   FVkNemuTimeoutLbl.Parent := FPerfLimitSec;
   StyleLabel(FVkNemuTimeoutLbl, lrControlLabel);
-  FVkNemuTimeoutLbl.Caption := 'Timeout (s)';
+  FVkNemuTimeoutLbl.Caption := 'Timeout (seconds)';
   FVkNemuTimeoutLbl.AutoSize := False;
 
   FVkNemuTimeoutSpin := TSpinEdit.Create(FForm);
@@ -2221,7 +2359,7 @@ begin
   FVkNemuInputLbl := TLabel.Create(FForm);
   FVkNemuInputLbl.Parent := FPerfLimitSec;
   StyleLabel(FVkNemuInputLbl, lrControlLabel);
-  FVkNemuInputLbl.Caption := 'Wake Input';
+  FVkNemuInputLbl.Caption := 'Wake Input Trigger';
   FVkNemuInputLbl.AutoSize := False;
 
   FVkNemuInputCombo := TComboBox.Create(FForm);
@@ -2237,7 +2375,7 @@ begin
 
   FVkNemuUnfocusedCheckBox := TCheckBox.Create(FForm);
   FVkNemuUnfocusedCheckBox.Parent := FPerfLimitSec;
-  FVkNemuUnfocusedCheckBox.Caption := 'Cap on window unfocus';
+  FVkNemuUnfocusedCheckBox.Caption := 'Cap on window unfocus (Alt+Tab)';
   FVkNemuUnfocusedCheckBox.Visible := False;
   FVkNemuUnfocusedToggle := PlacePerfToggle(FVkNemuUnfocusedCheckBox, FPerfLimitSec);
   FVkNemuUnfocusedToggle.OnClick := @FForm.VkNemuControlChange;
@@ -2245,7 +2383,7 @@ begin
   FVkNemuDelayLbl := TLabel.Create(FForm);
   FVkNemuDelayLbl.Parent := FPerfLimitSec;
   StyleLabel(FVkNemuDelayLbl, lrControlLabel);
-  FVkNemuDelayLbl.Caption := 'Delay (s)';
+  FVkNemuDelayLbl.Caption := 'Resume Delay (seconds)';
   FVkNemuDelayLbl.AutoSize := False;
 
   FVkNemuDelaySpin := TSpinEdit.Create(FForm);
@@ -2254,6 +2392,8 @@ begin
   FVkNemuDelaySpin.MaxValue := 60;
   FVkNemuDelaySpin.Value := 0;
   FVkNemuDelaySpin.OnChange := @FForm.VkNemuControlChange;
+
+  FForm.UpdateVkNemuFlowDiagram;
   end;
 end;
 
@@ -2283,6 +2423,7 @@ var
   TabH, ActiveRow2H, FilterSecH: Integer;
   FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
   TotalLeftH, MangoH, NemuTop, NemuH, GapCards, ColGap, ControlH: Integer;
+  LabelW, CtrlW: Integer;
 begin
   with FForm do
   begin
@@ -2500,17 +2641,20 @@ begin
       // Reposition vkNemu Idle Limiter controls in lower half of FPerfLimitSec
       if Assigned(FVkNemuDivider) then
       begin
-        FVkNemuDivider.SetBounds(14, 238, FPerfLimitSec.ClientWidth - 28, 1);
+        FVkNemuDivider.SetBounds(14, 226, FPerfLimitSec.ClientWidth - 28, 1);
         FVkNemuDivider.Visible := True;
       end;
 
       if Assigned(FVkNemuSectionLbl) then
-        FVkNemuSectionLbl.SetBounds(14, 254, FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
+        FVkNemuSectionLbl.SetBounds(14, 244, FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
       if Assigned(FVkNemuToggle) then
       begin
         FVkNemuToggle.Left := FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 14;
-        FVkNemuToggle.Top := 252;
+        FVkNemuToggle.Top := 240;
       end;
+
+      if Assigned(FVkNemuFlowCard) then
+        FVkNemuFlowCard.SetBounds(14, 272, FPerfLimitSec.ClientWidth - 28, 54);
 
       ColGap := 16;
       ColW := (FPerfLimitSec.ClientWidth - 28 - ColGap) div 2;
@@ -2522,34 +2666,51 @@ begin
       if Assigned(FVkNemuDelaySpin) and (FVkNemuDelaySpin.Height > ControlH) then
         ControlH := FVkNemuDelaySpin.Height;
 
-      // Row 1: Idle FPS | Timeout (s)
-      if Assigned(FVkNemuIdleFpsLbl) then
-        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 282, ColW, 16);
-      if Assigned(FVkNemuIdleFpsSpin) then
-        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 300, ColW, ControlH);
-      if Assigned(FVkNemuTimeoutLbl) then
-        FVkNemuTimeoutLbl.SetBounds(Col2Left, 282, ColW, 16);
-      if Assigned(FVkNemuTimeoutSpin) then
-        FVkNemuTimeoutSpin.SetBounds(Col2Left, 300, ColW, ControlH);
+      LabelW := 68;
+      CtrlW := 85;
 
-      // Row 2: Wake Input | Delay (s)
+      // Row 1: Idle FPS | Timeout
+      if Assigned(FVkNemuIdleFpsLbl) then
+      begin
+        FVkNemuIdleFpsLbl.Caption := 'Idle FPS:';
+        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 346, LabelW, 20);
+      end;
+      if Assigned(FVkNemuIdleFpsSpin) then
+        FVkNemuIdleFpsSpin.SetBounds(Col1Left + LabelW, 340, CtrlW, 30);
+
+      if Assigned(FVkNemuTimeoutLbl) then
+      begin
+        FVkNemuTimeoutLbl.Caption := 'Timeout:';
+        FVkNemuTimeoutLbl.SetBounds(Col2Left, 346, LabelW, 20);
+      end;
+      if Assigned(FVkNemuTimeoutSpin) then
+        FVkNemuTimeoutSpin.SetBounds(Col2Left + LabelW, 340, CtrlW, 30);
+
+      // Row 2: Wake | Delay
       if Assigned(FVkNemuInputLbl) then
-        FVkNemuInputLbl.SetBounds(Col1Left, 340, ColW, 16);
+      begin
+        FVkNemuInputLbl.Caption := 'Wake:';
+        FVkNemuInputLbl.SetBounds(Col1Left, 388, LabelW, 20);
+      end;
       if Assigned(FVkNemuInputCombo) then
       begin
         FVkNemuInputCombo.Constraints.MinHeight := ControlH;
-        FVkNemuInputCombo.SetBounds(Col1Left, 358, ColW, ControlH);
+        FVkNemuInputCombo.SetBounds(Col1Left + LabelW, 382, CtrlW, 30);
       end;
+
       if Assigned(FVkNemuDelayLbl) then
-        FVkNemuDelayLbl.SetBounds(Col2Left, 340, ColW, 16);
+      begin
+        FVkNemuDelayLbl.Caption := 'Delay:';
+        FVkNemuDelayLbl.SetBounds(Col2Left, 388, LabelW, 20);
+      end;
       if Assigned(FVkNemuDelaySpin) then
-        FVkNemuDelaySpin.SetBounds(Col2Left, 358, ColW, ControlH);
+        FVkNemuDelaySpin.SetBounds(Col2Left + LabelW, 382, CtrlW, 30);
 
       // Row 3: Cap on window unfocus
       if Assigned(FVkNemuUnfocusedToggle) then
       begin
         FVkNemuUnfocusedToggle.Left := Col1Left;
-        FVkNemuUnfocusedToggle.Top := 398;
+        FVkNemuUnfocusedToggle.Top := 432;
       end;
     end;
   end;
