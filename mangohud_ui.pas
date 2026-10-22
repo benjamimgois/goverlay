@@ -1827,15 +1827,15 @@ begin
   FFpsLimitTitleLbl.SetBounds(ContL + 6, ContT + 8, 140, 20);
   FFpsLimitTitleLbl.Anchors := [akLeft, akTop];
 
-  // Create the edit — modern proportionate font
+  // Create the edit — compact, proportionate font
   FFpsLimitEdit := TEdit.Create(FForm);
   FFpsLimitEdit.Parent := FPerfLimitSec;
-  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 30, 200, 36);
-  FFpsLimitEdit.Constraints.MinWidth := 180;
+  FFpsLimitEdit.SetBounds(ContL + 6, ContT + 30, 105, 28);
+  FFpsLimitEdit.Constraints.MinWidth := 80;
   FFpsLimitEdit.Constraints.MaxWidth := 220;
   FFpsLimitEdit.Anchors := [akLeft, akTop];
-  FFpsLimitEdit.Font.Name := 'DejaVu Sans Mono';
-  FFpsLimitEdit.Font.Size := 18;
+  FFpsLimitEdit.Font.Name := 'Noto Sans';
+  FFpsLimitEdit.Font.Size := 10;
   FFpsLimitEdit.Font.Color := TextColor;
   FFpsLimitEdit.Color := EditBg;
   FFpsLimitEdit.BorderStyle := bsNone;
@@ -1843,11 +1843,11 @@ begin
   FFpsLimitEdit.Text := '0';
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
-    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px; }' +
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 4px; }' +
           'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
           'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
   else
-    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 4px; }' +
           'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
           'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
   QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
@@ -2276,6 +2276,9 @@ var
   ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
   GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
   ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
+  LimitW, MethodW, ToggleW, RowGap: Integer;
+  Row1LblTop, Row1CtrlTop, Row1CtrlH: Integer;
+  ColorTop, ColorH, SpinH, SpinTop, Div1, Div2: Integer;
   VkColW, VkCol1, VkCol2, VkCol3, VkSpinW, VkComboW: Integer;
   TabH, ActiveRow2H, FilterSecH: Integer;
   FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
@@ -2431,57 +2434,69 @@ begin
     // Reposition controls in the MangoHud Limit sub-card
     if Assigned(FPerfLimitSec) then
     begin
-      if Assigned(FFpsLimitTitleLbl) then
-        FFpsLimitTitleLbl.SetBounds(0, 10, FPerfLimitSec.ClientWidth, 18);
-      if Assigned(FFpsLimitEdit) then
-        FFpsLimitEdit.SetBounds((FPerfLimitSec.ClientWidth - 190) div 2, 32, 190, 34);
-      if Assigned(FFpsLimitHintLbl) then
-        FFpsLimitHintLbl.SetBounds(0, 69, FPerfLimitSec.ClientWidth, 16);
+      // Group 1: FPS Limit | Method | Toggle Key in a single row
+      LimitW  := 105;
+      MethodW := 95;
+      ToggleW := 105;
+      RowGap  := 10;
+      TotalRowW := LimitW + RowGap + MethodW + RowGap + ToggleW;
+      RowStart  := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
+      Row1LblTop  := 16;
+      Row1CtrlTop := 36;
+      Row1CtrlH   := 28;
 
+      if Assigned(FFpsLimitTitleLbl) then
+      begin
+        FFpsLimitTitleLbl.SetBounds(RowStart, Row1LblTop, LimitW, 16);
+        FFpsLimitTitleLbl.Alignment := taCenter;
+      end;
+      if Assigned(FFpsLimitEdit) then
+        FFpsLimitEdit.SetBounds(RowStart, Row1CtrlTop, LimitW, Row1CtrlH);
+
+      methodLabel.SetBounds(RowStart + LimitW + RowGap, Row1LblTop, MethodW, 16);
+      methodLabel.Alignment := taCenter;
+      fpslimmetComboBox.SetBounds(RowStart + LimitW + RowGap, Row1CtrlTop, MethodW, Row1CtrlH);
+
+      limtoggleLabel.SetBounds(RowStart + LimitW + RowGap + MethodW + RowGap, Row1LblTop, ToggleW, 16);
+      limtoggleLabel.Alignment := taCenter;
+      if Assigned(FLimitCaptureBtn) then
+        FLimitCaptureBtn.SetBounds(RowStart + LimitW + RowGap + MethodW + RowGap, Row1CtrlTop, ToggleW, Row1CtrlH);
+
+      // Subtitle hint
+      if Assigned(FFpsLimitHintLbl) then
+      begin
+        FFpsLimitHintLbl.SetBounds(0, 72, FPerfLimitSec.ClientWidth, 16);
+        FFpsLimitHintLbl.Alignment := taCenter;
+      end;
+
+      // Group 2: Change FPS colors
       if Assigned(FfpscolorToggle) then
       begin
         FfpscolorToggle.Left := (FPerfLimitSec.ClientWidth - FfpscolorToggle.Width) div 2;
-        FfpscolorToggle.Top := 94;
+        FfpscolorToggle.Top := 108;
       end;
 
-      ColW := 75;
-      SpinW := 65;
-      ColorGap := -2;
-      ColorGroupW := 3 * ColW + 2 * ColorGap;
+      ColorGroupW := 255;
+      ColW := ColorGroupW div 3;
+      ColorGroupW := ColW * 3;
       ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
+      ColorTop := 146;
+      ColorH := 20;
 
-      fpscolor1ColorButton.Left := ColorStart;
-      fpscolor2ColorButton.Left := ColorStart + ColW + ColorGap;
-      fpscolor3ColorButton.Left := ColorStart + 2 * (ColW + ColorGap);
+      fpscolor1ColorButton.SetBounds(ColorStart, ColorTop, ColW, ColorH);
+      fpscolor2ColorButton.SetBounds(ColorStart + ColW, ColorTop, ColW, ColorH);
+      fpscolor3ColorButton.SetBounds(ColorStart + 2 * ColW, ColorTop, ColW, ColorH);
+      fpscolor1ColorButton.ButtonColorSize := ColW;
+      fpscolor2ColorButton.ButtonColorSize := ColW;
+      fpscolor3ColorButton.ButtonColorSize := ColW;
 
-      fpscolor2SpinEdit.Left := fpscolor2ColorButton.Left + (ColW - SpinW) div 2;
-      fpscolor3SpinEdit.Left := fpscolor3ColorButton.Left + (ColW - SpinW) div 2;
-
-      fpscolor1ColorButton.Top := 122;
-      fpscolor2ColorButton.Top := fpscolor1ColorButton.Top;
-      fpscolor3ColorButton.Top := fpscolor1ColorButton.Top;
-      fpscolor2SpinEdit.Top := fpscolor1ColorButton.Top + 24;
-      fpscolor3SpinEdit.Top := fpscolor2SpinEdit.Top;
-
-      ComboW := 120;
-      BtnW := 120;
-      MiddleGap := 20;
-      TotalRowW := ComboW + MiddleGap + BtnW;
-      RowStart := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
-
-      methodLabel.Left := RowStart;
-      methodLabel.Top := 178;
-      fpslimmetComboBox.Left := RowStart;
-      fpslimmetComboBox.Top := 196;
-
-      limtoggleLabel.Left := RowStart + ComboW + MiddleGap;
-      limtoggleLabel.Top := 178;
-      if Assigned(FLimitCaptureBtn) then
-      begin
-        FLimitCaptureBtn.Left := RowStart + ComboW + MiddleGap;
-        FLimitCaptureBtn.Top := 196;
-        FLimitCaptureBtn.Width := BtnW;
-      end;
+      SpinW := 65;
+      SpinH := 28;
+      SpinTop := ColorTop + ColorH + 8;
+      Div1 := ColorStart + ColW;
+      Div2 := ColorStart + 2 * ColW;
+      fpscolor2SpinEdit.SetBounds(Div1 - (SpinW div 2), SpinTop, SpinW, SpinH);
+      fpscolor3SpinEdit.SetBounds(Div2 - (SpinW div 2), SpinTop, SpinW, SpinH);
       // Reposition vkNemu Idle Limiter controls in lower half of FPerfLimitSec
       if Assigned(FVkNemuDivider) then
       begin
