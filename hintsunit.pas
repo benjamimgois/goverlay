@@ -380,15 +380,23 @@ begin
   SetHint('offsetSpinEdit', 'Offset' + LineEnding +
     'Distance from screen edge in pixels');
 
+  // Custom name edits
+  SetHint('gpunameEdit', 'Custom GPU HUD name' + LineEnding +
+    'Overrides the default GPU label shown in the overlay (gpu_text).' + LineEnding +
+    'Leave empty to use default detected name.');
+  SetHint('cpunameEdit', 'Custom CPU HUD name' + LineEnding +
+    'Overrides the default CPU label shown in the overlay (cpu_text).' + LineEnding +
+    'Leave empty to use default detected name.');
+
   // Color buttons
   SetHint('FontcolorButton', 'Font color' + LineEnding +
     'Default text color');
   SetHint('hudbackgroundColorButton', 'Background color' + LineEnding +
     'Overlay background color');
-  SetHint('cpuColorButton', 'CPU color' + LineEnding +
-    'CPU metrics text color');
-  SetHint('gpuColorButton', 'GPU color' + LineEnding +
-    'GPU metrics text color');
+  SetHint('cpuColorButton', 'CPU HUD color' + LineEnding +
+    'Text color for the CPU line and metrics in the overlay (cpu_color)');
+  SetHint('gpuColorButton', 'GPU HUD color' + LineEnding +
+    'Text color for the GPU line and metrics in the overlay (gpu_color)');
   SetHint('ramColorButton', 'RAM color' + LineEnding +
     'Memory usage text color');
   SetHint('vramColorButton', 'VRAM color' + LineEnding +

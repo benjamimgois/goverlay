@@ -64,6 +64,7 @@ type
     // Metrics Tab Sub-Cards
     FGpuCoreSec, FGpuThermalSec, FGpuPowerSec, FGpuInfoSec: TPanel;
     FCpuCoreSec, FCpuThermalSec, FCpuMemSec: TPanel;
+    FGpuTitleLbl, FCpuTitleLbl: TLabel;
 
     // GPU Metric Toggles
     FgpuavgloadToggle, FgpuloadcolorToggle, FvramusageToggle, FgpufreqToggle, FgpumemfreqToggle: TToggleSwitch;
@@ -2899,7 +2900,7 @@ const
   WHITE    = clWhite;
   HDR      = 34;   // accent bar (3px) + title label area
 
-  procedure MakeCard(out Card: TPanel; const ATitle: string);
+  procedure MakeCard(out Card: TPanel; out TitleLbl: TLabel; const ATitle: string);
   var
     Lbl: TLabel;
   begin
@@ -2912,6 +2913,7 @@ const
       Lbl := TLabel.Create(Card);
       Lbl.Parent   := Card;
       StyleMainCard(Card, Lbl, ATitle);
+      TitleLbl := Lbl;
     end;
   end;
 
@@ -3001,7 +3003,7 @@ begin
 
   // ── Card 0: GPU Metrics ─────────────────────────────────────────────────
   // All Y values = LFM position + HDR (34) to offset below the card header.
-  MakeCard(FMtGpuCard, 'GPU Metrics');
+  MakeCard(FMtGpuCard, FGpuTitleLbl, 'GPU Metrics');
 
   // Thematic sub-cards
   MakeSubSec(FGpuCoreSec,    FMtGpuCard);
@@ -3018,15 +3020,17 @@ begin
   gpupowerLabel.ShowAccelChar   := False;
   gpuinfoLabel.ShowAccelChar    := False;
 
-  // Name edit (centered in LFM at Left=285, Top=3)
-  Place(gpunameEdit, FMtGpuCard, 285, 3 + HDR);
+  // GPU HUD name controls in the card header
+  Place(gpuColorButton, FMtGpuCard, 0, 0);
+  gpuColorButton.Color    := CARD_BG;
+  gpuColorButton.ShowHint := True;
+
+  Place(gpunameEdit, FMtGpuCard, 0, 0);
   gpunameEdit.Color      := CARD_BG;
   gpunameEdit.Font.Color := WHITE;
   gpunameEdit.Font.Size  := 9;
-
-  // Main color bar (Left=281, Top=35)
-  Place(gpuColorButton, FMtGpuCard, 281, 35 + HDR);
-  gpuColorButton.Color := CARD_BG;
+  gpunameEdit.TextHint   := 'Default (GPU)';
+  gpunameEdit.ShowHint   := True;
 
   // Section: Main metrics (label Top=56, controls Top=77/99)
   Place(mainmetricLabel,     FMtGpuCard, 11,  56 + HDR);
@@ -3092,7 +3096,7 @@ begin
   gpuImage.Top     := 5 + HDR;
 
   // ── Card 1: CPU / Memory Metrics ────────────────────────────────────────
-  MakeCard(FMtCpuCard, 'CPU / Memory Metrics');
+  MakeCard(FMtCpuCard, FCpuTitleLbl, 'CPU / Memory Metrics');
 
   // Thematic sub-cards
   MakeSubSec(FCpuCoreSec,    FMtCpuCard);
@@ -3106,15 +3110,17 @@ begin
   cputempLabel.ShowAccelChar        := False;
   memLabel.ShowAccelChar            := False;
 
-  // Name edit (Left=285, Top=3)
-  Place(cpunameEdit, FMtCpuCard, 285, 3 + HDR);
+  // CPU HUD name controls in the card header
+  Place(cpuColorButton, FMtCpuCard, 0, 0);
+  cpuColorButton.Color    := CARD_BG;
+  cpuColorButton.ShowHint := True;
+
+  Place(cpunameEdit, FMtCpuCard, 0, 0);
   cpunameEdit.Color      := CARD_BG;
   cpunameEdit.Font.Color := WHITE;
   cpunameEdit.Font.Size  := 9;
-
-  // Main color bar (Left=281, Top=35)
-  Place(cpuColorButton, FMtCpuCard, 281, 35 + HDR);
-  cpuColorButton.Color := CARD_BG;
+  cpunameEdit.TextHint   := 'Default (CPU)';
+  cpunameEdit.ShowHint   := True;
 
   // Section: Main metrics (label Top=45, controls Top=66/88)
   Place(cpumainmetricsLabel, FMtCpuCard, 11,  45 + HDR);
@@ -3363,15 +3369,21 @@ begin
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
   FMtCpuCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP, CW, ActiveCpuH);
 
-  // Header controls: image right-aligned, name edit & color button centered
-  gpunameEdit.SetBounds((CW - 200) div 2, 6, 200, 24);
-  gpuColorButton.SetBounds((CW - 200) div 2, 32, 200, 4);
+  // Header controls: inline title + name controls, image right-aligned
   gpuImage.Top  := 6;
   gpuImage.Left := CW - gpuImage.Width - 10;
-  cpunameEdit.SetBounds((CW - 200) div 2, 6, 200, 24);
-  cpuColorButton.SetBounds((CW - 200) div 2, 32, 200, 4);
   cpuImage.Top  := 6;
   cpuImage.Left := CW - cpuImage.Width - 12;
+
+  FGpuTitleLbl.Left := 16;
+  FGpuTitleLbl.Top  := 10;
+  gpuColorButton.SetBounds(FGpuTitleLbl.Left + FGpuTitleLbl.Width + 10, 8, 22, 22);
+  gpunameEdit.SetBounds(gpuColorButton.Left + gpuColorButton.Width + 8, 7, 185, 24);
+
+  FCpuTitleLbl.Left := 16;
+  FCpuTitleLbl.Top  := 10;
+  cpuColorButton.SetBounds(FCpuTitleLbl.Left + FCpuTitleLbl.Width + 10, 8, 22, 22);
+  cpunameEdit.SetBounds(cpuColorButton.Left + cpuColorButton.Width + 8, 7, 185, 24);
 
   // Position GPU sub-cards
   FGpuCoreSec.SetBounds(Sec1Left, Row1Top, SecW, Sec1H_GPU);

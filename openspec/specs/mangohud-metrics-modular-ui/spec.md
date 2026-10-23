@@ -18,3 +18,18 @@ The system SHALL place all secondary metric controls—including load gradient c
 #### Scenario: Visual alignment of secondary controls
 - **WHEN** the user inspects metric items having secondary controls (such as Load Color, VRAM, RAM, Core Load, or Efficiency)
 - **THEN** the associated color palettes, indicators, or format buttons SHALL be rendered aligned side-by-side with the corresponding toggle switch without floating beneath the label
+
+### Requirement: HUD Chip Header Integration
+The system SHALL present custom hardware name inputs and line color indicators as unified, styled HUD Chip pills inside the GPU Metrics and CPU / Memory Metrics card headers.
+
+#### Scenario: GPU HUD Chip layout and hint
+- **WHEN** the user inspects the GPU Metrics card header
+- **THEN** the system SHALL display a unified chip containing the line color button on the left, the name input in the middle with placeholder 'Default (GPU)', and a 'HUD' tag on the right
+
+#### Scenario: CPU HUD Chip layout and hint
+- **WHEN** the user inspects the CPU / Memory Metrics card header
+- **THEN** the system SHALL display a unified chip containing the line color button on the left, the name input in the middle with placeholder 'Default (CPU)', and a 'HUD' tag on the right
+
+#### Scenario: Responsive alignment in card header
+- **WHEN** the Metrics tab content area is resized
+- **THEN** each HUD Chip SHALL maintain its horizontal position centered between the card title and vendor logo without visual overlapping
