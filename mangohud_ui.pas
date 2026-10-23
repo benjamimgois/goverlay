@@ -3013,10 +3013,10 @@ begin
   MakeSubSec(FGpuPowerSec,   FMtGpuCard);
   MakeSubSec(FGpuInfoSec,    FMtGpuCard);
 
-  mainmetricLabel.Caption := '⚡ Core & Memory Telemetry';
-  gputempLabel.Caption    := '🌡️ Thermals & Cooling';
-  gpupowerLabel.Caption   := '🔋 Power & Efficiency';
-  gpuinfoLabel.Caption    := 'ℹ️ Hardware & Process';
+  mainmetricLabel.Caption := '▌ Core & Telemetry';
+  gputempLabel.Caption    := '▌ Thermals & Cooling';
+  gpupowerLabel.Caption   := '▌ Power & Energy';
+  gpuinfoLabel.Caption    := '▌ Hardware & Drivers';
   mainmetricLabel.ShowAccelChar := False;
   gputempLabel.ShowAccelChar    := False;
   gpupowerLabel.ShowAccelChar   := False;
@@ -3110,12 +3110,12 @@ begin
   MakeSubSec(FCpuMemSec,     FMtCpuCard);
   MakeSubSec(FCpuStorageSec, FMtCpuCard);
 
-  cpumainmetricsLabel.Caption := '⚡ Processor Core & Freq';
-  cputempLabel.Caption        := '🌡️ CPU Thermals & Power';
-  memLabel.Caption            := '💾 Memory & Swap';
+  cpumainmetricsLabel.Caption := '▌ Processor Core & Freq';
+  cputempLabel.Caption        := '▌ CPU Thermals & Power';
+  memLabel.Caption            := '▌ Memory & Swap';
   FStorageLabel := TLabel.Create(FCpuStorageSec);
   FStorageLabel.Parent := FCpuStorageSec;
-  FStorageLabel.Caption := '💽 Storage & Disk IO';
+  FStorageLabel.Caption := '▌ Storage & Disk IO';
   DarkSectLbl(FStorageLabel);
   cpumainmetricsLabel.ShowAccelChar := False;
   cputempLabel.ShowAccelChar        := False;
@@ -3262,7 +3262,8 @@ end;
 
 procedure TMangoHudUiHelper.UpdateMetricsCardTheme;
 var
-  TextColor, GpuColor, CpuColor: TColor;
+  TextColor: TColor;
+  CoreColor, ThermColor, PowerColor, HardColor, MemColor, StorColor: TColor;
   SS: WideString;
 
   procedure ApplySectLabel(L: TLabel; AColor: TColor);
@@ -3291,12 +3292,25 @@ begin
   if not Assigned(FMtGpuCard) and not Assigned(FMtCpuCard) then Exit;
 
   if CurrentTheme = tmLight then
-    TextColor := LightTextColor
+  begin
+    TextColor  := LightTextColor;
+    CoreColor  := $000A78B4; // Dark Amber
+    ThermColor := $003223BE; // Crimson
+    PowerColor := $003C8C14; // Forest Green
+    HardColor  := $00B45A14; // Royal Blue
+    MemColor   := $00A0286E; // Deep Purple
+    StorColor  := $000A68A0; // Bronze Amber
+  end
   else
-    TextColor := DarkTextColor;
-
-  GpuColor := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
-  CpuColor := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
+  begin
+    TextColor  := DarkTextColor;
+    CoreColor  := $0025B8F5; // Amber-Gold
+    ThermColor := $006850F4; // Coral Red
+    PowerColor := $0078D830; // Emerald Green
+    HardColor  := $00F09838; // Electric Blue
+    MemColor   := $00F070B0; // Indigo Purple
+    StorColor  := $0038D0E8; // Bronze Gold
+  end;
 
   // Card backgrounds / generic control colors first
   UpdateGenericCardTheme(FMtGpuCard);
@@ -3324,15 +3338,15 @@ begin
   ApplyNameEdit(gpunameEdit);
   ApplyNameEdit(cpunameEdit);
 
-  // Section labels: GPU uses the cool accent, CPU / Memory the warm one
-  ApplySectLabel(mainmetricLabel,     GpuColor);
-  ApplySectLabel(gputempLabel,        GpuColor);
-  ApplySectLabel(gpupowerLabel,       GpuColor);
-  ApplySectLabel(gpuinfoLabel,        GpuColor);
-  ApplySectLabel(cpumainmetricsLabel, CpuColor);
-  ApplySectLabel(cputempLabel,        CpuColor);
-  ApplySectLabel(memLabel,            CpuColor);
-  ApplySectLabel(FStorageLabel,       CpuColor);
+  // Section labels: themed by subsystem accent
+  ApplySectLabel(mainmetricLabel,     CoreColor);
+  ApplySectLabel(gputempLabel,        ThermColor);
+  ApplySectLabel(gpupowerLabel,       PowerColor);
+  ApplySectLabel(gpuinfoLabel,        HardColor);
+  ApplySectLabel(cpumainmetricsLabel, CoreColor);
+  ApplySectLabel(cputempLabel,        ThermColor);
+  ApplySectLabel(memLabel,            MemColor);
+  ApplySectLabel(FStorageLabel,       StorColor);
   end;
 end;
 
