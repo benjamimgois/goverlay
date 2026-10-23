@@ -28,7 +28,7 @@ The system SHALL place all secondary metric controls—including load gradient c
 - **THEN** the color buttons SHALL render as proportional swatches of at least 20x20 pixels with distinct tooltips explaining their threshold level or overlay metric target
 
 ### Requirement: HUD Chip Header Integration
-The system SHALL present custom hardware name inputs and line color indicators as unified, styled HUD Chip pills inside the GPU Metrics and CPU / Memory Metrics card headers.
+The system SHALL present custom hardware name inputs and line color indicators as unified, styled HUD Chip pills inside the GPU Metrics and CPU / Memory Metrics card headers without legacy asymmetrical illustrations.
 
 #### Scenario: GPU HUD Chip layout and hint
 - **WHEN** the user inspects the GPU Metrics card header
@@ -40,4 +40,4 @@ The system SHALL present custom hardware name inputs and line color indicators a
 
 #### Scenario: Responsive alignment in card header
 - **WHEN** the Metrics tab content area is resized
-- **THEN** each HUD Chip SHALL maintain its horizontal position centered between the card title and vendor logo without visual overlapping
+- **THEN** each HUD Chip SHALL maintain its horizontal position centered beside the card title without overlapping

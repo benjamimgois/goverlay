@@ -3092,14 +3092,8 @@ begin
   FprocvramToggle     := PlaceToggle(procvramCheckBox, FMtGpuCard, 266, 248 + HDR);
   DarkSectLbl(gpuinfoLabel);
 
-  // GPU image — right-anchored, positioned in ReflowMetricsTab
-  gpuImage.AnchorSideLeft.Control   := nil;
-  gpuImage.AnchorSideTop.Control    := nil;
-  gpuImage.AnchorSideRight.Control  := nil;
-  gpuImage.AnchorSideBottom.Control := nil;
-  gpuImage.Anchors := [akLeft, akTop];
-  gpuImage.Parent  := FMtGpuCard;
-  gpuImage.Top     := 5 + HDR;
+  // GPU image — hidden for clean minimalist header
+  gpuImage.Visible := False;
 
   // ── Card 1: CPU / Memory Metrics ────────────────────────────────────────
   MakeCard(FMtCpuCard, FCpuTitleLbl, 'CPU / Memory Metrics');
@@ -3120,6 +3114,7 @@ begin
   cpumainmetricsLabel.ShowAccelChar := False;
   cputempLabel.ShowAccelChar        := False;
   memLabel.ShowAccelChar            := False;
+  FStorageLabel.ShowAccelChar       := False;
 
   // CPU HUD name controls in the card header
   Place(cpuColorButton, FMtCpuCard, 0, 0);
@@ -3185,14 +3180,8 @@ begin
   ramColorButton.ShowHint    := True;
   iordrwColorButton.ShowHint := True;
 
-  // CPU image — right-anchored, positioned in ReflowMetricsTab
-  cpuImage.AnchorSideLeft.Control   := nil;
-  cpuImage.AnchorSideTop.Control    := nil;
-  cpuImage.AnchorSideRight.Control  := nil;
-  cpuImage.AnchorSideBottom.Control := nil;
-  cpuImage.Anchors := [akLeft, akTop];
-  cpuImage.Parent  := FMtCpuCard;
-  cpuImage.Top     := 5 + HDR;
+  // CPU image — hidden for clean minimalist header
+  cpuImage.Visible := False;
 
   // ── Reparent controls into their thematic sub-cards ─────────────────────
   mainmetricLabel.Parent       := FGpuCoreSec;
@@ -3390,11 +3379,9 @@ begin
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
   FMtCpuCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP, CW, ActiveCpuH);
 
-  // Header controls: inline title + name controls, image right-aligned
-  gpuImage.Top  := 6;
-  gpuImage.Left := CW - gpuImage.Width - 10;
-  cpuImage.Top  := 6;
-  cpuImage.Left := CW - cpuImage.Width - 12;
+  // Header controls: inline title + name controls
+  gpuImage.Visible := False;
+  cpuImage.Visible := False;
 
   FGpuTitleLbl.Left := 16;
   FGpuTitleLbl.Top  := 10;
