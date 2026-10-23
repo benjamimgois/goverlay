@@ -66,7 +66,7 @@ type
     FCpuCoreSec, FCpuThermalSec, FCpuMemSec: TPanel;
     FCpuStorageSec: TPanel;
     FStorageLabel: TLabel;
-    FGpuTitleLbl, FCpuTitleLbl: TLabel;
+    FGpuTitleLbl, FCpuTitleLbl, FMemTitleLbl: TLabel;
 
     // GPU Metric Toggles
     FgpuavgloadToggle, FgpuloadcolorToggle, FvramusageToggle, FgpufreqToggle, FgpumemfreqToggle: TToggleSwitch;
@@ -2979,10 +2979,12 @@ begin
   FMtScrollBox := TScrollBox.Create(FForm);
   FMtScrollBox.Parent      := metricsTabSheet;
   FMtScrollBox.Align       := alClient;
-  FMtScrollBox.AutoScroll  := True;
+  FMtScrollBox.AutoScroll  := False;
   FMtScrollBox.BorderStyle := bsNone;
   FMtScrollBox.HorzScrollBar.Visible := False;
   FMtScrollBox.HorzScrollBar.Range   := 0;
+  FMtScrollBox.VertScrollBar.Visible := False;
+  FMtScrollBox.VertScrollBar.Range   := 0;
   FMtScrollBox.Color       := RGBToColor(22, 26, 40);
   FMtScrollBox.ParentColor := False;
   ApplyModernScrollBarStylesheet(FMtScrollBox);
@@ -3095,14 +3097,19 @@ begin
   // GPU image — hidden for clean minimalist header
   gpuImage.Visible := False;
 
-  // ── Card 1: CPU / Memory Metrics ────────────────────────────────────────
-  MakeCard(FMtCpuCard, FCpuTitleLbl, 'CPU / Memory Metrics');
+  // ── Card 1: CPU Metrics ─────────────────────────────────────────────────
+  MakeCard(FMtCpuCard, FCpuTitleLbl, 'CPU Metrics');
 
   // Thematic sub-cards
   MakeSubSec(FCpuCoreSec,    FMtCpuCard);
   MakeSubSec(FCpuThermalSec, FMtCpuCard);
-  MakeSubSec(FCpuMemSec,     FMtCpuCard);
-  MakeSubSec(FCpuStorageSec, FMtCpuCard);
+
+  // ── Card 2: Memory Metrics ──────────────────────────────────────────────
+  MakeCard(FMtMemCard, FMemTitleLbl, 'Memory metrics');
+
+  // Thematic sub-cards
+  MakeSubSec(FCpuMemSec,     FMtMemCard);
+  MakeSubSec(FCpuStorageSec, FMtMemCard);
 
   cpumainmetricsLabel.Caption := 'Processor Core & Freq';
   cputempLabel.Caption        := 'CPU Thermals & Power';
@@ -3279,7 +3286,7 @@ var
 begin
   with FForm do
   begin
-  if not Assigned(FMtGpuCard) and not Assigned(FMtCpuCard) then Exit;
+  if not Assigned(FMtGpuCard) and not Assigned(FMtCpuCard) and not Assigned(FMtMemCard) then Exit;
 
   if CurrentTheme = tmLight then
   begin
@@ -3295,6 +3302,7 @@ begin
   // Card backgrounds / generic control colors first
   UpdateGenericCardTheme(FMtGpuCard);
   UpdateGenericCardTheme(FMtCpuCard);
+  UpdateGenericCardTheme(FMtMemCard);
 
   // Thematic sub-cards and their child labels / controls
   UpdateGenericCardTheme(FGpuCoreSec);
@@ -3343,20 +3351,20 @@ procedure TMangoHudUiHelper.ReflowMetricsTab(AContentW: Integer);
 const
   MARGIN       = 4;
   GAP          = 8;
-  DOCK_PADDING = 80;
-  Sec1H_GPU    = 114;
-  Sec2H_GPU    = 114;
-  SecH_CPU     = 114;
-  SecMemH_CPU  = 90;
+  BASE_GPU_H   = 302;
+  BASE_CPU_H   = 180;
+  BASE_MEM_H   = 146;
+  BASE_TOTAL_H = BASE_GPU_H + BASE_CPU_H + BASE_MEM_H; // = 628
   Col1X        = 12;
   R1Y          = 28;
   R2Y          = 56;
   R3Y          = 84;
 var
   CW, SecW, Sec1Left, Sec2Left: Integer;
-  Row1Top, Row2Top, ActiveGpuH: Integer;
-  CpuRow1Top, CpuRow2Top, ActiveCpuH: Integer;
-  Col2X, TotalH: Integer;
+  Row1Top, Row2Top, ActiveGpuH, Sec1H_GPU, Sec2H_GPU: Integer;
+  CpuRow1Top, ActiveCpuH, SecH_CPU: Integer;
+  MemRow1Top, ActiveMemH, SecH_Mem: Integer;
+  Col2X, TotalH, AvailH, ExtraH, AvailGpuSub: Integer;
 begin
   with FForm do
   begin
@@ -3372,22 +3380,45 @@ begin
   Sec2Left := Sec1Left + SecW + GAP;
 
   Row1Top    := 56;
-  Row2Top    := Row1Top + Sec1H_GPU + GAP;
-  ActiveGpuH := Row2Top + Sec2H_GPU + 10;
+  CpuRow1Top := 56;
+  MemRow1Top := 46;
 
-  CpuRow1Top  := 56;
-  CpuRow2Top  := CpuRow1Top + SecH_CPU + GAP;
-  ActiveCpuH  := CpuRow2Top + SecMemH_CPU + 10;
+  // Dynamically expand card heights to fill the available window height
+  AvailH := FMtScrollBox.ClientHeight - 2 * MARGIN - 2 * GAP;
+  if AvailH > BASE_TOTAL_H then
+  begin
+    ExtraH := AvailH - BASE_TOTAL_H;
+    ActiveGpuH := BASE_GPU_H + Round(ExtraH * 0.48);
+    ActiveCpuH := BASE_CPU_H + Round(ExtraH * 0.28);
+    ActiveMemH := AvailH - ActiveGpuH - ActiveCpuH;
+  end
+  else
+  begin
+    ActiveGpuH := BASE_GPU_H;
+    ActiveCpuH := BASE_CPU_H;
+    ActiveMemH := BASE_MEM_H;
+  end;
 
-  TotalH := MARGIN + ActiveGpuH + GAP + ActiveCpuH + DOCK_PADDING;
+  // Dynamically calculate sub-card heights
+  AvailGpuSub := ActiveGpuH - Row1Top - GAP - 10;
+  Sec1H_GPU   := AvailGpuSub div 2;
+  Sec2H_GPU   := AvailGpuSub - Sec1H_GPU;
+  Row2Top     := Row1Top + Sec1H_GPU + GAP;
+
+  SecH_CPU := ActiveCpuH - CpuRow1Top - 10;
+  SecH_Mem := ActiveMemH - MemRow1Top - 10;
+
+  TotalH := MARGIN + ActiveGpuH + GAP + ActiveCpuH + GAP + ActiveMemH + MARGIN;
   if FMtScrollBox.ClientHeight > TotalH then
     TotalH := FMtScrollBox.ClientHeight;
   FMtBgPanel.SetBounds(0, 0, FMtScrollBox.ClientWidth, TotalH);
-  FMtScrollBox.VertScrollBar.Range := TotalH;
+  FMtScrollBox.VertScrollBar.Range := 0;
+  FMtScrollBox.VertScrollBar.Visible := False;
 
-  // GPU card and CPU card
+  // GPU, CPU and Memory cards
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
   FMtCpuCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP, CW, ActiveCpuH);
+  FMtMemCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP + ActiveCpuH + GAP, CW, ActiveMemH);
 
   // Header controls: inline title + name controls
   gpuImage.Visible := False;
@@ -3403,6 +3434,9 @@ begin
   cpuColorButton.SetBounds(FCpuTitleLbl.Left + FCpuTitleLbl.Width + 10, 8, 22, 22);
   cpunameEdit.SetBounds(cpuColorButton.Left + cpuColorButton.Width + 8, 7, 185, 24);
 
+  FMemTitleLbl.Left := 16;
+  FMemTitleLbl.Top  := 10;
+
   // Position GPU sub-cards
   FGpuCoreSec.SetBounds(Sec1Left, Row1Top, SecW, Sec1H_GPU);
   FGpuThermalSec.SetBounds(Sec2Left, Row1Top, SecW, Sec1H_GPU);
@@ -3412,8 +3446,10 @@ begin
   // Position CPU sub-cards
   FCpuCoreSec.SetBounds(Sec1Left, CpuRow1Top, SecW, SecH_CPU);
   FCpuThermalSec.SetBounds(Sec2Left, CpuRow1Top, SecW, SecH_CPU);
-  FCpuMemSec.SetBounds(Sec1Left, CpuRow2Top, SecW, SecMemH_CPU);
-  FCpuStorageSec.SetBounds(Sec2Left, CpuRow2Top, SecW, SecMemH_CPU);
+
+  // Position Memory sub-cards
+  FCpuMemSec.SetBounds(Sec1Left, MemRow1Top, SecW, SecH_Mem);
+  FCpuStorageSec.SetBounds(Sec2Left, MemRow1Top, SecW, SecH_Mem);
 
   // ── Controls inside sub-cards (inline secondary controls) ───────────────
   Col2X := SecW div 2 + 6;

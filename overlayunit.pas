@@ -1285,6 +1285,7 @@ type
     FMtBgPanel:      TPanel;
     FMtGpuCard:      TPanel;
     FMtCpuCard:      TPanel;
+    FMtMemCard:      TPanel;
     // vkBasalt tab redesign
     FVkReshadeCard:  TPanel;
     FVkBuiltinCard:  TPanel;
