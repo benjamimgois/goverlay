@@ -64,6 +64,8 @@ type
     // Metrics Tab Sub-Cards
     FGpuCoreSec, FGpuThermalSec, FGpuPowerSec, FGpuInfoSec: TPanel;
     FCpuCoreSec, FCpuThermalSec, FCpuMemSec: TPanel;
+    FCpuStorageSec: TPanel;
+    FStorageLabel: TLabel;
     FGpuTitleLbl, FCpuTitleLbl: TLabel;
 
     // GPU Metric Toggles
@@ -3102,10 +3104,15 @@ begin
   MakeSubSec(FCpuCoreSec,    FMtCpuCard);
   MakeSubSec(FCpuThermalSec, FMtCpuCard);
   MakeSubSec(FCpuMemSec,     FMtCpuCard);
+  MakeSubSec(FCpuStorageSec, FMtCpuCard);
 
   cpumainmetricsLabel.Caption := '⚡ Processor Core & Freq';
-  cputempLabel.Caption        := '🌡️ Thermals & Power';
-  memLabel.Caption            := '💾 Memory & Storage IO';
+  cputempLabel.Caption        := '🌡️ CPU Thermals & Power';
+  memLabel.Caption            := '💾 Memory & Swap';
+  FStorageLabel := TLabel.Create(FCpuStorageSec);
+  FStorageLabel.Parent := FCpuStorageSec;
+  FStorageLabel.Caption := '💽 Storage & Disk IO';
+  DarkSectLbl(FStorageLabel);
   cpumainmetricsLabel.ShowAccelChar := False;
   cputempLabel.ShowAccelChar        := False;
   memLabel.ShowAccelChar            := False;
@@ -3189,18 +3196,19 @@ begin
   vramColorButton.Parent       := FGpuCoreSec;
   FgpufreqToggle.Parent        := FGpuCoreSec;
   FgpumemfreqToggle.Parent     := FGpuCoreSec;
+  FprocvramToggle.Parent       := FGpuCoreSec;
 
   gputempLabel.Parent          := FGpuThermalSec;
   FgputempToggle.Parent        := FGpuThermalSec;
   FgpumemtempToggle.Parent     := FGpuThermalSec;
   FgpujunctempToggle.Parent    := FGpuThermalSec;
   FgpufanToggle.Parent         := FGpuThermalSec;
+  FgputhrottlingToggle.Parent  := FGpuThermalSec;
+  FgputhrottlinggraphToggle.Parent := FGpuThermalSec;
 
   gpupowerLabel.Parent         := FGpuPowerSec;
   FgpupowerToggle.Parent       := FGpuPowerSec;
   FgpuvoltageToggle.Parent     := FGpuPowerSec;
-  FgputhrottlingToggle.Parent  := FGpuPowerSec;
-  FgputhrottlinggraphToggle.Parent := FGpuPowerSec;
   FgpuefficiencyToggle.Parent  := FGpuPowerSec;
   gpuframesjouleBitBtn.Parent  := FGpuPowerSec;
   FgpupowerlimitToggle.Parent  := FGpuPowerSec;
@@ -3208,7 +3216,6 @@ begin
   gpuinfoLabel.Parent          := FGpuInfoSec;
   FgpumodelToggle.Parent       := FGpuInfoSec;
   FvulkandriverToggle.Parent   := FGpuInfoSec;
-  FprocvramToggle.Parent       := FGpuInfoSec;
 
   cpumainmetricsLabel.Parent   := FCpuCoreSec;
   FcpuavgloadToggle.Parent     := FCpuCoreSec;
@@ -3227,15 +3234,16 @@ begin
   intelpowerfixBitBtn.Parent   := FCpuThermalSec;
   FcpuefficiencyToggle.Parent  := FCpuThermalSec;
   cpuframesjouleBitBtn.Parent  := FCpuThermalSec;
-  FramtempToggle.Parent        := FCpuThermalSec;
 
   memLabel.Parent              := FCpuMemSec;
   FramusageToggle.Parent       := FCpuMemSec;
   ramColorButton.Parent        := FCpuMemSec;
-  FdiskioToggle.Parent         := FCpuMemSec;
-  iordrwColorButton.Parent     := FCpuMemSec;
+  FramtempToggle.Parent        := FCpuMemSec;
   FprocmemToggle.Parent        := FCpuMemSec;
   FswapusageToggle.Parent      := FCpuMemSec;
+
+  FdiskioToggle.Parent         := FCpuStorageSec;
+  iordrwColorButton.Parent     := FCpuStorageSec;
   end;
 
   // Apply the initial theme so the tab is styled from the first paint
@@ -3293,6 +3301,7 @@ begin
   UpdateGenericCardTheme(FCpuCoreSec);
   UpdateGenericCardTheme(FCpuThermalSec);
   UpdateGenericCardTheme(FCpuMemSec);
+  UpdateGenericCardTheme(FCpuStorageSec);
 
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
@@ -3314,6 +3323,7 @@ begin
   ApplySectLabel(cpumainmetricsLabel, CpuColor);
   ApplySectLabel(cputempLabel,        CpuColor);
   ApplySectLabel(memLabel,            CpuColor);
+  ApplySectLabel(FStorageLabel,       CpuColor);
   end;
 end;
 
@@ -3324,19 +3334,18 @@ const
   GAP          = 8;
   DOCK_PADDING = 80;
   Sec1H_GPU    = 114;
-  Sec2H_GPU    = 142;
+  Sec2H_GPU    = 114;
   SecH_CPU     = 114;
-  SecMemH_CPU  = 94;
+  SecMemH_CPU  = 90;
   Col1X        = 12;
   R1Y          = 28;
   R2Y          = 56;
   R3Y          = 84;
-  R4Y          = 112;
 var
   CW, SecW, Sec1Left, Sec2Left: Integer;
   Row1Top, Row2Top, ActiveGpuH: Integer;
   CpuRow1Top, CpuRow2Top, ActiveCpuH: Integer;
-  Col2X, MemCol1, MemCol2, TotalH: Integer;
+  Col2X, TotalH: Integer;
 begin
   with FForm do
   begin
@@ -3394,7 +3403,8 @@ begin
   // Position CPU sub-cards
   FCpuCoreSec.SetBounds(Sec1Left, CpuRow1Top, SecW, SecH_CPU);
   FCpuThermalSec.SetBounds(Sec2Left, CpuRow1Top, SecW, SecH_CPU);
-  FCpuMemSec.SetBounds(Sec1Left, CpuRow2Top, CW - 2 * GAP, SecMemH_CPU);
+  FCpuMemSec.SetBounds(Sec1Left, CpuRow2Top, SecW, SecMemH_CPU);
+  FCpuStorageSec.SetBounds(Sec2Left, CpuRow2Top, SecW, SecMemH_CPU);
 
   // ── Controls inside sub-cards (inline secondary controls) ───────────────
   Col2X := SecW div 2 + 6;
@@ -3410,6 +3420,7 @@ begin
   FgpumemfreqToggle.Left := Col2X; FgpumemfreqToggle.Top := R2Y;
   FvramusageToggle.Left := Col1X; FvramusageToggle.Top := R3Y;
   vramColorButton.SetBounds(Col1X + FvramusageToggle.Width + 4, R3Y + 3, 24, 14);
+  FprocvramToggle.Left := Col2X; FprocvramToggle.Top := R3Y;
 
   // FGpuThermalSec
   gputempLabel.SetBounds(12, 8, SecW - 24, 18);
@@ -3417,22 +3428,21 @@ begin
   FgpumemtempToggle.Left := Col2X; FgpumemtempToggle.Top := R1Y;
   FgpujunctempToggle.Left := Col1X; FgpujunctempToggle.Top := R2Y;
   FgpufanToggle.Left := Col2X; FgpufanToggle.Top := R2Y;
+  FgputhrottlingToggle.Left := Col1X; FgputhrottlingToggle.Top := R3Y;
+  FgputhrottlinggraphToggle.Left := Col2X; FgputhrottlinggraphToggle.Top := R3Y;
 
-  // FGpuPowerSec (4 distinct rows, no collision between Efficiency button and Power Limit)
+  // FGpuPowerSec
   gpupowerLabel.SetBounds(12, 8, SecW - 24, 18);
   FgpupowerToggle.Left := Col1X; FgpupowerToggle.Top := R1Y;
   FgpuvoltageToggle.Left := Col2X; FgpuvoltageToggle.Top := R1Y;
-  FgputhrottlingToggle.Left := Col1X; FgputhrottlingToggle.Top := R2Y;
-  FgputhrottlinggraphToggle.Left := Col2X; FgputhrottlinggraphToggle.Top := R2Y;
-  FgpupowerlimitToggle.Left := Col1X; FgpupowerlimitToggle.Top := R3Y;
-  FgpuefficiencyToggle.Left := Col1X; FgpuefficiencyToggle.Top := R4Y;
-  gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R4Y, 110, 22);
+  FgpupowerlimitToggle.Left := Col1X; FgpupowerlimitToggle.Top := R2Y;
+  FgpuefficiencyToggle.Left := Col1X; FgpuefficiencyToggle.Top := R3Y;
+  gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R3Y, 110, 22);
 
   // FGpuInfoSec
   gpuinfoLabel.SetBounds(12, 8, SecW - 24, 18);
   FgpumodelToggle.Left := Col1X; FgpumodelToggle.Top := R1Y;
   FvulkandriverToggle.Left := Col2X; FvulkandriverToggle.Top := R1Y;
-  FprocvramToggle.Left := Col1X; FprocvramToggle.Top := R2Y;
 
   // FCpuCoreSec
   cpumainmetricsLabel.SetBounds(12, 8, SecW - 24, 18);
@@ -3449,22 +3459,24 @@ begin
   // FCpuThermalSec
   cputempLabel.SetBounds(12, 8, SecW - 24, 18);
   FcputempToggle.Left := Col1X; FcputempToggle.Top := R1Y;
-  FramtempToggle.Left := Col2X; FramtempToggle.Top := R1Y;
   FcpupowerToggle.Left := Col1X; FcpupowerToggle.Top := R2Y;
   intelpowerfixBitBtn.SetBounds(Col1X + FcpupowerToggle.Width + 4, R2Y, 105, 22);
   FcpuefficiencyToggle.Left := Col1X; FcpuefficiencyToggle.Top := R3Y;
   cpuframesjouleBitBtn.SetBounds(Col1X + FcpuefficiencyToggle.Width + 6, R3Y, 110, 22);
 
-  // FCpuMemSec (2 rows of 2 columns, generous space)
-  memLabel.SetBounds(12, 8, CW - 24, 18);
-  MemCol1 := 12;
-  MemCol2 := (CW - 2 * GAP) div 2 + 6;
-  FramusageToggle.Left := MemCol1; FramusageToggle.Top := R1Y;
-  ramColorButton.SetBounds(MemCol1 + FramusageToggle.Width + 4, R1Y + 3, 24, 14);
-  FprocmemToggle.Left := MemCol2; FprocmemToggle.Top := R1Y;
-  FdiskioToggle.Left := MemCol1; FdiskioToggle.Top := R2Y;
-  iordrwColorButton.SetBounds(MemCol1 + FdiskioToggle.Width + 4, R2Y + 3, 24, 14);
-  FswapusageToggle.Left := MemCol2; FswapusageToggle.Top := R2Y;
+  // FCpuMemSec
+  memLabel.SetBounds(12, 8, SecW - 24, 18);
+  FramusageToggle.Left := Col1X; FramusageToggle.Top := R1Y;
+  ramColorButton.SetBounds(Col1X + FramusageToggle.Width + 4, R1Y + 3, 24, 14);
+  FramtempToggle.Left := Col2X; FramtempToggle.Top := R1Y;
+  FprocmemToggle.Left := Col1X; FprocmemToggle.Top := R2Y;
+  FswapusageToggle.Left := Col2X; FswapusageToggle.Top := R2Y;
+
+  // FCpuStorageSec
+  if Assigned(FStorageLabel) then
+    FStorageLabel.SetBounds(12, 8, SecW - 24, 18);
+  FdiskioToggle.Left := Col1X; FdiskioToggle.Top := R1Y;
+  iordrwColorButton.SetBounds(Col1X + FdiskioToggle.Width + 4, R1Y + 3, 24, 14);
   end;
 end;
 
