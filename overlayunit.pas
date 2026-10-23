@@ -5257,15 +5257,16 @@ begin
   case frametimetypeBitBtn.ImageIndex of
     8: begin
       frametimetypeBitBtn.ImageIndex:=7;
-      frametimetypeBitBtn.Caption:= 'Histogram';
       frametimetypeBitBtn.Hint:='Use histogram for frametime information';
     end;
     7: begin
       frametimetypeBitBtn.ImageIndex:=8;
-      frametimetypeBitBtn.Caption:= 'Curve';
       frametimetypeBitBtn.Hint:='Use regular curve for frametime information';
     end;
  end;
+
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
@@ -6725,18 +6726,16 @@ begin
   case coreloadtypeBitBtn.ImageIndex of
     6: begin
       coreloadtypeBitBtn.ImageIndex := 7;
-      coreloadtypeBitBtn.Caption    := '%  │  ● Bars';
       coreloadtypeBitBtn.Hint       := 'Core load format: Vertical bars (Bars) · Click to switch to percentage (%)';
     end;
     7: begin
       coreloadtypeBitBtn.ImageIndex := 6;
-      coreloadtypeBitBtn.Caption    := '● %  │  Bars';
       coreloadtypeBitBtn.Hint       := 'Core load format: Percentage (%) · Click to switch to vertical bars (Bars)';
     end;
   end;
 
-  if Assigned(coreloadtypeBitBtn) then
-    StyleSegmentedFormatBtn(coreloadtypeBitBtn);
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
 end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
@@ -7033,15 +7032,16 @@ begin
   case fpsavgBitBtn.ImageIndex of
     9: begin
       fpsavgBitBtn.ImageIndex:=10;
-      fpsavgBitBtn.Caption:= '0.1% low';
       fpsavgBitBtn.Hint:='Display 0.1% low fps';
     end;
     10: begin
       fpsavgBitBtn.ImageIndex:=9;
-      fpsavgBitBtn.Caption:= '1% low';
       fpsavgBitBtn.Hint:='Display 1% low fps';
     end;
  end;
+
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
 end;
 
 procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
@@ -7204,23 +7204,17 @@ begin
   cpuframesjouleBitBtn.Tag := gpuframesjouleBitBtn.Tag;
   if gpuframesjouleBitBtn.Tag = 1 then
   begin
-    gpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
-    cpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
     gpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
     cpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
   end
   else
   begin
-    gpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
-    cpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
     gpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
     cpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
   end;
 
-  if Assigned(gpuframesjouleBitBtn) then
-    StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
-  if Assigned(cpuframesjouleBitBtn) then
-    StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
+  if Assigned(FMangoHelper) then
+    TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
 end;
 
 procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);

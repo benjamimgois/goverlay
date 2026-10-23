@@ -120,6 +120,7 @@ type
     procedure MtScrollBoxResize(Sender: TObject);
     procedure SyncMetricsToggles;
     procedure UpdateMetricsCardTheme;
+    procedure RefreshFormatPills;
     procedure InitExtrasTab;
     procedure ReflowExtrasTab(AContentW: Integer);
     procedure SyncExtrasToggles;
@@ -2238,8 +2239,7 @@ begin
   showfpslimCheckBox.Parent         := FPerfInfoSec;
   vpsCheckBox.Parent                := FPerfInfoSec;
 
-  StyleBitBtnTheme(frametimetypeBitBtn, TextColor, CARD_BG);
-  StyleBitBtnTheme(fpsavgBitBtn, TextColor, CARD_BG);
+  RefreshFormatPills;
 
   // Create and link Performance Information toggles
   FfpsToggle               := PlacePerfToggle(fpsCheckBox, FPerfInfoSec);
@@ -2882,10 +2882,7 @@ begin
   if Assigned(limtoggleLabel) then
     limtoggleLabel.Font.Color := TextColor;
 
-  if Assigned(frametimetypeBitBtn) then
-    StyleBitBtnTheme(frametimetypeBitBtn, TextColor, CardBg);
-  if Assigned(fpsavgBitBtn) then
-    StyleBitBtnTheme(fpsavgBitBtn, TextColor, CardBg);
+  RefreshFormatPills;
   if Assigned(FLimitCaptureBtn) then
     StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CardBg);
   end;
@@ -3258,6 +3255,44 @@ begin
 end;
 
 
+procedure TMangoHudUiHelper.RefreshFormatPills;
+begin
+  with FForm do
+  begin
+    if Assigned(coreloadtypeBitBtn) then
+    begin
+      SetSegmentedPillGlyph(coreloadtypeBitBtn, '%', 'Bars', IfThen(coreloadtypeBitBtn.ImageIndex = 7, 1, 0));
+      StyleSegmentedFormatBtn(coreloadtypeBitBtn);
+    end;
+    if Assigned(gpuframesjouleBitBtn) then
+    begin
+      SetSegmentedPillGlyph(gpuframesjouleBitBtn, 'F/J', 'J/F', IfThen(gpuframesjouleBitBtn.Tag = 1, 1, 0));
+      StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
+    end;
+    if Assigned(cpuframesjouleBitBtn) then
+    begin
+      SetSegmentedPillGlyph(cpuframesjouleBitBtn, 'F/J', 'J/F', IfThen(cpuframesjouleBitBtn.Tag = 1, 1, 0));
+      StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
+    end;
+    if Assigned(fpsavgBitBtn) then
+    begin
+      SetSegmentedPillGlyph(fpsavgBitBtn, '1% low', '0.1% low', IfThen(fpsavgBitBtn.ImageIndex = 10, 1, 0));
+      StyleSegmentedFormatBtn(fpsavgBitBtn);
+      fpsavgBitBtn.Width  := fpsavgBitBtn.Glyph.Width + 24;
+      fpsavgBitBtn.Height := 22;
+      fpsavgBitBtn.ShowHint := True;
+    end;
+    if Assigned(frametimetypeBitBtn) then
+    begin
+      SetSegmentedPillGlyph(frametimetypeBitBtn, 'Curve', 'Histogram', IfThen(frametimetypeBitBtn.ImageIndex = 7, 1, 0));
+      StyleSegmentedFormatBtn(frametimetypeBitBtn);
+      frametimetypeBitBtn.Width  := frametimetypeBitBtn.Glyph.Width + 24;
+      frametimetypeBitBtn.Height := 22;
+      frametimetypeBitBtn.ShowHint := True;
+    end;
+  end;
+end;
+
 procedure TMangoHudUiHelper.UpdateMetricsCardTheme;
 var
   TextColor, TitleColor: TColor;
@@ -3337,12 +3372,7 @@ begin
   ApplySectLabel(FStorageLabel,       TitleColor);
 
   // Segmented dual-pill format buttons
-  if Assigned(coreloadtypeBitBtn) then
-    StyleSegmentedFormatBtn(coreloadtypeBitBtn);
-  if Assigned(gpuframesjouleBitBtn) then
-    StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
-  if Assigned(cpuframesjouleBitBtn) then
-    StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
+  RefreshFormatPills;
   end;
 end;
 
@@ -4225,29 +4255,19 @@ begin
 
     // BitBtns
     frametimetypeBitBtn.ImageIndex := 8;
-    frametimetypeBitBtn.Caption := 'Curve';
     coreloadtypeBitBtn.ImageIndex := 6;
-    coreloadtypeBitBtn.Caption := '● %  │  Bars';
     coreloadtypeBitBtn.Hint    := 'Core load format: Percentage (%) · Click to switch to vertical bars (Bars)';
     gpuframesjouleBitBtn.Tag := 0;
     cpuframesjouleBitBtn.Tag := 0;
-    gpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
-    cpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
     gpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
     cpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
     fpsavgBitBtn.ImageIndex := 9;
-    fpsavgBitBtn.Caption := '1% low';
 
     // Re-style after caption/icon changes so the palette text colour sticks
     // on icon-bearing TBitBtns (see StyleBitBtnTheme).
     TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
     CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
-    if Assigned(gpuframesjouleBitBtn) then
-      StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
-    if Assigned(cpuframesjouleBitBtn) then
-      StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
-    if Assigned(coreloadtypeBitBtn) then
-      StyleSegmentedFormatBtn(coreloadtypeBitBtn);
+    RefreshFormatPills;
 
     // RadioGroups
     filterRadioGroup.ItemIndex := 0;
@@ -4341,6 +4361,7 @@ begin
     SyncAllToggles;
     UpdatePerfCardTheme;
     UpdatePresetCardVisuals;
+    RefreshFormatPills;
   finally
     FForm.FLoadingConfig := False;
   end;
@@ -4381,7 +4402,6 @@ begin
     else if SameText(ATrimmedLine, MANGO_FLAG_HISTOGRAM) then
     begin
       frametimetypeBitBtn.ImageIndex := 7;
-      frametimetypeBitBtn.Caption := 'Histogram';
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_GPU_STATS) then
       gpuavgloadCheckBox.Checked := True
@@ -4411,14 +4431,8 @@ begin
     begin
       gpuframesjouleBitBtn.Tag := 1;
       cpuframesjouleBitBtn.Tag := 1;
-      gpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
-      cpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
       gpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
       cpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
-      if Assigned(gpuframesjouleBitBtn) then
-        StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
-      if Assigned(cpuframesjouleBitBtn) then
-        StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_GPU_VOLTAGE) then
       gpuvoltageCheckBox.Checked := True
@@ -4439,10 +4453,7 @@ begin
     else if SameText(ATrimmedLine, MANGO_FLAG_CORE_BARS) then
     begin
       coreloadtypeBitBtn.ImageIndex := 7;
-      coreloadtypeBitBtn.Caption    := '%  │  ● Bars';
       coreloadtypeBitBtn.Hint       := 'Core load format: Vertical bars (Bars) · Click to switch to percentage (%)';
-      if Assigned(coreloadtypeBitBtn) then
-        StyleSegmentedFormatBtn(coreloadtypeBitBtn);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_CPU_MHZ) then
       cpufreqCheckBox.Checked := True
@@ -4870,13 +4881,11 @@ begin
       begin
         fpsavgCheckBox.Checked := True;
         fpsavgBitBtn.ImageIndex := 9;
-        fpsavgBitBtn.Caption := '1% low';
       end
       else if Pos(MANGO_FPS_METRICS_01PCT, AValue) > 0 then
       begin
         fpsavgCheckBox.Checked := True;
         fpsavgBitBtn.ImageIndex := 10;
-        fpsavgBitBtn.Caption := '0.1% low';
       end;
     end
     else if SameText(AKey, MANGO_KEY_NETWORK) then

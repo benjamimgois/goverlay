@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Graphics, Controls, StdCtrls, ExtCtrls, Forms, Dialogs, IniFiles, Buttons, ComCtrls, Math,
-  configmanager;
+  IntfGraphics, GraphType, FPImage, configmanager;
 
 type
   TThemeMode = (tmLight, tmDark);
@@ -99,6 +99,11 @@ procedure StyleBitBtnTheme(ABtn: TBitBtn; ATextColor: TColor; ABgColor: TColor);
 /// Applies QSS stylesheet and synchronizes palette for dual-state segmented pill format buttons
 /// </summary>
 procedure StyleSegmentedFormatBtn(ABtn: TBitBtn);
+
+/// <summary>
+/// Renders a two-option segmented pill glyph, highlighting the active side
+/// </summary>
+procedure SetSegmentedPillGlyph(ABtn: TBitBtn; const ALeftText, ARightText: string; AActiveIndex: Integer);
 
 /// <summary>
 /// Returns the Active-group QPaletteButtonText colour currently set on the Qt
@@ -1063,6 +1068,101 @@ begin
     QPalette_setColor(Pal, QPaletteDisabled, QPaletteText, @QCDis);
     QWidget_setPalette(Wdgt, Pal);
   end;
+end;
+
+procedure SetSegmentedPillGlyph(ABtn: TBitBtn; const ALeftText, ARightText: string; AActiveIndex: Integer);
+const
+  GAP_W = 7;
+var
+  Mask, Bmp: TBitmap;
+  Src, Dst: TLazIntfImage;
+  RawDesc: TRawImageDescription;
+  LW, RW, DW, TotalW, H, X, Y, XDiv, XRight, SplitL, SplitR: Integer;
+  SrcC, Col: TFPColor;
+  Cov: Word;
+  ActClr, InClr, DivClr, LeftClr, RightClr, C: TColor;
+begin
+  if not Assigned(ABtn) then Exit;
+  if CurrentTheme = tmLight then
+  begin
+    ActClr := RGBToColor(14, 140, 200);
+    InClr  := LightTextColor;
+    DivClr := RGBToColor(160, 172, 192);
+  end
+  else
+  begin
+    ActClr := RGBToColor(48, 190, 240);
+    InClr  := clWhite;
+    DivClr := RGBToColor(90, 105, 140);
+  end;
+  if AActiveIndex = 0 then begin LeftClr := ActClr; RightClr := InClr; end
+  else begin LeftClr := InClr; RightClr := ActClr; end;
+
+  Mask := TBitmap.Create;
+  try
+    Mask.PixelFormat := pf24bit;
+    Mask.SetSize(1, 1);
+    Mask.Canvas.Font.Name  := ABtn.Font.Name;
+    Mask.Canvas.Font.Size  := 8;
+    Mask.Canvas.Font.Style := [fsBold];
+    LW := Mask.Canvas.TextWidth(ALeftText);
+    RW := Mask.Canvas.TextWidth(ARightText);
+    DW := Mask.Canvas.TextWidth('│');
+    H  := Mask.Canvas.TextHeight('Hg│') + 2;
+    TotalW := 1 + LW + GAP_W + DW + GAP_W + RW + 1;
+    Mask.SetSize(TotalW, H);
+    Mask.Canvas.Font.Name  := ABtn.Font.Name;
+    Mask.Canvas.Font.Size  := 8;
+    Mask.Canvas.Font.Style := [fsBold];
+    Mask.Canvas.Brush.Style := bsSolid;
+    Mask.Canvas.Brush.Color := clBlack;
+    Mask.Canvas.FillRect(0, 0, TotalW, H);
+    Mask.Canvas.Brush.Style := bsClear;
+    Mask.Canvas.Font.Color := clWhite;
+    XDiv   := 1 + LW + GAP_W;
+    XRight := XDiv + DW + GAP_W;
+    Mask.Canvas.TextOut(1, 1, ALeftText);
+    Mask.Canvas.TextOut(XDiv, 1, '│');
+    Mask.Canvas.TextOut(XRight, 1, ARightText);
+    SplitL := XDiv - (GAP_W div 2);
+    SplitR := XRight - (GAP_W div 2);
+
+    Src := Mask.CreateIntfImage;
+    Dst := TLazIntfImage.Create(0, 0);
+    try
+      RawDesc.Init_BPP32_B8G8R8A8_BIO_TTB(TotalW, H);
+      Dst.DataDescription := RawDesc;
+      for Y := 0 to H - 1 do
+        for X := 0 to TotalW - 1 do
+        begin
+          SrcC := Src.Colors[X, Y];
+          Cov := Max(SrcC.red, Max(SrcC.green, SrcC.blue));
+          if X < SplitL then C := LeftClr
+          else if X < SplitR then C := DivClr
+          else C := RightClr;
+          Col := TColorToFPColor(ColorToRGB(C));
+          Col.alpha := Cov;
+          Dst.Colors[X, Y] := Col;
+        end;
+      Bmp := TBitmap.Create;
+      try
+        Bmp.LoadFromIntfImage(Dst);
+        ABtn.Images := nil;
+        ABtn.Glyph.Assign(Bmp);
+      finally
+        Bmp.Free;
+      end;
+    finally
+      Src.Free;
+      Dst.Free;
+    end;
+  finally
+    Mask.Free;
+  end;
+  ABtn.Caption := '';
+  ABtn.Layout  := blGlyphLeft;
+  ABtn.Margin  := -1;
+  ABtn.Spacing := 0;
 end;
 
 function GetBitBtnButtonTextColor(ABtn: TBitBtn): TColor;
