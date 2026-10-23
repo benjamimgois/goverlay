@@ -65,8 +65,6 @@ type
     FGpuCoreSec, FGpuThermalSec, FGpuPowerSec, FGpuInfoSec: TPanel;
     FCpuCoreSec, FCpuThermalSec, FCpuMemSec: TPanel;
     FCpuStorageSec: TPanel;
-    FGpuCoreBadge, FGpuThermalBadge, FGpuPowerBadge, FGpuInfoBadge: TLabel;
-    FCpuCoreBadge, FCpuThermalBadge, FCpuMemBadge, FCpuStorageBadge: TLabel;
     FStorageLabel: TLabel;
     FGpuTitleLbl, FCpuTitleLbl: TLabel;
 
@@ -2974,17 +2972,6 @@ const
     L.Transparent := True;
   end;
 
-  procedure MakeBadge(out ABadge: TLabel; AParent: TWinControl);
-  begin
-    ABadge := TLabel.Create(AParent);
-    ABadge.Parent := AParent;
-    ABadge.Caption := '▌';
-    ABadge.Font.Size := 9;
-    ABadge.Font.Style := [fsBold];
-    ABadge.Transparent := True;
-    ABadge.ShowAccelChar := False;
-  end;
-
 begin
   with FForm do
   begin
@@ -3025,11 +3012,6 @@ begin
   MakeSubSec(FGpuThermalSec, FMtGpuCard);
   MakeSubSec(FGpuPowerSec,   FMtGpuCard);
   MakeSubSec(FGpuInfoSec,    FMtGpuCard);
-
-  MakeBadge(FGpuCoreBadge,    FGpuCoreSec);
-  MakeBadge(FGpuThermalBadge, FGpuThermalSec);
-  MakeBadge(FGpuPowerBadge,   FGpuPowerSec);
-  MakeBadge(FGpuInfoBadge,    FGpuInfoSec);
 
   mainmetricLabel.Caption := 'Core & Telemetry';
   gputempLabel.Caption    := 'Thermals & Cooling';
@@ -3127,11 +3109,6 @@ begin
   MakeSubSec(FCpuThermalSec, FMtCpuCard);
   MakeSubSec(FCpuMemSec,     FMtCpuCard);
   MakeSubSec(FCpuStorageSec, FMtCpuCard);
-
-  MakeBadge(FCpuCoreBadge,    FCpuCoreSec);
-  MakeBadge(FCpuThermalBadge, FCpuThermalSec);
-  MakeBadge(FCpuMemBadge,     FCpuMemSec);
-  MakeBadge(FCpuStorageBadge, FCpuStorageSec);
 
   cpumainmetricsLabel.Caption := 'Processor Core & Freq';
   cputempLabel.Caption        := 'CPU Thermals & Power';
@@ -3286,7 +3263,6 @@ end;
 procedure TMangoHudUiHelper.UpdateMetricsCardTheme;
 var
   TextColor, TitleColor: TColor;
-  CoreColor, ThermColor, PowerColor, HardColor, MemColor, StorColor: TColor;
   SS: WideString;
 
   procedure ApplySectLabel(L: TLabel; AColor: TColor);
@@ -3318,23 +3294,11 @@ begin
   begin
     TextColor  := LightTextColor;
     TitleColor := LightTextColor;
-    CoreColor  := $000A78B4; // Dark Amber
-    ThermColor := $003223BE; // Crimson
-    PowerColor := $003C8C14; // Forest Green
-    HardColor  := $00B45A14; // Royal Blue
-    MemColor   := $00A0286E; // Deep Purple
-    StorColor  := $000A68A0; // Bronze Amber
   end
   else
   begin
     TextColor  := DarkTextColor;
     TitleColor := clWhite;
-    CoreColor  := $0025B8F5; // Amber-Gold
-    ThermColor := $006850F4; // Coral Red
-    PowerColor := $0078D830; // Emerald Green
-    HardColor  := $00F09838; // Electric Blue
-    MemColor   := $00F070B0; // Indigo Purple
-    StorColor  := $0038D0E8; // Bronze Gold
   end;
 
   // Card backgrounds / generic control colors first
@@ -3362,16 +3326,6 @@ begin
           'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
   ApplyNameEdit(gpunameEdit);
   ApplyNameEdit(cpunameEdit);
-
-  // Section badges: themed by subsystem accent
-  ApplySectLabel(FGpuCoreBadge,       CoreColor);
-  ApplySectLabel(FGpuThermalBadge,    ThermColor);
-  ApplySectLabel(FGpuPowerBadge,      PowerColor);
-  ApplySectLabel(FGpuInfoBadge,       HardColor);
-  ApplySectLabel(FCpuCoreBadge,       CoreColor);
-  ApplySectLabel(FCpuThermalBadge,    ThermColor);
-  ApplySectLabel(FCpuMemBadge,        MemColor);
-  ApplySectLabel(FCpuStorageBadge,    StorColor);
 
   // Section titles: white in dark theme, dark in light theme
   ApplySectLabel(mainmetricLabel,     TitleColor);
@@ -3468,9 +3422,7 @@ begin
   Col2X := SecW div 2 + 6;
 
   // FGpuCoreSec
-  if Assigned(FGpuCoreBadge) then
-    FGpuCoreBadge.SetBounds(12, 8, 12, 18);
-  mainmetricLabel.SetBounds(25, 8, SecW - 37, 18);
+  mainmetricLabel.SetBounds(12, 8, SecW - 24, 18);
   FgpuavgloadToggle.Left := Col1X; FgpuavgloadToggle.Top := R1Y;
   FgpufreqToggle.Left := Col2X; FgpufreqToggle.Top := R1Y;
   FgpuloadcolorToggle.Left := Col1X; FgpuloadcolorToggle.Top := R2Y;
@@ -3483,9 +3435,7 @@ begin
   FprocvramToggle.Left := Col2X; FprocvramToggle.Top := R3Y;
 
   // FGpuThermalSec
-  if Assigned(FGpuThermalBadge) then
-    FGpuThermalBadge.SetBounds(12, 8, 12, 18);
-  gputempLabel.SetBounds(25, 8, SecW - 37, 18);
+  gputempLabel.SetBounds(12, 8, SecW - 24, 18);
   FgputempToggle.Left := Col1X; FgputempToggle.Top := R1Y;
   FgpumemtempToggle.Left := Col2X; FgpumemtempToggle.Top := R1Y;
   FgpujunctempToggle.Left := Col1X; FgpujunctempToggle.Top := R2Y;
@@ -3494,9 +3444,7 @@ begin
   FgputhrottlinggraphToggle.Left := Col2X; FgputhrottlinggraphToggle.Top := R3Y;
 
   // FGpuPowerSec
-  if Assigned(FGpuPowerBadge) then
-    FGpuPowerBadge.SetBounds(12, 8, 12, 18);
-  gpupowerLabel.SetBounds(25, 8, SecW - 37, 18);
+  gpupowerLabel.SetBounds(12, 8, SecW - 24, 18);
   FgpupowerToggle.Left := Col1X; FgpupowerToggle.Top := R1Y;
   FgpuvoltageToggle.Left := Col2X; FgpuvoltageToggle.Top := R1Y;
   FgpupowerlimitToggle.Left := Col1X; FgpupowerlimitToggle.Top := R2Y;
@@ -3504,16 +3452,12 @@ begin
   gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R3Y, 110, 22);
 
   // FGpuInfoSec
-  if Assigned(FGpuInfoBadge) then
-    FGpuInfoBadge.SetBounds(12, 8, 12, 18);
-  gpuinfoLabel.SetBounds(25, 8, SecW - 37, 18);
+  gpuinfoLabel.SetBounds(12, 8, SecW - 24, 18);
   FgpumodelToggle.Left := Col1X; FgpumodelToggle.Top := R1Y;
   FvulkandriverToggle.Left := Col2X; FvulkandriverToggle.Top := R1Y;
 
   // FCpuCoreSec
-  if Assigned(FCpuCoreBadge) then
-    FCpuCoreBadge.SetBounds(12, 8, 12, 18);
-  cpumainmetricsLabel.SetBounds(25, 8, SecW - 37, 18);
+  cpumainmetricsLabel.SetBounds(12, 8, SecW - 24, 18);
   FcpuavgloadToggle.Left := Col1X; FcpuavgloadToggle.Top := R1Y;
   FcpufreqToggle.Left := Col2X; FcpufreqToggle.Top := R1Y;
   FcpuloadcolorToggle.Left := Col1X; FcpuloadcolorToggle.Top := R2Y;
@@ -3525,9 +3469,7 @@ begin
   coreloadtypeBitBtn.SetBounds(Col1X + FcpuloadcoreToggle.Width + 4, R3Y, 75, 22);
 
   // FCpuThermalSec
-  if Assigned(FCpuThermalBadge) then
-    FCpuThermalBadge.SetBounds(12, 8, 12, 18);
-  cputempLabel.SetBounds(25, 8, SecW - 37, 18);
+  cputempLabel.SetBounds(12, 8, SecW - 24, 18);
   FcputempToggle.Left := Col1X; FcputempToggle.Top := R1Y;
   FcpupowerToggle.Left := Col1X; FcpupowerToggle.Top := R2Y;
   intelpowerfixBitBtn.SetBounds(Col1X + FcpupowerToggle.Width + 4, R2Y, 105, 22);
@@ -3535,9 +3477,7 @@ begin
   cpuframesjouleBitBtn.SetBounds(Col1X + FcpuefficiencyToggle.Width + 6, R3Y, 110, 22);
 
   // FCpuMemSec
-  if Assigned(FCpuMemBadge) then
-    FCpuMemBadge.SetBounds(12, 8, 12, 18);
-  memLabel.SetBounds(25, 8, SecW - 37, 18);
+  memLabel.SetBounds(12, 8, SecW - 24, 18);
   FramusageToggle.Left := Col1X; FramusageToggle.Top := R1Y;
   ramColorButton.SetBounds(Col1X + FramusageToggle.Width + 6, R1Y, 20, 20);
   FramtempToggle.Left := Col2X; FramtempToggle.Top := R1Y;
@@ -3545,10 +3485,8 @@ begin
   FswapusageToggle.Left := Col2X; FswapusageToggle.Top := R2Y;
 
   // FCpuStorageSec
-  if Assigned(FCpuStorageBadge) then
-    FCpuStorageBadge.SetBounds(12, 8, 12, 18);
   if Assigned(FStorageLabel) then
-    FStorageLabel.SetBounds(25, 8, SecW - 37, 18);
+    FStorageLabel.SetBounds(12, 8, SecW - 24, 18);
   FdiskioToggle.Left := Col1X; FdiskioToggle.Top := R1Y;
   iordrwColorButton.SetBounds(Col1X + FdiskioToggle.Width + 6, R1Y, 20, 20);
   end;
