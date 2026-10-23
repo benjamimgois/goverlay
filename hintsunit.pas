@@ -401,6 +401,14 @@ begin
     'Memory usage text color');
   SetHint('vramColorButton', 'VRAM color' + LineEnding +
     'Video memory text color');
+  SetHint('gpuload1ColorButton', 'Low GPU load color (< 50%)');
+  SetHint('gpuload2ColorButton', 'Medium GPU load color (50% - 80%)');
+  SetHint('gpuload3ColorButton', 'High GPU load color (> 80%)');
+  SetHint('cpuload1ColorButton', 'Low CPU load color (< 50%)');
+  SetHint('cpuload2ColorButton', 'Medium CPU load color (50% - 80%)');
+  SetHint('cpuload3ColorButton', 'High CPU load color (> 80%)');
+  SetHint('iordrwColorButton', 'Disk I/O color' + LineEnding +
+    'Disk read and write metrics text color');
   SetHint('engineColorButton', 'Engine color' + LineEnding +
     'Engine information text color');
   SetHint('wineColorButton', 'Wine color' + LineEnding +

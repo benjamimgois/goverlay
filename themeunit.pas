@@ -943,11 +943,11 @@ begin
 
   IsLight := (CurrentTheme = tmLight);
   if IsLight then
-    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 3px 8px; } ' +
+    SS := 'QPushButton, QToolButton { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 6px; padding: 2px 8px; font-weight: 500; } ' +
           'QPushButton:hover, QToolButton:hover { background-color: rgb(225,225,225); } ' +
           'QPushButton:pressed, QToolButton:pressed { background-color: rgb(210,210,210); }'
   else
-    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 3px 8px; } ' +
+    SS := 'QPushButton, QToolButton { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 8px; font-weight: 500; } ' +
           'QPushButton:hover, QToolButton:hover { background-color: rgb(50,62,96); border: 1px solid rgb(80,110,170); } ' +
           'QPushButton:pressed, QToolButton:pressed { background-color: rgb(28,34,54); } ' +
           'QPushButton:disabled, QToolButton:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); border: 1px solid rgb(40,48,70); }';

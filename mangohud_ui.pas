@@ -3058,6 +3058,10 @@ begin
   gpuload2ColorButton.Color := CARD_BG;
   gpuload3ColorButton.Color := CARD_BG;
   vramColorButton.Color := CARD_BG;
+  gpuload1ColorButton.ShowHint := True;
+  gpuload2ColorButton.ShowHint := True;
+  gpuload3ColorButton.ShowHint := True;
+  vramColorButton.ShowHint := True;
 
   // Section: Temperature (label Top=113, controls Top=134)
   Place(gputempLabel,        FMtGpuCard, 11,  113 + HDR);
@@ -3146,6 +3150,9 @@ begin
   cpuload1ColorButton.Color := CARD_BG;
   cpuload2ColorButton.Color := CARD_BG;
   cpuload3ColorButton.Color := CARD_BG;
+  cpuload1ColorButton.ShowHint := True;
+  cpuload2ColorButton.ShowHint := True;
+  cpuload3ColorButton.ShowHint := True;
   coreloadtypeBitBtn.Font.Color := WHITE;
 
   // Section: Temperature / Power (label Top=113, controls Top=134/156)
@@ -3175,6 +3182,8 @@ begin
   DarkSectLbl(memLabel);
   ramColorButton.Color    := CARD_BG;
   iordrwColorButton.Color := CARD_BG;
+  ramColorButton.ShowHint    := True;
+  iordrwColorButton.ShowHint := True;
 
   // CPU image — right-anchored, positioned in ReflowMetricsTab
   cpuImage.AnchorSideLeft.Control   := nil;
@@ -3414,12 +3423,12 @@ begin
   FgpuavgloadToggle.Left := Col1X; FgpuavgloadToggle.Top := R1Y;
   FgpufreqToggle.Left := Col2X; FgpufreqToggle.Top := R1Y;
   FgpuloadcolorToggle.Left := Col1X; FgpuloadcolorToggle.Top := R2Y;
-  gpuload1ColorButton.SetBounds(Col1X + FgpuloadcolorToggle.Width + 4, R2Y + 3, 18, 14);
-  gpuload2ColorButton.SetBounds(gpuload1ColorButton.Left + 20, R2Y + 3, 18, 14);
-  gpuload3ColorButton.SetBounds(gpuload2ColorButton.Left + 20, R2Y + 3, 18, 14);
+  gpuload1ColorButton.SetBounds(Col1X + FgpuloadcolorToggle.Width + 6, R2Y, 20, 20);
+  gpuload2ColorButton.SetBounds(gpuload1ColorButton.Left + 24, R2Y, 20, 20);
+  gpuload3ColorButton.SetBounds(gpuload2ColorButton.Left + 24, R2Y, 20, 20);
   FgpumemfreqToggle.Left := Col2X; FgpumemfreqToggle.Top := R2Y;
   FvramusageToggle.Left := Col1X; FvramusageToggle.Top := R3Y;
-  vramColorButton.SetBounds(Col1X + FvramusageToggle.Width + 4, R3Y + 3, 24, 14);
+  vramColorButton.SetBounds(Col1X + FvramusageToggle.Width + 6, R3Y, 20, 20);
   FprocvramToggle.Left := Col2X; FprocvramToggle.Top := R3Y;
 
   // FGpuThermalSec
@@ -3449,9 +3458,9 @@ begin
   FcpuavgloadToggle.Left := Col1X; FcpuavgloadToggle.Top := R1Y;
   FcpufreqToggle.Left := Col2X; FcpufreqToggle.Top := R1Y;
   FcpuloadcolorToggle.Left := Col1X; FcpuloadcolorToggle.Top := R2Y;
-  cpuload1ColorButton.SetBounds(Col1X + FcpuloadcolorToggle.Width + 4, R2Y + 3, 18, 14);
-  cpuload2ColorButton.SetBounds(cpuload1ColorButton.Left + 20, R2Y + 3, 18, 14);
-  cpuload3ColorButton.SetBounds(cpuload2ColorButton.Left + 20, R2Y + 3, 18, 14);
+  cpuload1ColorButton.SetBounds(Col1X + FcpuloadcolorToggle.Width + 6, R2Y, 20, 20);
+  cpuload2ColorButton.SetBounds(cpuload1ColorButton.Left + 24, R2Y, 20, 20);
+  cpuload3ColorButton.SetBounds(cpuload2ColorButton.Left + 24, R2Y, 20, 20);
   FcpucoretypeToggle.Left := Col2X; FcpucoretypeToggle.Top := R2Y;
   FcpuloadcoreToggle.Left := Col1X; FcpuloadcoreToggle.Top := R3Y;
   coreloadtypeBitBtn.SetBounds(Col1X + FcpuloadcoreToggle.Width + 4, R3Y, 75, 22);
@@ -3467,7 +3476,7 @@ begin
   // FCpuMemSec
   memLabel.SetBounds(12, 8, SecW - 24, 18);
   FramusageToggle.Left := Col1X; FramusageToggle.Top := R1Y;
-  ramColorButton.SetBounds(Col1X + FramusageToggle.Width + 4, R1Y + 3, 24, 14);
+  ramColorButton.SetBounds(Col1X + FramusageToggle.Width + 6, R1Y, 20, 20);
   FramtempToggle.Left := Col2X; FramtempToggle.Top := R1Y;
   FprocmemToggle.Left := Col1X; FprocmemToggle.Top := R2Y;
   FswapusageToggle.Left := Col2X; FswapusageToggle.Top := R2Y;
@@ -3476,7 +3485,7 @@ begin
   if Assigned(FStorageLabel) then
     FStorageLabel.SetBounds(12, 8, SecW - 24, 18);
   FdiskioToggle.Left := Col1X; FdiskioToggle.Top := R1Y;
-  iordrwColorButton.SetBounds(Col1X + FdiskioToggle.Width + 4, R1Y + 3, 24, 14);
+  iordrwColorButton.SetBounds(Col1X + FdiskioToggle.Width + 6, R1Y, 20, 20);
   end;
 end;
 
