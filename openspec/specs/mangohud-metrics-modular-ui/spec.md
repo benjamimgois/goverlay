@@ -17,7 +17,7 @@ The system SHALL group related telemetry metrics into distinct, visually framed 
 - **THEN** sub-cards across rows SHALL maintain uniform heights and symmetrical two-column widths without asymmetrical trailing voids
 
 ### Requirement: Inline Secondary Control Integration
-The system SHALL place all secondary metric controls—including load gradient colors, individual color indicators, and format buttons—on the same horizontal baseline as their parent metric toggles, rendered as distinct, proportional chips with clear semantic tooltips.
+The system SHALL place all secondary metric controls—including load gradient colors, individual color indicators, and format buttons—on the same horizontal baseline as their parent metric toggles, rendered as distinct, proportional chips or segmented dual-pills with clear semantic tooltips.
 
 #### Scenario: Visual alignment of secondary controls
 - **WHEN** the user inspects metric items having secondary controls (such as Load Color, VRAM, RAM, Core Load, or Efficiency)
@@ -26,6 +26,10 @@ The system SHALL place all secondary metric controls—including load gradient c
 #### Scenario: Color swatch dimensions and tooltips
 - **WHEN** the user views secondary color buttons on the Metrics tab
 - **THEN** the color buttons SHALL render as proportional swatches of at least 20x20 pixels with distinct tooltips explaining their threshold level or overlay metric target
+
+#### Scenario: Segmented pill format selectors
+- **WHEN** the user inspects format selector buttons (Core Load format, GPU Efficiency format, CPU Efficiency format)
+- **THEN** each selector SHALL be styled as a compact segmented pill displaying both available options with an active indicator dot and explanatory tooltip
 
 ### Requirement: HUD Chip Header Integration
 The system SHALL present custom hardware name inputs and line color indicators as unified, styled HUD Chip pills inside the GPU Metrics and CPU / Memory Metrics card headers without legacy asymmetrical illustrations.

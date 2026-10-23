@@ -3082,8 +3082,8 @@ begin
   FgpuefficiencyToggle      := PlaceToggle(gpuefficiencyCheckBox, FMtGpuCard, 519, 191 + HDR);
   FgpupowerlimitToggle      := PlaceToggle(gpupowerlimitCheckBox, FMtGpuCard, 611, 191 + HDR);
   Place(gpuframesjouleBitBtn,    FMtGpuCard, 516, 213 + HDR);
+  gpuframesjouleBitBtn.ShowHint := True;
   DarkSectLbl(gpupowerLabel);
-  gpuframesjouleBitBtn.Font.Color := WHITE;
 
   // Section: Information (label Top=227, controls Top=248)
   Place(gpuinfoLabel,      FMtGpuCard, 11,  227 + HDR);
@@ -3139,6 +3139,8 @@ begin
   Place(cpuload3ColorButton, FMtCpuCard, 181, 88 + HDR);
   FcpuloadcoreToggle  := PlaceToggle(cpuloadcoreCheckBox, FMtCpuCard, 266, 66 + HDR);
   Place(coreloadtypeBitBtn,  FMtCpuCard, 264, 88 + HDR);
+  coreloadtypeBitBtn.Images   := nil;
+  coreloadtypeBitBtn.ShowHint := True;
   FcpufreqToggle      := PlaceToggle(cpufreqCheckBox, FMtCpuCard, 382, 66 + HDR);
   FcpucoretypeToggle  := PlaceToggle(cpucoretypeCheckBox, FMtCpuCard, 516, 66 + HDR);
   DarkSectLbl(cpumainmetricsLabel);
@@ -3160,8 +3162,8 @@ begin
   FcpuefficiencyToggle:= PlaceToggle(cpuefficiencyCheckBox, FMtCpuCard, 266, 134 + HDR);
   FramtempToggle      := PlaceToggle(ramtempCheckBox, FMtCpuCard, 382, 134 + HDR);
   Place(cpuframesjouleBitBtn,FMtCpuCard,263,156 + HDR);
+  cpuframesjouleBitBtn.ShowHint := True;
   DarkSectLbl(cputempLabel);
-  cpuframesjouleBitBtn.Font.Color := WHITE;
   intelpowerfixBitBtn.Font.Color  := WHITE;
 
   // Section: Memory / IO (label Top=181, controls Top=202/224)
@@ -3325,6 +3327,14 @@ begin
   ApplySectLabel(cputempLabel,        TitleColor);
   ApplySectLabel(memLabel,            TitleColor);
   ApplySectLabel(FStorageLabel,       TitleColor);
+
+  // Segmented dual-pill format buttons
+  if Assigned(coreloadtypeBitBtn) then
+    StyleSegmentedFormatBtn(coreloadtypeBitBtn);
+  if Assigned(gpuframesjouleBitBtn) then
+    StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
+  if Assigned(cpuframesjouleBitBtn) then
+    StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
   end;
 end;
 
@@ -3436,7 +3446,7 @@ begin
   FgpuvoltageToggle.Left := Col2X; FgpuvoltageToggle.Top := R1Y;
   FgpupowerlimitToggle.Left := Col1X; FgpupowerlimitToggle.Top := R2Y;
   FgpuefficiencyToggle.Left := Col1X; FgpuefficiencyToggle.Top := R3Y;
-  gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R3Y, 110, 22);
+  gpuframesjouleBitBtn.SetBounds(Col1X + FgpuefficiencyToggle.Width + 6, R3Y, 88, 22);
 
   // FGpuInfoSec
   gpuinfoLabel.SetBounds(12, 8, SecW - 24, 18);
@@ -3453,7 +3463,7 @@ begin
   cpuload3ColorButton.SetBounds(cpuload2ColorButton.Left + 24, R2Y, 20, 20);
   FcpucoretypeToggle.Left := Col2X; FcpucoretypeToggle.Top := R2Y;
   FcpuloadcoreToggle.Left := Col1X; FcpuloadcoreToggle.Top := R3Y;
-  coreloadtypeBitBtn.SetBounds(Col1X + FcpuloadcoreToggle.Width + 4, R3Y, 75, 22);
+  coreloadtypeBitBtn.SetBounds(Col1X + FcpuloadcoreToggle.Width + 4, R3Y, 84, 22);
 
   // FCpuThermalSec
   cputempLabel.SetBounds(12, 8, SecW - 24, 18);
@@ -3461,7 +3471,7 @@ begin
   FcpupowerToggle.Left := Col1X; FcpupowerToggle.Top := R2Y;
   intelpowerfixBitBtn.SetBounds(Col1X + FcpupowerToggle.Width + 4, R2Y, 105, 22);
   FcpuefficiencyToggle.Left := Col1X; FcpuefficiencyToggle.Top := R3Y;
-  cpuframesjouleBitBtn.SetBounds(Col1X + FcpuefficiencyToggle.Width + 6, R3Y, 110, 22);
+  cpuframesjouleBitBtn.SetBounds(Col1X + FcpuefficiencyToggle.Width + 6, R3Y, 88, 22);
 
   // FCpuMemSec
   memLabel.SetBounds(12, 8, SecW - 24, 18);
@@ -4181,11 +4191,14 @@ begin
     frametimetypeBitBtn.ImageIndex := 8;
     frametimetypeBitBtn.Caption := 'Curve';
     coreloadtypeBitBtn.ImageIndex := 6;
-    coreloadtypeBitBtn.Caption := 'Percent';
+    coreloadtypeBitBtn.Caption := '● %  │  Bars';
+    coreloadtypeBitBtn.Hint    := 'Core load format: Percentage (%) · Click to switch to vertical bars (Bars)';
     gpuframesjouleBitBtn.Tag := 0;
     cpuframesjouleBitBtn.Tag := 0;
-    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
-    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    gpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
+    cpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
+    gpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
+    cpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
     fpsavgBitBtn.ImageIndex := 9;
     fpsavgBitBtn.Caption := '1% low';
 
@@ -4194,11 +4207,11 @@ begin
     TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
     CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
     if Assigned(gpuframesjouleBitBtn) then
-      StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+      StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
     if Assigned(cpuframesjouleBitBtn) then
-      StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
+      StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
     if Assigned(coreloadtypeBitBtn) then
-      StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
+      StyleSegmentedFormatBtn(coreloadtypeBitBtn);
 
     // RadioGroups
     filterRadioGroup.ItemIndex := 0;
@@ -4362,12 +4375,14 @@ begin
     begin
       gpuframesjouleBitBtn.Tag := 1;
       cpuframesjouleBitBtn.Tag := 1;
-      gpuframesjouleBitBtn.Caption := 'Joules / Frame';
-      cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+      gpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
+      cpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
+      gpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
+      cpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
       if Assigned(gpuframesjouleBitBtn) then
-        StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+        StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
       if Assigned(cpuframesjouleBitBtn) then
-        StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
+        StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_GPU_VOLTAGE) then
       gpuvoltageCheckBox.Checked := True
@@ -4388,9 +4403,10 @@ begin
     else if SameText(ATrimmedLine, MANGO_FLAG_CORE_BARS) then
     begin
       coreloadtypeBitBtn.ImageIndex := 7;
-      coreloadtypeBitBtn.Caption := 'Graph';
+      coreloadtypeBitBtn.Caption    := '%  │  ● Bars';
+      coreloadtypeBitBtn.Hint       := 'Core load format: Vertical bars (Bars) · Click to switch to percentage (%)';
       if Assigned(coreloadtypeBitBtn) then
-        StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
+        StyleSegmentedFormatBtn(coreloadtypeBitBtn);
     end
     else if SameText(ATrimmedLine, MANGO_FLAG_CPU_MHZ) then
       cpufreqCheckBox.Checked := True

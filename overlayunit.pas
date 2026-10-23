@@ -6719,30 +6719,23 @@ begin
 end;
 
 procedure Tgoverlayform.coreloadtypeBitBtnClick(Sender: TObject);
-var
-  TextColor, CardBg: TColor;
 begin
-
-  //Change icon and hint on click
+  // Toggle between percent and graph format in segmented pill
   case coreloadtypeBitBtn.ImageIndex of
     6: begin
-      coreloadtypeBitBtn.ImageIndex:=7;
-      coreloadtypeBitBtn.Caption:= 'Graph';
-      coreloadtypeBitBtn.Hint:='Use vertical bars for core load';
+      coreloadtypeBitBtn.ImageIndex := 7;
+      coreloadtypeBitBtn.Caption    := '%  │  ● Bars';
+      coreloadtypeBitBtn.Hint       := 'Core load format: Vertical bars (Bars) · Click to switch to percentage (%)';
     end;
     7: begin
-      coreloadtypeBitBtn.ImageIndex:=6;
-      coreloadtypeBitBtn.Caption:= 'Percent';
-      coreloadtypeBitBtn.Hint:='Use percentage numbers for core load';
-
+      coreloadtypeBitBtn.ImageIndex := 6;
+      coreloadtypeBitBtn.Caption    := '● %  │  Bars';
+      coreloadtypeBitBtn.Hint       := 'Core load format: Percentage (%) · Click to switch to vertical bars (Bars)';
     end;
- end;
+  end;
 
-  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
-  CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
   if Assigned(coreloadtypeBitBtn) then
-    StyleBitBtnTheme(coreloadtypeBitBtn, TextColor, CardBg);
-
+    StyleSegmentedFormatBtn(coreloadtypeBitBtn);
 end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
@@ -7204,31 +7197,29 @@ saveBitbtn.Click;
 end;
 
 procedure Tgoverlayform.gpuframesjouleBitBtnClick(Sender: TObject);
-var
-  TextColor, CardBg: TColor;
 begin
-  // Toggle between 'Frames / Joule' and 'Joules / Frame'. Both buttons share
-  // the same caption; the state lives in Tag so it does not depend on the
-  // text that happens to be on the button.
+  // Toggle between 'Frames / Joule' and 'Joules / Frame' in segmented pill.
   gpuframesjouleBitBtn.Tag := 1 - gpuframesjouleBitBtn.Tag;
   cpuframesjouleBitBtn.Tag := gpuframesjouleBitBtn.Tag;
   if gpuframesjouleBitBtn.Tag = 1 then
   begin
-    gpuframesjouleBitBtn.Caption := 'Joules / Frame';
-    cpuframesjouleBitBtn.Caption := 'Joules / Frame';
+    gpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
+    cpuframesjouleBitBtn.Caption := 'F/J  │  ● J/F';
+    gpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
+    cpuframesjouleBitBtn.Hint    := 'Efficiency format: Joules per Frame (J/F) · Click to switch to Frames per Joule (F/J)';
   end
   else
   begin
-    gpuframesjouleBitBtn.Caption := 'Frames / Joule';
-    cpuframesjouleBitBtn.Caption := 'Frames / Joule';
+    gpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
+    cpuframesjouleBitBtn.Caption := '● F/J  │  J/F';
+    gpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
+    cpuframesjouleBitBtn.Hint    := 'Efficiency format: Frames per Joule (F/J) · Click to switch to Joules per Frame (J/F)';
   end;
 
-  TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
-  CardBg := IfThen(CurrentTheme = tmLight, $00F0F0F0, $002E1E1A);
   if Assigned(gpuframesjouleBitBtn) then
-    StyleBitBtnTheme(gpuframesjouleBitBtn, TextColor, CardBg);
+    StyleSegmentedFormatBtn(gpuframesjouleBitBtn);
   if Assigned(cpuframesjouleBitBtn) then
-    StyleBitBtnTheme(cpuframesjouleBitBtn, TextColor, CardBg);
+    StyleSegmentedFormatBtn(cpuframesjouleBitBtn);
 end;
 
 procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);
