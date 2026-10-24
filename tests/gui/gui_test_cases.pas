@@ -6015,6 +6015,7 @@ var
   Helper: TMangoHudUiHelper;
   C: string;
 begin
+  NavigateMangoHud;
   Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
   AssertTrue('Helper is assigned', Assigned(Helper));
   AssertTrue('FgpuavgloadToggle is assigned', Assigned(Helper.FgpuavgloadToggle));
@@ -6057,6 +6058,19 @@ begin
     (Helper.FgpuavgloadToggle.Left > 0) and (Helper.FgpuavgloadToggle.Top > 0));
   AssertTrue('FcpuavgloadToggle is positioned with positive coordinates',
     (Helper.FcpuavgloadToggle.Left > 0) and (Helper.FcpuavgloadToggle.Top > 0));
+
+  // 7. Verify Format Pills toggle and persist in config
+  goverlayform.cpuloadcoreCheckBox.Checked := True;
+  goverlayform.coreloadtypeBitBtnClick(nil);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains core_bars after pill click', Pos('core_bars', C) > 0);
+
+  goverlayform.gpuefficiencyCheckBox.Checked := True;
+  goverlayform.gpuframesjouleBitBtnClick(nil);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains flip_efficiency after pill click', Pos('flip_efficiency', C) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudVisualCompactToggles;
@@ -6101,10 +6115,45 @@ begin
   AssertFalse('FhidehudToggle is False after reset', Helper.FhidehudToggle.Checked);
   AssertFalse('FhudcompactToggle is False after reset', Helper.FhudcompactToggle.Checked);
 
-  // 6. Reflow positioning
+  // 6. Reflow positioning & modular layout
   goverlayform.ReflowVisualTab(935, 650);
   AssertTrue('FhudcompactToggle has positive coordinates',
     (Helper.FhudcompactToggle.Left > 0) and (Helper.FhudcompactToggle.Top > 0));
+  AssertTrue('FVisAppearanceCard is assigned', Assigned(Helper.FVisAppearanceCard));
+  AssertTrue('FVisLayoutCard is assigned', Assigned(Helper.FVisLayoutCard));
+  AssertTrue('FVisActionBar is assigned', Assigned(Helper.FVisActionBar));
+  AssertTrue('FVisOrientPillBtn is assigned', Assigned(Helper.FVisOrientPillBtn));
+  AssertTrue('FVisBorderPillBtn is assigned', Assigned(Helper.FVisBorderPillBtn));
+  AssertTrue('Appearance card positive bounds', (Helper.FVisAppearanceCard.Left >= 0) and (Helper.FVisAppearanceCard.Width > 200));
+  AssertTrue('Layout card positive bounds', (Helper.FVisLayoutCard.Left > Helper.FVisAppearanceCard.Left) and (Helper.FVisLayoutCard.Width > 200));
+  AssertTrue('Action bar positive bounds', (Helper.FVisActionBar.Top > Helper.FVisAppearanceCard.Top) and (Helper.FVisActionBar.Width > 400));
+  AssertTrue('Offset X positive bounds', goverlayform.offsetxSpinEdit.Left > 0);
+  AssertTrue('Offset Y positive bounds', goverlayform.offsetySpinEdit.Left > 0);
+
+  // 7. Test segmented pill click toggling
+  Helper.VisOrientPillBtnClick(Helper.FVisOrientPillBtn);
+  AssertTrue('Horizontal orientation toggled', goverlayform.horizontalRadioButton.Checked);
+  Helper.VisOrientPillBtnClick(Helper.FVisOrientPillBtn);
+  AssertTrue('Vertical orientation toggled back', goverlayform.verticalRadioButton.Checked);
+
+  Helper.VisBorderPillBtnClick(Helper.FVisBorderPillBtn);
+  AssertTrue('Square border style toggled', goverlayform.squareRadioButton.Checked);
+  Helper.VisBorderPillBtnClick(Helper.FVisBorderPillBtn);
+  AssertTrue('Round border style toggled back', goverlayform.roundRadioButton.Checked);
+
+  // 8. Test Columns HUD mini-bars indicator and auto-save
+  AssertTrue('FVisColumnsPaintBox is assigned', Assigned(Helper.FVisColumnsPaintBox));
+  AssertTrue('FVisColumnsPaintBox positive bounds', (Helper.FVisColumnsPaintBox.Left > 100) and (Helper.FVisColumnsPaintBox.Width > 50));
+  goverlayform.plusSpeedButtonClick(nil);
+  AssertTrue('Columns value at least 2', StrToIntDef(goverlayform.columvalueLabel.Caption, 0) >= 2);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains table_columns', Pos('table_columns=' + goverlayform.columvalueLabel.Caption, C) > 0);
+  goverlayform.minusButtonClick(nil);
+  AssertTrue('Columns value valid', StrToIntDef(goverlayform.columvalueLabel.Caption, 0) >= 1);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains updated table_columns', Pos('table_columns=' + goverlayform.columvalueLabel.Caption, C) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudPerformanceCompactToggles;
@@ -6169,6 +6218,19 @@ begin
     (Helper.FfpsToggle.Left > 0) and (Helper.FfpsToggle.Top > 0));
   AssertTrue('FfpscolorToggle has positive coordinates',
     (Helper.FfpscolorToggle.Left > 0) and (Helper.FfpscolorToggle.Top > 0));
+
+  // 8. Test Performance Format Pills
+  goverlayform.frametimegraphCheckBox.Checked := True;
+  goverlayform.frametimetypeBitBtnClick(nil);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains histogram after pill click', Pos('histogram', C) > 0);
+
+  goverlayform.fpsavgCheckBox.Checked := True;
+  goverlayform.fpsavgBitBtnClick(nil);
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains 0.001 after fpsavg pill click', Pos('fps_metrics=avg,0.001', C) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudExtrasCompactToggles;

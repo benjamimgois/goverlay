@@ -56,6 +56,22 @@ type
     FtextoutlineToggle: TToggleSwitch;
     textoutlineCheckBox: TCheckBox;
 
+    // Visual Tab Modular Layout (two-column + action bar)
+    FVisAppearanceCard, FVisLayoutCard, FVisActionBar: TPanel;
+    FVisTypographySec, FVisCanvasSec: TPanel;
+    FVisScreenSec, FVisFlowSec: TPanel;
+    FVisAppearanceTitleLbl, FVisLayoutTitleLbl: TLabel;
+    FVisTypoSubLbl, FVisCanvasSubLbl: TLabel;
+    FVisScreenSubLbl, FVisFlowSubLbl: TLabel;
+    FVisHudTitleLbl, FVisFontFamilyLbl, FVisFontColorLbl, FVisFontSizeLbl: TLabel;
+    FVisBgColorLbl, FVisBorderPillLbl, FVisAlphaLbl: TLabel;
+    FVisOffsetXSubLbl, FVisOffsetYSubLbl: TLabel;
+    FVisOrientPillLbl, FVisColumnsSubLbl: TLabel;
+    FVisGpuBarLbl, FVisShortcutLbl: TLabel;
+    FVisOrientPillBtn, FVisBorderPillBtn: TBitBtn;
+    FVisColumnsPaintBox: TPaintBox;
+    FVisOutlineLbl, FVisStretchLbl, FVisCompactLbl, FVisHideLbl: TLabel;
+
     // Performance Tab Toggles
     FfpsToggle, FfpsavgToggle, FshowfpslimToggle: TToggleSwitch;
     FframetimegraphToggle, FframetimedetailedToggle: TToggleSwitch;
@@ -120,6 +136,11 @@ type
     procedure InitVisualTab;
     procedure ReflowVisualTab(AContentW, AContentH: Integer);
     procedure SyncVisualToggles;
+    procedure VisOrientPillBtnClick(Sender: TObject);
+    procedure VisBorderPillBtnClick(Sender: TObject);
+    procedure SyncVisualPills;
+    procedure VisColumnsPaintBoxPaint(Sender: TObject);
+    procedure UpdateColumnsIndicator;
     procedure UpdateVisualCardTheme;
     procedure BuildFpsLimitEdit;
     procedure InitPerformanceTab;
@@ -1089,28 +1110,7 @@ const
   ACCENT_H = 3;
   TITLE_T  = 6;
   TITLE_H  = 22;
-  HDR      = ACCENT_H + TITLE_T + TITLE_H + 3;  // = 34, content starts here
-
-  CARD_TITLES: array[0..0] of string = ('Visual Settings');
-
-  procedure MakeCard(AIndex: Integer; ATitle: string);
-  var
-    Card: TPanel;
-    Lbl: TLabel;
-  begin
-    with FForm do
-    begin
-      Card := TPanel.Create(FForm);
-      Card.Parent  := visualTabSheet;
-      Card.Caption := '';
-      Card.OnPaint := @FForm.SubCardPaint;
-      FVisualCards[AIndex] := Card;
-
-      Lbl := TLabel.Create(Card);
-      Lbl.Parent   := Card;
-      StyleMainCard(Card, Lbl, ATitle);
-    end;
-  end;
+  HDR      = ACCENT_H + TITLE_T + TITLE_H + 3;  // = 34
 
   // Reparent a control directly onto a card, clearing all anchor dependencies.
   procedure Place(C: TControl; Card: TPanel; ALeft, ATop: Integer);
@@ -1125,31 +1125,10 @@ const
     C.Top     := ATop;
   end;
 
-  procedure MakeSection(AIndex: Integer; ATitle: string);
-  var
-    Sec: TPanel;
-    Lbl: TLabel;
-  begin
-    with FForm do
-    begin
-      Sec := TPanel.Create(FVisualCards[0]);
-      Sec.Parent  := FVisualCards[0];
-      Sec.Caption := '';
-      Sec.OnPaint := @FForm.SubCardPaint;
-      FVisualSections[AIndex] := Sec;
-      Lbl := TLabel.Create(Sec);
-      Lbl.Parent := Sec;
-      StyleSubCard(Sec, Lbl, ATitle);
-    end;
-  end;
-
 var
-  i: Integer;
   IsLight: Boolean;
   BarBg, TextColor: TColor;
-  Lbl: TLabel;
   SS: WideString;
-var
   BgBox: TPaintBox;
 begin
   with FForm do
@@ -1159,87 +1138,228 @@ begin
   BgBox.Align   := alClient;
   BgBox.OnPaint := @FForm.PresetsBgBoxPaint;
 
-  MakeCard(0, CARD_TITLES[0]);
-  FVisualCards[1] := nil; FVisualCards[2] := nil;
-  FVisualCards[3] := nil; FVisualCards[4] := nil; FVisualCards[5] := nil;
-
   IsLight   := CurrentTheme = tmLight;
   BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
   TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
-  // Hide the LFM GroupBoxes — controls reparented directly to section panels.
+  // ── Main Card 1: Appearance & Typography ─────────────────────────────────
+  FVisAppearanceCard := TPanel.Create(FForm);
+  FVisAppearanceCard.Parent  := visualTabSheet;
+  FVisAppearanceCard.Caption := '';
+  FVisAppearanceCard.OnPaint := @FForm.SubCardPaint;
+  FVisualCards[0] := FVisAppearanceCard;
+
+  FVisAppearanceTitleLbl := TLabel.Create(FVisAppearanceCard);
+  FVisAppearanceTitleLbl.Parent := FVisAppearanceCard;
+  StyleMainCard(FVisAppearanceCard, FVisAppearanceTitleLbl, 'Appearance && Typography');
+
+  // ── Main Card 2: Position & Layout ───────────────────────────────────────
+  FVisLayoutCard := TPanel.Create(FForm);
+  FVisLayoutCard.Parent  := visualTabSheet;
+  FVisLayoutCard.Caption := '';
+  FVisLayoutCard.OnPaint := @FForm.SubCardPaint;
+  FVisualCards[1] := FVisLayoutCard;
+
+  FVisLayoutTitleLbl := TLabel.Create(FVisLayoutCard);
+  FVisLayoutTitleLbl.Parent := FVisLayoutCard;
+  StyleMainCard(FVisLayoutCard, FVisLayoutTitleLbl, 'Position && Layout');
+
+  // ── Action Bar: Display Controls & Hardware ──────────────────────────────
+  FVisActionBar := TPanel.Create(FForm);
+  FVisActionBar.Parent      := visualTabSheet;
+  FVisActionBar.BevelOuter  := bvNone;
+  FVisActionBar.BorderStyle := bsNone;
+  FVisActionBar.Caption     := '';
+  FVisActionBar.Color       := BarBg;
+  FVisActionBar.ParentColor := False;
+  FVisActionBar.OnPaint     := @FForm.SubCardPaint;
+  FVisualCards[2] := FVisActionBar;
+  FVisualCards[3] := nil; FVisualCards[4] := nil; FVisualCards[5] := nil;
+  FVisualHudBar   := FVisActionBar;
+  FVisualGpuBar   := nil;
+  FVisualHudSep   := nil;
+
+  // ── Sub-Panels inside Appearance Card ────────────────────────────────────
+  FVisTypographySec := TPanel.Create(FVisAppearanceCard);
+  FVisTypographySec.Parent  := FVisAppearanceCard;
+  FVisTypographySec.Caption := '';
+  FVisTypographySec.OnPaint := @FForm.SubCardPaint;
+  FVisualSections[0] := FVisTypographySec;
+  FVisTypoSubLbl := TLabel.Create(FVisTypographySec);
+  FVisTypoSubLbl.Parent := FVisTypographySec;
+  StyleSubCard(FVisTypographySec, FVisTypoSubLbl, 'Typography');
+
+  FVisCanvasSec := TPanel.Create(FVisAppearanceCard);
+  FVisCanvasSec.Parent  := FVisAppearanceCard;
+  FVisCanvasSec.Caption := '';
+  FVisCanvasSec.OnPaint := @FForm.SubCardPaint;
+  FVisualSections[1] := FVisCanvasSec;
+  FVisCanvasSubLbl := TLabel.Create(FVisCanvasSec);
+  FVisCanvasSubLbl.Parent := FVisCanvasSec;
+  StyleSubCard(FVisCanvasSec, FVisCanvasSubLbl, 'Canvas && Frame');
+
+  // ── Sub-Panels inside Layout Card ────────────────────────────────────────
+  FVisScreenSec := TPanel.Create(FVisLayoutCard);
+  FVisScreenSec.Parent  := FVisLayoutCard;
+  FVisScreenSec.Caption := '';
+  FVisScreenSec.OnPaint := @FForm.SubCardPaint;
+  FVisualSections[2] := FVisScreenSec;
+  FVisScreenSubLbl := TLabel.Create(FVisScreenSec);
+  FVisScreenSubLbl.Parent := FVisScreenSec;
+  StyleSubCard(FVisScreenSec, FVisScreenSubLbl, 'Screen Placement');
+
+  FVisFlowSec := TPanel.Create(FVisLayoutCard);
+  FVisFlowSec.Parent  := FVisLayoutCard;
+  FVisFlowSec.Caption := '';
+  FVisFlowSec.OnPaint := @FForm.SubCardPaint;
+  FVisualSections[3] := FVisFlowSec;
+  FVisFlowSubLbl := TLabel.Create(FVisFlowSec);
+  FVisFlowSubLbl.Parent := FVisFlowSec;
+  StyleSubCard(FVisFlowSec, FVisFlowSubLbl, 'Flow && Grid');
+
+  FVisualSections[4] := nil;
+  FVisualSections[5] := nil;
+
+  // Hide legacy LFM containers and obsolete images/radios
   orientationGroupBox.Visible := False;
   borderGroupBox.Visible      := False;
   backgroundGroupBox.Visible  := False;
   fontsGroupBox.Visible       := False;
   positionGroupBox.Visible    := False;
   columsGroupBox.Visible      := False;
+  vImage.Visible              := False;
+  hImage.Visible              := False;
+  squareImage.Visible         := False;
+  roundImage.Visible          := False;
+  Place(verticalRadioButton, FVisFlowSec, -100, -100);
+  Place(horizontalRadioButton, FVisFlowSec, -100, -100);
+  Place(squareRadioButton, FVisCanvasSec, -100, -100);
+  Place(roundRadioButton, FVisCanvasSec, -100, -100);
+  verticalRadioButton.Visible := False;
+  horizontalRadioButton.Visible := False;
+  squareRadioButton.Visible   := False;
+  roundRadioButton.Visible    := False;
+  pcidevComboBox.Visible := True;
+  pcidevComboBox.Parent  := FVisActionBar;
+  activegpuLabel.Visible      := False;
+  gpudescEdit.Visible         := False;
+  hudtoggleImage.Visible      := False;
+  hudonoffComboBox.Visible    := False;
 
-  // ── Single card — Visual Settings with 6 inner section panels ───────────
-  // Row 1: [0]Orientation | [1]Borders | [2]Background
-  // Row 2: [3]Fonts       | [4]Position | [5]Columns
-  // Section bounds are set by ReflowVisualTab; controls use relative coords.
-  MakeSection(0, 'Orientation');
-  MakeSection(1, 'Borders');
-  MakeSection(2, 'Background');
-  MakeSection(3, 'Fonts');
-  MakeSection(4, 'Position');
-  MakeSection(5, 'Columns');
+  // ── Controls: Appearance Card ────────────────────────────────────────────
+  // HUD Title
+  FVisHudTitleLbl := TLabel.Create(FVisAppearanceCard);
+  FVisHudTitleLbl.Parent      := FVisAppearanceCard;
+  FVisHudTitleLbl.Caption     := 'HUD Title:';
+  FVisHudTitleLbl.Font.Color  := TextColor;
+  FVisHudTitleLbl.Transparent := True;
+  Place(hudtitleEdit, FVisAppearanceCard, 12, 42);
+  hudtitleEdit.Color       := BarBg;
+  hudtitleEdit.Font.Color  := TextColor;
+  hudtitleEdit.BorderStyle := bsSingle;
+  hudtitleEdit.Height      := 28;
 
-  // ·· [0] Orientation — positions set by Reflow ···························
-  Place(verticalRadioButton,   FVisualSections[0], 6,  50);
-  Place(vImage,                FVisualSections[0], 30, 28);
-  Place(horizontalRadioButton, FVisualSections[0], 6,  50);
-  Place(hImage,                FVisualSections[0], 30, 40);
-  verticalRadioButton.Color   := $002E1E1A; verticalRadioButton.ParentColor   := False;
-  horizontalRadioButton.Color := $002E1E1A; horizontalRadioButton.ParentColor := False;
-  vImage.Transparent := True; hImage.Transparent := True;
-  vImage.Width := 30;  vImage.Height := 56;   // portrait — Reflow positions these
-  hImage.Width := 56;  hImage.Height := 30;   // landscape
-  SS := 'QRadioButton { background-color: rgb(26,30,46); }';
-  QWidget_setStyleSheet(TQtWidget(FVisualSections[0].Handle).Widget, @SS);
+  // Typography Sub-Panel controls
+  FVisFontFamilyLbl := TLabel.Create(FVisTypographySec);
+  FVisFontFamilyLbl.Parent      := FVisTypographySec;
+  FVisFontFamilyLbl.Caption     := 'Font family:';
+  FVisFontFamilyLbl.Font.Color  := TextColor;
+  FVisFontFamilyLbl.Transparent := True;
+  Place(fontComboBox, FVisTypographySec, 10, 36);
+  fontComboBox.Height := 28;
 
-  // ·· [1] Borders — positions set by Reflow ································
-  Place(squareRadioButton, FVisualSections[1], 6,  50);
-  Place(squareImage,       FVisualSections[1], 30, 30);
-  Place(roundRadioButton,  FVisualSections[1], 6,  50);
-  Place(roundImage,        FVisualSections[1], 30, 30);
-  squareRadioButton.Color := $002E1E1A; squareRadioButton.ParentColor := False;
-  roundRadioButton.Color  := $002E1E1A; roundRadioButton.ParentColor  := False;
-  squareImage.Transparent := True; roundImage.Transparent := True;
-  squareImage.Width := 48; squareImage.Height := 42;
-  roundImage.Width  := 48; roundImage.Height  := 42;
-  SS := 'QRadioButton { background-color: rgb(26,30,46); }';
-  QWidget_setStyleSheet(TQtWidget(FVisualSections[1].Handle).Widget, @SS);
+  FVisFontColorLbl := TLabel.Create(FVisTypographySec);
+  FVisFontColorLbl.Parent      := FVisTypographySec;
+  FVisFontColorLbl.Caption     := 'Color:';
+  FVisFontColorLbl.Font.Color  := TextColor;
+  FVisFontColorLbl.Transparent := True;
+  Place(FontcolorButton, FVisTypographySec, 50, 72);
+  FontcolorButton.Color := BarBg;
+  FontcolorButton.SetBounds(50, 72, 28, 24);
+  fontcolorLabel.Visible := False;
 
-  // ·· [2] Background ·······················································
-  Place(backgroundLabel,          FVisualSections[2], 6,  32);
-  Place(hudbackgroundColorButton, FVisualSections[2], 52, 28);
-  Place(transparencyLabel,        FVisualSections[2], 6,  72);
-  Place(transpTrackBar,           FVisualSections[2], 52, 70);
-  Place(alphavalueLabel,          FVisualSections[2], 52 + transpTrackBar.Width + 8, 72);
-  backgroundLabel.Font.Color   := TextColor; backgroundLabel.Transparent   := True;
-  transparencyLabel.Font.Color := TextColor; transparencyLabel.Transparent := True;
-  alphavalueLabel.Font.Color   := CLR_TEXT_ACCENT; alphavalueLabel.Font.Style := [fsBold]; alphavalueLabel.Transparent   := True;
+  FVisOutlineLbl := TLabel.Create(FVisTypographySec);
+  FVisOutlineLbl.Parent      := FVisTypographySec;
+  FVisOutlineLbl.Caption     := 'Text outline';
+  FVisOutlineLbl.Font.Color  := TextColor;
+  FVisOutlineLbl.Transparent := True;
+
+  if not Assigned(textoutlineCheckBox) then
+  begin
+    textoutlineCheckBox := TCheckBox.Create(FVisTypographySec);
+    textoutlineCheckBox.Name := 'textoutlineCheckBox';
+    textoutlineCheckBox.Parent := FVisTypographySec;
+    textoutlineCheckBox.Caption := 'Text outline';
+    textoutlineCheckBox.Visible := False;
+  end;
+  textoutlineCheckBox.Hint := 'Text outline' + LineEnding + 'Renders high-contrast outline around text';
+  textoutlineCheckBox.ShowHint := True;
+  FtextoutlineToggle := TToggleSwitch.Create(FForm);
+  FtextoutlineToggle.Parent := FVisTypographySec;
+  FtextoutlineToggle.LinkToCheckBox(textoutlineCheckBox);
+  FtextoutlineToggle.Caption := '';
+  FtextoutlineToggle.Height := 20;
+  FtextoutlineToggle.Width  := FtextoutlineToggle.GetOptimalWidth;
+  FVisualToggles.Add(FtextoutlineToggle);
+
+  FVisFontSizeLbl := TLabel.Create(FVisTypographySec);
+  FVisFontSizeLbl.Parent      := FVisTypographySec;
+  FVisFontSizeLbl.Caption     := 'Size:';
+  FVisFontSizeLbl.Font.Color  := TextColor;
+  FVisFontSizeLbl.Transparent := True;
+  fontLabel.Visible := False;
+
+  Place(fontsizeTrackBar, FVisTypographySec, 50, 106);
+  fontsizeTrackBar.Color := BarBg;
+  fontsizeTrackBar.ParentColor := False;
+  fontsizeTrackBar.TickStyle := tsNone;
+
+  Place(fontsizevalueLabel, FVisTypographySec, 200, 108);
+  fontsizevalueLabel.Font.Color   := CLR_TEXT_ACCENT;
+  fontsizevalueLabel.Font.Style   := [fsBold];
+  fontsizevalueLabel.Transparent := True;
+
+  // Canvas & Frame Sub-Panel controls
+  FVisBgColorLbl := TLabel.Create(FVisCanvasSec);
+  FVisBgColorLbl.Parent      := FVisCanvasSec;
+  FVisBgColorLbl.Caption     := 'Background color:';
+  FVisBgColorLbl.Font.Color  := TextColor;
+  FVisBgColorLbl.Transparent := True;
+  backgroundLabel.Visible := False;
+  Place(hudbackgroundColorButton, FVisCanvasSec, 124, 32);
   hudbackgroundColorButton.Color := BarBg;
-  transpTrackBar.Color := BarBg; transpTrackBar.ParentColor := False; transpTrackBar.TickStyle := tsNone;
+  hudbackgroundColorButton.SetBounds(124, 32, 28, 24);
 
-  // ·· [3] Fonts ····························································
-  Place(fontComboBox,       FVisualSections[3], 6,  22);
-  Place(fontcolorLabel,     FVisualSections[3], 6,  84);
-  Place(FontcolorButton,    FVisualSections[3], 60, 82);
-  Place(fontLabel,          FVisualSections[3], 6,  142);
-  // Slider and colour button start at 60, not 40/52: fontLabel needs room for a
-  // caption longer than "Size", and the two rows stay aligned with each other.
-  Place(fontsizeTrackBar,   FVisualSections[3], 60, 140);
-  Place(fontsizevalueLabel, FVisualSections[3], 60 + fontsizeTrackBar.Width + 8, 142);
-  fontcolorLabel.Font.Color     := TextColor; fontcolorLabel.Transparent     := True;
-  fontLabel.Font.Color          := TextColor; fontLabel.Transparent          := True;
-  fontsizevalueLabel.Font.Color := CLR_TEXT_ACCENT; fontsizevalueLabel.Font.Style := [fsBold]; fontsizevalueLabel.Transparent := True;
-  FontcolorButton.Color  := BarBg;
-  fontsizeTrackBar.Color := BarBg; fontsizeTrackBar.ParentColor := False; fontsizeTrackBar.TickStyle := tsNone;
+  FVisBorderPillLbl := TLabel.Create(FVisCanvasSec);
+  FVisBorderPillLbl.Parent      := FVisCanvasSec;
+  FVisBorderPillLbl.Caption     := 'Corner borders:';
+  FVisBorderPillLbl.Font.Color  := TextColor;
+  FVisBorderPillLbl.Transparent := True;
 
-  // ·· [4] Position ·························································
+  FVisBorderPillBtn := TBitBtn.Create(FVisCanvasSec);
+  FVisBorderPillBtn.Parent  := FVisCanvasSec;
+  FVisBorderPillBtn.Cursor  := crHandPoint;
+  FVisBorderPillBtn.OnClick := @VisBorderPillBtnClick;
+
+  FVisAlphaLbl := TLabel.Create(FVisCanvasSec);
+  FVisAlphaLbl.Parent      := FVisCanvasSec;
+  FVisAlphaLbl.Caption     := 'Opacity:';
+  FVisAlphaLbl.Font.Color  := TextColor;
+  FVisAlphaLbl.Transparent := True;
+  transparencyLabel.Visible := False;
+
+  Place(transpTrackBar, FVisCanvasSec, 60, 102);
+  transpTrackBar.Color := BarBg;
+  transpTrackBar.ParentColor := False;
+  transpTrackBar.TickStyle := tsNone;
+
+  Place(alphavalueLabel, FVisCanvasSec, 200, 104);
+  alphavalueLabel.Font.Color   := CLR_TEXT_ACCENT;
+  alphavalueLabel.Font.Style   := [fsBold];
+  alphavalueLabel.Transparent := True;
+
+  // ── Controls: Layout Card ────────────────────────────────────────────────
+  // Screen Placement Sub-Panel controls
   Image1.Stretch      := True;
   Image1.Proportional := False;
   Image1.AnchorSideLeft.Control   := nil; Image1.AnchorSideTop.Control    := nil;
@@ -1247,178 +1367,149 @@ begin
   Image1.Anchors := [akLeft, akTop];
   Image1.BorderSpacing.Left   := 0; Image1.BorderSpacing.Right  := 0;
   Image1.BorderSpacing.Top    := 0; Image1.BorderSpacing.Bottom := 0;
-  Image1.Parent := FVisualSections[4];
-  Image1.SetBounds(4, 22, 100, 80);  // Reflow sets actual size
-  Place(topleftRadioButton,      FVisualSections[4], 10, 30);
-  Place(topcenterRadioButton,    FVisualSections[4], 50, 30);
-  Place(toprightRadioButton,     FVisualSections[4], 90, 30);
-  Place(middleleftRadioButton,   FVisualSections[4], 10, 80);
-  Place(middlerightRadioButton,  FVisualSections[4], 90, 80);
-  Place(bottomleftRadioButton,   FVisualSections[4], 10, 130);
-  Place(bottomcenterRadioButton, FVisualSections[4], 50, 130);
-  Place(bottomrightRadioButton,  FVisualSections[4], 90, 130);
-  // SpinEdits: modern dark pill input controls centered on the monitor screen
-  offsetxSpinEdit.Parent := FVisualSections[4];
+  Image1.Parent := FVisScreenSec;
+
+  Place(topleftRadioButton,      FVisScreenSec, 10, 30);
+  Place(topcenterRadioButton,    FVisScreenSec, 50, 30);
+  Place(toprightRadioButton,     FVisScreenSec, 90, 30);
+  Place(middleleftRadioButton,   FVisScreenSec, 10, 80);
+  Place(middlerightRadioButton,  FVisScreenSec, 90, 80);
+  Place(bottomleftRadioButton,   FVisScreenSec, 10, 130);
+  Place(bottomcenterRadioButton, FVisScreenSec, 50, 130);
+  Place(bottomrightRadioButton,  FVisScreenSec, 90, 130);
+
+  // Dedicated, uncluttered offset inputs placed below monitor
+  FVisOffsetXSubLbl := TLabel.Create(FVisScreenSec);
+  FVisOffsetXSubLbl.Parent      := FVisScreenSec;
+  FVisOffsetXSubLbl.Caption     := 'Offset X:';
+  FVisOffsetXSubLbl.Font.Color  := TextColor;
+  FVisOffsetXSubLbl.Transparent := True;
+  offsetxSpinEdit.Parent := FVisScreenSec;
   offsetxSpinEdit.AnchorSideLeft.Control := nil; offsetxSpinEdit.AnchorSideTop.Control := nil;
   offsetxSpinEdit.Anchors     := [akLeft, akTop];
   offsetxSpinEdit.Font.Name   := 'Noto Sans';
-  offsetxSpinEdit.Font.Size   := 7;
+  offsetxSpinEdit.Font.Size   := 8;
   offsetxSpinEdit.Font.Height := 0;
   offsetxSpinEdit.Font.Style  := [fsBold];
   offsetxSpinEdit.Font.Color  := clWhite;
   offsetxSpinEdit.Width       := 60;
   offsetxSpinEdit.Height      := 22;
-  offsetxSpinEdit.Left        := 10; offsetxSpinEdit.Top := 60;
 
-  offsetySpinEdit.Parent := FVisualSections[4];
+  FVisOffsetYSubLbl := TLabel.Create(FVisScreenSec);
+  FVisOffsetYSubLbl.Parent      := FVisScreenSec;
+  FVisOffsetYSubLbl.Caption     := 'Offset Y:';
+  FVisOffsetYSubLbl.Font.Color  := TextColor;
+  FVisOffsetYSubLbl.Transparent := True;
+  offsetySpinEdit.Parent := FVisScreenSec;
   offsetySpinEdit.AnchorSideLeft.Control := nil; offsetySpinEdit.AnchorSideTop.Control := nil;
   offsetySpinEdit.Anchors     := [akLeft, akTop];
   offsetySpinEdit.Font.Name   := 'Noto Sans';
-  offsetySpinEdit.Font.Size   := 7;
+  offsetySpinEdit.Font.Size   := 8;
   offsetySpinEdit.Font.Height := 0;
   offsetySpinEdit.Font.Style  := [fsBold];
   offsetySpinEdit.Font.Color  := clWhite;
   offsetySpinEdit.Width       := 60;
   offsetySpinEdit.Height      := 22;
-  offsetySpinEdit.Left        := 10; offsetySpinEdit.Top := 90;
 
-  // ·· [5] Columns ··························································
-  Place(columShape,      FVisualSections[5], 10, 50);
-  Place(columShape1,     FVisualSections[5], 37, 50);
-  Place(columShape2,     FVisualSections[5], 64, 50);
-  Place(columShape3,     FVisualSections[5], 91, 50);
-  Place(columShape4,     FVisualSections[5], 118, 50);
-  Place(columShape5,     FVisualSections[5], 145, 50);
+  // Flow & Grid Sub-Panel controls
+  FVisOrientPillLbl := TLabel.Create(FVisFlowSec);
+  FVisOrientPillLbl.Parent      := FVisFlowSec;
+  FVisOrientPillLbl.Caption     := 'Orientation:';
+  FVisOrientPillLbl.Font.Color  := TextColor;
+  FVisOrientPillLbl.Transparent := True;
 
-  // Hide legacy LFM speed buttons
+  FVisOrientPillBtn := TBitBtn.Create(FVisFlowSec);
+  FVisOrientPillBtn.Parent  := FVisFlowSec;
+  FVisOrientPillBtn.Cursor  := crHandPoint;
+  FVisOrientPillBtn.OnClick := @VisOrientPillBtnClick;
+
+  FVisColumnsSubLbl := TLabel.Create(FVisFlowSec);
+  FVisColumnsSubLbl.Parent      := FVisFlowSec;
+  FVisColumnsSubLbl.Caption     := 'Columns:';
+  FVisColumnsSubLbl.Font.Color  := TextColor;
+  FVisColumnsSubLbl.Transparent := True;
+
   minusButton.Visible := False;
   plusSpeedButton.Visible := False;
 
-  // Create modern TBitBtn controls for Columns minus/plus
-  FColumnsMinusBtn := TBitBtn.Create(FVisualSections[5]);
-  FColumnsMinusBtn.Parent := FVisualSections[5];
+  FColumnsMinusBtn := TBitBtn.Create(FVisFlowSec);
+  FColumnsMinusBtn.Parent := FVisFlowSec;
   FColumnsMinusBtn.Caption := '-';
   FColumnsMinusBtn.Font.Size := 13;
   FColumnsMinusBtn.Font.Style := [fsBold];
   FColumnsMinusBtn.Font.Color := TextColor;
   FColumnsMinusBtn.OnClick := @FForm.minusButtonClick;
   FColumnsMinusBtn.Cursor := crHandPoint;
-  FColumnsMinusBtn.SetBounds(64, 162, 24, 24);
+  FColumnsMinusBtn.SetBounds(74, 70, 24, 24);
 
-  FColumnsPlusBtn := TBitBtn.Create(FVisualSections[5]);
-  FColumnsPlusBtn.Parent := FVisualSections[5];
+  FColumnsPlusBtn := TBitBtn.Create(FVisFlowSec);
+  FColumnsPlusBtn.Parent := FVisFlowSec;
   FColumnsPlusBtn.Caption := '+';
   FColumnsPlusBtn.Font.Size := 13;
   FColumnsPlusBtn.Font.Style := [fsBold];
   FColumnsPlusBtn.Font.Color := TextColor;
   FColumnsPlusBtn.OnClick := @FForm.plusSpeedButtonClick;
   FColumnsPlusBtn.Cursor := crHandPoint;
-  FColumnsPlusBtn.SetBounds(91, 162, 24, 24);
+  FColumnsPlusBtn.SetBounds(138, 70, 24, 24);
 
   StyleBitBtnTheme(FColumnsMinusBtn, TextColor, BarBg);
   StyleBitBtnTheme(FColumnsPlusBtn, TextColor, BarBg);
 
-  Place(columvalueLabel, FVisualSections[5], 124, 164);
-  columvalueLabel.Font.Color := TextColor; columvalueLabel.Transparent := True;
-  columShape.Height  := 100; columShape1.Height := 100; columShape2.Height := 100;
-  columShape3.Height := 100; columShape4.Height := 100; columShape5.Height := 100;
+  Place(columvalueLabel, FVisFlowSec, 106, 74);
+  columvalueLabel.Font.Color := TextColor;
+  columvalueLabel.Transparent := True;
 
-  // ── GPU info bar ─────────────────────────────────────────────────────────
-  IsLight   := CurrentTheme = tmLight;
-  BarBg     := IfThen(IsLight, $00F2F2F2, RGBToColor(26, 30, 46));
-  TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
+  FVisColumnsPaintBox := TPaintBox.Create(FVisFlowSec);
+  FVisColumnsPaintBox.Parent  := FVisFlowSec;
+  FVisColumnsPaintBox.OnPaint := @VisColumnsPaintBoxPaint;
+  FVisColumnsPaintBox.SetBounds(172, 70, 72, 20);
+  FVisColumnsPaintBox.ShowHint := True;
+  FVisColumnsPaintBox.Hint := 'Active HUD columns (1 to 6)';
 
-  FVisualGpuBar := TPanel.Create(FForm);
-  FVisualGpuBar.Parent      := visualTabSheet;
-  FVisualGpuBar.BevelOuter  := bvNone;
-  FVisualGpuBar.BorderStyle := bsNone;
-  FVisualGpuBar.Caption     := '';
-  FVisualGpuBar.Color       := BarBg;
-  FVisualGpuBar.ParentColor := False;
-  FVisualGpuBar.OnPaint     := @FForm.SubCardPaint;
+  columShape.Visible := False;
+  columShape1.Visible := False;
+  columShape2.Visible := False;
+  columShape3.Visible := False;
+  columShape4.Visible := False;
+  columShape5.Visible := False;
+  columShape.Parent := columsGroupBox; columShape1.Parent := columsGroupBox;
+  columShape2.Parent := columsGroupBox; columShape3.Parent := columsGroupBox;
+  columShape4.Parent := columsGroupBox; columShape5.Parent := columsGroupBox;
+  columShape.Visible := False; columShape1.Visible := False;
+  columShape2.Visible := False; columShape3.Visible := False;
+  columShape4.Visible := False; columShape5.Visible := False;
+  FVisStretchLbl := TLabel.Create(FVisFlowSec);
+  FVisStretchLbl.Parent      := FVisFlowSec;
+  FVisStretchLbl.Caption     := 'Horizontal stretch';
+  FVisStretchLbl.Font.Color  := TextColor;
+  FVisStretchLbl.Transparent := True;
 
-  // "Active GPU" section label
-  Lbl := TLabel.Create(FVisualGpuBar);
-  Lbl.Parent      := FVisualGpuBar;
-  Lbl.Caption     := 'Active GPU';
-  Lbl.Font.Style  := [fsBold];
-  Lbl.Font.Size   := 9;
-  Lbl.Font.Color  := TextColor;
-  Lbl.Color       := BarBg;
-  Lbl.Transparent := False;
-  Lbl.AutoSize    := True;
-  Lbl.Left        := 11;
-  Lbl.Top         := 6;
+  if not Assigned(horizontalstrechCheckBox) then
+  begin
+    horizontalstrechCheckBox := TCheckBox.Create(FVisFlowSec);
+    horizontalstrechCheckBox.Parent := FVisFlowSec;
+    horizontalstrechCheckBox.Caption := 'Horizontal Strech';
+    horizontalstrechCheckBox.Visible := False;
+  end;
+  FhorizontalstrechToggle := TToggleSwitch.Create(FForm);
+  FhorizontalstrechToggle.Parent := FVisFlowSec;
+  FhorizontalstrechToggle.LinkToCheckBox(horizontalstrechCheckBox);
+  FhorizontalstrechToggle.Caption := '';
+  FhorizontalstrechToggle.Height := 20;
+  FhorizontalstrechToggle.Width  := FhorizontalstrechToggle.GetOptimalWidth;
+  FVisualToggles.Add(FhorizontalstrechToggle);
 
-  activegpuLabel.Visible := False;
+  // ── Controls: Action Bar ─────────────────────────────────────────────────
+  FVisShortcutLbl := TLabel.Create(FVisActionBar);
+  FVisShortcutLbl.Parent      := FVisActionBar;
+  FVisShortcutLbl.Caption     := 'HUD Toggle:';
+  FVisShortcutLbl.Font.Color  := TextColor;
+  FVisShortcutLbl.Transparent := True;
 
-  pcidevComboBox.Parent := FVisualGpuBar;
-  pcidevComboBox.AnchorSideLeft.Control  := nil;
-  pcidevComboBox.AnchorSideTop.Control   := nil;
-  pcidevComboBox.AnchorSideRight.Control := nil;
-  pcidevComboBox.Anchors := [akLeft, akTop];
-  pcidevComboBox.Left    := 11;
-  pcidevComboBox.Top     := 26;
-  pcidevComboBox.Height  := 28;
-  pcidevComboBox.Width   := (FVisualGpuBar.ClientWidth - 22) div 2;
-  pcidevComboBox.Color       := BarBg;
-  pcidevComboBox.Font.Color  := TextColor;
-  SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
-  QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
-
-  gpudescEdit.Visible := False;
-
-  // ── HUD Title field — option C: style in place ───────────────────────────
-  hudtitleEdit.Color       := BarBg;
-  hudtitleEdit.Font.Color  := TextColor;
-  hudtitleEdit.BorderStyle := bsSingle;
-
-  // ── HUD settings — integrated into Visual Settings card ──────────────────
-  // Horizontal separator between section panels and HUD row (width set in Reflow)
-  FVisualHudSep := TPanel.Create(FVisualCards[0]);
-  FVisualHudSep.Parent      := FVisualCards[0];
-  FVisualHudSep.BevelOuter  := bvNone;
-  FVisualHudSep.Caption     := '';
-  FVisualHudSep.Color       := $005A5050;
-  FVisualHudSep.SetBounds(8, 382, 800, 1);
-  FVisualHudSep.Anchors := [akLeft, akTop, akRight];
-
-  FVisualHudBar := TPanel.Create(FVisualCards[0]);
-  FVisualHudBar.Parent      := FVisualCards[0];  // child of main card, not tabsheet
-  FVisualHudBar.BevelOuter  := bvNone;
-  FVisualHudBar.BorderStyle := bsNone;
-  FVisualHudBar.Caption     := '';
-  FVisualHudBar.Color       := BarBg;
-  FVisualHudBar.ParentColor := False;
-  FVisualHudBar.OnPaint     := @FForm.SubCardPaint;
-
-  // Reparent HUD toggle label
-  hudtoggleLabel.Parent := FVisualHudBar;
-  hudtoggleLabel.AnchorSideLeft.Control   := nil;
-  hudtoggleLabel.AnchorSideTop.Control    := nil;
-  hudtoggleLabel.AnchorSideRight.Control  := nil;
-  hudtoggleLabel.AnchorSideBottom.Control := nil;
-  hudtoggleLabel.Anchors    := [akLeft, akTop];
-  hudtoggleLabel.Font.Color := TextColor;
-  hudtoggleLabel.Left := 11;
-  hudtoggleLabel.Top  := 6;
-
-  // Hide the keyboard icon — Capture button takes its place
-  hudtoggleImage.Parent := FVisualHudBar;
-  hudtoggleImage.AnchorSideLeft.Control   := nil;
-  hudtoggleImage.AnchorSideTop.Control    := nil;
-  hudtoggleImage.AnchorSideRight.Control  := nil;
-  hudtoggleImage.AnchorSideBottom.Control := nil;
-  hudtoggleImage.Visible := False;
-
-  // Hide the original combobox — now replaced by a styled TEdit
-  hudonoffComboBox.Visible := False;
-
-  // Capture button — shows "⌨ Capture" or "⌨ <shortcut>" after capture
-  FVisualCaptureBtn := TBitBtn.Create(FVisualHudBar);
-  FVisualCaptureBtn.Parent  := FVisualHudBar;
+  FVisualCaptureBtn := TBitBtn.Create(FVisActionBar);
+  FVisualCaptureBtn.Parent  := FVisActionBar;
   FVisualCaptureBtn.Tag     := 1; // Visual Tab
-  FVisualCaptureBtn.SetBounds(11, 24, 140, 28);
+  FVisualCaptureBtn.SetBounds(10, 10, 130, 28);
   FVisualCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FVisualCaptureBtn.Cursor  := crHandPoint;
   FVisualCaptureBtn.Font.Color := TextColor;
@@ -1426,57 +1517,54 @@ begin
     FVisualCaptureBtn.Caption := '⌨ ' + hudonoffComboBox.Text
   else
     FVisualCaptureBtn.Caption := '⌨ Capture';
-
   StyleBitBtnTheme(FVisualCaptureBtn, TextColor, BarBg);
 
-  // Create and link Compact HUD toggle switch
+  FVisCompactLbl := TLabel.Create(FVisActionBar);
+  FVisCompactLbl.Parent      := FVisActionBar;
+  FVisCompactLbl.Caption     := 'Compact';
+  FVisCompactLbl.Font.Color  := TextColor;
+  FVisCompactLbl.Transparent := True;
+
   FhudcompactToggle := TToggleSwitch.Create(FForm);
-  FhudcompactToggle.Parent := FVisualHudBar;
+  FhudcompactToggle.Parent := FVisActionBar;
   FhudcompactToggle.LinkToCheckBox(hudcompactCheckBox);
+  FhudcompactToggle.Caption := '';
   FhudcompactToggle.Height := 20;
   FhudcompactToggle.Width  := FhudcompactToggle.GetOptimalWidth;
   FVisualToggles.Add(FhudcompactToggle);
 
-  // Create and link Horizontal Strech toggle switch
-  if not Assigned(horizontalstrechCheckBox) then
-  begin
-    horizontalstrechCheckBox := TCheckBox.Create(FVisualHudBar);
-    horizontalstrechCheckBox.Parent := FVisualHudBar;
-    horizontalstrechCheckBox.Caption := 'Horizontal Strech';
-    horizontalstrechCheckBox.Visible := False;
-  end;
-  FhorizontalstrechToggle := TToggleSwitch.Create(FForm);
-  FhorizontalstrechToggle.Parent := FVisualHudBar;
-  FhorizontalstrechToggle.LinkToCheckBox(horizontalstrechCheckBox);
-  FhorizontalstrechToggle.Height := 20;
-  FhorizontalstrechToggle.Width  := FhorizontalstrechToggle.GetOptimalWidth;
-  FVisualToggles.Add(FhorizontalstrechToggle);
+  FVisHideLbl := TLabel.Create(FVisActionBar);
+  FVisHideLbl.Parent      := FVisActionBar;
+  FVisHideLbl.Caption     := 'Hide by default';
+  FVisHideLbl.Font.Color  := TextColor;
+  FVisHideLbl.Transparent := True;
 
-  // Create and link Hide by default toggle switch
   FhidehudToggle := TToggleSwitch.Create(FForm);
-  FhidehudToggle.Parent := FVisualHudBar;
+  FhidehudToggle.Parent := FVisActionBar;
   FhidehudToggle.LinkToCheckBox(hidehudCheckBox);
+  FhidehudToggle.Caption := '';
   FhidehudToggle.Height := 20;
   FhidehudToggle.Width  := FhidehudToggle.GetOptimalWidth;
   FVisualToggles.Add(FhidehudToggle);
 
-  // Create and link Text outline toggle switch
-  if not Assigned(textoutlineCheckBox) then
-  begin
-    textoutlineCheckBox := TCheckBox.Create(FVisualHudBar);
-    textoutlineCheckBox.Name := 'textoutlineCheckBox';
-    textoutlineCheckBox.Parent := FVisualHudBar;
-    textoutlineCheckBox.Caption := 'Text outline';
-    textoutlineCheckBox.Visible := False;
-  end;
-  textoutlineCheckBox.Hint := 'Text outline' + LineEnding + 'Renders high-contrast outline around text';
-  textoutlineCheckBox.ShowHint := True;
-  FtextoutlineToggle := TToggleSwitch.Create(FForm);
-  FtextoutlineToggle.Parent := FVisualHudBar;
-  FtextoutlineToggle.LinkToCheckBox(textoutlineCheckBox);
-  FtextoutlineToggle.Height := 20;
-  FtextoutlineToggle.Width  := FtextoutlineToggle.GetOptimalWidth;
-  FVisualToggles.Add(FtextoutlineToggle);
+  FVisGpuBarLbl := TLabel.Create(FVisActionBar);
+  FVisGpuBarLbl.Parent      := FVisActionBar;
+  FVisGpuBarLbl.Caption     := 'Active GPU:';
+  FVisGpuBarLbl.Font.Color  := TextColor;
+  FVisGpuBarLbl.Transparent := True;
+
+  pcidevComboBox.Parent := FVisActionBar;
+  pcidevComboBox.AnchorSideLeft.Control  := nil;
+  pcidevComboBox.AnchorSideTop.Control   := nil;
+  pcidevComboBox.AnchorSideRight.Control := nil;
+  pcidevComboBox.Anchors := [akLeft, akTop];
+  pcidevComboBox.Height  := 28;
+  pcidevComboBox.Color       := BarBg;
+  pcidevComboBox.Font.Color  := TextColor;
+  SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
+  QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
+
+  SyncVisualPills;
   end;
 end;
 
@@ -1484,209 +1572,174 @@ end;
 procedure TMangoHudUiHelper.ReflowVisualTab(AContentW, AContentH: Integer);
 const
   MARGIN     = 4;
-  CARD_TOP   = 52;
-  GPU_H      = 67;
-  GAP        = 10;
-  TABBAR_H   = 35;   // TPageControl tab bar header
-  HUD_H      = 56;
+  GAP        = 8;
+  ACTION_H   = 48;
+  TABBAR_H   = 35;
   HDR        = 34;
-  R1_TOP     = HDR + 4;   // = 38
-  BASE_R1_H  = 118;
-  BASE_R2_H  = 216;
-  BASE_CARD_H = 477;
 var
-  W, S1, S2, SW: Integer;
-  SecW1, SecW2, SecW3: Integer;
-  RW, RH, CL, CC, CR, RT, RM, RB: Integer;
-  ImgW, ImgH: Integer;
-  HalfW, GrpW, GrpX, CY, ToggleRight, AvailW, ThirdW: Integer;
-  TabH, ActiveCardH, ActiveHUD_TOP, ActiveHUD_SEP: Integer;
-  RowsAvail, Extra, PerRow, ActiveR1_H, ActiveR2_H, ActiveR2_TOP: Integer;
-  GPU_TOP: Integer;
+  W, ColW, TabH, ActiveCardsH, InnerW, SecH, Sec1Top, Sec2Top: Integer;
+  RW, RH, CL, CC, CR, RT, RM, RB, ImgW, ImgH: Integer;
+  CY, ActRight, HalfW, SpinW: Integer;
 begin
   with FForm do
   begin
-  if not Assigned(FVisualCards[0]) then Exit;
+  if not Assigned(FVisAppearanceCard) then Exit;
 
-  W  := AContentW - 2 * MARGIN;
-  S1 := W div 3;
-  S2 := (W * 2) div 3;
-  SW := W - S2;
-  SecW1 := S1 - 8;
-  SecW2 := S2 - S1 - 8;
-  SecW3 := W - S2 - 8;
+  W := AContentW - 2 * MARGIN;
+  if W < 100 then Exit;
 
-  // Derive available tab height from form height (Self.ClientHeight — always up-to-date
-  // during FormResize, unlike child ClientHeight which is stale at that point).
-  TabH := Max(606, AContentH - TABBAR_H);
-  ActiveCardH := Max(BASE_CARD_H, TabH - CARD_TOP - GPU_H - GAP);
+  TabH := Max(600, AContentH - TABBAR_H);
+  ActiveCardsH := Max(490, TabH - MARGIN - ACTION_H - GAP - MARGIN);
+  ColW := (W - GAP) div 2;
 
-  // HUD bar anchors to card bottom; rows fill the space between header and HUD.
-  ActiveHUD_TOP := ActiveCardH - HUD_H;
-  ActiveHUD_SEP := ActiveHUD_TOP - 6;
+  FVisAppearanceCard.SetBounds(MARGIN, MARGIN, ColW, ActiveCardsH);
+  FVisLayoutCard.SetBounds(MARGIN + ColW + GAP, MARGIN, W - ColW - GAP, ActiveCardsH);
+  FVisActionBar.SetBounds(MARGIN, MARGIN + ActiveCardsH + GAP, W, ACTION_H);
 
-  // Distribute extra vertical space equally between Row1 and Row2.
-  RowsAvail    := ActiveHUD_SEP - 4 - R1_TOP;
-  Extra        := Max(0, RowsAvail - (BASE_R1_H + 4 + BASE_R2_H));
-  PerRow       := Extra div 2;
-  ActiveR1_H   := BASE_R1_H + PerRow;
-  ActiveR2_H   := RowsAvail - ActiveR1_H - 4;   // takes remainder (PerRow or PerRow+1)
-  ActiveR2_TOP := R1_TOP + ActiveR1_H + 4;
+  // ── Appearance Card Sub-Panels ──
+  InnerW := ColW - 16;
+  if Assigned(FVisHudTitleLbl) then
+    FVisHudTitleLbl.SetBounds(10, HDR + 2, 70, 20);
+  hudtitleEdit.SetBounds(82, HDR, InnerW - 86, 26);
 
-  FVisualCards[0].SetBounds(MARGIN, CARD_TOP, W, ActiveCardH);
+  Sec1Top := HDR + 36;
+  SecH := (ActiveCardsH - Sec1Top - GAP - 10) div 2;
+  Sec2Top := Sec1Top + SecH + GAP;
 
-  // GPU info bar — separate card below Visual Settings
-  GPU_TOP := CARD_TOP + ActiveCardH + GAP;
-  if Assigned(FVisualGpuBar) then
+  if Assigned(FVisTypographySec) then
   begin
-    FVisualGpuBar.SetBounds(MARGIN, GPU_TOP, W, GPU_H);
-    pcidevComboBox.Width := (FVisualGpuBar.ClientWidth - 22) div 2;
+    FVisTypographySec.SetBounds(8, Sec1Top, InnerW, SecH);
+    if Assigned(FVisFontFamilyLbl) then FVisFontFamilyLbl.SetBounds(10, 30, 80, 20);
+    fontComboBox.SetBounds(90, 28, InnerW - 100, 26);
+    
+    if Assigned(FVisFontColorLbl) then FVisFontColorLbl.SetBounds(10, 70, 44, 20);
+    FontcolorButton.SetBounds(56, 68, 28, 24);
+
+    if Assigned(FVisOutlineLbl) then FVisOutlineLbl.SetBounds(InnerW - 120, 70, 80, 20);
+    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.SetBounds(InnerW - 36, 70, 30, 20);
+
+    if Assigned(FVisFontSizeLbl) then FVisFontSizeLbl.SetBounds(10, 108, 44, 20);
+    fontsizeTrackBar.SetBounds(56, 106, Max(30, InnerW - 114), 24);
+    fontsizevalueLabel.SetBounds(InnerW - 54, 108, 46, 20);
   end;
 
-  // ── Row 1 section panels ──────────────────────────────────────────────────
-  if Assigned(FVisualSections[0]) then
-    FVisualSections[0].SetBounds(4,      R1_TOP, SecW1, ActiveR1_H);
-  if Assigned(FVisualSections[1]) then
-    FVisualSections[1].SetBounds(S1 + 4, R1_TOP, SecW2, ActiveR1_H);
-  if Assigned(FVisualSections[2]) then
-    FVisualSections[2].SetBounds(S2 + 4, R1_TOP, SecW3, ActiveR1_H);
-
-  // ── Orientation section: 2 pairs (RB + image) centered in each half ──────
-  CY    := 22 + (ActiveR1_H - 22) div 2;  // vertical center of content area
-  HalfW := SecW1 div 2;
-  // Left half: verticalRB (20×20) + vImage (30×56)
-  GrpW := 20 + 6 + 30;
-  GrpX := HalfW div 2 - GrpW div 2;
-  if GrpX < 4 then GrpX := 4;
-  verticalRadioButton.Left := GrpX;
-  verticalRadioButton.Top  := CY - 10;
-  vImage.Left := GrpX + 26;
-  vImage.Top  := CY - 28;
-  // Right half: horizontalRB (20×20) + hImage (56×30)
-  GrpW := 20 + 6 + 56;
-  GrpX := HalfW + HalfW div 2 - GrpW div 2;
-  if GrpX + GrpW > SecW1 - 4 then GrpX := SecW1 - 4 - GrpW;
-  horizontalRadioButton.Left := GrpX;
-  horizontalRadioButton.Top  := CY - 10;
-  hImage.Left := GrpX + 26;
-  hImage.Top  := CY - 15;
-
-  // ── Borders section: 2 pairs (RB + image) centered in each half ───────────
-  HalfW := SecW2 div 2;
-  // Left half: squareRB (20×20) + squareImage (48×42)
-  GrpW := 20 + 6 + 48;
-  GrpX := HalfW div 2 - GrpW div 2;
-  if GrpX < 4 then GrpX := 4;
-  squareRadioButton.Left := GrpX;
-  squareRadioButton.Top  := CY - 10;
-  squareImage.Left := GrpX + 26;
-  squareImage.Top  := CY - 21;
-  // Right half: roundRB + roundImage (48×42)
-  GrpX := HalfW + HalfW div 2 - GrpW div 2;
-  if GrpX + GrpW > SecW2 - 4 then GrpX := SecW2 - 4 - GrpW;
-  roundRadioButton.Left := GrpX;
-  roundRadioButton.Top  := CY - 10;
-  roundImage.Left := GrpX + 26;
-  roundImage.Top  := CY - 21;
-
-  // Background section: transpTrackBar stretches to fill panel leaving room for alphavalueLabel on the right
-  transpTrackBar.Width := Max(30, SecW3 - 52 - 44);
-  alphavalueLabel.Left := 52 + transpTrackBar.Width + 8;
-  alphavalueLabel.Top  := transpTrackBar.Top + 2;
-
-  // ── Row 2 section panels ──────────────────────────────────────────────────
-  if Assigned(FVisualSections[3]) then
-    FVisualSections[3].SetBounds(4,      ActiveR2_TOP, SecW1, ActiveR2_H);
-  if Assigned(FVisualSections[4]) then
-    FVisualSections[4].SetBounds(S1 + 4, ActiveR2_TOP, SecW2, ActiveR2_H);
-  if Assigned(FVisualSections[5]) then
-    FVisualSections[5].SetBounds(S2 + 4, ActiveR2_TOP, SecW3, ActiveR2_H);
-
-  // Fonts section: elastic widths (controls are relative to section panel)
-  fontComboBox.Width      := SecW1 - 12;
-  fontsizeTrackBar.Width  := Max(30, SecW1 - 60 - 44);
-  fontsizevalueLabel.Left := 60 + fontsizeTrackBar.Width + 8;
-  fontsizevalueLabel.Top  := fontsizeTrackBar.Top + 2;
-
-  // Position section: Image fills panel, radio buttons proportional within it
-  ImgW := SecW2 - 8;
-  ImgH := ActiveR2_H - 26;
-  Image1.SetBounds(4, 22, ImgW, ImgH);
-  RW  := topleftRadioButton.Width;
-  RH  := topleftRadioButton.Height;
-  CL  := 4 + Round(ImgW * 0.094) - RW div 2;
-  CC  := 4 + (ImgW div 2) - RW div 2;
-  CR  := 4 + Round(ImgW * 0.906) - RW div 2;
-  RT  := 22 + Round(ImgH * 0.131) - RH div 2;
-  RB  := 22 + Round(ImgH * 0.620) - RH div 2;
-  RM  := (RT + RB) div 2;
-  topleftRadioButton.SetBounds(CL, RT, RW, RH);
-  topcenterRadioButton.SetBounds(CC, RT, RW, RH);
-  toprightRadioButton.SetBounds(CR, RT, RW, RH);
-  middleleftRadioButton.SetBounds(CL, RM, RW, RH);
-  middlerightRadioButton.SetBounds(CR, RM, RW, RH);
-  bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
-  bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
-  bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
-  // offsetxSpinEdit: right of middleleftRadioButton
-  offsetxSpinEdit.Width := 60;
-  offsetxSpinEdit.Height := 22;
-  offsetxSpinEdit.Left := CL + RW + 4;
-  offsetxSpinEdit.Top  := RM + (RH - offsetxSpinEdit.Height) div 2;
-  // offsetySpinEdit: below topcenterRadioButton
-  offsetySpinEdit.Width := 60;
-  offsetySpinEdit.Height := 22;
-  offsetySpinEdit.Left := CC + (RW - offsetySpinEdit.Width) div 2;
-  offsetySpinEdit.Top  := RT + RH + 4;
-
-  // Columns section: center 6 shapes (each 24px, 3px gap = 159px total) in panel
-  CL := (SecW3 - 159) div 2;
-  if CL < 6 then CL := 6;
-  columShape.Left  := CL;       columShape1.Left := CL + 27;
-  columShape2.Left := CL + 54;  columShape3.Left := CL + 81;
-  columShape4.Left := CL + 108; columShape5.Left := CL + 135;
-  minusButton.Visible := False;
-  plusSpeedButton.Visible := False;
-  if Assigned(FColumnsMinusBtn) then
-    FColumnsMinusBtn.SetBounds(CL + 54, 162, 24, 24);
-  if Assigned(FColumnsPlusBtn) then
-    FColumnsPlusBtn.SetBounds(CL + 81, 162, 24, 24);
-  columvalueLabel.Left := CL + 110;
-
-  // HUD separator and bar — anchored to bottom of card
-  if Assigned(FVisualHudSep) then
-    FVisualHudSep.SetBounds(8, ActiveHUD_SEP, W - 16, 1);
-  if Assigned(FVisualHudBar) then
+  if Assigned(FVisCanvasSec) then
   begin
-    FVisualHudBar.SetBounds(0, ActiveHUD_TOP, W, HUD_H);
+    FVisCanvasSec.SetBounds(8, Sec2Top, InnerW, SecH);
+    
+    if Assigned(FVisBgColorLbl) then FVisBgColorLbl.SetBounds(10, 32, 116, 20);
+    hudbackgroundColorButton.SetBounds(130, 30, 28, 24);
 
-    // Vertically align toggles with FVisualCaptureBtn (Top 24, Height 28 -> center 28)
-    CY := FVisualCaptureBtn.Top + (FVisualCaptureBtn.Height - 20) div 2;
-    if Assigned(FhudcompactToggle) then FhudcompactToggle.Top := CY;
-    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.Top := CY;
-    if Assigned(FhidehudToggle) then FhidehudToggle.Top := CY;
-    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.Top := CY;
+    if Assigned(FVisBorderPillLbl) then FVisBorderPillLbl.SetBounds(10, 70, 104, 20);
+    if Assigned(FVisBorderPillBtn) then FVisBorderPillBtn.SetBounds(118, 66, FVisBorderPillBtn.Width, 24);
 
-    // Position toggles sequentially to the right of FVisualCaptureBtn
-    ToggleRight := FVisualCaptureBtn.Left + FVisualCaptureBtn.Width + 24;
+    if Assigned(FVisAlphaLbl) then FVisAlphaLbl.SetBounds(10, 108, 54, 20);
+    transpTrackBar.SetBounds(66, 106, Max(30, InnerW - 124), 24);
+    alphavalueLabel.SetBounds(InnerW - 54, 108, 46, 20);
+  end;
+
+  // ── Layout Card Sub-Panels ──
+  InnerW := (W - ColW - GAP) - 16;
+  Sec1Top := HDR + 6;
+  SecH := (ActiveCardsH - Sec1Top - GAP - 10) div 2;
+  Sec2Top := Sec1Top + SecH + GAP;
+
+  if Assigned(FVisScreenSec) then
+  begin
+    FVisScreenSec.SetBounds(8, Sec1Top, InnerW, SecH);
+    
+    ImgW := InnerW - 16;
+    ImgH := Max(50, SecH - 64);
+    Image1.SetBounds(8, 24, ImgW, ImgH);
+    
+    RW := topleftRadioButton.Width;
+    RH := topleftRadioButton.Height;
+    CL := 8 + Round(ImgW * 0.08) - RW div 2;
+    CC := 8 + (ImgW div 2) - RW div 2;
+    CR := 8 + Round(ImgW * 0.92) - RW div 2;
+    RT := 24 + Round(ImgH * 0.12) - RH div 2;
+    RB := 24 + Round(ImgH * 0.68) - RH div 2;
+    RM := (RT + RB) div 2;
+
+    topleftRadioButton.SetBounds(CL, RT, RW, RH);
+    topcenterRadioButton.SetBounds(CC, RT, RW, RH);
+    toprightRadioButton.SetBounds(CR, RT, RW, RH);
+    middleleftRadioButton.SetBounds(CL, RM, RW, RH);
+    middlerightRadioButton.SetBounds(CR, RM, RW, RH);
+    bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
+    bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
+    bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
+
+    // Coordinate offsets cleanly positioned below monitor
+    CY := SecH - 30;
+    HalfW := InnerW div 2;
+    SpinW := 56;
+    if Assigned(FVisOffsetXSubLbl) then FVisOffsetXSubLbl.SetBounds(12, CY + 2, 54, 20);
+    offsetxSpinEdit.SetBounds(68, CY, SpinW, 22);
+
+    if Assigned(FVisOffsetYSubLbl) then FVisOffsetYSubLbl.SetBounds(HalfW + 10, CY + 2, 54, 20);
+    offsetySpinEdit.SetBounds(HalfW + 66, CY, SpinW, 22);
+  end;
+
+  if Assigned(FVisFlowSec) then
+  begin
+    FVisFlowSec.SetBounds(8, Sec2Top, InnerW, SecH);
+
+    if Assigned(FVisOrientPillLbl) then FVisOrientPillLbl.SetBounds(10, 30, 80, 20);
+    if Assigned(FVisOrientPillBtn) then FVisOrientPillBtn.SetBounds(94, 26, FVisOrientPillBtn.Width, 24);
+
+    if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(10, 70, 60, 20);
+    if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
+    columvalueLabel.SetBounds(104, 72, 34, 20);
+    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(140, 68, 24, 24);
+    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(172, 70, 72, 20);
+
+    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(10, 108, 110, 20);
+    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(124, 108, 30, 20);
+  end;
+
+  // ── Action Bar ──
+  if Assigned(FVisActionBar) then
+  begin
+    CY := (ACTION_H - 28) div 2;
+    if Assigned(FVisShortcutLbl) then FVisShortcutLbl.SetBounds(12, CY + 4, 72, 20);
+    FVisualCaptureBtn.SetBounds(86, CY, 126, 28);
+
+    ActRight := 224;
+    if Assigned(FVisCompactLbl) then
+    begin
+      FVisCompactLbl.SetBounds(ActRight, CY + 4, 58, 20);
+      ActRight := ActRight + 62;
+    end;
     if Assigned(FhudcompactToggle) then
     begin
-      FhudcompactToggle.Left := ToggleRight;
-      ToggleRight := FhudcompactToggle.Left + FhudcompactToggle.Width + 18;
+      FhudcompactToggle.SetBounds(ActRight, CY + 4, 30, 20);
+      ActRight := ActRight + 44;
     end;
-    if Assigned(FhorizontalstrechToggle) then
+
+    if Assigned(FVisHideLbl) then
     begin
-      FhorizontalstrechToggle.Left := ToggleRight;
-      ToggleRight := FhorizontalstrechToggle.Left + FhorizontalstrechToggle.Width + 18;
+      FVisHideLbl.SetBounds(ActRight, CY + 4, 92, 20);
+      ActRight := ActRight + 96;
     end;
     if Assigned(FhidehudToggle) then
     begin
-      FhidehudToggle.Left := ToggleRight;
-      ToggleRight := FhidehudToggle.Left + FhidehudToggle.Width + 18;
+      FhidehudToggle.SetBounds(ActRight, CY + 4, 30, 20);
+      ActRight := ActRight + 44;
     end;
-    if Assigned(FtextoutlineToggle) then
+
+    // Right-aligned Active GPU selector
+    if W > 700 then
     begin
-      FtextoutlineToggle.Left := ToggleRight;
+      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.SetBounds(W - 250, CY + 4, 70, 20);
+      pcidevComboBox.SetBounds(W - 176, CY, 166, 28);
+      pcidevComboBox.Visible := True;
+      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.Visible := True;
+    end
+    else
+    begin
+      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.Visible := False;
+      pcidevComboBox.Visible := False;
     end;
   end;
   end;
@@ -1701,6 +1754,128 @@ begin
       TToggleSwitch(FVisualToggles[i]).SyncFromLinked;
 end;
 
+procedure TMangoHudUiHelper.VisOrientPillBtnClick(Sender: TObject);
+begin
+  with FForm do
+  begin
+    if horizontalRadioButton.Checked then
+    begin
+      verticalRadioButton.Checked := True;
+      horizontalRadioButton.Checked := False;
+      GenericControlChange(verticalRadioButton);
+    end
+    else
+    begin
+      horizontalRadioButton.Checked := True;
+      verticalRadioButton.Checked := False;
+      GenericControlChange(horizontalRadioButton);
+    end;
+  end;
+  SyncVisualPills;
+end;
+
+procedure TMangoHudUiHelper.VisBorderPillBtnClick(Sender: TObject);
+begin
+  with FForm do
+  begin
+    if roundRadioButton.Checked then
+    begin
+      squareRadioButton.Checked := True;
+      roundRadioButton.Checked := False;
+      GenericControlChange(squareRadioButton);
+    end
+    else
+    begin
+      roundRadioButton.Checked := True;
+      squareRadioButton.Checked := False;
+      GenericControlChange(roundRadioButton);
+    end;
+  end;
+  SyncVisualPills;
+end;
+
+procedure TMangoHudUiHelper.UpdateColumnsIndicator;
+begin
+  if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.Invalidate;
+end;
+
+procedure TMangoHudUiHelper.VisColumnsPaintBoxPaint(Sender: TObject);
+var
+  PB: TPaintBox;
+  Cols, BarW, BarH, Gap, R, Y, StartX, i, X: Integer;
+  ActiveClr, InactiveClr, DivClr: TColor;
+begin
+  if not (Sender is TPaintBox) then Exit;
+  PB := TPaintBox(Sender);
+
+  with FForm do
+    Cols := StrToIntDef(columvalueLabel.Caption, 3);
+  if Cols < 1 then Cols := 1;
+  if Cols > 6 then Cols := 6;
+
+  BarW := 6;
+  BarH := 18;
+  Gap := 4;
+  R := 2;
+  Y := (PB.Height - BarH) div 2;
+  StartX := 10;
+
+  if CurrentTheme = tmLight then
+  begin
+    ActiveClr := $00C06000;
+    InactiveClr := $00D0D0D0;
+    DivClr := $00B8B8B8;
+  end
+  else
+  begin
+    ActiveClr := CLR_TEXT_ACCENT;
+    InactiveClr := $00554133;
+    DivClr := $004D3123;
+  end;
+
+  PB.Canvas.Pen.Color := DivClr;
+  PB.Canvas.Pen.Style := psSolid;
+  PB.Canvas.Pen.Width := 1;
+  PB.Canvas.Line(3, Y + 1, 3, Y + BarH - 1);
+
+  PB.Canvas.Pen.Style := psClear;
+  for i := 0 to 5 do
+  begin
+    X := StartX + i * (BarW + Gap);
+    if i < Cols then
+      PB.Canvas.Brush.Color := ActiveClr
+    else
+      PB.Canvas.Brush.Color := InactiveClr;
+    PB.Canvas.RoundRect(X, Y, X + BarW, Y + BarH, R, R);
+  end;
+end;
+
+procedure TMangoHudUiHelper.SyncVisualPills;
+begin
+  with FForm do
+  begin
+    if Assigned(FVisOrientPillBtn) then
+    begin
+      SetSegmentedPillGlyph(FVisOrientPillBtn, 'Vertical', 'Horizontal', IfThen(horizontalRadioButton.Checked, 1, 0));
+      StyleSegmentedFormatBtn(FVisOrientPillBtn);
+      FVisOrientPillBtn.Width  := FVisOrientPillBtn.Glyph.Width + 24;
+      FVisOrientPillBtn.Height := 24;
+      FVisOrientPillBtn.ShowHint := True;
+      FVisOrientPillBtn.Hint := 'HUD orientation: Vertical or Horizontal layout';
+    end;
+    if Assigned(FVisBorderPillBtn) then
+    begin
+      SetSegmentedPillGlyph(FVisBorderPillBtn, 'Square', 'Round', IfThen(roundRadioButton.Checked, 1, 0));
+      StyleSegmentedFormatBtn(FVisBorderPillBtn);
+      FVisBorderPillBtn.Width  := FVisBorderPillBtn.Glyph.Width + 24;
+      FVisBorderPillBtn.Height := 24;
+      FVisBorderPillBtn.ShowHint := True;
+      FVisBorderPillBtn.Hint := 'HUD border style: Square or Round corners';
+    end;
+  end;
+  UpdateColumnsIndicator;
+end;
+
 // ============================================================================
 // FPS LIMIT CHIPS — visual tag-style chip grid
 // ============================================================================
@@ -1712,29 +1887,27 @@ const
   LIGHT_BG  = $00F0F0F0;  // matches PerfCardPaint / SubCardPaint light fill
 var
   i: Integer;
-  CardBg, GbBg, TextColor: TColor;
+  CardBg, TextColor: TColor;
   Card: TPanel;
   j: Integer;
   SS: WideString;
 begin
   with FForm do
   begin
-  if not Assigned(FVisualCards[0]) then Exit;
+  if not Assigned(FVisAppearanceCard) then Exit;
 
   if CurrentTheme = tmLight then
   begin
     CardBg    := LIGHT_BG;
-    GbBg      := LIGHT_BG;
     TextColor := LightTextColor;
   end
   else
   begin
     CardBg    := DARK_BG;
-    GbBg      := DARK_BG;
     TextColor := DarkTextColor;
   end;
 
-  for i := 0 to 5 do
+  for i := 0 to 2 do
   begin
     Card := FVisualCards[i];
     if not Assigned(Card) then Continue;
@@ -1750,63 +1923,52 @@ begin
     end;
   end;
 
-  // Invalidate inner section panels (section title labels keep their muted color)
-  for i := 0 to 5 do
+  for i := 0 to 3 do
   begin
     if Assigned(FVisualSections[i]) then
     begin
       FVisualSections[i].Color := CardBg;
       FVisualSections[i].Invalidate;
-    end;
-  end;
-
-  // Update GPU info bar
-  if Assigned(FVisualGpuBar) then
-  begin
-    FVisualGpuBar.Color := CardBg;
-    FVisualGpuBar.Invalidate;
-    for j := 0 to FVisualGpuBar.ControlCount - 1 do
-    begin
-      if FVisualGpuBar.Controls[j] is TLabel then
+      for j := 0 to FVisualSections[i].ControlCount - 1 do
       begin
-        TLabel(FVisualGpuBar.Controls[j]).Font.Color := TextColor;
-        TLabel(FVisualGpuBar.Controls[j]).Color      := CardBg;
+        if FVisualSections[i].Controls[j] is TLabel then
+        begin
+          if (FVisualSections[i].Controls[j] <> alphavalueLabel) and
+             (FVisualSections[i].Controls[j] <> fontsizevalueLabel) and
+             (FVisualSections[i].Controls[j] <> columvalueLabel) then
+            TLabel(FVisualSections[i].Controls[j]).Font.Color := TextColor;
+          TLabel(FVisualSections[i].Controls[j]).Transparent := True;
+        end;
       end;
     end;
-    pcidevComboBox.Color     := CardBg;
-    pcidevComboBox.Font.Color := TextColor;
-    gpudescEdit.Color        := CardBg;
-    gpudescEdit.Font.Color   := TextColor;
-    hudtitleEdit.Color       := CardBg;
-    hudtitleEdit.Font.Color  := TextColor;
-
-    // Force Qt stylesheets — KDE/Breeze ignores LCL Color/Font.Color
-    SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
-    QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
-    if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(240,240,240); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px 6px; }'
-    else
-      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 6px; }';
-    QWidget_setStyleSheet(TQtWidget(gpudescEdit.Handle).Widget, @SS);
-    if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
-    else
-      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
-            'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
-            'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
-    QWidget_setStyleSheet(TQtWidget(hudtitleEdit.Handle).Widget, @SS);
   end;
 
-  // Style Columns minus/plus TBitBtn controls
+  pcidevComboBox.Color      := CardBg;
+  pcidevComboBox.Font.Color := TextColor;
+  SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
+  QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
+
+  hudtitleEdit.Color      := CardBg;
+  hudtitleEdit.Font.Color := TextColor;
+  if CurrentTheme = tmLight then
+    SS := 'QLineEdit { background-color: rgb(242,242,242); color: rgb(0,0,0); border: 1px solid rgb(210,210,210); border-radius: 4px; padding: 2px; }'
+  else
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
+          'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
+          'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
+  QWidget_setStyleSheet(TQtWidget(hudtitleEdit.Handle).Widget, @SS);
+
   if Assigned(FColumnsMinusBtn) then
     StyleBitBtnTheme(FColumnsMinusBtn, TextColor, CardBg);
   if Assigned(FColumnsPlusBtn) then
     StyleBitBtnTheme(FColumnsPlusBtn, TextColor, CardBg);
 
-  // Style Position offset spin edits
+  if Assigned(FVisualCaptureBtn) then
+    StyleBitBtnTheme(FVisualCaptureBtn, TextColor, CardBg);
+
   if Assigned(offsetxSpinEdit) and offsetxSpinEdit.HandleAllocated then
   begin
-    offsetxSpinEdit.Font.Size   := 7;
+    offsetxSpinEdit.Font.Size   := 8;
     offsetxSpinEdit.Font.Height := 0;
     offsetxSpinEdit.Font.Style  := [fsBold];
     offsetxSpinEdit.Font.Color  := clWhite;
@@ -1829,7 +1991,7 @@ begin
 
   if Assigned(offsetySpinEdit) and offsetySpinEdit.HandleAllocated then
   begin
-    offsetySpinEdit.Font.Size   := 7;
+    offsetySpinEdit.Font.Size   := 8;
     offsetySpinEdit.Font.Height := 0;
     offsetySpinEdit.Font.Style  := [fsBold];
     offsetySpinEdit.Font.Color  := clWhite;
@@ -1850,42 +2012,18 @@ begin
     QWidget_setStyleSheet(TQtWidget(offsetySpinEdit.Handle).Widget, @SS);
   end;
 
-  // Update HUD settings bar
-  if Assigned(FVisualHudBar) then
-  begin
-    FVisualHudBar.Color := CardBg;
-    FVisualHudBar.Invalidate;
-    hudtoggleLabel.Font.Color    := TextColor;
-    hudcompactCheckBox.ParentColor := True;
-    hudcompactCheckBox.Font.Color := TextColor;
-    horizontalstrechCheckBox.ParentColor := True;
-    horizontalstrechCheckBox.Font.Color := TextColor;
-    if Assigned(textoutlineCheckBox) then
-    begin
-      textoutlineCheckBox.ParentColor := True;
-      textoutlineCheckBox.Font.Color := TextColor;
-    end;
-    hidehudCheckBox.ParentColor := True;
-    hidehudCheckBox.Font.Color   := TextColor;
-
-    // Force QCheckBox text color via stylesheet (background transparent)
-    if CurrentTheme = tmLight then
-      SS := 'QCheckBox { color: rgb(0,0,0); background-color: transparent; }'
-    else
-      SS := 'QCheckBox { color: rgb(255,255,255); background-color: transparent; }';
-    QWidget_setStyleSheet(TQtWidget(FVisualHudBar.Handle).Widget, @SS);
-
-    // Style HUD toggle capture button
-    if Assigned(FVisualCaptureBtn) then
-      StyleBitBtnTheme(FVisualCaptureBtn, TextColor, CardBg);
-  end;
-
   alphavalueLabel.Font.Color    := CLR_TEXT_ACCENT;
   alphavalueLabel.Font.Style    := [fsBold];
   alphavalueLabel.Transparent   := True;
   fontsizevalueLabel.Font.Color := CLR_TEXT_ACCENT;
   fontsizevalueLabel.Font.Style := [fsBold];
   fontsizevalueLabel.Transparent := True;
+  columvalueLabel.Font.Color    := CLR_TEXT_ACCENT;
+  columvalueLabel.Font.Style    := [fsBold];
+  columvalueLabel.Transparent   := True;
+
+  UpdateColumnsIndicator;
+  SyncVisualPills;
   end;
 end;
 
@@ -4451,10 +4589,12 @@ begin
     intervalTrackBar.Position := 100;
     intervalvalueLabel.Caption := '100ms';
 
+    COLUMNS := 3;
     columvalueLabel.Caption := '3';
-    columShape.Visible := True;
-    columShape1.Visible := True;
-    columShape2.Visible := True;
+    UpdateColumnsIndicator;
+    columShape.Visible := False;
+    columShape1.Visible := False;
+    columShape2.Visible := False;
     columShape3.Visible := False;
     columShape4.Visible := False;
     columShape5.Visible := False;
@@ -4807,9 +4947,15 @@ begin
       if TryStrToInt(AValue, IntValue) then
       begin
         if IntValue = 0 then
-          squareRadioButton.Checked := True
+        begin
+          squareRadioButton.Checked := True;
+          roundRadioButton.Checked := False;
+        end
         else
+        begin
           roundRadioButton.Checked := True;
+          squareRadioButton.Checked := False;
+        end;
       end;
     end
     else if SameText(AKey, MANGO_KEY_BG_COLOR) then
@@ -4867,33 +5013,35 @@ begin
     begin
       if TryStrToInt(AValue, IntValue) then
       begin
+        COLUMNS := IntValue;
         columvalueLabel.Caption := AValue;
         case IntValue of
           1: begin
-            columShape.Visible := True; columShape1.Visible := False; columShape2.Visible := False;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
             columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
           2: begin
-            columShape.Visible := True; columShape1.Visible := True; columShape2.Visible := False;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
             columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
           3: begin
-            columShape.Visible := True; columShape1.Visible := True; columShape2.Visible := True;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
             columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
           4: begin
-            columShape.Visible := True; columShape1.Visible := True; columShape2.Visible := True;
-            columShape3.Visible := True; columShape4.Visible := False; columShape5.Visible := False;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
+            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
           5: begin
-            columShape.Visible := True; columShape1.Visible := True; columShape2.Visible := True;
-            columShape3.Visible := True; columShape4.Visible := True; columShape5.Visible := False;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
+            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
           6: begin
-            columShape.Visible := True; columShape1.Visible := True; columShape2.Visible := True;
-            columShape3.Visible := True; columShape4.Visible := True; columShape5.Visible := True;
+            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
+            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
           end;
         end;
+        UpdateColumnsIndicator;
       end;
     end
     // ============= METRICS TAB =============

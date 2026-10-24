@@ -3017,7 +3017,10 @@ procedure Tgoverlayform.visualTabSheetShow(Sender: TObject);
 begin
   UpdateVisualCardTheme;
   if Assigned(FMangoHelper) then
+  begin
     TMangoHudUiHelper(FMangoHelper).SyncVisualToggles;
+    TMangoHudUiHelper(FMangoHelper).SyncVisualPills;
+  end;
 end;
 
 procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
@@ -4528,10 +4531,12 @@ begin
      durationvalueLabel.Caption:=FormatFloat('#0', durationTrackbar.Position) +'s';
      delayvalueLabel.Caption:=FormatFloat('#0', delayTrackbar.Position) + 's' ;
      intervalvalueLabel.Caption:=FormatFloat('#0', intervalTrackbar.Position) + 'ms' ;
+     COLUMNS:=3;
      columvalueLabel.Caption:='3';
-     columShape.Visible:=true;
-     columShape1.Visible:=true;
-     columShape2.Visible:=true;
+     if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
+     columShape.Visible:=false;
+     columShape1.Visible:=false;
+     columShape2.Visible:=false;
      columShape3.Visible:=false;
      columShape4.Visible:=false;
      columShape5.Visible:=false;
@@ -5278,6 +5283,7 @@ begin
 
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
+  GenericControlChange(Sender);
 end;
 
 procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
@@ -6658,15 +6664,19 @@ end;
 
 procedure Tgoverlayform.minusButtonClick(Sender: TObject);
 begin
+   if COLUMNS = 0 then
+     COLUMNS := StrToIntDef(columvalueLabel.Caption, 3);
    COLUMNS := COLUMNS-1;
    if COLUMNS <= 1 then
      COLUMNS:=1;
 
    columvalueLabel.Caption:=inttostr(COLUMNS);
+   if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
+   GenericControlChange(Sender);
 
      case COLUMNS of
        1:begin
-         columShape.Visible:=true;
+         columShape.Visible:=false;
          columShape1.Visible:=false;
          columShape2.Visible:=false;
          columShape3.Visible:=false;
@@ -6674,44 +6684,44 @@ begin
          columShape5.Visible:=false;
        end;
        2:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
          columShape2.Visible:=false;
          columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        3:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
          columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        4:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        5:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        6:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
-         columShape5.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
        end;
      end;
 end;
@@ -6747,6 +6757,7 @@ begin
 
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
+  GenericControlChange(Sender);
 end;
 
 procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
@@ -7053,6 +7064,7 @@ begin
 
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
+  GenericControlChange(Sender);
 end;
 
 procedure Tgoverlayform.fpsonlyBitBtnClick(Sender: TObject);
@@ -7226,6 +7238,7 @@ begin
 
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
+  GenericControlChange(Sender);
 end;
 
 procedure Tgoverlayform.gupdateBitBtnClick(Sender: TObject);
@@ -7544,15 +7557,19 @@ end;
 
 procedure Tgoverlayform.plusSpeedButtonClick(Sender: TObject);
 begin
+   if COLUMNS = 0 then
+     COLUMNS := StrToIntDef(columvalueLabel.Caption, 3);
    COLUMNS := COLUMNS+1;
    if COLUMNS >= 6 then
      COLUMNS:=6;
 
    columvalueLabel.Caption:=inttostr(COLUMNS);
+   if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
+   GenericControlChange(Sender);
 
      case COLUMNS of
        1:begin
-         columShape.Visible:=true;
+         columShape.Visible:=false;
          columShape1.Visible:=false;
          columShape2.Visible:=false;
          columShape3.Visible:=false;
@@ -7560,44 +7577,44 @@ begin
          columShape5.Visible:=false;
        end;
        2:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
          columShape2.Visible:=false;
          columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        3:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
          columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        4:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
          columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        5:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
          columShape5.Visible:=false;
        end;
        6:begin
-         columShape.Visible:=true;
-         columShape1.Visible:=true;
-         columShape2.Visible:=true;
-         columShape3.Visible:=true;
-         columShape4.Visible:=true;
-         columShape5.Visible:=true;
+         columShape.Visible:=false;
+         columShape1.Visible:=false;
+         columShape2.Visible:=false;
+         columShape3.Visible:=false;
+         columShape4.Visible:=false;
+         columShape5.Visible:=false;
        end;
      end;
 end;
