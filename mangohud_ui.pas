@@ -46,10 +46,19 @@ type
     FPerfToggles: TFPList;
     FMetricsToggles: TFPList;
     FExtrasToggles: TFPList;
+    FVisMonitorPaintBox: TPaintBox;
+    FVisHoverAnchor: Integer;
     // When True, the active MangoHud config is the fps_only preset.
     // Any user control interaction (GenericControlChange/Click) clears this.
     FFpsOnly: Boolean;
     procedure ApplyTimeFormat(const AFormat: string);
+    function GetActiveScreenAnchor: Integer;
+    procedure SetActiveScreenAnchor(AAnchor: Integer);
+    procedure UpdateMonitorVisuals;
+    procedure VisMonitorPaintBoxPaint(Sender: TObject);
+    procedure VisMonitorPaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure VisMonitorPaintBoxMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure VisMonitorPaintBoxMouseLeave(Sender: TObject);
   public
     // Visual Tab Toggles
     FhudcompactToggle, FhorizontalstrechToggle, FhidehudToggle: TToggleSwitch;
@@ -1131,6 +1140,7 @@ var
   SS: WideString;
   BgBox: TPaintBox;
 begin
+  FVisHoverAnchor := -1;
   with FForm do
   begin
   BgBox := TPaintBox.Create(FForm);
@@ -1368,6 +1378,7 @@ begin
   Image1.BorderSpacing.Left   := 0; Image1.BorderSpacing.Right  := 0;
   Image1.BorderSpacing.Top    := 0; Image1.BorderSpacing.Bottom := 0;
   Image1.Parent := FVisScreenSec;
+  Image1.Visible := False;
 
   Place(topleftRadioButton,      FVisScreenSec, 10, 30);
   Place(topcenterRadioButton,    FVisScreenSec, 50, 30);
@@ -1377,6 +1388,22 @@ begin
   Place(bottomleftRadioButton,   FVisScreenSec, 10, 130);
   Place(bottomcenterRadioButton, FVisScreenSec, 50, 130);
   Place(bottomrightRadioButton,  FVisScreenSec, 90, 130);
+
+  topleftRadioButton.Visible      := False;
+  topcenterRadioButton.Visible    := False;
+  toprightRadioButton.Visible     := False;
+  middleleftRadioButton.Visible   := False;
+  middlerightRadioButton.Visible  := False;
+  bottomleftRadioButton.Visible   := False;
+  bottomcenterRadioButton.Visible := False;
+  bottomrightRadioButton.Visible  := False;
+
+  FVisMonitorPaintBox := TPaintBox.Create(FVisScreenSec);
+  FVisMonitorPaintBox.Parent      := FVisScreenSec;
+  FVisMonitorPaintBox.OnPaint     := @VisMonitorPaintBoxPaint;
+  FVisMonitorPaintBox.OnMouseMove := @VisMonitorPaintBoxMouseMove;
+  FVisMonitorPaintBox.OnMouseDown := @VisMonitorPaintBoxMouseDown;
+  FVisMonitorPaintBox.OnMouseLeave := @VisMonitorPaintBoxMouseLeave;
 
   // Dedicated, uncluttered offset inputs placed below monitor
   FVisOffsetXSubLbl := TLabel.Create(FVisScreenSec);
@@ -1651,7 +1678,11 @@ begin
     ImgW := InnerW - 16;
     ImgH := Max(50, SecH - 64);
     Image1.SetBounds(8, 24, ImgW, ImgH);
-    
+    Image1.Visible := False;
+
+    if Assigned(FVisMonitorPaintBox) then
+      FVisMonitorPaintBox.SetBounds(8, 22, InnerW - 16, Max(50, SecH - 58));
+
     RW := topleftRadioButton.Width;
     RH := topleftRadioButton.Height;
     CL := 8 + Round(ImgW * 0.08) - RW div 2;
@@ -1669,6 +1700,15 @@ begin
     bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
     bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
     bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
+
+    topleftRadioButton.Visible      := False;
+    topcenterRadioButton.Visible    := False;
+    toprightRadioButton.Visible     := False;
+    middleleftRadioButton.Visible   := False;
+    middlerightRadioButton.Visible  := False;
+    bottomleftRadioButton.Visible   := False;
+    bottomcenterRadioButton.Visible := False;
+    bottomrightRadioButton.Visible  := False;
 
     // Coordinate offsets cleanly positioned below monitor
     CY := SecH - 30;
@@ -1847,6 +1887,285 @@ begin
     else
       PB.Canvas.Brush.Color := InactiveClr;
     PB.Canvas.RoundRect(X, Y, X + BarW, Y + BarH, R, R);
+  end;
+end;
+
+function TMangoHudUiHelper.GetActiveScreenAnchor: Integer;
+begin
+  Result := 0;
+  with FForm do
+  begin
+    if topcenterRadioButton.Checked then
+      Result := 1
+    else if toprightRadioButton.Checked then
+      Result := 2
+    else if middleleftRadioButton.Checked then
+      Result := 3
+    else if middlerightRadioButton.Checked then
+      Result := 4
+    else if bottomleftRadioButton.Checked then
+      Result := 5
+    else if bottomcenterRadioButton.Checked then
+      Result := 6
+    else if bottomrightRadioButton.Checked then
+      Result := 7;
+  end;
+end;
+
+procedure TMangoHudUiHelper.SetActiveScreenAnchor(AAnchor: Integer);
+begin
+  with FForm do
+  begin
+    case AAnchor of
+      1: topcenterRadioButton.Checked    := True;
+      2: toprightRadioButton.Checked     := True;
+      3: middleleftRadioButton.Checked   := True;
+      4: middlerightRadioButton.Checked  := True;
+      5: bottomleftRadioButton.Checked   := True;
+      6: bottomcenterRadioButton.Checked := True;
+      7: bottomrightRadioButton.Checked  := True;
+    else
+      topleftRadioButton.Checked := True;
+    end;
+    if Assigned(FVisMonitorPaintBox) then
+      GenericControlChange(FVisMonitorPaintBox);
+  end;
+  UpdateMonitorVisuals;
+end;
+
+procedure TMangoHudUiHelper.UpdateMonitorVisuals;
+begin
+  if Assigned(FVisMonitorPaintBox) then
+    FVisMonitorPaintBox.Invalidate;
+end;
+
+procedure TMangoHudUiHelper.VisMonitorPaintBoxPaint(Sender: TObject);
+const
+  AnchorCol: array[0..7] of Integer = (0, 1, 2, 0, 2, 0, 1, 2);
+  AnchorRow: array[0..7] of Integer = (0, 0, 0, 1, 1, 2, 2, 2);
+  StandH    = 18;
+  ChipW     = 46;
+  ChipH     = 18;
+var
+  PB: TPaintBox;
+  IsLight: Boolean;
+  BzW, BzH, BzL, BzT, BzR, BzB: Integer;
+  ScrnL, ScrnT, ScrnR, ScrnB: Integer;
+  CellW, CellH, PX, PY, i: Integer;
+  NeckW, FootW, NeckH, FootH, NeckL, FootL, StandTop: Integer;
+  Active, ChipL, ChipT, TH: Integer;
+  BezelClr, BezelBorder, ScreenClr, ScreenBorder: TColor;
+  AccentClr, ChipBg, ChipText, PinClr: TColor;
+begin
+  if not (Sender is TPaintBox) then Exit;
+  PB := TPaintBox(Sender);
+
+  IsLight := CurrentTheme = tmLight;
+  if IsLight then
+  begin
+    BezelClr     := $00DCE2E8;
+    BezelBorder  := $00B5C0CC;
+    ScreenClr    := $00FFFFFF;
+    ScreenBorder := $00CBD5E1;
+    AccentClr    := $00C06000;
+    ChipBg       := $00FFFFFF;
+    ChipText     := $002A170F;
+  end
+  else
+  begin
+    BezelClr     := $0023190E;
+    BezelBorder  := $003D2817;
+    ScreenClr    := $00120B07;
+    ScreenBorder := $00332214;
+    AccentClr    := $38BDF8;
+    ChipBg       := $002A170F;
+    ChipText     := clWhite;
+  end;
+
+  // Clear the paint box with the card background.
+  PB.Canvas.Brush.Color := IfThen(IsLight, $00F0F0F0, $002E1E1A);
+  PB.Canvas.Brush.Style := bsSolid;
+  PB.Canvas.Pen.Color   := PB.Canvas.Brush.Color;
+  PB.Canvas.FillRect(PB.ClientRect);
+
+  BzW := Min(PB.Width - 12, 280);
+  if BzW < 40 then BzW := Max(40, PB.Width - 4);
+  BzH := Min(PB.Height - StandH, 120);
+  if BzH < 36 then BzH := Max(36, PB.Height - 4);
+  BzL := (PB.Width - BzW) div 2;
+  BzT := Max(0, (PB.Height - (BzH + StandH)) div 2);
+  BzR := BzL + BzW;
+  BzB := BzT + BzH;
+
+  // Monitor stand (neck + foot), drawn behind the bezel.
+  NeckW := Min(28, Max(12, BzW div 8));
+  FootW := Min(72, Max(28, BzW div 3));
+  NeckH := 10;
+  FootH := 5;
+  NeckL := (PB.Width - NeckW) div 2;
+  FootL := (PB.Width - FootW) div 2;
+  StandTop := BzB;
+  PB.Canvas.Brush.Color := BezelClr;
+  PB.Canvas.Pen.Color   := BezelBorder;
+  PB.Canvas.Pen.Width   := 1;
+  PB.Canvas.RoundRect(NeckL, StandTop, NeckL + NeckW, StandTop + NeckH, 3, 3);
+  PB.Canvas.RoundRect(FootL, StandTop + NeckH, FootL + FootW, StandTop + NeckH + FootH, 3, 3);
+
+  // Outer bezel.
+  PB.Canvas.Brush.Color := BezelClr;
+  PB.Canvas.Pen.Color   := BezelBorder;
+  PB.Canvas.RoundRect(BzL, BzT, BzR, BzB, 6, 6);
+
+  // Inner screen.
+  ScrnL := BzL + 5;
+  ScrnT := BzT + 5;
+  ScrnR := BzR - 5;
+  ScrnB := BzB - 5;
+  if (ScrnR <= ScrnL) or (ScrnB <= ScrnT) then Exit;
+
+  PB.Canvas.Brush.Color := ScreenClr;
+  PB.Canvas.Pen.Color   := ScreenBorder;
+  PB.Canvas.RoundRect(ScrnL, ScrnT, ScrnR, ScrnB, 4, 4);
+
+  // Anchor pins at each grid-cell centre (the centre cell has no pin).
+  CellW := ScrnR - ScrnL;
+  CellH := ScrnB - ScrnT;
+  Active := GetActiveScreenAnchor;
+  PB.Canvas.Pen.Style := psClear;
+  for i := 0 to 7 do
+  begin
+    PX := ScrnL + (CellW * (2 * AnchorCol[i] + 1)) div 6;
+    PY := ScrnT + (CellH * (2 * AnchorRow[i] + 1)) div 6;
+    if i = Active then
+      PinClr := AccentClr
+    else if i = FVisHoverAnchor then
+      PinClr := AccentClr
+    else
+      PinClr := IfThen(IsLight, $008A9AAB, $00574333);
+    PB.Canvas.Brush.Color := PinClr;
+    PB.Canvas.Ellipse(PX - 3, PY - 3, PX + 3, PY + 3);
+  end;
+
+  // Live mini-HUD preview chip at the active anchor.
+  if (CellW > ChipW + 8) and (CellH > ChipH + 6) then
+  begin
+    case AnchorCol[Active] of
+      0: ChipL := ScrnL + 3;
+      1: ChipL := (ScrnL + ScrnR - ChipW) div 2;
+    else
+      ChipL := ScrnR - ChipW - 3;
+    end;
+    case AnchorRow[Active] of
+      0: ChipT := ScrnT + 3;
+      1: ChipT := (ScrnT + ScrnB - ChipH) div 2;
+    else
+      ChipT := ScrnB - ChipH - 3;
+    end;
+
+    PB.Canvas.Brush.Color := ChipBg;
+    PB.Canvas.Pen.Color   := AccentClr;
+    PB.Canvas.Pen.Style   := psSolid;
+    PB.Canvas.Pen.Width   := 1;
+    PB.Canvas.RoundRect(ChipL, ChipT, ChipL + ChipW, ChipT + ChipH, 3, 3);
+
+    // Green status dot.
+    PB.Canvas.Pen.Style   := psClear;
+    PB.Canvas.Brush.Color := $0000C000;
+    PB.Canvas.Ellipse(ChipL + 4, ChipT + ChipH div 2 - 2,
+      ChipL + 8, ChipT + ChipH div 2 + 2);
+
+    // 'HUD' label.
+    PB.Canvas.Font.Name  := 'Noto Sans';
+    PB.Canvas.Font.Size  := 7;
+    PB.Canvas.Font.Style := [fsBold];
+    PB.Canvas.Font.Color := ChipText;
+    TH := PB.Canvas.TextHeight('HUD');
+    PB.Canvas.Brush.Style := bsClear;
+    PB.Canvas.TextOut(ChipL + 11, ChipT + (ChipH - TH) div 2, 'HUD');
+    PB.Canvas.Brush.Style := bsSolid;
+  end;
+end;
+
+procedure TMangoHudUiHelper.VisMonitorPaintBoxMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+const
+  StandH = 18;
+var
+  PB: TPaintBox;
+  BzW, BzH, BzL, BzT, BzR, BzB: Integer;
+  ScrnL, ScrnT, ScrnR, ScrnB: Integer;
+  Col, Row, Anchor: Integer;
+begin
+  if not (Sender is TPaintBox) then Exit;
+  PB := TPaintBox(Sender);
+
+  BzW := Min(PB.Width - 12, 280);
+  if BzW < 40 then BzW := Max(40, PB.Width - 4);
+  BzH := Min(PB.Height - StandH, 120);
+  if BzH < 36 then BzH := Max(36, PB.Height - 4);
+  BzL := (PB.Width - BzW) div 2;
+  BzT := Max(0, (PB.Height - (BzH + StandH)) div 2);
+  BzR := BzL + BzW;
+  BzB := BzT + BzH;
+
+  ScrnL := BzL + 5;
+  ScrnT := BzT + 5;
+  ScrnR := BzR - 5;
+  ScrnB := BzB - 5;
+
+  Anchor := -1;
+  if (ScrnR > ScrnL) and (ScrnB > ScrnT) and
+     (X >= ScrnL) and (X < ScrnR) and (Y >= ScrnT) and (Y < ScrnB) then
+  begin
+    Col := ((X - ScrnL) * 3) div (ScrnR - ScrnL);
+    Row := ((Y - ScrnT) * 3) div (ScrnB - ScrnT);
+    if Col > 2 then Col := 2;
+    if Row > 2 then Row := 2;
+
+    case Row of
+      0: case Col of
+           0: Anchor := 0;
+           1: Anchor := 1;
+           2: Anchor := 2;
+         end;
+      1: case Col of
+           0: Anchor := 3;
+           1: Anchor := -1;
+           2: Anchor := 4;
+         end;
+      2: case Col of
+           0: Anchor := 5;
+           1: Anchor := 6;
+           2: Anchor := 7;
+         end;
+    end;
+  end;
+
+  if Anchor <> FVisHoverAnchor then
+  begin
+    FVisHoverAnchor := Anchor;
+    if FVisHoverAnchor >= 0 then
+      PB.Cursor := crHandPoint
+    else
+      PB.Cursor := crDefault;
+    PB.Invalidate;
+  end;
+end;
+
+procedure TMangoHudUiHelper.VisMonitorPaintBoxMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button = mbLeft) and (FVisHoverAnchor >= 0) and (FVisHoverAnchor <= 7) then
+    SetActiveScreenAnchor(FVisHoverAnchor);
+end;
+
+procedure TMangoHudUiHelper.VisMonitorPaintBoxMouseLeave(Sender: TObject);
+begin
+  FVisHoverAnchor := -1;
+  if Assigned(FVisMonitorPaintBox) then
+  begin
+    FVisMonitorPaintBox.Cursor := crDefault;
+    FVisMonitorPaintBox.Invalidate;
   end;
 end;
 
@@ -4651,6 +4970,7 @@ begin
     offsetySpinEdit.Value := 0;
 
     SyncAllToggles;
+    UpdateMonitorVisuals;
     end;
   finally
     FForm.FLoadingConfig := WasLoading;
@@ -4735,6 +5055,7 @@ begin
     UpdatePerfCardTheme;
     UpdatePresetCardVisuals;
     RefreshFormatPills;
+    UpdateMonitorVisuals;
   finally
     FForm.FLoadingConfig := False;
   end;
