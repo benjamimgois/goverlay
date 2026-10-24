@@ -65,15 +65,20 @@ type
     FtextoutlineToggle: TToggleSwitch;
     textoutlineCheckBox: TCheckBox;
 
-    // Visual Tab Modular Layout (two-column + action bar)
-    FVisAppearanceCard, FVisLayoutCard, FVisActionBar: TPanel;
+    // Visual Tab Modular Layout (two columns)
+    FVisAppearanceCard, FVisLayoutCard: TPanel;
+    FVisTitleSec: TPanel;
     FVisTypographySec, FVisCanvasSec: TPanel;
-    FVisScreenSec, FVisFlowSec: TPanel;
-    FVisAppearanceTitleLbl, FVisLayoutTitleLbl: TLabel;
+    FVisScreenSec, FVisFlowSec, FVisSystemSec: TPanel;
+    FVisTitleSubLbl: TLabel;
     FVisTypoSubLbl, FVisCanvasSubLbl: TLabel;
-    FVisScreenSubLbl, FVisFlowSubLbl: TLabel;
+    FVisScreenSubLbl, FVisFlowSubLbl, FVisSystemSubLbl: TLabel;
     FVisHudTitleLbl, FVisFontFamilyLbl, FVisFontColorLbl, FVisFontSizeLbl: TLabel;
     FVisBgColorLbl, FVisBorderPillLbl, FVisAlphaLbl: TLabel;
+    FVisRadiusLbl, FVisNoMarginLbl: TLabel;
+    FroundradiusvalueLabel: TLabel;
+    FroundradiusTrackBar: TTrackBar;
+    FhudnomarginToggle: TToggleSwitch;
     FVisOffsetXSubLbl, FVisOffsetYSubLbl: TLabel;
     FVisOrientPillLbl, FVisColumnsSubLbl: TLabel;
     FVisGpuBarLbl, FVisShortcutLbl: TLabel;
@@ -148,6 +153,7 @@ type
     procedure SyncVisualToggles;
     procedure VisOrientPillBtnClick(Sender: TObject);
     procedure VisBorderPillBtnClick(Sender: TObject);
+    procedure RoundRadiusTrackBarChange(Sender: TObject);
     procedure SyncVisualPills;
     procedure SyncFlowGridVisibility;
     procedure VisColumnsPaintBoxPaint(Sender: TObject);
@@ -1154,83 +1160,67 @@ begin
   BarBg     := IfThen(IsLight, $00F2F2F2, $00362E2E);
   TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
-  // ── Main Card 1: Appearance & Typography ─────────────────────────────────
-  FVisAppearanceCard := TPanel.Create(FForm);
-  FVisAppearanceCard.Parent  := visualTabSheet;
-  FVisAppearanceCard.Caption := '';
-  FVisAppearanceCard.OnPaint := @FForm.SubCardPaint;
-  FVisualCards[0] := FVisAppearanceCard;
+  FVisualHudBar := nil;
+  FVisualGpuBar := nil;
+  FVisualHudSep := nil;
 
-  FVisAppearanceTitleLbl := TLabel.Create(FVisAppearanceCard);
-  FVisAppearanceTitleLbl.Parent := FVisAppearanceCard;
-  StyleMainCard(FVisAppearanceCard, FVisAppearanceTitleLbl, 'Appearance && Typography');
+  // ── Six independent cards, direct children of visualTabSheet ─────────────
+  FVisTitleSec := TPanel.Create(FForm);
+  FVisTitleSec.Parent  := visualTabSheet;
+  FVisTitleSec.Caption := '';
+  FVisTitleSec.OnPaint := @FForm.SubCardPaint;
+  FVisTitleSubLbl := TLabel.Create(FVisTitleSec);
+  FVisTitleSubLbl.Parent := FVisTitleSec;
+  StyleMainCard(FVisTitleSec, FVisTitleSubLbl, 'HUD Header && Title');
 
-  // ── Main Card 2: Position & Layout ───────────────────────────────────────
-  FVisLayoutCard := TPanel.Create(FForm);
-  FVisLayoutCard.Parent  := visualTabSheet;
-  FVisLayoutCard.Caption := '';
-  FVisLayoutCard.OnPaint := @FForm.SubCardPaint;
-  FVisualCards[1] := FVisLayoutCard;
-
-  FVisLayoutTitleLbl := TLabel.Create(FVisLayoutCard);
-  FVisLayoutTitleLbl.Parent := FVisLayoutCard;
-  StyleMainCard(FVisLayoutCard, FVisLayoutTitleLbl, 'Position && Layout');
-
-  // ── Action Bar: Display Controls & Hardware ──────────────────────────────
-  FVisActionBar := TPanel.Create(FForm);
-  FVisActionBar.Parent      := visualTabSheet;
-  FVisActionBar.BevelOuter  := bvNone;
-  FVisActionBar.BorderStyle := bsNone;
-  FVisActionBar.Caption     := '';
-  FVisActionBar.Color       := BarBg;
-  FVisActionBar.ParentColor := False;
-  FVisActionBar.OnPaint     := @FForm.SubCardPaint;
-  FVisualCards[2] := FVisActionBar;
-  FVisualCards[3] := nil; FVisualCards[4] := nil; FVisualCards[5] := nil;
-  FVisualHudBar   := FVisActionBar;
-  FVisualGpuBar   := nil;
-  FVisualHudSep   := nil;
-
-  // ── Sub-Panels inside Appearance Card ────────────────────────────────────
-  FVisTypographySec := TPanel.Create(FVisAppearanceCard);
-  FVisTypographySec.Parent  := FVisAppearanceCard;
+  FVisTypographySec := TPanel.Create(FForm);
+  FVisTypographySec.Parent  := visualTabSheet;
   FVisTypographySec.Caption := '';
   FVisTypographySec.OnPaint := @FForm.SubCardPaint;
-  FVisualSections[0] := FVisTypographySec;
   FVisTypoSubLbl := TLabel.Create(FVisTypographySec);
   FVisTypoSubLbl.Parent := FVisTypographySec;
-  StyleSubCard(FVisTypographySec, FVisTypoSubLbl, 'Typography');
+  StyleMainCard(FVisTypographySec, FVisTypoSubLbl, 'Typography');
 
-  FVisCanvasSec := TPanel.Create(FVisAppearanceCard);
-  FVisCanvasSec.Parent  := FVisAppearanceCard;
+  FVisCanvasSec := TPanel.Create(FForm);
+  FVisCanvasSec.Parent  := visualTabSheet;
   FVisCanvasSec.Caption := '';
   FVisCanvasSec.OnPaint := @FForm.SubCardPaint;
-  FVisualSections[1] := FVisCanvasSec;
   FVisCanvasSubLbl := TLabel.Create(FVisCanvasSec);
   FVisCanvasSubLbl.Parent := FVisCanvasSec;
-  StyleSubCard(FVisCanvasSec, FVisCanvasSubLbl, 'Canvas && Frame');
+  StyleMainCard(FVisCanvasSec, FVisCanvasSubLbl, 'Canvas && Frame');
 
-  // ── Sub-Panels inside Layout Card ────────────────────────────────────────
-  FVisScreenSec := TPanel.Create(FVisLayoutCard);
-  FVisScreenSec.Parent  := FVisLayoutCard;
+  FVisScreenSec := TPanel.Create(FForm);
+  FVisScreenSec.Parent  := visualTabSheet;
   FVisScreenSec.Caption := '';
   FVisScreenSec.OnPaint := @FForm.SubCardPaint;
-  FVisualSections[2] := FVisScreenSec;
   FVisScreenSubLbl := TLabel.Create(FVisScreenSec);
   FVisScreenSubLbl.Parent := FVisScreenSec;
-  StyleSubCard(FVisScreenSec, FVisScreenSubLbl, 'Screen Placement');
+  StyleMainCard(FVisScreenSec, FVisScreenSubLbl, 'Screen Placement');
 
-  FVisFlowSec := TPanel.Create(FVisLayoutCard);
-  FVisFlowSec.Parent  := FVisLayoutCard;
+  FVisFlowSec := TPanel.Create(FForm);
+  FVisFlowSec.Parent  := visualTabSheet;
   FVisFlowSec.Caption := '';
   FVisFlowSec.OnPaint := @FForm.SubCardPaint;
-  FVisualSections[3] := FVisFlowSec;
   FVisFlowSubLbl := TLabel.Create(FVisFlowSec);
   FVisFlowSubLbl.Parent := FVisFlowSec;
-  StyleSubCard(FVisFlowSec, FVisFlowSubLbl, 'Flow && Grid');
+  StyleMainCard(FVisFlowSec, FVisFlowSubLbl, 'Flow && Grid');
 
-  FVisualSections[4] := nil;
-  FVisualSections[5] := nil;
+  FVisSystemSec := TPanel.Create(FForm);
+  FVisSystemSec.Parent  := visualTabSheet;
+  FVisSystemSec.Caption := '';
+  FVisSystemSec.OnPaint := @FForm.SubCardPaint;
+  FVisSystemSubLbl := TLabel.Create(FVisSystemSec);
+  FVisSystemSubLbl.Parent := FVisSystemSec;
+  StyleMainCard(FVisSystemSec, FVisSystemSubLbl, 'Display && System');
+
+  FVisualCards[0] := FVisTitleSec;
+  FVisualCards[1] := FVisTypographySec;
+  FVisualCards[2] := FVisCanvasSec;
+  FVisualCards[3] := FVisScreenSec;
+  FVisualCards[4] := FVisFlowSec;
+  FVisualCards[5] := FVisSystemSec;
+  FVisAppearanceCard := FVisTitleSec;
+  FVisLayoutCard := FVisScreenSec;
 
   // Hide legacy LFM containers and obsolete images/radios
   orientationGroupBox.Visible := False;
@@ -1252,7 +1242,7 @@ begin
   squareRadioButton.Visible   := False;
   roundRadioButton.Visible    := False;
   pcidevComboBox.Visible := True;
-  pcidevComboBox.Parent  := FVisActionBar;
+  pcidevComboBox.Parent  := FVisSystemSec;
   activegpuLabel.Visible      := False;
   gpudescEdit.Visible         := False;
   hudtoggleImage.Visible      := False;
@@ -1260,12 +1250,13 @@ begin
 
   // ── Controls: Appearance Card ────────────────────────────────────────────
   // HUD Title
-  FVisHudTitleLbl := TLabel.Create(FVisAppearanceCard);
-  FVisHudTitleLbl.Parent      := FVisAppearanceCard;
+  FVisHudTitleLbl := TLabel.Create(FVisTitleSec);
+  FVisHudTitleLbl.Parent      := FVisTitleSec;
   FVisHudTitleLbl.Caption     := 'HUD Title:';
   FVisHudTitleLbl.Font.Color  := TextColor;
   FVisHudTitleLbl.Transparent := True;
-  Place(hudtitleEdit, FVisAppearanceCard, 12, 42);
+  Place(hudtitleEdit, FVisTitleSec, 12, 42);
+  hudtitleEdit.Parent      := FVisTitleSec;
   hudtitleEdit.Color       := BarBg;
   hudtitleEdit.Font.Color  := TextColor;
   hudtitleEdit.BorderStyle := bsSingle;
@@ -1338,13 +1329,13 @@ begin
   FVisBgColorLbl.Font.Color  := TextColor;
   FVisBgColorLbl.Transparent := True;
   backgroundLabel.Visible := False;
-  Place(hudbackgroundColorButton, FVisCanvasSec, 124, 32);
+  Place(hudbackgroundColorButton, FVisCanvasSec, 130, 30);
   hudbackgroundColorButton.Color := BarBg;
-  hudbackgroundColorButton.SetBounds(124, 32, 28, 24);
+  hudbackgroundColorButton.SetBounds(130, 30, 28, 24);
 
   FVisBorderPillLbl := TLabel.Create(FVisCanvasSec);
   FVisBorderPillLbl.Parent      := FVisCanvasSec;
-  FVisBorderPillLbl.Caption     := 'Corner borders:';
+  FVisBorderPillLbl.Caption     := 'Corners:';
   FVisBorderPillLbl.Font.Color  := TextColor;
   FVisBorderPillLbl.Transparent := True;
 
@@ -1360,15 +1351,38 @@ begin
   FVisAlphaLbl.Transparent := True;
   transparencyLabel.Visible := False;
 
-  Place(transpTrackBar, FVisCanvasSec, 60, 102);
+  Place(transpTrackBar, FVisCanvasSec, 66, 68);
   transpTrackBar.Color := BarBg;
   transpTrackBar.ParentColor := False;
   transpTrackBar.TickStyle := tsNone;
 
-  Place(alphavalueLabel, FVisCanvasSec, 200, 104);
+  Place(alphavalueLabel, FVisCanvasSec, 200, 70);
   alphavalueLabel.Font.Color   := CLR_TEXT_ACCENT;
   alphavalueLabel.Font.Style   := [fsBold];
   alphavalueLabel.Transparent := True;
+
+  FVisRadiusLbl := TLabel.Create(FVisCanvasSec);
+  FVisRadiusLbl.Parent      := FVisCanvasSec;
+  FVisRadiusLbl.Caption     := 'Corner radius:';
+  FVisRadiusLbl.Font.Color  := TextColor;
+  FVisRadiusLbl.Transparent := True;
+
+  FroundradiusTrackBar := TTrackBar.Create(FVisCanvasSec);
+  FroundradiusTrackBar.Parent     := FVisCanvasSec;
+  FroundradiusTrackBar.Min        := 0;
+  FroundradiusTrackBar.Max        := 25;
+  FroundradiusTrackBar.Position   := 10;
+  FroundradiusTrackBar.TickStyle  := tsNone;
+  FroundradiusTrackBar.Color      := BarBg;
+  FroundradiusTrackBar.ParentColor := False;
+  FroundradiusTrackBar.OnChange   := @RoundRadiusTrackBarChange;
+
+  FroundradiusvalueLabel := TLabel.Create(FVisCanvasSec);
+  FroundradiusvalueLabel.Parent      := FVisCanvasSec;
+  FroundradiusvalueLabel.Caption     := '10px';
+  FroundradiusvalueLabel.Font.Color  := CLR_TEXT_ACCENT;
+  FroundradiusvalueLabel.Font.Style  := [fsBold];
+  FroundradiusvalueLabel.Transparent := True;
 
   // ── Controls: Layout Card ────────────────────────────────────────────────
   // Screen Placement Sub-Panel controls
@@ -1533,17 +1547,17 @@ begin
   FhorizontalstrechToggle.Width  := FhorizontalstrechToggle.GetOptimalWidth;
   FVisualToggles.Add(FhorizontalstrechToggle);
 
-  // ── Controls: Action Bar ─────────────────────────────────────────────────
-  FVisShortcutLbl := TLabel.Create(FVisActionBar);
-  FVisShortcutLbl.Parent      := FVisActionBar;
+  // ── Controls: System & Hotkey Sub-Card ───────────────────────────────────
+  FVisShortcutLbl := TLabel.Create(FVisSystemSec);
+  FVisShortcutLbl.Parent      := FVisSystemSec;
   FVisShortcutLbl.Caption     := 'HUD Toggle:';
   FVisShortcutLbl.Font.Color  := TextColor;
   FVisShortcutLbl.Transparent := True;
 
-  FVisualCaptureBtn := TBitBtn.Create(FVisActionBar);
-  FVisualCaptureBtn.Parent  := FVisActionBar;
+  FVisualCaptureBtn := TBitBtn.Create(FVisSystemSec);
+  FVisualCaptureBtn.Parent  := FVisSystemSec;
   FVisualCaptureBtn.Tag     := 1; // Visual Tab
-  FVisualCaptureBtn.SetBounds(10, 10, 130, 28);
+  FVisualCaptureBtn.SetBounds(90, 64, 126, 28);
   FVisualCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FVisualCaptureBtn.Cursor  := crHandPoint;
   FVisualCaptureBtn.Font.Color := TextColor;
@@ -1553,41 +1567,55 @@ begin
     FVisualCaptureBtn.Caption := '⌨ Capture';
   StyleBitBtnTheme(FVisualCaptureBtn, TextColor, BarBg);
 
-  FVisCompactLbl := TLabel.Create(FVisActionBar);
-  FVisCompactLbl.Parent      := FVisActionBar;
+  FVisCompactLbl := TLabel.Create(FVisCanvasSec);
+  FVisCompactLbl.Parent      := FVisCanvasSec;
   FVisCompactLbl.Caption     := 'Compact';
   FVisCompactLbl.Font.Color  := TextColor;
   FVisCompactLbl.Transparent := True;
 
+  FVisNoMarginLbl := TLabel.Create(FVisCanvasSec);
+  FVisNoMarginLbl.Parent      := FVisCanvasSec;
+  FVisNoMarginLbl.Caption     := 'No outer margins';
+  FVisNoMarginLbl.Font.Color  := TextColor;
+  FVisNoMarginLbl.Transparent := True;
+
   FhudcompactToggle := TToggleSwitch.Create(FForm);
-  FhudcompactToggle.Parent := FVisActionBar;
+  FhudcompactToggle.Parent := FVisCanvasSec;
   FhudcompactToggle.LinkToCheckBox(hudcompactCheckBox);
   FhudcompactToggle.Caption := '';
   FhudcompactToggle.Height := 20;
   FhudcompactToggle.Width  := FhudcompactToggle.GetOptimalWidth;
   FVisualToggles.Add(FhudcompactToggle);
 
-  FVisHideLbl := TLabel.Create(FVisActionBar);
-  FVisHideLbl.Parent      := FVisActionBar;
+  FhudnomarginToggle := TToggleSwitch.Create(FForm);
+  FhudnomarginToggle.Parent := FVisCanvasSec;
+  FhudnomarginToggle.Caption := '';
+  FhudnomarginToggle.Height := 20;
+  FhudnomarginToggle.Width  := FhudnomarginToggle.GetOptimalWidth;
+  FhudnomarginToggle.OnChange := @FForm.GenericControlChange;
+  FVisualToggles.Add(FhudnomarginToggle);
+
+  FVisHideLbl := TLabel.Create(FVisSystemSec);
+  FVisHideLbl.Parent      := FVisSystemSec;
   FVisHideLbl.Caption     := 'Hide by default';
   FVisHideLbl.Font.Color  := TextColor;
   FVisHideLbl.Transparent := True;
 
   FhidehudToggle := TToggleSwitch.Create(FForm);
-  FhidehudToggle.Parent := FVisActionBar;
+  FhidehudToggle.Parent := FVisSystemSec;
   FhidehudToggle.LinkToCheckBox(hidehudCheckBox);
   FhidehudToggle.Caption := '';
   FhidehudToggle.Height := 20;
   FhidehudToggle.Width  := FhidehudToggle.GetOptimalWidth;
   FVisualToggles.Add(FhidehudToggle);
 
-  FVisGpuBarLbl := TLabel.Create(FVisActionBar);
-  FVisGpuBarLbl.Parent      := FVisActionBar;
+  FVisGpuBarLbl := TLabel.Create(FVisSystemSec);
+  FVisGpuBarLbl.Parent      := FVisSystemSec;
   FVisGpuBarLbl.Caption     := 'Active GPU:';
   FVisGpuBarLbl.Font.Color  := TextColor;
   FVisGpuBarLbl.Transparent := True;
 
-  pcidevComboBox.Parent := FVisActionBar;
+  pcidevComboBox.Parent := FVisSystemSec;
   pcidevComboBox.AnchorSideLeft.Control  := nil;
   pcidevComboBox.AnchorSideTop.Control   := nil;
   pcidevComboBox.AnchorSideRight.Control := nil;
@@ -1608,193 +1636,156 @@ procedure TMangoHudUiHelper.ReflowVisualTab(AContentW, AContentH: Integer);
 const
   MARGIN     = 4;
   GAP        = 8;
-  ACTION_H   = 48;
   TABBAR_H   = 35;
-  HDR        = 34;
 var
-  W, ColW, TabH, ActiveCardsH, InnerW, SecH, Sec1Top, Sec2Top: Integer;
-  RW, RH, CL, CC, CR, RT, RM, RB, ImgW, ImgH: Integer;
-  CY, ActRight, HalfW, SpinW: Integer;
+  W, ColW, RightColW, TabH, ActiveCardsH, InnerW: Integer;
+  LeftTop3, LeftH3, RightH3: Integer;
+  CY, HalfW, StartLeft, MonH: Integer;
 begin
   with FForm do
   begin
-  if not Assigned(FVisAppearanceCard) then Exit;
+  if not Assigned(FVisTitleSec) then Exit;
 
   W := AContentW - 2 * MARGIN;
   if W < 100 then Exit;
 
   TabH := Max(600, AContentH - TABBAR_H);
-  ActiveCardsH := Max(490, TabH - MARGIN - ACTION_H - GAP - MARGIN);
+  ActiveCardsH := Max(520, TabH - 2 * MARGIN);
   ColW := (W - GAP) div 2;
+  RightColW := W - ColW - GAP;
+  LeftTop3 := MARGIN + 260 + 2 * GAP;
+  LeftH3 := Max(130, ActiveCardsH - LeftTop3 + MARGIN);
+  RightH3 := LeftH3;
 
-  FVisAppearanceCard.SetBounds(MARGIN, MARGIN, ColW, ActiveCardsH);
-  FVisLayoutCard.SetBounds(MARGIN + ColW + GAP, MARGIN, W - ColW - GAP, ActiveCardsH);
-  FVisActionBar.SetBounds(MARGIN, MARGIN + ActiveCardsH + GAP, W, ACTION_H);
+  // ── Left column: Title, Typography, Canvas ──────────────────────────────
+  if Assigned(FVisTitleSec) then
+    FVisTitleSec.SetBounds(MARGIN, MARGIN, ColW, 95);
+  if Assigned(FVisTypographySec) then
+    FVisTypographySec.SetBounds(MARGIN, MARGIN + 95 + GAP, ColW, 165);
+  if Assigned(FVisCanvasSec) then
+    FVisCanvasSec.SetBounds(MARGIN, LeftTop3, ColW, LeftH3);
 
-  // ── Appearance Card Sub-Panels ──
+  // ── Right column: Flow, System, Screen ──────────────────────────────────
+  if Assigned(FVisFlowSec) then
+    FVisFlowSec.SetBounds(MARGIN + ColW + GAP, MARGIN, RightColW, 95);
+  if Assigned(FVisSystemSec) then
+    FVisSystemSec.SetBounds(MARGIN + ColW + GAP, MARGIN + 95 + GAP, RightColW, 165);
+  if Assigned(FVisScreenSec) then
+    FVisScreenSec.SetBounds(MARGIN + ColW + GAP, LeftTop3, RightColW, RightH3);
+
+  // ── Card 1: HUD Header & Title ──────────────────────────────────────────
   InnerW := ColW - 16;
-  if Assigned(FVisHudTitleLbl) then
-    FVisHudTitleLbl.SetBounds(10, HDR + 2, 70, 20);
-  hudtitleEdit.SetBounds(82, HDR, InnerW - 86, 26);
+  if Assigned(FVisTitleSec) then
+  begin
+    if Assigned(FVisHudTitleLbl) then FVisHudTitleLbl.SetBounds(12, 36, 80, 20);
+    hudtitleEdit.SetBounds(92, 32, Max(80, InnerW - 84), 26);
+  end;
 
-  Sec1Top := HDR + 36;
-  SecH := (ActiveCardsH - Sec1Top - GAP - 10) div 2;
-  Sec2Top := Sec1Top + SecH + GAP;
-
+  // ── Card 2: Typography ──────────────────────────────────────────────────
   if Assigned(FVisTypographySec) then
   begin
-    FVisTypographySec.SetBounds(8, Sec1Top, InnerW, SecH);
-    if Assigned(FVisFontFamilyLbl) then FVisFontFamilyLbl.SetBounds(10, 30, 80, 20);
-    fontComboBox.SetBounds(90, 28, InnerW - 100, 26);
-    
-    if Assigned(FVisFontColorLbl) then FVisFontColorLbl.SetBounds(10, 70, 44, 20);
-    FontcolorButton.SetBounds(56, 68, 28, 24);
+    if Assigned(FVisFontFamilyLbl) then FVisFontFamilyLbl.SetBounds(10, 34, 80, 20);
+    fontComboBox.SetBounds(90, 32, Max(60, InnerW - 100), 26);
 
-    if Assigned(FVisOutlineLbl) then FVisOutlineLbl.SetBounds(InnerW - 120, 70, 80, 20);
-    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.SetBounds(InnerW - 36, 70, 30, 20);
+    if Assigned(FVisFontColorLbl) then FVisFontColorLbl.SetBounds(10, 74, 44, 20);
+    FontcolorButton.SetBounds(56, 72, 28, 24);
 
-    if Assigned(FVisFontSizeLbl) then FVisFontSizeLbl.SetBounds(10, 108, 44, 20);
-    fontsizeTrackBar.SetBounds(56, 106, Max(30, InnerW - 114), 24);
-    fontsizevalueLabel.SetBounds(InnerW - 54, 108, 46, 20);
+    if Assigned(FVisOutlineLbl) then FVisOutlineLbl.SetBounds(Max(10, InnerW - 130), 74, 84, 20);
+    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.SetBounds(Max(100, InnerW - 42), 72, 30, 20);
+
+    if Assigned(FVisFontSizeLbl) then FVisFontSizeLbl.SetBounds(10, 118, 60, 20);
+    fontsizeTrackBar.SetBounds(72, 116, Max(30, InnerW - 124), 24);
+    fontsizevalueLabel.SetBounds(Max(80, InnerW - 46), 118, 38, 20);
   end;
 
+  // ── Card 3: Canvas & Frame ──────────────────────────────────────────────
   if Assigned(FVisCanvasSec) then
   begin
-    FVisCanvasSec.SetBounds(8, Sec2Top, InnerW, SecH);
-    
-    if Assigned(FVisBgColorLbl) then FVisBgColorLbl.SetBounds(10, 32, 116, 20);
-    hudbackgroundColorButton.SetBounds(130, 30, 28, 24);
+    // Row 1: corners (border style)
+    if Assigned(FVisBorderPillLbl) then FVisBorderPillLbl.SetBounds(10, 34, 60, 20);
+    if Assigned(FVisBorderPillBtn) then
+      FVisBorderPillBtn.SetBounds(90, 30, FVisBorderPillBtn.Width, 26);
 
-    if Assigned(FVisBorderPillLbl) then FVisBorderPillLbl.SetBounds(10, 70, 104, 20);
-    if Assigned(FVisBorderPillBtn) then FVisBorderPillBtn.SetBounds(118, 66, FVisBorderPillBtn.Width, 24);
+    // Row 2: corner radius
+    if Assigned(FVisRadiusLbl) then FVisRadiusLbl.SetBounds(10, 74, 90, 20);
+    if Assigned(FroundradiusTrackBar) then
+      FroundradiusTrackBar.SetBounds(102, 72, Max(30, InnerW - 156), 24);
+    if Assigned(FroundradiusvalueLabel) then
+      FroundradiusvalueLabel.SetBounds(Max(80, InnerW - 46), 74, 38, 20);
 
-    if Assigned(FVisAlphaLbl) then FVisAlphaLbl.SetBounds(10, 108, 54, 20);
-    transpTrackBar.SetBounds(66, 106, Max(30, InnerW - 124), 24);
-    alphavalueLabel.SetBounds(InnerW - 54, 108, 46, 20);
+    // Row 3: background color
+    if Assigned(FVisBgColorLbl) then FVisBgColorLbl.SetBounds(10, 116, 112, 20);
+    hudbackgroundColorButton.SetBounds(130, 114, 28, 24);
+
+    // Row 4: opacity
+    if Assigned(FVisAlphaLbl) then FVisAlphaLbl.SetBounds(10, 156, 54, 20);
+    transpTrackBar.SetBounds(66, 154, Max(30, InnerW - 120), 24);
+    alphavalueLabel.SetBounds(Max(80, InnerW - 46), 156, 38, 20);
+
+    // Row 5: compact & no outer margins
+    if Assigned(FVisCompactLbl) then FVisCompactLbl.SetBounds(10, 196, 60, 20);
+    if Assigned(FhudcompactToggle) then FhudcompactToggle.SetBounds(72, 194, 30, 20);
+    if Assigned(FVisNoMarginLbl) then
+      FVisNoMarginLbl.SetBounds(Max(10, InnerW - 146), 196, 108, 20);
+    if Assigned(FhudnomarginToggle) then
+      FhudnomarginToggle.SetBounds(Max(10, InnerW - 36), 194, 30, 20);
   end;
 
-  // ── Layout Card Sub-Panels ──
-  InnerW := (W - ColW - GAP) - 16;
-  Sec1Top := HDR + 6;
-  SecH := (ActiveCardsH - Sec1Top - GAP - 10) div 2;
-  Sec2Top := Sec1Top + SecH + GAP;
-
-  if Assigned(FVisScreenSec) then
-  begin
-    FVisScreenSec.SetBounds(8, Sec1Top, InnerW, SecH);
-    
-    ImgW := InnerW - 16;
-    ImgH := Max(50, SecH - 64);
-    Image1.SetBounds(8, 24, ImgW, ImgH);
-    Image1.Visible := False;
-
-    if Assigned(FVisMonitorPaintBox) then
-      FVisMonitorPaintBox.SetBounds(8, 22, InnerW - 16, Max(50, SecH - 58));
-
-    RW := topleftRadioButton.Width;
-    RH := topleftRadioButton.Height;
-    CL := 8 + Round(ImgW * 0.08) - RW div 2;
-    CC := 8 + (ImgW div 2) - RW div 2;
-    CR := 8 + Round(ImgW * 0.92) - RW div 2;
-    RT := 24 + Round(ImgH * 0.12) - RH div 2;
-    RB := 24 + Round(ImgH * 0.68) - RH div 2;
-    RM := (RT + RB) div 2;
-
-    topleftRadioButton.SetBounds(CL, RT, RW, RH);
-    topcenterRadioButton.SetBounds(CC, RT, RW, RH);
-    toprightRadioButton.SetBounds(CR, RT, RW, RH);
-    middleleftRadioButton.SetBounds(CL, RM, RW, RH);
-    middlerightRadioButton.SetBounds(CR, RM, RW, RH);
-    bottomleftRadioButton.SetBounds(CL, RB, RW, RH);
-    bottomcenterRadioButton.SetBounds(CC, RB, RW, RH);
-    bottomrightRadioButton.SetBounds(CR, RB, RW, RH);
-
-    topleftRadioButton.Visible      := False;
-    topcenterRadioButton.Visible    := False;
-    toprightRadioButton.Visible     := False;
-    middleleftRadioButton.Visible   := False;
-    middlerightRadioButton.Visible  := False;
-    bottomleftRadioButton.Visible   := False;
-    bottomcenterRadioButton.Visible := False;
-    bottomrightRadioButton.Visible  := False;
-
-    // Coordinate offsets cleanly positioned below monitor
-    CY := SecH - 30;
-    HalfW := InnerW div 2;
-    SpinW := 56;
-    if Assigned(FVisOffsetXSubLbl) then FVisOffsetXSubLbl.SetBounds(12, CY + 2, 54, 20);
-    offsetxSpinEdit.SetBounds(68, CY, SpinW, 22);
-
-    if Assigned(FVisOffsetYSubLbl) then FVisOffsetYSubLbl.SetBounds(HalfW + 10, CY + 2, 54, 20);
-    offsetySpinEdit.SetBounds(HalfW + 66, CY, SpinW, 22);
-  end;
-
+  // ── Card 4: Flow & Grid ─────────────────────────────────────────────────
+  InnerW := RightColW - 16;
   if Assigned(FVisFlowSec) then
   begin
-    FVisFlowSec.SetBounds(8, Sec2Top, InnerW, SecH);
+    if Assigned(FVisFlowSubLbl) then FVisFlowSubLbl.SetBounds(12, 8, 200, 22);
+    if Assigned(FVisOrientPillLbl) then FVisOrientPillLbl.SetBounds(12, 34, 80, 20);
+    if Assigned(FVisOrientPillBtn) then FVisOrientPillBtn.SetBounds(92, 30, FVisOrientPillBtn.Width, 26);
 
-    if Assigned(FVisOrientPillLbl) then FVisOrientPillLbl.SetBounds(10, 30, 80, 20);
-    if Assigned(FVisOrientPillBtn) then FVisOrientPillBtn.SetBounds(94, 26, FVisOrientPillBtn.Width, 24);
-
-    if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(10, 70, 60, 20);
-    if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
-    if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
+    if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(12, 64, 58, 20);
+    if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(74, 61, 24, 24);
+    if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.SetBounds(74, 61, 24, 24);
     columvalueLabel.AutoSize := False;
     columvalueLabel.Alignment := taCenter;
-    columvalueLabel.SetBounds(100, 68, 32, 24);
-    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(134, 68, 24, 24);
-    if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.SetBounds(134, 68, 24, 24);
-    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(166, 70, 72, 20);
+    columvalueLabel.SetBounds(100, 63, 28, 20);
+    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(130, 61, 24, 24);
+    if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.SetBounds(130, 61, 24, 24);
+    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(162, 63, 50, 20);
 
-    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(10, 70, 114, 20);
-    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(128, 70, 30, 20);
+    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(12, 64, 114, 20);
+    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(130, 62, 30, 20);
 
     SyncFlowGridVisibility;
   end;
 
-  // ── Action Bar ──
-  if Assigned(FVisActionBar) then
+  // ── Card 5: Display & System ────────────────────────────────────────────
+  if Assigned(FVisSystemSec) then
   begin
-    CY := (ACTION_H - 28) div 2;
-    if Assigned(FVisShortcutLbl) then FVisShortcutLbl.SetBounds(12, CY + 4, 72, 20);
-    FVisualCaptureBtn.SetBounds(86, CY, 126, 28);
+    if Assigned(FVisSystemSubLbl) then FVisSystemSubLbl.SetBounds(12, 8, 200, 22);
+    if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.SetBounds(12, 36, 75, 20);
+    pcidevComboBox.SetBounds(90, 32, Max(80, RightColW - 102), 26);
+    pcidevComboBox.Visible := True;
 
-    ActRight := 224;
-    if Assigned(FVisCompactLbl) then
-    begin
-      FVisCompactLbl.SetBounds(ActRight, CY + 4, 58, 20);
-      ActRight := ActRight + 62;
-    end;
-    if Assigned(FhudcompactToggle) then
-    begin
-      FhudcompactToggle.SetBounds(ActRight, CY + 4, 30, 20);
-      ActRight := ActRight + 44;
-    end;
+    if Assigned(FVisShortcutLbl) then FVisShortcutLbl.SetBounds(12, 74, 75, 20);
+    FVisualCaptureBtn.SetBounds(90, 70, 140, 28);
 
-    if Assigned(FVisHideLbl) then
-    begin
-      FVisHideLbl.SetBounds(ActRight, CY + 4, 92, 20);
-      ActRight := ActRight + 96;
-    end;
-    if Assigned(FhidehudToggle) then
-    begin
-      FhidehudToggle.SetBounds(ActRight, CY + 4, 30, 20);
-      ActRight := ActRight + 44;
-    end;
+    if Assigned(FVisHideLbl) then FVisHideLbl.SetBounds(12, 114, 100, 20);
+    if Assigned(FhidehudToggle) then FhidehudToggle.SetBounds(120, 112, 30, 20);
+  end;
 
-    // Right-aligned Active GPU selector
-    if W > 700 then
-    begin
-      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.SetBounds(W - 250, CY + 4, 70, 20);
-      pcidevComboBox.SetBounds(W - 176, CY, 166, 28);
-      pcidevComboBox.Visible := True;
-      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.Visible := True;
-    end
-    else
-    begin
-      if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.Visible := False;
-      pcidevComboBox.Visible := False;
-    end;
+  // ── Card 6: Screen Placement ────────────────────────────────────────────
+  if Assigned(FVisScreenSec) then
+  begin
+    if Assigned(FVisScreenSubLbl) then FVisScreenSubLbl.SetBounds(12, 8, 200, 22);
+    MonH := Min(205, Max(165, RightH3 - 130));
+    if Assigned(FVisMonitorPaintBox) then
+      FVisMonitorPaintBox.SetBounds(8, 26, RightColW - 16, MonH);
+
+    CY := 26 + MonH + 4;
+    HalfW := RightColW div 2;
+    StartLeft := Max(14, HalfW - 130);
+    if Assigned(FVisOffsetXSubLbl) then FVisOffsetXSubLbl.SetBounds(StartLeft, CY + 2, 52, 20);
+    offsetxSpinEdit.SetBounds(StartLeft + 54, CY, 65, 26);
+
+    if Assigned(FVisOffsetYSubLbl) then FVisOffsetYSubLbl.SetBounds(StartLeft + 130, CY + 2, 52, 20);
+    offsetySpinEdit.SetBounds(StartLeft + 184, CY, 65, 26);
   end;
   end;
 end;
@@ -1836,14 +1827,42 @@ begin
     begin
       squareRadioButton.Checked := True;
       roundRadioButton.Checked := False;
+      if Assigned(FroundradiusTrackBar) then
+        FroundradiusTrackBar.Position := 0;
       GenericControlChange(squareRadioButton);
     end
     else
     begin
       roundRadioButton.Checked := True;
       squareRadioButton.Checked := False;
+      if Assigned(FroundradiusTrackBar) and (FroundradiusTrackBar.Position = 0) then
+        FroundradiusTrackBar.Position := 10;
       GenericControlChange(roundRadioButton);
     end;
+  end;
+  SyncVisualPills;
+end;
+
+procedure TMangoHudUiHelper.RoundRadiusTrackBarChange(Sender: TObject);
+begin
+  if not Assigned(FroundradiusTrackBar) then Exit;
+
+  if Assigned(FroundradiusvalueLabel) then
+    FroundradiusvalueLabel.Caption := IntToStr(FroundradiusTrackBar.Position) + 'px';
+
+  with FForm do
+  begin
+    if FroundradiusTrackBar.Position = 0 then
+    begin
+      squareRadioButton.Checked := True;
+      roundRadioButton.Checked := False;
+    end
+    else
+    begin
+      roundRadioButton.Checked := True;
+      squareRadioButton.Checked := False;
+    end;
+    GenericControlChange(Sender);
   end;
   SyncVisualPills;
 end;
@@ -2002,12 +2021,12 @@ begin
   PB.Canvas.Pen.Color   := PB.Canvas.Brush.Color;
   PB.Canvas.FillRect(PB.ClientRect);
 
-  BzW := Min(PB.Width - 12, 280);
+  BzW := Min(PB.Width - 12, 330);
   if BzW < 40 then BzW := Max(40, PB.Width - 4);
-  BzH := Min(PB.Height - StandH, 120);
+  BzH := Min(PB.Height - StandH - 4, Max(110, Round(BzW * 9 / 16)));
   if BzH < 36 then BzH := Max(36, PB.Height - 4);
   BzL := (PB.Width - BzW) div 2;
-  BzT := Max(0, (PB.Height - (BzH + StandH)) div 2);
+  BzT := 2;
   BzR := BzL + BzW;
   BzB := BzT + BzH;
 
@@ -2113,12 +2132,12 @@ begin
   if not (Sender is TPaintBox) then Exit;
   PB := TPaintBox(Sender);
 
-  BzW := Min(PB.Width - 12, 280);
+  BzW := Min(PB.Width - 12, 330);
   if BzW < 40 then BzW := Max(40, PB.Width - 4);
-  BzH := Min(PB.Height - StandH, 120);
+  BzH := Min(PB.Height - StandH - 4, Max(110, Round(BzW * 9 / 16)));
   if BzH < 36 then BzH := Max(36, PB.Height - 4);
   BzL := (PB.Width - BzW) div 2;
-  BzT := Max(0, (PB.Height - (BzH + StandH)) div 2);
+  BzT := 2;
   BzR := BzL + BzW;
   BzB := BzT + BzH;
 
@@ -2264,7 +2283,7 @@ begin
     TextColor := DarkTextColor;
   end;
 
-  for i := 0 to 2 do
+  for i := 0 to 5 do
   begin
     Card := FVisualCards[i];
     if not Assigned(Card) then Continue;
@@ -2274,31 +2293,23 @@ begin
     begin
       if Card.Controls[j] is TLabel then
       begin
-        TLabel(Card.Controls[j]).Font.Color := TextColor;
+        if (Card.Controls[j] <> alphavalueLabel) and
+           (Card.Controls[j] <> fontsizevalueLabel) and
+           (Card.Controls[j] <> FroundradiusvalueLabel) and
+           (Card.Controls[j] <> columvalueLabel) then
+          TLabel(Card.Controls[j]).Font.Color := TextColor;
         TLabel(Card.Controls[j]).Transparent := True;
       end;
     end;
+    UpdateGenericCardTheme(Card);
   end;
 
-  for i := 0 to 3 do
-  begin
-    if Assigned(FVisualSections[i]) then
-    begin
-      FVisualSections[i].Color := CardBg;
-      FVisualSections[i].Invalidate;
-      for j := 0 to FVisualSections[i].ControlCount - 1 do
-      begin
-        if FVisualSections[i].Controls[j] is TLabel then
-        begin
-          if (FVisualSections[i].Controls[j] <> alphavalueLabel) and
-             (FVisualSections[i].Controls[j] <> fontsizevalueLabel) and
-             (FVisualSections[i].Controls[j] <> columvalueLabel) then
-            TLabel(FVisualSections[i].Controls[j]).Font.Color := TextColor;
-          TLabel(FVisualSections[i].Controls[j]).Transparent := True;
-        end;
-      end;
-    end;
-  end;
+  if Assigned(FVisRadiusLbl) then
+    FVisRadiusLbl.Font.Color := TextColor;
+  if Assigned(FVisNoMarginLbl) then
+    FVisNoMarginLbl.Font.Color := TextColor;
+  if Assigned(FroundradiusvalueLabel) then
+    FroundradiusvalueLabel.Font.Color := CLR_TEXT_ACCENT;
 
   pcidevComboBox.Color      := CardBg;
   pcidevComboBox.Font.Color := TextColor;
@@ -4931,6 +4942,15 @@ begin
     
     fontsizeTrackBar.Position := 24;
     fontsizevalueLabel.Caption := '24px';
+
+    if Assigned(FroundradiusTrackBar) then
+    begin
+      FroundradiusTrackBar.Position := 10;
+      if Assigned(FroundradiusvalueLabel) then
+        FroundradiusvalueLabel.Caption := '10px';
+    end;
+    if Assigned(FhudnomarginToggle) then
+      FhudnomarginToggle.Checked := False;
     
     afTrackBar.Position := 0;
     afvalueLabel.Caption := '0 (Off)';
@@ -5114,6 +5134,11 @@ begin
       hidehudCheckBox.Checked := True
     else if SameText(ATrimmedLine, MANGO_FLAG_HUD_COMPACT) then
       hudcompactCheckBox.Checked := True
+    else if SameText(ATrimmedLine, MANGO_FLAG_HUD_NO_MARGIN) then
+    begin
+      if Assigned(FhudnomarginToggle) then
+        FhudnomarginToggle.Checked := True;
+    end
     else if SameText(ATrimmedLine, MANGO_FLAG_TEXT_OUTLINE) then
     begin
       if Assigned(textoutlineCheckBox) then
@@ -5316,6 +5341,8 @@ begin
           roundRadioButton.Checked := True;
           squareRadioButton.Checked := False;
         end;
+        if Assigned(FroundradiusTrackBar) then
+          FroundradiusTrackBar.Position := IntValue;
       end;
     end
     else if SameText(AKey, MANGO_KEY_BG_COLOR) then
@@ -5746,6 +5773,9 @@ begin
     Settings.ToggleHudKey := Trim(hudonoffComboBox.Text);
     Settings.HideHud := hidehudCheckBox.Checked;
     Settings.HudCompact := hudcompactCheckBox.Checked;
+    Settings.HudNoMargin := Assigned(FhudnomarginToggle) and FhudnomarginToggle.Checked;
+    if Assigned(FroundradiusTrackBar) then
+      Settings.RoundCornerRadius := FroundradiusTrackBar.Position;
     Settings.HorizontalStretch := horizontalstrechCheckBox.Checked;
     if Assigned(textoutlineCheckBox) then
       Settings.TextOutline := textoutlineCheckBox.Checked

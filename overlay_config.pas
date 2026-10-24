@@ -116,6 +116,7 @@ type
     Horizontal: Boolean;
     TranspPosition: Integer;
     RoundCorners: Boolean;
+    RoundCornerRadius: Integer;
     HudBackgroundColor: TColor;
     FontText: string;
     FontSize: Integer;
@@ -126,6 +127,7 @@ type
     ToggleHudKey: string;
     HideHud: Boolean;
     HudCompact: Boolean;
+    HudNoMargin: Boolean;
     HorizontalStretch: Boolean;
     TextOutline: Boolean;
     PciDevIndex: Integer;
@@ -2368,7 +2370,12 @@ begin
 
     // Border type (round corners)
     if Settings.RoundCorners then
-      ConfigLines.Add('round_corners=10')
+    begin
+      if Settings.RoundCornerRadius > 0 then
+        ConfigLines.Add('round_corners=' + IntToStr(Settings.RoundCornerRadius))
+      else
+        ConfigLines.Add('round_corners=10');
+    end
     else
       ConfigLines.Add('round_corners=0');
 
@@ -2427,6 +2434,9 @@ begin
 
     // HUD compact
     AddIfTrue(Settings.HudCompact, 'hud_compact');
+
+    // HUD no outer margins
+    AddIfTrue(Settings.HudNoMargin, MANGO_FLAG_HUD_NO_MARGIN);
 
     // Text outline
     AddIfTrue(Settings.TextOutline, MANGO_FLAG_TEXT_OUTLINE);

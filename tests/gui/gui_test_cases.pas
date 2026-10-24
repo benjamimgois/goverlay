@@ -6083,6 +6083,8 @@ begin
   AssertTrue('FhudcompactToggle is assigned', Assigned(Helper.FhudcompactToggle));
   AssertTrue('FhorizontalstrechToggle is assigned', Assigned(Helper.FhorizontalstrechToggle));
   AssertTrue('FhidehudToggle is assigned', Assigned(Helper.FhidehudToggle));
+  AssertTrue('FhudnomarginToggle is assigned', Assigned(Helper.FhudnomarginToggle));
+  AssertTrue('FroundradiusTrackBar is assigned', Assigned(Helper.FroundradiusTrackBar));
 
   // 1. Check hudcompactToggle and verify checkbox and config
   Helper.FhudcompactToggle.Checked := True;
@@ -6105,6 +6107,16 @@ begin
   C := ReadFileText(MangoConfPath);
   AssertTrue('MangoHud.conf contains no_display', Pos('no_display', C) > 0);
 
+  // 3b. Check hudnomarginToggle and verify hud_no_margin
+  Helper.FhudnomarginToggle.Checked := True;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertTrue('MangoHud.conf contains hud_no_margin', Pos('hud_no_margin', C) > 0);
+  Helper.FhudnomarginToggle.Checked := False;
+  SaveMango;
+  C := ReadFileText(MangoConfPath);
+  AssertFalse('MangoHud.conf does not contain hud_no_margin', Pos('hud_no_margin', C) > 0);
+
   // 4. Reload config and verify sync
   goverlayform.LoadMangoHudConfig;
   AssertTrue('FhidehudToggle is True after reload', Helper.FhidehudToggle.Checked);
@@ -6119,14 +6131,61 @@ begin
   goverlayform.ReflowVisualTab(935, 650);
   AssertTrue('FhudcompactToggle has positive coordinates',
     (Helper.FhudcompactToggle.Left > 0) and (Helper.FhudcompactToggle.Top > 0));
-  AssertTrue('FVisAppearanceCard is assigned', Assigned(Helper.FVisAppearanceCard));
-  AssertTrue('FVisLayoutCard is assigned', Assigned(Helper.FVisLayoutCard));
-  AssertTrue('FVisActionBar is assigned', Assigned(Helper.FVisActionBar));
+  AssertTrue('FVisTitleSec is assigned', Assigned(Helper.FVisTitleSec));
+  AssertTrue('FVisTitleSec parented to visualTabSheet',
+    Helper.FVisTitleSec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisTitleSec has positive bounds',
+    (Helper.FVisTitleSec.Width > 0) and (Helper.FVisTitleSec.Height > 0));
+
+  AssertTrue('FVisTypographySec is assigned', Assigned(Helper.FVisTypographySec));
+  AssertTrue('FVisTypographySec parented to visualTabSheet',
+    Helper.FVisTypographySec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisTypographySec has positive bounds',
+    (Helper.FVisTypographySec.Width > 0) and (Helper.FVisTypographySec.Height > 0));
+
+  AssertTrue('FVisCanvasSec is assigned', Assigned(Helper.FVisCanvasSec));
+  AssertTrue('FVisCanvasSec parented to visualTabSheet',
+    Helper.FVisCanvasSec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisCanvasSec has positive bounds',
+    (Helper.FVisCanvasSec.Width > 0) and (Helper.FVisCanvasSec.Height > 0));
+
+  AssertTrue('FVisScreenSec is assigned', Assigned(Helper.FVisScreenSec));
+  AssertTrue('FVisScreenSec parented to visualTabSheet',
+    Helper.FVisScreenSec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisScreenSec has positive bounds',
+    (Helper.FVisScreenSec.Width > 0) and (Helper.FVisScreenSec.Height > 0));
+
+  AssertTrue('FVisFlowSec is assigned', Assigned(Helper.FVisFlowSec));
+  AssertTrue('FVisFlowSec parented to visualTabSheet',
+    Helper.FVisFlowSec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisFlowSec has positive bounds',
+    (Helper.FVisFlowSec.Width > 0) and (Helper.FVisFlowSec.Height > 0));
+
+  AssertTrue('FVisSystemSec is assigned', Assigned(Helper.FVisSystemSec));
+  AssertTrue('FVisSystemSec parented to visualTabSheet',
+    Helper.FVisSystemSec.Parent = goverlayform.visualTabSheet);
+  AssertTrue('FVisSystemSec has positive bounds',
+    (Helper.FVisSystemSec.Width > 0) and (Helper.FVisSystemSec.Height > 0));
+
+  AssertTrue('Flow card above System card', Helper.FVisFlowSec.Top < Helper.FVisSystemSec.Top);
+  AssertTrue('System card above Screen card', Helper.FVisSystemSec.Top < Helper.FVisScreenSec.Top);
+  AssertTrue('Flow card bounds valid',
+    (Helper.FVisFlowSec.Left >= 0) and (Helper.FVisFlowSec.Top >= 0) and
+    (Helper.FVisFlowSec.Width > 0) and (Helper.FVisFlowSec.Height > 0));
+  AssertTrue('System card bounds valid',
+    (Helper.FVisSystemSec.Left >= 0) and (Helper.FVisSystemSec.Top >= 0) and
+    (Helper.FVisSystemSec.Width > 0) and (Helper.FVisSystemSec.Height > 0));
+  AssertTrue('Screen card bounds valid',
+    (Helper.FVisScreenSec.Left >= 0) and (Helper.FVisScreenSec.Top >= 0) and
+    (Helper.FVisScreenSec.Width > 0) and (Helper.FVisScreenSec.Height > 0));
+
+  AssertTrue('hudtitleEdit parented to title section', goverlayform.hudtitleEdit.Parent = Helper.FVisTitleSec);
   AssertTrue('FVisOrientPillBtn is assigned', Assigned(Helper.FVisOrientPillBtn));
   AssertTrue('FVisBorderPillBtn is assigned', Assigned(Helper.FVisBorderPillBtn));
-  AssertTrue('Appearance card positive bounds', (Helper.FVisAppearanceCard.Left >= 0) and (Helper.FVisAppearanceCard.Width > 200));
-  AssertTrue('Layout card positive bounds', (Helper.FVisLayoutCard.Left > Helper.FVisAppearanceCard.Left) and (Helper.FVisLayoutCard.Width > 200));
-  AssertTrue('Action bar positive bounds', (Helper.FVisActionBar.Top > Helper.FVisAppearanceCard.Top) and (Helper.FVisActionBar.Width > 400));
+  AssertTrue('Compact toggle parented to canvas section', Helper.FhudcompactToggle.Parent = Helper.FVisCanvasSec);
+  AssertTrue('Hide toggle parented to system section', Helper.FhidehudToggle.Parent = Helper.FVisSystemSec);
+  AssertTrue('FhudnomarginToggle parented to canvas section', Helper.FhudnomarginToggle.Parent = Helper.FVisCanvasSec);
+  AssertTrue('FroundradiusTrackBar parented to canvas section', Helper.FroundradiusTrackBar.Parent = Helper.FVisCanvasSec);
   AssertTrue('Offset X positive bounds', goverlayform.offsetxSpinEdit.Left > 0);
   AssertTrue('Offset Y positive bounds', goverlayform.offsetySpinEdit.Left > 0);
 
@@ -6158,7 +6217,7 @@ begin
 
   // 8. Test Columns HUD mini-bars indicator and auto-save
   AssertTrue('FVisColumnsPaintBox is assigned', Assigned(Helper.FVisColumnsPaintBox));
-  AssertTrue('FVisColumnsPaintBox positive bounds', (Helper.FVisColumnsPaintBox.Left > 100) and (Helper.FVisColumnsPaintBox.Width > 50));
+  AssertTrue('FVisColumnsPaintBox positive bounds', (Helper.FVisColumnsPaintBox.Left > 100) and (Helper.FVisColumnsPaintBox.Width >= 50));
   goverlayform.plusSpeedButtonClick(nil);
   AssertTrue('Columns value at least 2', StrToIntDef(goverlayform.columvalueLabel.Caption, 0) >= 2);
   SaveMango;

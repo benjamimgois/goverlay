@@ -241,6 +241,7 @@ const
   MANGO_FLAG_HORIZONTAL        = 'horizontal';
   MANGO_FLAG_NO_DISPLAY        = 'no_display';
   MANGO_FLAG_HUD_COMPACT       = 'hud_compact';
+  MANGO_FLAG_HUD_NO_MARGIN     = 'hud_no_margin';
   MANGO_FLAG_FPS               = 'fps';
   MANGO_FLAG_FRAME_TIMING      = 'frame_timing';
   MANGO_FLAG_FRAME_TIMING_DETAILED = 'frame_timing_detailed';

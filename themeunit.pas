@@ -240,7 +240,7 @@ begin
     IconDown := GetArrowIconPath('combo_arrow_down.png');
     Result :=
       'QComboBox { background-color: rgb(38,46,72); color: rgb(255,255,255); ' +
-      'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 24px 2px 8px; min-height: 23px; } ' +
+      'border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 24px 2px 10px; min-height: 23px; } ' +
       'QComboBox:hover { border: 1px solid rgb(80,110,170); } ' +
       'QComboBox:focus { border: 1px solid rgb(48,190,240); } ' +
       'QComboBox:disabled { background-color: rgb(28,34,54); color: rgb(100,110,130); } ' +
