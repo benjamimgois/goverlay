@@ -822,6 +822,60 @@ begin
   end;
 end;
 
+// True only for ELF programs (PT_INTERP header present), not shared libraries.
+// e_type cannot be used: PIE executables are ET_DYN just like .so files.
+function IsElfExecutable(const AFilePath: string): Boolean;
+var
+  F: TFileStream;
+  Ident: array[0..15] of Byte;
+  PhOff: QWord;
+  PhOff32, PType: LongWord;
+  PhEntSize, PhNum, i: Word;
+begin
+  Result := False;
+  if not IsElfBinary(AFilePath) then Exit;
+  try
+    F := TFileStream.Create(AFilePath, fmOpenRead or fmShareDenyNone);
+    try
+      F.ReadBuffer(Ident, 16);
+      // Only little-endian ELF32/ELF64 is parsed; anything else is not a game binary here
+      if (Ident[5] <> 1) or not (Ident[4] in [1, 2]) then Exit;
+      if Ident[4] = 2 then
+      begin
+        // ELFCLASS64
+        F.Position := 32;
+        F.ReadBuffer(PhOff, 8);
+        F.Position := 54;
+      end
+      else
+      begin
+        // ELFCLASS32
+        F.Position := 28;
+        F.ReadBuffer(PhOff32, 4);
+        PhOff := PhOff32;
+        F.Position := 42;
+      end;
+      F.ReadBuffer(PhEntSize, 2);
+      F.ReadBuffer(PhNum, 2);
+      if (PhNum = 0) or (PhNum = $FFFF) or (PhEntSize < 4) then Exit;
+      for i := 0 to PhNum - 1 do
+      begin
+        F.Position := PhOff + QWord(i) * PhEntSize;
+        F.ReadBuffer(PType, 4);
+        if PType = 3 then // PT_INTERP
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    finally
+      F.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
 function IsKnownWrapper(const AName: string): Boolean;
 var
   Low: string;
@@ -882,7 +936,7 @@ begin
   end;
 end;
 
-function FindElfInDirectory(const ADir: string; MaxDepth: Integer = 2): string;
+function FindElfInDirectory(const ADir: string; MaxDepth: Integer = 2; AProgramsOnly: Boolean = True): string;
 var
   SR: TSearchRec;
   CleanDir, Res: string;
@@ -898,7 +952,9 @@ begin
       repeat
         if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) = 0) then
         begin
-          if IsElfBinary(CleanDir + SR.Name) and not IsKnownWrapper(SR.Name) then
+          if ((AProgramsOnly and IsElfExecutable(CleanDir + SR.Name)) or
+              (not AProgramsOnly and IsElfBinary(CleanDir + SR.Name))) and
+             not IsKnownWrapper(SR.Name) then
           begin
             Result := SR.Name;
             Break;
@@ -919,7 +975,7 @@ begin
         repeat
           if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
           begin
-            Res := FindElfInDirectory(CleanDir + SR.Name, MaxDepth - 1);
+            Res := FindElfInDirectory(CleanDir + SR.Name, MaxDepth - 1, AProgramsOnly);
             if Res <> '' then
             begin
               Result := Res;
@@ -2504,6 +2560,9 @@ begin
           if Ext = '.sh' then
           begin
             NativeElfExeName := FindElfInDirectory(GameDir, 2);
+            // Fall back to any ELF for statically linked binaries (no PT_INTERP)
+            if NativeElfExeName = '' then
+              NativeElfExeName := FindElfInDirectory(GameDir, 2, False);
             if NativeElfExeName <> '' then
               Log('Discovered primary ELF binary in game directory: ' + NativeElfExeName);
           end;
