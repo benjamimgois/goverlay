@@ -78,6 +78,7 @@ type
     FVisOrientPillLbl, FVisColumnsSubLbl: TLabel;
     FVisGpuBarLbl, FVisShortcutLbl: TLabel;
     FVisOrientPillBtn, FVisBorderPillBtn: TBitBtn;
+    FColumnsMinusBtn, FColumnsPlusBtn: TBitBtn;
     FVisColumnsPaintBox: TPaintBox;
     FVisOutlineLbl, FVisStretchLbl, FVisCompactLbl, FVisHideLbl: TLabel;
 
@@ -148,6 +149,7 @@ type
     procedure VisOrientPillBtnClick(Sender: TObject);
     procedure VisBorderPillBtnClick(Sender: TObject);
     procedure SyncVisualPills;
+    procedure SyncFlowGridVisibility;
     procedure VisColumnsPaintBoxPaint(Sender: TObject);
     procedure UpdateColumnsIndicator;
     procedure UpdateVisualCardTheme;
@@ -1459,37 +1461,42 @@ begin
   minusButton.Visible := False;
   plusSpeedButton.Visible := False;
 
-  FColumnsMinusBtn := TBitBtn.Create(FVisFlowSec);
-  FColumnsMinusBtn.Parent := FVisFlowSec;
-  FColumnsMinusBtn.Caption := '-';
-  FColumnsMinusBtn.Font.Size := 13;
-  FColumnsMinusBtn.Font.Style := [fsBold];
-  FColumnsMinusBtn.Font.Color := TextColor;
-  FColumnsMinusBtn.OnClick := @FForm.minusButtonClick;
-  FColumnsMinusBtn.Cursor := crHandPoint;
-  FColumnsMinusBtn.SetBounds(74, 70, 24, 24);
+  Self.FColumnsMinusBtn := TBitBtn.Create(FVisFlowSec);
+  FForm.FColumnsMinusBtn := Self.FColumnsMinusBtn;
+  Self.FColumnsMinusBtn.Parent := FVisFlowSec;
+  Self.FColumnsMinusBtn.Caption := '-';
+  Self.FColumnsMinusBtn.Font.Size := 13;
+  Self.FColumnsMinusBtn.Font.Style := [fsBold];
+  Self.FColumnsMinusBtn.Font.Color := TextColor;
+  Self.FColumnsMinusBtn.OnClick := @FForm.minusButtonClick;
+  Self.FColumnsMinusBtn.Cursor := crHandPoint;
+  Self.FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
 
-  FColumnsPlusBtn := TBitBtn.Create(FVisFlowSec);
-  FColumnsPlusBtn.Parent := FVisFlowSec;
-  FColumnsPlusBtn.Caption := '+';
-  FColumnsPlusBtn.Font.Size := 13;
-  FColumnsPlusBtn.Font.Style := [fsBold];
-  FColumnsPlusBtn.Font.Color := TextColor;
-  FColumnsPlusBtn.OnClick := @FForm.plusSpeedButtonClick;
-  FColumnsPlusBtn.Cursor := crHandPoint;
-  FColumnsPlusBtn.SetBounds(138, 70, 24, 24);
-
-  StyleBitBtnTheme(FColumnsMinusBtn, TextColor, BarBg);
-  StyleBitBtnTheme(FColumnsPlusBtn, TextColor, BarBg);
-
-  Place(columvalueLabel, FVisFlowSec, 106, 74);
+  Place(columvalueLabel, FVisFlowSec, 100, 70);
+  columvalueLabel.AutoSize := False;
+  columvalueLabel.Alignment := taCenter;
+  columvalueLabel.SetBounds(100, 68, 32, 24);
   columvalueLabel.Font.Color := TextColor;
   columvalueLabel.Transparent := True;
+
+  Self.FColumnsPlusBtn := TBitBtn.Create(FVisFlowSec);
+  FForm.FColumnsPlusBtn := Self.FColumnsPlusBtn;
+  Self.FColumnsPlusBtn.Parent := FVisFlowSec;
+  Self.FColumnsPlusBtn.Caption := '+';
+  Self.FColumnsPlusBtn.Font.Size := 13;
+  Self.FColumnsPlusBtn.Font.Style := [fsBold];
+  Self.FColumnsPlusBtn.Font.Color := TextColor;
+  Self.FColumnsPlusBtn.OnClick := @FForm.plusSpeedButtonClick;
+  Self.FColumnsPlusBtn.Cursor := crHandPoint;
+  Self.FColumnsPlusBtn.SetBounds(134, 68, 24, 24);
+
+  StyleBitBtnTheme(Self.FColumnsMinusBtn, TextColor, BarBg);
+  StyleBitBtnTheme(Self.FColumnsPlusBtn, TextColor, BarBg);
 
   FVisColumnsPaintBox := TPaintBox.Create(FVisFlowSec);
   FVisColumnsPaintBox.Parent  := FVisFlowSec;
   FVisColumnsPaintBox.OnPaint := @VisColumnsPaintBoxPaint;
-  FVisColumnsPaintBox.SetBounds(172, 70, 72, 20);
+  FVisColumnsPaintBox.SetBounds(166, 70, 72, 20);
   FVisColumnsPaintBox.ShowHint := True;
   FVisColumnsPaintBox.Hint := 'Active HUD columns (1 to 6)';
 
@@ -1592,6 +1599,7 @@ begin
   QWidget_setStyleSheet(TQtWidget(pcidevComboBox.Handle).Widget, @SS);
 
   SyncVisualPills;
+  SyncFlowGridVisibility;
   end;
 end;
 
@@ -1730,12 +1738,18 @@ begin
 
     if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(10, 70, 60, 20);
     if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
-    columvalueLabel.SetBounds(104, 72, 34, 20);
-    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(140, 68, 24, 24);
-    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(172, 70, 72, 20);
+    if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.SetBounds(74, 68, 24, 24);
+    columvalueLabel.AutoSize := False;
+    columvalueLabel.Alignment := taCenter;
+    columvalueLabel.SetBounds(100, 68, 32, 24);
+    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(134, 68, 24, 24);
+    if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.SetBounds(134, 68, 24, 24);
+    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(166, 70, 72, 20);
 
-    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(10, 108, 110, 20);
-    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(124, 108, 30, 20);
+    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(10, 70, 114, 20);
+    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(128, 70, 30, 20);
+
+    SyncFlowGridVisibility;
   end;
 
   // ── Action Bar ──
@@ -2193,6 +2207,30 @@ begin
     end;
   end;
   UpdateColumnsIndicator;
+  SyncFlowGridVisibility;
+end;
+
+procedure TMangoHudUiHelper.SyncFlowGridVisibility;
+var
+  IsHoriz: Boolean;
+begin
+  with FForm do
+    IsHoriz := horizontalRadioButton.Checked;
+
+  // In Vertical mode: show Columns controls, hide Horizontal Stretch
+  if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.Visible := not IsHoriz;
+  if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.Visible := not IsHoriz;
+  if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.Visible := not IsHoriz;
+  if Assigned(FForm.columvalueLabel) then FForm.columvalueLabel.Visible := not IsHoriz;
+  if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.Visible := not IsHoriz;
+  if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.Visible := not IsHoriz;
+  if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.Visible := not IsHoriz;
+
+  // In Horizontal mode: show Horizontal Stretch, hide Columns controls
+  if Assigned(FVisStretchLbl) then FVisStretchLbl.Visible := IsHoriz;
+  if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.Visible := IsHoriz;
+
+  if Assigned(FVisFlowSec) then FVisFlowSec.Invalidate;
 end;
 
 // ============================================================================
@@ -2340,6 +2378,7 @@ begin
   columvalueLabel.Font.Color    := CLR_TEXT_ACCENT;
   columvalueLabel.Font.Style    := [fsBold];
   columvalueLabel.Transparent   := True;
+  columvalueLabel.Alignment     := taCenter;
 
   UpdateColumnsIndicator;
   SyncVisualPills;

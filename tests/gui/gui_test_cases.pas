@@ -6130,11 +6130,26 @@ begin
   AssertTrue('Offset X positive bounds', goverlayform.offsetxSpinEdit.Left > 0);
   AssertTrue('Offset Y positive bounds', goverlayform.offsetySpinEdit.Left > 0);
 
-  // 7. Test segmented pill click toggling
+  // 7. Test segmented pill click toggling and adaptive row visibility
   Helper.VisOrientPillBtnClick(Helper.FVisOrientPillBtn);
   AssertTrue('Horizontal orientation toggled', goverlayform.horizontalRadioButton.Checked);
+  AssertFalse('FColumnsMinusBtn hidden in horizontal mode', Helper.FColumnsMinusBtn.Visible);
+  AssertFalse('FColumnsPlusBtn hidden in horizontal mode', Helper.FColumnsPlusBtn.Visible);
+  AssertFalse('columvalueLabel hidden in horizontal mode', goverlayform.columvalueLabel.Visible);
+  AssertTrue('FVisStretchLbl visible in horizontal mode', Helper.FVisStretchLbl.Visible);
+  AssertTrue('FhorizontalstrechToggle visible in horizontal mode', Helper.FhorizontalstrechToggle.Visible);
+
   Helper.VisOrientPillBtnClick(Helper.FVisOrientPillBtn);
   AssertTrue('Vertical orientation toggled back', goverlayform.verticalRadioButton.Checked);
+  AssertTrue('FColumnsMinusBtn visible in vertical mode', Helper.FColumnsMinusBtn.Visible);
+  AssertTrue('FColumnsPlusBtn visible in vertical mode', Helper.FColumnsPlusBtn.Visible);
+  AssertTrue('columvalueLabel visible in vertical mode', goverlayform.columvalueLabel.Visible);
+  AssertFalse('FVisStretchLbl hidden in vertical mode', Helper.FVisStretchLbl.Visible);
+  AssertFalse('FhorizontalstrechToggle hidden in vertical mode', Helper.FhorizontalstrechToggle.Visible);
+  AssertTrue('columvalueLabel is center aligned', goverlayform.columvalueLabel.Alignment = taCenter);
+  AssertTrue('columvalueLabel centered between minus and plus',
+    (goverlayform.columvalueLabel.Left > Helper.FColumnsMinusBtn.Left) and
+    (goverlayform.columvalueLabel.Left < Helper.FColumnsPlusBtn.Left));
 
   Helper.VisBorderPillBtnClick(Helper.FVisBorderPillBtn);
   AssertTrue('Square border style toggled', goverlayform.squareRadioButton.Checked);
