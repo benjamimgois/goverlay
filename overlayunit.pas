@@ -1266,6 +1266,13 @@ type
     FExtBgPanel:    TPanel;
     FExtSysCard:    TPanel;   // wrapper card for systemGroupBox
     FExtLogCard:    TPanel;   // wrapper card for loggingGroupBox
+    FExtPlatformSec:   TPanel;
+    FExtWineSec:       TPanel;
+    FExtGamingSec:     TPanel;
+    FExtSessionSec:    TPanel;
+    FExtLogTimingsSec: TPanel;
+    FExtLogToolsSec:   TPanel;
+    FExtTempPillBtn:   TBitBtn;
     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
     FPerfLeftLbl: array[0..1] of TLabel;  // left-section title labels
@@ -3026,7 +3033,11 @@ end;
 procedure Tgoverlayform.extrasTabSheetShow(Sender: TObject);
 begin
   if Assigned(FMangoHelper) then
+  begin
+    TMangoHudUiHelper(FMangoHelper).ReflowExtrasTab(extrasTabSheet.ClientWidth);
+    TMangoHudUiHelper(FMangoHelper).UpdateExtrasCardTheme;
     TMangoHudUiHelper(FMangoHelper).SyncExtrasToggles;
+  end;
 end;
 
 procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
@@ -9907,7 +9918,9 @@ begin
   else if goverlayPageControl.ActivePage = performanceTabSheet then
     performanceTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = metricsTabSheet then
-    metricsTabSheetShow(nil);
+    metricsTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = extrasTabSheet then
+    extrasTabSheetShow(nil);
 
   UpdateToolMissingDependencyBanners;
 end;

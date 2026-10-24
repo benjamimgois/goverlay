@@ -68,6 +68,16 @@ type
     FStorageLabel: TLabel;
     FGpuTitleLbl, FCpuTitleLbl, FMemTitleLbl: TLabel;
 
+    // Extras Tab Sub-Cards
+    FExtPlatformSec, FExtWineSec, FExtGamingSec, FExtSessionSec: TPanel;
+    FExtLogTimingsSec, FExtLogToolsSec: TPanel;
+    FExtSysTitleLbl, FExtLogTitleLbl: TLabel;
+    FExtPlatformLbl, FExtWineLbl, FExtGamingLbl, FExtSessionLbl: TLabel;
+    FExtLogTimingsLbl, FExtLogToolsLbl: TLabel;
+    FExtCustomCommandLbl, FExtTempUnitLbl: TLabel;
+    FExtLogDurationSubLbl, FExtLogDelaySubLbl, FExtLogIntervalSubLbl: TLabel;
+    FExtTempPillBtn: TBitBtn;
+
     // GPU Metric Toggles
     FgpuavgloadToggle, FgpuloadcolorToggle, FvramusageToggle, FgpufreqToggle, FgpumemfreqToggle: TToggleSwitch;
     FgputempToggle, FgpumemtempToggle, FgpujunctempToggle, FgpufanToggle: TToggleSwitch;
@@ -89,7 +99,9 @@ type
     FTimeConfigBtn: TBitBtn;
 
     procedure TimeToggleChanged(Sender: TObject);
+    procedure NetworkToggleChanged(Sender: TObject);
     procedure TimeConfigBtnClick(Sender: TObject);
+    procedure ExtTempPillBtnClick(Sender: TObject);
 
     // fps_only preset flag accessor
     procedure SetFpsOnly(AValue: Boolean);
@@ -123,6 +135,7 @@ type
     procedure RefreshFormatPills;
     procedure InitExtrasTab;
     procedure ReflowExtrasTab(AContentW: Integer);
+    procedure ExtScrollBoxResize(Sender: TObject);
     procedure SyncExtrasToggles;
     procedure SyncAllToggles;
     procedure UpdateExtrasCardTheme;
@@ -405,6 +418,12 @@ begin
     FTimeConfigBtn.Enabled := FForm.timeCheckBox.Checked;
 end;
 
+procedure TMangoHudUiHelper.NetworkToggleChanged(Sender: TObject);
+begin
+  if Assigned(FForm.networkComboBox) and Assigned(FForm.networkCheckBox) then
+    FForm.networkComboBox.Enabled := FForm.networkCheckBox.Checked;
+end;
+
 procedure TMangoHudUiHelper.ApplyTimeFormat(const AFormat: string);
 var
   WasRunning: Boolean;
@@ -441,6 +460,16 @@ begin
   finally
     Dlg.Free;
   end;
+end;
+
+procedure TMangoHudUiHelper.ExtTempPillBtnClick(Sender: TObject);
+begin
+  with FForm do
+  begin
+    fahrenheitCheckBox.Checked := not fahrenheitCheckBox.Checked;
+    GenericControlChange(fahrenheitCheckBox);
+  end;
+  RefreshFormatPills;
 end;
 
 destructor TMangoHudUiHelper.Destroy;
@@ -3290,6 +3319,15 @@ begin
       frametimetypeBitBtn.Height := 22;
       frametimetypeBitBtn.ShowHint := True;
     end;
+    if Assigned(FExtTempPillBtn) then
+    begin
+      SetSegmentedPillGlyph(FExtTempPillBtn, '°C', '°F', IfThen(fahrenheitCheckBox.Checked, 1, 0));
+      StyleSegmentedFormatBtn(FExtTempPillBtn);
+      FExtTempPillBtn.Width  := FExtTempPillBtn.Glyph.Width + 24;
+      FExtTempPillBtn.Height := 22;
+      FExtTempPillBtn.ShowHint := True;
+      FExtTempPillBtn.Hint := 'Temperature display unit (°C / °F)';
+    end;
   end;
 end;
 
@@ -3589,7 +3627,7 @@ var
   TextColor: TColor;
   SS: String;
 
-  procedure MakeCard(out Card: TPanel; const ATitle: string);
+  procedure MakeCard(out Card: TPanel; out TitleLbl: TLabel; const ATitle: string);
   var
     Lbl: TLabel;
   begin
@@ -3602,7 +3640,19 @@ var
       Lbl := TLabel.Create(Card);
       Lbl.Parent   := Card;
       StyleMainCard(Card, Lbl, ATitle);
+      TitleLbl := Lbl;
     end;
+  end;
+
+  procedure MakeSubSec(out Sec: TPanel; AParent: TPanel);
+  begin
+    Sec := TPanel.Create(FForm);
+    Sec.Parent      := AParent;
+    Sec.Caption     := '';
+    Sec.BevelOuter  := bvNone;
+    Sec.ParentColor := False;
+    Sec.Color       := CARD_BG;
+    Sec.OnPaint     := @FForm.SubCardPaint;
   end;
 
   procedure Place(C: TControl; Card: TPanel; ALeft, ATop: Integer);
@@ -3651,10 +3701,16 @@ begin
   FExtScrollBox := TScrollBox.Create(FForm);
   FExtScrollBox.Parent      := extrasTabSheet;
   FExtScrollBox.Align       := alClient;
-  FExtScrollBox.AutoScroll  := True;
+  FExtScrollBox.AutoScroll  := False;
   FExtScrollBox.BorderStyle := bsNone;
+  FExtScrollBox.HorzScrollBar.Visible := False;
+  FExtScrollBox.HorzScrollBar.Range   := 0;
+  FExtScrollBox.VertScrollBar.Visible := False;
+  FExtScrollBox.VertScrollBar.Range   := 0;
   FExtScrollBox.Color       := RGBToColor(22, 26, 40);
+  FExtScrollBox.ParentColor := False;
   ApplyModernScrollBarStylesheet(FExtScrollBox);
+  FExtScrollBox.OnResize    := @ExtScrollBoxResize;
 
   FExtBgPanel := TPanel.Create(FForm);
   FExtBgPanel.Parent      := FExtScrollBox;
@@ -3664,19 +3720,35 @@ begin
   FExtBgPanel.OnPaint     := @FForm.PresetsWrapperPaint;
   FExtBgPanel.Caption     := '';
 
-  // ── Card 1: System info ─────────────────────────────────────────────────
-  MakeCard(FExtSysCard, 'System info');
+  // ── Card 1: System & Environment ───────────────────────────────────────
+  MakeCard(FExtSysCard, FExtSysTitleLbl, 'System & Environment');
+  FExtSysTitleLbl.ShowAccelChar := False;
+  sysinfoImage.Visible := False;
 
-  Place(systemLabel,           FExtSysCard, 11,  11 + HDR);  DarkLabel(systemLabel);
-  FdistroinfoToggle    := PlaceExtToggle(distroinfoCheckBox,    FExtSysCard, 11,  32 + HDR);
-  FrefreshrateToggle   := PlaceExtToggle(refreshrateCheckBox,   FExtSysCard, 128, 32 + HDR);
-  FresolutionToggle    := PlaceExtToggle(resolutionCheckBox,    FExtSysCard, 254, 32 + HDR);
-  FdisplayserverToggle := PlaceExtToggle(displayserverCheckBox, FExtSysCard, 372, 32 + HDR);
-  FtimeToggle          := PlaceExtToggle(timeCheckBox,          FExtSysCard, 513, 32 + HDR);
+  MakeSubSec(FExtPlatformSec, FExtSysCard);
+  MakeSubSec(FExtWineSec, FExtSysCard);
+  MakeSubSec(FExtGamingSec, FExtSysCard);
+  MakeSubSec(FExtSessionSec, FExtSysCard);
+  FForm.FExtPlatformSec := FExtPlatformSec;
+  FForm.FExtWineSec := FExtWineSec;
+  FForm.FExtGamingSec := FExtGamingSec;
+  FForm.FExtSessionSec := FExtSessionSec;
+
+  // Platform & Display
+  systemLabel.Caption := 'Platform & Display';
+  Place(systemLabel, FExtPlatformSec, 12, 8);
+  systemLabel.ShowAccelChar := False;
+  DarkLabel(systemLabel);
+  FdistroinfoToggle    := PlaceExtToggle(distroinfoCheckBox,    FExtPlatformSec, 12,  34);
+  FdisplayserverToggle := PlaceExtToggle(displayserverCheckBox, FExtPlatformSec, 160, 34);
+  FarchToggle          := PlaceExtToggle(archCheckBox,          FExtPlatformSec, 12,  64);
+  FresolutionToggle    := PlaceExtToggle(resolutionCheckBox,    FExtPlatformSec, 160, 64);
+  FrefreshrateToggle   := PlaceExtToggle(refreshrateCheckBox,   FExtPlatformSec, 12,  94);
+  FtimeToggle          := PlaceExtToggle(timeCheckBox,          FExtPlatformSec, 160, 94);
   FtimeToggle.OnChange := @TimeToggleChanged;
 
-  FTimeConfigBtn := TBitBtn.Create(FExtSysCard);
-  FTimeConfigBtn.Parent := FExtSysCard;
+  FTimeConfigBtn := TBitBtn.Create(FExtPlatformSec);
+  FTimeConfigBtn.Parent := FExtPlatformSec;
   FTimeConfigBtn.Caption := '⚙';
   FTimeConfigBtn.Font.Name := 'DejaVu Sans';
   FTimeConfigBtn.Font.Size := 9;
@@ -3686,74 +3758,169 @@ begin
   FTimeConfigBtn.ShowHint := True;
   FTimeConfigBtn.Enabled := timeCheckBox.Checked;
   FTimeConfigBtn.OnClick := @TimeConfigBtnClick;
-
   StyleBitBtnTheme(FTimeConfigBtn, TextColor, CARD_BG);
 
-  FarchToggle          := PlaceExtToggle(archCheckBox,          FExtSysCard, 597, 32 + HDR);
+  // Wine & Compatibility
+  wineLabel.Caption := 'Wine & Compatibility';
+  Place(wineLabel, FExtWineSec, 12, 8);
+  wineLabel.ShowAccelChar := False;
+  DarkLabel(wineLabel);
+  FwineToggle          := PlaceExtToggle(wineCheckBox,          FExtWineSec, 12,  34);
+  FengineversionToggle := PlaceExtToggle(engineversionCheckBox, FExtWineSec, 160, 34);
+  FengineshortToggle   := PlaceExtToggle(engineshortCheckBox,   FExtWineSec, 12,  64);
+  FwinesyncToggle      := PlaceExtToggle(winesyncCheckBox,      FExtWineSec, 160, 64);
+  FdxapiToggle         := PlaceExtToggle(dxapiCheckBox,         FExtWineSec, 12,  94);
+  FfexstatsToggle      := PlaceExtToggle(fexstatsCheckBox,      FExtWineSec, 160, 94);
+  Place(wineColorButton, FExtWineSec, 0, 34);
+  wineColorButton.Color := CARD_BG;
+  wineColorButton.ShowHint := True;
+  wineColorButton.Hint := 'Wine label color';
+  Place(engineColorButton, FExtWineSec, 0, 34);
+  engineColorButton.Color := CARD_BG;
+  engineColorButton.ShowHint := True;
+  engineColorButton.Hint := 'Engine label color';
 
-  Place(wineLabel,             FExtSysCard, 11,  68 + HDR);  DarkLabel(wineLabel);
-  FwineToggle          := PlaceExtToggle(wineCheckBox,          FExtSysCard, 11,  89 + HDR);
-  FengineversionToggle := PlaceExtToggle(engineversionCheckBox, FExtSysCard, 128, 89 + HDR);
-  FengineshortToggle   := PlaceExtToggle(engineshortCheckBox,   FExtSysCard, 254, 89 + HDR);
-  FwinesyncToggle      := PlaceExtToggle(winesyncCheckBox,      FExtSysCard, 372, 89 + HDR);
-  FdxapiToggle         := PlaceExtToggle(dxapiCheckBox,         FExtSysCard, 513, 89 + HDR);
-  FfexstatsToggle      := PlaceExtToggle(fexstatsCheckBox,      FExtSysCard, 597, 89 + HDR);
-  Place(wineColorButton,       FExtSysCard, 7,   111 + HDR);
-  Place(engineColorButton,     FExtSysCard, 122, 111 + HDR);
+  // Gaming & Integrations
+  optionsLabel.Caption := 'Gaming & Integrations';
+  Place(optionsLabel, FExtGamingSec, 12, 8);
+  optionsLabel.ShowAccelChar := False;
+  DarkLabel(optionsLabel);
+  FhudversionToggle     := PlaceExtToggle(hudversionCheckBox,     FExtGamingSec, 12,  34);
+  FgamemodestatusToggle := PlaceExtToggle(gamemodestatusCheckBox, FExtGamingSec, 160, 34);
+  FvkbasaltstatusToggle := PlaceExtToggle(vkbasaltstatusCheckBox, FExtGamingSec, 12,  64);
+  FfcatToggle           := PlaceExtToggle(fcatCheckBox,           FExtGamingSec, 160, 64);
+  FfsrToggle            := PlaceExtToggle(fsrCheckBox,            FExtGamingSec, 12,  94);
+  FhdrToggle            := PlaceExtToggle(hdrCheckBox,            FExtGamingSec, 160, 94);
 
-  Place(optionsLabel,           FExtSysCard, 11,  131 + HDR); DarkLabel(optionsLabel);
-  FhudversionToggle    := PlaceExtToggle(hudversionCheckBox,     FExtSysCard, 11,  152 + HDR);
-  FgamemodestatusToggle:= PlaceExtToggle(gamemodestatusCheckBox, FExtSysCard, 128, 152 + HDR);
-  FvkbasaltstatusToggle:= PlaceExtToggle(vkbasaltstatusCheckBox, FExtSysCard, 254, 152 + HDR);
-  FfcatToggle          := PlaceExtToggle(fcatCheckBox,           FExtSysCard, 372, 152 + HDR);
-  FfsrToggle           := PlaceExtToggle(fsrCheckBox,            FExtSysCard, 513, 152 + HDR);
-  FhdrToggle           := PlaceExtToggle(hdrCheckBox,            FExtSysCard, 597, 152 + HDR);
+  // Hardware & Session
+  batteryLabel.Caption := 'Hardware & Session';
+  Place(batteryLabel, FExtSessionSec, 12, 8);
+  batteryLabel.ShowAccelChar := False;
+  DarkLabel(batteryLabel);
+  batteryCheckBox.Caption     := 'Battery %';
+  batterywattCheckBox.Caption := 'Battery Wattage';
+  batterytimeCheckBox.Caption := 'Battery Time';
+  deviceCheckBox.Caption      := 'Battery Devices';
+  FbatteryToggle     := PlaceExtToggle(batteryCheckBox,     FExtSessionSec, 12,  30);
+  FbatterywattToggle := PlaceExtToggle(batterywattCheckBox, FExtSessionSec, 12,  58);
+  FbatterytimeToggle := PlaceExtToggle(batterytimeCheckBox, FExtSessionSec, 12,  86);
+  FdeviceToggle      := PlaceExtToggle(deviceCheckBox,      FExtSessionSec, 12,  114);
+  Place(batteryColorButton, FExtSessionSec, 0, 30);
+  batteryColorButton.Color := CARD_BG;
+  batteryColorButton.ShowHint := True;
+  batteryColorButton.Hint := 'Battery label color';
 
-  Place(batteryLabel,        FExtSysCard, 8,   190 + HDR); DarkLabel(batteryLabel);
-  FbatteryToggle     := PlaceExtToggle(batteryCheckBox,     FExtSysCard, 11,  211 + HDR);
-  FbatterywattToggle := PlaceExtToggle(batterywattCheckBox, FExtSysCard, 128, 211 + HDR);
-  FbatterytimeToggle := PlaceExtToggle(batterytimeCheckBox, FExtSysCard, 254, 211 + HDR);
-  FdeviceToggle      := PlaceExtToggle(deviceCheckBox,      FExtSysCard, 372, 211 + HDR);
-  Place(batteryColorButton,  FExtSysCard, 6,   233 + HDR);
+  FmediaToggle := PlaceExtToggle(mediaCheckBox, FExtSessionSec, 160, 30);
+  Place(mediaColorButton, FExtSessionSec, 0, 30);
+  mediaColorButton.Color := CARD_BG;
+  mediaColorButton.ShowHint := True;
+  mediaColorButton.Hint := 'Media info color';
 
-  Place(othersLabel,         FExtSysCard, 11,  262 + HDR); DarkLabel(othersLabel);
-  FmediaToggle       := PlaceExtToggle(mediaCheckBox,       FExtSysCard, 11,  283 + HDR);
-  FnetworkToggle     := PlaceExtToggle(networkCheckBox,     FExtSysCard, 128, 283 + HDR);
-  FfahrenheitToggle  := PlaceExtToggle(fahrenheitCheckBox,  FExtSysCard, 254, 283 + HDR);
-  Place(customcommandEdit,   FExtSysCard, 11,  315 + HDR); // keeps black/lime colors
-  customcommandEdit.Font.Name := 'DejaVu Sans Mono';
-  Place(mediaColorButton,    FExtSysCard, 6,   305 + HDR);
-  Place(networkComboBox,     FExtSysCard, 128, 305 + HDR);
+  FnetworkToggle := PlaceExtToggle(networkCheckBox, FExtSessionSec, 160, 58);
+  FnetworkToggle.OnChange := @NetworkToggleChanged;
+  Place(networkComboBox, FExtSessionSec, 0, 58);
   networkComboBox.Color      := OUTER_BG;
   networkComboBox.Font.Color := WHITE;
+  networkComboBox.Enabled    := networkCheckBox.Checked;
+  if networkComboBox.HandleAllocated then
+  begin
+    SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
+    QWidget_setStyleSheet(TQtWidget(networkComboBox.Handle).Widget, @SS);
+  end;
 
-  // Icon in card header — positioned in ReflowExtrasTab
-  Place(sysinfoImage, FExtSysCard, 4, 5);
+  fahrenheitCheckBox.Visible := False;
+  FExtTempPillBtn := TBitBtn.Create(FExtSessionSec);
+  FExtTempPillBtn.Parent := FExtSessionSec;
+  FExtTempPillBtn.Cursor := crHandPoint;
+  FExtTempPillBtn.OnClick := @ExtTempPillBtnClick;
+  FForm.FExtTempPillBtn := FExtTempPillBtn;
+
+  FExtTempUnitLbl := TLabel.Create(FExtSessionSec);
+  FExtTempUnitLbl.Parent := FExtSessionSec;
+  FExtTempUnitLbl.Caption := 'Temp unit:';
+  FExtTempUnitLbl.ShowAccelChar := False;
+  DarkLabel(FExtTempUnitLbl);
+
+  FExtCustomCommandLbl := TLabel.Create(FExtSessionSec);
+  FExtCustomCommandLbl.Parent := FExtSessionSec;
+  FExtCustomCommandLbl.Caption := 'Custom text / exec:';
+  FExtCustomCommandLbl.ShowAccelChar := False;
+  DarkLabel(FExtCustomCommandLbl);
+  customcommandEdit.Parent := FExtSessionSec;
+  customcommandEdit.TextHint := 'custom_text=... or exec=...';
+  customcommandEdit.Font.Name := 'DejaVu Sans Mono';
+
+  othersLabel.Visible := False;
   systemGroupBox.Visible := False;
 
-  // ── Card 2: Logging ─────────────────────────────────────────────────────
-  MakeCard(FExtLogCard, 'Logging');
+  // ── Card 2: Benchmarks & Logging ────────────────────────────────────────
+  MakeCard(FExtLogCard, FExtLogTitleLbl, 'Benchmarks & Logging');
+  FExtLogTitleLbl.ShowAccelChar := False;
+  Image2.Visible := False;
 
-  Place(logdurationLabel,  FExtLogCard, 11,  11 + HDR);  DarkLabel(logdurationLabel);
-  Place(logdelayLabel,     FExtLogCard, 105, 11 + HDR);  DarkLabel(logdelayLabel);
-  Place(logintervalLabel,  FExtLogCard, 206, 11 + HDR);  DarkLabel(logintervalLabel);
-  Place(durationTrackBar,  FExtLogCard, 26,  40 + HDR);
-  Place(delayTrackBar,     FExtLogCard, 123, 40 + HDR);
-  Place(intervalTrackBar,  FExtLogCard, 218, 40 + HDR);
-  Place(durationvalueLabel,FExtLogCard, 54,  96 + HDR);
-  Place(delayvalueLabel,   FExtLogCard, 151, 96 + HDR);
-  Place(intervalvalueLabel,FExtLogCard, 246, 96 + HDR);
+  MakeSubSec(FExtLogTimingsSec, FExtLogCard);
+  MakeSubSec(FExtLogToolsSec, FExtLogCard);
+  FForm.FExtLogTimingsSec := FExtLogTimingsSec;
+  FForm.FExtLogToolsSec := FExtLogToolsSec;
 
-  durationTrackBar.TickStyle := tsNone;
-  delayTrackBar.TickStyle := tsNone;
-  intervalTrackBar.TickStyle := tsNone;
+  // Session Timings
+  logdurationLabel.Caption := 'Session Timings';
+  Place(logdurationLabel, FExtLogTimingsSec, 12, 8);
+  logdurationLabel.ShowAccelChar := False;
+  DarkLabel(logdurationLabel);
+
+  FExtLogDurationSubLbl := TLabel.Create(FExtLogTimingsSec);
+  FExtLogDurationSubLbl.Parent := FExtLogTimingsSec;
+  FExtLogDurationSubLbl.Caption := 'Duration (s)';
+  FExtLogDurationSubLbl.ShowAccelChar := False;
+  DarkLabel(FExtLogDurationSubLbl);
+  FExtLogDelaySubLbl := TLabel.Create(FExtLogTimingsSec);
+  FExtLogDelaySubLbl.Parent := FExtLogTimingsSec;
+  FExtLogDelaySubLbl.Caption := 'Delay (s)';
+  FExtLogDelaySubLbl.ShowAccelChar := False;
+  DarkLabel(FExtLogDelaySubLbl);
+  FExtLogIntervalSubLbl := TLabel.Create(FExtLogTimingsSec);
+  FExtLogIntervalSubLbl.Parent := FExtLogTimingsSec;
+  FExtLogIntervalSubLbl.Caption := 'Interval (ms)';
+  FExtLogIntervalSubLbl.ShowAccelChar := False;
+  DarkLabel(FExtLogIntervalSubLbl);
+
+  Place(logdelayLabel, FExtLogTimingsSec, 12, 8);
+  logdelayLabel.Visible := False;
+  Place(logintervalLabel, FExtLogTimingsSec, 12, 8);
+  logintervalLabel.Visible := False;
+
+  Place(durationTrackBar,   FExtLogTimingsSec, 12, 40);
+  Place(delayTrackBar,      FExtLogTimingsSec, 12, 40);
+  Place(intervalTrackBar,   FExtLogTimingsSec, 12, 40);
+  Place(durationvalueLabel, FExtLogTimingsSec, 12, 70);
+  Place(delayvalueLabel,    FExtLogTimingsSec, 12, 70);
+  Place(intervalvalueLabel, FExtLogTimingsSec, 12, 70);
+
+  durationTrackBar.Orientation := trHorizontal;
+  durationTrackBar.Reversed    := False;
+  durationTrackBar.TickStyle   := tsNone;
+  durationTrackBar.Height      := 24;
+
+  delayTrackBar.Orientation    := trHorizontal;
+  delayTrackBar.Reversed       := False;
+  delayTrackBar.TickStyle      := tsNone;
+  delayTrackBar.Height         := 24;
+
+  intervalTrackBar.Orientation := trHorizontal;
+  intervalTrackBar.Reversed    := False;
+  intervalTrackBar.TickStyle   := tsNone;
+  intervalTrackBar.Height      := 24;
   durationvalueLabel.Font.Color := CLR_TEXT_ACCENT; durationvalueLabel.Font.Style := [fsBold]; durationvalueLabel.Transparent := True;
   delayvalueLabel.Font.Color := CLR_TEXT_ACCENT; delayvalueLabel.Font.Style := [fsBold]; delayvalueLabel.Transparent := True;
   intervalvalueLabel.Font.Color := CLR_TEXT_ACCENT; intervalvalueLabel.Font.Style := [fsBold]; intervalvalueLabel.Transparent := True;
 
-  // Top row: Log folder
-  Place(logfolderLabel,  FExtLogCard, 356, 40 + HDR); DarkLabel(logfolderLabel);
-  Place(logfolderEdit,   FExtLogCard, 356, 61 + HDR);
+  // Storage & Tools
+  logfolderLabel.Caption := 'Storage & Tools';
+  Place(logfolderLabel, FExtLogToolsSec, 12, 8);
+  logfolderLabel.ShowAccelChar := False;
+  DarkLabel(logfolderLabel);
+  Place(logfolderEdit, FExtLogToolsSec, 12, 34);
   logfolderEdit.Color      := OUTER_BG;
   logfolderEdit.Font.Color := WHITE;
   logfolderEdit.Font.Name  := 'DejaVu Sans Mono';
@@ -3767,62 +3934,63 @@ begin
           'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
   if logfolderEdit.HandleAllocated then
     QWidget_setStyleSheet(TQtWidget(logfolderEdit.Handle).Widget, @SS);
-  Place(logfolderBitBtn, FExtLogCard, 783, 61 + HDR);
+  Place(logfolderBitBtn, FExtLogToolsSec, 0, 34);
   StyleBitBtnTheme(logfolderBitBtn, TextColor, CARD_BG);
 
-  // Bottom row: Logging toggle
-  Place(logtoggleLabel, FExtLogCard, 356, 106 + HDR);
+  Place(logtoggleLabel, FExtLogToolsSec, 12, 68);
+  logtoggleLabel.Visible     := False;
   logtoggleLabel.Caption     := 'Logging toggle';
+  logtoggleLabel.ShowAccelChar := False;
   logtoggleLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   logtoggleLabel.Font.Style  := [fsBold];
   logtoggleLabel.Transparent := True;
 
-  Place(logtoggleComboBox, FExtLogCard, 356, 127 + HDR);
+  Place(logtoggleComboBox, FExtLogToolsSec, 12, 90);
   logtoggleComboBox.Visible := False;
 
-  FLoggingCaptureBtn := TBitBtn.Create(FExtLogCard);
-  FLoggingCaptureBtn.Parent  := FExtLogCard;
+  FLoggingCaptureBtn := TBitBtn.Create(FExtLogToolsSec);
+  FLoggingCaptureBtn.Parent  := FExtLogToolsSec;
   FLoggingCaptureBtn.Tag     := 3;
-  FLoggingCaptureBtn.SetBounds(356, 127 + HDR, 140, 28);
+  FLoggingCaptureBtn.SetBounds(0, 0, 140, 28);
   FLoggingCaptureBtn.OnClick := @FForm.CaptureBtnClick;
   FLoggingCaptureBtn.Cursor  := crHandPoint;
   FLoggingCaptureBtn.Font.Color := WHITE;
+  FLoggingCaptureBtn.Hint := 'Shortcut key to toggle benchmark logging';
+  FLoggingCaptureBtn.ShowHint := True;
   if Trim(logtoggleComboBox.Text) <> '' then
     FLoggingCaptureBtn.Caption := '⌨ ' + logtoggleComboBox.Text
   else
     FLoggingCaptureBtn.Caption := '⌨ Capture';
-
   StyleBitBtnTheme(FLoggingCaptureBtn, TextColor, CARD_BG);
 
-  FExtGplotLabel := TLabel.Create(FExtLogCard);
-  FExtGplotLabel.Parent      := FExtLogCard;
-  FExtGplotLabel.Left        := 512;
-  FExtGplotLabel.Top         := 106 + HDR;
+  FExtGplotLabel := TLabel.Create(FExtLogToolsSec);
+  FExtGplotLabel.Parent      := FExtLogToolsSec;
+  FExtGplotLabel.Visible     := False;
+  FExtGplotLabel.Left        := 0;
+  FExtGplotLabel.Top         := 0;
   FExtGplotLabel.Caption     := 'Benchmark viewer';
+  FExtGplotLabel.ShowAccelChar := False;
   FExtGplotLabel.Font.Color  := IfThen(CurrentTheme = tmLight, LightTextColor, clWhite);
   FExtGplotLabel.Font.Style  := [fsBold];
   FExtGplotLabel.Transparent := True;
 
-  FGplotBtn := TBitBtn.Create(FExtLogCard);
-  FGplotBtn.Parent      := FExtLogCard;
-  FGplotBtn.SetBounds(512, 127 + HDR, 140, 28);
-  FGplotBtn.Caption     := 'PasPlot';
+  FGplotBtn := TBitBtn.Create(FExtLogToolsSec);
+  FGplotBtn.Parent      := FExtLogToolsSec;
+  FGplotBtn.SetBounds(0, 0, 140, 28);
+  FGplotBtn.Caption     := '📊 PasPlot Viewer';
   FGplotBtn.OnClick     := @FForm.GplotBtnClick;
   FGplotBtn.Cursor      := crHandPoint;
   FGplotBtn.Font.Color  := WHITE;
+  FGplotBtn.Hint        := 'Open PasPlot Benchmark Viewer';
+  FGplotBtn.ShowHint    := True;
   StyleBitBtnTheme(FGplotBtn, TextColor, CARD_BG);
 
-  Place(autouploadCheckBox, FExtLogCard, 530, 67 + HDR); DarkCheck(autouploadCheckBox);
+  Place(autouploadCheckBox, FExtLogToolsSec, 0, 0); DarkCheck(autouploadCheckBox);
   autouploadCheckBox.Visible := False;
-  Place(versioningCheckBox, FExtLogCard, 665, 67 + HDR); DarkCheck(versioningCheckBox);
+  Place(versioningCheckBox, FExtLogToolsSec, 0, 0); DarkCheck(versioningCheckBox);
   versioningCheckBox.Visible := False;
 
-  Place(logtoggleImage, FExtLogCard, 325, 63 + HDR);
   logtoggleImage.Visible := False;
-  // Log icon in card header — right-anchored
-  // Icon in card header — positioned in ReflowExtrasTab
-  Place(Image2, FExtLogCard, 4, 5);
-
   loggingGroupBox.Visible := False;
   end;
 
@@ -3830,21 +3998,27 @@ begin
   UpdateExtrasCardTheme;
 end;
 
-
-
-
+procedure TMangoHudUiHelper.ExtScrollBoxResize(Sender: TObject);
+begin
+  if Assigned(FForm.FExtScrollBox) then
+    ReflowExtrasTab(FForm.FExtScrollBox.ClientWidth);
+end;
 
 procedure TMangoHudUiHelper.ReflowExtrasTab(AContentW: Integer);
 const
-  MARGIN = 4;
-  GAP    = 6;
-  HDR    = 34;
-  BASE_SYS_H = 385;
-  BASE_LOG_H = 195;
+  MARGIN  = 4;
+  GAP     = 6;
+  SEC_PAD = 8;
+  SEC_GAP = 6;
+  HDR     = 42;
+  SEC_H1  = 125;
+  SEC_H2  = 226;
 var
-  CW, TotalH, AvailH, ActiveSysH, ActiveLogH: Integer;
-  ColW, X0, X1, X2, X3, X4, X5: Integer;
-  SysYOff1, SysYOff2, SysYOff3, SysYOff4, LogYOff: Integer;
+  CW, TotalH, ActiveSysH, ActiveLogH, AvailH, SEC_LOG: Integer;
+  SecW, Sec1Left, Sec2Left: Integer;
+  Row1Top, Row2Top: Integer;
+  Col1X, Col2X, R1Y, R2Y, R3Y, R4Y, BtnW: Integer;
+  LblW, ValW, TrackW, RowGap, Row1Y, Row2Y, Row3Y, ActionY: Integer;
 begin
   with FForm do
   begin
@@ -3854,17 +4028,12 @@ begin
 
   FExtScrollBox.HorzScrollBar.Range := 0;
 
-  AvailH := FExtScrollBox.ClientHeight - 3 * MARGIN - GAP;
-  if AvailH > (BASE_SYS_H + BASE_LOG_H) then
-  begin
-    ActiveSysH := Max(BASE_SYS_H, Round(AvailH * 0.65));
-    ActiveLogH := Max(BASE_LOG_H, AvailH - ActiveSysH);
-  end
+  ActiveSysH := HDR + SEC_H1 + SEC_GAP + SEC_H2 + SEC_PAD;
+  AvailH := FExtScrollBox.ClientHeight - 2 * MARGIN - GAP;
+  if AvailH > ActiveSysH + 185 then
+    ActiveLogH := AvailH - ActiveSysH
   else
-  begin
-    ActiveSysH := BASE_SYS_H;
-    ActiveLogH := BASE_LOG_H;
-  end;
+    ActiveLogH := 185;
 
   TotalH := MARGIN + ActiveSysH + GAP + ActiveLogH + MARGIN;
   if FExtScrollBox.ClientHeight > TotalH then
@@ -3872,138 +4041,187 @@ begin
   FExtBgPanel.SetBounds(0, 0, AContentW, TotalH);
 
   FExtSysCard.SetBounds(MARGIN, MARGIN, CW, ActiveSysH);
-  sysinfoImage.Left := CW - sysinfoImage.Width - 4;
-  sysinfoImage.Top  := 5;
-
   FExtLogCard.SetBounds(MARGIN, MARGIN + ActiveSysH + GAP, CW, ActiveLogH);
-  Image2.Left := CW - Image2.Width - 4;
-  Image2.Top  := 5;
 
-  // Compute dynamic column positions across CW
-  ColW := Max(115, (CW - 50) div 6);
-  X0 := 11;
-  X1 := X0 + ColW;
-  X2 := X0 + ColW * 2;
-  X3 := X0 + ColW * 3;
-  X4 := X0 + ColW * 4;
-  X5 := X0 + ColW * 5;
+  sysinfoImage.Visible := False;
+  Image2.Visible := False;
 
-  // Compute dynamic vertical section offsets
-  SysYOff1 := Max(0, (ActiveSysH - BASE_SYS_H) div 4);
-  SysYOff2 := Max(0, ((ActiveSysH - BASE_SYS_H) * 2) div 4);
-  SysYOff3 := Max(0, ((ActiveSysH - BASE_SYS_H) * 3) div 4);
-  SysYOff4 := Max(0, ActiveSysH - BASE_SYS_H);
-  LogYOff := Max(0, ActiveLogH - BASE_LOG_H);
+  if Assigned(FExtSysTitleLbl) then
+  begin
+    FExtSysTitleLbl.Left := 16;
+    FExtSysTitleLbl.Top  := 10;
+  end;
+  if Assigned(FExtLogTitleLbl) then
+  begin
+    FExtLogTitleLbl.Left := 16;
+    FExtLogTitleLbl.Top  := 10;
+  end;
 
-  // Reposition System Info controls
-  systemLabel.Top            := 11 + HDR;
-  if Assigned(FdistroinfoToggle) then begin FdistroinfoToggle.Left := X0; FdistroinfoToggle.Top := 32 + HDR; end;
-  if Assigned(FrefreshrateToggle) then begin FrefreshrateToggle.Left := X1; FrefreshrateToggle.Top := 32 + HDR; end;
-  if Assigned(FresolutionToggle) then begin FresolutionToggle.Left := X2; FresolutionToggle.Top := 32 + HDR; end;
-  if Assigned(FdisplayserverToggle) then begin FdisplayserverToggle.Left := X3; FdisplayserverToggle.Top := 32 + HDR; end;
+  SecW := (CW - 2 * SEC_PAD - SEC_GAP) div 2;
+  Sec1Left := SEC_PAD;
+  Sec2Left := SEC_PAD + SecW + SEC_GAP;
+  Row1Top := HDR;
+  Row2Top := HDR + SEC_H1 + SEC_GAP;
+
+  // Position sub-cards in FExtSysCard
+  if Assigned(FExtPlatformSec) then FExtPlatformSec.SetBounds(Sec1Left, Row1Top, SecW, SEC_H1);
+  if Assigned(FExtWineSec)     then FExtWineSec.SetBounds(Sec2Left, Row1Top, SecW, SEC_H1);
+  if Assigned(FExtGamingSec)   then FExtGamingSec.SetBounds(Sec1Left, Row2Top, SecW, SEC_H2);
+  if Assigned(FExtSessionSec)  then FExtSessionSec.SetBounds(Sec2Left, Row2Top, SecW, SEC_H2);
+
+  // Position sub-cards in FExtLogCard
+  SEC_LOG := ActiveLogH - HDR - SEC_PAD;
+  if Assigned(FExtLogTimingsSec) then FExtLogTimingsSec.SetBounds(Sec1Left, HDR, SecW, SEC_LOG);
+  if Assigned(FExtLogToolsSec)   then FExtLogToolsSec.SetBounds(Sec2Left, HDR, SecW, SEC_LOG);
+
+  Col1X := 12;
+  Col2X := SecW div 2 + 6;
+  R1Y   := 32;
+  R2Y   := 60;
+  R3Y   := 88;
+  R4Y   := 114;
+
+  // Inside FExtPlatformSec
+  if Assigned(systemLabel) then systemLabel.SetBounds(12, 8, SecW - 24, 18);
+  if Assigned(FdistroinfoToggle) then begin FdistroinfoToggle.Left := Col1X; FdistroinfoToggle.Top := R1Y; end;
+  if Assigned(FresolutionToggle) then begin FresolutionToggle.Left := Col2X; FresolutionToggle.Top := R1Y; end;
+  if Assigned(FdisplayserverToggle) then begin FdisplayserverToggle.Left := Col1X; FdisplayserverToggle.Top := R2Y; end;
+  if Assigned(FrefreshrateToggle) then begin FrefreshrateToggle.Left := Col2X; FrefreshrateToggle.Top := R2Y; end;
+  if Assigned(FarchToggle) then begin FarchToggle.Left := Col1X; FarchToggle.Top := R3Y; end;
   if Assigned(FtimeToggle) then
   begin
-    FtimeToggle.Left := X4;
-    FtimeToggle.Top := 32 + HDR;
+    FtimeToggle.Left := Col2X;
+    FtimeToggle.Top  := R3Y;
     if Assigned(FTimeConfigBtn) then
-    begin
-      FTimeConfigBtn.Left := FtimeToggle.Left + FtimeToggle.Width + 4;
-      FTimeConfigBtn.Top := FtimeToggle.Top;
-    end;
+      FTimeConfigBtn.SetBounds(FtimeToggle.Left + FtimeToggle.Width + 4, R3Y, 22, 20);
   end;
-  if Assigned(FarchToggle) then begin FarchToggle.Left := X5; FarchToggle.Top := 32 + HDR; end;
 
-  wineLabel.Top              := 60 + HDR + SysYOff1;
-  if Assigned(FwineToggle) then begin FwineToggle.Left := X0; FwineToggle.Top := 81 + HDR + SysYOff1; end;
-  if Assigned(FengineversionToggle) then begin FengineversionToggle.Left := X1; FengineversionToggle.Top := 81 + HDR + SysYOff1; end;
-  if Assigned(FengineshortToggle) then begin FengineshortToggle.Left := X2; FengineshortToggle.Top := 81 + HDR + SysYOff1; end;
-  if Assigned(FwinesyncToggle) then begin FwinesyncToggle.Left := X3; FwinesyncToggle.Top := 81 + HDR + SysYOff1; end;
-  if Assigned(FdxapiToggle) then begin FdxapiToggle.Left := X4; FdxapiToggle.Top := 81 + HDR + SysYOff1; end;
-  if Assigned(FfexstatsToggle) then begin FfexstatsToggle.Left := X5; FfexstatsToggle.Top := 81 + HDR + SysYOff1; end;
-  wineColorButton.Left       := X0 - 4;
-  wineColorButton.Top        := 103 + HDR + SysYOff1;
-  engineColorButton.Left     := X1 - 6;
-  engineColorButton.Top      := 103 + HDR + SysYOff1;
-
-  optionsLabel.Top           := 120 + HDR + SysYOff2;
-  if Assigned(FhudversionToggle) then begin FhudversionToggle.Left := X0; FhudversionToggle.Top := 141 + HDR + SysYOff2; end;
-  if Assigned(FgamemodestatusToggle) then begin FgamemodestatusToggle.Left := X1; FgamemodestatusToggle.Top := 141 + HDR + SysYOff2; end;
-  if Assigned(FvkbasaltstatusToggle) then begin FvkbasaltstatusToggle.Left := X2; FvkbasaltstatusToggle.Top := 141 + HDR + SysYOff2; end;
-  if Assigned(FfcatToggle) then begin FfcatToggle.Left := X3; FfcatToggle.Top := 141 + HDR + SysYOff2; end;
-  if Assigned(FfsrToggle) then begin FfsrToggle.Left := X4; FfsrToggle.Top := 141 + HDR + SysYOff2; end;
-  if Assigned(FhdrToggle) then begin FhdrToggle.Left := X5; FhdrToggle.Top := 141 + HDR + SysYOff2; end;
-
-  batteryLabel.Top           := 170 + HDR + SysYOff3;
-  if Assigned(FbatteryToggle) then begin FbatteryToggle.Left := X0; FbatteryToggle.Top := 191 + HDR + SysYOff3; end;
-  if Assigned(FbatterywattToggle) then begin FbatterywattToggle.Left := X1; FbatterywattToggle.Top := 191 + HDR + SysYOff3; end;
-  if Assigned(FbatterytimeToggle) then begin FbatterytimeToggle.Left := X2; FbatterytimeToggle.Top := 191 + HDR + SysYOff3; end;
-  if Assigned(FdeviceToggle) then begin FdeviceToggle.Left := X3; FdeviceToggle.Top := 191 + HDR + SysYOff3; end;
-  batteryColorButton.Left    := X0 - 5;
-  batteryColorButton.Top     := 213 + HDR + SysYOff3;
-
-  othersLabel.Top            := 238 + HDR + SysYOff4;
-  if Assigned(FmediaToggle) then begin FmediaToggle.Left := X0; FmediaToggle.Top := 259 + HDR + SysYOff4; end;
-  mediaColorButton.Left      := X0 - 5;
-  mediaColorButton.Top       := 281 + HDR + SysYOff4;
-  if Assigned(FnetworkToggle) then begin FnetworkToggle.Left := X1; FnetworkToggle.Top := 259 + HDR + SysYOff4; end;
-  networkComboBox.Left       := X1;
-  networkComboBox.Top        := 281 + HDR + SysYOff4;
-  if Assigned(FfahrenheitToggle) then begin FfahrenheitToggle.Left := X2; FfahrenheitToggle.Top := 259 + HDR + SysYOff4; end;
-  customcommandEdit.Left     := X0;
-  customcommandEdit.Top      := 315 + HDR + SysYOff4;
-  customcommandEdit.Width    := (X2 + IfThen(Assigned(FfahrenheitToggle), FfahrenheitToggle.Width, 120)) - X0;
-
-  // Reposition Logging controls
-  logdurationLabel.Left      := X0;
-  logdurationLabel.Top       := 11 + HDR;
-  durationTrackBar.Left      := X0 + 15;
-  durationTrackBar.Top       := 40 + HDR;
-  durationvalueLabel.Left    := X0 + 43;
-  durationvalueLabel.Top     := 96 + HDR;
-
-  logdelayLabel.Left         := X1;
-  logdelayLabel.Top          := 11 + HDR;
-  delayTrackBar.Left         := X1 + 15;
-  delayTrackBar.Top          := 40 + HDR;
-  delayvalueLabel.Left       := X1 + 43;
-  delayvalueLabel.Top        := 96 + HDR;
-
-  logintervalLabel.Left      := X2;
-  logintervalLabel.Top       := 11 + HDR;
-  intervalTrackBar.Left      := X2 + 15;
-  intervalTrackBar.Top       := 40 + HDR;
-  intervalvalueLabel.Left    := X2 + 43;
-  intervalvalueLabel.Top     := 96 + HDR;
-
-  // Top row: Log folder (spans across the card above the floating dock)
-  logfolderLabel.Left        := X3;
-  logfolderLabel.Top         := 40 + HDR;
-  logfolderEdit.Left         := X3;
-  logfolderEdit.Top          := 61 + HDR;
-  logfolderEdit.Width        := Max(200, CW - X3 - 48);
-  logfolderBitBtn.Left       := X3 + logfolderEdit.Width + 4;
-  logfolderBitBtn.Top        := 61 + HDR;
-
-  // Bottom row: Logging toggle key (compact button at X3, avoiding bottom-right floating dock)
-  logtoggleLabel.Left        := X3;
-  logtoggleLabel.Top         := 106 + HDR;
-  logtoggleComboBox.Left     := X3;
-  logtoggleComboBox.Top      := 127 + HDR;
-  if Assigned(FLoggingCaptureBtn) then
+  // Inside FExtWineSec
+  if Assigned(wineLabel) then wineLabel.SetBounds(12, 8, SecW - 24, 18);
+  if Assigned(FwineToggle) then
   begin
-    FLoggingCaptureBtn.Left  := X3;
-    FLoggingCaptureBtn.Top   := 127 + HDR;
+    FwineToggle.Left := Col1X;
+    FwineToggle.Top  := R1Y;
+    wineColorButton.SetBounds(Col1X + FwineToggle.Width + 6, R1Y, 20, 20);
   end;
+  if Assigned(FengineversionToggle) then
+  begin
+    FengineversionToggle.Left := Col2X;
+    FengineversionToggle.Top  := R1Y;
+    engineColorButton.SetBounds(Col2X + FengineversionToggle.Width + 6, R1Y, 20, 20);
+  end;
+  if Assigned(FengineshortToggle) then begin FengineshortToggle.Left := Col1X; FengineshortToggle.Top := R2Y; end;
+  if Assigned(FwinesyncToggle) then begin FwinesyncToggle.Left := Col2X; FwinesyncToggle.Top := R2Y; end;
+  if Assigned(FdxapiToggle) then begin FdxapiToggle.Left := Col1X; FdxapiToggle.Top := R3Y; end;
+  if Assigned(FfexstatsToggle) then begin FfexstatsToggle.Left := Col2X; FfexstatsToggle.Top := R3Y; end;
+
+  // Inside FExtGamingSec
+  if Assigned(optionsLabel) then optionsLabel.SetBounds(12, 8, SecW - 24, 18);
+  if Assigned(FhudversionToggle) then begin FhudversionToggle.Left := Col1X; FhudversionToggle.Top := R1Y; end;
+  if Assigned(FfcatToggle) then begin FfcatToggle.Left := Col2X; FfcatToggle.Top := R1Y; end;
+  if Assigned(FgamemodestatusToggle) then begin FgamemodestatusToggle.Left := Col1X; FgamemodestatusToggle.Top := R2Y; end;
+  if Assigned(FfsrToggle) then begin FfsrToggle.Left := Col2X; FfsrToggle.Top := R2Y; end;
+  if Assigned(FvkbasaltstatusToggle) then begin FvkbasaltstatusToggle.Left := Col1X; FvkbasaltstatusToggle.Top := R3Y; end;
+  if Assigned(FhdrToggle) then begin FhdrToggle.Left := Col2X; FhdrToggle.Top := R3Y; end;
+
+  // Inside FExtSessionSec
+  if Assigned(batteryLabel) then batteryLabel.SetBounds(12, 8, SecW - 24, 18);
+  // Col 1 (Battery):
+  if Assigned(FbatteryToggle) then
+  begin
+    FbatteryToggle.Left := Col1X;
+    FbatteryToggle.Top  := 30;
+    batteryColorButton.SetBounds(Col1X + FbatteryToggle.Width + 6, 30, 20, 20);
+  end;
+  if Assigned(FbatterywattToggle) then begin FbatterywattToggle.Left := Col1X; FbatterywattToggle.Top := 58; end;
+  if Assigned(FbatterytimeToggle) then begin FbatterytimeToggle.Left := Col1X; FbatterytimeToggle.Top := 86; end;
+  if Assigned(FdeviceToggle)      then begin FdeviceToggle.Left := Col1X;      FdeviceToggle.Top := 114; end;
+
+  // Col 2 (Media, Network, Temp Unit):
+  if Assigned(FmediaToggle) then
+  begin
+    FmediaToggle.Left := Col2X;
+    FmediaToggle.Top  := 30;
+    mediaColorButton.SetBounds(Col2X + FmediaToggle.Width + 6, 30, 20, 20);
+  end;
+  if Assigned(FnetworkToggle) then
+  begin
+    FnetworkToggle.Left := Col2X;
+    FnetworkToggle.Top  := 56;
+  end;
+  if Assigned(networkComboBox) then
+  begin
+    networkComboBox.SetBounds(Col2X, 80, SecW - Col2X - 12, 26);
+  end;
+  if Assigned(FExtTempUnitLbl) then
+  begin
+    FExtTempUnitLbl.SetBounds(Col2X, 122, 72, 18);
+  end;
+  if Assigned(FExtTempPillBtn) then
+  begin
+    FExtTempPillBtn.SetBounds(Col2X + 74, 120, FExtTempPillBtn.Width, 22);
+  end;
+
+  // Custom Command at bottom:
+  if Assigned(FExtCustomCommandLbl) then
+    FExtCustomCommandLbl.SetBounds(11, 158, SecW - 22, 18);
+  customcommandEdit.SetBounds(11, 180, Max(120, SecW - 22), 24);
+
+  // Inside FExtLogTimingsSec
+  if Assigned(logdurationLabel) then logdurationLabel.SetBounds(12, 8, SecW - 24, 18);
+  RowGap := EnsureRange((SEC_LOG - 34) div 3, 30, 42);
+  Row1Y := 34;
+  Row2Y := Row1Y + RowGap;
+  Row3Y := Row2Y + RowGap;
+
+  LblW := 95;
+  ValW := 52;
+  TrackW := Max(100, SecW - 14 - LblW - ValW - 14);
+
+  if Assigned(FExtLogDurationSubLbl) then
+  begin
+    FExtLogDurationSubLbl.Visible := True;
+    FExtLogDurationSubLbl.SetBounds(14, Row1Y + 4, LblW, 18);
+  end;
+  durationTrackBar.SetBounds(14 + LblW, Row1Y, TrackW, 26);
+  durationvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row1Y + 4, ValW, 18);
+
+  if Assigned(FExtLogDelaySubLbl) then
+  begin
+    FExtLogDelaySubLbl.Visible := True;
+    FExtLogDelaySubLbl.SetBounds(14, Row2Y + 4, LblW, 18);
+  end;
+  delayTrackBar.SetBounds(14 + LblW, Row2Y, TrackW, 26);
+  delayvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row2Y + 4, ValW, 18);
+
+  if Assigned(FExtLogIntervalSubLbl) then
+  begin
+    FExtLogIntervalSubLbl.Visible := True;
+    FExtLogIntervalSubLbl.SetBounds(14, Row3Y + 4, LblW, 18);
+  end;
+  intervalTrackBar.SetBounds(14 + LblW, Row3Y, TrackW, 26);
+  intervalvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row3Y + 4, ValW, 18);
+
+  // Inside FExtLogToolsSec
+  if Assigned(logfolderLabel) then logfolderLabel.SetBounds(12, 8, SecW - 24, 18);
+  logfolderEdit.SetBounds(12, Row1Y, SecW - 56, 26);
+  logfolderBitBtn.SetBounds(SecW - 40, Row1Y, 28, 26);
+
+  LblW := 125;
+
+  logtoggleLabel.SetBounds(12, Row2Y + 5, LblW, 18);
+  logtoggleLabel.Visible := False;
   if Assigned(FExtGplotLabel) then
   begin
-    FExtGplotLabel.Left      := Max(X4, X3 + 156);
-    FExtGplotLabel.Top       := 106 + HDR;
+    FExtGplotLabel.SetBounds(12, Row3Y + 5, LblW, 18);
+    FExtGplotLabel.Visible := False;
   end;
+
+  BtnW := (SecW - 24 - 8) div 2;
+  if Assigned(FLoggingCaptureBtn) then
+    FLoggingCaptureBtn.SetBounds(12, Row2Y, BtnW, 28);
   if Assigned(FGplotBtn) then
-  begin
-    FGplotBtn.Left           := Max(X4, X3 + 156);
-    FGplotBtn.Top            := 127 + HDR;
-  end;
+    FGplotBtn.SetBounds(12 + BtnW + 8, Row2Y, BtnW, 28);
 
   autouploadCheckBox.Visible := False;
   versioningCheckBox.Visible := False;
@@ -4019,6 +4237,8 @@ begin
       TToggleSwitch(FExtrasToggles[i]).SyncFromLinked;
   if Assigned(FTimeConfigBtn) and Assigned(FForm.timeCheckBox) then
     FTimeConfigBtn.Enabled := FForm.timeCheckBox.Checked;
+  if Assigned(FForm.networkComboBox) and Assigned(FForm.networkCheckBox) then
+    FForm.networkComboBox.Enabled := FForm.networkCheckBox.Checked;
 end;
 
 procedure TMangoHudUiHelper.SyncAllToggles;
@@ -4040,6 +4260,7 @@ const
   LIGHT_BG  = $00FFFFFF;
 var
   CardBg, TextColor: TColor;
+  SS: String;
 begin
   with FForm do
   begin
@@ -4056,6 +4277,13 @@ begin
 
   UpdateGenericCardTheme(FExtSysCard);
   UpdateGenericCardTheme(FExtLogCard);
+  UpdateGenericCardTheme(FExtPlatformSec);
+  UpdateGenericCardTheme(FExtWineSec);
+  UpdateGenericCardTheme(FExtGamingSec);
+  UpdateGenericCardTheme(FExtSessionSec);
+  UpdateGenericCardTheme(FExtLogTimingsSec);
+  UpdateGenericCardTheme(FExtLogToolsSec);
+  RefreshFormatPills;
 
   if Assigned(FTimeConfigBtn) then
     StyleBitBtnTheme(FTimeConfigBtn, TextColor, CardBg);
@@ -4088,6 +4316,11 @@ begin
       networkComboBox.Color := LighterBackgroundColor
     else
       networkComboBox.Color := RGBToColor(22, 26, 40); // OUTER_BG default
+    if networkComboBox.HandleAllocated then
+    begin
+      SS := GetComboBoxStyleSheet(CurrentTheme = tmDark);
+      QWidget_setStyleSheet(TQtWidget(networkComboBox.Handle).Widget, @SS);
+    end;
   end;
   end;
 end;

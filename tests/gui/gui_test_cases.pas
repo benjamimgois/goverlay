@@ -8200,14 +8200,14 @@ var
   I: Integer;
   Dlg: TgplotForm;
 begin
-  // 1. Verify FGplotBtn placement in FExtLogCard on Extras tab
+  // 1. Verify FGplotBtn placement in FExtLogToolsSec on Extras tab
   NavigateMangoHud;
   goverlayform.goverlayPageControl.ActivePage := goverlayform.extrasTabSheet;
   goverlayform.ReflowExtrasTab(800);
   AssertNotNull('FGplotBtn is created', goverlayform.FGplotBtn);
   AssertNotNull('FExtGplotLabel is created', goverlayform.FExtGplotLabel);
-  AssertTrue('FGplotBtn is parented to FExtLogCard', goverlayform.FGplotBtn.Parent = goverlayform.FExtLogCard);
-  AssertEquals('FGplotBtn caption is PasPlot', 'PasPlot', goverlayform.FGplotBtn.Caption);
+  AssertTrue('FGplotBtn is parented to FExtLogToolsSec', goverlayform.FGplotBtn.Parent = goverlayform.FExtLogToolsSec);
+  AssertEquals('FGplotBtn caption is 📊 PasPlot Viewer', '📊 PasPlot Viewer', goverlayform.FGplotBtn.Caption);
 
   // 2. Seed two benchmark runs + a companion _summary.csv for pascube
   TempBase := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_gplot_ui_' + IntToStr(Random(100000)) + PathDelim;
