@@ -2278,6 +2278,12 @@ var
   end;
 
 begin
+  if Settings.MangoHudCfgFile = '' then
+  begin
+    Result := True;
+    Exit;
+  end;
+
   Result := False;
   ErrMsg := '';
 

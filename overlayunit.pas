@@ -693,6 +693,7 @@ type
     procedure StartAutoSaveTimer;
     procedure ShowSavedStatus;
     procedure VkNemuToggleChange(Sender: TObject);
+    procedure VkNemuToggleClick(Sender: TObject);
     procedure VkNemuControlChange(Sender: TObject);
     function  GetVkNemuLaunchEnv: string;
     procedure LoadVkNemuConfig;
@@ -1148,6 +1149,7 @@ type
     FVkNemuSectionLbl:        TLabel;
     FVkNemuToggle:            TToggleSwitch;
     FVkNemuCheckBox:          TCheckBox;
+    FVkNemuToggleBtn:         TSpeedButton;
     FVkNemuDivider:           TPanel;
     FVkNemuIdleFpsSpin:       TSpinEdit;
     FVkNemuIdleFpsLbl:        TLabel;
@@ -2618,29 +2620,71 @@ begin
   SaveVkNemuConfig;
 end;
 
+procedure Tgoverlayform.VkNemuToggleClick(Sender: TObject);
+begin
+  if Assigned(FVkNemuCheckBox) then
+    FVkNemuCheckBox.Checked := not FVkNemuCheckBox.Checked
+  else if Assigned(FVkNemuToggle) then
+    FVkNemuToggle.Checked := not FVkNemuToggle.Checked;
+  VkNemuToggleChange(Sender);
+end;
+
 procedure Tgoverlayform.VkNemuToggleChange(Sender: TObject);
 var
   AEnabled: Boolean;
+  DisColor, LblColor: TColor;
 begin
-  if not Assigned(FVkNemuToggle) then Exit;
+  if Assigned(FVkNemuCheckBox) then
+    AEnabled := FVkNemuCheckBox.Checked
+  else if Assigned(FVkNemuToggle) then
+    AEnabled := FVkNemuToggle.Checked
+  else
+    Exit;
 
-  AEnabled := FVkNemuToggle.Checked;
+  if Assigned(FVkNemuToggle) then
+    FVkNemuToggle.Checked := AEnabled;
   if Assigned(FVkNemuCheckBox) then
     FVkNemuCheckBox.Checked := AEnabled;
 
+  if Assigned(FVkNemuToggleBtn) then
+    FVkNemuToggleBtn.ImageIndex := IfThen(AEnabled, 1, 0);
+
+  DisColor := IfThen(CurrentTheme = tmLight, $00A0A0A0, RGBToColor(100, 110, 130));
+  LblColor := IfThen(AEnabled, IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor), DisColor);
+
   if Assigned(FVkNemuSectionLbl) then   FVkNemuSectionLbl.Enabled   := True;
-  if Assigned(FVkNemuIdleFpsLbl) then   FVkNemuIdleFpsLbl.Enabled   := AEnabled;
+  if Assigned(FVkNemuIdleFpsLbl) then
+  begin
+    FVkNemuIdleFpsLbl.Enabled    := AEnabled;
+    FVkNemuIdleFpsLbl.Font.Color := LblColor;
+  end;
   if Assigned(FVkNemuIdleFpsSpin) then  FVkNemuIdleFpsSpin.Enabled  := AEnabled;
-  if Assigned(FVkNemuTimeoutLbl) then   FVkNemuTimeoutLbl.Enabled   := AEnabled;
+  if Assigned(FVkNemuTimeoutLbl) then
+  begin
+    FVkNemuTimeoutLbl.Enabled    := AEnabled;
+    FVkNemuTimeoutLbl.Font.Color := LblColor;
+  end;
   if Assigned(FVkNemuTimeoutSpin) then  FVkNemuTimeoutSpin.Enabled  := AEnabled;
-  if Assigned(FVkNemuInputLbl) then     FVkNemuInputLbl.Enabled     := AEnabled;
+  if Assigned(FVkNemuInputLbl) then
+  begin
+    FVkNemuInputLbl.Enabled    := AEnabled;
+    FVkNemuInputLbl.Font.Color := LblColor;
+  end;
   if Assigned(FVkNemuInputCombo) then   FVkNemuInputCombo.Enabled   := AEnabled;
   if Assigned(FVkNemuUnfocusedToggle) then FVkNemuUnfocusedToggle.Enabled := AEnabled;
   if Assigned(FVkNemuUnfocusedCheckBox) then FVkNemuUnfocusedCheckBox.Enabled := AEnabled;
-  if Assigned(FVkNemuDelayLbl) then     FVkNemuDelayLbl.Enabled     := AEnabled;
+  if Assigned(FVkNemuDelayLbl) then
+  begin
+    FVkNemuDelayLbl.Enabled    := AEnabled;
+    FVkNemuDelayLbl.Font.Color := LblColor;
+  end;
   if Assigned(FVkNemuDelaySpin) then    FVkNemuDelaySpin.Enabled    := AEnabled;
 
-  if not FLoadingConfig then
+  if Assigned(FVkNemuUnfocusedToggle) then FVkNemuUnfocusedToggle.Invalidate;
+
+  UpdateVkNemuFlowDiagram;
+
+  if Assigned(Sender) and (not FLoadingConfig) and (MANGOHUDCFGFILE <> '') then
     TriggerAutoSave;
 end;
 
@@ -2760,6 +2804,8 @@ begin
 
     if Assigned(FVkNemuToggle) and Assigned(FVkNemuCheckBox) then
       FVkNemuToggle.Checked := FVkNemuCheckBox.Checked;
+    if Assigned(FVkNemuToggleBtn) and Assigned(FVkNemuCheckBox) then
+      FVkNemuToggleBtn.ImageIndex := IfThen(FVkNemuCheckBox.Checked, 1, 0);
     if Assigned(FVkNemuUnfocusedToggle) and Assigned(FVkNemuUnfocusedCheckBox) then
       FVkNemuUnfocusedToggle.Checked := FVkNemuUnfocusedCheckBox.Checked;
 
@@ -3016,6 +3062,7 @@ begin
   UpdatePerfCardTheme;
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).SyncPerformanceToggles;
+  VkNemuToggleChange(nil);
 end;
 
 procedure Tgoverlayform.visualTabSheetShow(Sender: TObject);
@@ -9118,7 +9165,7 @@ end;
 
 procedure Tgoverlayform.TriggerAutoSave;
 begin
-  if FLoadingConfig or FClosing then Exit;
+  if (MANGOHUDCFGFILE = '') or FLoadingConfig or FClosing then Exit;
   saveBitBtnClick(nil);
   ShowSavedStatus;
   if Assigned(FFADock) then

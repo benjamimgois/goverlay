@@ -5675,6 +5675,10 @@ begin
   AssertTrue('GetVkNemuLaunchEnv returns disable token when off', Pos('DISABLE_VKNEMU=1', EnvStr) > 0);
   AssertFalse('Child controls disabled when toggle off', goverlayform.FVkNemuIdleFpsSpin.Enabled);
 
+  goverlayform.SetControlTreeEnabled(goverlayform.performanceTabSheet, True);
+  AssertFalse('Child controls stay disabled after SetControlTreeEnabled when vkNemu off',
+    goverlayform.FVkNemuIdleFpsSpin.Enabled);
+
   // When enabled, values should be exported
   goverlayform.FVkNemuToggle.Checked := True;
   goverlayform.VkNemuToggleChange(nil);

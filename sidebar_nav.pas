@@ -834,6 +834,23 @@ begin
     ACtrl.Enabled := True;
     Exit;
   end;
+  if (ACtrl = FForm.FVkNemuSec) then
+  begin
+    ACtrl.Enabled := AEnabled;
+    if not AEnabled then
+    begin
+      for i := 0 to ACtrl.ControlCount - 1 do
+        ACtrl.Controls[i].Enabled := False;
+    end
+    else
+    begin
+      if Assigned(FForm.FVkNemuToggleBtn) then FForm.FVkNemuToggleBtn.Enabled := True;
+      if Assigned(FForm.FVkNemuSectionLbl) then FForm.FVkNemuSectionLbl.Enabled := True;
+      if Assigned(FForm.FVkNemuFlowCard) then FForm.FVkNemuFlowCard.Enabled := True;
+      FForm.VkNemuToggleChange(nil);
+    end;
+    Exit;
+  end;
   ACtrl.Enabled := AEnabled;
   for i := 0 to ACtrl.ControlCount - 1 do
   begin
@@ -842,6 +859,11 @@ begin
        (Child = FForm.FVkSumiMissingBanner) or (Child = FForm.FTweaksMissingBanner) or (Child.Tag = 9995) then
     begin
       Child.Enabled := True;
+      Continue;
+    end;
+    if (Child = FForm.FVkNemuSec) then
+    begin
+      SetControlTreeEnabled(TWinControl(Child), AEnabled);
       Continue;
     end;
     Child.Enabled := AEnabled;

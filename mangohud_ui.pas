@@ -920,6 +920,8 @@ const
 var
   Card: TPanel;
   BgClear, BgColor, BorderColor: TColor;
+  Node1Color, Node2Color, SubColor, ArrowColor: TColor;
+  IsEnabled: Boolean;
   W, H, X1, X2, X3, Arrow1X, Arrow2X: Integer;
   TitleY, SubY, ArrowY: Integer;
   IdleFps, TimeoutVal, DelayVal: Integer;
@@ -952,6 +954,36 @@ begin
     BgClear     := $002E1E1A;
     BgColor     := DARK_BG;
     BorderColor := DARK_BRD;
+  end;
+
+  IsEnabled := Assigned(FForm.FVkNemuCheckBox) and FForm.FVkNemuCheckBox.Checked;
+  if not IsEnabled then
+  begin
+    if CurrentTheme = tmLight then
+    begin
+      BgColor     := $00E6E8EB;
+      BorderColor := $00C0C6D0;
+    end
+    else
+    begin
+      BgColor     := $001A1410;
+      BorderColor := $002E241C;
+    end;
+  end;
+
+  if IsEnabled then
+  begin
+    Node1Color := CLR_EMERALD;
+    Node2Color := CLR_AMBER;
+    SubColor   := CLR_SLATE;
+    ArrowColor := CLR_ARROW;
+  end
+  else
+  begin
+    Node1Color := $00646E82;
+    Node2Color := $00646E82;
+    SubColor   := $004A5260;
+    ArrowColor := $00424A56;
   end;
 
   if Card.Parent is TWinControl then
@@ -1014,22 +1046,22 @@ begin
   ArrowY   := 19;
 
   // Node 1: Active Game
-  DrawCentered(X1, TitleY, 'Active Game', 9, [fsBold], CLR_EMERALD);
-  DrawCentered(X1, SubY, 'Max FPS', 8, [], CLR_SLATE);
+  DrawCentered(X1, TitleY, 'Active Game', 9, [fsBold], Node1Color);
+  DrawCentered(X1, SubY, 'Max FPS', 8, [], SubColor);
 
   // Arrow 1: idle timeout
-  DrawCentered(Arrow1X, ArrowY, Format('-[ %ds ]->', [TimeoutVal]), 8, [], CLR_ARROW);
+  DrawCentered(Arrow1X, ArrowY, Format('-[ %ds ]->', [TimeoutVal]), 8, [], ArrowColor);
 
   // Node 2: Standby
-  DrawCentered(X2, TitleY, 'Standby', 9, [fsBold], CLR_AMBER);
-  DrawCentered(X2, SubY, Format('%d FPS', [IdleFps]), 8, [fsBold], CLR_AMBER);
+  DrawCentered(X2, TitleY, 'Standby', 9, [fsBold], Node2Color);
+  DrawCentered(X2, SubY, Format('%d FPS', [IdleFps]), 8, [fsBold], SubColor);
 
   // Arrow 2: wake input mode
-  DrawCentered(Arrow2X, ArrowY, Format('-[ %s ]->', [InputModeStr]), 8, [], CLR_ARROW);
+  DrawCentered(Arrow2X, ArrowY, Format('-[ %s ]->', [InputModeStr]), 8, [], ArrowColor);
 
   // Node 3: Resume
-  DrawCentered(X3, TitleY, 'Resume', 9, [fsBold], CLR_EMERALD);
-  DrawCentered(X3, SubY, Format('%ds delay', [DelayVal]), 8, [], CLR_SLATE);
+  DrawCentered(X3, TitleY, 'Resume', 9, [fsBold], Node1Color);
+  DrawCentered(X3, SubY, Format('%ds delay', [DelayVal]), 8, [], SubColor);
 
   Card.Canvas.Pen.Width   := 1;
   Card.Canvas.Brush.Style := bsSolid;
@@ -2935,6 +2967,15 @@ begin
   FVkNemuCheckBox.Visible := False;
   FVkNemuToggle := PlacePerfToggle(FVkNemuCheckBox, FVkNemuSec);
   FVkNemuToggle.OnClick := @FForm.VkNemuToggleChange;
+  FVkNemuToggle.Visible := False;
+
+  FVkNemuToggleBtn := TSpeedButton.Create(FForm);
+  FVkNemuToggleBtn.Parent := FVkNemuSec;
+  FVkNemuToggleBtn.Flat := True;
+  FVkNemuToggleBtn.Images := FForm.globalbuttonImageList;
+  FVkNemuToggleBtn.ImageIndex := 0;
+  FVkNemuToggleBtn.Cursor := crHandPoint;
+  FVkNemuToggleBtn.OnClick := @FForm.VkNemuToggleClick;
 
   FVkNemuIdleFpsLbl := TLabel.Create(FForm);
   FVkNemuIdleFpsLbl.Parent := FVkNemuSec;
@@ -3003,6 +3044,21 @@ begin
   FVkNemuDelaySpin.OnChange := @FForm.VkNemuControlChange;
 
   FForm.UpdateVkNemuFlowDiagram;
+  FVkNemuIdleFpsSpin.Enabled := False;
+  FVkNemuTimeoutSpin.Enabled := False;
+  FVkNemuInputCombo.Enabled := False;
+  FVkNemuDelaySpin.Enabled := False;
+  FVkNemuUnfocusedToggle.Enabled := False;
+  FVkNemuIdleFpsLbl.Enabled := False;
+  FVkNemuTimeoutLbl.Enabled := False;
+  FVkNemuInputLbl.Enabled := False;
+  FVkNemuDelayLbl.Enabled := False;
+  FVkNemuIdleFpsLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00A0A0A0, RGBToColor(100, 110, 130));
+  FVkNemuTimeoutLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00A0A0A0, RGBToColor(100, 110, 130));
+  FVkNemuInputLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00A0A0A0, RGBToColor(100, 110, 130));
+  FVkNemuDelayLbl.Font.Color := IfThen(CurrentTheme = tmLight, $00A0A0A0, RGBToColor(100, 110, 130));
+  if Assigned(FVkNemuToggleBtn) then
+    FVkNemuToggleBtn.ImageIndex := 0;
   end;
 end;
 
@@ -3272,16 +3328,12 @@ begin
     begin
       if Assigned(FVkNemuDivider) then
         FVkNemuDivider.Visible := False;
+      if Assigned(FVkNemuToggleBtn) then
+        FVkNemuToggleBtn.SetBounds(FVkNemuSec.ClientWidth - 44 - 14, 5, 44, 24);
       if Assigned(FVkNemuSectionLbl) then
       begin
         FVkNemuSectionLbl.Visible := True;
-        FVkNemuSectionLbl.SetBounds(14, 8, FVkNemuSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
-      end;
-
-      if Assigned(FVkNemuToggle) then
-      begin
-        FVkNemuToggle.Left := FVkNemuSec.ClientWidth - FVkNemuToggle.Width - 14;
-        FVkNemuToggle.Top  := 6;
+        FVkNemuSectionLbl.SetBounds(14, 8, FVkNemuSec.ClientWidth - 44 - 28, 18);
       end;
 
       if Assigned(FVkNemuFlowCard) then
@@ -3369,6 +3421,8 @@ begin
       TToggleSwitch(FPerfToggles[i]).SyncFromLinked;
   if Assigned(FframetimedetailedToggle) and Assigned(FForm.frametimegraphCheckBox) then
     FframetimedetailedToggle.Enabled := FForm.frametimegraphCheckBox.Checked;
+  if Assigned(FForm) then
+    FForm.VkNemuToggleChange(nil);
 end;
 
 procedure TMangoHudUiHelper.FrametimegraphCheckBoxChange(Sender: TObject);
@@ -5837,6 +5891,8 @@ var
   Settings: TMangoHudSettings;
   ErrMsg: string;
 begin
+  if MANGOHUDCFGFILE = '' then Exit;
+
   with FForm do
   begin
     // Initialize TMangoHudSettings record
