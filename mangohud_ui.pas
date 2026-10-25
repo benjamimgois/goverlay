@@ -48,6 +48,8 @@ type
     FExtrasToggles: TFPList;
     FVisMonitorPaintBox: TPaintBox;
     FVisHoverAnchor: Integer;
+    FframetimetypeLbl: TLabel;
+    FFpsPresetLbl: TLabel;
     // When True, the active MangoHud config is the fps_only preset.
     // Any user control interaction (GenericControlChange/Click) clears this.
     FFpsOnly: Boolean;
@@ -162,6 +164,7 @@ type
     procedure BuildFpsLimitEdit;
     procedure InitPerformanceTab;
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
+    procedure PerfScrollBoxResize(Sender: TObject);
     procedure SyncPerformanceToggles;
     procedure FrametimegraphCheckBoxChange(Sender: TObject);
     procedure UpdatePerfCardTheme;
@@ -2569,25 +2572,26 @@ procedure TMangoHudUiHelper.InitPerformanceTab;
 const
   GB_OFFSET = 24;
   CARD_BG   = $002E1E1A;  // rgb(26, 30, 46)
+  IMARGIN   = 6;
+  IGAP      = 8;
 
-  // Vertical layout: 2 full-width cards
-  ROW1_TOP = 0;
-  ROW1_H   = 180;
-  ROW2_TOP = 185;
-  ROW2_H   = 389;
+  // Vertical layout: 3 stacked master cards
+  CARD0_TOP = 4;
+  CARD0_H   = 190;
+  CARD1_TOP = CARD0_TOP + CARD0_H + 8;
+  CARD1_H   = 190;
+  CARD2_TOP = CARD1_TOP + CARD1_H + 8;
+  CARD2_H   = 250;
 
-  // Each card holds two side-by-side sections
-  procedure MakeCard(AIndex: Integer;
-                     ATitle1: string; AGB1: TGroupBox;
-                     ATitle2: string; AGB2: TGroupBox;
-                     ATop, AHeight: Integer);
+  procedure MakePerfCard(AIndex, ATop, AHeight: Integer;
+                         const ATitle1, ATitle2: string;
+                         out Sec1, Sec2: TPanel);
   var
     Card: TPanel;
     Lbl1, Lbl2: TLabel;
     IsLight: Boolean;
     BgColor, TextColor: TColor;
     HalfW: Integer;
-    Sec1, Sec2, SecNemu: TPanel;
   begin
     with FForm do
     begin
@@ -2596,14 +2600,14 @@ const
       TextColor := IfThen(IsLight, LightTextColor, DarkTextColor);
 
       Card := TPanel.Create(FForm);
-      Card.Parent      := performanceTabSheet;
+      Card.Parent      := FPerfBgPanel;
       Card.BevelOuter  := bvNone;
       Card.BorderStyle := bsNone;
       Card.Caption     := '';
       Card.Color       := BgColor;
       Card.ParentColor := False;
       Card.OnPaint     := @FForm.SubCardPaint;
-      Card.SetBounds(2, ATop, 800, AHeight);  // provisional; corrected by Reflow
+      Card.SetBounds(4, ATop, 800, AHeight);  // provisional; corrected by Reflow
       FPerfCards[AIndex] := Card;
 
       HalfW := Card.Width div 2;
@@ -2616,7 +2620,7 @@ const
       Sec1.Caption     := '';
       Sec1.Color       := BgColor;
       Sec1.OnPaint     := @FForm.SubCardPaint;
-      Sec1.SetBounds(6, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - 6);
+      Sec1.SetBounds(IMARGIN, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - IMARGIN);
 
       Sec2 := TPanel.Create(FForm);
       Sec2.Parent      := Card;
@@ -2625,25 +2629,14 @@ const
       Sec2.Caption     := '';
       Sec2.Color       := BgColor;
       Sec2.OnPaint     := @FForm.SubCardPaint;
-      Sec2.SetBounds(HalfW + 4, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - 6);
-
-      if AIndex = 0 then
-      begin
-        FPerfInfoSec  := Sec1;
-        FPerfVsyncSec := Sec2;
-      end
-      else
-      begin
-        FPerfLimitSec   := Sec1;
-        FPerfFiltersSec := Sec2;
-      end;
+      Sec2.SetBounds(HalfW + 4, GB_OFFSET, HalfW - 10, AHeight - GB_OFFSET - IMARGIN);
 
       // Left section title
       Lbl1 := TLabel.Create(Card);
       Lbl1.Parent      := Card;
       StyleLabel(Lbl1, lrSectionTitle);
       Lbl1.Caption     := ATitle1;
-      Lbl1.SetBounds(18, 5, 200, 18);
+      Lbl1.SetBounds(IMARGIN + 12, 5, 200, 18);
       FPerfLeftLbl[AIndex] := Lbl1;
 
       // Right section title
@@ -2651,41 +2644,9 @@ const
       Lbl2.Parent      := Card;
       StyleLabel(Lbl2, lrSectionTitle);
       Lbl2.Caption     := ATitle2;
+      Lbl2.ShowAccelChar := False;
       Lbl2.SetBounds(HalfW + 16, 5, 200, 18);
       FPerfRightLbl[AIndex] := Lbl2;
-
-      // Hide original LFM groupboxes
-      AGB1.Visible := False;
-      AGB2.Visible := False;
-
-      // Custom UI for FPS Limit Toggle in Limiters card (AIndex = 1, AGB1 = fpslimiterGroupBox)
-      if AIndex = 1 then
-      begin
-        fpslimtoggleComboBox.Visible := False;
-        fpstoggleImage.Visible := False;
-
-        limtoggleLabel.AnchorSideLeft.Control   := nil;
-        limtoggleLabel.AnchorSideTop.Control    := nil;
-        limtoggleLabel.AnchorSideRight.Control  := nil;
-        limtoggleLabel.AnchorSideBottom.Control := nil;
-        limtoggleLabel.Anchors := [akLeft, akTop];
-        limtoggleLabel.Parent  := Sec1;
-        limtoggleLabel.Font.Color := TextColor;
-        limtoggleLabel.ParentColor := True;
-
-        FLimitCaptureBtn := TBitBtn.Create(Sec1);
-        FLimitCaptureBtn.Parent  := Sec1;
-        FLimitCaptureBtn.Tag     := 2;
-        FLimitCaptureBtn.OnClick := @FForm.CaptureBtnClick;
-        FLimitCaptureBtn.Cursor  := crHandPoint;
-        FLimitCaptureBtn.Font.Color := TextColor;
-        if Trim(fpslimtoggleComboBox.Text) <> '' then
-          FLimitCaptureBtn.Caption := '⌨ ' + fpslimtoggleComboBox.Text
-        else
-          FLimitCaptureBtn.Caption := '⌨ Capture';
-
-        StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CARD_BG);
-      end;
     end;
   end;
 
@@ -2737,26 +2698,87 @@ const
   end;
 
 var
-  BgBox: TPaintBox;
   SS: WideString;
   TextColor: TColor;
+  i: Integer;
+  PresetCaptions: array[0..3] of string;
+  PresetValues: array[0..3] of Integer;
 begin
   with FForm do
   begin
   TextColor := IfThen(CurrentTheme = tmLight, LightTextColor, DarkTextColor);
-  BgBox := TPaintBox.Create(FForm);
-  BgBox.Parent  := performanceTabSheet;
-  BgBox.Align   := alClient;
-  BgBox.OnPaint := @FForm.PresetsBgBoxPaint;
 
-  MakeCard(0, 'Information', fpsGroupBox,        'VSYNC',   vsyncGroupBox,   ROW1_TOP, ROW1_H);
-  MakeCard(1, 'Limiters',    fpslimiterGroupBox, 'Filters', filtersGroupBox, ROW2_TOP, ROW2_H);
-  FPerfCards[2] := nil;
+  // ── Scroll container fills the tab ──────────────────────────────────────
+  FPerfScrollBox := TScrollBox.Create(FForm);
+  FPerfScrollBox.Parent      := performanceTabSheet;
+  FPerfScrollBox.Align       := alClient;
+  FPerfScrollBox.AutoScroll  := True;
+  FPerfScrollBox.BorderStyle := bsNone;
+  FPerfScrollBox.HorzScrollBar.Visible := False;
+  FPerfScrollBox.Color       := RGBToColor(22, 26, 40);
+  FPerfScrollBox.ParentColor := False;
+  ApplyModernScrollBarStylesheet(FPerfScrollBox);
+  FPerfScrollBox.OnResize := @PerfScrollBoxResize;
+
+  FPerfBgPanel := TPanel.Create(FForm);
+  FPerfBgPanel.Parent     := FPerfScrollBox;
+  FPerfBgPanel.BevelOuter := bvNone;
+  FPerfBgPanel.Color      := RGBToColor(22, 26, 40);
+  FPerfBgPanel.OnPaint    := @FForm.PresetsWrapperPaint;
+  FPerfBgPanel.Caption    := '';
+  FPerfBgPanel.Left       := 0;
+  FPerfBgPanel.Top        := 0;
+  FPerfBgPanel.Width      := FPerfScrollBox.ClientWidth;
+  FPerfBgPanel.Height     := 700;
+
+  // Hide the original GroupBoxes — their controls are reparented below.
+  fpslimiterGroupBox.Visible := False;
+  vsyncGroupBox.Visible      := False;
+  fpsGroupBox.Visible        := False;
+  filtersGroupBox.Visible    := False;
+
+  // Three master cards: Rate Control & Sync, Telemetry, Energy & Visual.
+  MakePerfCard(0, CARD0_TOP, CARD0_H, 'Rate Control', 'VSYNC', FPerfLimitSec, FPerfVsyncSec);
+  MakePerfCard(1, CARD1_TOP, CARD1_H, 'Frame Rate', 'Frame Timing', FPerfInfoSec, FPerfFrametimeSec);
+  MakePerfCard(2, CARD2_TOP, CARD2_H, 'Idle Limiter (vkNemu)', 'Filters & LOD', FVkNemuSec, FPerfFiltersSec);
   FPerfCards[3] := nil;
 
-  // Reparent Information controls to FPerfInfoSec
+  // ── Card 0: FPS Limiter toggle-key capture button ───────────────────────
+  fpslimtoggleComboBox.Visible := False;
+  fpstoggleImage.Visible := False;
+
+  limtoggleLabel.AnchorSideLeft.Control   := nil;
+  limtoggleLabel.AnchorSideTop.Control    := nil;
+  limtoggleLabel.AnchorSideRight.Control  := nil;
+  limtoggleLabel.AnchorSideBottom.Control := nil;
+  limtoggleLabel.Anchors := [akLeft, akTop];
+  limtoggleLabel.Parent  := FPerfLimitSec;
+  limtoggleLabel.Font.Color := TextColor;
+  limtoggleLabel.ParentColor := True;
+
+  FLimitCaptureBtn := TBitBtn.Create(FPerfLimitSec);
+  FLimitCaptureBtn.Parent  := FPerfLimitSec;
+  FLimitCaptureBtn.Tag     := 2;
+  FLimitCaptureBtn.OnClick := @FForm.CaptureBtnClick;
+  FLimitCaptureBtn.Cursor  := crHandPoint;
+  FLimitCaptureBtn.Font.Color := TextColor;
+  if Trim(fpslimtoggleComboBox.Text) <> '' then
+    FLimitCaptureBtn.Caption := '⌨ ' + fpslimtoggleComboBox.Text
+  else
+    FLimitCaptureBtn.Caption := '⌨ Capture';
+
+  StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CARD_BG);
+
+  // ── Card 1 left: Frame Rate telemetry ───────────────────────────────────
   fpsCheckBox.Parent                := FPerfInfoSec;
-  frametimegraphCheckBox.Parent     := FPerfInfoSec;
+  fpsavgCheckBox.Parent             := FPerfInfoSec;
+  fpsavgBitBtn.Parent               := FPerfInfoSec;
+  showfpslimCheckBox.Parent         := FPerfInfoSec;
+  framecountCheckBox.Parent         := FPerfInfoSec;
+  vpsCheckBox.Parent                := FPerfInfoSec;
+
+  // ── Card 1 right: Frame Timing & plots ──────────────────────────────────
+  frametimegraphCheckBox.Parent     := FPerfFrametimeSec;
   if not Assigned(frametimedetailedCheckBox) then
   begin
     frametimedetailedCheckBox := TCheckBox.Create(FForm);
@@ -2765,27 +2787,28 @@ begin
     frametimedetailedCheckBox.Hint := 'Show detailed frame timing breakdown';
     frametimedetailedCheckBox.ShowHint := True;
   end;
-  frametimedetailedCheckBox.Parent  := FPerfInfoSec;
-  frametimegraphColorButton.Parent  := FPerfInfoSec;
-  frametimetypeBitBtn.Parent        := FPerfInfoSec;
-  fpsavgCheckBox.Parent             := FPerfInfoSec;
-  fpsavgBitBtn.Parent               := FPerfInfoSec;
-  framecountCheckBox.Parent         := FPerfInfoSec;
-  ftraceCheckBox.Parent             := FPerfInfoSec;
-  showfpslimCheckBox.Parent         := FPerfInfoSec;
-  vpsCheckBox.Parent                := FPerfInfoSec;
+  frametimedetailedCheckBox.Parent  := FPerfFrametimeSec;
+  frametimegraphColorButton.Parent  := FPerfFrametimeSec;
+  frametimetypeBitBtn.Parent        := FPerfFrametimeSec;
+  ftraceCheckBox.Parent             := FPerfFrametimeSec;
+
+  FframetimetypeLbl := TLabel.Create(FForm);
+  FframetimetypeLbl.Parent := FPerfFrametimeSec;
+  StyleLabel(FframetimetypeLbl, lrControlLabel);
+  FframetimetypeLbl.Caption := 'Plot style:';
+  FframetimetypeLbl.Visible := False;
 
   RefreshFormatPills;
 
-  // Create and link Performance Information toggles
+  // Create and link Performance toggles
   FfpsToggle               := PlacePerfToggle(fpsCheckBox, FPerfInfoSec);
-  FframetimegraphToggle    := PlacePerfToggle(frametimegraphCheckBox, FPerfInfoSec);
-  FframetimedetailedToggle := PlacePerfToggle(frametimedetailedCheckBox, FPerfInfoSec);
   FfpsavgToggle            := PlacePerfToggle(fpsavgCheckBox, FPerfInfoSec);
-  FframecountToggle        := PlacePerfToggle(framecountCheckBox, FPerfInfoSec);
-  FftraceToggle            := PlacePerfToggle(ftraceCheckBox, FPerfInfoSec);
   FshowfpslimToggle        := PlacePerfToggle(showfpslimCheckBox, FPerfInfoSec);
+  FframecountToggle        := PlacePerfToggle(framecountCheckBox, FPerfInfoSec);
   FvpsToggle               := PlacePerfToggle(vpsCheckBox, FPerfInfoSec);
+  FframetimegraphToggle    := PlacePerfToggle(frametimegraphCheckBox, FPerfFrametimeSec);
+  FframetimedetailedToggle := PlacePerfToggle(frametimedetailedCheckBox, FPerfFrametimeSec);
+  FftraceToggle            := PlacePerfToggle(ftraceCheckBox, FPerfFrametimeSec);
 
   // Free all Information grid controls from anchor chains — Reflow will center them
   frametimegraphColorButton.AnchorSideLeft.Control := nil; frametimegraphColorButton.AnchorSideTop.Control := nil; frametimegraphColorButton.AnchorSideRight.Control := nil; frametimegraphColorButton.AnchorSideBottom.Control := nil; frametimegraphColorButton.Anchors := [akLeft, akTop];
@@ -2845,69 +2868,94 @@ begin
   BuildFpsLimitEdit;
   FfpscolorToggle := PlacePerfToggle(fpscolorCheckBox, FPerfLimitSec);
 
-  // vkNemu divider and idle frame limiter controls
+  FFpsPresetLbl := TLabel.Create(FForm);
+  FFpsPresetLbl.Parent := FPerfLimitSec;
+  StyleLabel(FFpsPresetLbl, lrControlLabel);
+  FFpsPresetLbl.Caption := 'Presets:';
+  FFpsPresetLbl.Font.Size := 8;
+
+  // Quick FPS preset chips (60 / 120 / 144 / Off)
+  PresetCaptions[0] := '60';  PresetValues[0] := 60;
+  PresetCaptions[1] := '120'; PresetValues[1] := 120;
+  PresetCaptions[2] := '144'; PresetValues[2] := 144;
+  PresetCaptions[3] := 'Off'; PresetValues[3] := 0;
+  for i := 0 to 3 do
+  begin
+    FFpsPresetChips[i] := TBitBtn.Create(FForm);
+    FFpsPresetChips[i].Parent   := FPerfLimitSec;
+    FFpsPresetChips[i].Caption  := PresetCaptions[i];
+    FFpsPresetChips[i].Tag      := PresetValues[i];
+    FFpsPresetChips[i].OnClick  := @FForm.FpsPresetChipClick;
+    FFpsPresetChips[i].Cursor   := crHandPoint;
+    FFpsPresetChips[i].ShowHint := False;
+    FFpsPresetChips[i].Hint     := IntToStr(PresetValues[i]);
+    FFpsPresetChips[i].Font.Size := 8;
+    StyleBitBtnTheme(FFpsPresetChips[i], TextColor, CARD_BG);
+  end;
+
+  // vkNemu is now a dedicated sub-card with full breathing room
   FVkNemuDivider := TPanel.Create(FForm);
-  FVkNemuDivider.Parent := FPerfLimitSec;
+  FVkNemuDivider.Parent := FVkNemuSec;
   FVkNemuDivider.BevelOuter := bvNone;
   FVkNemuDivider.Caption := '';
   FVkNemuDivider.Color := IfThen(CurrentTheme = tmLight, $00D0D5E0, $003C3026);
   FVkNemuDivider.Height := 1;
-  FVkNemuDivider.Visible := True;
+  FVkNemuDivider.Visible := False;
 
   FVkNemuSectionLbl := TLabel.Create(FForm);
-  FVkNemuSectionLbl.Parent := FPerfLimitSec;
+  FVkNemuSectionLbl.Parent := FVkNemuSec;
   StyleLabel(FVkNemuSectionLbl, lrSectionTitle);
   FVkNemuSectionLbl.Caption := '🌙 Idle Limiter (vkNemu)';
   FVkNemuSectionLbl.AutoSize := False;
 
   FVkNemuFlowCard := TPanel.Create(FForm);
-  FVkNemuFlowCard.Parent := FPerfLimitSec;
+  FVkNemuFlowCard.Parent := FVkNemuSec;
   FVkNemuFlowCard.BevelOuter := bvNone;
   FVkNemuFlowCard.OnPaint := @VkNemuFlowCardPaint;
   FVkNemuFlowCard.ParentColor := False;
   FVkNemuFlowCard.DoubleBuffered := True;
 
   FVkNemuCheckBox := TCheckBox.Create(FForm);
-  FVkNemuCheckBox.Parent := FPerfLimitSec;
+  FVkNemuCheckBox.Parent := FVkNemuSec;
   FVkNemuCheckBox.Caption := '';
   FVkNemuCheckBox.Visible := False;
-  FVkNemuToggle := PlacePerfToggle(FVkNemuCheckBox, FPerfLimitSec);
+  FVkNemuToggle := PlacePerfToggle(FVkNemuCheckBox, FVkNemuSec);
   FVkNemuToggle.OnClick := @FForm.VkNemuToggleChange;
 
   FVkNemuIdleFpsLbl := TLabel.Create(FForm);
-  FVkNemuIdleFpsLbl.Parent := FPerfLimitSec;
+  FVkNemuIdleFpsLbl.Parent := FVkNemuSec;
   StyleLabel(FVkNemuIdleFpsLbl, lrControlLabel);
   FVkNemuIdleFpsLbl.Caption := 'Idle FPS';
   FVkNemuIdleFpsLbl.AutoSize := False;
 
   FVkNemuIdleFpsSpin := TSpinEdit.Create(FForm);
-  FVkNemuIdleFpsSpin.Parent := FPerfLimitSec;
+  FVkNemuIdleFpsSpin.Parent := FVkNemuSec;
   FVkNemuIdleFpsSpin.MinValue := 10;
   FVkNemuIdleFpsSpin.MaxValue := 360;
   FVkNemuIdleFpsSpin.Value := 30;
   FVkNemuIdleFpsSpin.OnChange := @FForm.VkNemuControlChange;
 
   FVkNemuTimeoutLbl := TLabel.Create(FForm);
-  FVkNemuTimeoutLbl.Parent := FPerfLimitSec;
+  FVkNemuTimeoutLbl.Parent := FVkNemuSec;
   StyleLabel(FVkNemuTimeoutLbl, lrControlLabel);
   FVkNemuTimeoutLbl.Caption := 'Timeout (seconds)';
   FVkNemuTimeoutLbl.AutoSize := False;
 
   FVkNemuTimeoutSpin := TSpinEdit.Create(FForm);
-  FVkNemuTimeoutSpin.Parent := FPerfLimitSec;
+  FVkNemuTimeoutSpin.Parent := FVkNemuSec;
   FVkNemuTimeoutSpin.MinValue := 1;
   FVkNemuTimeoutSpin.MaxValue := 60;
   FVkNemuTimeoutSpin.Value := 2;
   FVkNemuTimeoutSpin.OnChange := @FForm.VkNemuControlChange;
 
   FVkNemuInputLbl := TLabel.Create(FForm);
-  FVkNemuInputLbl.Parent := FPerfLimitSec;
+  FVkNemuInputLbl.Parent := FVkNemuSec;
   StyleLabel(FVkNemuInputLbl, lrControlLabel);
   FVkNemuInputLbl.Caption := 'Wake Input Trigger';
   FVkNemuInputLbl.AutoSize := False;
 
   FVkNemuInputCombo := TComboBox.Create(FForm);
-  FVkNemuInputCombo.Parent := FPerfLimitSec;
+  FVkNemuInputCombo.Parent := FVkNemuSec;
   FVkNemuInputCombo.Style := csDropDownList;
   FVkNemuInputCombo.Constraints.MinHeight := 28;
   FVkNemuInputCombo.Items.Add('all');
@@ -2918,20 +2966,20 @@ begin
   FVkNemuInputCombo.OnChange := @FForm.VkNemuControlChange;
 
   FVkNemuUnfocusedCheckBox := TCheckBox.Create(FForm);
-  FVkNemuUnfocusedCheckBox.Parent := FPerfLimitSec;
+  FVkNemuUnfocusedCheckBox.Parent := FVkNemuSec;
   FVkNemuUnfocusedCheckBox.Caption := 'Cap on window unfocus (Alt+Tab)';
   FVkNemuUnfocusedCheckBox.Visible := False;
-  FVkNemuUnfocusedToggle := PlacePerfToggle(FVkNemuUnfocusedCheckBox, FPerfLimitSec);
+  FVkNemuUnfocusedToggle := PlacePerfToggle(FVkNemuUnfocusedCheckBox, FVkNemuSec);
   FVkNemuUnfocusedToggle.OnClick := @FForm.VkNemuControlChange;
 
   FVkNemuDelayLbl := TLabel.Create(FForm);
-  FVkNemuDelayLbl.Parent := FPerfLimitSec;
+  FVkNemuDelayLbl.Parent := FVkNemuSec;
   StyleLabel(FVkNemuDelayLbl, lrControlLabel);
   FVkNemuDelayLbl.Caption := 'Resume Delay (seconds)';
   FVkNemuDelayLbl.AutoSize := False;
 
   FVkNemuDelaySpin := TSpinEdit.Create(FForm);
-  FVkNemuDelaySpin.Parent := FPerfLimitSec;
+  FVkNemuDelaySpin.Parent := FVkNemuSec;
   FVkNemuDelaySpin.MinValue := 0;
   FVkNemuDelaySpin.MaxValue := 60;
   FVkNemuDelaySpin.Value := 0;
@@ -2941,65 +2989,86 @@ begin
   end;
 end;
 
+procedure TMangoHudUiHelper.PerfScrollBoxResize(Sender: TObject);
+begin
+  if Assigned(FForm.FPerfScrollBox) then
+    ReflowPerformanceTab(FForm.FPerfScrollBox.ClientWidth, FForm.FPerfScrollBox.ClientHeight);
+end;
+
 procedure TMangoHudUiHelper.ReflowPerformanceTab(AContentW, AContentH: Integer);
 const
   MARGIN     = 4;
-  GAP        = 5;   // gap between cards
-  ROW1_TOP   = 0;
-  ROW1_H     = 180;  // Information card — fixed height
-  BASE_ROW2_H = 389;
-  ROW2_TOP   = ROW1_TOP + ROW1_H + GAP;  // = 185
-  TABBAR_H   = 35;   // TPageControl tab bar header
+  GAP        = 8;
   GB_OFF     = 24;
   IMARGIN    = 6;
   IGAP       = 8;
+  CARD0_H    = 190;
+  CARD1_H    = 190;
+  CARD2_H    = 250;
 var
-  CardW, SecW, ContW, ContH, i: Integer;
-  LeftM, Col1W, Col2W, Col3W, InnerGap: Integer;
-  Col1Left, Col2Left, Col3Left: Integer;
-  ColorGroupW, ColorGap, ColorStart, ColW, SpinW: Integer;
-  GroupH, MiddleStart, MiddleEnd, GroupTop: Integer;
-  ComboW, BtnW, MiddleGap, TotalRowW, RowStart: Integer;
+  CardW, SecW, ContW, ContH, i, TotalH: Integer;
+  Col1X, Col2X, Col1Left, Col2Left, ColGap: Integer;
+  ColorGroupW, ColorStart, ColW: Integer;
+  TotalRowW, RowStart, ChipW, ChipH, ChipGap: Integer;
+  PresetW, PresetStart, PillW: Integer;
   LimitW, MethodW, ToggleW, RowGap: Integer;
   Row1LblTop, Row1CtrlTop, Row1CtrlH: Integer;
-  ColorTop, ColorH, SpinH, SpinTop, Div1, Div2: Integer;
-  VkColW, VkCol1, VkCol2, VkCol3, VkSpinW, VkComboW: Integer;
-  TabH, ActiveRow2H, FilterSecH: Integer;
-  FilterContentW, FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
-  TotalLeftH, MangoH, NemuTop, NemuH, GapCards, ColGap, ControlH: Integer;
-  LabelW, CtrlW: Integer;
+  FilterSecH: Integer;
+  FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
+  ControlH, LabelW, CtrlW: Integer;
 begin
   with FForm do
   begin
-  CardW := AContentW - MARGIN * 2;
+  if Assigned(FPerfScrollBox) and (FPerfScrollBox.ClientWidth > 100) then
+    AContentW := FPerfScrollBox.ClientWidth;
+  CardW := AContentW - 2 * MARGIN;
+  if CardW < 100 then Exit;
 
-  TabH        := Max(606, AContentH - TABBAR_H);
-  ActiveRow2H := Max(BASE_ROW2_H, TabH - ROW1_H - GAP - 2 * MARGIN);
+  if Assigned(FPerfScrollBox) then
+    FPerfScrollBox.HorzScrollBar.Range := 0;
+
+  TotalH := MARGIN + CARD0_H + GAP + CARD1_H + GAP + CARD2_H + MARGIN + 100;
+  if AContentH > TotalH then
+    TotalH := AContentH;
+  if Assigned(FPerfBgPanel) then
+    FPerfBgPanel.SetBounds(0, 0, CardW + MARGIN * 2, TotalH);
+  if Assigned(FPerfScrollBox) then
+  begin
+    FPerfScrollBox.VertScrollBar.Range   := TotalH;
+    FPerfScrollBox.VertScrollBar.Visible := True;
+  end;
 
   if Assigned(FPerfCards[0]) then
   begin
-    FPerfCards[0].SetBounds(MARGIN, ROW1_TOP, CardW, ROW1_H);
-    FPerfCards[1].SetBounds(MARGIN, ROW2_TOP, CardW, ActiveRow2H);
+    FPerfCards[0].SetBounds(MARGIN, MARGIN, CardW, CARD0_H);
+    FPerfCards[1].SetBounds(MARGIN, MARGIN + CARD0_H + GAP, CardW, CARD1_H);
+    FPerfCards[2].SetBounds(MARGIN, MARGIN + CARD0_H + GAP + CARD1_H + GAP, CardW, CARD2_H);
 
     SecW := (CardW - 2 * IMARGIN - IGAP) div 2;
 
-    // Position sub-section panels
-    if Assigned(FPerfInfoSec) then
-      FPerfInfoSec.SetBounds(IMARGIN, GB_OFF, SecW, ROW1_H - GB_OFF - IMARGIN);
-    if Assigned(FPerfVsyncSec) then
-      FPerfVsyncSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, ROW1_H - GB_OFF - IMARGIN);
-
+    // Position sub-section panels for the three cards
     if Assigned(FPerfLimitSec) then
-      FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, ActiveRow2H - GB_OFF - IMARGIN);
+      FPerfLimitSec.SetBounds(IMARGIN, GB_OFF, SecW, CARD0_H - GB_OFF - IMARGIN);
+    if Assigned(FPerfVsyncSec) then
+      FPerfVsyncSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, CARD0_H - GB_OFF - IMARGIN);
+
+    if Assigned(FPerfInfoSec) then
+      FPerfInfoSec.SetBounds(IMARGIN, GB_OFF, SecW, CARD1_H - GB_OFF - IMARGIN);
+    if Assigned(FPerfFrametimeSec) then
+      FPerfFrametimeSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, CARD1_H - GB_OFF - IMARGIN);
+
+    if Assigned(FVkNemuSec) then
+      FVkNemuSec.SetBounds(IMARGIN, GB_OFF, SecW, CARD2_H - GB_OFF - IMARGIN);
 
     // Reposition Filter controls within FPerfFiltersSec
     if Assigned(FPerfFiltersSec) then
     begin
-      FilterSecH := ActiveRow2H - GB_OFF - IMARGIN;
+      FilterSecH := CARD2_H - GB_OFF - IMARGIN;
       FPerfFiltersSec.SetBounds(IMARGIN + SecW + IGAP, GB_OFF, SecW, FilterSecH);
 
       filterRadioGroup.Left   := (FPerfFiltersSec.ClientWidth - filterRadioGroup.Width) div 2;
-      filterRadioGroup.Top    := 20;
+      filterRadioGroup.Top    := 10;
+      filterRadioGroup.Height := 36;
 
       FilterValW   := 35;
       FilterGapW   := 8;
@@ -3010,28 +3079,28 @@ begin
       if FilterTrackW < 80 then FilterTrackW := 80;
 
       afLabel.Left          := FilterLeft;
-      afLabel.Top           := 130;
+      afLabel.Top           := 50;
       afTrackBar.Left       := FilterLeft;
-      afTrackBar.Top        := 150;
+      afTrackBar.Top        := 68;
       afTrackBar.Width      := FilterTrackW;
       afTrackBar.Height     := 24;
 
       afvalueLabel.Left     := afTrackBar.Left + afTrackBar.Width + FilterGapW;
-      afvalueLabel.Top      := afTrackBar.Top + (afTrackBar.Height - afvalueLabel.Height) div 2;
+      afvalueLabel.Top      := 68;
 
       mipmapLabel.Left      := FilterLeft;
-      mipmapLabel.Top       := 190;
+      mipmapLabel.Top       := 98;
       mipmapTrackBar.Left   := FilterLeft;
-      mipmapTrackBar.Top    := 210;
+      mipmapTrackBar.Top    := 116;
       mipmapTrackBar.Width  := FilterTrackW;
       mipmapTrackBar.Height := 24;
 
       mipmapvalueLabel.Left := mipmapTrackBar.Left + mipmapTrackBar.Width + FilterGapW;
-      mipmapvalueLabel.Top  := mipmapTrackBar.Top + (mipmapTrackBar.Height - mipmapvalueLabel.Height) div 2;
+      mipmapvalueLabel.Top  := 116;
     end;
 
     // Position section title labels
-    for i := 0 to 1 do
+    for i := 0 to 2 do
     begin
       if Assigned(FPerfLeftLbl[i]) then
         FPerfLeftLbl[i].Left := IMARGIN + 12;
@@ -3039,62 +3108,50 @@ begin
         FPerfRightLbl[i].Left := IMARGIN + SecW + IGAP + 12;
     end;
 
-    // Center Information grid columns within FPerfInfoSec dynamically
+    // Frame Rate section — single full-width rows
     if Assigned(FPerfInfoSec) then
     begin
-      LeftM := 16;
-      Col1W := 100;
-      Col2W := 115;
-      Col3W := 105;
-      InnerGap := (FPerfInfoSec.ClientWidth - 2 * LeftM - (Col1W + Col2W + Col3W)) div 2;
-      if InnerGap < 8 then InnerGap := 8;
+      Col1X := 16;
 
-      Col1Left := LeftM;
-      Col2Left := Col1Left + Col1W + InnerGap;
-      Col3Left := Col2Left + Col2W + InnerGap;
+      if Assigned(FfpsToggle) then begin FfpsToggle.Left := Col1X; FfpsToggle.Top := 10; end;
 
-      // Column 1: Show FPS (Row 1), Frame Time (Row 2), Color (Row 2.5), Curve/Hist (Row 3, centered below Frame Time)
-      fpsCheckBox.Left                := Col1Left;
-      fpsCheckBox.Top                 := 6;
-      frametimegraphCheckBox.Left     := Col1Left;
-      frametimegraphCheckBox.Top      := 56;
-      if Assigned(FfpsToggle) then begin FfpsToggle.Left := Col1Left; FfpsToggle.Top := 6; end;
-      if Assigned(FframetimegraphToggle) then begin FframetimegraphToggle.Left := Col1Left; FframetimegraphToggle.Top := 56; end;
-      frametimegraphColorButton.Left  := Col1Left + (Col1W - frametimegraphColorButton.Width) div 2;
-      frametimegraphColorButton.Top   := 78;
-      frametimetypeBitBtn.Left        := Col1Left + (Col1W - frametimetypeBitBtn.Width) div 2;
-      frametimetypeBitBtn.Top         := 94;
+      if Assigned(FfpsavgToggle) then begin FfpsavgToggle.Left := Col1X; FfpsavgToggle.Top := 40; end;
+      PillW := Max(128, fpsavgBitBtn.Width);
+      fpsavgBitBtn.SetBounds(FPerfInfoSec.ClientWidth - PillW - 16, 38, PillW, 24);
 
-      // Column 2: FPS Average (Row 1), 1% low button (Row 1.5), Frame Time + (Row 2, right of Frame Time), ftrace debug (Row 3)
-      fpsavgCheckBox.Left             := Col2Left;
-      fpsavgCheckBox.Top              := 6;
-      fpsavgBitBtn.Left               := Col2Left;
-      fpsavgBitBtn.Top                := 28;
-      if Assigned(frametimedetailedCheckBox) then
+      if Assigned(FshowfpslimToggle) then begin FshowfpslimToggle.Left := Col1X; FshowfpslimToggle.Top := 70; end;
+
+      if Assigned(FframecountToggle) then begin FframecountToggle.Left := Col1X; FframecountToggle.Top := 100; end;
+
+      if Assigned(FvpsToggle) then begin FvpsToggle.Left := Col1X; FvpsToggle.Top := 130; end;
+    end;
+
+    // Frame Timing section — single full-width rows
+    if Assigned(FPerfFrametimeSec) then
+    begin
+      Col1X := 16;
+
+      if Assigned(FframetimegraphToggle) then
       begin
-        frametimedetailedCheckBox.Left := Col2Left;
-        frametimedetailedCheckBox.Top  := 56;
+        FframetimegraphToggle.Left  := 16;
+        FframetimegraphToggle.Top   := 10;
+        FframetimegraphToggle.Width := FframetimegraphToggle.GetOptimalWidth;
       end;
-      ftraceCheckBox.Left             := Col2Left;
-      ftraceCheckBox.Top              := 94;
-      if Assigned(FfpsavgToggle) then begin FfpsavgToggle.Left := Col2Left; FfpsavgToggle.Top := 6; end;
+      frametimegraphColorButton.SetBounds(FframetimegraphToggle.Left + FframetimegraphToggle.Width + 10, 9, 22, 22);
+      frametimegraphColorButton.ButtonColorSize := 22;
+
+      PillW := Max(128, frametimetypeBitBtn.Width);
+      frametimetypeBitBtn.SetBounds(FPerfFrametimeSec.ClientWidth - PillW - 16, 8, PillW, 24);
+
       if Assigned(FframetimedetailedToggle) then
       begin
-        FframetimedetailedToggle.Left := Col2Left;
-        FframetimedetailedToggle.Top  := 56;
+        FframetimedetailedToggle.Left := 16;
+        FframetimedetailedToggle.Top  := 40;
       end;
-      if Assigned(FftraceToggle) then begin FftraceToggle.Left := Col2Left; FftraceToggle.Top := 94; end;
 
-      // Column 3: FPS limit (Row 1), VPS (Row 2), Count Frames (Row 3, vertically aligned with ftrace debug)
-      showfpslimCheckBox.Left         := Col3Left;
-      showfpslimCheckBox.Top          := 6;
-      vpsCheckBox.Left                := Col3Left;
-      vpsCheckBox.Top                 := 56;
-      framecountCheckBox.Left         := Col3Left;
-      framecountCheckBox.Top          := 94;
-      if Assigned(FshowfpslimToggle) then begin FshowfpslimToggle.Left := Col3Left; FshowfpslimToggle.Top := 6; end;
-      if Assigned(FvpsToggle) then begin FvpsToggle.Left := Col3Left; FvpsToggle.Top := 56; end;
-      if Assigned(FframecountToggle) then begin FframecountToggle.Left := Col3Left; FframecountToggle.Top := 94; end;
+      if Assigned(FftraceToggle) then begin FftraceToggle.Left := 16; FftraceToggle.Top := 70; end;
+
+      if Assigned(FframetimetypeLbl) then FframetimetypeLbl.Visible := False;
     end;
 
     // Center logo+combo block within each VSYNC row
@@ -3103,14 +3160,20 @@ begin
       if Assigned(FVsyncRows[0]) then
       begin
         FVsyncRows[0].Top    := 20;
+        FVsyncRows[0].Height := 48;
         FVsyncRows[0].Width  := FPerfVsyncSec.ClientWidth - 16;
+        vulkanImage.Top      := (FVsyncRows[0].Height - vulkanImage.Height) div 2;
+        vsyncComboBox.Top    := (FVsyncRows[0].Height - vsyncComboBox.Height) div 2;
         vulkanImage.Left     := (FVsyncRows[0].Width - (vulkanImage.Width + 8 + vsyncComboBox.Width)) div 2;
         vsyncComboBox.Left   := vulkanImage.Left + vulkanImage.Width + 8;
       end;
       if Assigned(FVsyncRows[1]) then
       begin
-        FVsyncRows[1].Top    := 84;
+        FVsyncRows[1].Top    := 80;
+        FVsyncRows[1].Height := 48;
         FVsyncRows[1].Width  := FPerfVsyncSec.ClientWidth - 16;
+        openglImage.Top      := (FVsyncRows[1].Height - openglImage.Height) div 2;
+        glvsyncComboBox.Top  := (FVsyncRows[1].Height - glvsyncComboBox.Height) div 2;
         openglImage.Left     := (FVsyncRows[1].Width - (openglImage.Width + 8 + glvsyncComboBox.Width)) div 2;
         glvsyncComboBox.Left := openglImage.Left + openglImage.Width + 8;
       end;
@@ -3119,6 +3182,21 @@ begin
     // Reposition controls in the MangoHud Limit sub-card
     if Assigned(FPerfLimitSec) then
     begin
+      // Quick preset chips (60 / 120 / 144 / Off) pinned to the section header top-right
+      ChipW   := 36;
+      ChipH   := 20;
+      ChipGap := 4;
+      PresetW := 4 * ChipW + 3 * ChipGap;
+      PresetStart := FPerfLimitSec.ClientWidth - 16 - PresetW;
+      if Assigned(FFpsPresetLbl) then
+      begin
+        FFpsPresetLbl.SetBounds(PresetStart - 52, 10, 48, 16);
+        FFpsPresetLbl.Alignment := taRightJustify;
+      end;
+      for i := 0 to 3 do
+        if Assigned(FFpsPresetChips[i]) then
+          FFpsPresetChips[i].SetBounds(PresetStart + i * (ChipW + ChipGap), 8, ChipW, ChipH);
+
       // Group 1: FPS Limit | Method | Toggle Key in a single row
       LimitW  := 105;
       MethodW := 95;
@@ -3126,14 +3204,15 @@ begin
       RowGap  := 10;
       TotalRowW := LimitW + RowGap + MethodW + RowGap + ToggleW;
       RowStart  := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
-      Row1LblTop  := 16;
-      Row1CtrlTop := 36;
-      Row1CtrlH   := 28;
+      Row1LblTop  := 32;
+      Row1CtrlTop := 48;
+      Row1CtrlH   := 26;
 
       if Assigned(FFpsLimitTitleLbl) then
       begin
-        FFpsLimitTitleLbl.SetBounds(RowStart, Row1LblTop, LimitW, 16);
-        FFpsLimitTitleLbl.Alignment := taCenter;
+        FFpsLimitTitleLbl.Caption := '⚡ FPS Limit:';
+        FFpsLimitTitleLbl.SetBounds(16, 10, PresetStart - 70, 16);
+        FFpsLimitTitleLbl.Alignment := taLeftJustify;
       end;
       if Assigned(FFpsLimitEdit) then
         FFpsLimitEdit.SetBounds(RowStart, Row1CtrlTop, LimitW, Row1CtrlH);
@@ -3150,7 +3229,7 @@ begin
       // Subtitle hint
       if Assigned(FFpsLimitHintLbl) then
       begin
-        FFpsLimitHintLbl.SetBounds(0, 72, FPerfLimitSec.ClientWidth, 16);
+        FFpsLimitHintLbl.SetBounds(0, 80, FPerfLimitSec.ClientWidth, 16);
         FFpsLimitHintLbl.Alignment := taCenter;
       end;
 
@@ -3158,103 +3237,100 @@ begin
       if Assigned(FfpscolorToggle) then
       begin
         FfpscolorToggle.Left := (FPerfLimitSec.ClientWidth - FfpscolorToggle.Width) div 2;
-        FfpscolorToggle.Top := 108;
+        FfpscolorToggle.Top := 104;
       end;
 
-      ColorGroupW := 255;
-      ColW := ColorGroupW div 3;
-      ColorGroupW := ColW * 3;
+      ColorGroupW := 250;
       ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
-      ColorTop := 146;
-      ColorH := 20;
+      if ColorStart < 12 then ColorStart := 12;
 
-      fpscolor1ColorButton.SetBounds(ColorStart, ColorTop, ColW, ColorH);
-      fpscolor2ColorButton.SetBounds(ColorStart + ColW, ColorTop, ColW, ColorH);
-      fpscolor3ColorButton.SetBounds(ColorStart + 2 * ColW, ColorTop, ColW, ColorH);
-      fpscolor1ColorButton.ButtonColorSize := ColW;
-      fpscolor2ColorButton.ButtonColorSize := ColW;
-      fpscolor3ColorButton.ButtonColorSize := ColW;
+      fpscolor1ColorButton.SetBounds(ColorStart, 130, 34, 22);
+      fpscolor2ColorButton.SetBounds(ColorStart + 48, 130, 34, 22);
+      fpscolor2SpinEdit.SetBounds(ColorStart + 90, 128, 52, 24);
+      fpscolor3ColorButton.SetBounds(ColorStart + 154, 130, 34, 22);
+      fpscolor3SpinEdit.SetBounds(ColorStart + 196, 128, 52, 24);
+      fpscolor1ColorButton.ButtonColorSize := 34;
+      fpscolor2ColorButton.ButtonColorSize := 34;
+      fpscolor3ColorButton.ButtonColorSize := 34;
+    end;
 
-      SpinW := 65;
-      SpinH := 28;
-      SpinTop := ColorTop + ColorH + 8;
-      Div1 := ColorStart + ColW;
-      Div2 := ColorStart + 2 * ColW;
-      fpscolor2SpinEdit.SetBounds(Div1 - (SpinW div 2), SpinTop, SpinW, SpinH);
-      fpscolor3SpinEdit.SetBounds(Div2 - (SpinW div 2), SpinTop, SpinW, SpinH);
-      // Reposition vkNemu Idle Limiter controls in lower half of FPerfLimitSec
+    // Idle Limiter (vkNemu) section
+    if Assigned(FVkNemuSec) then
+    begin
       if Assigned(FVkNemuDivider) then
+        FVkNemuDivider.Visible := False;
+      if Assigned(FVkNemuSectionLbl) then
       begin
-        FVkNemuDivider.SetBounds(14, 226, FPerfLimitSec.ClientWidth - 28, 1);
-        FVkNemuDivider.Visible := True;
+        FVkNemuSectionLbl.Visible := True;
+        FVkNemuSectionLbl.SetBounds(14, 8, FVkNemuSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
       end;
 
-      if Assigned(FVkNemuSectionLbl) then
-        FVkNemuSectionLbl.SetBounds(14, 244, FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 28, 18);
       if Assigned(FVkNemuToggle) then
       begin
-        FVkNemuToggle.Left := FPerfLimitSec.ClientWidth - FVkNemuToggle.Width - 14;
-        FVkNemuToggle.Top := 240;
+        FVkNemuToggle.Left := FVkNemuSec.ClientWidth - FVkNemuToggle.Width - 14;
+        FVkNemuToggle.Top  := 6;
       end;
 
       if Assigned(FVkNemuFlowCard) then
-        FVkNemuFlowCard.SetBounds(14, 272, FPerfLimitSec.ClientWidth - 28, 54);
+        FVkNemuFlowCard.SetBounds(14, 28, FVkNemuSec.ClientWidth - 28, 44);
 
-      ColGap := 16;
-      ColW := (FPerfLimitSec.ClientWidth - 28 - ColGap) div 2;
-      if ColW < 90 then ColW := 90;
+      ColW := (FVkNemuSec.ClientWidth - 28 - 14) div 2;
       Col1Left := 14;
-      Col2Left := Col1Left + ColW + ColGap;
-
-      ControlH := 28;
-      if Assigned(FVkNemuDelaySpin) and (FVkNemuDelaySpin.Height > ControlH) then
-        ControlH := FVkNemuDelaySpin.Height;
-
-      LabelW := 68;
-      CtrlW := 85;
+      Col2Left := 14 + ColW + 14;
 
       // Row 1: Idle FPS | Timeout
       if Assigned(FVkNemuIdleFpsLbl) then
       begin
         FVkNemuIdleFpsLbl.Caption := 'Idle FPS:';
-        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 346, LabelW, 20);
+        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 80, ColW, 16);
       end;
       if Assigned(FVkNemuIdleFpsSpin) then
-        FVkNemuIdleFpsSpin.SetBounds(Col1Left + LabelW, 340, CtrlW, 30);
+      begin
+        FVkNemuIdleFpsSpin.Constraints.MaxHeight := 26;
+        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 98, ColW, 24);
+      end;
 
       if Assigned(FVkNemuTimeoutLbl) then
       begin
-        FVkNemuTimeoutLbl.Caption := 'Timeout:';
-        FVkNemuTimeoutLbl.SetBounds(Col2Left, 346, LabelW, 20);
+        FVkNemuTimeoutLbl.Caption := 'Timeout (sec):';
+        FVkNemuTimeoutLbl.SetBounds(Col2Left, 80, ColW, 16);
       end;
       if Assigned(FVkNemuTimeoutSpin) then
-        FVkNemuTimeoutSpin.SetBounds(Col2Left + LabelW, 340, CtrlW, 30);
+      begin
+        FVkNemuTimeoutSpin.Constraints.MaxHeight := 26;
+        FVkNemuTimeoutSpin.SetBounds(Col2Left, 98, ColW, 24);
+      end;
 
       // Row 2: Wake | Delay
       if Assigned(FVkNemuInputLbl) then
       begin
         FVkNemuInputLbl.Caption := 'Wake:';
-        FVkNemuInputLbl.SetBounds(Col1Left, 388, LabelW, 20);
+        FVkNemuInputLbl.SetBounds(Col1Left, 128, ColW, 16);
       end;
       if Assigned(FVkNemuInputCombo) then
       begin
-        FVkNemuInputCombo.Constraints.MinHeight := ControlH;
-        FVkNemuInputCombo.SetBounds(Col1Left + LabelW, 382, CtrlW, 30);
+        FVkNemuInputCombo.Constraints.MinHeight := 26;
+        FVkNemuInputCombo.Constraints.MaxHeight := 26;
+        FVkNemuInputCombo.SetBounds(Col1Left, 146, ColW, 24);
       end;
 
       if Assigned(FVkNemuDelayLbl) then
       begin
-        FVkNemuDelayLbl.Caption := 'Delay:';
-        FVkNemuDelayLbl.SetBounds(Col2Left, 388, LabelW, 20);
+        FVkNemuDelayLbl.Caption := 'Delay (sec):';
+        FVkNemuDelayLbl.SetBounds(Col2Left, 128, ColW, 16);
       end;
       if Assigned(FVkNemuDelaySpin) then
-        FVkNemuDelaySpin.SetBounds(Col2Left + LabelW, 382, CtrlW, 30);
+      begin
+        FVkNemuDelaySpin.Constraints.MaxHeight := 26;
+        FVkNemuDelaySpin.SetBounds(Col2Left, 146, ColW, 24);
+      end;
 
       // Row 3: Cap on window unfocus
       if Assigned(FVkNemuUnfocusedToggle) then
       begin
-        FVkNemuUnfocusedToggle.Left := Col1Left;
-        FVkNemuUnfocusedToggle.Top := 432;
+        FVkNemuUnfocusedToggle.Left   := 14;
+        FVkNemuUnfocusedToggle.Top    := 182;
+        FVkNemuUnfocusedToggle.Width  := FVkNemuUnfocusedToggle.GetOptimalWidth;
       end;
     end;
   end;
@@ -3313,7 +3389,7 @@ begin
     TextColor := DarkTextColor;
   end;
 
-  for i := 0 to 1 do
+  for i := 0 to 2 do
   begin
     Card := FPerfCards[i];
     if not Assigned(Card) then Continue;
@@ -3421,6 +3497,15 @@ begin
   RefreshFormatPills;
   if Assigned(FLimitCaptureBtn) then
     StyleBitBtnTheme(FLimitCaptureBtn, TextColor, CardBg);
+
+  for i := 0 to 3 do
+    if Assigned(FFpsPresetChips[i]) then
+      StyleBitBtnTheme(FFpsPresetChips[i], TextColor, CardBg);
+
+  if Assigned(FPerfScrollBox) then
+    FPerfScrollBox.Color := IfThen(CurrentTheme = tmLight, RGBToColor(240, 243, 248), RGBToColor(22, 26, 40));
+  if Assigned(FPerfBgPanel) then
+    FPerfBgPanel.Color := IfThen(CurrentTheme = tmLight, RGBToColor(240, 243, 248), RGBToColor(22, 26, 40));
   end;
 end;
 

@@ -898,8 +898,8 @@ type
     // Moved to public:
     {     // Performance tab code-generated cards
     FPerfCards:   array[0..3] of TPanel;
-    FPerfLeftLbl: array[0..1] of TLabel;  // left-section title labels
-    FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
+    FPerfLeftLbl: array[0..2] of TLabel;  // left-section title labels
+    FPerfRightLbl:array[0..2] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
     FPerfInfoSec: TPanel;
     FPerfVsyncSec: TPanel;
@@ -1274,15 +1274,19 @@ type
     FExtLogToolsSec:   TPanel;
     FExtTempPillBtn:   TBitBtn;
     // Performance tab code-generated cards
+    FPerfScrollBox: TScrollBox;
+    FPerfBgPanel:   TPanel;
     FPerfCards:   array[0..3] of TPanel;
-    FPerfLeftLbl: array[0..1] of TLabel;  // left-section title labels
-    FPerfRightLbl:array[0..1] of TLabel;  // right-section title labels
+    FPerfLeftLbl: array[0..2] of TLabel;  // left-section title labels
+    FPerfRightLbl:array[0..2] of TLabel;  // right-section title labels
     FVsyncRows:   array[0..1] of TPanel;  // Vulkan/OpenGL row chips
     FPerfInfoSec: TPanel;
     FPerfVsyncSec: TPanel;
     FPerfLimitSec: TPanel;
+    FPerfFrametimeSec: TPanel;
     FVkNemuSec: TPanel;
     FPerfFiltersSec: TPanel;
+    FFpsPresetChips: array[0..3] of TBitBtn;
     // FPS Limit custom input (replaces chip grid)
     FFpsLimitEdit:   TEdit;              // comma-separated FPS values
     FFpsLimitTitleLbl: TLabel;
@@ -1580,6 +1584,7 @@ type
     procedure ReflowPresetTab(AContentW: Integer);
     procedure ReflowVisualTab(AContentW, AContentH: Integer);
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
+    procedure FpsPresetChipClick(Sender: TObject);
     procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure ReflowLosslessScalingTab(AContentW: Integer);
@@ -9845,6 +9850,38 @@ end;
 procedure Tgoverlayform.ReflowPerformanceTab(AContentW, AContentH: Integer);
 begin
   TMangoHudUiHelper(FMangoHelper).ReflowPerformanceTab(AContentW, AContentH);
+end;
+
+procedure Tgoverlayform.FpsPresetChipClick(Sender: TObject);
+var
+  ValStr, CurText: string;
+  Items: TStringList;
+  i: Integer;
+begin
+  if not (Sender is TControl) then Exit;
+  ValStr := TControl(Sender).Hint;
+  if ValStr = '0' then
+  begin
+    FFpsLimitEdit.Text := '0';
+    Exit;
+  end;
+  CurText := Trim(FFpsLimitEdit.Text);
+  if (CurText = '') or (CurText = '0') then
+  begin
+    FFpsLimitEdit.Text := ValStr;
+    Exit;
+  end;
+  Items := TStringList.Create;
+  try
+    Items.Delimiter := ',';
+    Items.StrictDelimiter := False;
+    Items.DelimitedText := CurText;
+    for i := 0 to Items.Count - 1 do
+      if Trim(Items[i]) = ValStr then Exit;
+    FFpsLimitEdit.Text := CurText + ', ' + ValStr;
+  finally
+    Items.Free;
+  end;
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);

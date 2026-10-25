@@ -6,15 +6,19 @@ Defines the presentation, layout geometry, and responsive organization of the Ma
 ## Requirements
 
 ### Requirement: Horizontal MangoHud FPS Limiter Layout
-The system SHALL present the MangoHud FPS limit input, method selector, and limit toggle key button horizontally aligned within the top row of the Limiters card section.
+The system SHALL present the MangoHud FPS limit controls in the primary Rate Control sub-card at the top of the Performance tab, featuring quick-preset chips (such as 60, 120, 144, and Off) above or alongside the freeform comma-separated input field, paired with the method selector and limit toggle key button.
 
 #### Scenario: Displaying FPS limit controls in a unified row
 - **WHEN** the user navigates to the Performance tab in Goverlay
-- **THEN** the FPS limit title and input field, method selector, and toggle key button SHALL be rendered side-by-side in a horizontal row, with an explanatory hint label centered beneath them
+- **THEN** the FPS limit title, preset chips, input field, method selector, and toggle key button SHALL be rendered within the primary Rate Control sub-card at the top of the tab
+
+#### Scenario: Clicking a quick-preset chip
+- **WHEN** the user clicks a quick-preset chip (e.g. '60' or '120')
+- **THEN** the system SHALL append or set the corresponding numeric limit in the FPS limit input field
 
 ### Requirement: Continuous Segmented Color Ruler with Aligned Breakpoint Controls
-The system SHALL display the MangoHud FPS color thresholds as a continuous, three-segment horizontal color bar and position the threshold breakpoint spin edit controls centered directly beneath the division boundaries between adjacent color segments.
+The system SHALL display the MangoHud FPS color thresholds as an inline horizontal gradient bar with interactive color swatches and integrated threshold breakpoint spin edit controls.
 
 #### Scenario: Visual alignment of color breakpoint controls
 - **WHEN** the FPS color change feature is enabled in the Limiters section
-- **THEN** the low, mid, and high color blocks SHALL form a connected segmented bar, the median breakpoint control SHALL align with the boundary between the low and mid color segments, and the high breakpoint control SHALL align with the boundary between the mid and high color segments
+- **THEN** the low, mid, and high color swatches SHALL be rendered in a cohesive horizontal flow alongside their respective threshold cutoff inputs
