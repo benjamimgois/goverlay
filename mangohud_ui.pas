@@ -2495,13 +2495,13 @@ begin
   // Title label with lightning icon
   FFpsLimitTitleLbl := TLabel.Create(FForm);
   FFpsLimitTitleLbl.Parent := FPerfLimitSec;
-  FFpsLimitTitleLbl.Caption := '⚡ FPS Limit';
+  FFpsLimitTitleLbl.Caption := 'FPS Limit';
   FFpsLimitTitleLbl.Font.Name := 'Noto Sans';
   FFpsLimitTitleLbl.Font.Color := TextColor;
-  FFpsLimitTitleLbl.Font.Style := [fsBold];
+  FFpsLimitTitleLbl.Font.Style := [];
   FFpsLimitTitleLbl.Font.Size := 9;
   FFpsLimitTitleLbl.Transparent := True;
-  FFpsLimitTitleLbl.Alignment := taCenter;
+  FFpsLimitTitleLbl.Alignment := taLeftJustify;
   FFpsLimitTitleLbl.AutoSize := False;
   FFpsLimitTitleLbl.SetBounds(ContL + 6, ContT + 8, 140, 20);
   FFpsLimitTitleLbl.Anchors := [akLeft, akTop];
@@ -2510,6 +2510,7 @@ begin
   FFpsLimitEdit := TEdit.Create(FForm);
   FFpsLimitEdit.Parent := FPerfLimitSec;
   FFpsLimitEdit.SetBounds(ContL + 6, ContT + 30, 105, 28);
+  FFpsLimitEdit.AutoSize := False;
   FFpsLimitEdit.Constraints.MinWidth := 80;
   FFpsLimitEdit.Constraints.MaxWidth := 220;
   FFpsLimitEdit.Anchors := [akLeft, akTop];
@@ -2520,13 +2521,15 @@ begin
   FFpsLimitEdit.BorderStyle := bsNone;
   FFpsLimitEdit.Alignment := taCenter;
   FFpsLimitEdit.Text := '0';
+  FFpsLimitEdit.Hint := 'e.g. 30,60,120,0 — 0 to unlimited' + LineEnding + 'Separate values with commas to cycle limits using the toggle key';
+  FFpsLimitEdit.ShowHint := True;
   // Force QLineEdit stylesheet — KDE/Breeze ignores LCL Color/Font.Color
   if CurrentTheme = tmLight then
-    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px 4px; }' +
+    SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 4px; padding: 2px 4px; }' +
           'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
           'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
   else
-    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 4px; }' +
+    SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px 4px; }' +
           'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
           'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
   QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
@@ -2543,6 +2546,7 @@ begin
   FFpsLimitHintLbl.AutoSize := False;
   FFpsLimitHintLbl.SetBounds(ContL + 6, ContT + 84, ContW - 12, 18);
   FFpsLimitHintLbl.Anchors := [akLeft, akTop];
+  FFpsLimitHintLbl.Visible := False;
 
   // ── Spread controls vertically: edit top, colours middle, method bottom ───
   fpscolorCheckBox.SetBounds(ContL + (ContW - 150) div 2, ContT + 115, 150, 21);
@@ -2577,9 +2581,9 @@ const
 
   // Vertical layout: 3 stacked master cards
   CARD0_TOP = 4;
-  CARD0_H   = 190;
+  CARD0_H   = 185;
   CARD1_TOP = CARD0_TOP + CARD0_H + 8;
-  CARD1_H   = 190;
+  CARD1_H   = 170;
   CARD2_TOP = CARD1_TOP + CARD1_H + 8;
   CARD2_H   = 250;
 
@@ -2775,7 +2779,7 @@ begin
   fpsavgBitBtn.Parent               := FPerfInfoSec;
   showfpslimCheckBox.Parent         := FPerfInfoSec;
   framecountCheckBox.Parent         := FPerfInfoSec;
-  vpsCheckBox.Parent                := FPerfInfoSec;
+  vpsCheckBox.Parent                := FPerfFrametimeSec;
 
   // ── Card 1 right: Frame Timing & plots ──────────────────────────────────
   frametimegraphCheckBox.Parent     := FPerfFrametimeSec;
@@ -2805,7 +2809,7 @@ begin
   FfpsavgToggle            := PlacePerfToggle(fpsavgCheckBox, FPerfInfoSec);
   FshowfpslimToggle        := PlacePerfToggle(showfpslimCheckBox, FPerfInfoSec);
   FframecountToggle        := PlacePerfToggle(framecountCheckBox, FPerfInfoSec);
-  FvpsToggle               := PlacePerfToggle(vpsCheckBox, FPerfInfoSec);
+  FvpsToggle               := PlacePerfToggle(vpsCheckBox, FPerfFrametimeSec);
   FframetimegraphToggle    := PlacePerfToggle(frametimegraphCheckBox, FPerfFrametimeSec);
   FframetimedetailedToggle := PlacePerfToggle(frametimedetailedCheckBox, FPerfFrametimeSec);
   FftraceToggle            := PlacePerfToggle(ftraceCheckBox, FPerfFrametimeSec);
@@ -2866,6 +2870,14 @@ begin
 
   // FPS Limit — single comma-separated input field
   BuildFpsLimitEdit;
+
+  // FPS color gradient controls belong to the Rate Control section
+  fpscolorCheckBox.Parent      := FPerfLimitSec;
+  fpscolor1ColorButton.Parent  := FPerfLimitSec;
+  fpscolor2ColorButton.Parent  := FPerfLimitSec;
+  fpscolor3ColorButton.Parent  := FPerfLimitSec;
+  fpscolor2spinedit.Parent     := FPerfLimitSec;
+  fpscolor3spinedit.Parent     := FPerfLimitSec;
   FfpscolorToggle := PlacePerfToggle(fpscolorCheckBox, FPerfLimitSec);
 
   FFpsPresetLbl := TLabel.Create(FForm);
@@ -2873,6 +2885,7 @@ begin
   StyleLabel(FFpsPresetLbl, lrControlLabel);
   FFpsPresetLbl.Caption := 'Presets:';
   FFpsPresetLbl.Font.Size := 8;
+  FFpsPresetLbl.Visible := False;
 
   // Quick FPS preset chips (60 / 120 / 144 / Off)
   PresetCaptions[0] := '60';  PresetValues[0] := 60;
@@ -2891,6 +2904,7 @@ begin
     FFpsPresetChips[i].Hint     := IntToStr(PresetValues[i]);
     FFpsPresetChips[i].Font.Size := 8;
     StyleBitBtnTheme(FFpsPresetChips[i], TextColor, CARD_BG);
+    FFpsPresetChips[i].Visible := False;
   end;
 
   // vkNemu is now a dedicated sub-card with full breathing room
@@ -2930,6 +2944,7 @@ begin
 
   FVkNemuIdleFpsSpin := TSpinEdit.Create(FForm);
   FVkNemuIdleFpsSpin.Parent := FVkNemuSec;
+  FVkNemuIdleFpsSpin.AutoSize := False;
   FVkNemuIdleFpsSpin.MinValue := 10;
   FVkNemuIdleFpsSpin.MaxValue := 360;
   FVkNemuIdleFpsSpin.Value := 30;
@@ -2943,6 +2958,7 @@ begin
 
   FVkNemuTimeoutSpin := TSpinEdit.Create(FForm);
   FVkNemuTimeoutSpin.Parent := FVkNemuSec;
+  FVkNemuTimeoutSpin.AutoSize := False;
   FVkNemuTimeoutSpin.MinValue := 1;
   FVkNemuTimeoutSpin.MaxValue := 60;
   FVkNemuTimeoutSpin.Value := 2;
@@ -2980,6 +2996,7 @@ begin
 
   FVkNemuDelaySpin := TSpinEdit.Create(FForm);
   FVkNemuDelaySpin.Parent := FVkNemuSec;
+  FVkNemuDelaySpin.AutoSize := False;
   FVkNemuDelaySpin.MinValue := 0;
   FVkNemuDelaySpin.MaxValue := 60;
   FVkNemuDelaySpin.Value := 0;
@@ -3002,20 +3019,20 @@ const
   GB_OFF     = 24;
   IMARGIN    = 6;
   IGAP       = 8;
-  CARD0_H    = 190;
-  CARD1_H    = 190;
+  CARD0_H    = 185;
+  CARD1_H    = 170;
   CARD2_H    = 250;
 var
   CardW, SecW, ContW, ContH, i, TotalH: Integer;
   Col1X, Col2X, Col1Left, Col2Left, ColGap: Integer;
-  ColorGroupW, ColorStart, ColW: Integer;
-  TotalRowW, RowStart, ChipW, ChipH, ChipGap: Integer;
-  PresetW, PresetStart, PillW: Integer;
-  LimitW, MethodW, ToggleW, RowGap: Integer;
+  ColorStart, ColW: Integer;
+  PillW: Integer;
+  LimitW, MethodW, ToggleW, RowGap, TotalRowW, RowStart: Integer;
   Row1LblTop, Row1CtrlTop, Row1CtrlH: Integer;
   FilterSecH: Integer;
   FilterGroupW, FilterLeft, FilterValW, FilterGapW, FilterTrackW: Integer;
   ControlH, LabelW, CtrlW: Integer;
+  NemuCtrlH: Integer;
 begin
   with FForm do
   begin
@@ -3108,48 +3125,47 @@ begin
         FPerfRightLbl[i].Left := IMARGIN + SecW + IGAP + 12;
     end;
 
-    // Frame Rate section — single full-width rows
+    // Frame Rate section — 4 clean rows
     if Assigned(FPerfInfoSec) then
     begin
-      Col1X := 16;
+      // Row 1 (Y=12): Show FPS
+      if Assigned(FfpsToggle) then begin FfpsToggle.Left := 16; FfpsToggle.Top := 12; end;
 
-      if Assigned(FfpsToggle) then begin FfpsToggle.Left := Col1X; FfpsToggle.Top := 10; end;
-
-      if Assigned(FfpsavgToggle) then begin FfpsavgToggle.Left := Col1X; FfpsavgToggle.Top := 40; end;
+      // Row 2 (Y=44): FPS Average + 1% low / 0.1% low pill right-aligned
+      if Assigned(FfpsavgToggle) then begin FfpsavgToggle.Left := 16; FfpsavgToggle.Top := 44; end;
       PillW := Max(128, fpsavgBitBtn.Width);
-      fpsavgBitBtn.SetBounds(FPerfInfoSec.ClientWidth - PillW - 16, 38, PillW, 24);
+      fpsavgBitBtn.SetBounds(FPerfInfoSec.ClientWidth - PillW - 16, 41, PillW, 24);
 
-      if Assigned(FshowfpslimToggle) then begin FshowfpslimToggle.Left := Col1X; FshowfpslimToggle.Top := 70; end;
+      // Row 3 (Y=76): Show FPS Limit on HUD
+      if Assigned(FshowfpslimToggle) then begin FshowfpslimToggle.Left := 16; FshowfpslimToggle.Top := 76; end;
 
-      if Assigned(FframecountToggle) then begin FframecountToggle.Left := Col1X; FframecountToggle.Top := 100; end;
-
-      if Assigned(FvpsToggle) then begin FvpsToggle.Left := Col1X; FvpsToggle.Top := 130; end;
+      // Row 4 (Y=108): Count frames
+      if Assigned(FframecountToggle) then begin FframecountToggle.Left := 16; FframecountToggle.Top := 108; end;
     end;
 
-    // Frame Timing section — single full-width rows
+    // Frame Timing section — 4 symmetrical rows
     if Assigned(FPerfFrametimeSec) then
     begin
-      Col1X := 16;
-
+      // Row 1 (Y=12): Frame Time + square swatch + Curve | Histogram pill right-aligned
       if Assigned(FframetimegraphToggle) then
       begin
         FframetimegraphToggle.Left  := 16;
-        FframetimegraphToggle.Top   := 10;
+        FframetimegraphToggle.Top   := 12;
         FframetimegraphToggle.Width := FframetimegraphToggle.GetOptimalWidth;
       end;
-      frametimegraphColorButton.SetBounds(FframetimegraphToggle.Left + FframetimegraphToggle.Width + 10, 9, 22, 22);
+      frametimegraphColorButton.SetBounds(FframetimegraphToggle.Left + FframetimegraphToggle.Width + 10, 11, 22, 22);
       frametimegraphColorButton.ButtonColorSize := 22;
-
       PillW := Max(128, frametimetypeBitBtn.Width);
-      frametimetypeBitBtn.SetBounds(FPerfFrametimeSec.ClientWidth - PillW - 16, 8, PillW, 24);
+      frametimetypeBitBtn.SetBounds(FPerfFrametimeSec.ClientWidth - PillW - 16, 10, PillW, 24);
 
-      if Assigned(FframetimedetailedToggle) then
-      begin
-        FframetimedetailedToggle.Left := 16;
-        FframetimedetailedToggle.Top  := 40;
-      end;
+      // Row 2 (Y=44): Frame Time +
+      if Assigned(FframetimedetailedToggle) then begin FframetimedetailedToggle.Left := 16; FframetimedetailedToggle.Top := 44; end;
 
-      if Assigned(FftraceToggle) then begin FftraceToggle.Left := 16; FftraceToggle.Top := 70; end;
+      // Row 3 (Y=76): ftrace debug
+      if Assigned(FftraceToggle) then begin FftraceToggle.Left := 16; FftraceToggle.Top := 76; end;
+
+      // Row 4 (Y=108): Vulkan Pacing (VPS)
+      if Assigned(FvpsToggle) then begin FvpsToggle.Left := 16; FvpsToggle.Top := 108; end;
 
       if Assigned(FframetimetypeLbl) then FframetimetypeLbl.Visible := False;
     end;
@@ -3182,76 +3198,73 @@ begin
     // Reposition controls in the MangoHud Limit sub-card
     if Assigned(FPerfLimitSec) then
     begin
-      // Quick preset chips (60 / 120 / 144 / Off) pinned to the section header top-right
-      ChipW   := 36;
-      ChipH   := 20;
-      ChipGap := 4;
-      PresetW := 4 * ChipW + 3 * ChipGap;
-      PresetStart := FPerfLimitSec.ClientWidth - 16 - PresetW;
+      // Quick preset chips (60 / 120 / 144 / Off) — hidden along with presets label
       if Assigned(FFpsPresetLbl) then
-      begin
-        FFpsPresetLbl.SetBounds(PresetStart - 52, 10, 48, 16);
-        FFpsPresetLbl.Alignment := taRightJustify;
-      end;
+        FFpsPresetLbl.Visible := False;
       for i := 0 to 3 do
         if Assigned(FFpsPresetChips[i]) then
-          FFpsPresetChips[i].SetBounds(PresetStart + i * (ChipW + ChipGap), 8, ChipW, ChipH);
+          FFpsPresetChips[i].Visible := False;
 
-      // Group 1: FPS Limit | Method | Toggle Key in a single row
+      // Place the 3 controls in 3 homogeneous columns
       LimitW  := 105;
-      MethodW := 95;
+      MethodW := 105;
       ToggleW := 105;
-      RowGap  := 10;
+      RowGap  := 8;
       TotalRowW := LimitW + RowGap + MethodW + RowGap + ToggleW;
       RowStart  := (FPerfLimitSec.ClientWidth - TotalRowW) div 2;
-      Row1LblTop  := 32;
-      Row1CtrlTop := 48;
-      Row1CtrlH   := 26;
+      if RowStart < 12 then RowStart := 12;
+      Row1LblTop  := 22;
+      Row1CtrlTop := 42;
+      Row1CtrlH   := 32;
+      if Assigned(fpslimmetComboBox) and (fpslimmetComboBox.Height > 24) then
+        Row1CtrlH := fpslimmetComboBox.Height;
 
+      // Column 1: FPS Limit
       if Assigned(FFpsLimitTitleLbl) then
       begin
-        FFpsLimitTitleLbl.Caption := '⚡ FPS Limit:';
-        FFpsLimitTitleLbl.SetBounds(16, 10, PresetStart - 70, 16);
+        FFpsLimitTitleLbl.Caption := 'FPS Limit';
+        FFpsLimitTitleLbl.SetBounds(RowStart, Row1LblTop, LimitW, 16);
         FFpsLimitTitleLbl.Alignment := taLeftJustify;
+        FFpsLimitTitleLbl.Visible := True;
       end;
       if Assigned(FFpsLimitEdit) then
+      begin
+        FFpsLimitEdit.AutoSize := False;
+        FFpsLimitEdit.Constraints.MinHeight := Row1CtrlH;
+        FFpsLimitEdit.Constraints.MaxHeight := Row1CtrlH;
         FFpsLimitEdit.SetBounds(RowStart, Row1CtrlTop, LimitW, Row1CtrlH);
+      end;
 
+      // Column 2: Method
       methodLabel.SetBounds(RowStart + LimitW + RowGap, Row1LblTop, MethodW, 16);
-      methodLabel.Alignment := taCenter;
+      methodLabel.Alignment := taLeftJustify;
       fpslimmetComboBox.SetBounds(RowStart + LimitW + RowGap, Row1CtrlTop, MethodW, Row1CtrlH);
 
+      // Column 3: Toggle key
       limtoggleLabel.SetBounds(RowStart + LimitW + RowGap + MethodW + RowGap, Row1LblTop, ToggleW, 16);
-      limtoggleLabel.Alignment := taCenter;
+      limtoggleLabel.Alignment := taLeftJustify;
       if Assigned(FLimitCaptureBtn) then
         FLimitCaptureBtn.SetBounds(RowStart + LimitW + RowGap + MethodW + RowGap, Row1CtrlTop, ToggleW, Row1CtrlH);
 
-      // Subtitle hint
+      // Hide FFpsLimitHintLbl on the panel
       if Assigned(FFpsLimitHintLbl) then
-      begin
-        FFpsLimitHintLbl.SetBounds(0, 80, FPerfLimitSec.ClientWidth, 16);
-        FFpsLimitHintLbl.Alignment := taCenter;
-      end;
+        FFpsLimitHintLbl.Visible := False;
 
-      // Group 2: Change FPS colors
+      // Change FPS colors toggle below Row 1
       if Assigned(FfpscolorToggle) then
       begin
         FfpscolorToggle.Left := (FPerfLimitSec.ClientWidth - FfpscolorToggle.Width) div 2;
-        FfpscolorToggle.Top := 104;
+        FfpscolorToggle.Top  := 88;
       end;
 
-      ColorGroupW := 250;
-      ColorStart := (FPerfLimitSec.ClientWidth - ColorGroupW) div 2;
+      // Color swatches & spin edits below toggle
+      ColorStart := (FPerfLimitSec.ClientWidth - 250) div 2;
       if ColorStart < 12 then ColorStart := 12;
-
-      fpscolor1ColorButton.SetBounds(ColorStart, 130, 34, 22);
-      fpscolor2ColorButton.SetBounds(ColorStart + 48, 130, 34, 22);
-      fpscolor2SpinEdit.SetBounds(ColorStart + 90, 128, 52, 24);
-      fpscolor3ColorButton.SetBounds(ColorStart + 154, 130, 34, 22);
-      fpscolor3SpinEdit.SetBounds(ColorStart + 196, 128, 52, 24);
-      fpscolor1ColorButton.ButtonColorSize := 34;
-      fpscolor2ColorButton.ButtonColorSize := 34;
-      fpscolor3ColorButton.ButtonColorSize := 34;
+      fpscolor1ColorButton.SetBounds(ColorStart, 118, 34, 22);
+      fpscolor2ColorButton.SetBounds(ColorStart + 48, 118, 34, 22);
+      fpscolor2SpinEdit.SetBounds(ColorStart + 90, 116, 52, 24);
+      fpscolor3ColorButton.SetBounds(ColorStart + 154, 118, 34, 22);
+      fpscolor3SpinEdit.SetBounds(ColorStart + 196, 116, 52, 24);
     end;
 
     // Idle Limiter (vkNemu) section
@@ -3278,58 +3291,68 @@ begin
       Col1Left := 14;
       Col2Left := 14 + ColW + 14;
 
+      NemuCtrlH := 32;
+      if Assigned(FVkNemuInputCombo) and (FVkNemuInputCombo.Height > 24) then
+        NemuCtrlH := FVkNemuInputCombo.Height;
+
       // Row 1: Idle FPS | Timeout
       if Assigned(FVkNemuIdleFpsLbl) then
       begin
         FVkNemuIdleFpsLbl.Caption := 'Idle FPS:';
-        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 80, ColW, 16);
+        FVkNemuIdleFpsLbl.SetBounds(Col1Left, 78, ColW, 16);
       end;
       if Assigned(FVkNemuIdleFpsSpin) then
       begin
-        FVkNemuIdleFpsSpin.Constraints.MaxHeight := 26;
-        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 98, ColW, 24);
+        FVkNemuIdleFpsSpin.AutoSize := False;
+        FVkNemuIdleFpsSpin.Constraints.MinHeight := NemuCtrlH;
+        FVkNemuIdleFpsSpin.Constraints.MaxHeight := NemuCtrlH;
+        FVkNemuIdleFpsSpin.SetBounds(Col1Left, 96, ColW, NemuCtrlH);
       end;
 
       if Assigned(FVkNemuTimeoutLbl) then
       begin
         FVkNemuTimeoutLbl.Caption := 'Timeout (sec):';
-        FVkNemuTimeoutLbl.SetBounds(Col2Left, 80, ColW, 16);
+        FVkNemuTimeoutLbl.SetBounds(Col2Left, 78, ColW, 16);
       end;
       if Assigned(FVkNemuTimeoutSpin) then
       begin
-        FVkNemuTimeoutSpin.Constraints.MaxHeight := 26;
-        FVkNemuTimeoutSpin.SetBounds(Col2Left, 98, ColW, 24);
+        FVkNemuTimeoutSpin.AutoSize := False;
+        FVkNemuTimeoutSpin.Constraints.MinHeight := NemuCtrlH;
+        FVkNemuTimeoutSpin.Constraints.MaxHeight := NemuCtrlH;
+        FVkNemuTimeoutSpin.SetBounds(Col2Left, 96, ColW, NemuCtrlH);
       end;
 
       // Row 2: Wake | Delay
       if Assigned(FVkNemuInputLbl) then
       begin
         FVkNemuInputLbl.Caption := 'Wake:';
-        FVkNemuInputLbl.SetBounds(Col1Left, 128, ColW, 16);
+        FVkNemuInputLbl.SetBounds(Col1Left, 134, ColW, 16);
       end;
       if Assigned(FVkNemuInputCombo) then
       begin
-        FVkNemuInputCombo.Constraints.MinHeight := 26;
-        FVkNemuInputCombo.Constraints.MaxHeight := 26;
-        FVkNemuInputCombo.SetBounds(Col1Left, 146, ColW, 24);
+        FVkNemuInputCombo.Constraints.MinHeight := NemuCtrlH;
+        FVkNemuInputCombo.Constraints.MaxHeight := NemuCtrlH;
+        FVkNemuInputCombo.SetBounds(Col1Left, 152, ColW, NemuCtrlH);
       end;
 
       if Assigned(FVkNemuDelayLbl) then
       begin
         FVkNemuDelayLbl.Caption := 'Delay (sec):';
-        FVkNemuDelayLbl.SetBounds(Col2Left, 128, ColW, 16);
+        FVkNemuDelayLbl.SetBounds(Col2Left, 134, ColW, 16);
       end;
       if Assigned(FVkNemuDelaySpin) then
       begin
-        FVkNemuDelaySpin.Constraints.MaxHeight := 26;
-        FVkNemuDelaySpin.SetBounds(Col2Left, 146, ColW, 24);
+        FVkNemuDelaySpin.AutoSize := False;
+        FVkNemuDelaySpin.Constraints.MinHeight := NemuCtrlH;
+        FVkNemuDelaySpin.Constraints.MaxHeight := NemuCtrlH;
+        FVkNemuDelaySpin.SetBounds(Col2Left, 152, ColW, NemuCtrlH);
       end;
 
       // Row 3: Cap on window unfocus
       if Assigned(FVkNemuUnfocusedToggle) then
       begin
         FVkNemuUnfocusedToggle.Left   := 14;
-        FVkNemuUnfocusedToggle.Top    := 182;
+        FVkNemuUnfocusedToggle.Top    := 192;
         FVkNemuUnfocusedToggle.Width  := FVkNemuUnfocusedToggle.GetOptimalWidth;
       end;
     end;
@@ -3444,17 +3467,20 @@ begin
     mipmapvalueLabel.Transparent := True;
   end;
 
+  if Assigned(FFpsLimitTitleLbl) then
+    FFpsLimitTitleLbl.Font.Color := TextColor;
+
   // FPS Limit edit: update colors for theme
   if Assigned(FFpsLimitEdit) then
   begin
     FFpsLimitEdit.Font.Color := TextColor;
     FFpsLimitEdit.Color := IfThen(CurrentTheme = tmLight, clWhite, RGBToColor(38, 46, 72));
     if CurrentTheme = tmLight then
-      SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 6px; padding: 2px; }' +
+      SS := 'QLineEdit { background-color: rgb(245,245,245); color: rgb(0,0,0); border: 1px solid rgb(210,215,225); border-radius: 4px; padding: 2px; }' +
             'QLineEdit:hover { border: 1px solid rgb(160,175,200); }' +
             'QLineEdit:focus { border: 1px solid rgb(48,120,200); }'
     else
-      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px; }' +
+      SS := 'QLineEdit { background-color: rgb(38,46,72); color: rgb(255,255,255); border: 1px solid rgb(55,70,108); border-radius: 4px; padding: 2px; }' +
             'QLineEdit:hover { border: 1px solid rgb(80,110,170); }' +
             'QLineEdit:focus { border: 1px solid rgb(48,190,240); }';
     QWidget_setStyleSheet(TQtWidget(FFpsLimitEdit.Handle).Widget, @SS);
