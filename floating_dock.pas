@@ -9,7 +9,7 @@ unit floating_dock;
 //    [  ☰  Menu  ]   (optional — shown when active tab has popup menu options, always on the left)
 //    [ ▶ Preview ]   (optional — shown on MangoHud, vkBasalt, vkSumi)
 //    [   + Add   ]   (optional — shown on EnvVars tab)
-//    [  ✓ Finish ]   (primary accent button, always visible on the right)
+//    [  ✓ Apply  ]   (primary accent button, always visible on the right)
 //
 //  Call UpdateForTab(AShowPreview, AShowMenu, AShowAdd, AVisible) on tab switch.
 // ---------------------------------------------------------------------------
@@ -468,18 +468,18 @@ begin
     PB.Canvas.Pen.Width   := 1;
     PB.Canvas.RoundRect(0, 0, PB.Width, PB.Height, CornerDiam, CornerDiam);
 
-    // Draw ✓ Finish centered
+    // Draw ✓ Apply centered
     PB.Canvas.Font.Name   := 'Noto Sans';
     PB.Canvas.Font.Size   := 8;
     PB.Canvas.Font.Style  := [fsBold];
     PB.Canvas.Font.Color  := clWhite;
     PB.Canvas.Brush.Style := bsClear;
 
-    TextW := PB.Canvas.TextWidth('✓ Finish');
-    TextH := PB.Canvas.TextHeight('✓ Finish');
+    TextW := PB.Canvas.TextWidth('✓ Apply');
+    TextH := PB.Canvas.TextHeight('✓ Apply');
     TextX := (PB.Width - TextW) div 2;
     TextY := (PB.Height - TextH) div 2;
-    PB.Canvas.TextOut(TextX, TextY, '✓ Finish');
+    PB.Canvas.TextOut(TextX, TextY, '✓ Apply');
   end
   else
   begin
@@ -507,18 +507,18 @@ begin
       PB.Canvas.MoveTo(BX, 0);
       PB.Canvas.LineTo(BX, PB.Height);
 
-      // Finish button text
+      // Apply button text
       PB.Canvas.Font.Name   := 'Noto Sans';
       PB.Canvas.Font.Size   := 8;
       PB.Canvas.Font.Style  := [fsBold];
       PB.Canvas.Font.Color  := clWhite;
       PB.Canvas.Brush.Style := bsClear;
 
-      TextW := PB.Canvas.TextWidth('✓ Finish');
-      TextH := PB.Canvas.TextHeight('✓ Finish');
+      TextW := PB.Canvas.TextWidth('✓ Apply');
+      TextH := PB.Canvas.TextHeight('✓ Apply');
       TextX := BX + (FFinishRect.Right - BX - TextW) div 2;
       TextY := (PB.Height - TextH) div 2;
-      PB.Canvas.TextOut(TextX, TextY, '✓ Finish');
+      PB.Canvas.TextOut(TextX, TextY, '✓ Apply');
     end;
 
     // 2. Menu button (☰)

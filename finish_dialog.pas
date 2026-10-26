@@ -209,7 +209,7 @@ var
   Y: Integer;
 begin
   // --- Form base style ---
-  Caption      := 'Finish Configuration';
+  Caption      := 'Apply Configuration';
   BorderStyle  := bsNone;
   BorderIcons  := [];
   Width        := DLG_W;
@@ -237,7 +237,7 @@ begin
   // Title
   FTitleLabel              := TLabel.Create(Self);
   FTitleLabel.Parent       := FHeaderPanel;
-  FTitleLabel.Caption      := 'Finish Configuration';
+  FTitleLabel.Caption      := 'Apply Configuration';
   FTitleLabel.Font.Name    := 'Noto Sans';
   FTitleLabel.Font.Size    := 13;
   FTitleLabel.Font.Style   := [fsBold];
