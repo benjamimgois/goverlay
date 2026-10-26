@@ -132,13 +132,15 @@ type
     procedure GameCardCloneGlobalClick(Sender: TObject);
     procedure GameCardSetCoverClick(Sender: TObject);
     procedure GameCardResetCoverClick(Sender: TObject);
-    function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath: string): Boolean;
+    function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath, AAppId: string): Boolean; overload;
+    function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath: string): Boolean; overload;
     procedure UpdateCardCoverImage(ACard: TPanel; const ACoverPath: string);
   end;
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
 procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
 procedure DrawCoverAspectFill(ADstBmp: TBitmap; AGraphic: TGraphic);
+function FindCustomCover(const AAppId, AGameName: string; out ACoverPath: string): Boolean;
 function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
   out ACoverPath: string): Boolean;
 function NormalizeAppImageName(const AFileName: string): string;
@@ -449,6 +451,76 @@ begin
     ACoverPath := APath;
 end;
 
+function FindCustomCover(const AAppId, AGameName: string; out ACoverPath: string): Boolean;
+var
+  HomeDir, CustomDir, NonSteamDir, SanitizedName: string;
+  Exts: array[0..3] of string;
+
+  function CheckBase(const ABase: string): Boolean;
+  var
+    e: Integer;
+  begin
+    Result := False;
+    for e := Low(Exts) to High(Exts) do
+      if TryLocalCoverFile(ABase + Exts[e], ACoverPath) then
+        Exit(True);
+  end;
+
+begin
+  ACoverPath := '';
+  Result := False;
+
+  HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+  CustomDir := HomeDir + '.cache/goverlay/custom_covers/';
+  NonSteamDir := HomeDir + '.cache/goverlay/nonsteam_covers/';
+
+  Exts[0] := '.png';
+  Exts[1] := '.jpg';
+  Exts[2] := '.jpeg';
+  Exts[3] := '.webp';
+
+  if Trim(AAppId) <> '' then
+    if CheckBase(CustomDir + Trim(AAppId)) then Exit(True);
+
+  SanitizedName := SanitizeFileName(AGameName);
+  if Trim(AGameName) <> '' then
+  begin
+    if CheckBase(CustomDir + SanitizedName) then Exit(True);
+    if (SanitizedName <> AGameName) and CheckBase(CustomDir + AGameName) then Exit(True);
+    if CheckBase(NonSteamDir + SanitizedName) then Exit(True);
+    if (SanitizedName <> AGameName) and CheckBase(NonSteamDir + AGameName) then Exit(True);
+  end;
+end;
+
+function FindSteamLocalCover(const AAppID, AHomeDir: string): string;
+var
+  Bases: array[0..5] of string;
+  i: Integer;
+  Candidate: string;
+begin
+  Result := '';
+  if Trim(AAppID) = '' then Exit;
+
+  Bases[0] := IncludeTrailingPathDelimiter(AHomeDir) + '.steam/steam/';
+  Bases[1] := IncludeTrailingPathDelimiter(AHomeDir) + '.steam/root/';
+  Bases[2] := IncludeTrailingPathDelimiter(AHomeDir) + '.steam/debian-installation/';
+  Bases[3] := IncludeTrailingPathDelimiter(AHomeDir) + '.local/share/Steam/';
+  Bases[4] := IncludeTrailingPathDelimiter(AHomeDir) + '.var/app/com.valvesoftware.Steam/data/Steam/';
+  Bases[5] := IncludeTrailingPathDelimiter(AHomeDir) + '.var/app/com.valvesoftware.Steam/.local/share/Steam/';
+
+  for i := Low(Bases) to High(Bases) do
+  begin
+    Candidate := Bases[i] + 'appcache/librarycache/' + AAppID + '/library_600x900.jpg';
+    if FileExists(Candidate) and (FileSize(Candidate) > 0) then Exit(Candidate);
+    Candidate := Bases[i] + 'appcache/librarycache/' + AAppID + '/header.jpg';
+    if FileExists(Candidate) and (FileSize(Candidate) > 0) then Exit(Candidate);
+  end;
+
+  Candidate := IncludeTrailingPathDelimiter(AHomeDir) + '.cache/goverlay/covers/' + AAppID + '.jpg';
+  if FileExists(Candidate) and (FileSize(Candidate) > 0) then
+    Result := Candidate;
+end;
+
 function JsonObjectString(AObj: TJSONObject; const AKey: string): string;
 var
   i: Integer;
@@ -598,7 +670,7 @@ end;
 function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
   out ACoverPath: string): Boolean;
 var
-  HomeDir, CacheDir, SanitizedName: string;
+  HomeDir, SanitizedName: string;
   HeroicDir, LutrisDir, AppName, Slug, Resolved: string;
   HeroicDirs: array[0..1] of string;
   LutrisDirs: array[0..1] of string;
@@ -632,10 +704,9 @@ begin
   Exts[3] := '.webp';
 
   SanitizedName := SanitizeFileName(AGameName);
-  CacheDir := HomeDir + '.cache/goverlay/nonsteam_covers/';
 
-  // 1. GOverlay's own cover cache (any supported extension)
-  if CheckExts(CacheDir + SanitizedName) then Exit(True);
+  // 1. Custom covers and GOverlay's own cover cache (any supported extension)
+  if FindCustomCover('', AGameName, ACoverPath) then Exit(True);
 
   // 2. Artwork shipped inside the game folder
   if (ASubPath <> '') and DirectoryExists(ASubPath) then
@@ -1587,7 +1658,7 @@ var
   PendingCount: Integer;
   CacheDir, NonSteamCacheDir, HomeDir: string;
   j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
-  AppID, GameName, ImagePath, InstallDir, IconPath, SubPath: string;
+  AppID, GameName, ImagePath, CustomImagePath, InstallDir, IconPath, SubPath: string;
   LibPath, GameCfgDir, CachePath: string;
   ResolvedCover, CoverMarkerPath: string;
   CardPanel: TPanel;
@@ -1711,33 +1782,39 @@ begin
         BdgImg.OnClick      := @GameCardClick;
         BdgImg.OnMouseUp    := @GameCardMouseUp;
 
-        // Look for local cover; if absent, queue for CDN download
-        ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/header.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/header.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/header.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
-        if not FileExists(ImagePath) then
-          ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
-        // Also check the persistent cache from previous downloads
-        if not FileExists(ImagePath) then
-          ImagePath := CacheDir + AppID + '.jpg';
+        // Look for a custom cover first; otherwise use Steam's local cover and
+        // queue a CDN download when neither is available.
+        if FindCustomCover(AppID, GameName, CustomImagePath) then
+          ImagePath := CustomImagePath
+        else
+        begin
+          ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/root/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.steam/debian-installation/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/library_600x900.jpg';
+          if not FileExists(ImagePath) then
+            ImagePath := HomeDir + '.var/app/com.valvesoftware.Steam/.local/share/Steam/appcache/librarycache/' + AppID + '/header.jpg';
+          // Also check the persistent cache from previous downloads
+          if not FileExists(ImagePath) then
+            ImagePath := CacheDir + AppID + '.jpg';
+        end;
 
         if FileExists(ImagePath) and (FileSize(ImagePath) > 0) then
         begin
@@ -3461,7 +3538,7 @@ begin
 end;
 
 function TGamesTabHelper.GetCardGameInfo(ACard: TPanel;
-  out AGameName, ASubPath: string): Boolean;
+  out AGameName, ASubPath, AAppId: string): Boolean; overload;
 var
   Lines: TStringList;
   p: Integer;
@@ -3469,19 +3546,26 @@ begin
   Result := False;
   AGameName := '';
   ASubPath := '';
+  AAppId := '';
   if not Assigned(ACard) or (ACard.Hint = '') then Exit;
 
   Lines := TStringList.Create;
   try
     Lines.Text := ACard.Hint;
     if Lines.Count < 1 then Exit;
-    AGameName := Trim(Lines[0]);
-    if (AGameName <> '') and (AGameName[1] = '(') then
+    if (Lines[0] <> '') and (Lines[0][1] = '(') then
     begin
-      p := Pos(') ', AGameName);
+      p := Pos(') ', Lines[0]);
       if p > 0 then
-        AGameName := Copy(AGameName, p + 2, MaxInt);
-    end;
+      begin
+        AAppId := Copy(Lines[0], 2, p - 2);
+        AGameName := Trim(Copy(Lines[0], p + 2, MaxInt));
+      end
+      else
+        AGameName := Trim(Lines[0]);
+    end
+    else
+      AGameName := Trim(Lines[0]);
     if Lines.Count >= 2 then
       ASubPath := Lines[1];
     AGameName := Trim(AGameName);
@@ -3489,6 +3573,14 @@ begin
   finally
     Lines.Free;
   end;
+end;
+
+function TGamesTabHelper.GetCardGameInfo(ACard: TPanel;
+  out AGameName, ASubPath: string): Boolean; overload;
+var
+  AppId: string;
+begin
+  Result := GetCardGameInfo(ACard, AGameName, ASubPath, AppId);
 end;
 
 procedure TGamesTabHelper.UpdateCardCoverImage(ACard: TPanel;
@@ -3572,7 +3664,8 @@ end;
 procedure TGamesTabHelper.GameCardSetCoverClick(Sender: TObject);
 var
   CardPanel: TPanel;
-  GameName, SubPath, CacheDir, SanitizedName, Ext, TargetPath, SrcPath: string;
+  GameName, SubPath, AppId: string;
+  CustomCacheDir, NonSteamCacheDir, SanitizedName, Ext, TargetPath, SrcPath: string;
   Dlg: TOpenDialog;
   Exts: array[0..3] of string;
   i: Integer;
@@ -3580,7 +3673,7 @@ begin
   with FForm do
   begin
     CardPanel := FRightClickedCard;
-    if not GetCardGameInfo(CardPanel, GameName, SubPath) then Exit;
+    if not GetCardGameInfo(CardPanel, GameName, SubPath, AppId) then Exit;
 
     Dlg := TOpenDialog.Create(FForm);
     try
@@ -3600,30 +3693,41 @@ begin
       Exit;
     end;
 
-    CacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
-    ForceDirectories(CacheDir);
+    CustomCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/custom_covers/';
+    NonSteamCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
+    ForceDirectories(CustomCacheDir);
+    ForceDirectories(NonSteamCacheDir);
     SanitizedName := SanitizeFileName(GameName);
-    TargetPath := CacheDir + SanitizedName + Ext;
 
-    if FileExists(TargetPath) then
-      DeleteFile(TargetPath);
+    Exts[0] := '.png';
+    Exts[1] := '.jpg';
+    Exts[2] := '.jpeg';
+    Exts[3] := '.webp';
+
+    // Purge previous custom cover variants and fallback markers for this game.
+    for i := Low(Exts) to High(Exts) do
+    begin
+      if AppId <> '' then
+      begin
+        DeleteFile(CustomCacheDir + AppId + Exts[i]);
+        DeleteFile(CustomCacheDir + AppId + Exts[i] + '.fallback');
+      end;
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i] + '.fallback');
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i] + '.fallback');
+    end;
+
+    TargetPath := CustomCacheDir + SanitizedName + Ext;
     if not CopyFile(SrcPath, TargetPath) then
     begin
       ShowMessage('Could not copy the selected cover image.');
       Exit;
     end;
 
-    Exts[0] := '.png';
-    Exts[1] := '.jpg';
-    Exts[2] := '.jpeg';
-    Exts[3] := '.webp';
-    for i := Low(Exts) to High(Exts) do
-    begin
-      if not SameFileName(CacheDir + SanitizedName + Exts[i], TargetPath) then
-        DeleteFile(CacheDir + SanitizedName + Exts[i]);
-      DeleteFile(CacheDir + SanitizedName + Exts[i] + '.fallback');
-    end;
-    DeleteFile(TargetPath + '.fallback');
+    if AppId <> '' then
+      CopyFile(SrcPath, CustomCacheDir + AppId + Ext);
+    CopyFile(SrcPath, NonSteamCacheDir + SanitizedName + Ext);
 
     UpdateCardCoverImage(CardPanel, TargetPath);
   end;
@@ -3632,16 +3736,23 @@ end;
 procedure TGamesTabHelper.GameCardResetCoverClick(Sender: TObject);
 var
   CardPanel: TPanel;
-  GameName, SubPath, CacheDir, SanitizedName, CachePath, ResolvedPath: string;
+  GameName, SubPath, AppId, HomeDir: string;
+  CustomCacheDir, NonSteamCacheDir, SanitizedName, CachePath, ResolvedPath: string;
   Exts: array[0..3] of string;
   i: Integer;
 begin
   with FForm do
   begin
     CardPanel := FRightClickedCard;
-    if not GetCardGameInfo(CardPanel, GameName, SubPath) then Exit;
+    if not GetCardGameInfo(CardPanel, GameName, SubPath, AppId) then Exit;
 
-    CacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
+    if IsRunningInFlatpak then
+      HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
+    else
+      HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
+
+    CustomCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/custom_covers/';
+    NonSteamCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
     SanitizedName := SanitizeFileName(GameName);
 
     Exts[0] := '.png';
@@ -3650,8 +3761,23 @@ begin
     Exts[3] := '.webp';
     for i := Low(Exts) to High(Exts) do
     begin
-      DeleteFile(CacheDir + SanitizedName + Exts[i]);
-      DeleteFile(CacheDir + SanitizedName + Exts[i] + '.fallback');
+      if AppId <> '' then
+      begin
+        DeleteFile(CustomCacheDir + AppId + Exts[i]);
+        DeleteFile(CustomCacheDir + AppId + Exts[i] + '.fallback');
+      end;
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i] + '.fallback');
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i] + '.fallback');
+    end;
+
+    if AppId <> '' then
+    begin
+      ResolvedPath := FindSteamLocalCover(AppId, HomeDir);
+      if ResolvedPath <> '' then
+        UpdateCardCoverImage(CardPanel, ResolvedPath);
+      Exit;
     end;
 
     ResolvedPath := '';
@@ -3661,8 +3787,8 @@ begin
       Exit;
     end;
 
-    CachePath := CacheDir + SanitizedName + '.jpg';
-    ForceDirectories(CacheDir);
+    CachePath := NonSteamCacheDir + SanitizedName + '.jpg';
+    ForceDirectories(NonSteamCacheDir);
     GenerateFallbackCover(CachePath, FForm);
     if FileExists(CachePath) then
       UpdateCardCoverImage(CardPanel, CachePath);

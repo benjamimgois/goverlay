@@ -161,6 +161,7 @@ type
     procedure TestGameCardFallbackCoverGeneration;
     procedure TestNonSteamCoverResolutionAndAspectFill;
     procedure TestGameCardCustomCoverMenuItems;
+    procedure TestCustomCoverPersistenceAcrossRestart;
     procedure TestToolToggleOffPreservesConfigFiles;
     procedure TestPerGameLaunchCommandImmediateUpdate;
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
@@ -2589,6 +2590,75 @@ begin
     goverlayform.FSetCoverMenuItem.Caption);
   AssertEquals('FResetCoverMenuItem caption', 'Reset cover art',
     goverlayform.FResetCoverMenuItem.Caption);
+end;
+
+procedure TGoverlayGuiTests.TestCustomCoverPersistenceAcrossRestart;
+var
+  HomeDir, CustomDir, NonSteamDir: string;
+  SteamCustomFile, NonSteamCustomFile, ResolvedPath: string;
+  DummyCard: TPanel;
+  OutGameName, OutSubPath, OutAppId: string;
+  PaddedStream: TFileStream;
+  Buffer: array[0..4095] of Byte;
+begin
+  HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+  CustomDir := HomeDir + '.cache/goverlay/custom_covers/';
+  NonSteamDir := HomeDir + '.cache/goverlay/nonsteam_covers/';
+  ForceDirectories(CustomDir);
+  ForceDirectories(NonSteamDir);
+
+  FillChar(Buffer, SizeOf(Buffer), $AA);
+
+  // 1. Test Steam game custom cover lookup by AppID
+  SteamCustomFile := CustomDir + '999999.png';
+  PaddedStream := TFileStream.Create(SteamCustomFile, fmCreate);
+  try
+    PaddedStream.WriteBuffer(Buffer, SizeOf(Buffer));
+  finally
+    PaddedStream.Free;
+  end;
+
+  ResolvedPath := '';
+  AssertTrue('FindCustomCover locates Steam custom cover by AppID',
+    FindCustomCover('999999', 'Any Game Name', ResolvedPath));
+  AssertEquals('FindCustomCover returns the custom path', SteamCustomFile, ResolvedPath);
+
+  // 2. Test Non-Steam game custom cover lookup by sanitized name
+  NonSteamCustomFile := CustomDir + SanitizeFileName('My Custom Game') + '.jpg';
+  PaddedStream := TFileStream.Create(NonSteamCustomFile, fmCreate);
+  try
+    PaddedStream.WriteBuffer(Buffer, SizeOf(Buffer));
+  finally
+    PaddedStream.Free;
+  end;
+
+  ResolvedPath := '';
+  AssertTrue('FindCustomCover locates Non-Steam custom cover by sanitized name',
+    FindCustomCover('', 'My Custom Game', ResolvedPath));
+  AssertEquals('FindCustomCover returns non-steam custom path', NonSteamCustomFile, ResolvedPath);
+
+  // Also verify ResolveNonSteamLocalCover uses FindCustomCover as first priority
+  ResolvedPath := '';
+  AssertTrue('ResolveNonSteamLocalCover prioritizes custom cover',
+    ResolveNonSteamLocalCover('My Custom Game', '', ResolvedPath));
+  AssertEquals('ResolveNonSteamLocalCover returns custom cover', NonSteamCustomFile, ResolvedPath);
+
+  // 3. Test GetCardGameInfo parses AppId from Steam card Hint format: '(AppID) Name'#10'Path'
+  DummyCard := TPanel.Create(goverlayform);
+  try
+    DummyCard.Hint := '(1091500) Cyberpunk 2077' + LineEnding + '/path/to/game';
+    AssertTrue('GetCardGameInfo succeeds',
+      TGamesTabHelper(goverlayform.FGamesHelper).GetCardGameInfo(DummyCard, OutGameName, OutSubPath, OutAppId));
+    AssertEquals('Parsed AppID matches', '1091500', OutAppId);
+    AssertEquals('Parsed GameName matches', 'Cyberpunk 2077', OutGameName);
+    AssertEquals('Parsed SubPath matches', '/path/to/game', OutSubPath);
+  finally
+    DummyCard.Free;
+  end;
+
+  // Cleanup
+  if FileExists(SteamCustomFile) then DeleteFile(SteamCustomFile);
+  if FileExists(NonSteamCustomFile) then DeleteFile(NonSteamCustomFile);
 end;
 
 procedure TGoverlayGuiTests.TestToolToggleOffPreservesConfigFiles;
