@@ -151,6 +151,7 @@ type
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
     procedure TestMangoHudLoadColorPresets;
+    procedure TestIssue363MangoHudColorsAndOptionsLoadResilience;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -4289,6 +4290,49 @@ begin
   AssertEquals('fpscolor3SpinEdit restored', 100, goverlayform.fpscolor3SpinEdit.Value);
   AssertEquals('gpuload1 restored', TColor($0000FF00), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
   AssertEquals('cpuload1 restored', TColor($0000FF00), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+end;
+
+procedure TGoverlayGuiTests.TestIssue363MangoHudColorsAndOptionsLoadResilience;
+var
+  F: TextFile;
+begin
+  NavigateMangoHud;
+  ForceDirectories(ExtractFilePath(MangoConfPath));
+
+  // Write a MangoHud config with '#'-prefixed hex colors, a corrupted line, and subsequent vsync settings
+  AssignFile(F, MangoConfPath);
+  Rewrite(F);
+  WriteLn(F, 'fps_color=#FF0000,#FFFF00,#00FF00');
+  WriteLn(F, 'fps_value=45,90');
+  WriteLn(F, 'gpu_load_color=#FFFFFF,#FFAB7F,#CC0000');
+  WriteLn(F, 'cpu_load_color=#30BEF0,#FFAB7F,#CC0000');
+  WriteLn(F, 'corrupted_line_with_no_value_and_invalid_syntax:::');
+  WriteLn(F, 'gl_vsync=1');
+  WriteLn(F, 'vsync=1');
+  WriteLn(F, 'text_color=#FFFFFF');
+  CloseFile(F);
+
+  // Reload config
+  goverlayform.LoadMangoHudConfig;
+
+  // 1. Assert #-prefixed hex colors are parsed correctly without exception
+  AssertEquals('Issue 363: fpscolor1 loaded from #FF0000', TColor(clRed), TColor(goverlayform.fpscolor1ColorButton.ButtonColor));
+  AssertEquals('Issue 363: fpscolor2 loaded from #FFFF00', TColor(clYellow), TColor(goverlayform.fpscolor2ColorButton.ButtonColor));
+  AssertEquals('Issue 363: fpscolor3 loaded from #00FF00', TColor(clLime), TColor(goverlayform.fpscolor3ColorButton.ButtonColor));
+
+  AssertEquals('Issue 363: fpscolor2SpinEdit threshold loaded', 45, goverlayform.fpscolor2SpinEdit.Value);
+  AssertEquals('Issue 363: fpscolor3SpinEdit threshold loaded', 90, goverlayform.fpscolor3SpinEdit.Value);
+
+  AssertEquals('Issue 363: gpuload1 loaded from #FFFFFF', TColor(clWhite), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('Issue 363: gpuload2 loaded from #FFAB7F', TColor(8366847), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('Issue 363: gpuload3 loaded from #CC0000', TColor(204), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
+
+  AssertEquals('Issue 363: cpuload1 loaded from #30BEF0', TColor($00F0BE30), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+
+  // 2. Assert malformed line does not abort subsequent key loading (gl_vsync, vsync, text_color)
+  AssertEquals('Issue 363: glvsyncComboBox loaded after malformed line', 3, goverlayform.glvsyncComboBox.ItemIndex);
+  AssertEquals('Issue 363: vsyncComboBox loaded after malformed line', 1, goverlayform.vsyncComboBox.ItemIndex);
+  AssertEquals('Issue 363: fontColorButton loaded after malformed line', TColor(clWhite), TColor(goverlayform.fontColorButton.ButtonColor));
 end;
 
 procedure TGoverlayGuiTests.TestTabSwitchingPersistence;
