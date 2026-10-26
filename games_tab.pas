@@ -36,6 +36,7 @@ type
 
   TNonSteamCoverItem = record
     GameName:  string;
+    SubPath:   string;
     CachePath: string;
     CardIndex: Integer;
   end;
@@ -129,10 +130,17 @@ type
     procedure UpdateGameCardBadge(const AGameName: string);
     function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
     procedure GameCardCloneGlobalClick(Sender: TObject);
+    procedure GameCardSetCoverClick(Sender: TObject);
+    procedure GameCardResetCoverClick(Sender: TObject);
+    function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath: string): Boolean;
+    procedure UpdateCardCoverImage(ACard: TPanel; const ACoverPath: string);
   end;
 
 procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
 procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
+procedure DrawCoverAspectFill(ADstBmp: TBitmap; AGraphic: TGraphic);
+function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
+  out ACoverPath: string): Boolean;
 function NormalizeAppImageName(const AFileName: string): string;
 function ResolveUnofficialPortName(const AGameName: string): string;
 
@@ -302,8 +310,7 @@ begin
     ScaledBmp := TBitmap.Create;
     try
       ScaledBmp.SetSize(CARD_W, CARD_H);
-      ScaledBmp.Canvas.StretchDraw(
-        Rect(0, 0, CARD_W, CARD_H), FCurrentImage.Picture.Graphic);
+      DrawCoverAspectFill(ScaledBmp, FCurrentImage.Picture.Graphic);
       ProcessCoverBitmap(ScaledBmp, GRAD_H);
       FCurrentImage.Picture.Bitmap.Assign(ScaledBmp);
       // Update FOrigCovers so hover brightness uses the processed image
@@ -400,6 +407,290 @@ begin
     end;
   finally
     Bmp.Free;
+  end;
+end;
+
+procedure DrawCoverAspectFill(ADstBmp: TBitmap; AGraphic: TGraphic);
+var
+  DstW, DstH, SrcW, SrcH, ScaledW, ScaledH, OffsetX, OffsetY: Integer;
+  Scale, ScaleX, ScaleY: Double;
+  DrawRect: TRect;
+begin
+  if not Assigned(ADstBmp) or not Assigned(AGraphic) then Exit;
+  DstW := ADstBmp.Width;
+  DstH := ADstBmp.Height;
+  SrcW := AGraphic.Width;
+  SrcH := AGraphic.Height;
+  if (DstW <= 0) or (DstH <= 0) or (SrcW <= 0) or (SrcH <= 0) then Exit;
+
+  ScaleX := DstW / SrcW;
+  ScaleY := DstH / SrcH;
+  if ScaleX > ScaleY then
+    Scale := ScaleX
+  else
+    Scale := ScaleY;
+
+  ScaledW := Round(SrcW * Scale);
+  ScaledH := Round(SrcH * Scale);
+  if ScaledW < DstW then ScaledW := DstW;
+  if ScaledH < DstH then ScaledH := DstH;
+
+  OffsetX := (ScaledW - DstW) div 2;
+  OffsetY := (ScaledH - DstH) div 2;
+
+  DrawRect := Rect(-OffsetX, -OffsetY, -OffsetX + ScaledW, -OffsetY + ScaledH);
+  ADstBmp.Canvas.StretchDraw(DrawRect, AGraphic);
+end;
+
+function TryLocalCoverFile(const APath: string; out ACoverPath: string): Boolean;
+begin
+  Result := (APath <> '') and FileExists(APath) and (FileSize(APath) > 2048);
+  if Result then
+    ACoverPath := APath;
+end;
+
+function JsonObjectString(AObj: TJSONObject; const AKey: string): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to AObj.Count - 1 do
+    if SameText(AObj.Names[i], AKey) and (AObj.Items[i].JSONType = jtString) then
+    begin
+      Result := AObj.Items[i].AsString;
+      Exit;
+    end;
+end;
+
+function JsonTitleMatches(const ATitle, AGameName: string): Boolean;
+begin
+  Result := SameText(Trim(ATitle), Trim(AGameName));
+end;
+
+function JsonPathsMatch(const APath, ASubPath: string): Boolean;
+var
+  P1, P2: string;
+begin
+  P1 := ExcludeTrailingPathDelimiter(Trim(APath));
+  P2 := ExcludeTrailingPathDelimiter(Trim(ASubPath));
+  Result := (P1 <> '') and (P2 <> '') and
+            (SameText(P1, P2) or SameText(ExtractFileName(P1), ExtractFileName(P2)));
+end;
+
+function SearchJsonForApp(AData: TJSONData; const AParentKey, AGameName,
+  ASubPath: string; out AAppName: string): Boolean;
+var
+  Obj: TJSONObject;
+  Arr: TJSONArray;
+  i: Integer;
+  AppName, Title, FolderName, InstallPath: string;
+begin
+  Result := False;
+  AAppName := '';
+  if AData = nil then Exit;
+
+  if AData.JSONType = jtObject then
+  begin
+    Obj := TJSONObject(AData);
+    AppName     := JsonObjectString(Obj, 'app_name');
+    Title       := JsonObjectString(Obj, 'title');
+    FolderName  := JsonObjectString(Obj, 'folder_name');
+    InstallPath := JsonObjectString(Obj, 'install_path');
+
+    if JsonTitleMatches(Title, AGameName) or
+       JsonPathsMatch(FolderName, ASubPath) or
+       JsonPathsMatch(InstallPath, ASubPath) then
+    begin
+      if AppName <> '' then
+      begin
+        AAppName := AppName;
+        Result := True;
+        Exit;
+      end;
+      if AParentKey <> '' then
+      begin
+        AAppName := AParentKey;
+        Result := True;
+        Exit;
+      end;
+    end;
+
+    for i := 0 to Obj.Count - 1 do
+      if SearchJsonForApp(Obj.Items[i], Obj.Names[i], AGameName, ASubPath, AAppName) then
+      begin
+        Result := True;
+        Exit;
+      end;
+  end
+  else if AData.JSONType = jtArray then
+  begin
+    Arr := TJSONArray(AData);
+    for i := 0 to Arr.Count - 1 do
+      if SearchJsonForApp(Arr.Items[i], '', AGameName, ASubPath, AAppName) then
+      begin
+        Result := True;
+        Exit;
+      end;
+  end;
+end;
+
+function FindAppNameInHeroicJson(const AFileName, AGameName,
+  ASubPath: string; out AAppName: string): Boolean;
+var
+  Lines: TStringList;
+  Data: TJSONData;
+begin
+  Result := False;
+  AAppName := '';
+  if not FileExists(AFileName) then Exit;
+
+  Lines := TStringList.Create;
+  try
+    try
+      Lines.LoadFromFile(AFileName);
+      Data := GetJSON(Lines.Text);
+    except
+      Data := nil;
+    end;
+    if Assigned(Data) then
+    try
+      Result := SearchJsonForApp(Data, '', AGameName, ASubPath, AAppName);
+    finally
+      Data.Free;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function MakeLutrisSlug(const AName: string): string;
+var
+  i: Integer;
+  C: Char;
+  LastWasDash: Boolean;
+begin
+  Result := LowerCase(AName);
+  LastWasDash := False;
+  for i := 1 to Length(Result) do
+  begin
+    C := Result[i];
+    if (C >= 'a') and (C <= 'z') or (C >= '0') and (C <= '9') then
+    begin
+      Result[i] := C;
+      LastWasDash := False;
+    end
+    else if not LastWasDash then
+    begin
+      Result[i] := '-';
+      LastWasDash := True;
+    end
+    else
+      Result[i] := #0;
+  end;
+
+  Result := StringReplace(Result, #0, '', [rfReplaceAll]);
+  while (Length(Result) > 0) and (Result[1] = '-') do
+    Delete(Result, 1, 1);
+  while (Length(Result) > 0) and (Result[Length(Result)] = '-') do
+    Delete(Result, Length(Result), 1);
+end;
+
+function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
+  out ACoverPath: string): Boolean;
+var
+  HomeDir, CacheDir, SanitizedName: string;
+  HeroicDir, LutrisDir, AppName, Slug, Resolved: string;
+  HeroicDirs: array[0..1] of string;
+  LutrisDirs: array[0..1] of string;
+  Exts: array[0..3] of string;
+  FolderBases: array[0..2] of string;
+  i: Integer;
+
+  function CheckExts(const ABase: string): Boolean;
+  var
+    e: Integer;
+  begin
+    Result := False;
+    for e := Low(Exts) to High(Exts) do
+      if TryLocalCoverFile(ABase + Exts[e], Resolved) then
+      begin
+        ACoverPath := Resolved;
+        Result := True;
+        Exit;
+      end;
+  end;
+
+begin
+  ACoverPath := '';
+  Result := False;
+  if Trim(AGameName) = '' then Exit;
+
+  HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+  Exts[0] := '.png';
+  Exts[1] := '.jpg';
+  Exts[2] := '.jpeg';
+  Exts[3] := '.webp';
+
+  SanitizedName := SanitizeFileName(AGameName);
+  CacheDir := HomeDir + '.cache/goverlay/nonsteam_covers/';
+
+  // 1. GOverlay's own cover cache (any supported extension)
+  if CheckExts(CacheDir + SanitizedName) then Exit(True);
+
+  // 2. Artwork shipped inside the game folder
+  if (ASubPath <> '') and DirectoryExists(ASubPath) then
+  begin
+    FolderBases[0] := 'cover';
+    FolderBases[1] := 'poster';
+    FolderBases[2] := 'folder';
+    for i := Low(FolderBases) to High(FolderBases) do
+      if CheckExts(IncludeTrailingPathDelimiter(ASubPath) + FolderBases[i]) then
+        Exit(True);
+    if CheckExts(IncludeTrailingPathDelimiter(ASubPath) + AGameName) then Exit(True);
+    if CheckExts(IncludeTrailingPathDelimiter(ASubPath) + SanitizedName) then Exit(True);
+  end;
+
+  // 3. Heroic Games Launcher (native and Flatpak)
+  HeroicDirs[0] := HomeDir + '.config/heroic/';
+  HeroicDirs[1] := HomeDir + '.var/app/com.heroicgameslauncher.hgl/config/heroic/';
+  for i := Low(HeroicDirs) to High(HeroicDirs) do
+  begin
+    HeroicDir := IncludeTrailingPathDelimiter(HeroicDirs[i]);
+    if not DirectoryExists(HeroicDir) then Continue;
+
+    if CheckExts(HeroicDir + 'icons/' + AGameName) then Exit(True);
+    if CheckExts(HeroicDir + 'icons/' + SanitizedName) then Exit(True);
+
+    AppName := '';
+    if FindAppNameInHeroicJson(HeroicDir + 'sideload_apps/library.json',
+         AGameName, ASubPath, AppName) or
+       FindAppNameInHeroicJson(HeroicDir + 'store_cache/legendary_install_info.json',
+         AGameName, ASubPath, AppName) or
+       FindAppNameInHeroicJson(HeroicDir + 'store_cache/legendary_library.json',
+         AGameName, ASubPath, AppName) or
+       FindAppNameInHeroicJson(HeroicDir + 'store_cache/gog_library.json',
+         AGameName, ASubPath, AppName) then
+    begin
+      if CheckExts(HeroicDir + 'icons/' + AppName) then Exit(True);
+    end;
+  end;
+
+  // 4. Lutris (native and Flatpak)
+  LutrisDirs[0] := HomeDir + '.local/share/lutris/';
+  LutrisDirs[1] := HomeDir + '.var/app/net.lutris.Lutris/data/lutris/';
+  Slug := MakeLutrisSlug(AGameName);
+  for i := Low(LutrisDirs) to High(LutrisDirs) do
+  begin
+    LutrisDir := IncludeTrailingPathDelimiter(LutrisDirs[i]);
+    if not DirectoryExists(LutrisDir) then Continue;
+
+    if Slug <> '' then
+    begin
+      if CheckExts(LutrisDir + 'coverart/' + Slug) then Exit(True);
+      if CheckExts(LutrisDir + 'banners/' + Slug) then Exit(True);
+    end;
+    if CheckExts(LutrisDir + 'coverart/' + SanitizedName) then Exit(True);
+    if CheckExts(LutrisDir + 'banners/' + SanitizedName) then Exit(True);
   end;
 end;
 
@@ -635,8 +926,7 @@ begin
     ScaledBmp := TBitmap.Create;
     try
       ScaledBmp.SetSize(CARD_W, CARD_H);
-      ScaledBmp.Canvas.StretchDraw(
-        Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+      DrawCoverAspectFill(ScaledBmp, CardImage.Picture.Graphic);
       ProcessCoverBitmap(ScaledBmp, GRAD_H);
       CardImage.Picture.Bitmap.Assign(ScaledBmp);
       if (FCurrentCardIdx >= 0) and (FCurrentCardIdx < FForm.FOrigCovers.Count) then
@@ -669,7 +959,7 @@ end;
 procedure TNonSteamCoverThread.Execute;
 var
   i: Integer;
-  AppId: string;
+  AppId, ResolvedCoverPath: string;
   GotCover, IsFallbackCover: Boolean;
   SearchName: string;
 begin
@@ -680,11 +970,31 @@ begin
     // Already cached?
     if FileExists(FItems[i].CachePath) then
     begin
-      if FileExists(FItems[i].CachePath + '.fallback') then
-        GenerateFallbackCover(FItems[i].CachePath, FForm);
+      if FileSize(FItems[i].CachePath) <= 2048 then
+      begin
+        DeleteFile(FItems[i].CachePath);
+        DeleteFile(FItems[i].CachePath + '.fallback');
+      end
+      else
+      begin
+        if FileExists(FItems[i].CachePath + '.fallback') then
+          GenerateFallbackCover(FItems[i].CachePath, FForm);
+        FCurrentCardIdx := FItems[i].CardIndex;
+        FCurrentPath := FItems[i].CachePath;
+        FCurrentIsFallback := FileExists(FItems[i].CachePath + '.fallback');
+        Synchronize(@DoUpdateImage);
+        Continue;
+      end;
+    end;
+
+    // Local providers (multi-format cache, game folder, Heroic, Lutris)
+    ResolvedCoverPath := '';
+    if ResolveNonSteamLocalCover(FItems[i].GameName, FItems[i].SubPath,
+         ResolvedCoverPath) then
+    begin
       FCurrentCardIdx := FItems[i].CardIndex;
-      FCurrentPath := FItems[i].CachePath;
-      FCurrentIsFallback := FileExists(FItems[i].CachePath + '.fallback');
+      FCurrentPath := ResolvedCoverPath;
+      FCurrentIsFallback := FileExists(ResolvedCoverPath + '.fallback');
       Synchronize(@DoUpdateImage);
       Continue;
     end;
@@ -713,7 +1023,8 @@ begin
       end;
 
     // 3rd attempt: GOverlay Icon fallback
-    if not GotCover and (not FileExists(FItems[i].CachePath) or (FileSize(FItems[i].CachePath) = 0)) then
+    if not GotCover or (not FileExists(FItems[i].CachePath)) or
+       (FileSize(FItems[i].CachePath) <= 2048) then
     begin
       WriteLn(StdErr, '[NonSteamCoverThread] CDN & Web search failed. Generating GOverlay fallback');
       DeleteFile(FItems[i].CachePath);
@@ -1000,6 +1311,16 @@ begin
   FUninstallMenuItem.OnClick := @GameCardUninstallClick;
   FGameCardMenu.Items.Add(FUninstallMenuItem);
 
+  FSetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
+  FSetCoverMenuItem.Caption := 'Set custom cover...';
+  FSetCoverMenuItem.OnClick := @GameCardSetCoverClick;
+  FGameCardMenu.Items.Add(FSetCoverMenuItem);
+
+  FResetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
+  FResetCoverMenuItem.Caption := 'Reset cover art';
+  FResetCoverMenuItem.OnClick := @GameCardResetCoverClick;
+  FGameCardMenu.Items.Add(FResetCoverMenuItem);
+
   FGamesScrollBox := TScrollBox.Create(FForm);
   FGamesScrollBox.Parent := gamesTabSheet;
   FGamesScrollBox.Align := alClient;
@@ -1268,6 +1589,7 @@ var
   j, CardX, CardY, CardsPerRow, TotalRows, RowMargin: Integer;
   AppID, GameName, ImagePath, InstallDir, IconPath, SubPath: string;
   LibPath, GameCfgDir, CachePath: string;
+  ResolvedCover, CoverMarkerPath: string;
   CardPanel: TPanel;
   CardImage: TImage;
   BdgLbl: TLabel;
@@ -1485,16 +1807,26 @@ begin
         BdgLbl.Hint := CardPanel.Hint;
         BdgLbl.ShowHint := True;
 
-        // Try to load cached cover; if missing queue async download
+        // Try local artwork first (cache, game folder, Heroic, Lutris);
+        // if missing queue async download.
         CachePath := NonSteamCacheDir + SanitizeFileName(GameName) + '.jpg';
         HasCover := False;
+        ResolvedCover := '';
 
-        if FileExists(CachePath) and (FileSize(CachePath) > 0) then
+        // Drop a corrupt/truncated legacy .jpg so resolution can retry.
+        if FileExists(CachePath) and (FileSize(CachePath) <= 2048) then
         begin
-          if FileExists(CachePath + '.fallback') then
+          DeleteFile(CachePath);
+          DeleteFile(CachePath + '.fallback');
+        end;
+
+        if ResolveNonSteamLocalCover(GameName, SubPath, ResolvedCover) then
+        begin
+          if SameFileName(ResolvedCover, CachePath) and
+             FileExists(CachePath + '.fallback') then
             GenerateFallbackCover(CachePath, FForm);
           try
-            CardImage.Picture.LoadFromFile(CachePath);
+            CardImage.Picture.LoadFromFile(ResolvedCover);
             HasCover := True;
           except
             HasCover := False;
@@ -1515,7 +1847,11 @@ begin
           end;
         end;
 
-        BdgLbl.Visible := not (HasCover and not FileExists(CachePath + '.fallback'));
+        if HasCover then
+          CoverMarkerPath := ResolvedCover
+        else
+          CoverMarkerPath := CachePath;
+        BdgLbl.Visible := not (HasCover and not FileExists(CoverMarkerPath + '.fallback'));
       end;
 
       // Compute badges from game-specific config dir (if user configured it)
@@ -1603,8 +1939,7 @@ begin
           ScaledBmp := TBitmap.Create;
           try
             ScaledBmp.SetSize(CARD_W, CARD_H);
-            ScaledBmp.Canvas.StretchDraw(
-              Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+            DrawCoverAspectFill(ScaledBmp, CardImage.Picture.Graphic);
             ProcessCoverBitmap(ScaledBmp, GRAD_H);
             CardImage.Picture.Bitmap.Assign(ScaledBmp);
             FOrigCovers.Add(ScaledBmp.CreateIntfImage);
@@ -1624,7 +1959,7 @@ begin
           ScaledBmp := TBitmap.Create;
           try
             ScaledBmp.SetSize(CARD_W, CARD_H);
-            ScaledBmp.Canvas.StretchDraw(Rect(0, 0, CARD_W, CARD_H), CardImage.Picture.Graphic);
+            DrawCoverAspectFill(ScaledBmp, CardImage.Picture.Graphic);
             ProcessCoverBitmap(ScaledBmp, GRAD_H);
             CardImage.Picture.Bitmap.Assign(ScaledBmp);
             FOrigCovers.Add(ScaledBmp.CreateIntfImage);
@@ -1649,6 +1984,7 @@ begin
           // Queue for background cover download thread
           SetLength(PendingItems, PendingCount + 1);
           PendingItems[PendingCount].GameName  := GameName;
+          PendingItems[PendingCount].SubPath   := SubPath;
           PendingItems[PendingCount].CachePath := CachePath;
           PendingItems[PendingCount].CardIndex := FCardPanels.Count - 1;
           Inc(PendingCount);
@@ -1721,13 +2057,12 @@ var
   S: TStringList;
   i, j, k: Integer;
   Candidates: TStringList;
-  SearchRec: TSearchRec;
   TmpFile: string;
 begin
   with FForm do
   begin
   Result := False;
-
+  try
   SearchName := StringReplace(AGameName, ' ', '+', [rfReplaceAll]);
   SearchName := StringReplace(SearchName, '&', '%26', [rfReplaceAll]);
 
@@ -1830,36 +2165,33 @@ begin
          (Pos('.gif', LowerCase(ImgUrl)) > 0) then
         Continue;
 
+      TmpFile := GetTempDir + 'web_cover_' + IntToStr(GetProcessID) + '_' + IntToStr(i) + '.tmp';
       P := TProcess.Create(nil);
       try
         P.Executable := 'curl';
         P.Parameters.Add('-s');
         P.Parameters.Add('-L');
+        P.Parameters.Add('--fail');
         P.Parameters.Add('--connect-timeout');
         P.Parameters.Add('5');
         P.Parameters.Add('--max-time');
         P.Parameters.Add('10');
         P.Parameters.Add('-o');
-        P.Parameters.Add(ACachePath);
+        P.Parameters.Add(TmpFile);
         P.Parameters.Add(ImgUrl);
         P.Options := [poWaitOnExit];
         try
           P.Execute;
-          if (P.ExitStatus = 0) and FileExists(ACachePath) then
+          if (P.ExitStatus = 0) and FileExists(TmpFile) and (FileSize(TmpFile) > 2048) then
           begin
-            // Verify it's a real image by checking file size (> 2KB)
-            if FindFirst(ACachePath, faAnyFile, SearchRec) = 0 then
-            begin
-              if SearchRec.Size > 2048 then
-              begin
-                Result := True;
-                FindClose(SearchRec);
-                Break;
-              end;
-              FindClose(SearchRec);
-            end;
-          end;
+            Result := CopyFile(TmpFile, ACachePath, [cffOverwriteFile]);
+            DeleteFile(TmpFile);
+            if Result then Break;
+          end
+          else
+            DeleteFile(TmpFile);
         except
+          DeleteFile(TmpFile);
         end;
       finally
         P.Free;
@@ -1867,6 +2199,10 @@ begin
     end;
   finally
     Candidates.Free;
+  end;
+  finally
+    if not Result and FileExists(ACachePath) and (FileSize(ACachePath) <= 2048) then
+      DeleteFile(ACachePath);
   end;
   end;
 end;
@@ -2039,8 +2375,9 @@ end;
 
 function TGamesTabHelper.DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
 var
-  ImgUrl: string;
+  ImgUrl, TmpFile: string;
   P: TProcess;
+  CurlOk: Boolean;
 begin
   with FForm do
   begin
@@ -2050,27 +2387,45 @@ begin
   ImgUrl := 'https://steamcdn-a.akamaihd.net/steam/apps/' + AAppId + '/library_600x900.jpg';
 
   ForceDirectories(ExtractFilePath(ACachePath));
+  TmpFile := GetTempDir + 'steam_cover_' + AAppId + '_' + IntToStr(GetProcessID) + '.tmp';
+  CurlOk := False;
   P := TProcess.Create(nil);
   try
     P.Executable := 'curl';
     P.Parameters.Add('-s');
     P.Parameters.Add('-L');
+    P.Parameters.Add('--fail');
     P.Parameters.Add('--connect-timeout');
     P.Parameters.Add('5');
     P.Parameters.Add('--max-time');
     P.Parameters.Add('10');
     P.Parameters.Add('-o');
-    P.Parameters.Add(ACachePath);
+    P.Parameters.Add(TmpFile);
     P.Parameters.Add(ImgUrl);
     P.Options := [poWaitOnExit];
     try
       P.Execute;
-      Result := (P.ExitStatus = 0) and FileExists(ACachePath);
+      CurlOk := (P.ExitStatus = 0);
     except
-      Result := False;
+      CurlOk := False;
     end;
   finally
     P.Free;
+  end;
+
+  if CurlOk and FileExists(TmpFile) and (FileSize(TmpFile) > 2048) then
+  begin
+    Result := CopyFile(TmpFile, ACachePath, [cffOverwriteFile]);
+    DeleteFile(TmpFile);
+    if not Result and FileExists(ACachePath) and (FileSize(ACachePath) <= 2048) then
+      DeleteFile(ACachePath);
+  end
+  else
+  begin
+    DeleteFile(TmpFile);
+    if FileExists(ACachePath) and (FileSize(ACachePath) <= 2048) then
+      DeleteFile(ACachePath);
+    Result := False;
   end;
   end;
 end;
@@ -3102,6 +3457,215 @@ begin
       UpdateGameCardBadge(GameName);
       SendNotification('Goverlay', 'Global configurations cloned for ' + GameName, GetIconFile);
     end;
+  end;
+end;
+
+function TGamesTabHelper.GetCardGameInfo(ACard: TPanel;
+  out AGameName, ASubPath: string): Boolean;
+var
+  Lines: TStringList;
+  p: Integer;
+begin
+  Result := False;
+  AGameName := '';
+  ASubPath := '';
+  if not Assigned(ACard) or (ACard.Hint = '') then Exit;
+
+  Lines := TStringList.Create;
+  try
+    Lines.Text := ACard.Hint;
+    if Lines.Count < 1 then Exit;
+    AGameName := Trim(Lines[0]);
+    if (AGameName <> '') and (AGameName[1] = '(') then
+    begin
+      p := Pos(') ', AGameName);
+      if p > 0 then
+        AGameName := Copy(AGameName, p + 2, MaxInt);
+    end;
+    if Lines.Count >= 2 then
+      ASubPath := Lines[1];
+    AGameName := Trim(AGameName);
+    Result := AGameName <> '';
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TGamesTabHelper.UpdateCardCoverImage(ACard: TPanel;
+  const ACoverPath: string);
+var
+  CardImage: TImage;
+  ScaledBmp: TBitmap;
+  CardIdx, j: Integer;
+begin
+  with FForm do
+  begin
+    if not Assigned(ACard) or not FileExists(ACoverPath) then Exit;
+
+    CardImage := nil;
+    for j := 0 to ACard.ControlCount - 1 do
+      if (ACard.Controls[j] is TImage) and (ACard.Controls[j].Tag = 9995) then
+      begin
+        CardImage := TImage(ACard.Controls[j]);
+        Break;
+      end;
+    if CardImage = nil then
+      for j := 0 to ACard.ControlCount - 1 do
+        if (ACard.Controls[j] is TImage) and (ACard.Controls[j].Tag <> 9990) then
+        begin
+          CardImage := TImage(ACard.Controls[j]);
+          Break;
+        end;
+    if CardImage = nil then Exit;
+
+    try
+      CardImage.Picture.LoadFromFile(ACoverPath);
+    except
+      Exit;
+    end;
+    if (CardImage.Picture.Graphic = nil) or
+       (CardImage.Picture.Graphic.Width <= 0) or
+       (CardImage.Picture.Graphic.Height <= 0) then Exit;
+
+    ScaledBmp := TBitmap.Create;
+    try
+      ScaledBmp.SetSize(CARD_W, CARD_H);
+      DrawCoverAspectFill(ScaledBmp, CardImage.Picture.Graphic);
+      ProcessCoverBitmap(ScaledBmp, GRAD_H);
+      CardImage.Picture.Bitmap.Assign(ScaledBmp);
+
+      if Assigned(FCardPanels) and Assigned(FOrigCovers) then
+      begin
+        CardIdx := FCardPanels.IndexOf(ACard);
+        if (CardIdx >= 0) and (CardIdx < FOrigCovers.Count) then
+        begin
+          if FOrigCovers[CardIdx] <> nil then
+            TLazIntfImage(FOrigCovers[CardIdx]).Free;
+          FOrigCovers[CardIdx] := ScaledBmp.CreateIntfImage;
+        end;
+      end;
+
+      FreeAndNil(FGameThumbBmp);
+      FGameThumbBmp := TBitmap.Create;
+      try
+        FGameThumbBmp.Assign(ScaledBmp);
+      except
+        FreeAndNil(FGameThumbBmp);
+      end;
+      if Assigned(goverlayPaintBox) then
+        goverlayPaintBox.Invalidate;
+    finally
+      ScaledBmp.Free;
+    end;
+
+    for j := 0 to ACard.ControlCount - 1 do
+      if (ACard.Controls[j] is TLabel) and (ACard.Controls[j].Tag = 9991) then
+      begin
+        ACard.Controls[j].Visible := False;
+        Break;
+      end;
+
+    ApplyCardBrightness(ACard, 100);
+  end;
+end;
+
+procedure TGamesTabHelper.GameCardSetCoverClick(Sender: TObject);
+var
+  CardPanel: TPanel;
+  GameName, SubPath, CacheDir, SanitizedName, Ext, TargetPath, SrcPath: string;
+  Dlg: TOpenDialog;
+  Exts: array[0..3] of string;
+  i: Integer;
+begin
+  with FForm do
+  begin
+    CardPanel := FRightClickedCard;
+    if not GetCardGameInfo(CardPanel, GameName, SubPath) then Exit;
+
+    Dlg := TOpenDialog.Create(FForm);
+    try
+      Dlg.Title := 'Select custom cover image';
+      Dlg.Filter := 'Image files (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp|All files (*.*)|*.*';
+      Dlg.Options := Dlg.Options + [ofFileMustExist, ofPathMustExist];
+      if not Dlg.Execute then Exit;
+      SrcPath := Dlg.FileName;
+    finally
+      Dlg.Free;
+    end;
+
+    Ext := LowerCase(ExtractFileExt(SrcPath));
+    if (Ext <> '.png') and (Ext <> '.jpg') and (Ext <> '.jpeg') and (Ext <> '.webp') then
+    begin
+      ShowMessage('Unsupported image format. Please choose a PNG, JPG, JPEG or WebP file.');
+      Exit;
+    end;
+
+    CacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
+    ForceDirectories(CacheDir);
+    SanitizedName := SanitizeFileName(GameName);
+    TargetPath := CacheDir + SanitizedName + Ext;
+
+    if FileExists(TargetPath) then
+      DeleteFile(TargetPath);
+    if not CopyFile(SrcPath, TargetPath) then
+    begin
+      ShowMessage('Could not copy the selected cover image.');
+      Exit;
+    end;
+
+    Exts[0] := '.png';
+    Exts[1] := '.jpg';
+    Exts[2] := '.jpeg';
+    Exts[3] := '.webp';
+    for i := Low(Exts) to High(Exts) do
+    begin
+      if not SameFileName(CacheDir + SanitizedName + Exts[i], TargetPath) then
+        DeleteFile(CacheDir + SanitizedName + Exts[i]);
+      DeleteFile(CacheDir + SanitizedName + Exts[i] + '.fallback');
+    end;
+    DeleteFile(TargetPath + '.fallback');
+
+    UpdateCardCoverImage(CardPanel, TargetPath);
+  end;
+end;
+
+procedure TGamesTabHelper.GameCardResetCoverClick(Sender: TObject);
+var
+  CardPanel: TPanel;
+  GameName, SubPath, CacheDir, SanitizedName, CachePath, ResolvedPath: string;
+  Exts: array[0..3] of string;
+  i: Integer;
+begin
+  with FForm do
+  begin
+    CardPanel := FRightClickedCard;
+    if not GetCardGameInfo(CardPanel, GameName, SubPath) then Exit;
+
+    CacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
+    SanitizedName := SanitizeFileName(GameName);
+
+    Exts[0] := '.png';
+    Exts[1] := '.jpg';
+    Exts[2] := '.jpeg';
+    Exts[3] := '.webp';
+    for i := Low(Exts) to High(Exts) do
+    begin
+      DeleteFile(CacheDir + SanitizedName + Exts[i]);
+      DeleteFile(CacheDir + SanitizedName + Exts[i] + '.fallback');
+    end;
+
+    ResolvedPath := '';
+    if ResolveNonSteamLocalCover(GameName, SubPath, ResolvedPath) then
+    begin
+      UpdateCardCoverImage(CardPanel, ResolvedPath);
+      Exit;
+    end;
+
+    CachePath := CacheDir + SanitizedName + '.jpg';
+    ForceDirectories(CacheDir);
+    GenerateFallbackCover(CachePath, FForm);
+    if FileExists(CachePath) then
+      UpdateCardCoverImage(CardPanel, CachePath);
   end;
 end;
 

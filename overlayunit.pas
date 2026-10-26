@@ -1467,6 +1467,8 @@ type
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FCloneGlobalMenuItem: TMenuItem;
     FUninstallMenuItem: TMenuItem;
+    FSetCoverMenuItem: TMenuItem;    // import custom cover art
+    FResetCoverMenuItem: TMenuItem;  // reset cover to local/fallback art
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
     FMangoIconGfx: TPortableNetworkGraphic;  // cached badge icon for MangoHud
@@ -1634,6 +1636,8 @@ type
     procedure goverlayPageControlChange(Sender: TObject);
     function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
     procedure GameCardCloneGlobalClick(Sender: TObject);
+    procedure GameCardSetCoverClick(Sender: TObject);
+    procedure GameCardResetCoverClick(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
@@ -10342,6 +10346,18 @@ procedure Tgoverlayform.GameCardCloneGlobalClick(Sender: TObject);
 begin
   if Assigned(FGamesHelper) then
     TGamesTabHelper(FGamesHelper).GameCardCloneGlobalClick(Sender);
+end;
+
+procedure Tgoverlayform.GameCardSetCoverClick(Sender: TObject);
+begin
+  if Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).GameCardSetCoverClick(Sender);
+end;
+
+procedure Tgoverlayform.GameCardResetCoverClick(Sender: TObject);
+begin
+  if Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).GameCardResetCoverClick(Sender);
 end;
 
 procedure Tgoverlayform.CloneGlobalDockMenuItemClick(Sender: TObject);

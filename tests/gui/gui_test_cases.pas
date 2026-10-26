@@ -159,6 +159,8 @@ type
     procedure TestOptiScalerTogglesLoadFromDisk;
     procedure TestGlobalToolTogglesPersistenceAcrossLaunches;
     procedure TestGameCardFallbackCoverGeneration;
+    procedure TestNonSteamCoverResolutionAndAspectFill;
+    procedure TestGameCardCustomCoverMenuItems;
     procedure TestToolToggleOffPreservesConfigFiles;
     procedure TestPerGameLaunchCommandImmediateUpdate;
     procedure TestPreviewLaunchEnvironmentHonorsToolToggles;
@@ -2375,6 +2377,218 @@ begin
     if FileExists(CoverPath) then DeleteFile(CoverPath);
     if FileExists(CoverPath + '.fallback') then DeleteFile(CoverPath + '.fallback');
   end;
+end;
+
+procedure TGoverlayGuiTests.TestNonSteamCoverResolutionAndAspectFill;
+var
+  SquareBmp, WideBmp, TargetBmp: TBitmap;
+  CacheDir, CorruptPath, ValidPngPath, GameDir, GameCoverPath: string;
+  LutrisDir, LutrisCoverPath: string;
+  HeroicRoot, HeroicIconsDir, HeroicCacheDir: string;
+  HeroicCoverPath, HeroicJsonPath, ResolvedPath: string;
+  Lines: TStringList;
+
+  procedure WritePaddedFile(const APath: string; ASize: Integer);
+  var
+    Data: string;
+    Stream: TFileStream;
+  begin
+    ForceDirectories(ExtractFilePath(APath));
+    Data := StringOfChar('x', ASize);
+    Stream := TFileStream.Create(APath, fmCreate);
+    try
+      Stream.WriteBuffer(Data[1], Length(Data));
+    finally
+      Stream.Free;
+    end;
+  end;
+
+  procedure WriteValidPng(const APath: string; AWidth, AHeight: Integer);
+  var
+    Bmp: TBitmap;
+    Png: TPortableNetworkGraphic;
+    X, Y: Integer;
+  begin
+    ForceDirectories(ExtractFilePath(APath));
+    Bmp := TBitmap.Create;
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Bmp.SetSize(AWidth, AHeight);
+      for Y := 0 to AHeight - 1 do
+        for X := 0 to AWidth - 1 do
+          Bmp.Canvas.Pixels[X, Y] := RGBToColor(Random(256), Random(256), Random(256));
+      Png.Assign(Bmp);
+      Png.SaveToFile(APath);
+    finally
+      Png.Free;
+      Bmp.Free;
+    end;
+  end;
+
+  procedure DeleteCachedCover(const AName: string);
+  var
+    Exts: array[0..3] of string;
+    I: Integer;
+    Base: string;
+  begin
+    Base := CacheDir + SanitizeFileName(AName);
+    Exts[0] := '.png';
+    Exts[1] := '.jpg';
+    Exts[2] := '.jpeg';
+    Exts[3] := '.webp';
+    for I := Low(Exts) to High(Exts) do
+      if FileExists(Base + Exts[I]) then
+        DeleteFile(Base + Exts[I]);
+    if FileExists(Base + '.jpg.fallback') then
+      DeleteFile(Base + '.jpg.fallback');
+  end;
+
+begin
+  CacheDir := IncludeTrailingPathDelimiter(IsolatedHome) +
+    '.cache/goverlay/nonsteam_covers/';
+
+  // Test 1: aspect-fill preserves the target canvas size for square and
+  // widescreen sources.
+  SquareBmp := TBitmap.Create;
+  WideBmp := TBitmap.Create;
+  TargetBmp := TBitmap.Create;
+  try
+    SquareBmp.SetSize(100, 100);
+    SquareBmp.Canvas.Brush.Color := clRed;
+    SquareBmp.Canvas.FillRect(Rect(0, 0, 100, 100));
+
+    WideBmp.SetSize(200, 100);
+    WideBmp.Canvas.Brush.Color := clBlue;
+    WideBmp.Canvas.FillRect(Rect(0, 0, 200, 100));
+
+    TargetBmp.SetSize(140, 210);
+    DrawCoverAspectFill(TargetBmp, SquareBmp);
+    AssertEquals('Square cover keeps target width', 140, TargetBmp.Width);
+    AssertEquals('Square cover keeps target height', 210, TargetBmp.Height);
+
+    DrawCoverAspectFill(TargetBmp, WideBmp);
+    AssertEquals('Widescreen cover keeps target width', 140, TargetBmp.Width);
+    AssertEquals('Widescreen cover keeps target height', 210, TargetBmp.Height);
+  finally
+    TargetBmp.Free;
+    WideBmp.Free;
+    SquareBmp.Free;
+  end;
+
+  // Test 2: corrupt cache file below the 2048-byte threshold is rejected.
+  DeleteCachedCover('CorruptGame');
+  CorruptPath := CacheDir + 'CorruptGame.jpg';
+  WritePaddedFile(CorruptPath, 146);
+  try
+    AssertTrue('Corrupt cache file is 146 bytes', FileSize(CorruptPath) = 146);
+    ResolvedPath := '';
+    AssertFalse('ResolveNonSteamLocalCover rejects a 146-byte cache file',
+      ResolveNonSteamLocalCover('CorruptGame', '', ResolvedPath));
+  finally
+    if FileExists(CorruptPath) then DeleteFile(CorruptPath);
+  end;
+
+  // Test 3: valid cached PNG is accepted and returned.
+  DeleteCachedCover('ValidGame');
+  ValidPngPath := CacheDir + 'ValidGame.png';
+  WriteValidPng(ValidPngPath, 128, 128);
+  try
+    AssertTrue('Valid dummy PNG exceeds 2048 bytes', FileSize(ValidPngPath) > 2048);
+    ResolvedPath := '';
+    AssertTrue('ResolveNonSteamLocalCover finds a cached PNG',
+      ResolveNonSteamLocalCover('ValidGame', '', ResolvedPath));
+    AssertTrue('Resolved cache path ends with ValidGame.png',
+      EndsText('ValidGame.png', ResolvedPath));
+  finally
+    if FileExists(ValidPngPath) then DeleteFile(ValidPngPath);
+  end;
+
+  // Test 4: game folder cover.png takes precedence over remote lookups.
+  GameDir := IncludeTrailingPathDelimiter(GetTempDir) + 'test_game_dir';
+  GameCoverPath := IncludeTrailingPathDelimiter(GameDir) + 'cover.png';
+  DeleteCachedCover('RandomGame');
+  if DirectoryExists(GameDir) then DeleteDirectory(GameDir, True);
+  WriteValidPng(GameCoverPath, 128, 128);
+  try
+    AssertTrue('Game folder cover.png exceeds 2048 bytes', FileSize(GameCoverPath) > 2048);
+    ResolvedPath := '';
+    AssertTrue('ResolveNonSteamLocalCover finds game folder cover.png',
+      ResolveNonSteamLocalCover('RandomGame', GameDir, ResolvedPath));
+    AssertTrue('Resolved game folder path ends with cover.png',
+      EndsText(PathDelim + 'cover.png', ResolvedPath));
+  finally
+    if FileExists(GameCoverPath) then DeleteFile(GameCoverPath);
+    if DirectoryExists(GameDir) then DeleteDirectory(GameDir, False);
+  end;
+
+  // Test 5: Lutris coverart slug resolution.
+  DeleteCachedCover('Mortal Shell 2');
+  LutrisDir := IncludeTrailingPathDelimiter(IsolatedHome) +
+    '.local/share/lutris/coverart/';
+  LutrisCoverPath := LutrisDir + 'mortal-shell-2.jpg';
+  WritePaddedFile(LutrisCoverPath, 4096);
+  try
+    AssertTrue('Lutris cover exceeds 2048 bytes', FileSize(LutrisCoverPath) > 2048);
+    ResolvedPath := '';
+    AssertTrue('ResolveNonSteamLocalCover finds Lutris coverart',
+      ResolveNonSteamLocalCover('Mortal Shell 2', '', ResolvedPath));
+    AssertTrue('Resolved Lutris path ends with mortal-shell-2.jpg',
+      EndsText('mortal-shell-2.jpg', ResolvedPath));
+  finally
+    if FileExists(LutrisCoverPath) then DeleteFile(LutrisCoverPath);
+    if DirectoryExists(LutrisDir) then DeleteDirectory(LutrisDir, False);
+    if DirectoryExists(IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/lutris/') then
+      DeleteDirectory(IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/lutris/', False);
+  end;
+
+  // Test 6: Heroic resolves the app_name from legendary_library.json before
+  // looking up the matching icon.
+  DeleteCachedCover('Batman Arkham Knight');
+  HeroicRoot := IncludeTrailingPathDelimiter(IsolatedHome) + '.config/heroic/';
+  HeroicIconsDir := HeroicRoot + 'icons/';
+  HeroicCacheDir := HeroicRoot + 'store_cache/';
+  HeroicCoverPath := HeroicIconsDir + 'Cowbird.jpg';
+  HeroicJsonPath := HeroicCacheDir + 'legendary_library.json';
+  WritePaddedFile(HeroicCoverPath, 4096);
+  Lines := TStringList.Create;
+  try
+    Lines.Add('{"library": [{"title": "Batman Arkham Knight", "app_name": "Cowbird"}]}');
+    ForceDirectories(HeroicCacheDir);
+    Lines.SaveToFile(HeroicJsonPath);
+  finally
+    Lines.Free;
+  end;
+  try
+    AssertTrue('Heroic icon exceeds 2048 bytes', FileSize(HeroicCoverPath) > 2048);
+    ResolvedPath := '';
+    AssertTrue('ResolveNonSteamLocalCover finds Heroic library icon',
+      ResolveNonSteamLocalCover('Batman Arkham Knight', '', ResolvedPath));
+    AssertTrue('Resolved Heroic path ends with Cowbird.jpg',
+      EndsText('Cowbird.jpg', ResolvedPath));
+  finally
+    if FileExists(HeroicJsonPath) then DeleteFile(HeroicJsonPath);
+    if FileExists(HeroicCoverPath) then DeleteFile(HeroicCoverPath);
+    if DirectoryExists(HeroicCacheDir) then DeleteDirectory(HeroicCacheDir, False);
+    if DirectoryExists(HeroicIconsDir) then DeleteDirectory(HeroicIconsDir, False);
+    if DirectoryExists(HeroicRoot) then DeleteDirectory(HeroicRoot, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGameCardCustomCoverMenuItems;
+begin
+  AssertNotNull('FGameCardMenu is initialized', goverlayform.FGameCardMenu);
+  AssertNotNull('FSetCoverMenuItem is initialized', goverlayform.FSetCoverMenuItem);
+  AssertNotNull('FResetCoverMenuItem is initialized', goverlayform.FResetCoverMenuItem);
+
+  AssertTrue('FSetCoverMenuItem is in FGameCardMenu',
+    goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FSetCoverMenuItem) >= 0);
+  AssertTrue('FResetCoverMenuItem is in FGameCardMenu',
+    goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FResetCoverMenuItem) >= 0);
+
+  AssertEquals('FSetCoverMenuItem caption', 'Set custom cover...',
+    goverlayform.FSetCoverMenuItem.Caption);
+  AssertEquals('FResetCoverMenuItem caption', 'Reset cover art',
+    goverlayform.FResetCoverMenuItem.Caption);
 end;
 
 procedure TGoverlayGuiTests.TestToolToggleOffPreservesConfigFiles;
