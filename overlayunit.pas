@@ -1785,7 +1785,6 @@ var
   // APPLICATION BLACKLIST AND REPOSITORY
   // ============================================================================
   BlacklistStr: string;                 // Blacklist string representation
-  blacklistVAR: string;                 // Blacklist variable
   RepoDir: string;                      // ReShade shader repository directory
 
   // ============================================================================
@@ -4383,7 +4382,7 @@ begin
     ForceDirectories(ExtractFilePath(MANGOHUDCFGFILE));
   if not FileExists(MANGOHUDCFGFILE) and FileExists(MANGOHUDFOLDER + 'MangoHud.conf') then
     ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDFOLDER + 'MangoHud.conf') + ' ' + QuotedStr(MANGOHUDCFGFILE));
-  BLACKLISTFILE := IncludeTrailingPathDelimiter(GetGOverlayConfigDir()) + 'blacklist.conf';
+  BLACKLISTFILE := TConfigManager.GetBlacklistFile;
   CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
   VKBASALTFOLDER := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir());
@@ -7952,11 +7951,6 @@ begin
 end;
 
 procedure Tgoverlayform.saveBitBtnClick(Sender: TObject);
-var
-  FileLines: TStringList;
-  i: Integer;
-  GlobalMangoHudFile: string;  // Global MangoHud config path (for blacklist — never game-specific)
-  BlacklistCfg: TConfigFile;
 begin
   // ################### SAVE TWEAKS TAB SETTINGS
   if (goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet) then
@@ -8009,53 +8003,10 @@ begin
 
     //########################################### SAVE BLACKLIST
     // The blacklist is always applied to the global MangoHud.conf (it filters
-    // process names system-wide). Use a local variable so that MANGOHUDCFGFILE
-    // continues to point to the game-specific path when in game mode.
-
-    BLACKLISTFILE := GetUserConfigDir + '/goverlay/blacklist.conf';
-    GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
-
-    FileLines := TStringList.Create;
-    try
-      // if blacklist.conf dont exist, create a stock one
-      if not FileExists(BLACKLISTFILE) then
-      begin
-        FileLines.Add('zenity');
-        FileLines.Add('protonplus');
-        FileLines.Add('lsfg-vk-ui');
-        FileLines.Add('bazzar');
-        FileLines.Add('gnome-calculator');
-        FileLines.Add('pamac-manager');
-        FileLines.Add('lact');
-        FileLines.Add('ghb');
-        FileLines.Add('bitwig-studio');
-        FileLines.Add('ptyxis');
-        FileLines.Add('yumex');
-        ForceDirectories(ExtractFilePath(BLACKLISTFILE)); // create directory
-        FileLines.SaveToFile(BLACKLISTFILE);
-      end
-      else
-        FileLines.LoadFromFile(BLACKLISTFILE);  // load file
-
-      // Build blacklist=... string
-      blacklistVAR := 'blacklist=' + FileLines[0];
-      for i := 1 to FileLines.Count - 1 do
-        blacklistVAR := blacklistVAR + ',' + FileLines[i];
-    finally
-      FileLines.Free;
-    end;
-
-    // Ensure global MangoHud.conf has the updated blacklist line
-    BlacklistCfg := TConfigFile.Create;
-    try
-      BlacklistCfg.Load(GlobalMangoHudFile);
-      BlacklistCfg.DeleteKey('blacklist=');
-      BlacklistCfg.AddRaw(blacklistVAR);
-      CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
-      BlacklistCfg.Save;
-    finally
-      BlacklistCfg.Free;
-    end;
+    // process names system-wide). SyncBlacklistToMangoHud resolves blacklist.conf
+    // through TConfigManager so MANGOHUDCFGFILE can keep pointing to the
+    // game-specific path when in game mode.
+    SyncBlacklistToMangoHud;
 
 end;  //  ################### END - SAVE MANGOHUD
 

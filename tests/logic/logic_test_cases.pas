@@ -160,10 +160,17 @@ type
     procedure TestGetBGModDlssNrPathArch;
   end;
 
+  TMangoHudBlacklistSyncTests = class(TTestCase)
+  published
+    procedure TestBlacklistSyncCreatesDefaultAndSyncs;
+    procedure TestBlacklistSyncExplicitList;
+    procedure TestBlacklistSyncEmptyList;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, configkeys, test_isolation, overlay_config, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
+  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -3357,6 +3364,86 @@ begin
   AssertTrue('Default path ends with dlss-nr', Pos('dlss-nr', GetBGModDlssNrPath('')) > 0);
 end;
 
+procedure TMangoHudBlacklistSyncTests.TestBlacklistSyncCreatesDefaultAndSyncs;
+var
+  BlacklistFile, MangoHudFile, GlobalProfileFile: string;
+  Lines: TStringList;
+begin
+  BlacklistFile := TConfigManager.GetBlacklistFile;
+  if FileExists(BlacklistFile) then
+    DeleteFile(BlacklistFile);
+
+  MangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  if FileExists(MangoHudFile) then
+    DeleteFile(MangoHudFile);
+
+  GlobalProfileFile := GetGameConfigDir('') + 'MangoHud.conf';
+  ForceDirectories(ExtractFilePath(GlobalProfileFile));
+  if FileExists(GlobalProfileFile) then
+    DeleteFile(GlobalProfileFile);
+
+  AssertTrue('SyncBlacklistToMangoHud succeeds', SyncBlacklistToMangoHud);
+  AssertTrue('BlacklistFile created', FileExists(BlacklistFile));
+  AssertTrue('MangoHudFile created', FileExists(MangoHudFile));
+  AssertTrue('Global profile MangoHudFile created', FileExists(GlobalProfileFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(MangoHudFile);
+    AssertTrue('blacklist line present in MangoHud.conf', Pos('blacklist=', Lines.Text) > 0);
+    AssertTrue('zenity present in blacklist', Pos('zenity', Lines.Text) > 0);
+    AssertTrue('lsfg-vk-ui present in blacklist', Pos('lsfg-vk-ui', Lines.Text) > 0);
+
+    Lines.LoadFromFile(GlobalProfileFile);
+    AssertTrue('blacklist line present in global profile MangoHud.conf', Pos('blacklist=', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudBlacklistSyncTests.TestBlacklistSyncExplicitList;
+var
+  CustomList, Lines: TStringList;
+  MangoHudFile: string;
+begin
+  MangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  CustomList := TStringList.Create;
+  Lines := TStringList.Create;
+  try
+    CustomList.Add('custom-game-bin');
+    CustomList.Add('discord');
+    AssertTrue('Sync succeeds with custom list', SyncBlacklistToMangoHud(CustomList));
+
+    Lines.LoadFromFile(MangoHudFile);
+    AssertTrue('Custom blacklist line present', Pos('blacklist=custom-game-bin,discord', Lines.Text) > 0);
+  finally
+    CustomList.Free;
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudBlacklistSyncTests.TestBlacklistSyncEmptyList;
+var
+  EmptyList, Lines: TStringList;
+  MangoHudFile: string;
+begin
+  MangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+  EmptyList := TStringList.Create;
+  Lines := TStringList.Create;
+  try
+    AssertTrue('Sync succeeds with empty list', SyncBlacklistToMangoHud(EmptyList));
+
+    if FileExists(MangoHudFile) then
+    begin
+      Lines.LoadFromFile(MangoHudFile);
+      AssertFalse('blacklist= should be deleted when list is empty', Pos('blacklist=', Lines.Text) > 0);
+    end;
+  finally
+    EmptyList.Free;
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -3374,5 +3461,6 @@ initialization
   RegisterTest(TRuntimeUpdateDowngradeTests);
   RegisterTest(TShellQuoteTests);
   RegisterTest(TRDNAArchitectureTests);
+  RegisterTest(TMangoHudBlacklistSyncTests);
 
 end.

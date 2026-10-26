@@ -298,6 +298,7 @@ function LoadVkSumiConfig(const CfgFile: string; out Settings: TVkSumiSettings):
 function LoadOptiScalerConfig(const ActiveGameName: string; out Settings: TOptiScalerSettings): Boolean;
 
 function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts: TStrings; out ErrMsg: string): Boolean;
+function SyncBlacklistToMangoHud(const ABlacklist: TStrings = nil): Boolean;
 procedure EnsureDefaultConfigFiles(const GVersion, GChannel, VkbToggleKeyText: string);
 
 implementation
@@ -2257,6 +2258,97 @@ begin
   Result := Format('%.2x%.2x%.2x', [Red, Green, Blue]); // Formata a string no formato HTML (#RRGGBB)
 end;
 
+function SyncBlacklistToMangoHud(const ABlacklist: TStrings = nil): Boolean;
+const
+  DEFAULT_BLACKLIST: array[0..10] of string = (
+    'zenity',
+    'protonplus',
+    'lsfg-vk-ui',
+    'bazzar',
+    'gnome-calculator',
+    'pamac-manager',
+    'lact',
+    'ghb',
+    'bitwig-studio',
+    'ptyxis',
+    'yumex'
+  );
+var
+  BlacklistFile, BlacklistVar: string;
+  GlobalMangoHudFile, GlobalProfileMangoHudFile, FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
+  BlacklistLines: TStringList;
+  Source: TStrings;
+  i: Integer;
+
+  function ApplyToFile(const AFileName: string): Boolean;
+  var
+    Cfg: TConfigFile;
+  begin
+    Cfg := TConfigFile.Create;
+    try
+      Cfg.Load(AFileName);
+      Cfg.DeleteKey('blacklist=');
+      if BlacklistVar <> '' then
+        Cfg.AddRaw(BlacklistVar);
+      if Cfg.Modified then
+        Result := Cfg.Save
+      else
+        Result := True;
+    finally
+      Cfg.Free;
+    end;
+  end;
+
+begin
+  Result := False;
+  BlacklistLines := nil;
+  try
+    if ABlacklist = nil then
+    begin
+      BlacklistLines := TStringList.Create;
+      BlacklistFile := TConfigManager.GetBlacklistFile;
+      if FileExists(BlacklistFile) then
+        BlacklistLines.LoadFromFile(BlacklistFile)
+      else
+      begin
+        for i := Low(DEFAULT_BLACKLIST) to High(DEFAULT_BLACKLIST) do
+          BlacklistLines.Add(DEFAULT_BLACKLIST[i]);
+        CreateHostDirectory(ExtractFilePath(BlacklistFile));
+        BlacklistLines.SaveToFile(BlacklistFile);
+      end;
+      Source := BlacklistLines;
+    end
+    else
+      Source := ABlacklist;
+
+    BlacklistVar := '';
+    if Source.Count > 0 then
+    begin
+      BlacklistVar := 'blacklist=' + Source[0];
+      for i := 1 to Source.Count - 1 do
+        BlacklistVar := BlacklistVar + ',' + Source[i];
+    end;
+
+    GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
+    CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
+    Result := ApplyToFile(GlobalMangoHudFile);
+
+    GlobalProfileMangoHudFile := GetGameConfigDir('') + 'MangoHud.conf';
+    if DirectoryExists(ExtractFilePath(GlobalProfileMangoHudFile)) or FileExists(GlobalProfileMangoHudFile) then
+    begin
+      CreateHostDirectory(ExtractFilePath(GlobalProfileMangoHudFile));
+      ApplyToFile(GlobalProfileMangoHudFile);
+    end;
+
+    FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+    FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
+    if DirectoryExists(GetUserDir + '.var') then
+      ApplyToFile(FlatpakMangoHudFile);
+  finally
+    BlacklistLines.Free;
+  end;
+end;
+
 function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts: TStrings; out ErrMsg: string): Boolean;
 var
   ConfigLines: TStringList;
@@ -2872,7 +2964,7 @@ begin
     AddIfTrue(Settings.AutoUpload, 'upload_logs');
 
     // Blacklist
-    BlacklistFile := GetUserConfigDir + '/goverlay/blacklist.conf';
+    BlacklistFile := TConfigManager.GetBlacklistFile;
     BlacklistLines := TStringList.Create;
     try
       if not FileExists(BlacklistFile) then
@@ -3042,7 +3134,7 @@ begin
   end;
 
   // Check directory  -  BLACKLIST
-  BlacklistFile := GetUserConfigDir + '/goverlay/blacklist.conf';
+  BlacklistFile := TConfigManager.GetBlacklistFile;
 
   // make sure directory exists -  BLACKLIST
   ForceDirectories(ExtractFilePath(BlacklistFile));
