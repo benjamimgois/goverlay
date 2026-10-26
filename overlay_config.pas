@@ -2067,16 +2067,15 @@ begin
     try
       if FakeCfg.Load(FakeNvapiIniPath) then
       begin
-        if FakeCfg.HasKey(FAKE_KEY_FORCE_REFLEX) then
+        Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
+        if (Value = '1') or (Value = '2') then
         begin
           Settings.ForceReflexChecked := True;
-          Value := FakeCfg.GetValue(FAKE_KEY_FORCE_REFLEX, '0');
           case Value of
-            '0': Settings.ReflexItemIndex := 0;
             '1': Settings.ReflexItemIndex := 1;
             '2': Settings.ReflexItemIndex := 2;
           else
-            Settings.ReflexItemIndex := 0;
+            Settings.ReflexItemIndex := 2;
           end;
         end
         else

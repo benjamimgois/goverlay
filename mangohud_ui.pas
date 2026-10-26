@@ -189,6 +189,8 @@ type
     procedure MetricGraphClick(Sender: TObject);
   end;
 
+function HexToColor(const HexValue: string): TColor;
+
 implementation
 
 type
@@ -4998,10 +5000,27 @@ begin
 end;
 
 function HexToColor(const HexValue: string): TColor;
+var
+  CleanHex: string;
+  R, G, B: Integer;
 begin
-  Result := RGBToColor(StrToInt('$' + Copy(HexValue, 1, 2)),
-                       StrToInt('$' + Copy(HexValue, 3, 2)),
-                       StrToInt('$' + Copy(HexValue, 5, 2)));
+  CleanHex := Trim(HexValue);
+  if (CleanHex <> '') and (CleanHex[1] = '#') then
+    CleanHex := Copy(CleanHex, 2, Length(CleanHex));
+  CleanHex := Trim(CleanHex);
+
+  if Length(CleanHex) = 3 then
+    CleanHex := CleanHex[1] + CleanHex[1] + CleanHex[2] + CleanHex[2] + CleanHex[3] + CleanHex[3];
+
+  if (Length(CleanHex) >= 6) and
+     TryStrToInt('$' + Copy(CleanHex, 1, 2), R) and
+     TryStrToInt('$' + Copy(CleanHex, 3, 2), G) and
+     TryStrToInt('$' + Copy(CleanHex, 5, 2), B) then
+  begin
+    Result := RGBToColor(R, G, B);
+  end
+  else
+    Result := clWhite;
 end;
 
 procedure TMangoHudUiHelper.ResetMetricGraphs;
@@ -5248,7 +5267,12 @@ begin
         // Keys without value (boolean flags)
         if ColonPos = 0 then
         begin
-          LoadMangoHudBoolFlag(TrimmedLine);
+          try
+            LoadMangoHudBoolFlag(TrimmedLine);
+          except
+            on E: Exception do
+              WriteLn('[MANGOHUD] Warning parsing flag "', TrimmedLine, '": ', E.Message);
+          end;
           Continue;
         end;
 
@@ -5260,7 +5284,12 @@ begin
         if (Length(Value) > 0) and (Value[1] = '"') then
           Value := StringReplace(Value, '"', '', [rfReplaceAll]);
 
-        LoadMangoHudKeyValue(Key, Value);
+        try
+          LoadMangoHudKeyValue(Key, Value);
+        except
+          on E: Exception do
+            WriteLn('[MANGOHUD] Warning parsing key "', Key, '": ', E.Message);
+        end;
       end;
 
     finally

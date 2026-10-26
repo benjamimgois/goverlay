@@ -63,6 +63,7 @@ type
     procedure TestCustomOptiScalerBuildSupport;
     procedure TestOptiEmuFp8Save;
     procedure TestOptiForceReflexSave;
+    procedure TestOptiForceReflexSeededZeroDoesNotCheck;
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
     procedure TestOptiForceReflexAutoSave;
     procedure TestOptiMethodRadioAutoSave;
@@ -2023,6 +2024,30 @@ begin
   AssertTrue('force_reflex key removed when unchecked', Pos('force_reflex', Content) = 0);
 end;
 
+procedure TGoverlayGuiTests.TestOptiForceReflexSeededZeroDoesNotCheck;
+var
+  F: TextFile;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.mesaRadioButton.Checked := True;
+
+  AssignFile(F, FakeIniPath);
+  Rewrite(F);
+  WriteLn(F, 'force_reflex=0');
+  WriteLn(F, 'force_latencyflex=0');
+  WriteLn(F, 'latencyflex_mode=0');
+  WriteLn(F, 'enable_trace_logs=0');
+  CloseFile(F);
+
+  goverlayform.forcereflexCheckBox.Checked := True;
+  goverlayform.reflexComboBox.ItemIndex := 2;
+  goverlayform.LoadOptiScalerConfig;
+
+  AssertFalse('force_reflex=0 leaves checkbox unchecked', goverlayform.forcereflexCheckBox.Checked);
+  AssertEquals('force_reflex=0 leaves reflex item index at 0', 0, goverlayform.reflexComboBox.ItemIndex);
+end;
+
 procedure TGoverlayGuiTests.TestOptiForceReflexSaveSeedingWhenMissing;
 var
   Content: string;
@@ -2167,7 +2192,7 @@ begin
   FakeLines := TStringList.Create;
   try
     FakeLines.Add('[fakenvapi]');
-    FakeLines.Add('force_reflex=0');
+    FakeLines.Add('force_reflex=1');
     FakeLines.Add('force_latencyflex=1');
     FakeLines.Add('latencyflex_mode=1');
     FakeLines.SaveToFile(FakeIniPath);

@@ -69,6 +69,12 @@ type
     procedure TestGpuListBothGpus;
   end;
 
+  TMangoHudColorParsingTests = class(TTestCase)
+  published
+    procedure TestHexToColorParsing;
+    procedure TestOptiForceReflexLoadingLogic;
+  end;
+
   TClearConfigTests = class(TTestCase)
   published
     procedure TestPreserveNonEmptyBackups;
@@ -170,7 +176,7 @@ type
 implementation
 
 uses
-  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector;
+  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector, mangohud_ui, Graphics;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -3444,6 +3450,67 @@ begin
   end;
 end;
 
+procedure TMangoHudColorParsingTests.TestHexToColorParsing;
+begin
+  AssertEquals('Red with hash', clRed, HexToColor('#FF0000'));
+  AssertEquals('Lime with hash', clLime, HexToColor('#00FF00'));
+  AssertEquals('Blue with hash', clBlue, HexToColor('#0000FF'));
+  AssertEquals('Hex without hash', clLime, HexToColor('00FF00'));
+  AssertEquals('Short 3-character hex', clLime, HexToColor('#0F0'));
+  AssertEquals('Hex with spaces', clLime, HexToColor('  #00FF00  '));
+  AssertEquals('Empty hex fallback', clWhite, HexToColor(''));
+  AssertEquals('Invalid string fallback', clWhite, HexToColor('not_a_color'));
+end;
+
+procedure TMangoHudColorParsingTests.TestOptiForceReflexLoadingLogic;
+var
+  GameName, IniPath: string;
+  Settings: TOptiScalerSettings;
+
+  procedure WriteFakeIni(const AContent: string);
+  var
+    F: TextFile;
+  begin
+    AssignFile(F, IniPath);
+    Rewrite(F);
+    if AContent <> '' then
+      WriteLn(F, AContent);
+    CloseFile(F);
+  end;
+
+begin
+  GameName := 'TestForceReflexLoadingLogic';
+  IniPath := GetGameConfigDir(GameName) + 'fakenvapi.ini';
+  ForceDirectories(ExtractFilePath(IniPath));
+  try
+    WriteFakeIni('force_reflex=0');
+    AssertTrue('LoadOptiScalerConfig succeeds with force_reflex=0',
+      LoadOptiScalerConfig(GameName, Settings));
+    AssertFalse('force_reflex=0 is unchecked', Settings.ForceReflexChecked);
+    AssertEquals('force_reflex=0 sets item index 0', 0, Settings.ReflexItemIndex);
+
+    WriteFakeIni('force_reflex=1');
+    AssertTrue('LoadOptiScalerConfig succeeds with force_reflex=1',
+      LoadOptiScalerConfig(GameName, Settings));
+    AssertTrue('force_reflex=1 is checked', Settings.ForceReflexChecked);
+    AssertEquals('force_reflex=1 sets item index 1', 1, Settings.ReflexItemIndex);
+
+    WriteFakeIni('force_reflex=2');
+    AssertTrue('LoadOptiScalerConfig succeeds with force_reflex=2',
+      LoadOptiScalerConfig(GameName, Settings));
+    AssertTrue('force_reflex=2 is checked', Settings.ForceReflexChecked);
+    AssertEquals('force_reflex=2 sets item index 2', 2, Settings.ReflexItemIndex);
+
+    WriteFakeIni('force_latencyflex=0');
+    AssertTrue('LoadOptiScalerConfig succeeds without force_reflex',
+      LoadOptiScalerConfig(GameName, Settings));
+    AssertFalse('Missing force_reflex is unchecked', Settings.ForceReflexChecked);
+    AssertEquals('Missing force_reflex sets item index 0', 0, Settings.ReflexItemIndex);
+  finally
+    DeleteFile(IniPath);
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -3452,6 +3519,7 @@ initialization
   RegisterTest(TVkBasaltLogicTests);
   RegisterTest(TGpuNameExtractionTests);
   RegisterTest(TMangoHudGpuListTests);
+  RegisterTest(TMangoHudColorParsingTests);
   RegisterTest(TClearConfigTests);
   RegisterTest(TMakoLogicTests);
   RegisterTest(TBgmodSupervisorTests);
