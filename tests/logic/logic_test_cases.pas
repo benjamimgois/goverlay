@@ -102,6 +102,9 @@ type
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
     procedure TestBgmodLauncherRuleSpacelessGameName;
+    procedure TestBgmodLauncherRuleCaseInsensitive;
+    procedure TestBgmodSensitiveArgRedaction;
+    procedure TestBgmodWineDllOverridesSemicolonDelimiter;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -2585,6 +2588,259 @@ begin
     Lines.LoadFromFile(LogFile);
     AssertTrue('Resolved GameDir should point to bin/x64/', Pos('bin/x64', Lines.Text) > 0);
     AssertTrue('Resolved TargetExeName should be Cyberpunk2077.exe', Pos('exe: Cyberpunk2077.exe', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodLauncherRuleCaseInsensitive;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockPrelauncher, MockRealExe, LogFile: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  EnsureBgmodBinary;
+  MockGameDir := IsolatedHome + '/games/Cyberpunk2077CaseInsensitive';
+  ForceDirectories(MockGameDir + '/bin/x64');
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Cyberpunk 2077 CaseInsensitive';
+  ForceDirectories(TestGameCfgDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Use a lowercase launcher name to exercise case-insensitive rule matching
+  MockPrelauncher := MockGameDir + '/redprelauncher.exe';
+  AssignFile(F, MockPrelauncher); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockPrelauncher), &755);
+
+  MockRealExe := MockGameDir + '/bin/x64/Cyberpunk2077.exe';
+  AssignFile(F, MockRealExe); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRealExe), &755);
+
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'CENTRAL_LOGS=1');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockPrelauncher);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/Cyberpunk 2077 CaseInsensitive/bgmod.log';
+  AssertTrue('bgmod.log should exist', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Resolved GameDir should point to bin/x64/', Pos('bin/x64', Lines.Text) > 0);
+    AssertTrue('Lowercase launcher should resolve to Cyberpunk2077.exe',
+      Pos('exe: Cyberpunk2077.exe', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodSensitiveArgRedaction;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockExe, LogFile, Content: string;
+  SecretPassword, SecretUser, SecretToken: string;
+  F: TextFile;
+  Lines: TStringList;
+  i: Integer;
+  LoginTokenRedacted: Boolean;
+begin
+  EnsureBgmodBinary;
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/RedactionTestGame';
+  MockGameDir := IsolatedHome + '/.local/share/goverlay/mock_game_redaction';
+  ForceDirectories(TestGameCfgDir);
+  ForceDirectories(MockGameDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockExe := MockGameDir + '/game.exe';
+  AssignFile(F, MockExe); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockExe), &755);
+
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  CloseFile(F);
+
+  SecretPassword := 'PasswordSecretValue123';
+  SecretUser := 'EpicUserSecretValue456';
+  SecretToken := 'AuthLoginTokenSecret789';
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Parameters.Add('-AUTH_PASSWORD=' + SecretPassword);
+    Proc.Parameters.Add('-epicuserid=' + SecretUser);
+    Proc.Parameters.Add('-AUTH_LOGIN');
+    Proc.Parameters.Add(SecretToken);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/RedactionTestGame/bgmod.log';
+  AssertTrue('bgmod.log should exist', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    Content := Lines.Text;
+
+    AssertTrue('AUTH_PASSWORD value must be redacted',
+      Pos('-AUTH_PASSWORD=[REDACTED]', Content) > 0);
+    AssertTrue('epicuserid value must be redacted',
+      Pos('-epicuserid=[REDACTED]', Content) > 0);
+    LoginTokenRedacted := False;
+    for i := 0 to Lines.Count - 2 do
+      if (Pos('-AUTH_LOGIN', Lines[i]) > 0) and
+         (Pos('[REDACTED]', Lines[i + 1]) > 0) then
+        LoginTokenRedacted := True;
+    AssertTrue('AUTH_LOGIN token must be redacted as the next log value', LoginTokenRedacted);
+    AssertFalse('Password secret must not leak into bgmod.log',
+      Pos(SecretPassword, Content) > 0);
+    AssertFalse('Epic user id secret must not leak into bgmod.log',
+      Pos(SecretUser, Content) > 0);
+    AssertFalse('Auth login token secret must not leak into bgmod.log',
+      Pos(SecretToken, Content) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodWineDllOverridesSemicolonDelimiter;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockExe, LogFile, Content, EnvStr: string;
+  F: TextFile;
+  Lines: TStringList;
+  EnvIndex: Integer;
+begin
+  EnsureBgmodBinary;
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/WineDllOverridesTestGame';
+  MockGameDir := IsolatedHome + '/.local/share/goverlay/mock_game_winedlloverrides';
+  ForceDirectories(TestGameCfgDir);
+  ForceDirectories(MockGameDir);
+  ForceDirectories(IsolatedHome + '/.local/share/goverlay/optiscaler-stable');
+  ForceDirectories(IsolatedHome + '/.local/share/goverlay/reshade/bin');
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockExe := MockGameDir + '/game.exe';
+  AssignFile(F, MockExe); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockExe), &755);
+
+  // Seed OptiScaler and ReShade payloads so both proxies are deployed
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/optiscaler-stable/OptiScaler.dll');
+  Rewrite(F);
+  WriteLn(F, 'MOCK_OPTISCALER_DLL');
+  CloseFile(F);
+
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/reshade/bin/ReShade64.dll');
+  Rewrite(F);
+  WriteLn(F, 'MOCK_RESHADE_64_PAYLOAD');
+  CloseFile(F);
+
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'DLL=version.dll');
+  WriteLn(F, 'RESHADE_DLL=dxgi.dll');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    // Preserve the environment but drop any inherited override list so the
+    // expected value starts empty.
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+    begin
+      EnvStr := GetEnvironmentString(EnvIndex);
+      if Pos('WINEDLLOVERRIDES=', UpperCase(EnvStr)) <> 1 then
+        Proc.Environment.Add(EnvStr);
+    end;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/WineDllOverridesTestGame/bgmod.log';
+  AssertTrue('bgmod.log should exist', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    Content := Lines.Text;
+    AssertTrue('WINEDLLOVERRIDES should join OptiScaler and ReShade with a semicolon',
+      Pos('Export WINEDLLOVERRIDES=version=n,b;dxgi=n,b', Content) > 0);
   finally
     Lines.Free;
   end;

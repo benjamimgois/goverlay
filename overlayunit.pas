@@ -7583,7 +7583,9 @@ end;
 
 function Tgoverlayform.IsOptiScalerActive: Boolean;
 begin
-  Result := Assigned(noneUpscalerRadioButton) and not noneUpscalerRadioButton.Checked;
+  Result := FNavToolEnabled[2] and
+            Assigned(noneUpscalerRadioButton) and
+            not noneUpscalerRadioButton.Checked;
 end;
 
 function Tgoverlayform.GetOptiScalerProxyDll: string;

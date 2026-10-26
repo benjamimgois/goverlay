@@ -1098,6 +1098,7 @@ begin
 
   // Setup: ReShade is active and OptiScaler is active
   Helper.SelectMethod(rmReshade);
+  goverlayform.FNavToolEnabled[2] := True;
   goverlayform.noneUpscalerRadioButton.Checked := False;
   goverlayform.optiscalerRadioButton.Checked := True;
 
@@ -1165,6 +1166,20 @@ begin
   if Assigned(goverlayform.filenameComboBox.OnChange) then
     goverlayform.filenameComboBox.OnChange(goverlayform.filenameComboBox);
   AssertEquals('OptiScaler allowed to select dxgi.dll when ReShade is None', 0, goverlayform.filenameComboBox.ItemIndex);
+
+  // --- Scenario 7: OptiScaler master toggle is disabled (FNavToolEnabled[2] = False) ---
+  // ReShade selects dxgi.dll without triggering conflict dialog or enabling OptiScaler
+  Helper.SelectMethod(rmReshade);
+  Helper.ProxyComboBox.ItemIndex := 1; // d3d11.dll
+  Helper.PreviousProxyIndex := 1;
+  goverlayform.FNavToolEnabled[2] := False; // Master toggle OFF
+  goverlayform.filenameComboBox.ItemIndex := 0; // dxgi.dll in combobox
+  Helper.AutoConfirmProxyResolution := 0; // No auto-confirm; real prompt would fail or block
+  Helper.ProxyComboBox.ItemIndex := 0; // select dxgi.dll
+  if Assigned(Helper.ProxyComboBox.OnChange) then
+    Helper.ProxyComboBox.OnChange(Helper.ProxyComboBox);
+  AssertEquals('ReShade accepts dxgi.dll without conflict prompt when OptiScaler disabled', 0, Helper.ProxyComboBox.ItemIndex);
+  AssertFalse('OptiScaler remains inactive', goverlayform.IsOptiScalerActive);
 
   // Restore state to avoid leaking OptiScaler active into subsequent tests
   if Assigned(goverlayform.noneUpscalerRadioButton) then

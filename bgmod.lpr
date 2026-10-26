@@ -2411,6 +2411,36 @@ begin
     SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars');
 end;
 
+function IsSensitiveFlagName(const S: string): Boolean;
+var
+  LowS: string;
+begin
+  LowS := LowerCase(S);
+  Result := (LowS = '-auth_password') or (LowS = '-auth_login') or
+            (LowS = '-epicuserid') or (LowS = '-epicpassword') or
+            (LowS = '-authtoken') or (LowS = '-epicauthtoken');
+end;
+
+function RedactSensitiveParam(const Param: string): string;
+var
+  LowParam: string;
+  PosEq: Integer;
+begin
+  LowParam := LowerCase(Param);
+  if (Pos('-auth_password=', LowParam) = 1) or
+     (Pos('-auth_login=', LowParam) = 1) or
+     (Pos('-epicuserid=', LowParam) = 1) or
+     (Pos('-epicpassword=', LowParam) = 1) or
+     (Pos('-authtoken=', LowParam) = 1) or
+     (Pos('-epicauthtoken=', LowParam) = 1) then
+  begin
+    PosEq := Pos('=', Param);
+    Result := Copy(Param, 1, PosEq) + '[REDACTED]';
+    Exit;
+  end;
+  Result := Param;
+end;
+
 procedure ResolveGameDirectory;
 var
   Arg, ExePath, LutrisId, Cmd, Cand, FullPath, Ext: string;
@@ -2476,10 +2506,10 @@ begin
               TargetSub := Trim(Copy(EntryVal, 1, PosPipe - 1));
               Repl := Trim(Copy(EntryVal, PosPipe + 1, MaxInt));
               
-              if ((Pos(CleanKey, Arg) > 0) or
-                  (Pos(StringReplace(CleanKey, ' ', '', [rfReplaceAll]),
-                       StringReplace(Arg, ' ', '', [rfReplaceAll])) > 0)) and
-                 (Pos(TargetSub, Arg) > 0) then
+              if ((Pos(LowerCase(CleanKey), LowerCase(Arg)) > 0) or
+                  (Pos(StringReplace(LowerCase(CleanKey), ' ', '', [rfReplaceAll]),
+                       StringReplace(LowerCase(Arg), ' ', '', [rfReplaceAll])) > 0)) and
+                 (Pos(LowerCase(TargetSub), LowerCase(Arg)) > 0) then
               begin
                 Arg := StringReplace(Arg, TargetSub, Repl, [rfReplaceAll, rfIgnoreCase]);
                 Break;
@@ -2907,6 +2937,7 @@ var
   IsPerGameProfile: Boolean;
   i, j, p, StartArgIdx, EnvCount: Integer;
   InsertAfter, ArgBase: Integer;
+  NextArgIsSensitive: Boolean;
   Key, Val, Line: string;
   ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
   ReShadeShadersDir, WineShaders, WineTextures, EffectPaths, TexturePaths, OverlayKey: string;
@@ -3991,13 +4022,13 @@ begin
     DllBase := ChangeFileExt(DllName, '');
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
     if CurrentOverrides <> '' then
-      NewOverrides := CurrentOverrides + ',' + DllBase + '=n,b'
+      NewOverrides := CurrentOverrides + ';' + DllBase + '=n,b'
     else
       NewOverrides := DllBase + '=n,b';
     if (UpscalerType = 3) and (HelixSrNativeDlss = 1) then
     begin
       if Pos('nvngx=', NewOverrides) = 0 then
-        NewOverrides := NewOverrides + ',nvngx=n,b';
+        NewOverrides := NewOverrides + ';nvngx=n,b';
     end;
     SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
     Log('Export WINEDLLOVERRIDES=' + NewOverrides);
@@ -4031,7 +4062,7 @@ begin
     if Pos(ReshadeDllBase + '=', CurrentOverrides) = 0 then
     begin
       if CurrentOverrides <> '' then
-        NewOverrides := CurrentOverrides + ',' + ReshadeDllBase + '=n,b'
+        NewOverrides := CurrentOverrides + ';' + ReshadeDllBase + '=n,b'
       else
         NewOverrides := ReshadeDllBase + '=n,b';
       SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
@@ -4578,25 +4609,56 @@ begin
     ArgsStrings[0] := 'game-performance';
 
   p := ArgBase;
+  NextArgIsSensitive := False;
   // Command up to and including the game executable
   for i := StartArgIdx to InsertAfter do
   begin
     ArgsStrings[p] := ParamStr(i);
-    Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
+    if NextArgIsSensitive then
+    begin
+      Log('Arg ' + IntToStr(p) + ': [REDACTED]');
+      NextArgIsSensitive := False;
+    end
+    else
+    begin
+      Log('Arg ' + IntToStr(p) + ': ' + RedactSensitiveParam(ArgsStrings[p]));
+      if IsSensitiveFlagName(ArgsStrings[p]) then
+        NextArgIsSensitive := True;
+    end;
     Inc(p);
   end;
   // Injected launch arguments
   for j := 0 to ActiveArgsList.Count - 1 do
   begin
     ArgsStrings[p] := ActiveArgsList[j];
-    Log('Arg ' + IntToStr(p) + ' (injected): ' + ArgsStrings[p]);
+    if NextArgIsSensitive then
+    begin
+      Log('Arg ' + IntToStr(p) + ' (injected): [REDACTED]');
+      NextArgIsSensitive := False;
+    end
+    else
+    begin
+      Log('Arg ' + IntToStr(p) + ' (injected): ' + RedactSensitiveParam(ArgsStrings[p]));
+      if IsSensitiveFlagName(ArgsStrings[p]) then
+        NextArgIsSensitive := True;
+    end;
     Inc(p);
   end;
   // Remaining arguments after the game executable
   for i := InsertAfter + 1 to ParamCount do
   begin
     ArgsStrings[p] := ParamStr(i);
-    Log('Arg ' + IntToStr(p) + ': ' + ArgsStrings[p]);
+    if NextArgIsSensitive then
+    begin
+      Log('Arg ' + IntToStr(p) + ': [REDACTED]');
+      NextArgIsSensitive := False;
+    end
+    else
+    begin
+      Log('Arg ' + IntToStr(p) + ': ' + RedactSensitiveParam(ArgsStrings[p]));
+      if IsSensitiveFlagName(ArgsStrings[p]) then
+        NextArgIsSensitive := True;
+    end;
     Inc(p);
   end;
 

@@ -337,7 +337,10 @@ begin
               TargetSub := Trim(Copy(EntryVal, 1, PosPipe - 1));
               Repl := Trim(Copy(EntryVal, PosPipe + 1, MaxInt));
               
-              if (Pos(CleanKey, Arg) > 0) and (Pos(TargetSub, Arg) > 0) then
+              if ((Pos(LowerCase(CleanKey), LowerCase(Arg)) > 0) or
+                  (Pos(StringReplace(LowerCase(CleanKey), ' ', '', [rfReplaceAll]),
+                       StringReplace(LowerCase(Arg), ' ', '', [rfReplaceAll])) > 0)) and
+                 (Pos(LowerCase(TargetSub), LowerCase(Arg)) > 0) then
               begin
                 Arg := StringReplace(Arg, TargetSub, Repl, [rfReplaceAll, rfIgnoreCase]);
                 Break;
