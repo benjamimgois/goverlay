@@ -2290,8 +2290,12 @@ begin
 hudbackgroundColorButton.ButtonColor:= clblack;
 
 fontColorButton.ButtonColor := clwhite;
-gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
-cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+gpuload1ColorButton.ButtonColor:=clWhite;
+gpuload2ColorButton.ButtonColor:=clWhite;
+gpuload3ColorButton.ButtonColor:=clWhite;
+cpuload1ColorButton.ButtonColor:=clWhite;
+cpuload2ColorButton.ButtonColor:=clWhite;
+cpuload3ColorButton.ButtonColor:=clWhite;
 
 gpuColorButton.ButtonColor:=clwhite;
 cpuColorButton.ButtonColor:=clwhite;
@@ -5922,8 +5926,12 @@ begin
 hudbackgroundColorButton.ButtonColor:= clblack;
 
 fontColorButton.ButtonColor := clwhite;
-gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
-cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+gpuload1ColorButton.ButtonColor:=COLOR_LOAD_LOW;
+gpuload2ColorButton.ButtonColor:=COLOR_LOAD_MED;
+gpuload3ColorButton.ButtonColor:=COLOR_LOAD_HIGH;
+cpuload1ColorButton.ButtonColor:=COLOR_LOAD_LOW;
+cpuload2ColorButton.ButtonColor:=COLOR_LOAD_MED;
+cpuload3ColorButton.ButtonColor:=COLOR_LOAD_HIGH;
 
 gpuColorButton.ButtonColor:=$0062972E;
 cpuColorButton.ButtonColor:=$00CB972E;
@@ -6890,8 +6898,12 @@ begin
 hudbackgroundColorButton.ButtonColor:= clblack;
 
 fontColorButton.ButtonColor := clFuchsia;
-gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
-cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+gpuload1ColorButton.ButtonColor:=clFuchsia;
+gpuload2ColorButton.ButtonColor:=clFuchsia;
+gpuload3ColorButton.ButtonColor:=clFuchsia;
+cpuload1ColorButton.ButtonColor:=clFuchsia;
+cpuload2ColorButton.ButtonColor:=clFuchsia;
+cpuload3ColorButton.ButtonColor:=clFuchsia;
 
 gpuColorButton.ButtonColor:=clFuchsia;
 cpuColorButton.ButtonColor:=clFuchsia;
@@ -7191,8 +7203,12 @@ begin
 hudbackgroundColorButton.ButtonColor:= clblack;
 
 fontColorButton.ButtonColor := clSilver;
-gpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor ;
-cpuload1ColorButton.ButtonColor:=fontColorButton.ButtonColor;
+gpuload1ColorButton.ButtonColor:=COLOR_GOVERLAY_CYAN;
+gpuload2ColorButton.ButtonColor:=COLOR_LOAD_MED;
+gpuload3ColorButton.ButtonColor:=COLOR_LOAD_HIGH;
+cpuload1ColorButton.ButtonColor:=COLOR_GOVERLAY_CYAN;
+cpuload2ColorButton.ButtonColor:=COLOR_LOAD_MED;
+cpuload3ColorButton.ButtonColor:=COLOR_LOAD_HIGH;
 
 engineColorButton.ButtonColor:=clSilver;
 wineColorButton.ButtonColor:=clyellow;

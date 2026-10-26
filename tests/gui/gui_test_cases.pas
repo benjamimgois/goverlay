@@ -150,6 +150,7 @@ type
     procedure TestLsfgVkBuildsHtmlParsingIgnoresGitVersion;
     procedure TestMangoHudPresetsToggleSynchronization;
     procedure TestMangoHudMetricGraphs;
+    procedure TestMangoHudLoadColorPresets;
     procedure TestFinishConfigurationDialogModernSteamUI;
     procedure TestDockOpenConfigFileAction;
     procedure TestDynamicLaunchCommandGeneration;
@@ -7067,6 +7068,56 @@ begin
   AssertFalse('Basic preset resets FvramusageToggle graph', Helper.FvramusageToggle.GraphActive);
   C := ReadFileText(MangoConfPath);
   AssertFalse('Basic preset writes no graphs=', Pos('graphs=', C) > 0);
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudLoadColorPresets;
+var
+  Helper: TMangoHudUiHelper;
+begin
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('MangoHud Helper is assigned', Assigned(Helper));
+
+  // Mango preset: low=white, medium=orange, high=red
+  goverlayform.mangocolorBitBtnClick(nil);
+  AssertEquals('Mango preset: gpuload1 is white', TColor(clWhite), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('Mango preset: cpuload1 is white', TColor(clWhite), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+  AssertEquals('Mango preset: gpuload2 is orange', TColor(8366847), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('Mango preset: cpuload2 is orange', TColor(8366847), TColor(goverlayform.cpuload2ColorButton.ButtonColor));
+  AssertEquals('Mango preset: gpuload3 is red', TColor(204), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
+  AssertEquals('Mango preset: cpuload3 is red', TColor(204), TColor(goverlayform.cpuload3ColorButton.ButtonColor));
+
+  // GOverlay preset: low=signature cyan, medium=orange, high=red
+  goverlayform.goverlayBitBtnClick(nil);
+  AssertEquals('GOverlay preset: gpuload1 is cyan', TColor($00F0BE30), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('GOverlay preset: cpuload1 is cyan', TColor($00F0BE30), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+  AssertEquals('GOverlay preset: gpuload2 is orange', TColor(8366847), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('GOverlay preset: cpuload2 is orange', TColor(8366847), TColor(goverlayform.cpuload2ColorButton.ButtonColor));
+  AssertEquals('GOverlay preset: gpuload3 is red', TColor(204), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
+  AssertEquals('GOverlay preset: cpuload3 is red', TColor(204), TColor(goverlayform.cpuload3ColorButton.ButtonColor));
+
+  // White preset: all load colors white
+  goverlayform.whitecolorBitBtnClick(nil);
+  AssertEquals('White preset: gpuload1 is white', TColor(clWhite), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('White preset: gpuload2 is white', TColor(clWhite), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('White preset: gpuload3 is white', TColor(clWhite), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
+  AssertEquals('White preset: cpuload1 is white', TColor(clWhite), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+  AssertEquals('White preset: cpuload2 is white', TColor(clWhite), TColor(goverlayform.cpuload2ColorButton.ButtonColor));
+  AssertEquals('White preset: cpuload3 is white', TColor(clWhite), TColor(goverlayform.cpuload3ColorButton.ButtonColor));
+
+  // Afterburner preset: all load colors fuchsia
+  goverlayform.afterburnercolorBitBtn1Click(nil);
+  AssertEquals('Afterburner preset: gpuload1 is fuchsia', TColor(clFuchsia), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('Afterburner preset: gpuload2 is fuchsia', TColor(clFuchsia), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('Afterburner preset: gpuload3 is fuchsia', TColor(clFuchsia), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
+  AssertEquals('Afterburner preset: cpuload1 is fuchsia', TColor(clFuchsia), TColor(goverlayform.cpuload1ColorButton.ButtonColor));
+  AssertEquals('Afterburner preset: cpuload2 is fuchsia', TColor(clFuchsia), TColor(goverlayform.cpuload2ColorButton.ButtonColor));
+  AssertEquals('Afterburner preset: cpuload3 is fuchsia', TColor(clFuchsia), TColor(goverlayform.cpuload3ColorButton.ButtonColor));
+
+  // Reset restores the default load gradient
+  Helper.ResetMangoHudControls;
+  AssertEquals('Reset: gpuload1 is white', TColor(clWhite), TColor(goverlayform.gpuload1ColorButton.ButtonColor));
+  AssertEquals('Reset: gpuload2 is orange', TColor(8366847), TColor(goverlayform.gpuload2ColorButton.ButtonColor));
+  AssertEquals('Reset: gpuload3 is red', TColor(204), TColor(goverlayform.gpuload3ColorButton.ButtonColor));
 end;
 
 procedure TGoverlayGuiTests.TestPreviewLaunchEnvironmentHonorsToolToggles;

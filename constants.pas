@@ -154,6 +154,12 @@ const
   COLOR_NVIDIA_GREEN = $0000B875;      // NVIDIA Green
   COLOR_INTEL_ARC_YELLOW = $00FEC601;  // Intel ARC Yellow
 
+  // MangoHud Load Colors
+  COLOR_LOAD_LOW   = clWhite;   // Low load (< 50%): White ($00FFFFFF)
+  COLOR_LOAD_MED   = 8366847;   // Medium load (50 - 90%): Orange ($7FABFF)
+  COLOR_LOAD_HIGH  = 204;       // High load (> 90%): Red ($000000CC)
+  COLOR_GOVERLAY_CYAN = $00F0BE30; // GOverlay signature cyan: RGB(48, 190, 240)
+
   // ============================================================================
   // RESHADE SHADER FOLDER
   // ============================================================================

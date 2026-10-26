@@ -5181,12 +5181,12 @@ begin
     fpscolor2spinedit.Value := 30;
     fpscolor3spinedit.Value := 60;
 
-    gpuload1ColorButton.ButtonColor := clWhite;
-    gpuload2ColorButton.ButtonColor := clWhite;
-    gpuload3ColorButton.ButtonColor := clWhite;
-    cpuload1ColorButton.ButtonColor := clWhite;
-    cpuload2ColorButton.ButtonColor := clWhite;
-    cpuload3ColorButton.ButtonColor := clWhite;
+    gpuload1ColorButton.ButtonColor := COLOR_LOAD_LOW;
+    gpuload2ColorButton.ButtonColor := COLOR_LOAD_MED;
+    gpuload3ColorButton.ButtonColor := COLOR_LOAD_HIGH;
+    cpuload1ColorButton.ButtonColor := COLOR_LOAD_LOW;
+    cpuload2ColorButton.ButtonColor := COLOR_LOAD_MED;
+    cpuload3ColorButton.ButtonColor := COLOR_LOAD_HIGH;
 
     // BitBtns
     frametimetypeBitBtn.ImageIndex := 8;
