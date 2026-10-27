@@ -18,7 +18,7 @@ uses
   qtwidgets, fpreadjpeg, configmanager, IntfGraphics, Grids,
   configkeys, configfile, uihelpers, apputils, overlay_config, overlay_utils,
   goverlay_strings, toggle_switch,
-  floating_dock, finish_dialog, floating_overlay, pasplot_form;
+  floating_dock, finish_dialog, floating_overlay, pasplot_form, first_run_dialog;
 
 
 
@@ -1032,8 +1032,11 @@ type
     // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure CheckAndUpdateConfigVersion;
   public
+    FClearedConfig: Boolean;
     procedure SaveWindowGeometry;
     procedure LoadWindowGeometry;
+    function  IsModuleEnabled(const AModuleName: string): Boolean;
+    procedure SetModuleEnabled(const AModuleName: string; AEnabled: Boolean);
     procedure CheckAndShowChangelog;
     procedure ShowChangelogAsync(Data: PtrInt);
     procedure DeferredShowChangelogPopup(Data: PtrInt);
@@ -1427,6 +1430,12 @@ type
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FCreateSteamShortcutItem: TMenuItem; // settings menu item to create steam shortcut
     FLaunchSplashItem:   TMenuItem;  // settings menu toggle for launch splash screen
+    FModulesMenuItem:    TMenuItem;  // settings menu item to manage integrations / modules
+    FOptiScalerPlaceholder: TPanel;
+    FLosslessPlaceholder:   TPanel;
+    FVkBasaltPlaceholder:   TPanel;
+    FReshadePlaceholder:    TPanel;
+    FVkSumiPlaceholder:     TPanel;
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
     FShowLaunchSplash:   Boolean;    // whether to show launch splash screen on game start
@@ -1553,6 +1562,15 @@ type
     procedure LaunchSplashMenuItemClick(Sender: TObject);
     procedure LoadLaunchSplashConfig;
     procedure SaveLaunchSplashConfig;
+    procedure ModulesMenuItemClick(Sender: TObject);
+    procedure EnableUpscalersModuleClick(Sender: TObject);
+    procedure EnableFrameGenModuleClick(Sender: TObject);
+    procedure EnablePostProcessingModuleClick(Sender: TObject);
+    procedure EnableReshadeModuleClick(Sender: TObject);
+    procedure EnableVkSumiModuleClick(Sender: TObject);
+    procedure EnableVkBasaltModuleClick(Sender: TObject);
+    procedure UpdateTabModulePlaceholders;
+    procedure EnsureModulePlaceholder(ATabSheet: TTabSheet; const AModuleName, ATitle, ADesc: string; var APlaceholder: TPanel);
      procedure BenchmarkTimerTick(Sender: TObject);
      procedure CopyPasCubeLogs;
      procedure BuildNavToolToggles;
@@ -1655,6 +1673,7 @@ type
 
 
 procedure ListFilesToListBox(const BaseDir: string; ListBox: TListBox; const FilterExts: array of string; const Recursive: Boolean = True; const SkipDotDirs: Boolean = True);
+procedure CleanupUnsolicitedDesktopFiles;
 
 var
   goverlayform: Tgoverlayform;
@@ -2962,6 +2981,13 @@ procedure Tgoverlayform.reshadeTabSheetShow(Sender: TObject);
 var
   VkShadersDir: string;
 begin
+  UpdateTabModulePlaceholders;
+  if not TConfigManager.IsModuleEnabled(MODULE_RESHADE) then
+  begin
+    SetSaveBtnEnabled(False);
+    Exit;
+  end;
+
   VkShadersDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
   if DirectoryExists(VkShadersDir) and (aveffectsListbox.Items.Count = 0) then
   begin
@@ -2995,6 +3021,13 @@ var
   RepoDir: string;
   ContentW: Integer;
 begin
+  UpdateTabModulePlaceholders;
+  if not TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
+  begin
+    SetSaveBtnEnabled(False);
+    Exit;
+  end;
+
   // Reload vkBasalt config whenever the tab becomes visible so that
   // changes saved from another context (or another tab switch) are reflected
   // in the UI. This fixes the issue where switching away and back to vkBasalt
@@ -3009,7 +3042,7 @@ begin
   if Assigned(FBasaltHelper) then
     TVkBasaltTabHelper(FBasaltHelper).UpdateVkBasaltTheme;
 
-  if not FReshadeDownloadedOnFirstShow then
+  if not FReshadeDownloadedOnFirstShow and TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
   begin
     FReshadeDownloadedOnFirstShow := True;
     RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
@@ -3038,6 +3071,16 @@ var
   ci, gi: Integer;
   Sec: TPanel;
 begin
+  UpdateTabModulePlaceholders;
+  if not TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
+  begin
+    if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], False);
+    if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], False);
+    if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], False);
+    SetSaveBtnEnabled(False);
+    Exit;
+  end;
+
   LoadVkSumiConfig;
   // Reflow vkSumi tab with correct width when tab becomes visible
   if Assigned(FVsScrollBox) then
@@ -3367,7 +3410,8 @@ procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction
 var
   k: Integer;
 begin
-  SaveWindowGeometry;
+  if not FClearedConfig then
+    SaveWindowGeometry;
   FClosing := True;
   if Assigned(FCoverThread) then
   begin
@@ -3866,7 +3910,9 @@ begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
-  NeedsDownload := HasMissingMandatoryLibraries or IsOptiPatcherUpdateAvailable or IsVkSumiUpdateAvailable;
+  NeedsDownload := HasMissingMandatoryLibraries or
+    (TConfigManager.IsModuleEnabled(MODULE_UPSCALERS) and IsOptiPatcherUpdateAvailable) or
+    (TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING) and IsVkSumiUpdateAvailable);
 
   if not NeedsDownload then
   begin
@@ -3962,6 +4008,7 @@ begin
   FNavHelper := TSidebarNavHelper.Create(Self);
   FReshadeDownloadedOnFirstShow := False;
   FAutoDownloadingReshade := False;
+  FClearedConfig := False;
   FOsDriverLoading := False;
   FMockMangoHudInstalled := -1;
   FMockVkBasaltInstalled := -1;
@@ -5314,6 +5361,15 @@ begin
   // used section and avoids an unnecessary extra click on every launch.
   mangohudLabelClick(nil);
 
+  // Show first-run onboarding wizard on fresh installations
+  if (not TestMode) and (not TConfigManager.IsFirstRunWizardCompleted) then
+    ShowFirstRunSetupDialog(Self, True);
+
+  CleanupUnsolicitedDesktopFiles;
+  UpdateTabModulePlaceholders;
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+
   // Auto-install OptiScaler & DLSS Enabler if missing — deferred via QueueAsyncCall so
   // the window is fully painted before the splash appears.
   // When startup downloads finish (or if none needed), ShowChangelogAsync is queued so "What's New"
@@ -5602,7 +5658,19 @@ begin
     TReshadeTabHelper(FReshadeHelper).UpdateVkBasaltBanner(VkInstalled);
 
   // 3. vkSumi Banner
-  if not SumiInstalled then
+  if not TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
+  begin
+    if Assigned(FVkSumiMissingBanner) then
+      FVkSumiMissingBanner.Visible := False;
+    if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    begin
+      if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], False);
+      if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], False);
+      if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], False);
+      SetSaveBtnEnabled(False);
+    end;
+  end
+  else if not SumiInstalled then
   begin
     if not Assigned(FVkSumiMissingBanner) then
       FVkSumiMissingBanner := CreateDependencyWarningBanner(
@@ -9981,6 +10049,8 @@ begin
     optiscalerTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = vkbasaltTabSheet then
     vkbasaltTabSheetShow(nil)
+  else if Assigned(reshadeTabSheet) and (goverlayPageControl.ActivePage = reshadeTabSheet) then
+    reshadeTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = vksumiTabSheet then
     vkSumiTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = tweaksTabSheet then
@@ -10001,6 +10071,10 @@ end;
 
 procedure Tgoverlayform.optiscalerTabSheetShow(Sender: TObject);
 begin
+  UpdateTabModulePlaceholders;
+  if not TConfigManager.IsModuleEnabled(MODULE_UPSCALERS) then
+    Exit;
+
   FLastLosslessShowTick := 0;
   FLoadingConfig := True;
   try
@@ -10033,6 +10107,10 @@ end;
 
 procedure Tgoverlayform.losslessScalingTabSheetShow(Sender: TObject);
 begin
+  UpdateTabModulePlaceholders;
+  if not TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION) then
+    Exit;
+
   if FLoadingConfig then Exit;
   if (FActiveGameName = FLastLosslessGame) and (GetTickCount64 - FLastLosslessShowTick < 50) then Exit;
   FLastLosslessShowTick := GetTickCount64;
@@ -11284,6 +11362,17 @@ begin
   end;
 end;
 
+function Tgoverlayform.IsModuleEnabled(const AModuleName: string): Boolean;
+begin
+  Result := TConfigManager.IsModuleEnabled(AModuleName);
+end;
+
+procedure Tgoverlayform.SetModuleEnabled(const AModuleName: string;
+  AEnabled: Boolean);
+begin
+  TConfigManager.SetModuleEnabled(AModuleName, AEnabled);
+end;
+
 procedure Tgoverlayform.CheckAndUpdateConfigVersion;
 var
   IniFile: TIniFile;
@@ -11298,6 +11387,7 @@ begin
 
     IniFile := TIniFile.Create(ConfigPath);
     try
+      TConfigManager.MigrateExistingInstallation(IniFile);
       // Always update config with the current version
       IniFile.WriteString('General', 'Version', GVERSION);
     finally
@@ -11457,6 +11547,217 @@ begin
   SaveLaunchSplashConfig;
 end;
 
+procedure Tgoverlayform.ModulesMenuItemClick(Sender: TObject);
+begin
+  if ShowFirstRunSetupDialog(Self, False) then
+  begin
+    UpdateTabModulePlaceholders;
+    if Assigned(FHomeHelper) then
+      THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+    if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+    begin
+      FStartupDownloadsChecked := False;
+      Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+    end;
+  end;
+end;
+
+procedure Tgoverlayform.EnableUpscalersModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_OPTISCALER, True);
+  TConfigManager.SetModuleEnabled(MODULE_DLSSENABLER, True);
+  TConfigManager.SetModuleEnabled(MODULE_HELIXSR, True);
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, True);
+  UpdateTabModulePlaceholders;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  optiscalerTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnableFrameGenModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_LSFGVK, True);
+  TConfigManager.SetModuleEnabled(MODULE_MAKO, True);
+  TConfigManager.SetModuleEnabled(MODULE_AFMF, True);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, True);
+  UpdateTabModulePlaceholders;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  losslessScalingTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnablePostProcessingModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, True);
+  TConfigManager.SetModuleEnabled(MODULE_RESHADE, True);
+  TConfigManager.SetModuleEnabled(MODULE_VKSUMI, True);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  UpdateTabModulePlaceholders;
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  vkbasaltTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnableReshadeModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_RESHADE, True);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  UpdateTabModulePlaceholders;
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  reshadeTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnableVkSumiModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_VKSUMI, True);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  UpdateTabModulePlaceholders;
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  vkSumiTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnableVkBasaltModuleClick(Sender: TObject);
+begin
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, True);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  UpdateTabModulePlaceholders;
+  if Assigned(FHomeHelper) then
+    THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
+  if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
+  begin
+    FStartupDownloadsChecked := False;
+    Application.QueueAsyncCall(@StartupDownloadsAsync, 0);
+  end;
+  vkbasaltTabSheetShow(nil);
+end;
+
+procedure Tgoverlayform.EnsureModulePlaceholder(ATabSheet: TTabSheet;
+  const AModuleName, ATitle, ADesc: string; var APlaceholder: TPanel);
+var
+  TitleLbl, DescLbl: TLabel;
+  Btn: TBitBtn;
+  W: Integer;
+begin
+  if not Assigned(ATabSheet) then Exit;
+
+  if not Assigned(APlaceholder) then
+  begin
+    W := ATabSheet.ClientWidth - 48;
+    if W < 300 then W := 600;
+
+    APlaceholder := TPanel.Create(Self);
+    APlaceholder.Parent := ATabSheet;
+    APlaceholder.SetBounds(24, 24, W, 200);
+    APlaceholder.Anchors := [akTop, akLeft, akRight];
+    APlaceholder.Color := RGBToColor(31, 40, 60);
+    APlaceholder.ParentColor := False;
+    APlaceholder.BevelOuter := bvNone;
+    APlaceholder.BorderStyle := bsNone;
+
+    TitleLbl := TLabel.Create(Self);
+    TitleLbl.Parent := APlaceholder;
+    TitleLbl.SetBounds(24, 20, APlaceholder.Width - 48, 28);
+    TitleLbl.Anchors := [akTop, akLeft, akRight];
+    TitleLbl.Caption := ATitle;
+    TitleLbl.Font.Name := 'Noto Sans';
+    TitleLbl.Font.Size := 12;
+    TitleLbl.Font.Style := [fsBold];
+    TitleLbl.Font.Color := RGBToColor(48, 190, 240);
+    TitleLbl.ShowAccelChar := False;
+
+    DescLbl := TLabel.Create(Self);
+    DescLbl.Parent := APlaceholder;
+    DescLbl.SetBounds(24, 54, APlaceholder.Width - 48, 55);
+    DescLbl.Anchors := [akTop, akLeft, akRight];
+    DescLbl.Caption := ADesc;
+    DescLbl.Font.Name := 'Noto Sans';
+    DescLbl.Font.Size := 10;
+    DescLbl.Font.Color := RGBToColor(144, 168, 192);
+    DescLbl.WordWrap := True;
+    DescLbl.ShowAccelChar := False;
+
+    Btn := TBitBtn.Create(Self);
+    Btn.Parent := APlaceholder;
+    Btn.SetBounds(24, 125, 270, 42);
+    Btn.Caption := 'Enable && Download Components';
+    Btn.Font.Name := 'Noto Sans';
+    Btn.Font.Size := 10;
+    Btn.Font.Style := [fsBold];
+    if AModuleName = MODULE_UPSCALERS then
+      Btn.OnClick := @EnableUpscalersModuleClick
+    else if AModuleName = MODULE_FRAMEGENERATION then
+      Btn.OnClick := @EnableFrameGenModuleClick
+    else if AModuleName = MODULE_RESHADE then
+      Btn.OnClick := @EnableReshadeModuleClick
+    else if AModuleName = MODULE_VKSUMI then
+      Btn.OnClick := @EnableVkSumiModuleClick
+    else if AModuleName = MODULE_VKBASALT then
+      Btn.OnClick := @EnableVkBasaltModuleClick
+    else
+      Btn.OnClick := @EnablePostProcessingModuleClick;
+  end;
+
+  APlaceholder.Visible := not TConfigManager.IsModuleEnabled(AModuleName);
+  if APlaceholder.Visible then
+    APlaceholder.BringToFront;
+end;
+
+procedure Tgoverlayform.UpdateTabModulePlaceholders;
+begin
+  if Assigned(optiscalertabsheet) then
+    EnsureModulePlaceholder(optiscalertabsheet, MODULE_UPSCALERS,
+      'Upscaling Ecosystem is Disabled',
+      'OptiScaler, DLSS Enabler, HelixSR, and central FSR4 builds are currently disabled. Click below to enable this module and download required components.',
+      FOptiScalerPlaceholder);
+
+  if Assigned(losslessScalingTabSheet) then
+    EnsureModulePlaceholder(losslessScalingTabSheet, MODULE_FRAMEGENERATION,
+      'Frame Generation & Motion Fluidity is Disabled',
+      'Lossless Scaling (lsfg-vk), MAKO renderer, and AFMF driver frame generation are currently disabled. Click below to enable this module and download required components.',
+      FLosslessPlaceholder);
+
+  if Assigned(vkbasaltTabSheet) then
+    EnsureModulePlaceholder(vkbasaltTabSheet, MODULE_VKBASALT,
+      'vkBasalt is Disabled',
+      'vkBasalt post-processing shaders are currently disabled. Click below to enable vkBasalt and download required shaders.',
+      FVkBasaltPlaceholder);
+
+  if Assigned(reshadeTabSheet) then
+    EnsureModulePlaceholder(reshadeTabSheet, MODULE_RESHADE,
+      'ReShade is Disabled',
+      'ReShade runtime and standard shader packages are currently disabled. Click below to enable ReShade and download required components.',
+      FReshadePlaceholder);
+
+  if Assigned(vksumiTabSheet) then
+    EnsureModulePlaceholder(vksumiTabSheet, MODULE_VKSUMI,
+      'vkSumi is Disabled',
+      'vkSumi color grading and 3D LUT tools are currently disabled. Click below to enable vkSumi and download required components.',
+      FVkSumiPlaceholder);
+end;
+
 { TStartupDownloadThread }
 
 constructor TStartupDownloadThread.Create(AOwner: TObject);
@@ -11487,22 +11788,75 @@ begin
   Synchronize(@DoUpdateSplash);
 end;
 
+procedure CleanupUnsolicitedDesktopFiles;
+var
+  AppDir, F: string;
+  TargetFiles: array[0..4] of string = (
+    'mako.desktop',
+    'mako-renderer.desktop',
+    'MAKO-Renderer.desktop',
+    'MAKO.desktop',
+    'lsfg-vk-ui.desktop'
+  );
+  i: Integer;
+begin
+  AppDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local' + PathDelim + 'share' + PathDelim + 'applications' + PathDelim;
+  if DirectoryExists(AppDir) then
+  begin
+    for i := Low(TargetFiles) to High(TargetFiles) do
+    begin
+      F := AppDir + TargetFiles[i];
+      if FileExists(F) then
+      begin
+        try
+          DeleteFile(F);
+        except
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TStartupDownloadThread.Execute;
 begin
   try
     SanitizeImplicitVulkanLayers;
-    CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
-    CheckAndInstallOptiPatcher(False, @OnDownloadProgress, FFailedFiles);                // OptiPatcher ASI plugin
-    CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
-    CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
-    CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)
-    CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
-    CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
-    CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
-    CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
-    CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 90%)
-    CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (90% - 95%)
-    CheckAndInstallVkBasaltShaders(False, @OnDownloadProgress, FFailedFiles); // vkBasalt ReShade Shaders (95% - 99%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_OPTISCALER) then
+    begin
+      CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
+      CheckAndInstallOptiPatcher(False, @OnDownloadProgress, FFailedFiles);                // OptiPatcher ASI plugin
+      CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
+    end;
+
+    if TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER) then
+      CheckAndInstallDlssEnabler(True, False, @OnDownloadProgress, FFailedFiles);          // Stable channel (40% - 55%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_HELIXSR) then
+      CheckAndInstallHelixSR(False, @OnDownloadProgress, FFailedFiles);                    // HelixSR runtime (OptiScaler & DLSS Model E)
+
+    if TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
+      CheckAndInstallVkSumi(False, @OnDownloadProgress);                    // vkSumi layer (55% - 68%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_RESHADE) then
+      CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (90% - 95%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
+      CheckAndInstallVkBasaltShaders(False, @OnDownloadProgress, FFailedFiles); // vkBasalt ReShade Shaders (95% - 99%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_MAKO) then
+      CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_LSFGVK) then
+      CheckAndInstallLsfgVk(False, @OnDownloadProgress);                    // lsfg-vk layer (78% - 88%)
+
+    if TConfigManager.IsModuleEnabled(MODULE_AFMF) then
+      CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 90%)
+
+    if not IsRunningInFlatpak and (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
+      CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
+
+    CleanupUnsolicitedDesktopFiles;
 
     OnDownloadProgress(100, 'Finishing setup...');
   except

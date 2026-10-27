@@ -173,10 +173,18 @@ type
     procedure TestBlacklistSyncEmptyList;
   end;
 
+  TGoverlayLogicTests = class(TTestCase)
+  published
+    procedure TestModuleConfigReadWrite;
+    procedure TestModuleMigrationExistingAndFresh;
+    procedure TestScopedHasMissingMandatoryLibraries;
+    procedure TestUninstallUserModulesAndLayers;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector, mangohud_ui, Graphics;
+  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector, mangohud_ui, Graphics, FileUtil, constants;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -3511,6 +3519,306 @@ begin
   end;
 end;
 
+procedure TGoverlayLogicTests.TestModuleConfigReadWrite;
+var
+  ConfigPath: string;
+  Ini: TIniFile;
+begin
+  ConfigPath := TConfigManager.GetConfigFilePath;
+  AssertTrue('config path is inside isolated HOME',
+    Pos(IncludeTrailingPathDelimiter(IsolatedHome), ConfigPath) = 1);
+
+  if FileExists(ConfigPath) then
+    AssertTrue('old goverlay.conf removed', DeleteFile(ConfigPath));
+  ForceDirectories(ExtractFileDir(ConfigPath));
+  AssertFalse('goverlay.conf starts absent', FileExists(ConfigPath));
+
+  TConfigManager.SetFirstRunWizardCompleted(False);
+  AssertFalse('FirstRunWizardCompleted false round-trip',
+    TConfigManager.IsFirstRunWizardCompleted);
+
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, False);
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, False);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, False);
+  AssertFalse('PostProcessing false round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
+  AssertFalse('Upscalers false round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_UPSCALERS));
+  AssertFalse('FrameGeneration false round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION));
+
+  AssertTrue('goverlay.conf created', FileExists(ConfigPath));
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    AssertTrue('General section has FirstRunWizardCompleted',
+      Ini.ValueExists('General', KEY_FIRST_RUN_WIZARD));
+    AssertEquals('FirstRunWizardCompleted persisted false', '0',
+      Ini.ReadString('General', KEY_FIRST_RUN_WIZARD, ''));
+    AssertEquals('PostProcessing persisted false', '0',
+      Ini.ReadString(SECTION_MODULES, MODULE_POSTPROCESSING, ''));
+    AssertEquals('Upscalers persisted false', '0',
+      Ini.ReadString(SECTION_MODULES, MODULE_UPSCALERS, ''));
+    AssertEquals('FrameGeneration persisted false', '0',
+      Ini.ReadString(SECTION_MODULES, MODULE_FRAMEGENERATION, ''));
+  finally
+    Ini.Free;
+  end;
+
+  TConfigManager.SetFirstRunWizardCompleted(True);
+  AssertTrue('FirstRunWizardCompleted true round-trip',
+    TConfigManager.IsFirstRunWizardCompleted);
+
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, True);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, True);
+  AssertTrue('PostProcessing true round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
+  AssertTrue('Upscalers true round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_UPSCALERS));
+  AssertTrue('FrameGeneration true round-trip',
+    TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION));
+
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    AssertEquals('FirstRunWizardCompleted persisted true', '1',
+      Ini.ReadString('General', KEY_FIRST_RUN_WIZARD, ''));
+    AssertEquals('PostProcessing persisted true', '1',
+      Ini.ReadString(SECTION_MODULES, MODULE_POSTPROCESSING, ''));
+    AssertEquals('Upscalers persisted true', '1',
+      Ini.ReadString(SECTION_MODULES, MODULE_UPSCALERS, ''));
+    AssertEquals('FrameGeneration persisted true', '1',
+      Ini.ReadString(SECTION_MODULES, MODULE_FRAMEGENERATION, ''));
+  finally
+    Ini.Free;
+  end;
+end;
+
+procedure TGoverlayLogicTests.TestModuleMigrationExistingAndFresh;
+var
+  ConfigPath, DataDir, TempIniPath: string;
+  Ini: TIniFile;
+
+  procedure RemoveSandboxDir(const APath: string);
+  begin
+    if APath = '' then Exit;
+    if Pos(IncludeTrailingPathDelimiter(IsolatedHome),
+      IncludeTrailingPathDelimiter(ExpandFileName(APath))) <> 1 then Exit;
+    if DirectoryExists(APath) then
+      DeleteDirectory(APath, False);
+  end;
+
+begin
+  ConfigPath := TConfigManager.GetConfigFilePath;
+  AssertTrue('config path is inside isolated HOME',
+    Pos(IncludeTrailingPathDelimiter(IsolatedHome), ConfigPath) = 1);
+
+  DataDir := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
+    GOVERLAY_FOLDER_NAME + PathDelim;
+
+  // Fresh install: no config file and no leftover module artifacts.
+  if FileExists(ConfigPath) then
+    AssertTrue('old goverlay.conf removed', DeleteFile(ConfigPath));
+  if FileExists(TConfigManager.GetOptiScalerIniFile) then
+    AssertTrue('old OptiScaler.ini removed',
+      DeleteFile(TConfigManager.GetOptiScalerIniFile));
+  RemoveSandboxDir(TConfigManager.GetFgmodFolder);
+  RemoveSandboxDir(TConfigManager.GetReshadeFolder);
+  RemoveSandboxDir(IncludeTrailingPathDelimiter(
+    TConfigManager.GetGoverlayFolder) + FGMOD_FOLDER_NAME);
+  RemoveSandboxDir(DataDir + FGMOD_FOLDER_NAME);
+  RemoveSandboxDir(DataDir + 'optiscaler');
+  RemoveSandboxDir(DataDir + 'optiscaler-stable');
+  RemoveSandboxDir(DataDir + 'optiscaler-edge');
+  RemoveSandboxDir(DataDir + 'optiscaler-helixsr');
+  RemoveSandboxDir(DataDir + 'reshade');
+  RemoveSandboxDir(DataDir + 'lsfg-vk');
+  RemoveSandboxDir(DataDir + 'mako');
+  RemoveSandboxDir(DataDir + 'afmf');
+  AssertFalse('fresh scenario has no goverlay.conf', FileExists(ConfigPath));
+
+  Ini := TIniFile.Create(ConfigPath);
+  try
+    TConfigManager.MigrateExistingInstallation(Ini);
+    AssertFalse('fresh migration leaves wizard incomplete',
+      Ini.ReadBool('General', KEY_FIRST_RUN_WIZARD, True));
+    AssertFalse('fresh migration disables PostProcessing',
+      Ini.ReadBool(SECTION_MODULES, MODULE_POSTPROCESSING, True));
+    AssertFalse('fresh migration disables Upscalers',
+      Ini.ReadBool(SECTION_MODULES, MODULE_UPSCALERS, True));
+    AssertFalse('fresh migration disables FrameGeneration',
+      Ini.ReadBool(SECTION_MODULES, MODULE_FRAMEGENERATION, True));
+  finally
+    Ini.Free;
+  end;
+
+  // Template bgmod folder alone must not be treated as an existing install.
+  TempIniPath := IsolatedHome + PathDelim + 'migration_bgmod_only.conf';
+  if FileExists(TempIniPath) then DeleteFile(TempIniPath);
+  ForceDirectories(DataDir + FGMOD_FOLDER_NAME);
+  Ini := TIniFile.Create(TempIniPath);
+  try
+    TConfigManager.MigrateExistingInstallation(Ini);
+    AssertFalse('bgmod template alone leaves wizard incomplete',
+      Ini.ReadBool('General', KEY_FIRST_RUN_WIZARD, True));
+    AssertFalse('bgmod template alone disables PostProcessing',
+      Ini.ReadBool(SECTION_MODULES, MODULE_POSTPROCESSING, True));
+    AssertFalse('bgmod template alone disables Upscalers',
+      Ini.ReadBool(SECTION_MODULES, MODULE_UPSCALERS, True));
+    AssertFalse('bgmod template alone disables FrameGeneration',
+      Ini.ReadBool(SECTION_MODULES, MODULE_FRAMEGENERATION, True));
+  finally
+    Ini.Free;
+    if FileExists(TempIniPath) then DeleteFile(TempIniPath);
+    RemoveSandboxDir(DataDir + FGMOD_FOLDER_NAME);
+  end;
+
+  // Existing installation: previous Version present, no wizard key yet.
+  TempIniPath := IsolatedHome + PathDelim + 'migration_existing.conf';
+  if FileExists(TempIniPath) then DeleteFile(TempIniPath);
+  Ini := TIniFile.Create(TempIniPath);
+  try
+    Ini.WriteString('General', 'Version', '1.8.9');
+    Ini.UpdateFile;
+    TConfigManager.MigrateExistingInstallation(Ini);
+    AssertTrue('existing migration marks wizard complete',
+      Ini.ReadBool('General', KEY_FIRST_RUN_WIZARD, False));
+    AssertTrue('existing migration enables PostProcessing',
+      Ini.ReadBool(SECTION_MODULES, MODULE_POSTPROCESSING, False));
+    AssertTrue('existing migration enables Upscalers',
+      Ini.ReadBool(SECTION_MODULES, MODULE_UPSCALERS, False));
+    AssertTrue('existing migration enables FrameGeneration',
+      Ini.ReadBool(SECTION_MODULES, MODULE_FRAMEGENERATION, False));
+  finally
+    Ini.Free;
+    if FileExists(TempIniPath) then DeleteFile(TempIniPath);
+  end;
+end;
+
+procedure TGoverlayLogicTests.TestScopedHasMissingMandatoryLibraries;
+var
+  Missing: TStringList;
+begin
+  // 1. When all optional modules/libraries are disabled, HasMissingMandatoryLibraries returns False
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, False);
+  TConfigManager.SetModuleEnabled(MODULE_RESHADE, False);
+  TConfigManager.SetModuleEnabled(MODULE_VKSUMI, False);
+  TConfigManager.SetModuleEnabled(MODULE_OPTISCALER, False);
+  TConfigManager.SetModuleEnabled(MODULE_DLSSENABLER, False);
+  TConfigManager.SetModuleEnabled(MODULE_HELIXSR, False);
+  TConfigManager.SetModuleEnabled(MODULE_LSFGVK, False);
+  TConfigManager.SetModuleEnabled(MODULE_MAKO, False);
+  TConfigManager.SetModuleEnabled(MODULE_AFMF, False);
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, False);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, False);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, False);
+
+  Missing := nil;
+  try
+    AssertFalse('HasMissingMandatoryLibraries returns False when modules disabled',
+      HasMissingMandatoryLibraries(Missing));
+    AssertEquals('No missing libraries when modules disabled', 0, Missing.Count);
+  finally
+    Missing.Free;
+  end;
+
+  // 2. When only OptiScaler is enabled (files missing), HasMissingMandatoryLibraries returns True and reports OptiScaler
+  TConfigManager.SetModuleEnabled(MODULE_OPTISCALER, True);
+  Missing := nil;
+  try
+    AssertTrue('HasMissingMandatoryLibraries returns True when OptiScaler enabled and files missing',
+      HasMissingMandatoryLibraries(Missing));
+    AssertTrue('OptiScaler missing reported', Missing.IndexOf('OptiScaler.dll') >= 0);
+    AssertFalse('ReShade not reported when ReShade disabled', Missing.IndexOf('ReShade64.dll') >= 0);
+  finally
+    Missing.Free;
+  end;
+
+  // 3. When only vkBasalt is enabled, vkBasalt shaders are reported but OptiScaler is not
+  TConfigManager.SetModuleEnabled(MODULE_OPTISCALER, False);
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, True);
+  Missing := nil;
+  try
+    AssertTrue('HasMissingMandatoryLibraries returns True when vkBasalt enabled',
+      HasMissingMandatoryLibraries(Missing));
+    AssertTrue('vkBasalt shaders reported', Missing.IndexOf('vkBasalt ReShade Shaders') >= 0);
+    AssertFalse('OptiScaler not reported', Missing.IndexOf('OptiScaler.dll') >= 0);
+  finally
+    Missing.Free;
+  end;
+
+  // 4. Reset module states for test isolation
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, True);
+  TConfigManager.SetModuleEnabled(MODULE_RESHADE, True);
+  TConfigManager.SetModuleEnabled(MODULE_VKSUMI, True);
+  TConfigManager.SetModuleEnabled(MODULE_OPTISCALER, True);
+  TConfigManager.SetModuleEnabled(MODULE_DLSSENABLER, True);
+  TConfigManager.SetModuleEnabled(MODULE_HELIXSR, True);
+  TConfigManager.SetModuleEnabled(MODULE_LSFGVK, True);
+  TConfigManager.SetModuleEnabled(MODULE_MAKO, True);
+  TConfigManager.SetModuleEnabled(MODULE_AFMF, True);
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, True);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, True);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, True);
+end;
+
+procedure TGoverlayLogicTests.TestUninstallUserModulesAndLayers;
+var
+  HomeDir, LayerDir, LibDir, ShareDir: string;
+
+  procedure CreateDummyFile(const APath: string);
+  var
+    F: TextFile;
+  begin
+    ForceDirectories(ExtractFileDir(APath));
+    AssignFile(F, APath);
+    Rewrite(F);
+    WriteLn(F, '{"dummy": 1}');
+    CloseFile(F);
+  end;
+
+begin
+  HomeDir := IncludeTrailingPathDelimiter(IsolatedHome);
+  LayerDir := HomeDir + '.local/share/vulkan/implicit_layer.d/';
+  LibDir := HomeDir + '.local/lib/';
+  ShareDir := HomeDir + '.local/share/goverlay/';
+
+  // 1. Create mock user layer manifests and binaries
+  CreateDummyFile(LayerDir + 'vksumi.json');
+  CreateDummyFile(LayerDir + 'afmf-linux.json');
+  CreateDummyFile(LayerDir + 'VkLayer_LSFGVK_frame_generation.json');
+  CreateDummyFile(LayerDir + 'VkLayer_MAKO_render.json');
+  CreateDummyFile(LayerDir + 'vknemu.json');
+  CreateDummyFile(LayerDir + 'vkBasalt.json');
+  CreateDummyFile(LibDir + 'liblsfg-vk-layer.so');
+  CreateDummyFile(LibDir + 'libmako-render.so');
+  CreateDummyFile(LibDir + 'afmf-linux/libafmf-linux.so');
+  CreateDummyFile(ShareDir + 'optiscaler/version.txt');
+  CreateDummyFile(ShareDir + 'reshade/ReShade64.dll');
+
+  AssertTrue('vksumi layer created', FileExists(LayerDir + 'vksumi.json'));
+  AssertTrue('afmf layer created', FileExists(LayerDir + 'afmf-linux.json'));
+  AssertTrue('optiscaler created', FileExists(ShareDir + 'optiscaler/version.txt'));
+
+  // 2. Test selective module uninstall (vkSumi)
+  UninstallUserModule(MODULE_VKSUMI);
+  AssertFalse('vksumi.json deleted after UninstallUserModule', FileExists(LayerDir + 'vksumi.json'));
+  AssertTrue('afmf-linux.json still intact', FileExists(LayerDir + 'afmf-linux.json'));
+  AssertTrue('optiscaler still intact', FileExists(ShareDir + 'optiscaler/version.txt'));
+
+  // 3. Test uninstall all user modules
+  UninstallAllUserModules;
+  AssertFalse('afmf-linux.json deleted', FileExists(LayerDir + 'afmf-linux.json'));
+  AssertFalse('VkLayer_LSFGVK deleted', FileExists(LayerDir + 'VkLayer_LSFGVK_frame_generation.json'));
+  AssertFalse('VkLayer_MAKO deleted', FileExists(LayerDir + 'VkLayer_MAKO_render.json'));
+  AssertFalse('vknemu.json deleted', FileExists(LayerDir + 'vknemu.json'));
+  AssertFalse('vkBasalt.json deleted', FileExists(LayerDir + 'vkBasalt.json'));
+  AssertFalse('liblsfg-vk-layer.so deleted', FileExists(LibDir + 'liblsfg-vk-layer.so'));
+  AssertFalse('libmako-render.so deleted', FileExists(LibDir + 'libmako-render.so'));
+  AssertFalse('afmf-linux dir deleted', DirectoryExists(LibDir + 'afmf-linux'));
+  AssertFalse('optiscaler dir deleted', DirectoryExists(ShareDir + 'optiscaler'));
+  AssertFalse('reshade dir deleted', DirectoryExists(ShareDir + 'reshade'));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -3530,5 +3838,6 @@ initialization
   RegisterTest(TShellQuoteTests);
   RegisterTest(TRDNAArchitectureTests);
   RegisterTest(TMangoHudBlacklistSyncTests);
+  RegisterTest(TGoverlayLogicTests);
 
 end.

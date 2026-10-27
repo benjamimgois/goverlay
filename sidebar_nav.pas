@@ -376,9 +376,16 @@ begin
   FForm.FLaunchSplashItem.OnClick := @FForm.LaunchSplashMenuItemClick;
   FForm.settingsMenu.Items.Insert(7, FForm.FLaunchSplashItem);
 
+  // Manage Integrations / Modules
+  FForm.FModulesMenuItem := TMenuItem.Create(FForm.settingsMenu);
+  FForm.FModulesMenuItem.Caption := 'Manage Integrations / Modules';
+  FForm.FModulesMenuItem.ImageIndex := 24;
+  FForm.FModulesMenuItem.OnClick := @FForm.ModulesMenuItemClick;
+  FForm.settingsMenu.Items.Insert(8, FForm.FModulesMenuItem);
+
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
-  FForm.settingsMenu.Items.Insert(8, Sep);
+  FForm.settingsMenu.Items.Insert(9, Sep);
 
   // Video tutorial — submenu with Steam and Heroic
   FForm.FHowToMenuItem := TMenuItem.Create(FForm.settingsMenu);
@@ -398,12 +405,12 @@ begin
   HeroicItem.OnClick := @FForm.howtoHeroicClick;
   FForm.FHowToMenuItem.Add(HeroicItem);
 
-  FForm.settingsMenu.Items.Insert(9, FForm.FHowToMenuItem);
+  FForm.settingsMenu.Items.Insert(10, FForm.FHowToMenuItem);
 
   Sep := TMenuItem.Create(FForm.settingsMenu);
   Sep.Caption := '-';
   Sep.Visible := False;
-  FForm.settingsMenu.Items.Insert(10, Sep);
+  FForm.settingsMenu.Items.Insert(11, Sep);
 end;
 
 procedure TSidebarNavHelper.SettingsBtnMouseEnter(Sender: TObject);

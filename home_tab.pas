@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons, Process, LCLIntf,
   themeunit, constants, hintsunit, apputils, overlayunit, systemdetector, optiscaler_update, bgmod_resources, StrUtils, FileUtil, Types,
-  ComCtrls, goverlay_system, Math, goverlay_strings, overlay_config;
+  ComCtrls, goverlay_system, Math, goverlay_strings, overlay_config, configmanager;
 
 type
   THomeTabHelper = class
@@ -443,200 +443,265 @@ end;
 
 procedure THomeTabHelper.RefreshHomeModuleStatus;
 const
-  CLR_OK      = $0044CC55;  // vibrant emerald green
-  CLR_MISSING = $005555EE;  // vibrant rose/coral red
+  CLR_OK       = $0044CC55;  // vibrant emerald green
+  CLR_MISSING  = $005555EE;  // vibrant rose/coral red
 var
   Missing: TStringList;
+  HomeDir, UserLayerDir, XdgLayerDir, LocalLib, LocalBin: string;
   MangoOK, VkOK, OptiOK, DlssOK, SumiOK, LsfgOK, MakoOK, ReShadeOK, AfmfOK, HelixSrOK: Boolean;
-  DlssNrOK, DlssNrReady: Boolean;
-  VkNemuOK: Boolean;
-  MangoVer, VkVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer, HelixSrVer: string;
-  DlssNrVer, VkNemuVer: string;
+  MangoSystem, VkSystem, OptiSystem, DlssSystem, SumiSystem, LsfgSystem, MakoSystem, ReShadeSystem, AfmfSystem, HelixSrSystem: Boolean;
+  VkUser, SumiUser, LsfgUser, MakoUser, AfmfUser, VkNemuUser: Boolean;
+  DlssNrOK, DlssNrReady, DlssNrSystem: Boolean;
+  VkNemuOK, VkNemuSystem: Boolean;
+  MangoVer, VkVer, OptiVer, DlssVer, SumiVer, LsfgVer, LsfgRemoteVer, MakoVer, MakoRemoteVer, AfmfVer, AfmfRemoteVer, HelixSrVer: string;
+  ReShadeVer, DlssNrVer, VkNemuVer: string;
+
+  procedure SetModuleStatus(AIndex: Integer; AInstalled, AIsSystem: Boolean; const AVersion: string);
+  var
+    HintText, DisplayVer: string;
+  begin
+    if not Assigned(FForm.FHomeModDots[AIndex]) then Exit;
+
+    if AInstalled then
+    begin
+      FForm.FHomeModDots[AIndex].Brush.Color := CLR_OK;
+      FForm.FHomeModDots[AIndex].Pen.Color   := CLR_OK;
+      if AIsSystem then
+        HintText := 'System package'
+      else
+        HintText := 'Installed in user space (GOverlay)';
+      DisplayVer := AVersion;
+      if DisplayVer = '' then
+        DisplayVer := 'installed';
+    end
+    else
+    begin
+      FForm.FHomeModDots[AIndex].Brush.Color := CLR_MISSING;
+      FForm.FHomeModDots[AIndex].Pen.Color   := CLR_MISSING;
+      HintText := 'Not installed';
+      DisplayVer := 'not found';
+    end;
+
+    FForm.FHomeModDots[AIndex].Hint := HintText;
+    FForm.FHomeModDots[AIndex].ShowHint := True;
+
+    if Assigned(FForm.FHomeModVerLbls[AIndex]) then
+    begin
+      FForm.FHomeModVerLbls[AIndex].Caption := DisplayVer;
+      FForm.FHomeModVerLbls[AIndex].Font.Color := CLR_TEXT_MUTED;
+      FForm.FHomeModVerLbls[AIndex].Hint := HintText;
+      FForm.FHomeModVerLbls[AIndex].ShowHint := True;
+    end;
+  end;
+
 begin
   with FForm do
   begin
     if not Assigned(FHomeModDots[0]) then Exit;
 
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+    UserLayerDir := HomeDir + '.local/share/vulkan/implicit_layer.d/';
+    XdgLayerDir := GetUserVulkanImplicitDir;
+    LocalLib := HomeDir + '.local/lib/';
+    LocalBin := HomeDir + '.local/bin/';
+
     Missing := FForm.GetCachedMissingDeps;
+
+    // 0. MangoHud
     MangoOK := (Missing.IndexOf(DEP_MANGOHUD) < 0) and
                (Missing.IndexOf(DEP_MANGOHUD_RUNTIME) < 0);
-    VkOK    := (Missing.IndexOf(DEP_VKBASALT) < 0) and
-               (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
-    OptiOK  := FForm.IsOptiScalerInstalled;
-    DlssOK  := Self.IsDlssEnablerInstalled;
-    SumiOK  := (Missing.IndexOf(DEP_VKSUMI) < 0) and
-               (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
-    LsfgOK  := IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0);
-    MakoOK  := IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0);
-    ReShadeOK := IsReShadeInstalled;
-    AfmfOK  := IsAfmfInstalled;
-    HelixSrOK := Self.IsHelixSrInstalled;
-
-    FHomeModDots[0].Brush.Color := Math.IfThen(MangoOK, CLR_OK, CLR_MISSING);
-    FHomeModDots[0].Pen.Color   := FHomeModDots[0].Brush.Color;
-    FHomeModDots[1].Brush.Color := Math.IfThen(VkOK,    CLR_OK, CLR_MISSING);
-    FHomeModDots[1].Pen.Color   := FHomeModDots[1].Brush.Color;
-    FHomeModDots[2].Brush.Color := Math.IfThen(OptiOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[2].Pen.Color   := FHomeModDots[2].Brush.Color;
-    FHomeModDots[3].Brush.Color := Math.IfThen(DlssOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[3].Pen.Color   := FHomeModDots[3].Brush.Color;
-    FHomeModDots[4].Brush.Color := Math.IfThen(SumiOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[4].Pen.Color   := FHomeModDots[4].Brush.Color;
-    FHomeModDots[5].Brush.Color := Math.IfThen(LsfgOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[5].Pen.Color   := FHomeModDots[5].Brush.Color;
-    FHomeModDots[6].Brush.Color := Math.IfThen(MakoOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[6].Pen.Color   := FHomeModDots[6].Brush.Color;
-    FHomeModDots[7].Brush.Color := Math.IfThen(ReShadeOK, CLR_OK, CLR_MISSING);
-    FHomeModDots[7].Pen.Color   := FHomeModDots[7].Brush.Color;
-    FHomeModDots[8].Brush.Color := Math.IfThen(AfmfOK,  CLR_OK, CLR_MISSING);
-    FHomeModDots[8].Pen.Color   := FHomeModDots[8].Brush.Color;
-
+    MangoSystem := MangoOK and not FileExists(LocalBin + 'mangohud');
     MangoVer := Self.GetMangoHudVersion;
-    if MangoVer = '' then MangoVer := StrUtils.IfThen(MangoOK, 'installed', 'not found');
-    FHomeModVerLbls[0].Caption := MangoVer;
+    SetModuleStatus(0, MangoOK, MangoSystem, MangoVer);
 
+    // 1. vkBasalt
+    VkSystem := FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') or
+                FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') or
+                FileExists('/usr/local/share/vulkan/implicit_layer.d/vkBasalt.json') or
+                FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
+                FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+                FileExists('/usr/lib/libvkbasalt.so') or
+                FileExists('/usr/lib64/libvkbasalt.so') or
+                FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so');
+    VkUser := FileExists(UserLayerDir + 'vkBasalt.json') or
+              FileExists(XdgLayerDir + 'vkBasalt.json') or
+              DirectoryExists(LocalLib + 'vkbasalt');
+    VkOK := VkSystem or VkUser or
+            ((Missing.IndexOf(DEP_VKBASALT) < 0) and (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0));
     VkVer := Self.GetVkBasaltVersion;
-    if VkVer = '' then VkVer := StrUtils.IfThen(VkOK, 'installed', 'not found');
-    FHomeModVerLbls[1].Caption := VkVer;
+    SetModuleStatus(1, VkOK, VkSystem, VkVer);
 
+    // 2. OptiScaler
+    OptiSystem := FileExists('/usr/share/optiscaler') or FileExists('/usr/lib/optiscaler');
+    OptiOK := FForm.IsOptiScalerInstalled or OptiSystem;
+    OptiVer := '';
     if OptiOK and Assigned(optlabel1) and (optlabel1.Caption <> '') then
-      FHomeModVerLbls[2].Caption := optlabel1.Caption
-    else if OptiOK then
-      FHomeModVerLbls[2].Caption := 'installed'
-    else
-      FHomeModVerLbls[2].Caption := 'not found';
+      OptiVer := optlabel1.Caption;
+    SetModuleStatus(2, OptiOK, OptiSystem, OptiVer);
 
+    // 3. DLSS Enabler
+    DlssSystem := FileExists('/usr/share/dlss-enabler') or FileExists('/usr/lib/dlss-enabler');
+    DlssOK := Self.IsDlssEnablerInstalled or DlssSystem;
     DlssVer := Self.GetDlssEnablerVersion;
-    if DlssVer = '' then DlssVer := StrUtils.IfThen(DlssOK, 'installed', 'not found');
-    FHomeModVerLbls[3].Caption := DlssVer;
+    SetModuleStatus(3, DlssOK, DlssSystem, DlssVer);
 
+    // 4. vkSumi
+    SumiSystem := VkSumiSystemLayersPresent;
+    SumiUser := FileExists(UserLayerDir + 'vksumi.json') or
+                FileExists(XdgLayerDir + 'vksumi.json') or
+                FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/vksumi/libVkLayer_vksumi.so');
+    SumiOK := SumiSystem or (SumiUser and IsVkSumiInstalled);
     SumiVer := Self.GetVkSumiVersion;
-    if SumiVer = '' then SumiVer := StrUtils.IfThen(SumiOK, 'installed', 'not found');
-    FHomeModVerLbls[4].Caption := SumiVer;
+    SetModuleStatus(4, SumiOK, SumiSystem, SumiVer);
 
+    // 5. lsfg-vk
+    LsfgSystem := FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+                  FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+                  FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+                  FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
+                  FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') or
+                  FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json');
+    LsfgUser := FileExists(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
+                FileExists(XdgLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
+                FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') or
+                FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') or
+                FileExists(LocalLib + 'liblsfg-vk-layer.so');
+    LsfgOK := LsfgSystem or (LsfgUser and (IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0)));
     LsfgVer := Self.GetLsfgVkVersion;
-    if LsfgVer = '' then LsfgVer := StrUtils.IfThen(LsfgOK, 'installed', 'not found');
     while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
       Delete(LsfgVer, 1, 1);
+    SetModuleStatus(5, LsfgOK, LsfgSystem, LsfgVer);
 
     LsfgRemoteVer := '';
     if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgUpdateAvailable then
       LsfgRemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).LsfgRemoteVer;
-
     while (LsfgRemoteVer <> '') and (LsfgRemoteVer[1] in ['v', 'V']) do
       Delete(LsfgRemoteVer, 1, 1);
-
-    if (LsfgRemoteVer <> '') and (LsfgVer <> '') and (LsfgRemoteVer <> LsfgVer) then
+    if (LsfgRemoteVer <> '') and (LsfgVer <> '') and (LsfgRemoteVer <> LsfgVer) and Assigned(FHomeModVerLbls[5]) then
     begin
       FHomeModVerLbls[5].Caption := LsfgVer + ' → ' + LsfgRemoteVer;
       FHomeModVerLbls[5].Font.Color := $0044AAFF;
-    end
-    else
-    begin
-      FHomeModVerLbls[5].Caption := LsfgVer;
-      FHomeModVerLbls[5].Font.Color := CLR_TEXT_MUTED;
     end;
 
+    // 6. MAKO
+    MakoSystem := FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+                  FileExists('/etc/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+                  FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
+                  (FileExists('/usr/bin/mako-launch') and FileExists('/usr/lib/libmako-render.so'));
+    MakoUser := FileExists(UserLayerDir + 'VkLayer_MAKO_render.json') or
+                FileExists(XdgLayerDir + 'VkLayer_MAKO_render.json') or
+                FileExists(LocalLib + 'libmako-render.so') or
+                FileExists(LocalBin + 'mako-launch');
+    MakoOK := MakoSystem or (MakoUser and (IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0)));
     MakoVer := Self.GetMakoVersion;
-    if MakoVer = '' then MakoVer := StrUtils.IfThen(MakoOK, 'installed', 'not found');
     while (MakoVer <> '') and (MakoVer[1] in ['v', 'V']) do
       Delete(MakoVer, 1, 1);
+    SetModuleStatus(6, MakoOK, MakoSystem, MakoVer);
 
     MakoRemoteVer := '';
     if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).MakoUpdateAvailable then
       MakoRemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).MakoRemoteVer;
-
     while (MakoRemoteVer <> '') and (MakoRemoteVer[1] in ['v', 'V']) do
       Delete(MakoRemoteVer, 1, 1);
-
-    if (MakoRemoteVer <> '') and (MakoVer <> '') and (MakoRemoteVer <> MakoVer) then
+    if (MakoRemoteVer <> '') and (MakoVer <> '') and (MakoRemoteVer <> MakoVer) and Assigned(FHomeModVerLbls[6]) then
     begin
       FHomeModVerLbls[6].Caption := MakoVer + ' → ' + MakoRemoteVer;
       FHomeModVerLbls[6].Font.Color := $0044AAFF;
-    end
-    else
-    begin
-      FHomeModVerLbls[6].Caption := MakoVer;
-      FHomeModVerLbls[6].Font.Color := CLR_TEXT_MUTED;
     end;
 
+    // 7. ReShade
+    ReShadeSystem := FileExists('/usr/share/reshade') or FileExists('/usr/share/goverlay/reshade');
+    ReShadeOK := IsReShadeInstalled or ReShadeSystem;
+    ReShadeVer := '';
     if ReShadeOK then
-      FHomeModVerLbls[7].Caption := GetReShadeInstalledVersion + ' (Add-on Edition)'
-    else
-      FHomeModVerLbls[7].Caption := 'not found';
-    FHomeModVerLbls[7].Font.Color := CLR_TEXT_MUTED;
+      ReShadeVer := GetReShadeInstalledVersion + ' (Add-on Edition)';
+    SetModuleStatus(7, ReShadeOK, ReShadeSystem, ReShadeVer);
 
+    // 8. afmf-linux
+    AfmfSystem := FileExists('/usr/share/vulkan/implicit_layer.d/afmf-linux.json') or
+                  FileExists('/etc/vulkan/implicit_layer.d/afmf-linux.json') or
+                  FileExists('/usr/local/share/vulkan/implicit_layer.d/afmf-linux.json') or
+                  FileExists('/app/share/vulkan/implicit_layer.d/afmf-linux.json');
+    AfmfUser := FileExists(UserLayerDir + 'afmf-linux.json') or
+                FileExists(XdgLayerDir + 'afmf-linux.json') or
+                FileExists(LocalLib + 'libafmf.so') or
+                FileExists(LocalLib + 'afmf-linux/libafmf-linux.so');
+    AfmfOK := AfmfSystem or (AfmfUser and IsAfmfInstalled);
     AfmfVer := Self.GetAfmfVersion;
-    if AfmfVer = '' then AfmfVer := StrUtils.IfThen(AfmfOK, 'installed', 'not found');
     while (AfmfVer <> '') and (AfmfVer[1] in ['v', 'V']) do
       Delete(AfmfVer, 1, 1);
+    SetModuleStatus(8, AfmfOK, AfmfSystem, AfmfVer);
 
     AfmfRemoteVer := '';
     if Assigned(FLosslessScalingHelper) and TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfUpdateAvailable then
       AfmfRemoteVer := TLosslessScalingTabHelper(FLosslessScalingHelper).AfmfRemoteVer;
-
     while (AfmfRemoteVer <> '') and (AfmfRemoteVer[1] in ['v', 'V']) do
       Delete(AfmfRemoteVer, 1, 1);
-
-    if (AfmfRemoteVer <> '') and (AfmfVer <> '') and (AfmfRemoteVer <> AfmfVer) then
+    if (AfmfRemoteVer <> '') and (AfmfVer <> '') and (AfmfRemoteVer <> AfmfVer) and Assigned(FHomeModVerLbls[8]) then
     begin
       FHomeModVerLbls[8].Caption := AfmfVer + ' → ' + AfmfRemoteVer;
       FHomeModVerLbls[8].Font.Color := $0044AAFF;
-    end
-    else
-    begin
-      FHomeModVerLbls[8].Caption := AfmfVer;
-      FHomeModVerLbls[8].Font.Color := CLR_TEXT_MUTED;
     end;
 
-    FHomeModDots[9].Brush.Color := Math.IfThen(HelixSrOK, CLR_OK, CLR_MISSING);
-    FHomeModDots[9].Pen.Color := FHomeModDots[9].Brush.Color;
+    // 9. HelixSR
+    HelixSrSystem := FileExists('/usr/share/HelixSR');
+    HelixSrOK := Self.IsHelixSrInstalled or HelixSrSystem;
     HelixSrVer := Self.GetHelixSrVersion;
-    if HelixSrVer = '' then HelixSrVer := StrUtils.IfThen(HelixSrOK, 'installed', 'not found');
-    FHomeModVerLbls[9].Caption := HelixSrVer;
-    FHomeModVerLbls[9].Font.Color := CLR_TEXT_MUTED;
+    SetModuleStatus(9, HelixSrOK, HelixSrSystem, HelixSrVer);
 
+    // 10. DLSS-NR
+    DlssNrSystem := FileExists('/usr/lib/libdlss_nr.so') or FileExists('/usr/lib64/libdlss_nr.so');
     DlssNrOK := IsDlssNrInstalled;
     DlssNrReady := IsDlssNrModelReady;
     if DlssNrOK and DlssNrReady then
     begin
       FHomeModDots[10].Brush.Color := CLR_OK;
-      FHomeModDots[10].Hint := 'DLSS-NR is installed and neural weights are ready';
+      if DlssNrSystem then
+        FHomeModDots[10].Hint := 'System package'
+      else
+        FHomeModDots[10].Hint := 'Installed in user space (GOverlay)';
     end
     else if DlssNrOK and not DlssNrReady then
     begin
-      FHomeModDots[10].Brush.Color := $0044AAFF; // Amber for installed but weights missing
+      FHomeModDots[10].Brush.Color := $0044AAFF;
       FHomeModDots[10].Hint := 'DLSS-NR runtime is installed, but neural model weights need extraction';
     end
     else
     begin
       FHomeModDots[10].Brush.Color := CLR_MISSING;
-      FHomeModDots[10].Hint := 'DLSS-NR is not installed';
+      FHomeModDots[10].Hint := 'Not installed';
     end;
     FHomeModDots[10].Pen.Color := FHomeModDots[10].Brush.Color;
+    FHomeModDots[10].ShowHint := True;
 
     DlssNrVer := GetDlssNrVersion;
     if DlssNrVer = '' then
       DlssNrVer := StrUtils.IfThen(DlssNrOK, 'installed', 'not found');
-    FHomeModVerLbls[10].Caption := DlssNrVer;
-    FHomeModVerLbls[10].Font.Color := CLR_TEXT_MUTED;
+    if Assigned(FHomeModVerLbls[10]) then
+    begin
+      FHomeModVerLbls[10].Caption := DlssNrVer;
+      FHomeModVerLbls[10].Font.Color := CLR_TEXT_MUTED;
+      FHomeModVerLbls[10].Hint := FHomeModDots[10].Hint;
+      FHomeModVerLbls[10].ShowHint := True;
+    end;
 
-    VkNemuOK := IsVkNemuInstalled;
-    FHomeModDots[11].Brush.Color := Math.IfThen(VkNemuOK, CLR_OK, CLR_MISSING);
-    FHomeModDots[11].Pen.Color := FHomeModDots[11].Brush.Color;
+    // 11. vkNemu
+    VkNemuSystem := VkNemuSystemLayersPresent;
+    VkNemuUser := FileExists(UserLayerDir + 'vknemu.json') or
+                  FileExists(XdgLayerDir + 'vknemu.json') or
+                  FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/vknemu/libVkLayer_vknemu.so');
+    VkNemuOK := VkNemuSystem or (VkNemuUser and IsVkNemuInstalled);
     VkNemuVer := Self.GetVkNemuVersion;
-    if VkNemuVer = '' then VkNemuVer := StrUtils.IfThen(VkNemuOK, 'installed', 'not found');
     while (VkNemuVer <> '') and (VkNemuVer[1] in ['v', 'V']) do
       Delete(VkNemuVer, 1, 1);
-    FHomeModVerLbls[11].Caption := VkNemuVer;
-    FHomeModVerLbls[11].Font.Color := CLR_TEXT_MUTED;
+    SetModuleStatus(11, VkNemuOK, VkNemuSystem, VkNemuVer);
   end;
 end;
 
 procedure THomeTabHelper.RefreshHomeOptiStatus;
 const
-  CLR_OK   = $0044BB44;
-  CLR_NONE = $00666666;
+  CLR_OK       = $0044BB44;
+  CLR_NONE     = $00666666;
 
   procedure SetLib(Idx: Integer; SrcLbl: StdCtrls.TLabel);
   var Ver: string;
@@ -1102,6 +1167,9 @@ begin
     mtWarning, [mbYes, mbNo], 0) <> mrYes then
     Exit;
 
+  // Remove all user-space layers and binaries
+  UninstallAllUserModules;
+
   UserDir := IncludeTrailingPathDelimiter(GetUserDir);
   AllDeleted := True;
 
@@ -1119,6 +1187,8 @@ begin
       try
         if not CleanDirectoryPreservingBackups(Paths[i]) then
           AllDeleted := False;
+        if FForm is Tgoverlayform then
+          Tgoverlayform(FForm).FClearedConfig := True;
         WriteLn('[ClearConfig] Cleaned (preserving backups): ', Paths[i]);
       except
         on E: Exception do
@@ -1129,6 +1199,10 @@ begin
       end;
     end;
   end;
+
+  Self.RefreshHomeModuleStatus;
+  Self.RefreshHomeDeps;
+  Self.RefreshHomeOptiStatus;
 
   if AllDeleted then
     ShowMessage(rsClearConfigDone)
@@ -1356,16 +1430,42 @@ const
   CLR_OK      = $0044CC55;
   CLR_MISSING = $005555EE;
 var
-  VkNemuOK: Boolean;
-  VkNemuVer: string;
+  VkNemuOK, VkNemuSystem, VkNemuUser: Boolean;
+  VkNemuVer, HintText: string;
+  HomeDir, UserLayerDir, XdgLayerDir: string;
 begin
   with FForm do
   begin
     if not Assigned(FHomeModDots[11]) then Exit;
 
-    VkNemuOK := IsVkNemuInstalled;
-    FHomeModDots[11].Brush.Color := Math.IfThen(VkNemuOK, CLR_OK, CLR_MISSING);
-    FHomeModDots[11].Pen.Color := FHomeModDots[11].Brush.Color;
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+    UserLayerDir := HomeDir + '.local/share/vulkan/implicit_layer.d/';
+    XdgLayerDir := GetUserVulkanImplicitDir;
+
+    VkNemuSystem := VkNemuSystemLayersPresent;
+    VkNemuUser := FileExists(UserLayerDir + 'vknemu.json') or
+                  FileExists(XdgLayerDir + 'vknemu.json') or
+                  FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/vknemu/libVkLayer_vknemu.so');
+    VkNemuOK := VkNemuSystem or (VkNemuUser and IsVkNemuInstalled);
+
+    if VkNemuOK then
+    begin
+      FHomeModDots[11].Brush.Color := CLR_OK;
+      FHomeModDots[11].Pen.Color   := CLR_OK;
+      if VkNemuSystem then
+        HintText := 'System package'
+      else
+        HintText := 'Installed in user space (GOverlay)';
+    end
+    else
+    begin
+      FHomeModDots[11].Brush.Color := CLR_MISSING;
+      FHomeModDots[11].Pen.Color   := CLR_MISSING;
+      HintText := 'Not installed';
+    end;
+
+    FHomeModDots[11].Hint := HintText;
+    FHomeModDots[11].ShowHint := True;
 
     VkNemuVer := Self.GetVkNemuVersion;
     if VkNemuVer = '' then
@@ -1377,6 +1477,8 @@ begin
     begin
       FHomeModVerLbls[11].Caption := VkNemuVer;
       FHomeModVerLbls[11].Font.Color := CLR_TEXT_MUTED;
+      FHomeModVerLbls[11].Hint := HintText;
+      FHomeModVerLbls[11].ShowHint := True;
     end;
   end;
 end;

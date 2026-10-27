@@ -185,12 +185,15 @@ type
     procedure TestGplotLogDirectoryAndAutoOrganization;
     procedure TestGplotCsvParserHighFpsAndShortDuration;
     procedure TestGplotWindowMultiRunComparisonAndPngExport;
+    procedure TestFirstRunSetupDialogUI;
+    procedure TestOnDemandTabPlaceholders;
+    procedure TestSettingsMenuHasModulesItem;
   end;
 
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab, pasplot_form, StrUtils;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab, pasplot_form, StrUtils, first_run_dialog;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -8857,6 +8860,122 @@ begin
   finally
     DeleteDirectory(TempBase, False);
   end;
+end;
+
+procedure TGoverlayGuiTests.TestFirstRunSetupDialogUI;
+var
+  Dlg: TFirstRunSetupDialog;
+begin
+  Dlg := TFirstRunSetupDialog.Create(nil, True);
+  try
+    AssertTrue('Mango check exists and is checked', Dlg.MangoCheck.Checked);
+    AssertFalse('Mango check is disabled/locked', Dlg.MangoCheck.Enabled);
+    AssertTrue('vkBasalt check exists', Assigned(Dlg.VkBasaltCheck));
+    AssertTrue('ReShade check exists', Assigned(Dlg.ReShadeCheck));
+    AssertTrue('vkSumi check exists', Assigned(Dlg.VkSumiCheck));
+    AssertTrue('OptiScaler check exists', Assigned(Dlg.OptiScalerCheck));
+    AssertTrue('DLSS Enabler check exists', Assigned(Dlg.DlssEnablerCheck));
+    AssertTrue('HelixSR check exists', Assigned(Dlg.HelixSRCheck));
+    AssertTrue('lsfg-vk check exists', Assigned(Dlg.LsfgVkCheck));
+    AssertTrue('MAKO check exists', Assigned(Dlg.MakoCheck));
+    AssertTrue('AFMF check exists', Assigned(Dlg.AfmfCheck));
+    AssertTrue('SelectAllBtn exists', Assigned(Dlg.SelectAllBtn));
+
+    // Test select all button click
+    Dlg.SelectAllBtn.OnClick(Dlg.SelectAllBtn);
+    AssertTrue('vkBasalt checked after Select All', Dlg.VkBasaltCheck.Checked);
+    AssertTrue('OptiScaler checked after Select All', Dlg.OptiScalerCheck.Checked);
+    AssertTrue('MAKO checked after Select All', Dlg.MakoCheck.Checked);
+
+    // Test minimal button click
+    Dlg.MinimalBtn.OnClick(Dlg.MinimalBtn);
+
+    AssertTrue('FirstRunWizardCompleted is true after minimal button',
+      TConfigManager.IsFirstRunWizardCompleted);
+    AssertFalse('OptiScaler is disabled after minimal button',
+      TConfigManager.IsModuleEnabled(MODULE_OPTISCALER));
+    AssertFalse('vkBasalt is disabled after minimal button',
+      TConfigManager.IsModuleEnabled(MODULE_VKBASALT));
+    AssertFalse('MAKO is disabled after minimal button',
+      TConfigManager.IsModuleEnabled(MODULE_MAKO));
+    AssertFalse('PostProcessing group is disabled after minimal button',
+      TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
+
+    // Test confirm button click with custom individual toggles
+    Dlg.VkBasaltCheck.Checked := False;
+    Dlg.ReShadeCheck.Checked := True;
+    Dlg.VkSumiCheck.Checked := False;
+    Dlg.OptiScalerCheck.Checked := True;
+    Dlg.DlssEnablerCheck.Checked := False;
+    Dlg.HelixSRCheck.Checked := False;
+    Dlg.LsfgVkCheck.Checked := False;
+    Dlg.MakoCheck.Checked := True;
+    Dlg.AfmfCheck.Checked := False;
+    Dlg.ConfirmBtn.OnClick(Dlg.ConfirmBtn);
+
+    AssertFalse('vkBasalt is disabled', TConfigManager.IsModuleEnabled(MODULE_VKBASALT));
+    AssertTrue('ReShade is enabled', TConfigManager.IsModuleEnabled(MODULE_RESHADE));
+    AssertFalse('vkSumi is disabled', TConfigManager.IsModuleEnabled(MODULE_VKSUMI));
+    AssertTrue('PostProcessing group is enabled because ReShade is enabled',
+      TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
+
+    AssertTrue('OptiScaler is enabled', TConfigManager.IsModuleEnabled(MODULE_OPTISCALER));
+    AssertFalse('DLSS Enabler is disabled', TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER));
+    AssertTrue('Upscalers group is enabled', TConfigManager.IsModuleEnabled(MODULE_UPSCALERS));
+
+    AssertFalse('lsfg-vk is disabled', TConfigManager.IsModuleEnabled(MODULE_LSFGVK));
+    AssertTrue('MAKO is enabled', TConfigManager.IsModuleEnabled(MODULE_MAKO));
+    AssertTrue('FrameGen group is enabled', TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION));
+  finally
+    Dlg.Free;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestOnDemandTabPlaceholders;
+begin
+  // Disable modules
+  TConfigManager.SetModuleEnabled(MODULE_UPSCALERS, False);
+  TConfigManager.SetModuleEnabled(MODULE_FRAMEGENERATION, False);
+  TConfigManager.SetModuleEnabled(MODULE_POSTPROCESSING, False);
+  TConfigManager.SetModuleEnabled(MODULE_VKBASALT, False);
+  TConfigManager.SetModuleEnabled(MODULE_RESHADE, False);
+  TConfigManager.SetModuleEnabled(MODULE_VKSUMI, False);
+
+  goverlayform.UpdateTabModulePlaceholders;
+
+  AssertTrue('OptiScaler placeholder visible when disabled',
+    Assigned(goverlayform.FOptiScalerPlaceholder) and goverlayform.FOptiScalerPlaceholder.Visible);
+  AssertTrue('Lossless placeholder visible when disabled',
+    Assigned(goverlayform.FLosslessPlaceholder) and goverlayform.FLosslessPlaceholder.Visible);
+  AssertTrue('vkBasalt placeholder visible when disabled',
+    Assigned(goverlayform.FVkBasaltPlaceholder) and goverlayform.FVkBasaltPlaceholder.Visible);
+  AssertTrue('ReShade placeholder visible when disabled',
+    Assigned(goverlayform.FReshadePlaceholder) and goverlayform.FReshadePlaceholder.Visible);
+  AssertTrue('vkSumi placeholder visible when disabled',
+    Assigned(goverlayform.FVkSumiPlaceholder) and goverlayform.FVkSumiPlaceholder.Visible);
+
+  // Test enabling via placeholder click
+  goverlayform.EnableUpscalersModuleClick(nil);
+  AssertTrue('Upscalers module now enabled', TConfigManager.IsModuleEnabled(MODULE_UPSCALERS));
+  AssertFalse('OptiScaler placeholder hidden when enabled', goverlayform.FOptiScalerPlaceholder.Visible);
+
+  goverlayform.EnableVkSumiModuleClick(nil);
+  AssertTrue('vkSumi module now enabled', TConfigManager.IsModuleEnabled(MODULE_VKSUMI));
+  AssertFalse('vkSumi placeholder hidden when enabled', goverlayform.FVkSumiPlaceholder.Visible);
+
+  goverlayform.EnableFrameGenModuleClick(nil);
+  AssertTrue('FrameGen module now enabled', TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION));
+  AssertFalse('Lossless placeholder hidden when enabled', goverlayform.FLosslessPlaceholder.Visible);
+
+  goverlayform.EnablePostProcessingModuleClick(nil);
+  AssertTrue('PostProcessing module now enabled', TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
+  AssertFalse('vkBasalt placeholder hidden when enabled', goverlayform.FVkBasaltPlaceholder.Visible);
+end;
+
+procedure TGoverlayGuiTests.TestSettingsMenuHasModulesItem;
+begin
+  AssertTrue('FModulesMenuItem is assigned in settings menu', Assigned(goverlayform.FModulesMenuItem));
+  AssertEquals('FModulesMenuItem has correct caption', 'Manage Integrations / Modules', goverlayform.FModulesMenuItem.Caption);
 end;
 
 initialization

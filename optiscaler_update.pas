@@ -125,6 +125,9 @@ function CheckAndInstallVkSumi(AForce: Boolean = False; AOnProgress: TDownloadPr
 // Check whether the vkSumi Vulkan layer is installed (system or user space)
 function IsVkSumiInstalled: Boolean;
 
+// Check whether vkSumi is installed as a system layer
+function VkSumiSystemLayersPresent: Boolean;
+
 // Read the locally recorded vkSumi version (goverlay.vars or version.txt)
 function ReadLocalVkSumiVersion: string;
 
@@ -185,6 +188,8 @@ function GetReShadeLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
 function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+procedure UninstallUserModule(const AModuleName: string);
+procedure UninstallAllUserModules;
 
 type
   TOptiscalerTab = class
@@ -290,7 +295,7 @@ implementation
 
 uses
   FileUtil, LazFileUtils, BaseUnix, bgmod_resources, systemdetector, overlayunit, overlay_config, apputils, overlay_utils, IniFiles, StrUtils, configfile,
-  helixsr_license_dialog;
+  helixsr_license_dialog, configmanager;
 
 type
   TOptiPatcherCheckThread = class(TThread)
@@ -5279,72 +5284,103 @@ begin
   ReShadeBin := IncludeTrailingPathDelimiter(GetReShadeBinPath);
   ReShadeShaders := IncludeTrailingPathDelimiter(GetReShadeShadersPath);
 
-  // OptiScaler core
-  if not FileExists(OptiDir + 'OptiScaler.dll') then
-    AMissingList.Add('OptiScaler.dll');
-  if not FileExists(OptiDir + 'amd_fidelityfx_upscaler_dx12.dll') then
-    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll');
+  // OptiScaler
+  if TConfigManager.IsModuleEnabled(MODULE_OPTISCALER) then
+  begin
+    if not FileExists(OptiDir + 'OptiScaler.dll') then
+      AMissingList.Add('OptiScaler.dll');
+    if not FileExists(OptiDir + 'amd_fidelityfx_upscaler_dx12.dll') then
+      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll');
 
-  // DLSS Enabler core
-  if not FileExists(DlssEnablerDir + 'version.dll') then
-    AMissingList.Add('version.dll (DLSS Enabler)');
+    // NVIDIA DLSS companion DLLs
+    if not FileExists(OptiDir + 'nvngx_dlss.dll') then
+      AMissingList.Add('nvngx_dlss.dll');
+    if not FileExists(OptiDir + 'nvngx_dlssd.dll') then
+      AMissingList.Add('nvngx_dlssd.dll');
+    if not FileExists(OptiDir + 'nvngx_dlssg.dll') then
+      AMissingList.Add('nvngx_dlssg.dll');
 
-  // NVIDIA DLSS companion DLLs
-  if not FileExists(OptiDir + 'nvngx_dlss.dll') then
-    AMissingList.Add('nvngx_dlss.dll');
-  if not FileExists(OptiDir + 'nvngx_dlssd.dll') then
-    AMissingList.Add('nvngx_dlssd.dll');
-  if not FileExists(OptiDir + 'nvngx_dlssg.dll') then
-    AMissingList.Add('nvngx_dlssg.dll');
+    // FrameGen bridge
+    if not FileExists(OptiDir + 'dlssg_to_fsr3_amd_is_better.dll') then
+      AMissingList.Add('dlssg_to_fsr3_amd_is_better.dll');
 
-  // FrameGen bridge
-  if not FileExists(OptiDir + 'dlssg_to_fsr3_amd_is_better.dll') then
-    AMissingList.Add('dlssg_to_fsr3_amd_is_better.dll');
+    // FakeNVAPI
+    if not FileExists(OptiDir + 'fakenvapi.dll') then
+      AMissingList.Add('fakenvapi.dll');
 
-  // FakeNVAPI
-  if not FileExists(OptiDir + 'fakenvapi.dll') then
-    AMissingList.Add('fakenvapi.dll');
+    // FSR4 central directory DLLs
+    if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
+    if not FileExists(FsrBase + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
+    if not FileExists(FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
 
-  // FSR4 central directory DLLs
-  if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
-  if not FileExists(FsrBase + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
-  if not FileExists(FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-    AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
+    // OptiPatcher ASI plugin (OptiScaler)
+    if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
+       not FileExists(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi') then
+      AMissingList.Add('OptiPatcher (OptiScaler ASI plugin)');
+  end;
 
-  // ReShade runtime & standard shaders
-  if not FileExists(ReShadeBin + 'ReShade64.dll') then
-    AMissingList.Add('ReShade64.dll');
-  if not FileExists(ReShadeBin + 'ReShade32.dll') then
-    AMissingList.Add('ReShade32.dll');
-  if not DirectoryExists(ReShadeShaders + 'Shaders') then
-    AMissingList.Add('ReShade Standard Shaders');
+  // DLSS Enabler
+  if TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER) then
+  begin
+    if not FileExists(DlssEnablerDir + 'version.dll') then
+      AMissingList.Add('version.dll (DLSS Enabler)');
+  end;
 
-  // vkBasalt ReShade shaders repository
-  if not DirectoryExists(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders') then
-    AMissingList.Add('vkBasalt ReShade Shaders');
+  // HelixSR
+  if TConfigManager.IsModuleEnabled(MODULE_HELIXSR) then
+  begin
+    if not FileExists(GetHelixSRDx12DllPath(GetBGModOriginalHelixSRPath)) then
+      AMissingList.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
+  end;
 
-  // AFMF Vulkan layer
-  if not IsAfmfInstalled and not IsRunningInFlatpak then
-    AMissingList.Add('afmf-linux layer');
+  // ReShade
+  if TConfigManager.IsModuleEnabled(MODULE_RESHADE) then
+  begin
+    if not FileExists(ReShadeBin + 'ReShade64.dll') then
+      AMissingList.Add('ReShade64.dll');
+    if not FileExists(ReShadeBin + 'ReShade32.dll') then
+      AMissingList.Add('ReShade32.dll');
+    if not DirectoryExists(ReShadeShaders + 'Shaders') then
+      AMissingList.Add('ReShade Standard Shaders');
+  end;
 
-  // vkSumi Vulkan layer
-  if not IsVkSumiInstalled and not IsRunningInFlatpak then
-    AMissingList.Add('vkSumi Vulkan layer');
+  // vkBasalt
+  if TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
+  begin
+    if not DirectoryExists(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders') then
+      AMissingList.Add('vkBasalt ReShade Shaders');
+  end;
 
-  // vkNemu Vulkan layer
-  if not IsVkNemuInstalled and not IsRunningInFlatpak then
-    AMissingList.Add('vkNemu Vulkan layer');
+  // vkSumi
+  if TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
+  begin
+    if not IsVkSumiInstalled and not IsRunningInFlatpak then
+      AMissingList.Add('vkSumi Vulkan layer');
+  end;
 
-  // HelixSR (OptiScaler & DLSS Model E runtime)
-  if not FileExists(GetHelixSRDx12DllPath(GetBGModOriginalHelixSRPath)) then
-    AMissingList.Add('HelixSR (OptiScaler & DLSS Model E runtime)');
+  // AFMF
+  if TConfigManager.IsModuleEnabled(MODULE_AFMF) then
+  begin
+    if not IsAfmfInstalled and not IsRunningInFlatpak then
+      AMissingList.Add('afmf-linux layer');
+  end;
 
-  // OptiPatcher ASI plugin (OptiScaler)
-  if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
-     not FileExists(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi') then
-    AMissingList.Add('OptiPatcher (OptiScaler ASI plugin)');
+  // lsfg-vk
+  if TConfigManager.IsModuleEnabled(MODULE_LSFGVK) then
+  begin
+    if not IsLsfgVkInstalled and not IsRunningInFlatpak then
+      AMissingList.Add('lsfg-vk layer');
+  end;
+
+  // MAKO
+  if TConfigManager.IsModuleEnabled(MODULE_MAKO) then
+  begin
+    if not IsMakoInstalled and not IsRunningInFlatpak then
+      AMissingList.Add('MAKO layer');
+  end;
 
   Result := AMissingList.Count > 0;
 end;
@@ -9141,6 +9177,160 @@ begin
     if Result = '' then
       Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'goverlay.vars');
   end;
+end;
+
+procedure UninstallUserModule(const AModuleName: string);
+var
+  HomeDir, UserLayerDir, XdgLayerDir, LocalShare, LocalLib, LocalLib32, LocalBin, GOverlayData: string;
+
+  procedure SafeDeleteFile(const APath: string);
+  begin
+    if (APath <> '') and FileExists(APath) then
+      DeleteFile(APath);
+  end;
+
+  procedure SafeDeleteDir(const APath: string);
+  begin
+    if (APath <> '') and DirectoryExists(APath) then
+      DeleteDirectory(APath, False);
+  end;
+
+begin
+  HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+  UserLayerDir := HomeDir + '.local/share/vulkan/implicit_layer.d/';
+  XdgLayerDir := GetUserVulkanImplicitDir;
+  LocalShare := HomeDir + '.local/share/';
+  LocalLib := HomeDir + '.local/lib/';
+  LocalLib32 := HomeDir + '.local/lib32/';
+  LocalBin := HomeDir + '.local/bin/';
+  GOverlayData := IncludeTrailingPathDelimiter(GetGOverlayDataPath);
+
+  if (AModuleName = MODULE_AFMF) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'afmf-linux.json');
+    SafeDeleteFile(XdgLayerDir + 'afmf-linux.json');
+    SafeDeleteFile(LocalLib + 'libafmf.so');
+    SafeDeleteFile(LocalLib + 'afmf-linux/libafmf-linux.so');
+    SafeDeleteDir(LocalLib + 'afmf-linux');
+  end;
+
+  if (AModuleName = MODULE_LSFGVK) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.x86.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_LS_frame_generation.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_LSFGVK.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_LSFGVK_frame_generation.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_LSFGVK_frame_generation.x86.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_LS_frame_generation.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_LSFGVK.json');
+    SafeDeleteFile(LocalLib + 'libVkLayer_LSFGVK_frame_generation.so');
+    SafeDeleteFile(LocalLib32 + 'libVkLayer_LSFGVK_frame_generation.so');
+    SafeDeleteFile(LocalLib + 'liblsfg-vk-layer.so');
+    SafeDeleteFile(LocalLib + 'liblsfg-vk-layer.x86.so');
+    SafeDeleteFile(LocalLib32 + 'liblsfg-vk-layer.so');
+    SafeDeleteDir(LocalShare + 'lsfg-vk');
+  end;
+
+  if (AModuleName = MODULE_MAKO) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'VkLayer_MAKO_render.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_MAKO_render.x86.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_MAKO_spatial_scaling.json');
+    SafeDeleteFile(UserLayerDir + 'VkLayer_MAKO_spatial_scaling.x86.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_MAKO_render.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_MAKO_render.x86.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_MAKO_spatial_scaling.json');
+    SafeDeleteFile(XdgLayerDir + 'VkLayer_MAKO_spatial_scaling.x86.json');
+    SafeDeleteFile(LocalLib + 'libVkLayer_MAKO_render.so');
+    SafeDeleteFile(LocalLib32 + 'libVkLayer_MAKO_render.so');
+    SafeDeleteFile(LocalLib + 'libVkLayer_MAKO_spatial_scaling.so');
+    SafeDeleteFile(LocalLib32 + 'libVkLayer_MAKO_spatial_scaling.so');
+    SafeDeleteFile(LocalLib + 'libmako-render.so');
+    SafeDeleteFile(LocalLib + 'libmako-render-scaling.so');
+    SafeDeleteFile(LocalLib32 + 'libmako-render.so');
+    SafeDeleteFile(LocalLib32 + 'libmako-render-scaling.so');
+    SafeDeleteFile(LocalBin + 'mako');
+    SafeDeleteFile(LocalBin + 'mako-launch');
+    SafeDeleteDir(LocalShare + 'mako-render');
+    SafeDeleteFile(LocalShare + 'applications/mako.desktop');
+    SafeDeleteFile(LocalShare + 'applications/mako-renderer.desktop');
+    SafeDeleteFile(HomeDir + 'Desktop/mako.desktop');
+  end;
+
+  if (AModuleName = MODULE_VKSUMI) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'vksumi.json');
+    SafeDeleteFile(XdgLayerDir + 'vksumi.json');
+    SafeDeleteFile(LocalLib + 'libVkLayer_vksumi.so');
+    SafeDeleteFile(HomeDir + '.local/lib64/libVkLayer_vksumi.so');
+    SafeDeleteFile(LocalLib32 + 'libVkLayer_vksumi.so');
+    SafeDeleteDir(LocalShare + 'goverlay/layers/vksumi');
+    SafeDeleteDir(GOverlayData + 'layers/vksumi');
+  end;
+
+  if (AModuleName = 'vkNemu') or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'vknemu.json');
+    SafeDeleteFile(XdgLayerDir + 'vknemu.json');
+    SafeDeleteFile(LocalLib + 'libVkLayer_vknemu.so');
+    SafeDeleteFile(HomeDir + '.local/lib64/libVkLayer_vknemu.so');
+    SafeDeleteFile(LocalLib32 + 'libVkLayer_vknemu.so');
+    SafeDeleteDir(LocalShare + 'goverlay/layers/vknemu');
+    SafeDeleteDir(GOverlayData + 'layers/vknemu');
+  end;
+
+  if (AModuleName = MODULE_OPTISCALER) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteDir(LocalShare + 'goverlay/optiscaler');
+    SafeDeleteDir(LocalShare + 'goverlay/optiscaler-stable');
+    SafeDeleteDir(LocalShare + 'goverlay/optiscaler-git');
+    SafeDeleteFile(LocalShare + 'goverlay/optiscaler.zip');
+    SafeDeleteFile(LocalShare + 'goverlay/version.txt');
+    SafeDeleteDir(GOverlayData + 'optiscaler');
+    SafeDeleteDir(GOverlayData + 'optiscaler-stable');
+    SafeDeleteDir(GOverlayData + 'optiscaler-git');
+    SafeDeleteFile(GOverlayData + 'optiscaler.zip');
+    SafeDeleteFile(GOverlayData + 'version.txt');
+  end;
+
+  if (AModuleName = MODULE_DLSSENABLER) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteDir(LocalShare + 'goverlay/dlss-enabler');
+    SafeDeleteFile(LocalShare + 'goverlay/dlss-enabler.zip');
+    SafeDeleteDir(GOverlayData + 'dlss-enabler');
+    SafeDeleteFile(GOverlayData + 'dlss-enabler.zip');
+  end;
+
+  if (AModuleName = MODULE_HELIXSR) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteDir(LocalShare + 'HelixSR');
+    SafeDeleteDir(LocalShare + 'goverlay/helixsr');
+    SafeDeleteDir(LocalLib + 'helixsr');
+    SafeDeleteDir(GOverlayData + 'helixsr');
+  end;
+
+  if (AModuleName = MODULE_RESHADE) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteDir(LocalShare + 'goverlay/reshade');
+    SafeDeleteFile(LocalShare + 'goverlay/reshade.zip');
+    SafeDeleteDir(GOverlayData + 'reshade');
+    SafeDeleteFile(GOverlayData + 'reshade.zip');
+  end;
+
+  if (AModuleName = MODULE_VKBASALT) or (AModuleName = 'ALL') then
+  begin
+    SafeDeleteFile(UserLayerDir + 'vkBasalt.json');
+    SafeDeleteFile(XdgLayerDir + 'vkBasalt.json');
+    SafeDeleteDir(LocalLib + 'vkbasalt');
+    SafeDeleteDir(LocalShare + 'vkBasalt');
+    SafeDeleteDir(LocalShare + 'vkBasalt/reshade-shaders');
+  end;
+end;
+
+procedure UninstallAllUserModules;
+begin
+  UninstallUserModule('ALL');
 end;
 
 end.

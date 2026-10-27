@@ -5,7 +5,24 @@ unit configmanager;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, constants;
+  Classes, SysUtils, FileUtil, IniFiles, constants;
+
+const
+  MODULE_MANGOHUD = 'MangoHud';
+  MODULE_VKBASALT = 'vkBasalt';
+  MODULE_RESHADE = 'ReShade';
+  MODULE_VKSUMI = 'vkSumi';
+  MODULE_OPTISCALER = 'OptiScaler';
+  MODULE_DLSSENABLER = 'DlssEnabler';
+  MODULE_HELIXSR = 'HelixSR';
+  MODULE_LSFGVK = 'LsfgVk';
+  MODULE_MAKO = 'Mako';
+  MODULE_AFMF = 'Afmf';
+  MODULE_POSTPROCESSING = 'PostProcessing';
+  MODULE_UPSCALERS = 'Upscalers';
+  MODULE_FRAMEGENERATION = 'FrameGeneration';
+  SECTION_MODULES = 'Modules';
+  KEY_FIRST_RUN_WIZARD = 'FirstRunWizardCompleted';
 
 type
   /// <summary>
@@ -88,6 +105,22 @@ type
      /// </summary>
      /// <returns>Full path to GOverlay logs folder</returns>
      class function GetGoverlayLogsDir: string;
+
+     /// <summary>
+     /// Gets the GOverlay main configuration file path
+     /// </summary>
+     /// <returns>Full path to goverlay.conf</returns>
+     class function GetConfigFilePath: string;
+
+     // ============================================================================
+     // MODULE CONFIGURATION
+     // ============================================================================
+
+     class function IsFirstRunWizardCompleted: Boolean;
+     class procedure SetFirstRunWizardCompleted(ACompleted: Boolean);
+     class function IsModuleEnabled(const AModuleName: string; ADefault: Boolean = False): Boolean;
+     class procedure SetModuleEnabled(const AModuleName: string; AEnabled: Boolean);
+     class procedure MigrateExistingInstallation(AIni: TIniFile);
 
      // ============================================================================
      // PATH GETTERS - OptiScaler/fgmod
@@ -270,6 +303,222 @@ end;
 class function TConfigManager.GetGoverlayLogsDir: string;
 begin
   Result := IncludeTrailingPathDelimiter(GetGoverlayFolder) + 'logs';
+end;
+
+class function TConfigManager.GetConfigFilePath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetGoverlayFolder) + 'goverlay.conf';
+end;
+
+// ============================================================================
+// Module Configuration
+// ============================================================================
+
+class function TConfigManager.IsFirstRunWizardCompleted: Boolean;
+var
+  Ini: TIniFile;
+  DefaultValue: Boolean;
+begin
+  DefaultValue := GetEnvironmentVariable('GOVERLAY_TEST') = '1';
+  try
+    Ini := TIniFile.Create(GetConfigFilePath);
+    try
+      Result := Ini.ReadBool('General', KEY_FIRST_RUN_WIZARD, DefaultValue);
+    finally
+      Ini.Free;
+    end;
+  except
+    Result := DefaultValue;
+  end;
+end;
+
+class procedure TConfigManager.SetFirstRunWizardCompleted(ACompleted: Boolean);
+var
+  Ini: TIniFile;
+begin
+  try
+    EnsureDirectoryExists(GetGoverlayFolder);
+    Ini := TIniFile.Create(GetConfigFilePath);
+    try
+      Ini.WriteBool('General', KEY_FIRST_RUN_WIZARD, ACompleted);
+    finally
+      Ini.Free;
+    end;
+  except
+  end;
+end;
+
+class function TConfigManager.IsModuleEnabled(const AModuleName: string;
+  ADefault: Boolean): Boolean;
+var
+  Ini: TIniFile;
+  FallbackDefault: Boolean;
+begin
+  if AModuleName = MODULE_MANGOHUD then
+    Exit(True);
+
+  FallbackDefault := ADefault;
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then
+    FallbackDefault := True;
+
+  try
+    Ini := TIniFile.Create(GetConfigFilePath);
+    try
+      // If the exact module/library key is saved in the config, honor it directly
+      if Ini.ValueExists(SECTION_MODULES, AModuleName) then
+        Exit(Ini.ReadBool(SECTION_MODULES, AModuleName, ADefault));
+
+      // For groups without explicit group key, check if any constituent library is explicitly saved/enabled
+      if AModuleName = MODULE_POSTPROCESSING then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_VKBASALT) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_RESHADE) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_VKSUMI) then
+          Exit(IsModuleEnabled(MODULE_VKBASALT, ADefault) or
+               IsModuleEnabled(MODULE_RESHADE, ADefault) or
+               IsModuleEnabled(MODULE_VKSUMI, ADefault));
+        Exit(FallbackDefault);
+      end;
+
+      if AModuleName = MODULE_UPSCALERS then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_OPTISCALER) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_DLSSENABLER) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_HELIXSR) then
+          Exit(IsModuleEnabled(MODULE_OPTISCALER, ADefault) or
+               IsModuleEnabled(MODULE_DLSSENABLER, ADefault) or
+               IsModuleEnabled(MODULE_HELIXSR, ADefault));
+        Exit(FallbackDefault);
+      end;
+
+      if AModuleName = MODULE_FRAMEGENERATION then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_LSFGVK) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_MAKO) or
+           Ini.ValueExists(SECTION_MODULES, MODULE_AFMF) then
+          Exit(IsModuleEnabled(MODULE_LSFGVK, ADefault) or
+               IsModuleEnabled(MODULE_MAKO, ADefault) or
+               IsModuleEnabled(MODULE_AFMF, ADefault));
+        Exit(FallbackDefault);
+      end;
+
+      // For individual libraries without their own key, check if legacy parent group key exists
+      if (AModuleName = MODULE_VKBASALT) or
+         (AModuleName = MODULE_RESHADE) or
+         (AModuleName = MODULE_VKSUMI) then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_POSTPROCESSING) then
+          Exit(Ini.ReadBool(SECTION_MODULES, MODULE_POSTPROCESSING, ADefault));
+      end;
+
+      if (AModuleName = MODULE_OPTISCALER) or
+         (AModuleName = MODULE_DLSSENABLER) or
+         (AModuleName = MODULE_HELIXSR) then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_UPSCALERS) then
+          Exit(Ini.ReadBool(SECTION_MODULES, MODULE_UPSCALERS, ADefault));
+      end;
+
+      if (AModuleName = MODULE_LSFGVK) or
+         (AModuleName = MODULE_MAKO) or
+         (AModuleName = MODULE_AFMF) then
+      begin
+        if Ini.ValueExists(SECTION_MODULES, MODULE_FRAMEGENERATION) then
+          Exit(Ini.ReadBool(SECTION_MODULES, MODULE_FRAMEGENERATION, ADefault));
+      end;
+
+      Result := FallbackDefault;
+    finally
+      Ini.Free;
+    end;
+  except
+    Result := FallbackDefault;
+  end;
+end;
+
+class procedure TConfigManager.SetModuleEnabled(const AModuleName: string;
+  AEnabled: Boolean);
+var
+  Ini: TIniFile;
+begin
+  try
+    EnsureDirectoryExists(GetGoverlayFolder);
+    Ini := TIniFile.Create(GetConfigFilePath);
+    try
+      Ini.WriteBool(SECTION_MODULES, AModuleName, AEnabled);
+    finally
+      Ini.Free;
+    end;
+  except
+  end;
+end;
+
+class procedure TConfigManager.MigrateExistingInstallation(AIni: TIniFile);
+var
+  DataDir: string;
+  HasExistingConfig: Boolean;
+  HasExistingComponents: Boolean;
+begin
+  if AIni = nil then
+    Exit;
+
+  if AIni.ValueExists('General', KEY_FIRST_RUN_WIZARD) then
+    Exit;
+
+  DataDir := IncludeTrailingPathDelimiter(GetHostDataDir) +
+             GOVERLAY_FOLDER_NAME + PathDelim;
+
+  HasExistingConfig := AIni.ValueExists('General', 'Version') or
+                       AIni.SectionExists('MangoHud') or
+                       AIni.SectionExists('vkBasalt') or
+                       AIni.SectionExists('OptiScaler') or
+                       AIni.SectionExists('LosslessScaling') or
+                       AIni.SectionExists('Tweaks');
+
+  HasExistingComponents :=
+    FileExists(DataDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') or
+    FileExists(DataDir + 'optiscaler-stable' + PathDelim + 'OptiScaler.dll') or
+    FileExists(DataDir + 'optiscaler-edge' + PathDelim + 'OptiScaler.dll') or
+    FileExists(DataDir + 'optiscaler-helixsr' + PathDelim + 'OptiScaler.dll') or
+    FileExists(IncludeTrailingPathDelimiter(GetFgmodFolder) + 'OptiScaler.dll') or
+    FileExists(DataDir + 'reshade' + PathDelim + 'ReShade64.dll') or
+    FileExists(IncludeTrailingPathDelimiter(GetReshadeFolder) + 'ReShade64.dll') or
+    DirectoryExists(DataDir + 'lsfg-vk') or
+    DirectoryExists(DataDir + 'mako') or
+    DirectoryExists(DataDir + 'afmf');
+
+  if HasExistingConfig or HasExistingComponents then
+  begin
+    AIni.WriteBool('General', KEY_FIRST_RUN_WIZARD, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_VKBASALT, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_RESHADE, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_VKSUMI, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_OPTISCALER, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_DLSSENABLER, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_HELIXSR, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_LSFGVK, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_MAKO, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_AFMF, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_POSTPROCESSING, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_UPSCALERS, True);
+    AIni.WriteBool(SECTION_MODULES, MODULE_FRAMEGENERATION, True);
+  end
+  else
+  begin
+    AIni.WriteBool('General', KEY_FIRST_RUN_WIZARD, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_VKBASALT, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_RESHADE, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_VKSUMI, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_OPTISCALER, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_DLSSENABLER, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_HELIXSR, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_LSFGVK, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_MAKO, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_AFMF, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_POSTPROCESSING, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_UPSCALERS, False);
+    AIni.WriteBool(SECTION_MODULES, MODULE_FRAMEGENERATION, False);
+  end;
 end;
 
 // ============================================================================
