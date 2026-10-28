@@ -381,7 +381,7 @@ begin
     Process.Parameters.Add('8');
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(TmpFile);
     Process.Parameters.Add('https://github.com/' + AOwner + '/' + ARepo + '/releases.atom');
@@ -425,7 +425,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(TmpFile);
     Process.Parameters.Add('https://api.github.com/repos/lonewolf0622/HelixSR/releases/latest');
@@ -1316,7 +1316,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(TmpFile);
     Process.Parameters.Add('https://github.com/benjamimgois/OptiScaler-builds/tree/nightly-action/de');
@@ -3518,7 +3518,7 @@ begin
     Process.Parameters.Add('--connect-timeout');
     Process.Parameters.Add('10');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(AOutputFile);
     Process.Parameters.Add(AUrl);
@@ -3970,7 +3970,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('https://api.github.com/repos/NVIDIA-RTX/Streamline/releases/latest');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
@@ -4023,7 +4023,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(ZipFile);
     Process.Parameters.Add(DownloadUrl);
@@ -5106,7 +5106,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('4');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('https://api.github.com/repos/reakjra/vkSumi/releases/latest');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
@@ -5251,7 +5251,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('4');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('https://api.github.com/repos/reakjra/vkNemu/releases/latest');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
@@ -5480,7 +5480,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('4');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('https://api.github.com/repos/optiscaler/OptiPatcher/releases/latest');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
@@ -5532,7 +5532,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('6');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('https://api.github.com/repos/optiscaler/OptiPatcher/releases/latest');
     Process.Options := [poWaitOnExit, poUsePipes];
     Process.Execute;
@@ -6943,7 +6943,7 @@ begin
     Process.Executable := 'curl';
     Process.Parameters.Add('-sL');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(RespFile);
     Process.Parameters.Add(URL_MAKO_API_RELEASES);
@@ -7529,7 +7529,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('10');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(RespFile);
     Process.Parameters.Add(URL_LSFGVK_BUILDS);
@@ -7561,7 +7561,7 @@ end;
 function CheckAndInstallLsfgVk(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   ChanLabel: string;
-  StartPct, EndPct: Integer;
+  StartPct, EndPct, ExitCode: Integer;
   DownloadUrl, RemoteVer, TempTarFile, LocalUserDir: string;
   Process: TProcess;
 begin
@@ -7613,7 +7613,12 @@ begin
     TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'lsfg_vk_download.tar.xz';
     LocalUserDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local';
 
-    RunCurlWithProgress(DownloadUrl, TempTarFile, StartPct + 3, StartPct + 9, ChanLabel, AOnProgress);
+    ExitCode := RunCurlWithProgress(DownloadUrl, TempTarFile, StartPct + 3, StartPct + 9, ChanLabel, AOnProgress);
+    if (ExitCode <> 0) or not FileExists(TempTarFile) then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: Failed to download lsfg-vk runtime archive (curl exit code: ', ExitCode, ')');
+      Exit(False);
+    end;
 
     if FileExists(TempTarFile) then
     begin
@@ -7809,7 +7814,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('10');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(RespFile);
     Process.Parameters.Add(URL_AFMF_API_RELEASES);
@@ -8187,7 +8192,7 @@ begin
     Process.Parameters.Add('--max-time');
     Process.Parameters.Add('10');
     Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
     Process.Parameters.Add('-o');
     Process.Parameters.Add(RespFile);
     Process.Parameters.Add(URL_RESHADE_TAGS_API);
@@ -8257,11 +8262,11 @@ begin
       Process.Executable := 'curl';
       Process.Parameters.Add('-sL');
       Process.Parameters.Add('--max-time');
-      Process.Parameters.Add('10');
-      Process.Parameters.Add('-H');
-      Process.Parameters.Add('User-Agent: goverlay');
-      Process.Parameters.Add('-o');
-      Process.Parameters.Add(RespFile);
+    Process.Parameters.Add('10');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(RespFile);
       Process.Parameters.Add(URL_RESHADE_HOME);
       Process.Options := [poWaitOnExit];
       Process.Execute;
