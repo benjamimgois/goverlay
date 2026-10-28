@@ -164,6 +164,8 @@ function CheckAndInstallMako(AForce: Boolean = False; AOnProgress: TDownloadProg
 function InspectMakoLosslessDll(const ADllPath: string; out ADetails: string): Boolean;
 
 // Check and automatically install lsfg-vk Vulkan layer if not present
+function PatchLsfgVkManifest(const AJsonPath: string): Boolean;
+procedure EnsureUserLsfgVkManifestsPatched;
 function IsLsfgVkInstalled: Boolean;
 function GetLsfgVkLibraryPath: string;
 function GetLsfgVkInstalledVersion: string;
@@ -7291,10 +7293,71 @@ begin
   end;
 end;
 
+function PatchLsfgVkManifest(const AJsonPath: string): Boolean;
+var
+  SL: TStringList;
+  Content, EnableBlock: string;
+begin
+  Result := False;
+  if not FileExists(AJsonPath) then Exit;
+
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(AJsonPath);
+    Content := SL.Text;
+
+    // Already patched: leave the manifest untouched.
+    if Pos('"enable_environment"', Content) > 0 then Exit;
+
+    // Only manifests with a disable_environment block can be made opt-in.
+    if Pos('"disable_environment"', Content) = 0 then Exit;
+
+    EnableBlock :=
+      '"enable_environment": {' + LineEnding +
+      '  "ENABLE_LSFGVK": "1"' + LineEnding +
+      '},' + LineEnding;
+
+    Content := StringReplace(Content, '"disable_environment"',
+      EnableBlock + '"disable_environment"', []);
+    SL.Text := Content;
+    SL.SaveToFile(AJsonPath);
+    Result := True;
+  finally
+    SL.Free;
+  end;
+end;
+
+procedure EnsureUserLsfgVkManifestsPatched;
+const
+  LayerNames: array[0..3] of string = (
+    'VkLayer_LSFGVK_frame_generation.json',
+    'VkLayer_LSFGVK_frame_generation.x86.json',
+    'VkLayer_LS_frame_generation.json',
+    'VkLayer_LSFGVK.json');
+var
+  HomeLayerDir, DataHome, XdgLayerDir: string;
+  i: Integer;
+begin
+  HomeLayerDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/';
+  for i := Low(LayerNames) to High(LayerNames) do
+    PatchLsfgVkManifest(HomeLayerDir + LayerNames[i]);
+
+  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+  if DataHome <> '' then
+  begin
+    XdgLayerDir := IncludeTrailingPathDelimiter(DataHome) + 'vulkan/implicit_layer.d/';
+    if ExpandFileName(XdgLayerDir) <> ExpandFileName(HomeLayerDir) then
+      for i := Low(LayerNames) to High(LayerNames) do
+        PatchLsfgVkManifest(XdgLayerDir + LayerNames[i]);
+  end;
+end;
+
 function IsLsfgVkInstalled: Boolean;
 var
   HomeDir, UserLayerDir: string;
 begin
+  EnsureUserLsfgVkManifestsPatched;
+
   HomeDir := GetUserDir;
   UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
 
@@ -7653,6 +7716,8 @@ begin
 
       DeleteFile(TempTarFile);
     end;
+
+    EnsureUserLsfgVkManifestsPatched;
 
     if IsLsfgVkInstalled then
     begin

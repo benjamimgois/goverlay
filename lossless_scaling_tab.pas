@@ -1429,6 +1429,7 @@ var
   HomeDir, UserLayerDir: string;
 begin
   APath := '';
+  optiscaler_update.EnsureUserLsfgVkManifestsPatched;
   HomeDir := GetUserDir;
   UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
 
@@ -5746,7 +5747,7 @@ begin
       Exit('');
     TomlP := WriteLsfgTomlConfig;
     if (TomlP <> '') and FileExists(TomlP) then
-      Result := 'LSFGVK_CONFIG="' + TomlP + '" LSFG_CONFIG="' + TomlP + '"'
+      Result := 'ENABLE_LSFGVK=1 LSFGVK_CONFIG="' + TomlP + '" LSFG_CONFIG="' + TomlP + '"'
     else
       Result := '';
   end

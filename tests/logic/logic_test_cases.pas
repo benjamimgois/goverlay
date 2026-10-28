@@ -90,6 +90,11 @@ type
     procedure TestMakoRemoteVersionUrlResolution;
   end;
 
+  TLsfgVkManifestTests = class(TTestCase)
+  published
+    procedure TestPatchLsfgVkManifest;
+  end;
+
   TBgmodSupervisorTests = class(TTestCase)
   public
     procedure EnsureBgmodBinary;
@@ -1353,6 +1358,49 @@ begin
     AssertTrue('Remote version is v3.x or higher', (Pos('3.', Ver) > 0) or (Pos('4.', Ver) > 0) or (Pos('5.', Ver) > 0));
     AssertTrue('Download URL targets native linux archive', Pos('-linux.tar.xz', Url) > 0);
     AssertFalse('Download URL strictly excludes flatpaks', Pos('flatpak', LowerCase(Url)) > 0);
+  end;
+end;
+
+procedure TLsfgVkManifestTests.TestPatchLsfgVkManifest;
+var
+  DummyPath, Content: string;
+  Lines: TStringList;
+begin
+  DummyPath := IncludeTrailingPathDelimiter(IsolatedHome) + 'lsfgvk_manifest_test.json';
+  ForceDirectories(ExtractFileDir(DummyPath));
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('{');
+    Lines.Add('  "file_format_version": "1.0.0",');
+    Lines.Add('  "layer": {');
+    Lines.Add('    "name": "VK_LAYER_LSFGVK_frame_generation",');
+    Lines.Add('    "disable_environment": {');
+    Lines.Add('      "DISABLE_LSFGVK": "1"');
+    Lines.Add('    }');
+    Lines.Add('  }');
+    Lines.Add('}');
+    Lines.SaveToFile(DummyPath);
+  finally
+    Lines.Free;
+  end;
+
+  try
+    AssertTrue('first patch modifies manifest', PatchLsfgVkManifest(DummyPath));
+
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(DummyPath);
+      Content := Lines.Text;
+    finally
+      Lines.Free;
+    end;
+
+    AssertTrue('manifest contains enable_environment', Pos('"enable_environment"', Content) > 0);
+    AssertTrue('manifest contains ENABLE_LSFGVK', Pos('"ENABLE_LSFGVK"', Content) > 0);
+    AssertFalse('second patch is idempotent', PatchLsfgVkManifest(DummyPath));
+  finally
+    if FileExists(DummyPath) then DeleteFile(DummyPath);
   end;
 end;
 
@@ -3830,6 +3878,7 @@ initialization
   RegisterTest(TMangoHudColorParsingTests);
   RegisterTest(TClearConfigTests);
   RegisterTest(TMakoLogicTests);
+  RegisterTest(TLsfgVkManifestTests);
   RegisterTest(TBgmodSupervisorTests);
   RegisterTest(TReShadeLogicTests);
   RegisterTest(TSyncGameWrapperBinariesTests);

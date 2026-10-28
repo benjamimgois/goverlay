@@ -4017,6 +4017,16 @@ begin
     SetEnvVarInList(EnvStrings, 'DISABLE_VKNEMU', '1');
     Log('Export: DISABLE_VKNEMU=1');
   end;
+  if GOverlayLossless and (InterpolationMethod = 'lsfg') then
+  begin
+    SetEnvVarInList(EnvStrings, 'ENABLE_LSFGVK', '1');
+    Log('Export: ENABLE_LSFGVK=1');
+  end
+  else if not GOverlayLossless then
+  begin
+    SetEnvVarInList(EnvStrings, 'DISABLE_LSFGVK', '1');
+    Log('Export: DISABLE_LSFGVK=1');
+  end;
   if GOverlayOptiscaler and not IsNativeExecutable(TargetExeName) then
   begin
     DllBase := ChangeFileExt(DllName, '');

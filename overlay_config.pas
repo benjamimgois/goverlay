@@ -2137,7 +2137,7 @@ begin
 
       Settings.EmuFp8Checked := Ini.ReadString('Env', 'DXIL_SPIRV_CONFIG', '') <> '';
       Settings.OptVersionItemIndex := Ini.ReadInteger('Config', 'OPT_CHANNEL', -1);
-      Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 0);
+      Settings.UpscalerTypeItemIndex := Ini.ReadInteger('Config', 'UPSCALER_TYPE', 2);
       Settings.HelixSrNativeDlssChecked := Ini.ReadInteger('Config', 'HELIXSR_NATIVE_DLSS', 0) = 1;
       Settings.UnmanagedIniChecked := Ini.ReadString('Config', 'OPT_UNMANAGED_INI', '0') = '1';
       Settings.DlssNrArchIndex := Ini.ReadInteger('Config', DLSSNR_KEY_ARCH, 0);

@@ -89,6 +89,7 @@ type
     procedure TestThirdPartyProxyDllPreservedDuringLaunchAndUninstall;
     procedure TestOptiscalerAndDlssEnablerToggleKeyDisplay;
     procedure TestOptiScalerOptionsCardHeightAndNoScroll;
+    procedure TestOptiNoneUpscalerHidesOptionsSections;
     procedure TestHelixSRMethodSelectionAndPersistence;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
@@ -327,6 +328,7 @@ begin
     Helper.MultiplierTrackBar.Position := 2;
     Helper.MultiplierTrackBar.OnChange(Helper.MultiplierTrackBar);
     EnvVars := Helper.GetActiveEnvVars;
+    AssertTrue('ENABLE_LSFGVK is present', Pos('ENABLE_LSFGVK=1', EnvVars) > 0);
     AssertTrue('LSFG_CONFIG is present', Pos('LSFG_CONFIG=', EnvVars) > 0);
   finally
     if FileExists(DummyDll) then DeleteFile(DummyDll);
@@ -3722,6 +3724,10 @@ begin
   SeedOptiScalerFiles;
   NavigateOptiScalerTab;
 
+  // Ensure the OptiScaler method is active so the full options layout is reflowed
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+
   // Exercise reflow with current scroll box width
   goverlayform.ReflowOptiScalerTabNew(goverlayform.FOsScrollBox.ClientWidth);
 
@@ -3742,6 +3748,37 @@ begin
   // Software status card bottom must be fully within client height (no vertical scroll needed)
   AssertTrue('FOsStatusCard fits within FOsScrollBox client height without vertical scrolling',
     goverlayform.FOsStatusCard.Top + goverlayform.FOsStatusCard.Height <= goverlayform.FOsScrollBox.ClientHeight);
+end;
+
+procedure TGoverlayGuiTests.TestOptiNoneUpscalerHidesOptionsSections;
+var
+  Helper: TOptiScalerTabHelper;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+  AssertTrue('OptiScalerHelper assigned', Assigned(Helper));
+  AssertTrue('Disabled notice label assigned', Assigned(Helper.OsDisabledNoticeLbl));
+
+  // OptiScaler selected: notice hidden, option sections visible
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertFalse('Disabled notice hidden when OptiScaler selected', Helper.OsDisabledNoticeLbl.Visible);
+  AssertTrue('Main section visible when OptiScaler selected', goverlayform.FOsMainSec.Visible);
+  AssertTrue('Spatial section visible when OptiScaler selected', goverlayform.FOsSpatialSec.Visible);
+  AssertTrue('Temporal section visible when OptiScaler selected', goverlayform.FOsTemporalSec.Visible);
+  AssertTrue('Fake section visible when OptiScaler selected', goverlayform.FOsFakeSec.Visible);
+
+  // None selected: notice visible, option sections hidden
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(goverlayform.noneUpscalerRadioButton);
+  AssertTrue('Disabled notice visible when None selected', Helper.OsDisabledNoticeLbl.Visible);
+  AssertFalse('Main section hidden when None selected', goverlayform.FOsMainSec.Visible);
+  AssertFalse('Spatial section hidden when None selected', goverlayform.FOsSpatialSec.Visible);
+  AssertFalse('Temporal section hidden when None selected', goverlayform.FOsTemporalSec.Visible);
+  AssertFalse('Fake section hidden when None selected', goverlayform.FOsFakeSec.Visible);
+  AssertFalse('Options image section hidden when None selected', goverlayform.FOsImgSec.Visible);
 end;
 
 procedure TGoverlayGuiTests.TestHelixSRMethodSelectionAndPersistence;
@@ -6942,6 +6979,7 @@ begin
     AssertTrue('GpuComboBox remains visible after ControlStateChange', Helper.GpuComboBox.Visible);
 
     Helper.MultiplierTrackBar.Position := 2;
+    AssertTrue('Active env vars contain ENABLE_LSFGVK for imLsfg', Pos('ENABLE_LSFGVK=1', Helper.GetActiveEnvVars) > 0);
     AssertTrue('Active env vars contain LSFG_CONFIG for imLsfg', Pos('LSFG_CONFIG', Helper.GetActiveEnvVars) > 0);
     AssertEquals('Active env vars do not contain ENABLE_MAKO for imLsfg', 0, Pos('ENABLE_MAKO', Helper.GetActiveEnvVars));
 
