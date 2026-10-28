@@ -29,6 +29,7 @@ type
     FHelixSrNativeDlssToggle: TToggleSwitch;
     FHelixSrModeInfoLbl: TLabel;
     FOsCustomInfoLbl: TLabel;
+    FOsDisabledNoticeLbl: TLabel;
     FOsHelixLicenseBtn: TBitBtn;
     FHelixsrSharpenerLabel: TLabel;
     FHelixsrSharpenerComboBox: TComboBox;
@@ -108,6 +109,7 @@ type
     property HelixSrNativeDlssToggle: TToggleSwitch read FHelixSrNativeDlssToggle;
     property HelixSrModeInfoLbl: TLabel read FHelixSrModeInfoLbl;
     property OsCustomInfoLbl: TLabel read FOsCustomInfoLbl;
+    property OsDisabledNoticeLbl: TLabel read FOsDisabledNoticeLbl;
     property OsHelixLicenseBtn: TBitBtn read FOsHelixLicenseBtn;
     property HelixSrSharpenerComboBox: TComboBox read FHelixsrSharpenerComboBox;
     property HelixSrSharpnessTrackBar: TTrackBar read FHelixsrSharpnessTrackBar;
@@ -652,7 +654,7 @@ begin
     optiscalerRadioButton.Parent := FOsUpscalerCard;
     optiscalerRadioButton.Caption := '';
     DarkRadio(optiscalerRadioButton);
-    optiscalerRadioButton.Checked := True;
+    optiscalerRadioButton.Checked := False;
     optiscalerRadioButton.OnClick := @optiscalerRadioButtonClick;
     optiscalerRadioButton.Hint := 'Universal upscaler middleware translating DLSS/XeSS/FSR inputs to modern upscaling and frame generation backends';
     optiscalerRadioButton.ShowHint := True;
@@ -752,7 +754,7 @@ begin
     noneUpscalerRadioButton.Parent := FOsUpscalerCard;
     noneUpscalerRadioButton.Caption := '';
     DarkRadio(noneUpscalerRadioButton);
-    noneUpscalerRadioButton.Checked := False;
+    noneUpscalerRadioButton.Checked := True;
     noneUpscalerRadioButton.OnClick := @noneUpscalerRadioButtonClick;
     noneUpscalerRadioButton.Hint := 'Disable upscaling middleware and run games with native rendering';
     noneUpscalerRadioButton.ShowHint := True;
@@ -911,6 +913,13 @@ begin
     optiscalerGroupBox.Visible := False;
     imgmenuGroupBox.Visible    := False;
     fakenvapiGroupBox.Visible  := False;
+
+    FOsDisabledNoticeLbl := TLabel.Create(FOsOptionsCard);
+    FOsDisabledNoticeLbl.Parent := FOsOptionsCard;
+    FOsDisabledNoticeLbl.Caption := 'Upscaling middleware is disabled. Select an upscaler above (OptiScaler, DLSS Enabler, HelixSR or DLSS NR) to enable and configure settings.';
+    FOsDisabledNoticeLbl.Font.Color := CLR_TEXT_MUTED;
+    FOsDisabledNoticeLbl.Font.Size := 9;
+    FOsDisabledNoticeLbl.Visible := False;
 
     FOsMainSec := TPanel.Create(FForm);
     FOsMainSec.Parent  := FOsOptionsCard;
@@ -2201,6 +2210,7 @@ var
   StatH, BannerH, TopOffset: Integer;
   IsCustom, IsUnmanaged: Boolean;
   IsHelixSrActive, IsDlssNrActive: Boolean;
+  IsNoneActive: Boolean;
   IsNativeDlss: Boolean;
   MesaW, NvW: Integer;
   ColX, MaxNameW: array[0..1] of Integer;
@@ -2241,6 +2251,7 @@ begin
     IsUnmanaged := IsCustom and Assigned(unmanagedIniCheckBox) and unmanagedIniCheckBox.Checked;
     IsHelixSrActive := Assigned(helixsrRadioButton) and helixsrRadioButton.Checked;
     IsDlssNrActive := Assigned(dlssnrRadioButton) and dlssnrRadioButton.Checked;
+    IsNoneActive := Assigned(noneUpscalerRadioButton) and noneUpscalerRadioButton.Checked;
 
     if IsCustom then
       StatH := HDR + 6 + BTN_H + 8 + 26 + STAT_ROWS * ROW_H + 12
@@ -2248,7 +2259,9 @@ begin
       StatH := HDR + 6 + BTN_H + 8 + STAT_ROWS * ROW_H + 12;
 
     MinOptH := 295;
-    if IsHelixSrActive then
+    if IsNoneActive then
+      MinOptH := 84
+    else if IsHelixSrActive then
       MinOptH := 325
     else if IsDlssNrActive then
       MinOptH := 405;
@@ -2339,6 +2352,29 @@ begin
 
     // ── Card 1: Options (4 Equal Columns: Main 25%, Spatial 25%, Temporal 25%, Reflex/Antilag 25%) ──
     FOsOptionsCard.SetBounds(MARGIN, TopOffset + GPU_H + GAP, CW, OptH);
+
+    if IsNoneActive then
+    begin
+      if Assigned(FOsDisabledNoticeLbl) then
+      begin
+        FOsDisabledNoticeLbl.Visible := True;
+        FOsDisabledNoticeLbl.SetBounds(PAD, HDR + 14, CW - 2 * PAD, 20);
+      end;
+      if Assigned(FOsMainSec) then FOsMainSec.Visible := False;
+      if Assigned(FOsSpatialSec) then FOsSpatialSec.Visible := False;
+      if Assigned(FOsTemporalSec) then FOsTemporalSec.Visible := False;
+      if Assigned(FOsFakeSec) then FOsFakeSec.Visible := False;
+      if Assigned(FOsImgSec) then FOsImgSec.Visible := False;
+    end
+    else
+    begin
+      if Assigned(FOsDisabledNoticeLbl) then
+        FOsDisabledNoticeLbl.Visible := False;
+      if Assigned(FOsMainSec) then FOsMainSec.Visible := True;
+      if Assigned(FOsSpatialSec) then FOsSpatialSec.Visible := True;
+      if Assigned(FOsTemporalSec) then FOsTemporalSec.Visible := True;
+      if Assigned(FOsFakeSec) then FOsFakeSec.Visible := True;
+    end;
 
     InnerW := CW - 2 * IMARGIN;
     ColW   := (InnerW - 3 * IGAP) div 4;
@@ -3110,7 +3146,23 @@ begin
       if Assigned(unmanagedIniCheckBox) then
         unmanagedIniCheckBox.Checked := Settings.UnmanagedIniChecked;
 
-      if Settings.UpscalerTypeItemIndex = 1 then
+      if Settings.UpscalerTypeItemIndex = 0 then
+      begin
+        optiscalerRadioButton.Checked := True;
+        dlssenablerRadioButton.Checked := False;
+        if Assigned(noneUpscalerRadioButton) then
+          noneUpscalerRadioButton.Checked := False;
+        if Assigned(helixsrRadioButton) then
+          helixsrRadioButton.Checked := False;
+        if Assigned(dlssnrRadioButton) then
+          dlssnrRadioButton.Checked := False;
+        optversionComboBox.Enabled := True;
+        if Settings.OptVersionItemIndex in [0, 1, 2] then
+          optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
+        else
+          optversionComboBox.ItemIndex := 0;
+      end
+      else if Settings.UpscalerTypeItemIndex = 1 then
       begin
         dlssenablerRadioButton.Checked := True;
         optiscalerRadioButton.Checked := False;
@@ -3121,16 +3173,6 @@ begin
           optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
         else
           optversionComboBox.ItemIndex := 0;
-      end
-      else if Settings.UpscalerTypeItemIndex = 2 then
-      begin
-        if Assigned(noneUpscalerRadioButton) then
-          noneUpscalerRadioButton.Checked := True;
-        optiscalerRadioButton.Checked := False;
-        dlssenablerRadioButton.Checked := False;
-        if Assigned(helixsrRadioButton) then
-          helixsrRadioButton.Checked := False;
-        optversionComboBox.Enabled := False;
       end
       else if Settings.UpscalerTypeItemIndex = 3 then
       begin
@@ -3158,19 +3200,15 @@ begin
       end
       else
       begin
-        optiscalerRadioButton.Checked := True;
-        dlssenablerRadioButton.Checked := False;
         if Assigned(noneUpscalerRadioButton) then
-          noneUpscalerRadioButton.Checked := False;
+          noneUpscalerRadioButton.Checked := True;
+        optiscalerRadioButton.Checked := False;
+        dlssenablerRadioButton.Checked := False;
         if Assigned(helixsrRadioButton) then
           helixsrRadioButton.Checked := False;
         if Assigned(dlssnrRadioButton) then
           dlssnrRadioButton.Checked := False;
-        optversionComboBox.Enabled := True;
-        if Settings.OptVersionItemIndex in [0, 1, 2] then
-          optversionComboBox.ItemIndex := Settings.OptVersionItemIndex
-        else
-          optversionComboBox.ItemIndex := 0;
+        optversionComboBox.Enabled := False;
       end;
       if Assigned(helixsrNativeDlssCheckBox) then
       begin
