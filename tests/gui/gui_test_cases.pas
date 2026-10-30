@@ -5911,6 +5911,7 @@ begin
       goverlayform.presetTabSheet.Enabled);
 
     // 3. Test vkBasalt missing banner on Post processing rmVkBasalt method
+    goverlayform.FNavToolEnabled[1] := True;
     goverlayform.FMockVkBasaltInstalled := 0; // force missing
     goverlayform.vkbasaltLabelClick(nil);
     TReshadeTabHelper(goverlayform.FReshadeHelper).SelectMethod(rmVkBasalt);
@@ -5996,6 +5997,41 @@ begin
     goverlayform.optiscalerRadioButtonClick(nil);
     AssertFalse('FDlssNrMissingBanner is hidden when switching to OptiScaler method',
       goverlayform.FDlssNrMissingBanner.Visible);
+
+    // 9. Test Frame Interpolation missing banner
+    goverlayform.optiscalerLabelClick(nil);
+    goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+    goverlayform.losslessScalingTabSheetShow(nil);
+    TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).SetInterpolationMethod(imLsfg);
+    goverlayform.UpdateToolMissingDependencyBanners;
+    AssertTrue('FLosslessMissingBanner is assigned when lsfg-vk is missing',
+      Assigned(goverlayform.FLosslessMissingBanner));
+    AssertTrue('FLosslessMissingBanner is visible when lsfg-vk is selected and not installed',
+      goverlayform.FLosslessMissingBanner.Visible);
+    AssertTrue('FLosslessMissingBanner positioned above MethodCard',
+      goverlayform.FLosslessMissingBanner.Top < TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).MethodCard.Top);
+
+    // Switching to None hides the banner
+    TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).SetInterpolationMethod(imNone);
+    AssertFalse('FLosslessMissingBanner is hidden when method is None',
+      goverlayform.FLosslessMissingBanner.Visible);
+
+    // 10. Test Upscalers missing banner for OptiScaler
+    goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+    goverlayform.optiscalerTabSheetShow(nil);
+    goverlayform.optiscalerRadioButton.Checked := True;
+    goverlayform.optiscalerRadioButtonClick(nil);
+    if not goverlayform.IsOptiScalerInstalled then
+    begin
+      AssertTrue('FOptiMissingBanner is assigned when OptiScaler is missing',
+        Assigned(goverlayform.FOptiMissingBanner));
+      AssertTrue('FOptiMissingBanner is visible when OptiScaler is selected and not installed',
+        goverlayform.FOptiMissingBanner.Visible);
+    end;
+    goverlayform.noneUpscalerRadioButton.Checked := True;
+    goverlayform.noneUpscalerRadioButtonClick(nil);
+    AssertFalse('FOptiMissingBanner is hidden when method is None',
+      Assigned(goverlayform.FOptiMissingBanner) and goverlayform.FOptiMissingBanner.Visible);
   finally
     goverlayform.FMockMangoHudInstalled := -1;
     goverlayform.FMockVkBasaltInstalled := -1;
@@ -6844,7 +6880,19 @@ procedure TGoverlayGuiTests.TestLosslessScalingMakoTogglesLayoutAndNoScroll;
 var
   Helper: TLosslessScalingTabHelper;
   PrevFgH, PrevSpatialH: Integer;
+  DummyLayer: string;
 begin
+  DummyLayer := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json';
+  ForceDirectories(ExtractFilePath(DummyLayer));
+  if not FileExists(DummyLayer) then
+    with TStringList.Create do
+    try
+      Text := '{}';
+      SaveToFile(DummyLayer);
+    finally
+      Free;
+    end;
+
   goverlayform.optiscalerLabelClick(nil);
   goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
   goverlayform.losslessScalingTabSheetShow(nil);
@@ -8981,33 +9029,37 @@ begin
 
   goverlayform.UpdateTabModulePlaceholders;
 
-  AssertTrue('OptiScaler placeholder visible when disabled',
-    Assigned(goverlayform.FOptiScalerPlaceholder) and goverlayform.FOptiScalerPlaceholder.Visible);
-  AssertTrue('Lossless placeholder visible when disabled',
-    Assigned(goverlayform.FLosslessPlaceholder) and goverlayform.FLosslessPlaceholder.Visible);
-  AssertTrue('vkBasalt placeholder visible when disabled',
-    Assigned(goverlayform.FVkBasaltPlaceholder) and goverlayform.FVkBasaltPlaceholder.Visible);
-  AssertTrue('ReShade placeholder visible when disabled',
-    Assigned(goverlayform.FReshadePlaceholder) and goverlayform.FReshadePlaceholder.Visible);
-  AssertTrue('vkSumi placeholder visible when disabled',
-    Assigned(goverlayform.FVkSumiPlaceholder) and goverlayform.FVkSumiPlaceholder.Visible);
+  AssertTrue('OptiScaler placeholder retired and hidden when disabled',
+    (not Assigned(goverlayform.FOptiScalerPlaceholder)) or (not goverlayform.FOptiScalerPlaceholder.Visible));
+  AssertTrue('Lossless placeholder retired and hidden when disabled',
+    (not Assigned(goverlayform.FLosslessPlaceholder)) or (not goverlayform.FLosslessPlaceholder.Visible));
+  AssertTrue('vkBasalt placeholder retired and hidden when disabled',
+    (not Assigned(goverlayform.FVkBasaltPlaceholder)) or (not goverlayform.FVkBasaltPlaceholder.Visible));
+  AssertTrue('ReShade placeholder retired and hidden when disabled',
+    (not Assigned(goverlayform.FReshadePlaceholder)) or (not goverlayform.FReshadePlaceholder.Visible));
+  AssertTrue('vkSumi placeholder retired and hidden when disabled',
+    (not Assigned(goverlayform.FVkSumiPlaceholder)) or (not goverlayform.FVkSumiPlaceholder.Visible));
 
-  // Test enabling via placeholder click
+  // Test enabling modules no longer displays retired placeholders
   goverlayform.EnableUpscalersModuleClick(nil);
   AssertTrue('Upscalers module now enabled', TConfigManager.IsModuleEnabled(MODULE_UPSCALERS));
-  AssertFalse('OptiScaler placeholder hidden when enabled', goverlayform.FOptiScalerPlaceholder.Visible);
+  AssertTrue('OptiScaler placeholder retired and hidden when enabled',
+    (not Assigned(goverlayform.FOptiScalerPlaceholder)) or (not goverlayform.FOptiScalerPlaceholder.Visible));
 
   goverlayform.EnableVkSumiModuleClick(nil);
   AssertTrue('vkSumi module now enabled', TConfigManager.IsModuleEnabled(MODULE_VKSUMI));
-  AssertFalse('vkSumi placeholder hidden when enabled', goverlayform.FVkSumiPlaceholder.Visible);
+  AssertTrue('vkSumi placeholder retired and hidden when enabled',
+    (not Assigned(goverlayform.FVkSumiPlaceholder)) or (not goverlayform.FVkSumiPlaceholder.Visible));
 
   goverlayform.EnableFrameGenModuleClick(nil);
   AssertTrue('FrameGen module now enabled', TConfigManager.IsModuleEnabled(MODULE_FRAMEGENERATION));
-  AssertFalse('Lossless placeholder hidden when enabled', goverlayform.FLosslessPlaceholder.Visible);
+  AssertTrue('Lossless placeholder retired and hidden when enabled',
+    (not Assigned(goverlayform.FLosslessPlaceholder)) or (not goverlayform.FLosslessPlaceholder.Visible));
 
   goverlayform.EnablePostProcessingModuleClick(nil);
   AssertTrue('PostProcessing module now enabled', TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
-  AssertFalse('vkBasalt placeholder hidden when enabled', goverlayform.FVkBasaltPlaceholder.Visible);
+  AssertTrue('vkBasalt placeholder retired and hidden when enabled',
+    (not Assigned(goverlayform.FVkBasaltPlaceholder)) or (not goverlayform.FVkBasaltPlaceholder.Visible));
 end;
 
 procedure TGoverlayGuiTests.TestSettingsMenuHasModulesItem;

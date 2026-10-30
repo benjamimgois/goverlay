@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
-  ComCtrls, Math, themeunit, constants, hintsunit, apputils;
+  ComCtrls, Math, themeunit, constants, hintsunit, apputils, configmanager;
 
 type
   TReshadePackInfo = record
@@ -928,6 +928,8 @@ begin
 
   if FSelectedMethod = rmVkBasalt then
   begin
+    if Assigned(MainForm.FReshadeMissingBanner) then
+      MainForm.FReshadeMissingBanner.Visible := False;
     if not AVkInstalled then
     begin
       if not Assigned(MainForm.FVkBasaltMissingBanner) then
@@ -961,11 +963,40 @@ begin
         MainForm.SetSaveBtnEnabled(MainForm.FNavToolEnabled[1]);
     end;
   end
+  else if FSelectedMethod = rmReshade then
+  begin
+    if Assigned(MainForm.FVkBasaltMissingBanner) then
+      MainForm.FVkBasaltMissingBanner.Visible := False;
+    if (not MainForm.IsReShadeInstalled) or (not TConfigManager.IsModuleEnabled(MODULE_RESHADE)) then
+    begin
+      if not Assigned(MainForm.FReshadeMissingBanner) then
+        MainForm.FReshadeMissingBanner := MainForm.CreateDependencyWarningBanner(
+          FBgPanel,
+          'ReShade',
+          '',
+          'reshade',
+          @MainForm.RecheckDependenciesClick,
+          @MainForm.ViewStatusClick
+        );
+      MainForm.FReshadeMissingBanner.Parent := FBgPanel;
+      MainForm.FReshadeMissingBanner.BringToFront;
+      MainForm.FReshadeMissingBanner.Visible := True;
+    end
+    else
+    begin
+      if Assigned(MainForm.FReshadeMissingBanner) then
+        MainForm.FReshadeMissingBanner.Visible := False;
+    end;
+    if IsPostProcessingActive then
+      MainForm.SetSaveBtnEnabled(MainForm.FNavToolEnabled[1]);
+  end
   else
   begin
     if Assigned(MainForm.FVkBasaltMissingBanner) then
       MainForm.FVkBasaltMissingBanner.Visible := False;
-    if IsPostProcessingActive and ((FSelectedMethod = rmReshade) or (FSelectedMethod = rmNone)) then
+    if Assigned(MainForm.FReshadeMissingBanner) then
+      MainForm.FReshadeMissingBanner.Visible := False;
+    if IsPostProcessingActive then
       MainForm.SetSaveBtnEnabled(MainForm.FNavToolEnabled[1]);
   end;
 
@@ -1036,6 +1067,14 @@ begin
      Assigned(MainForm.FVkBasaltMissingBanner) and MainForm.FVkBasaltMissingBanner.Visible then
   begin
     MainForm.FVkBasaltMissingBanner.SetBounds(MARGIN, CurY, TargetCardW, 72);
+    CurY := CurY + 72 + CARD_GAP;
+  end;
+
+  // ReShade warning banner at top of page (matching vkBasalt tab style)
+  if (FSelectedMethod = rmReshade) and Assigned(MainForm) and
+     Assigned(MainForm.FReshadeMissingBanner) and MainForm.FReshadeMissingBanner.Visible then
+  begin
+    MainForm.FReshadeMissingBanner.SetBounds(MARGIN, CurY, TargetCardW, 72);
     CurY := CurY + 72 + CARD_GAP;
   end;
 

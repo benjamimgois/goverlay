@@ -116,6 +116,12 @@ function IsValidSharedLibrary(const APath: string; AMinSizeBytes: Int64 = 65536)
 
 function GetUserVulkanImplicitDir: string;
 
+// Check whether vkBasalt is installed as a system-wide Vulkan layer
+function VkBasaltSystemLayersPresent: Boolean;
+
+// Check whether vkBasalt is installed (system or user space)
+function IsVkBasaltInstalled: Boolean;
+
 // Sanitize implicit Vulkan layer manifests (removes stale/corrupted manifests)
 procedure SanitizeImplicitVulkanLayers;
 
@@ -189,6 +195,7 @@ function ParseReShadeMeHtml(const AHtml: string; out AUrl: string): string;
 function GetReShadeLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
+function CheckAndInstallVkBasalt(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 procedure UninstallUserModule(const AModuleName: string);
 procedure UninstallAllUserModules;
@@ -3410,9 +3417,10 @@ procedure SanitizeImplicitVulkanLayers;
 var
   DataHome, CandidateDir, CandidateJson, TargetSo, JsonContent: string;
   CandidateDirs: array[0..1] of string;
+  ManifestNames: array[0..1] of string;
   SL: TStringList;
   JsonData, LayerObj, PathData: TJSONData;
-  d: Integer;
+  d, ManifestIdx: Integer;
 begin
   CandidateDirs[0] := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/';
   DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
@@ -3475,7 +3483,59 @@ begin
       end;
     end;
 
-    // 2. Sanitize MAKO implicit layers: check if library is missing or running in Flatpak
+    // 2. Sanitize vkBasalt implicit layers (64-bit and 32-bit manifests)
+    ManifestNames[0] := 'vkBasalt.json';
+    ManifestNames[1] := 'vkBasalt.x86.json';
+    for ManifestIdx := Low(ManifestNames) to High(ManifestNames) do
+    begin
+      CandidateJson := CandidateDir + ManifestNames[ManifestIdx];
+      if not FileExists(CandidateJson) then Continue;
+
+      TargetSo := '';
+      try
+        SL := TStringList.Create;
+        try
+          SL.LoadFromFile(CandidateJson);
+          JsonContent := SL.Text;
+        finally
+          SL.Free;
+        end;
+
+        if JsonContent <> '' then
+        begin
+          JsonData := GetJSON(JsonContent);
+          try
+            if Assigned(JsonData) then
+            begin
+              LayerObj := JsonData.FindPath('layer');
+              if Assigned(LayerObj) then
+              begin
+                PathData := LayerObj.FindPath('library_path');
+                if Assigned(PathData) then
+                  TargetSo := PathData.AsString;
+              end;
+            end;
+          finally
+            JsonData.Free;
+          end;
+        end;
+      except
+        TargetSo := '';
+      end;
+
+      if (TargetSo = '') or (not FileExists(TargetSo)) or (not IsValidSharedLibrary(TargetSo)) then
+      begin
+        WriteLn('[CLEANUP] Removing corrupted or invalid vkBasalt Vulkan layer manifest: ', CandidateJson);
+        DeleteFile(CandidateJson);
+        if (TargetSo <> '') and FileExists(TargetSo) and (not IsValidSharedLibrary(TargetSo)) then
+        begin
+          WriteLn('[CLEANUP] Removing corrupted vkBasalt shared library file: ', TargetSo);
+          DeleteFile(TargetSo);
+        end;
+      end;
+    end;
+
+    // 3. Sanitize MAKO implicit layers: check if library is missing or running in Flatpak
     if FileExists(CandidateDir + 'VkLayer_MAKO_render.json') then
     begin
       if IsRunningInFlatpak or
@@ -4995,6 +5055,32 @@ begin
   Result := DataHome + 'vulkan' + PathDelim + 'implicit_layer.d' + PathDelim;
 end;
 
+function VkBasaltSystemLayersPresent: Boolean;
+begin
+  Result :=
+    FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') or
+    FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') or
+    FileExists('/usr/local/share/vulkan/implicit_layer.d/vkBasalt.json') or
+    FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
+    FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+    FileExists('/usr/lib/libvkbasalt.so') or
+    FileExists('/usr/lib64/libvkbasalt.so') or
+    FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so');
+end;
+
+function IsVkBasaltInstalled: Boolean;
+var
+  TargetSo64, TargetJson64: string;
+begin
+  if VkBasaltSystemLayersPresent then
+    Exit(True);
+
+  TargetJson64 := GetUserVulkanImplicitDir + 'vkBasalt.json';
+  TargetSo64 := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/vkbasalt/libvkbasalt.so';
+
+  Result := FileExists(TargetJson64) and FileExists(TargetSo64) and IsValidSharedLibrary(TargetSo64);
+end;
+
 function IsVkSumiInstalled: Boolean;
 var
   TargetSoFile, TargetJsonFile: string;
@@ -5352,6 +5438,8 @@ begin
   // vkBasalt
   if TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
   begin
+    if not IsVkBasaltInstalled and not IsRunningInFlatpak then
+      AMissingList.Add('vkBasalt Vulkan layer');
     if not DirectoryExists(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders') then
       AMissingList.Add('vkBasalt ReShade Shaders');
   end;
@@ -8559,6 +8647,217 @@ begin
   end;
 end;
 
+function CheckAndInstallVkBasalt(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
+var
+  LocalLib64, LocalLib32, TargetSo64, TargetSo32: string;
+  UserVulkanImplicitDir, TargetJson64, TargetJson32: string;
+  TempTarFile, TempExtractDir, ChanLabel, PathLower, Src64, Src32: string;
+  StartPct, EndPct, i: Integer;
+  FoundFiles: TStringList;
+  JsonSL: TStringList;
+begin
+  Result := False;
+  StartPct := 95;
+  EndPct := 99;
+
+  // In Flatpak, skip downloading; layer cannot and should not be written to host
+  if IsRunningInFlatpak then
+  begin
+    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping vkBasalt host layer installation');
+    if Assigned(AOnProgress) then
+      AOnProgress(EndPct, 'vkBasalt runtime ready');
+    Result := True;
+    Exit;
+  end;
+
+  LocalLib64 := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/vkbasalt/';
+  LocalLib32 := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib32/vkbasalt/';
+  TargetSo64 := LocalLib64 + 'libvkbasalt.so';
+  TargetSo32 := LocalLib32 + 'libvkbasalt.so';
+  UserVulkanImplicitDir := GetUserVulkanImplicitDir;
+  TargetJson64 := UserVulkanImplicitDir + 'vkBasalt.json';
+  TargetJson32 := UserVulkanImplicitDir + 'vkBasalt.x86.json';
+
+  if not AForce then
+  begin
+    if VkBasaltSystemLayersPresent then
+    begin
+      WriteLn('[AUTO-INSTALL] vkBasalt layer is already available');
+      CheckAndInstallVkBasaltShaders(AForce, AOnProgress);
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'vkBasalt runtime ready');
+      Exit(True);
+    end;
+
+    if FileExists(TargetSo64) and IsValidSharedLibrary(TargetSo64) and FileExists(TargetJson64) then
+    begin
+      WriteLn('[AUTO-INSTALL] vkBasalt runtime is already available');
+      CheckAndInstallVkBasaltShaders(AForce, AOnProgress);
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'vkBasalt runtime ready');
+      Exit(True);
+    end;
+  end;
+
+  ChanLabel := 'Downloading vkBasalt runtime';
+  if Assigned(AOnProgress) then
+    AOnProgress(StartPct, ChanLabel);
+
+  WriteLn('[AUTO-INSTALL] ========================================');
+  WriteLn('[AUTO-INSTALL] Installing vkBasalt runtime in user space...');
+  WriteLn('[AUTO-INSTALL] ========================================');
+
+  try
+    ForceDirectories(LocalLib64);
+    ForceDirectories(LocalLib32);
+    ForceDirectories(UserVulkanImplicitDir);
+
+    TempTarFile := IncludeTrailingPathDelimiter(GetTempDir) + 'vkbasalt_download.tar.gz';
+    TempExtractDir := IncludeTrailingPathDelimiter(GetTempDir) + 'vkbasalt_extract';
+    if DirectoryExists(TempExtractDir) then
+      DeleteDirectory(TempExtractDir, False);
+
+    RunCurlWithProgress(URL_VKBASALT_BUILDS_TARBALL, TempTarFile, StartPct, StartPct + 3, ChanLabel, AOnProgress);
+
+    if FileExists(TempTarFile) then
+    begin
+      if Assigned(AOnProgress) then
+        AOnProgress(StartPct + 3, 'Extracting vkBasalt runtime...');
+
+      ExtractTarArchive(TempTarFile, TempExtractDir, 0);
+
+      Src64 := '';
+      Src32 := '';
+      FoundFiles := FindAllFiles(TempExtractDir, 'libvkbasalt.so', True);
+      try
+        for i := 0 to FoundFiles.Count - 1 do
+        begin
+          PathLower := LowerCase(StringReplace(FoundFiles[i], '\', '/', [rfReplaceAll]));
+          if (Pos('/lib32/', PathLower) > 0) or
+             (Pos('/x86/', PathLower) > 0) or
+             (Pos('/i386/', PathLower) > 0) then
+          begin
+            if Src32 = '' then
+              Src32 := FoundFiles[i];
+          end
+          else if (Pos('/lib/', PathLower) > 0) or
+                  (Pos('/lib64/', PathLower) > 0) or
+                  (Pos('/x86_64/', PathLower) > 0) then
+          begin
+            if Src64 = '' then
+              Src64 := FoundFiles[i];
+          end;
+        end;
+
+        // Root-level fallback for unpacked archives without an architecture subdir
+        if (Src64 = '') and FileExists(IncludeTrailingPathDelimiter(TempExtractDir) + 'libvkbasalt.so') then
+          Src64 := IncludeTrailingPathDelimiter(TempExtractDir) + 'libvkbasalt.so';
+        if (Src64 = '') and (Src32 = '') and (FoundFiles.Count = 1) then
+          Src64 := FoundFiles[0];
+
+        if Src64 <> '' then
+          CopyFile(Src64, TargetSo64);
+        if Src32 <> '' then
+          CopyFile(Src32, TargetSo32);
+      finally
+        FoundFiles.Free;
+      end;
+
+      DeleteFile(TempTarFile);
+      if DirectoryExists(TempExtractDir) then
+        DeleteDirectory(TempExtractDir, False);
+    end;
+
+    if FileExists(TargetSo64) and IsValidSharedLibrary(TargetSo64) then
+    begin
+      FpChmod(TargetSo64, &755);
+      JsonSL := TStringList.Create;
+      try
+        JsonSL.Add('{');
+        JsonSL.Add('    "file_format_version": "1.0.0",');
+        JsonSL.Add('    "layer": {');
+        JsonSL.Add('        "name": "VK_LAYER_VKBASALT_post_processing",');
+        JsonSL.Add('        "type": "GLOBAL",');
+        JsonSL.Add('        "library_path": "' + TargetSo64 + '",');
+        JsonSL.Add('        "api_version": "1.3.223",');
+        JsonSL.Add('        "implementation_version": "1",');
+        JsonSL.Add('        "description": "vkBasalt post-processing layer (64-bit)",');
+        JsonSL.Add('        "functions": {');
+        JsonSL.Add('            "vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr",');
+        JsonSL.Add('            "vkGetDeviceProcAddr": "vkBasalt_GetDeviceProcAddr"');
+        JsonSL.Add('        },');
+        JsonSL.Add('        "enable_environment": {');
+        JsonSL.Add('            "ENABLE_VKBASALT": "1"');
+        JsonSL.Add('        },');
+        JsonSL.Add('        "disable_environment": {');
+        JsonSL.Add('            "DISABLE_VKBASALT": "1"');
+        JsonSL.Add('        }');
+        JsonSL.Add('    }');
+        JsonSL.Add('}');
+        JsonSL.SaveToFile(TargetJson64);
+      finally
+        JsonSL.Free;
+      end;
+
+      if FileExists(TargetSo32) and IsValidSharedLibrary(TargetSo32) then
+      begin
+        FpChmod(TargetSo32, &755);
+        JsonSL := TStringList.Create;
+        try
+          JsonSL.Add('{');
+          JsonSL.Add('    "file_format_version": "1.0.0",');
+          JsonSL.Add('    "layer": {');
+          JsonSL.Add('        "name": "VK_LAYER_VKBASALT_post_processing",');
+          JsonSL.Add('        "type": "GLOBAL",');
+          JsonSL.Add('        "library_path": "' + TargetSo32 + '",');
+          JsonSL.Add('        "api_version": "1.3.223",');
+          JsonSL.Add('        "implementation_version": "1",');
+          JsonSL.Add('        "description": "vkBasalt post-processing layer (32-bit)",');
+          JsonSL.Add('        "functions": {');
+          JsonSL.Add('            "vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr",');
+          JsonSL.Add('            "vkGetDeviceProcAddr": "vkBasalt_GetDeviceProcAddr"');
+          JsonSL.Add('        },');
+          JsonSL.Add('        "enable_environment": {');
+          JsonSL.Add('            "ENABLE_VKBASALT": "1"');
+          JsonSL.Add('        },');
+          JsonSL.Add('        "disable_environment": {');
+          JsonSL.Add('            "DISABLE_VKBASALT": "1"');
+          JsonSL.Add('        }');
+          JsonSL.Add('    }');
+          JsonSL.Add('}');
+          JsonSL.SaveToFile(TargetJson32);
+        finally
+          JsonSL.Free;
+        end;
+      end
+      else if FileExists(TargetJson32) then
+        DeleteFile(TargetJson32);
+
+      WriteLn('[AUTO-INSTALL] vkBasalt runtime installed successfully');
+      // When vkBasalt runtime is downloaded, ensure vkBasalt shaders are also downloaded and installed
+      CheckAndInstallVkBasaltShaders(AForce, AOnProgress);
+      if Assigned(AOnProgress) then
+        AOnProgress(EndPct, 'vkBasalt runtime and shaders installed');
+      Result := True;
+    end
+    else
+    begin
+      if FileExists(TargetSo64) then
+        DeleteFile(TargetSo64);
+      if FileExists(TargetSo32) then
+        DeleteFile(TargetSo32);
+      if FileExists(TargetJson64) then
+        DeleteFile(TargetJson64);
+      if FileExists(TargetJson32) then
+        DeleteFile(TargetJson32);
+      WriteLn('[AUTO-INSTALL] ERROR: Failed to install a valid vkBasalt runtime');
+    end;
+  except
+    on E: Exception do
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallVkBasalt: ', E.Message);
+  end;
+end;
+
 function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   DestDir, TempTar, ShadersTarUrl: string;
@@ -8566,7 +8865,7 @@ var
 begin
   Result := False;
   DestDir := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders';
-  if DirectoryExists(DestDir) and not AForce then
+  if DirectoryExists(DestDir) and DirectoryExists(DestDir + PathDelim + 'Shaders') and not AForce then
   begin
     Result := True;
     Exit;
@@ -9391,10 +9690,14 @@ begin
   if (AModuleName = MODULE_VKBASALT) or (AModuleName = 'ALL') then
   begin
     SafeDeleteFile(UserLayerDir + 'vkBasalt.json');
+    SafeDeleteFile(UserLayerDir + 'vkBasalt.x86.json');
     SafeDeleteFile(XdgLayerDir + 'vkBasalt.json');
+    SafeDeleteFile(XdgLayerDir + 'vkBasalt.x86.json');
     SafeDeleteDir(LocalLib + 'vkbasalt');
+    SafeDeleteDir(LocalLib32 + 'vkbasalt');
     SafeDeleteDir(LocalShare + 'vkBasalt');
     SafeDeleteDir(LocalShare + 'vkBasalt/reshade-shaders');
+    SafeDeleteDir(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders');
   end;
 end;
 

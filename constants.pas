@@ -54,6 +54,7 @@ const
 
   // vkBasalt Repository
   URL_VKBASALT_REPO = 'https://github.com/DadSchoorse/vkBasalt';
+  URL_VKBASALT_BUILDS_TARBALL = 'https://github.com/benjamimgois/OptiScaler-builds/releases/download/vkbasalt/vkbasalt-runtime.tar.gz';
 
   // MAKO & LSFG-VK Repository
   URL_MAKO_REPO = 'https://github.com/eugeniosegala/MAKO';

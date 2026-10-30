@@ -526,7 +526,7 @@ begin
     VkUser := FileExists(UserLayerDir + 'vkBasalt.json') or
               FileExists(XdgLayerDir + 'vkBasalt.json') or
               DirectoryExists(LocalLib + 'vkbasalt');
-    VkOK := VkSystem or VkUser or
+    VkOK := VkSystem or VkUser or optiscaler_update.IsVkBasaltInstalled or
             ((Missing.IndexOf(DEP_VKBASALT) < 0) and (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0));
     VkVer := Self.GetVkBasaltVersion;
     SetModuleStatus(1, VkOK, VkSystem, VkVer);

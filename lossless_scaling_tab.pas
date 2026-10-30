@@ -302,6 +302,7 @@ type
     procedure UpdateDllStatus;
     procedure UpdateStatusCard;
     procedure UpdateEngineStatus;
+    procedure UpdateLosslessMissingBanner;
     procedure UpdateControlsEnabled;
     procedure ControlStateChange(Sender: TObject);
     procedure LoadLosslessConfig;
@@ -1274,6 +1275,83 @@ begin
   Result := APath <> '';
 end;
 
+procedure TLosslessScalingTabHelper.UpdateLosslessMissingBanner;
+var
+  NeedsBanner: Boolean;
+  ToolName: string;
+  j: Integer;
+  Lbl: TLabel;
+begin
+  if not Assigned(FForm) or not (FForm is Tgoverlayform) then Exit;
+
+  NeedsBanner := False;
+  ToolName := '';
+
+  case FInterpolationMethod of
+    imLsfg:
+      begin
+        NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_LSFGVK)) or
+                       (not optiscaler_update.IsLsfgVkInstalled);
+        ToolName := 'lsfg-vk';
+      end;
+    imMako:
+      begin
+        NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_MAKO)) or
+                       (not optiscaler_update.IsMakoInstalled);
+        ToolName := 'MAKO';
+      end;
+    imAfmf:
+      begin
+        NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_AFMF)) or
+                       (not optiscaler_update.IsAfmfInstalled);
+        ToolName := 'AFMF';
+      end;
+  else
+    NeedsBanner := False;
+  end;
+
+  if NeedsBanner then
+  begin
+    if not Assigned(Tgoverlayform(FForm).FLosslessMissingBanner) then
+      Tgoverlayform(FForm).FLosslessMissingBanner := Tgoverlayform(FForm).CreateDependencyWarningBanner(
+        FLsBgPanel,
+        ToolName,
+        '',
+        '',
+        @Tgoverlayform(FForm).RecheckDependenciesClick,
+        @Tgoverlayform(FForm).ViewStatusClick
+      );
+
+    for j := 0 to Tgoverlayform(FForm).FLosslessMissingBanner.ControlCount - 1 do
+    begin
+      if Tgoverlayform(FForm).FLosslessMissingBanner.Controls[j] is TLabel then
+      begin
+        Lbl := TLabel(Tgoverlayform(FForm).FLosslessMissingBanner.Controls[j]);
+        if Lbl.Font.Bold then
+          Lbl.Caption := ToolName + ' is not installed'
+        else if Lbl.Caption <> '⚠️' then
+        begin
+          if IsRunningInFlatpak then
+            Lbl.Caption := ToolName + ' is not installed or enabled in Component Setup.'
+          else
+            Lbl.Caption := ToolName + ' runtime is not installed or enabled.';
+        end;
+      end;
+    end;
+    Tgoverlayform(FForm).FLosslessMissingBanner.Parent := FLsBgPanel;
+    Tgoverlayform(FForm).FLosslessMissingBanner.Visible := True;
+    Tgoverlayform(FForm).FLosslessMissingBanner.BringToFront;
+  end
+  else
+  begin
+    if Assigned(Tgoverlayform(FForm).FLosslessMissingBanner) then
+      Tgoverlayform(FForm).FLosslessMissingBanner.Visible := False;
+  end;
+
+  if Assigned(FLsScrollBox) then
+    ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
+end;
+
 procedure TLosslessScalingTabHelper.SetInterpolationMethod(AMethod: TInterpolationMethod);
 var
   CurDll: string;
@@ -1352,6 +1430,7 @@ begin
   UpdateDllStatus;
   UpdateStatusCard;
   UpdateMigrationAlertState;
+  UpdateLosslessMissingBanner;
   if Assigned(FLsScrollBox) then
     ReflowLosslessScalingTab(FLsScrollBox.ClientWidth);
 end;
@@ -3729,6 +3808,15 @@ begin
   GPU_H := 102;
   HDR := 28;
   GPU_GH := GPU_H - HDR;
+
+  if Assigned(FForm) and (FForm is Tgoverlayform) and
+     Assigned(Tgoverlayform(FForm).FLosslessMissingBanner) and
+     Tgoverlayform(FForm).FLosslessMissingBanner.Visible then
+  begin
+    Tgoverlayform(FForm).FLosslessMissingBanner.SetBounds(MARGIN, CurY, CW, 72);
+    Tgoverlayform(FForm).FLosslessMissingBanner.BringToFront;
+    CurY := CurY + 72 + GAP;
+  end;
 
   // ── Card 0: Method (Full Width) ──────────────────────────────────────────
   FLsMethodCard.SetBounds(MARGIN, CurY, CW, GPU_H);

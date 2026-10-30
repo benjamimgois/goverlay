@@ -93,6 +93,7 @@ type
     procedure OsScrollBoxResize(Sender: TObject);
     procedure RefreshOsStatusDots;
     procedure UpdateDlssNrBanner;
+    procedure UpdateUpscalerMissingBanner;
     procedure LoadOptiScalerConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure UpdateFrameGenOptionsUI;
@@ -137,7 +138,7 @@ function OsHexToKeyStr(const HexStr: string): string;
 
 implementation
 
-uses bgmod_resources, goverlay_system, optiscaler_update, notificationunit, systemdetector;
+uses bgmod_resources, goverlay_system, optiscaler_update, notificationunit, systemdetector, configmanager;
 
 constructor TOptiScalerTabHelper.Create(AForm: Tgoverlayform);
 begin
@@ -282,6 +283,90 @@ begin
     if Assigned(FForm.FDlssNrMissingBanner) then
       FForm.FDlssNrMissingBanner.Visible := False;
   end;
+end;
+
+procedure TOptiScalerTabHelper.UpdateUpscalerMissingBanner;
+var
+  NeedsBanner: Boolean;
+  ToolName: string;
+  j: Integer;
+  Lbl: TLabel;
+begin
+  if not Assigned(FForm) or not Assigned(FForm.FOsBgPanel) then Exit;
+
+  if Assigned(FForm.dlssnrRadioButton) and FForm.dlssnrRadioButton.Checked then
+  begin
+    if Assigned(FForm.FOptiMissingBanner) then
+      FForm.FOptiMissingBanner.Visible := False;
+    UpdateDlssNrBanner;
+    Exit;
+  end;
+
+  if Assigned(FForm.FDlssNrMissingBanner) then
+    FForm.FDlssNrMissingBanner.Visible := False;
+
+  NeedsBanner := False;
+  ToolName := '';
+
+  if Assigned(FForm.optiscalerRadioButton) and FForm.optiscalerRadioButton.Checked then
+  begin
+    NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_OPTISCALER)) or
+                   (not FForm.IsOptiScalerInstalled);
+    ToolName := 'OptiScaler';
+  end
+  else if Assigned(FForm.dlssenablerRadioButton) and FForm.dlssenablerRadioButton.Checked then
+  begin
+    NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER)) or
+                   (not FForm.IsDlssEnablerInstalled);
+    ToolName := 'DLSS Enabler';
+  end
+  else if Assigned(FForm.helixsrRadioButton) and FForm.helixsrRadioButton.Checked then
+  begin
+    NeedsBanner := (not TConfigManager.IsModuleEnabled(MODULE_HELIXSR)) or
+                   (not FForm.IsHelixSrInstalled);
+    ToolName := 'HelixSR';
+  end;
+
+  if NeedsBanner then
+  begin
+    if not Assigned(FForm.FOptiMissingBanner) then
+      FForm.FOptiMissingBanner := FForm.CreateDependencyWarningBanner(
+        FForm.FOsBgPanel,
+        ToolName,
+        '',
+        '',
+        @FForm.RecheckDependenciesClick,
+        @FForm.ViewStatusClick
+      );
+
+    for j := 0 to FForm.FOptiMissingBanner.ControlCount - 1 do
+    begin
+      if FForm.FOptiMissingBanner.Controls[j] is TLabel then
+      begin
+        Lbl := TLabel(FForm.FOptiMissingBanner.Controls[j]);
+        if Lbl.Font.Bold then
+          Lbl.Caption := ToolName + ' is not installed'
+        else if Lbl.Caption <> '⚠️' then
+        begin
+          if IsRunningInFlatpak then
+            Lbl.Caption := ToolName + ' is not installed or enabled in Component Setup.'
+          else
+            Lbl.Caption := ToolName + ' runtime is not installed or enabled.';
+        end;
+      end;
+    end;
+    FForm.FOptiMissingBanner.Parent := FForm.FOsBgPanel;
+    FForm.FOptiMissingBanner.Visible := True;
+    FForm.FOptiMissingBanner.BringToFront;
+  end
+  else
+  begin
+    if Assigned(FForm.FOptiMissingBanner) then
+      FForm.FOptiMissingBanner.Visible := False;
+  end;
+
+  if Assigned(FForm.FOsScrollBox) then
+    ReflowOptiScalerTabNew(FForm.FOsScrollBox.ClientWidth);
 end;
 
 procedure TOptiScalerTabHelper.DlssNrBannerSelectDllClick(Sender: TObject);
@@ -2266,7 +2351,13 @@ begin
     else if IsDlssNrActive then
       MinOptH := 405;
 
-    if Assigned(FDlssNrMissingBanner) and FDlssNrMissingBanner.Visible then
+    if Assigned(FOptiMissingBanner) and FOptiMissingBanner.Visible then
+    begin
+      BannerH := 72 + GAP;
+      FOptiMissingBanner.SetBounds(MARGIN, MARGIN, CW, 72);
+      FOptiMissingBanner.BringToFront;
+    end
+    else if Assigned(FDlssNrMissingBanner) and FDlssNrMissingBanner.Visible then
     begin
       BannerH := 72 + GAP;
       FDlssNrMissingBanner.SetBounds(MARGIN, MARGIN, CW, 72);

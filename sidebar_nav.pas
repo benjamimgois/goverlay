@@ -836,7 +836,10 @@ var
   Child: TControl;
 begin
   if (ACtrl = FForm.FMangoHudMissingBanner) or (ACtrl = FForm.FVkBasaltMissingBanner) or
-     (ACtrl = FForm.FVkSumiMissingBanner) or (ACtrl = FForm.FTweaksMissingBanner) or (ACtrl.Tag = 9995) then
+     (ACtrl = FForm.FReshadeMissingBanner) or
+     (ACtrl = FForm.FVkSumiMissingBanner) or (ACtrl = FForm.FTweaksMissingBanner) or
+     (ACtrl = FForm.FLosslessMissingBanner) or (ACtrl = FForm.FOptiMissingBanner) or
+     (ACtrl = FForm.FDlssNrMissingBanner) or (ACtrl.Tag = 9995) then
   begin
     ACtrl.Enabled := True;
     Exit;
@@ -863,7 +866,10 @@ begin
   begin
     Child := ACtrl.Controls[i];
     if (Child = FForm.FMangoHudMissingBanner) or (Child = FForm.FVkBasaltMissingBanner) or
-       (Child = FForm.FVkSumiMissingBanner) or (Child = FForm.FTweaksMissingBanner) or (Child.Tag = 9995) then
+       (Child = FForm.FReshadeMissingBanner) or
+       (Child = FForm.FVkSumiMissingBanner) or (Child = FForm.FTweaksMissingBanner) or
+       (Child = FForm.FLosslessMissingBanner) or (Child = FForm.FOptiMissingBanner) or
+       (Child = FForm.FDlssNrMissingBanner) or (Child.Tag = 9995) then
     begin
       Child.Enabled := True;
       Continue;

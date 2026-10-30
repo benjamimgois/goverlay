@@ -50,6 +50,8 @@ type
     procedure TestPipelineEffectsLoadOrder;
     procedure TestFallbackWhenPipelineEffectsNil;
     procedure TestLutSerializationAndLoad;
+    procedure TestVkBasaltManifestOptInStructure;
+    procedure TestVkBasaltSanitizationCleansCorruptManifest;
   end;
 
   TGpuNameExtractionTests = class(TTestCase)
@@ -1045,6 +1047,113 @@ begin
   finally
     Settings.PipelineEffects.Free;
   end;
+end;
+
+procedure TVkBasaltLogicTests.TestVkBasaltManifestOptInStructure;
+var
+  LayerDir, JsonPath64, JsonPath32, Content: string;
+  Lines: TStringList;
+begin
+  LayerDir := IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/vulkan/implicit_layer.d/';
+  ForceDirectories(LayerDir);
+  JsonPath64 := LayerDir + 'vkBasalt.json';
+  JsonPath32 := LayerDir + 'vkBasalt.x86.json';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('{');
+    Lines.Add('  "file_format_version": "1.0.0",');
+    Lines.Add('  "layer": {');
+    Lines.Add('    "name": "VK_LAYER_VKBASALT_post_processing",');
+    Lines.Add('    "type": "GLOBAL",');
+    Lines.Add('    "library_path": "/home/user/.local/lib/vkbasalt/libvkbasalt.so",');
+    Lines.Add('    "functions": {');
+    Lines.Add('      "vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr",');
+    Lines.Add('      "vkGetDeviceProcAddr": "vkBasalt_GetDeviceProcAddr"');
+    Lines.Add('    },');
+    Lines.Add('    "enable_environment": {');
+    Lines.Add('      "ENABLE_VKBASALT": "1"');
+    Lines.Add('    },');
+    Lines.Add('    "disable_environment": {');
+    Lines.Add('      "DISABLE_VKBASALT": "1"');
+    Lines.Add('    }');
+    Lines.Add('  }');
+    Lines.Add('}');
+    Lines.SaveToFile(JsonPath64);
+
+    Lines.Clear;
+    Lines.Add('{');
+    Lines.Add('  "file_format_version": "1.0.0",');
+    Lines.Add('  "layer": {');
+    Lines.Add('    "name": "VK_LAYER_VKBASALT_post_processing",');
+    Lines.Add('    "type": "GLOBAL",');
+    Lines.Add('    "library_path": "/home/user/.local/lib32/vkbasalt/libvkbasalt.so",');
+    Lines.Add('    "functions": {');
+    Lines.Add('      "vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr",');
+    Lines.Add('      "vkGetDeviceProcAddr": "vkBasalt_GetDeviceProcAddr"');
+    Lines.Add('    },');
+    Lines.Add('    "enable_environment": {');
+    Lines.Add('      "ENABLE_VKBASALT": "1"');
+    Lines.Add('    },');
+    Lines.Add('    "disable_environment": {');
+    Lines.Add('      "DISABLE_VKBASALT": "1"');
+    Lines.Add('    }');
+    Lines.Add('  }');
+    Lines.Add('}');
+    Lines.SaveToFile(JsonPath32);
+  finally
+    Lines.Free;
+  end;
+
+  try
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(JsonPath64);
+      Content := Lines.Text;
+      AssertTrue('64-bit manifest contains functions', Pos('"vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr"', Content) > 0);
+      AssertTrue('64-bit manifest contains enable_environment', Pos('"enable_environment"', Content) > 0);
+      AssertTrue('64-bit manifest contains ENABLE_VKBASALT', Pos('"ENABLE_VKBASALT": "1"', Content) > 0);
+
+      Lines.LoadFromFile(JsonPath32);
+      Content := Lines.Text;
+      AssertTrue('32-bit manifest contains functions', Pos('"vkGetInstanceProcAddr": "vkBasalt_GetInstanceProcAddr"', Content) > 0);
+      AssertTrue('32-bit manifest contains enable_environment', Pos('"enable_environment"', Content) > 0);
+      AssertTrue('32-bit manifest contains ENABLE_VKBASALT', Pos('"ENABLE_VKBASALT": "1"', Content) > 0);
+    finally
+      Lines.Free;
+    end;
+  finally
+    if FileExists(JsonPath64) then DeleteFile(JsonPath64);
+    if FileExists(JsonPath32) then DeleteFile(JsonPath32);
+  end;
+end;
+
+procedure TVkBasaltLogicTests.TestVkBasaltSanitizationCleansCorruptManifest;
+var
+  LayerDir, CorruptJson: string;
+  Lines: TStringList;
+begin
+  LayerDir := IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/vulkan/implicit_layer.d/';
+  ForceDirectories(LayerDir);
+  CorruptJson := LayerDir + 'vkBasalt.json';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('{');
+    Lines.Add('  "file_format_version": "1.0.0",');
+    Lines.Add('  "layer": {');
+    Lines.Add('    "name": "VK_LAYER_VKBASALT_post_processing",');
+    Lines.Add('    "library_path": "/nonexistent/corrupt/libvkbasalt.so"');
+    Lines.Add('  }');
+    Lines.Add('}');
+    Lines.SaveToFile(CorruptJson);
+  finally
+    Lines.Free;
+  end;
+
+  AssertTrue('corrupt manifest exists before sanitization', FileExists(CorruptJson));
+  SanitizeImplicitVulkanLayers;
+  AssertFalse('corrupt manifest removed after sanitization', FileExists(CorruptJson));
 end;
 
 procedure TGpuNameExtractionTests.TestAmdGpuExtraction;
@@ -3837,8 +3946,11 @@ begin
   CreateDummyFile(LayerDir + 'VkLayer_MAKO_render.json');
   CreateDummyFile(LayerDir + 'vknemu.json');
   CreateDummyFile(LayerDir + 'vkBasalt.json');
+  CreateDummyFile(LayerDir + 'vkBasalt.x86.json');
   CreateDummyFile(LibDir + 'liblsfg-vk-layer.so');
   CreateDummyFile(LibDir + 'libmako-render.so');
+  CreateDummyFile(LibDir + 'vkbasalt/libvkbasalt.so');
+  CreateDummyFile(HomeDir + '.local/lib32/vkbasalt/libvkbasalt.so');
   CreateDummyFile(LibDir + 'afmf-linux/libafmf-linux.so');
   CreateDummyFile(ShareDir + 'optiscaler/version.txt');
   CreateDummyFile(ShareDir + 'reshade/ReShade64.dll');
@@ -3846,6 +3958,9 @@ begin
   AssertTrue('vksumi layer created', FileExists(LayerDir + 'vksumi.json'));
   AssertTrue('afmf layer created', FileExists(LayerDir + 'afmf-linux.json'));
   AssertTrue('optiscaler created', FileExists(ShareDir + 'optiscaler/version.txt'));
+  AssertTrue('vkBasalt.x86 created', FileExists(LayerDir + 'vkBasalt.x86.json'));
+  AssertTrue('vkbasalt 64-bit lib created', FileExists(LibDir + 'vkbasalt/libvkbasalt.so'));
+  AssertTrue('vkbasalt 32-bit lib created', FileExists(HomeDir + '.local/lib32/vkbasalt/libvkbasalt.so'));
 
   // 2. Test selective module uninstall (vkSumi)
   UninstallUserModule(MODULE_VKSUMI);
@@ -3860,8 +3975,11 @@ begin
   AssertFalse('VkLayer_MAKO deleted', FileExists(LayerDir + 'VkLayer_MAKO_render.json'));
   AssertFalse('vknemu.json deleted', FileExists(LayerDir + 'vknemu.json'));
   AssertFalse('vkBasalt.json deleted', FileExists(LayerDir + 'vkBasalt.json'));
+  AssertFalse('vkBasalt.x86.json deleted', FileExists(LayerDir + 'vkBasalt.x86.json'));
   AssertFalse('liblsfg-vk-layer.so deleted', FileExists(LibDir + 'liblsfg-vk-layer.so'));
   AssertFalse('libmako-render.so deleted', FileExists(LibDir + 'libmako-render.so'));
+  AssertFalse('vkbasalt lib dir deleted', DirectoryExists(LibDir + 'vkbasalt'));
+  AssertFalse('vkbasalt lib32 dir deleted', DirectoryExists(HomeDir + '.local/lib32/vkbasalt'));
   AssertFalse('afmf-linux dir deleted', DirectoryExists(LibDir + 'afmf-linux'));
   AssertFalse('optiscaler dir deleted', DirectoryExists(ShareDir + 'optiscaler'));
   AssertFalse('reshade dir deleted', DirectoryExists(ShareDir + 'reshade'));

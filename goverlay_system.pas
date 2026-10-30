@@ -402,6 +402,9 @@ begin
     // vkBasalt: check Vulkan layer JSON (distro-agnostic) then fall back to library scan
     if not FileExists('/usr/share/vulkan/implicit_layer.d/vkBasalt.json') and
        not FileExists('/etc/vulkan/implicit_layer.d/vkBasalt.json') and
+       not FileExists(GetUserDir + '.local/share/vulkan/implicit_layer.d/vkBasalt.json') and
+       not ((GetEnvironmentVariable('XDG_DATA_HOME') <> '') and FileExists(IncludeTrailingPathDelimiter(GetEnvironmentVariable('XDG_DATA_HOME')) + 'vulkan/implicit_layer.d/vkBasalt.json')) and
+       not FileExists(GetUserDir + '.local/lib/vkbasalt/libvkbasalt.so') and
        not IsLibraryAvailable('libvkbasalt') then
       Missing.Add(DEP_VKBASALT);
 

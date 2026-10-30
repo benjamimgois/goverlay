@@ -1487,13 +1487,17 @@ type
     FReshadeHelper: TObject;
     FMangoHudMissingBanner: TPanel;
     FVkBasaltMissingBanner: TPanel;
+    FReshadeMissingBanner:  TPanel;
     FVkSumiMissingBanner: TPanel;
     FTweaksMissingBanner: TPanel;
     FDlssNrMissingBanner: TPanel;
+    FLosslessMissingBanner: TPanel;
+    FOptiMissingBanner: TPanel;
     FCachedMissingDeps: TStringList;
     FCachedDepsValid: Boolean;
     FMockMangoHudInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockVkBasaltInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
+    FMockReShadeInstalled: Integer;  // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockVkSumiInstalled: Integer;   // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockLowLatencyInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockDlssNrModelReady: Integer; // -1 = real detection, 0 = mock missing, 1 = mock ready
@@ -1532,6 +1536,7 @@ type
 
     function IsMangoHudInstalled: Boolean;
     function IsVkBasaltInstalled: Boolean;
+    function IsReShadeInstalled: Boolean;
     function IsVkSumiInstalled: Boolean;
     function IsLowLatencyInstalled: Boolean;
     function IsGamemodeInstalled: Boolean;
@@ -1544,6 +1549,8 @@ type
     procedure HideTweaksMissingBanner;
 
     function IsOptiScalerInstalled: Boolean;
+    function IsDlssEnablerInstalled: Boolean;
+    function IsHelixSrInstalled: Boolean;
     procedure ShowStatusMessage(const AMessage: string; ADuration: Integer = 3000);
     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
@@ -1563,6 +1570,7 @@ type
     procedure LoadLaunchSplashConfig;
     procedure SaveLaunchSplashConfig;
     procedure ModulesMenuItemClick(Sender: TObject);
+    procedure ManageModulesClick(Sender: TObject);
     procedure EnableUpscalersModuleClick(Sender: TObject);
     procedure EnableFrameGenModuleClick(Sender: TObject);
     procedure EnablePostProcessingModuleClick(Sender: TObject);
@@ -2982,11 +2990,6 @@ var
   VkShadersDir: string;
 begin
   UpdateTabModulePlaceholders;
-  if not TConfigManager.IsModuleEnabled(MODULE_RESHADE) then
-  begin
-    SetSaveBtnEnabled(False);
-    Exit;
-  end;
 
   VkShadersDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
   if DirectoryExists(VkShadersDir) and (aveffectsListbox.Items.Count = 0) then
@@ -3004,6 +3007,7 @@ begin
   if Assigned(FReshadeHelper) then
   begin
     TReshadeTabHelper(FReshadeHelper).RefreshStatus;
+    TReshadeTabHelper(FReshadeHelper).UpdateVkBasaltBanner(IsVkBasaltInstalled);
     if Assigned(reshadeTabSheet) and (reshadeTabSheet.ClientWidth > 0) then
       TReshadeTabHelper(FReshadeHelper).ReflowReShadeTab(reshadeTabSheet.ClientWidth);
   end;
@@ -3069,15 +3073,21 @@ var
   ContentW: Integer;
   Card: TPanel;
   ci, gi: Integer;
-  Sec: TPanel;
 begin
   UpdateTabModulePlaceholders;
-  if not TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
+  UpdateToolMissingDependencyBanners;
+  if (not TConfigManager.IsModuleEnabled(MODULE_VKSUMI)) or (not IsVkSumiInstalled) then
   begin
     if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], False);
     if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], False);
     if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], False);
     SetSaveBtnEnabled(False);
+    if Assigned(FVsScrollBox) then
+      ContentW := FVsScrollBox.ClientWidth
+    else
+      ContentW := vksumiTabSheet.ClientWidth;
+    if ContentW < 400 then ContentW := 400;
+    ReflowVkSumiTab(ContentW);
     Exit;
   end;
 
@@ -3099,8 +3109,6 @@ begin
         if Card.Controls[gi] is TPanel then
           TPanel(Card.Controls[gi]).Invalidate;
   end;
-
-  UpdateToolMissingDependencyBanners;
 end;
 
 procedure Tgoverlayform.performanceTabSheetShow(Sender: TObject);
@@ -3959,6 +3967,8 @@ begin
   HideBootSplash;
   Self.Show;
   RefreshOsStatusDots;
+  InvalidateDependenciesCache;
+  UpdateToolMissingDependencyBanners;
 
   // Ensure vkBasalt available effects listbox is populated if shaders directory was downloaded
   RepoDir := IncludeTrailingPathDelimiter(VKBASALTFOLDER) + 'reshade-shaders';
@@ -4012,6 +4022,7 @@ begin
   FOsDriverLoading := False;
   FMockMangoHudInstalled := -1;
   FMockVkBasaltInstalled := -1;
+  FMockReShadeInstalled := -1;
   FMockVkSumiInstalled := -1;
   FMockLowLatencyInstalled := -1;
   FMockDlssNrModelReady := -1;
@@ -5440,9 +5451,17 @@ var
 begin
   if FMockVkBasaltInstalled = 0 then Exit(False);
   if FMockVkBasaltInstalled = 1 then Exit(True);
+  if optiscaler_update.IsVkBasaltInstalled then Exit(True);
   Missing := GetCachedMissingDeps;
   Result := (Missing.IndexOf(DEP_VKBASALT) < 0) and
             (Missing.IndexOf(DEP_VKBASALT_RUNTIME) < 0);
+end;
+
+function Tgoverlayform.IsReShadeInstalled: Boolean;
+begin
+  if FMockReShadeInstalled = 0 then Exit(False);
+  if FMockReShadeInstalled = 1 then Exit(True);
+  Result := optiscaler_update.IsReShadeInstalled;
 end;
 
 function Tgoverlayform.IsVkSumiInstalled: Boolean;
@@ -5484,7 +5503,7 @@ var
   Banner: TPanel;
   AccentBar: TShape;
   IconLbl, TitleLbl, DescLbl: TLabel;
-  RecheckBtn, StatusBtn: TBitBtn;
+  ManageBtn: TBitBtn;
   BgClr, BorderClr, TextClr, SubTextClr: TColor;
 begin
   if CurrentTheme = tmLight then
@@ -5545,45 +5564,54 @@ begin
   DescLbl.Parent := Banner;
   DescLbl.Tag := 9995;
   if IsRunningInFlatpak then
-    DescLbl.Caption := 'Missing Flatpak extension. Run:  ' + AFlatpakCmd
+  begin
+    if AFlatpakCmd <> '' then
+      DescLbl.Caption := 'Missing Flatpak extension. Run:  ' + AFlatpakCmd
+    else
+      DescLbl.Caption := AToolName + ' is not installed or enabled in Component Setup.';
+  end
   else
-    DescLbl.Caption := 'System package not found. Please install ''' + ANativePkg + ''' using your package manager.';
+  begin
+    if (ANativePkg = 'reshade') or (ANativePkg = '') then
+      DescLbl.Caption := AToolName + ' runtime is not installed or enabled.'
+    else
+      DescLbl.Caption := 'System package not found. Please install ''' + ANativePkg + ''' using your package manager.';
+  end;
   DescLbl.Font.Size := 9;
   DescLbl.Font.Color := SubTextClr;
   DescLbl.Transparent := True;
   DescLbl.SetBounds(46, 38, 480, 20);
 
-  // Action button: Re-check (far right)
-  RecheckBtn := TBitBtn.Create(Self);
-  RecheckBtn.Parent := Banner;
-  RecheckBtn.Tag := 9995;
-  RecheckBtn.Caption := 'Re-check';
-  RecheckBtn.Cursor := crHandPoint;
-  RecheckBtn.OnClick := AOnRecheck;
-  RecheckBtn.Width := 96;
-  RecheckBtn.Height := 28;
-  RecheckBtn.Top := 22;
-  RecheckBtn.AnchorSideRight.Control := Banner;
-  RecheckBtn.AnchorSideRight.Side := asrRight;
-  RecheckBtn.BorderSpacing.Right := 12;
-  RecheckBtn.Anchors := [akTop, akRight];
-
-  // Action button: View Status (left of Re-check)
-  StatusBtn := TBitBtn.Create(Self);
-  StatusBtn.Parent := Banner;
-  StatusBtn.Tag := 9995;
-  StatusBtn.Caption := 'View Status';
-  StatusBtn.Cursor := crHandPoint;
-  StatusBtn.OnClick := AOnStatus;
-  StatusBtn.Width := 104;
-  StatusBtn.Height := 28;
-  StatusBtn.Top := 22;
-  StatusBtn.AnchorSideRight.Control := RecheckBtn;
-  StatusBtn.AnchorSideRight.Side := asrLeft;
-  StatusBtn.BorderSpacing.Right := 8;
-  StatusBtn.Anchors := [akTop, akRight];
+  // Action button: Manage modules / Select DLL (far right)
+  ManageBtn := TBitBtn.Create(Self);
+  ManageBtn.Parent := Banner;
+  ManageBtn.Tag := 9995;
+  ManageBtn.Cursor := crHandPoint;
+  if Assigned(AOnStatus) and (TMethod(AOnStatus).Code <> TMethod(@ViewStatusClick).Code) then
+  begin
+    ManageBtn.Caption := 'Select DLL...';
+    ManageBtn.OnClick := AOnStatus;
+    ManageBtn.Width := 104;
+  end
+  else
+  begin
+    ManageBtn.Caption := 'Manage modules';
+    ManageBtn.OnClick := @ManageModulesClick;
+    ManageBtn.Width := 136;
+  end;
+  ManageBtn.Height := 28;
+  ManageBtn.Top := 22;
+  ManageBtn.AnchorSideRight.Control := Banner;
+  ManageBtn.AnchorSideRight.Side := asrRight;
+  ManageBtn.BorderSpacing.Right := 12;
+  ManageBtn.Anchors := [akTop, akRight];
 
   Result := Banner;
+end;
+
+procedure Tgoverlayform.ManageModulesClick(Sender: TObject);
+begin
+  ModulesMenuItemClick(Sender);
 end;
 
 procedure Tgoverlayform.RecheckDependenciesClick(Sender: TObject);
@@ -5658,19 +5686,7 @@ begin
     TReshadeTabHelper(FReshadeHelper).UpdateVkBasaltBanner(VkInstalled);
 
   // 3. vkSumi Banner
-  if not TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
-  begin
-    if Assigned(FVkSumiMissingBanner) then
-      FVkSumiMissingBanner.Visible := False;
-    if (goverlayPageControl.ActivePage = vksumiTabSheet) then
-    begin
-      if Assigned(FVsCards[1]) then SetControlTreeEnabled(FVsCards[1], False);
-      if Assigned(FVsCards[2]) then SetControlTreeEnabled(FVsCards[2], False);
-      if Assigned(FVsCards[0]) then SetControlTreeEnabled(FVsCards[0], False);
-      SetSaveBtnEnabled(False);
-    end;
-  end
-  else if not SumiInstalled then
+  if (not TConfigManager.IsModuleEnabled(MODULE_VKSUMI)) or (not SumiInstalled) then
   begin
     if not Assigned(FVkSumiMissingBanner) then
       FVkSumiMissingBanner := CreateDependencyWarningBanner(
@@ -5710,11 +5726,15 @@ begin
   if (goverlayPageControl.ActivePage = vksumiTabSheet) and (vksumiTabSheet.ClientWidth > 0) then
     ReflowVkSumiTab(vksumiTabSheet.ClientWidth);
 
-  // 4. DLSS-NR Banner
+  // 4. OptiScaler / Upscaling Banner
   if Assigned(FOptiScalerHelper) then
-    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
 
-  // 5. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
+  // 5. Frame Interpolation Banner
+  if Assigned(FLosslessScalingHelper) then
+    TLosslessScalingTabHelper(FLosslessScalingHelper).UpdateLosslessMissingBanner;
+
+  // 6. Tweaks Banner: hidden by default, shown on-demand when hovering over items missing dependencies
   HideTweaksMissingBanner;
 
   if ((goverlayPageControl.ActivePage = tweaksTabSheet) or (goverlayPageControl.ActivePage = launchArgsTabSheet)) and Assigned(FTweaksPaintBox) then
@@ -5776,6 +5796,20 @@ function Tgoverlayform.IsOptiScalerInstalled: Boolean;
 begin
   Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'goverlay.vars') or
             FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalEdgePath) + 'goverlay.vars');
+end;
+
+function Tgoverlayform.IsDlssEnablerInstalled: Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(True)) + 'version.dll') or
+            FileExists(IncludeTrailingPathDelimiter(GetDlssEnablerPath(False)) + 'version.dll') or
+            FileExists('/usr/share/dlss-enabler') or FileExists('/usr/lib/dlss-enabler');
+end;
+
+function Tgoverlayform.IsHelixSrInstalled: Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') or
+            FileExists('/usr/share/HelixSR');
 end;
 
 procedure Tgoverlayform.UpdateGeSpeedButtonState;
@@ -6284,7 +6318,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
-    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -6376,7 +6410,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
-    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -6413,7 +6447,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
-    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -6504,7 +6538,7 @@ begin
     UpdateUpscalerImageOpacity;
     if Assigned(FOptiScalerHelper) then
     begin
-      TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+      TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
       TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
     end;
     StartAutoSaveTimer;
@@ -6570,7 +6604,7 @@ begin
   UpdateUpscalerImageOpacity;
   if Assigned(FOptiScalerHelper) then
   begin
-    TOptiScalerTabHelper(FOptiScalerHelper).UpdateDlssNrBanner;
+    TOptiScalerTabHelper(FOptiScalerHelper).UpdateUpscalerMissingBanner;
     TOptiScalerTabHelper(FOptiScalerHelper).UpdateFrameGenOptionsUI;
     TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
   end;
@@ -11552,6 +11586,8 @@ begin
   if ShowFirstRunSetupDialog(Self, False) then
   begin
     UpdateTabModulePlaceholders;
+    InvalidateDependenciesCache;
+    UpdateToolMissingDependencyBanners;
     if Assigned(FHomeHelper) then
       THomeTabHelper(FHomeHelper).RefreshHomeModuleStatus;
     if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and HasMissingMandatoryLibraries then
@@ -11656,73 +11692,9 @@ end;
 
 procedure Tgoverlayform.EnsureModulePlaceholder(ATabSheet: TTabSheet;
   const AModuleName, ATitle, ADesc: string; var APlaceholder: TPanel);
-var
-  TitleLbl, DescLbl: TLabel;
-  Btn: TBitBtn;
-  W: Integer;
 begin
-  if not Assigned(ATabSheet) then Exit;
-
-  if not Assigned(APlaceholder) then
-  begin
-    W := ATabSheet.ClientWidth - 48;
-    if W < 300 then W := 600;
-
-    APlaceholder := TPanel.Create(Self);
-    APlaceholder.Parent := ATabSheet;
-    APlaceholder.SetBounds(24, 24, W, 200);
-    APlaceholder.Anchors := [akTop, akLeft, akRight];
-    APlaceholder.Color := RGBToColor(31, 40, 60);
-    APlaceholder.ParentColor := False;
-    APlaceholder.BevelOuter := bvNone;
-    APlaceholder.BorderStyle := bsNone;
-
-    TitleLbl := TLabel.Create(Self);
-    TitleLbl.Parent := APlaceholder;
-    TitleLbl.SetBounds(24, 20, APlaceholder.Width - 48, 28);
-    TitleLbl.Anchors := [akTop, akLeft, akRight];
-    TitleLbl.Caption := ATitle;
-    TitleLbl.Font.Name := 'Noto Sans';
-    TitleLbl.Font.Size := 12;
-    TitleLbl.Font.Style := [fsBold];
-    TitleLbl.Font.Color := RGBToColor(48, 190, 240);
-    TitleLbl.ShowAccelChar := False;
-
-    DescLbl := TLabel.Create(Self);
-    DescLbl.Parent := APlaceholder;
-    DescLbl.SetBounds(24, 54, APlaceholder.Width - 48, 55);
-    DescLbl.Anchors := [akTop, akLeft, akRight];
-    DescLbl.Caption := ADesc;
-    DescLbl.Font.Name := 'Noto Sans';
-    DescLbl.Font.Size := 10;
-    DescLbl.Font.Color := RGBToColor(144, 168, 192);
-    DescLbl.WordWrap := True;
-    DescLbl.ShowAccelChar := False;
-
-    Btn := TBitBtn.Create(Self);
-    Btn.Parent := APlaceholder;
-    Btn.SetBounds(24, 125, 270, 42);
-    Btn.Caption := 'Enable && Download Components';
-    Btn.Font.Name := 'Noto Sans';
-    Btn.Font.Size := 10;
-    Btn.Font.Style := [fsBold];
-    if AModuleName = MODULE_UPSCALERS then
-      Btn.OnClick := @EnableUpscalersModuleClick
-    else if AModuleName = MODULE_FRAMEGENERATION then
-      Btn.OnClick := @EnableFrameGenModuleClick
-    else if AModuleName = MODULE_RESHADE then
-      Btn.OnClick := @EnableReshadeModuleClick
-    else if AModuleName = MODULE_VKSUMI then
-      Btn.OnClick := @EnableVkSumiModuleClick
-    else if AModuleName = MODULE_VKBASALT then
-      Btn.OnClick := @EnableVkBasaltModuleClick
-    else
-      Btn.OnClick := @EnablePostProcessingModuleClick;
-  end;
-
-  APlaceholder.Visible := not TConfigManager.IsModuleEnabled(AModuleName);
-  if APlaceholder.Visible then
-    APlaceholder.BringToFront;
+  if Assigned(APlaceholder) then
+    APlaceholder.Visible := False;
 end;
 
 procedure Tgoverlayform.UpdateTabModulePlaceholders;
@@ -11842,7 +11814,10 @@ begin
       CheckAndInstallReShade(False, @OnDownloadProgress, FFailedFiles);     // ReShade runtime (90% - 95%)
 
     if TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
+    begin
+      CheckAndInstallVkBasalt(False, @OnDownloadProgress);                       // vkBasalt runtime (64-bit/32-bit layers)
       CheckAndInstallVkBasaltShaders(False, @OnDownloadProgress, FFailedFiles); // vkBasalt ReShade Shaders (95% - 99%)
+    end;
 
     if TConfigManager.IsModuleEnabled(MODULE_MAKO) then
       CheckAndInstallMako(False, @OnDownloadProgress);                      // MAKO layer (68% - 78%)
