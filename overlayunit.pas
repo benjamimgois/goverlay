@@ -265,7 +265,6 @@ type
     filenameComboBox: TComboBox;
     filenameLabel: TLabel;
     filterRadioGroup: TRadioGroup;
-    filtersGroupBox: TGroupBox;
     FontcolorButton: TColorButton;
     fontcolorLabel: TLabel;
     fontComboBox: TComboBox;
@@ -283,15 +282,10 @@ type
     fpscolor3ColorButton: TColorButton;
     fpscolor3SpinEdit: TSpinEdit;
     fpscolorCheckBox: TCheckBox;
-    fpsGroupBox: TGroupBox;
-    fpslimCheckGroup: TCheckGroup;
-    fpslimiterGroupBox: TGroupBox;
-    fpslimLabel: TLabel;
     fpslimmetComboBox: TComboBox;
     fpslimtoggleComboBox: TComboBox;
     fpsonlyBitBtn: TBitBtn;
     fpsonlyLabel: TLabel;
-    fpstoggleImage: TImage;
     framecountCheckBox: TCheckBox;
     frametimegraphCheckBox: TCheckBox;
     frametimedetailedCheckBox: TCheckBox;
@@ -356,7 +350,6 @@ type
     hudtitleEdit: TEdit;
     hudtoggleLabel: TLabel;
     hudversionCheckBox: TCheckBox;
-    Image2: TImage;
     Image3: TImage;
     intelpowerfixBitBtn: TBitBtn;
     intervalTrackBar: TTrackBar;
@@ -372,10 +365,8 @@ type
     logfolderBitBtn: TBitBtn;
     logfolderEdit: TEdit;
     logfolderLabel: TLabel;
-    loggingGroupBox: TGroupBox;
     logintervalLabel: TLabel;
     logtoggleComboBox: TComboBox;
-    logtoggleImage: TImage;
     logtoggleLabel: TLabel;
     mainmetricLabel: TLabel;
     mangocolorBitBtn: TBitBtn;
@@ -405,8 +396,6 @@ type
     notificationLabel: TLabel;
     nvidiaImage: TImage;
     nvidiaRadioButton: TRadioButton;
-    offsetLabel: TLabel;
-    offsetSpinEdit: TSpinEdit;
     openglImage: TImage;
     optionsGroupBox: TGroupBox;
     optionsLabel: TLabel;
@@ -457,8 +446,6 @@ type
     statusGroupBox: TGroupBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
-    sysinfoImage: TImage;
-    systemGroupBox: TGroupBox;
     systemLabel: TLabel;
     tweaksTabSheet: TTabSheet;
     launchArgsTabSheet: TTabSheet;
@@ -520,7 +507,6 @@ type
     vramColorButton: TColorButton;
     vramusageCheckBox: TCheckBox;
     vsyncComboBox: TComboBox;
-    vsyncGroupBox: TGroupBox;
     vulkandriverCheckBox: TCheckBox;
     vulkanImage: TImage;
     whitecolorBitBtn: TBitBtn;
@@ -4124,12 +4110,6 @@ begin
 
   BuildVkSumiTab;
   InitTweaksCards;
-
-  // Detach all anchor-side control references for every groupbox we reflow
-  // manually (Visual + Performance tabs). Without this the LCL anchor engine
-  // keeps repositioning them even when Anchors = [akTop, akLeft].
-  UnanchorControl(vsyncGroupBox);
-  UnanchorControl(filtersGroupBox);
 
   // Detach anchor-side control references for Tweaks tab inner groupboxes
   UnanchorControl(generalGroupBox);

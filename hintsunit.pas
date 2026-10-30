@@ -377,8 +377,6 @@ begin
   SetHint('menuscaleTrackBar', 'Menu scale' + LineEnding +
     'Overall overlay size' + LineEnding +
     '0.5 = 50%, 1.0 = 100%, 2.0 = 200%');
-  SetHint('offsetSpinEdit', 'Offset' + LineEnding +
-    'Distance from screen edge in pixels');
 
   // Custom name edits
   SetHint('gpunameEdit', 'Custom GPU HUD name' + LineEnding +

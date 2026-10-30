@@ -2462,12 +2462,6 @@ begin
   limtoggleLabel.AnchorSideBottom.Control := nil;
   limtoggleLabel.Anchors := [akLeft, akTop];
 
-  // Hide legacy controls
-  fpslimCheckGroup.Visible := False;
-  offsetSpinEdit.Visible   := False;
-  offsetLabel.Visible      := False;
-  fpslimLabel.Visible      := False;
-
   // Reparent controls to FPerfLimitSec
   fpscolorCheckBox.Parent          := FPerfLimitSec;
   fpscolor1ColorButton.Parent      := FPerfLimitSec;
@@ -2733,12 +2727,6 @@ begin
   FPerfBgPanel.Width      := FPerfScrollBox.ClientWidth;
   FPerfBgPanel.Height     := 700;
 
-  // Hide the original GroupBoxes — their controls are reparented below.
-  fpslimiterGroupBox.Visible := False;
-  vsyncGroupBox.Visible      := False;
-  fpsGroupBox.Visible        := False;
-  filtersGroupBox.Visible    := False;
-
   // Three master cards: Rate Control & Sync, Telemetry, Energy & Visual.
   MakePerfCard(0, CARD0_TOP, CARD0_H, 'Rate Control', 'VSYNC', FPerfLimitSec, FPerfVsyncSec);
   MakePerfCard(1, CARD1_TOP, CARD1_H, 'Frame Rate', 'Frame Timing', FPerfInfoSec, FPerfFrametimeSec);
@@ -2747,7 +2735,6 @@ begin
 
   // ── Card 0: FPS Limiter toggle-key capture button ───────────────────────
   fpslimtoggleComboBox.Visible := False;
-  fpstoggleImage.Visible := False;
 
   limtoggleLabel.AnchorSideLeft.Control   := nil;
   limtoggleLabel.AnchorSideTop.Control    := nil;
@@ -4347,7 +4334,6 @@ begin
   // ── Card 1: System & Environment ───────────────────────────────────────
   MakeCard(FExtSysCard, FExtSysTitleLbl, 'System & Environment');
   FExtSysTitleLbl.ShowAccelChar := False;
-  sysinfoImage.Visible := False;
 
   MakeSubSec(FExtPlatformSec, FExtSysCard);
   MakeSubSec(FExtWineSec, FExtSysCard);
@@ -4475,12 +4461,10 @@ begin
   customcommandEdit.Font.Name := 'DejaVu Sans Mono';
 
   othersLabel.Visible := False;
-  systemGroupBox.Visible := False;
 
   // ── Card 2: Benchmarks & Logging ────────────────────────────────────────
   MakeCard(FExtLogCard, FExtLogTitleLbl, 'Benchmarks & Logging');
   FExtLogTitleLbl.ShowAccelChar := False;
-  Image2.Visible := False;
 
   MakeSubSec(FExtLogTimingsSec, FExtLogCard);
   MakeSubSec(FExtLogToolsSec, FExtLogCard);
@@ -4613,9 +4597,6 @@ begin
   autouploadCheckBox.Visible := False;
   Place(versioningCheckBox, FExtLogToolsSec, 0, 0); DarkCheck(versioningCheckBox);
   versioningCheckBox.Visible := False;
-
-  logtoggleImage.Visible := False;
-  loggingGroupBox.Visible := False;
   end;
 
   // Apply the initial theme so the tab is styled from the first paint
@@ -4666,9 +4647,6 @@ begin
 
   FExtSysCard.SetBounds(MARGIN, MARGIN, CW, ActiveSysH);
   FExtLogCard.SetBounds(MARGIN, MARGIN + ActiveSysH + GAP, CW, ActiveLogH);
-
-  sysinfoImage.Visible := False;
-  Image2.Visible := False;
 
   if Assigned(FExtSysTitleLbl) then
   begin
@@ -5152,7 +5130,6 @@ begin
     filterRadioGroup.ItemIndex := 0;
 
     // SpinEdits
-    offsetSpinedit.Value := 0;
     offsetxSpinEdit.Value := 0;
     offsetySpinEdit.Value := 0;
 
@@ -5191,18 +5168,7 @@ begin
         if TrimmedLine = '' then
           Continue;
 
-        // Handle special commented line #offset=
-        if (Length(TrimmedLine) > 8) and (Copy(TrimmedLine, 1, 8) = MANGO_COMMENT_OFFSET) then
-        begin
-          if TryStrToInt(Copy(TrimmedLine, 9, Length(TrimmedLine)), IntValue) then
-          begin
-            with FForm do
-              offsetSpinedit.Value := IntValue;
-          end;
-          Continue;
-        end;
-
-        // Ignore other comments
+        // Ignore comments
         if TrimmedLine[1] = '#' then
           Continue;
 
