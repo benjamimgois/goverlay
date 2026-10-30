@@ -100,11 +100,11 @@ var
   UIStateFile: string;
   SL: TStringList;
 begin
-  // Hide legacy shape+label widgets
-  FForm.mangohudShape.Visible  := False;  FForm.mangohudLabel.Visible  := False;
-  FForm.vkbasaltShape.Visible  := False;  FForm.vkbasaltLabel.Visible  := False;
-  FForm.optiscalerShape.Visible := False; FForm.optiscalerLabel.Visible := False;
-  FForm.tweaksShape.Visible    := False;  FForm.tweaksLabel.Visible    := False;
+  // Hide legacy label widgets
+  FForm.mangohudLabel.Visible   := False;
+  FForm.vkbasaltLabel.Visible   := False;
+  FForm.optiscalerLabel.Visible := False;
+  FForm.tweaksLabel.Visible     := False;
 
   // Load modern branding logo into header goverlayimage
   LogoPath := FForm.GetAppBaseDir + 'data/goverlay_logo.png';

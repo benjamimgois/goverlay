@@ -1259,17 +1259,6 @@ begin
   FVisAppearanceCard := FVisTitleSec;
   FVisLayoutCard := FVisScreenSec;
 
-  // Hide legacy LFM containers and obsolete images/radios
-  orientationGroupBox.Visible := False;
-  borderGroupBox.Visible      := False;
-  backgroundGroupBox.Visible  := False;
-  fontsGroupBox.Visible       := False;
-  positionGroupBox.Visible    := False;
-  columsGroupBox.Visible      := False;
-  vImage.Visible              := False;
-  hImage.Visible              := False;
-  squareImage.Visible         := False;
-  roundImage.Visible          := False;
   Place(verticalRadioButton, FVisFlowSec, -100, -100);
   Place(horizontalRadioButton, FVisFlowSec, -100, -100);
   Place(squareRadioButton, FVisCanvasSec, -100, -100);
@@ -1280,9 +1269,6 @@ begin
   roundRadioButton.Visible    := False;
   pcidevComboBox.Visible := True;
   pcidevComboBox.Parent  := FVisSystemSec;
-  activegpuLabel.Visible      := False;
-  gpudescEdit.Visible         := False;
-  hudtoggleImage.Visible      := False;
   hudonoffComboBox.Visible    := False;
 
   // ── Controls: Appearance Card ────────────────────────────────────────────
@@ -1423,16 +1409,6 @@ begin
 
   // ── Controls: Layout Card ────────────────────────────────────────────────
   // Screen Placement Sub-Panel controls
-  Image1.Stretch      := True;
-  Image1.Proportional := False;
-  Image1.AnchorSideLeft.Control   := nil; Image1.AnchorSideTop.Control    := nil;
-  Image1.AnchorSideRight.Control  := nil; Image1.AnchorSideBottom.Control := nil;
-  Image1.Anchors := [akLeft, akTop];
-  Image1.BorderSpacing.Left   := 0; Image1.BorderSpacing.Right  := 0;
-  Image1.BorderSpacing.Top    := 0; Image1.BorderSpacing.Bottom := 0;
-  Image1.Parent := FVisScreenSec;
-  Image1.Visible := False;
-
   Place(topleftRadioButton,      FVisScreenSec, 10, 30);
   Place(topcenterRadioButton,    FVisScreenSec, 50, 30);
   Place(toprightRadioButton,     FVisScreenSec, 90, 30);
@@ -1551,18 +1527,6 @@ begin
   FVisColumnsPaintBox.ShowHint := True;
   FVisColumnsPaintBox.Hint := 'Active HUD columns (1 to 6)';
 
-  columShape.Visible := False;
-  columShape1.Visible := False;
-  columShape2.Visible := False;
-  columShape3.Visible := False;
-  columShape4.Visible := False;
-  columShape5.Visible := False;
-  columShape.Parent := columsGroupBox; columShape1.Parent := columsGroupBox;
-  columShape2.Parent := columsGroupBox; columShape3.Parent := columsGroupBox;
-  columShape4.Parent := columsGroupBox; columShape5.Parent := columsGroupBox;
-  columShape.Visible := False; columShape1.Visible := False;
-  columShape2.Visible := False; columShape3.Visible := False;
-  columShape4.Visible := False; columShape5.Visible := False;
   FVisStretchLbl := TLabel.Create(FVisFlowSec);
   FVisStretchLbl.Parent      := FVisFlowSec;
   FVisStretchLbl.Caption     := 'Horizontal stretch';
@@ -3701,10 +3665,6 @@ begin
   FMtBgPanel.Width      := FMtScrollBox.ClientWidth;
   FMtBgPanel.Height     := 600;
 
-  // Hide the original GroupBoxes — they are no longer needed as containers.
-  gpuGroupBox.Visible := False;
-  cpuGroupBox.Visible := False;
-
   // ── Card 0: GPU Metrics ─────────────────────────────────────────────────
   // All Y values = LFM position + HDR (34) to offset below the card header.
   MakeCard(FMtGpuCard, FGpuTitleLbl, 'GPU Metrics');
@@ -3793,9 +3753,6 @@ begin
   FvulkandriverToggle := PlaceToggle(vulkandriverCheckBox, FMtGpuCard, 120, 248 + HDR);
   FprocvramToggle     := PlaceToggle(procvramCheckBox, FMtGpuCard, 266, 248 + HDR);
   DarkSectLbl(gpuinfoLabel);
-
-  // GPU image — hidden for clean minimalist header
-  gpuImage.Visible := False;
 
   // ── Card 1: CPU Metrics ─────────────────────────────────────────────────
   MakeCard(FMtCpuCard, FCpuTitleLbl, 'CPU Metrics');
@@ -3888,9 +3845,6 @@ begin
   iordrwColorButton.Color := CARD_BG;
   ramColorButton.ShowHint    := True;
   iordrwColorButton.ShowHint := True;
-
-  // CPU image — hidden for clean minimalist header
-  cpuImage.Visible := False;
 
   // ── Reparent controls into their thematic sub-cards ─────────────────────
   mainmetricLabel.Parent       := FGpuCoreSec;
@@ -4161,10 +4115,6 @@ begin
   FMtGpuCard.SetBounds(MARGIN, MARGIN, CW, ActiveGpuH);
   FMtCpuCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP, CW, ActiveCpuH);
   FMtMemCard.SetBounds(MARGIN, MARGIN + ActiveGpuH + GAP + ActiveCpuH + GAP, CW, ActiveMemH);
-
-  // Header controls: inline title + name controls
-  gpuImage.Visible := False;
-  cpuImage.Visible := False;
 
   FGpuTitleLbl.Left := 16;
   FGpuTitleLbl.Top  := 10;
@@ -5154,12 +5104,6 @@ begin
     COLUMNS := 3;
     columvalueLabel.Caption := '3';
     UpdateColumnsIndicator;
-    columShape.Visible := False;
-    columShape1.Visible := False;
-    columShape2.Visible := False;
-    columShape3.Visible := False;
-    columShape4.Visible := False;
-    columShape5.Visible := False;
 
     // Reset default colors to stock / standard GOverlay colors
     hudbackgroundColorButton.ButtonColor := clBlack;
@@ -5596,32 +5540,6 @@ begin
       begin
         COLUMNS := IntValue;
         columvalueLabel.Caption := AValue;
-        case IntValue of
-          1: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-          2: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-          3: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-          4: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-          5: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-          6: begin
-            columShape.Visible := False; columShape1.Visible := False; columShape2.Visible := False;
-            columShape3.Visible := False; columShape4.Visible := False; columShape5.Visible := False;
-          end;
-        end;
         UpdateColumnsIndicator;
       end;
     end

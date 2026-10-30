@@ -371,7 +371,6 @@ begin
   FForm.tweaksText.Visible  := False;
   FForm.tweaksText2.Visible := False;
   FForm.tweaksLabel.Visible := False;
-  FForm.tweaksShape.Visible := False;
 
   // PaintBox fills the tab client area
   FForm.FTweaksPaintBox := TPaintBox.Create(FForm);

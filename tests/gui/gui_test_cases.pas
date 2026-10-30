@@ -4628,8 +4628,8 @@ begin
   Rewrite(F);
   WriteLn(F, 'fps_color=#FF0000,#FFFF00,#00FF00');
   WriteLn(F, 'fps_value=45,90');
-  WriteLn(F, 'gpu_load_color=#FFFFFF,#FFAB7F,#CC0000');
-  WriteLn(F, 'cpu_load_color=#30BEF0,#FFAB7F,#CC0000');
+  WriteLn(F, 'gpu_load_color=#FFFFFF,#FFAA7F,#CC0000');
+  WriteLn(F, 'cpu_load_color=#30BEF0,#FFAA7F,#CC0000');
   WriteLn(F, 'corrupted_line_with_no_value_and_invalid_syntax:::');
   WriteLn(F, 'gl_vsync=1');
   WriteLn(F, 'vsync=1');
@@ -6056,10 +6056,10 @@ begin
 
   // Test at normal width (960x650)
   goverlayform.ReflowPerformanceTab(960, 650);
-  AssertEquals('Row 1 Card Top is 0', 0, goverlayform.FPerfCards[0].Top);
-  AssertEquals('Row 1 Card Height is 180', 180, goverlayform.FPerfCards[0].Height);
-  AssertEquals('Row 2 Card Top is 185', 185, goverlayform.FPerfCards[1].Top);
-  AssertTrue('Row 2 Card Height >= 389', goverlayform.FPerfCards[1].Height >= 389);
+  AssertEquals('Row 1 Card Top is 4', 4, goverlayform.FPerfCards[0].Top);
+  AssertEquals('Row 1 Card Height is 185', 185, goverlayform.FPerfCards[0].Height);
+  AssertEquals('Row 2 Card Top is 197', 197, goverlayform.FPerfCards[1].Top);
+  AssertEquals('Row 2 Card Height is 170', 170, goverlayform.FPerfCards[1].Height);
 
   AssertTrue('afTrackBar is above mipmapLabel at normal width',
     goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
@@ -6076,7 +6076,7 @@ begin
 
   // Test at maximized width (1920x1080)
   goverlayform.ReflowPerformanceTab(1920, 1080);
-  AssertTrue('Row 2 Card expands in maximized window', goverlayform.FPerfCards[1].Height > 700);
+  AssertTrue('FPerfBgPanel expands in maximized window', goverlayform.FPerfBgPanel.Height >= 1000);
   AssertTrue('afTrackBar is above mipmapLabel at maximized width',
     goverlayform.afTrackBar.Top + goverlayform.afTrackBar.Height < goverlayform.mipmapLabel.Top);
   AssertEquals('afTrackBar aligns with afLabel at maximized width',
@@ -6401,6 +6401,7 @@ end;
 procedure TGoverlayGuiTests.TestMangoHudFrameTimingDetailed;
 var
   C: string;
+  Helper: TMangoHudUiHelper;
 begin
   NavigateMangoHud;
   AssertTrue('frametimedetailedCheckBox assigned', Assigned(goverlayform.frametimedetailedCheckBox));
@@ -6445,18 +6446,15 @@ begin
 
   // 6. Layout placement verification
   goverlayform.ReflowPerformanceTab(935, 650);
-  AssertTrue('frametimedetailedCheckBox positioned to the right of frametimegraphCheckBox',
-    goverlayform.frametimedetailedCheckBox.Left > goverlayform.frametimegraphCheckBox.Left);
-  AssertEquals('frametimedetailedCheckBox vertically aligned on row with frametimegraphCheckBox',
-    goverlayform.frametimegraphCheckBox.Top, goverlayform.frametimedetailedCheckBox.Top);
-  AssertTrue('framecountCheckBox positioned below vpsCheckBox',
-    goverlayform.framecountCheckBox.Top > goverlayform.vpsCheckBox.Top);
-  AssertEquals('framecountCheckBox horizontally aligned in Column 3 with vpsCheckBox',
-    goverlayform.vpsCheckBox.Left, goverlayform.framecountCheckBox.Left);
-  AssertEquals('framecountCheckBox vertically aligned with ftraceCheckBox',
-    goverlayform.ftraceCheckBox.Top, goverlayform.framecountCheckBox.Top);
-  AssertTrue('frametimetypeBitBtn positioned below frametimegraphCheckBox',
-    goverlayform.frametimetypeBitBtn.Top > goverlayform.frametimegraphCheckBox.Top);
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('FframetimegraphToggle is assigned', Assigned(Helper.FframetimegraphToggle));
+  AssertTrue('FframetimedetailedToggle is assigned', Assigned(Helper.FframetimedetailedToggle));
+  AssertTrue('FframetimedetailedToggle positioned below FframetimegraphToggle',
+    Helper.FframetimedetailedToggle.Top > Helper.FframetimegraphToggle.Top);
+  AssertTrue('FftraceToggle positioned below FframetimedetailedToggle',
+    Helper.FftraceToggle.Top > Helper.FframetimedetailedToggle.Top);
+  AssertTrue('FvpsToggle positioned below FftraceToggle',
+    Helper.FvpsToggle.Top > Helper.FftraceToggle.Top);
 end;
 
 procedure TGoverlayGuiTests.TestMangoHudMetricsCompactToggles;

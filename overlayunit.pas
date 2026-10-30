@@ -142,7 +142,6 @@ type
 
   Tgoverlayform = class(TForm)
     acteffectsListBox: TListBox;
-    activegpuLabel: TLabel;
     actprotonlogsCheckBox: TCheckBox;
     preferredUpscalerLabel: TLabel;
     preferredUpscalerComboBox: TComboBox;
@@ -170,7 +169,6 @@ type
     autodetectnvLabel: TLabel;
     autouploadCheckBox: TCheckBox;
     aveffectsListBox: TListBox;
-    backgroundGroupBox: TGroupBox;
     backgroundLabel: TLabel;
     basicBitBtn: TBitBtn;
     basichorizontalBitBtn: TBitBtn;
@@ -181,7 +179,6 @@ type
     batteryLabel: TLabel;
     batterytimeCheckBox: TCheckBox;
     batterywattCheckBox: TCheckBox;
-    borderGroupBox: TGroupBox;
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
@@ -217,16 +214,8 @@ type
     tweaksImage: TImage;
     tweaksText: TStaticText;
     tweaksLabel: TLabel;
-    tweaksShape: TShape;
     checkupdBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
-    columsGroupBox: TGroupBox;
-    columShape: TShape;
-    columShape1: TShape;
-    columShape2: TShape;
-    columShape3: TShape;
-    columShape4: TShape;
-    columShape5: TShape;
     columvalueLabel: TLabel;
     coreloadtypeBitBtn: TBitBtn;
     cpuavgloadCheckBox: TCheckBox;
@@ -235,8 +224,6 @@ type
     cpuefficiencyCheckBox: TCheckBox;
     cpuframesjouleBitBtn: TBitBtn;
     cpufreqCheckBox: TCheckBox;
-    cpuGroupBox: TGroupBox;
-    cpuImage: TImage;
     cpuload1ColorButton: TColorButton;
     cpuload2ColorButton: TColorButton;
     cpuload3ColorButton: TColorButton;
@@ -283,7 +270,6 @@ type
     fontcolorLabel: TLabel;
     fontComboBox: TComboBox;
     fontLabel: TLabel;
-    fontsGroupBox: TGroupBox;
     fontsizeTrackBar: TTrackBar;
     fontsizevalueLabel: TLabel;
     forcelatencyflexCheckBox: TCheckBox;
@@ -332,14 +318,11 @@ type
     goverlayPanel: TPanel;
     gpuavgloadCheckBox: TCheckBox;
     gpuColorButton: TColorButton;
-    gpudescEdit: TEdit;
     gpudriverGroupBox: TGroupBox;
     gpuefficiencyCheckBox: TCheckBox;
     gpufanCheckBox: TCheckBox;
     gpuframesjouleBitBtn: TBitBtn;
     gpufreqCheckBox: TCheckBox;
-    gpuGroupBox: TGroupBox;
-    gpuImage: TImage;
     gpuinfoLabel: TLabel;
     gpujunctempCheckBox: TCheckBox;
     gpuload1ColorButton: TColorButton;
@@ -365,17 +348,14 @@ type
     globalenableMenuItem: TMenuItem;
     hdrCheckBox: TCheckBox;
     hidehudCheckBox: TCheckBox;
-    hImage: TImage;
     horizontalRadioButton: TRadioButton;
     horizontalstrechCheckBox: TCheckBox;
     hudbackgroundColorButton: TColorButton;
     hudcompactCheckBox: TCheckBox;
     hudonoffComboBox: TComboBox;
     hudtitleEdit: TEdit;
-    hudtoggleImage: TImage;
     hudtoggleLabel: TLabel;
     hudversionCheckBox: TCheckBox;
-    Image1: TImage;
     Image2: TImage;
     Image3: TImage;
     intelpowerfixBitBtn: TBitBtn;
@@ -436,7 +416,6 @@ type
     optLabel1: TLabel;
     optLabel2: TLabel;
     optversionComboBox: TComboBox;
-    orientationGroupBox: TGroupBox;
     othersLabel: TLabel;
     overrideCheckBox: TCheckBox;
     pbarLabel: TLabel;
@@ -444,7 +423,6 @@ type
     performanceTabSheet: TTabSheet;
     plusSpeedButton: TSpeedButton;
     popupBitBtn: TBitBtn;
-    positionGroupBox: TGroupBox;
     presetTabSheet: TTabSheet;
     procmemCheckBox: TCheckBox;
     procvramCheckBox: TCheckBox;
@@ -457,7 +435,6 @@ type
     reshadeLabel2: TLabel;
     reshaderefreshBitBtn: TBitBtn;
     resolutionCheckBox: TCheckBox;
-    roundImage: TImage;
     roundRadioButton: TRadioButton;
     saveBitBtn: TBitBtn;
     searchEdit: TEdit;
@@ -476,7 +453,6 @@ type
     smaaTrackBar: TTrackBar;
     smaavalueLabel: TLabel;
     spoofCheckBox: TCheckBox;
-    squareImage: TImage;
     squareRadioButton: TRadioButton;
     statusGroupBox: TGroupBox;
     subBitBtn: TBitBtn;
@@ -529,14 +505,10 @@ type
     heapdelayCheckBox: TCheckBox;
     versioningCheckBox: TCheckBox;
     verticalRadioButton: TRadioButton;
-    vImage: TImage;
     visualTabSheet: TTabSheet;
     vkbasaltLabel: TLabel;
     goverlayimage: TImage;
-    mangohudShape: TShape;
     optiscalerLabel: TLabel;
-    vkbasaltShape: TShape;
-    optiscalerShape: TShape;
     vkbasaltstatusCheckBox: TCheckBox;
     vkbasaltTabSheet: TTabSheet;
     reshadeTabSheet: TTabSheet;
@@ -4156,12 +4128,6 @@ begin
   // Detach all anchor-side control references for every groupbox we reflow
   // manually (Visual + Performance tabs). Without this the LCL anchor engine
   // keeps repositioning them even when Anchors = [akTop, akLeft].
-  UnanchorControl(orientationGroupBox);
-  UnanchorControl(borderGroupBox);
-  UnanchorControl(backgroundGroupBox);
-  UnanchorControl(fontsGroupBox);
-  UnanchorControl(positionGroupBox);
-  UnanchorControl(columsGroupBox);
   UnanchorControl(vsyncGroupBox);
   UnanchorControl(filtersGroupBox);
 
@@ -4251,11 +4217,7 @@ begin
   updateBitBtn.Tag := 9999;
   mangohudLabel.Tag := 9999;
   optiscalerLabel.Tag := 9999;
-  mangohudShape.Tag := 9999;
-  vkbasaltShape.Tag := 9999;
-  optiscalerShape.Tag := 9999;
   tweaksLabel.Tag := 9999;
-  tweaksShape.Tag := 9999;
   autodetectnvLabel.Tag := 9999;
   autodetectmesaLabel.Tag := 9999;
   topleftRadioButton.Tag := 9999;
@@ -4651,12 +4613,6 @@ begin
      COLUMNS:=3;
      columvalueLabel.Caption:='3';
      if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
-     columShape.Visible:=false;
-     columShape1.Visible:=false;
-     columShape2.Visible:=false;
-     columShape3.Visible:=false;
-     columShape4.Visible:=false;
-     columShape5.Visible:=false;
 
      //#################################################    Checkgroups
 
@@ -4670,12 +4626,6 @@ begin
      begin
        pcidevCombobox.ItemIndex := -1;
      end;
-     if Assigned(gpudescEdit) then
-       gpudescEdit.Text := '';
-
-
-
-
 
     // Load Mangohud config file
     LoadMangoHudConfig;
@@ -6838,57 +6788,6 @@ begin
    columvalueLabel.Caption:=inttostr(COLUMNS);
    if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
    GenericControlChange(Sender);
-
-     case COLUMNS of
-       1:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       2:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       3:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       4:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       5:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       6:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-     end;
 end;
 
 procedure Tgoverlayform.mipmapTrackBarChange(Sender: TObject);
@@ -7204,6 +7103,7 @@ end;
 
 procedure Tgoverlayform.gputempCheckBoxChange(Sender: TObject);
 begin
+  if FLoadingConfig then Exit;
   // GPU temperature depends on GPU average load - automatically enable it when temp is checked
   if gputempCheckBox.Checked then
     gpuavgloadCheckBox.Checked := True;
@@ -7211,6 +7111,7 @@ end;
 
 procedure Tgoverlayform.cputempCheckBoxChange(Sender: TObject);
 begin
+  if FLoadingConfig then Exit;
   // CPU temperature depends on CPU average load - automatically enable it when temp is checked
   if cputempCheckBox.Checked then
     cpuavgloadCheckBox.Checked := True;
@@ -7615,8 +7516,7 @@ var
 
 procedure Tgoverlayform.pcidevComboBoxChange(Sender: TObject);
 begin
-  if Assigned(gpudescEdit) then
-    gpudescEdit.Text := '';
+  // Legacy handler kept for LCL event binding compatibility
 end;
 
 procedure Tgoverlayform.optversionComboBoxChange(Sender: TObject);
@@ -7741,57 +7641,6 @@ begin
    columvalueLabel.Caption:=inttostr(COLUMNS);
    if Assigned(FMangoHelper) then TMangoHudUiHelper(FMangoHelper).UpdateColumnsIndicator;
    GenericControlChange(Sender);
-
-     case COLUMNS of
-       1:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       2:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       3:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       4:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       5:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-       6:begin
-         columShape.Visible:=false;
-         columShape1.Visible:=false;
-         columShape2.Visible:=false;
-         columShape3.Visible:=false;
-         columShape4.Visible:=false;
-         columShape5.Visible:=false;
-       end;
-     end;
 end;
 
 procedure Tgoverlayform.UpdateDockMenuItemsVisibility;
