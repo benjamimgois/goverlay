@@ -367,9 +367,6 @@ begin
   FForm.FTweaksHoverIdx := -1;
 
   // Hide old LFM visual elements from the Tweaks tab
-  FForm.tweaksImage.Visible := False;
-  FForm.tweaksText.Visible  := False;
-  FForm.tweaksText2.Visible := False;
   FForm.tweaksLabel.Visible := False;
 
   // PaintBox fills the tab client area
@@ -2303,8 +2300,6 @@ begin
   ReparentTo(FForm.wined3dCheckBox,       GfxSec); DarkChk(FForm.wined3dCheckBox);       FForm.wined3dCheckBox.OnChange       := @FForm.TweaksCheckChange;
   ReparentTo(FForm.nofastclearsCheckBox,  GfxSec); DarkChk(FForm.nofastclearsCheckBox);  FForm.nofastclearsCheckBox.OnChange  := @FForm.TweaksCheckChange;
 
-  FForm.basicGroupBox.Visible := False;
-
   // ── Advanced Tweaks card ──
   AdvCard := TPanel.Create(FForm);
   AdvCard.Parent     := FForm.tweaksTabSheet;
@@ -2332,8 +2327,6 @@ begin
   ReparentTo(FForm.stagememCheckBox,      PerfSec); DarkChk(FForm.stagememCheckBox);       FForm.stagememCheckBox.OnChange      := @FForm.TweaksCheckChange;
   ReparentTo(FForm.disablentsyncCheckBox, PerfSec); DarkChk(FForm.disablentsyncCheckBox);  FForm.disablentsyncCheckBox.OnChange := @FForm.TweaksCheckChange;
   ReparentTo(FForm.heapdelayCheckBox,     PerfSec); DarkChk(FForm.heapdelayCheckBox);      FForm.heapdelayCheckBox.OnChange     := @FForm.TweaksCheckChange;
-
-  FForm.advancedGroupBox.Visible := False;
 
   // Hide old cards — grid will replace them
   BasicCard.Visible := False;

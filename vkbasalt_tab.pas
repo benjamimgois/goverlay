@@ -105,8 +105,6 @@ begin
       TargetParent := TReshadeTabHelper(FReshadeHelper).BgPanel;
 
     // ── Hide the old LFM group boxes (functional children are reparented below)
-  reshadeGroupBox.Visible        := False;
-  builtineffectsGroupBox.Visible := False;
   vktoggleLabel.Visible          := False;
   toggleImage.Visible            := False;
 

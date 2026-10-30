@@ -990,14 +990,8 @@ begin
     autodetectmesaLabel.Parent      := FOsGpuCard;
     autodetectmesaLabel.BringToFront;
 
-    gpudriverGroupBox.Visible := False;
-
     // ── Card 1: Options (3-column inner layout) ─────────────────────────
     MakeCard(FOsOptionsCard, 'Options');
-    optionsGroupBox.Visible    := False;
-    optiscalerGroupBox.Visible := False;
-    imgmenuGroupBox.Visible    := False;
-    fakenvapiGroupBox.Visible  := False;
 
     FOsDisabledNoticeLbl := TLabel.Create(FOsOptionsCard);
     FOsDisabledNoticeLbl.Parent := FOsOptionsCard;
@@ -1192,7 +1186,6 @@ begin
     shortcutkeyLabel.Anchors  := [akLeft, akTop]; shortcutkeyLabel.Caption  := 'Optiscaler toggle';
     shortcutkeyLabel.Parent   := FOsMainSec;
 
-    shortcutImage.Visible := False;
     shortcutkeyComboBox.Visible := False;
     shortcutkeyComboBox.Parent  := FOsMainSec;
     if (shortcutkeyComboBox.Text = '') or SameText(shortcutkeyComboBox.Text, 'auto') then
@@ -1910,7 +1903,6 @@ begin
 
     // ── Card 2: Software Status ──────────────────────────────────────────
     MakeCard(FOsStatusCard, 'Software Status');
-    statusGroupBox.Visible := False;
 
     optversionComboBox.Parent  := FOsStatusCard;
     optversionComboBox.Anchors := [akLeft, akTop];

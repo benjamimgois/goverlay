@@ -182,7 +182,6 @@ type
     bottomcenterRadioButton: TRadioButton;
     bottomleftRadioButton: TRadioButton;
     bottomrightRadioButton: TRadioButton;
-    builtineffectsGroupBox: TGroupBox;
     casLabel: TLabel;
     casTrackBar: TTrackBar;
     casvalueLabel: TLabel;
@@ -200,19 +199,13 @@ type
     statusBar: TStatusBar;
     gamesTabSheet: TTabSheet;
     wow64CheckBox: TCheckBox;
-    generalGroupBox: TGroupBox;
-    performanceGroupBox: TGroupBox;
-    graphicsGroupBox: TGroupBox;
     hidenvidiaCheckBox: TCheckBox;
     nofastclearsCheckBox: TCheckBox;
     ramtempCheckBox: TCheckBox;
     customenvEdit: TEdit;
-    advancedGroupBox: TGroupBox;
     simdeckCheckBox: TCheckBox;
     obs_vkcaptureCheckBox: TCheckBox;
     gameperfCheckBox: TCheckBox;
-    tweaksImage: TImage;
-    tweaksText: TStaticText;
     tweaksLabel: TLabel;
     checkupdBitBtn: TBitBtn;
     colorthemeLabel: TLabel;
@@ -259,7 +252,6 @@ type
     fahrenheitCheckBox: TCheckBox;
     fakenvapi1: TLabel;
     fakenvapi2: TLabel;
-    fakenvapiGroupBox: TGroupBox;
     fakenvapiLabel: TLabel;
     fcatCheckBox: TCheckBox;
     filenameComboBox: TComboBox;
@@ -312,7 +304,6 @@ type
     goverlayPanel: TPanel;
     gpuavgloadCheckBox: TCheckBox;
     gpuColorButton: TColorButton;
-    gpudriverGroupBox: TGroupBox;
     gpuefficiencyCheckBox: TCheckBox;
     gpufanCheckBox: TCheckBox;
     gpuframesjouleBitBtn: TBitBtn;
@@ -335,8 +326,6 @@ type
     gputhrottlingCheckBox: TCheckBox;
     gputhrottlinggraphCheckBox: TCheckBox;
     gpuvoltageCheckBox: TCheckBox;
-    basicGroupBox: TGroupBox;
-    imgmenuGroupBox: TGroupBox;
     gupdateBitBtn: TBitBtn;
     blacklistMenuItem: TMenuItem;
     globalenableMenuItem: TMenuItem;
@@ -350,7 +339,6 @@ type
     hudtitleEdit: TEdit;
     hudtoggleLabel: TLabel;
     hudversionCheckBox: TCheckBox;
-    Image3: TImage;
     intelpowerfixBitBtn: TBitBtn;
     intervalTrackBar: TTrackBar;
     intervalvalueLabel: TLabel;
@@ -397,9 +385,7 @@ type
     nvidiaImage: TImage;
     nvidiaRadioButton: TRadioButton;
     openglImage: TImage;
-    optionsGroupBox: TGroupBox;
     optionsLabel: TLabel;
-    optiscalerGroupBox: TGroupBox;
     optiscalerTabSheet: TTabSheet;
     optLabel: TLabel;
     optLabel1: TLabel;
@@ -419,7 +405,6 @@ type
     ramusageCheckBox: TCheckBox;
     reflexComboBox: TComboBox;
     refreshrateCheckBox: TCheckBox;
-    reshadeGroupBox: TGroupBox;
     reshadeLabel1: TLabel;
     reshadeLabel2: TLabel;
     reshaderefreshBitBtn: TBitBtn;
@@ -432,7 +417,6 @@ type
     deckpreset2MenuItem: TMenuItem;
     deckpreset3MenuItem: TMenuItem;
     deckpreset4MenuItem: TMenuItem;
-    shortcutImage: TImage;
     shortcutkeyComboBox: TComboBox;
     shortcutkeyLabel: TLabel;
     dlssenablerToggleLabel: TLabel;
@@ -443,7 +427,6 @@ type
     smaavalueLabel: TLabel;
     spoofCheckBox: TCheckBox;
     squareRadioButton: TRadioButton;
-    statusGroupBox: TGroupBox;
     subBitBtn: TBitBtn;
     swapusageCheckBox: TCheckBox;
     systemLabel: TLabel;
@@ -483,7 +466,6 @@ type
     tracelogCheckBox: TCheckBox;
     transparencyLabel: TLabel;
     transpTrackBar: TTrackBar;
-    tweaksText2: TStaticText;
     updateBitBtn: TBitBtn;
     updateProgressBar: TProgressBar;
     updatestatusLabel: TLabel;
@@ -4111,19 +4093,9 @@ begin
   BuildVkSumiTab;
   InitTweaksCards;
 
-  // Detach anchor-side control references for Tweaks tab inner groupboxes
-  UnanchorControl(generalGroupBox);
-  UnanchorControl(graphicsGroupBox);
-  UnanchorControl(performanceGroupBox);
-
   customenvEdit.Anchors := [akTop, akLeft];
 
   InitCustomEnvGroupBox;
-
-  // Detach anchor-side control references for OptiScaler tab inner groupboxes
-  UnanchorControl(optiscalerGroupBox);
-  UnanchorControl(imgmenuGroupBox);
-  UnanchorControl(fakenvapiGroupBox);
 
   // Mark controls that should preserve their custom colors during theme changes.
   // This replaces the hardcoded name blacklist in themeunit.pas.
@@ -9836,46 +9808,8 @@ begin
 end;
 
 procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);
-const
-  // Lateral boxes have fixed widths; ImGUI Menu fills the center.
-  // At base AContentW=828 the ImGUI center (410px) coincides with the
-  // optionsGroupBox center (820/2=410), so we use that as the anchor.
-  W1      = 252;   // optiscalerGroupBox — fixed width, left-anchored
-  // Note: when the card redesign is active (FOsScrollBox assigned) this
-  // procedure is called from ReflowOptiScalerTabNew with the card's inner
-  // width, so the guard below is not needed — it's a no-op safety net.
-  W3      = 252;   // fakenvapiGroupBox  — fixed width, right-anchored
-  W2_BASE = 300;   // imgmenuGroupBox    — grows with available space
-  BOX_H   = 251;
-  BOX_TOP = 6;
-  MARGIN  = 4;
-  GAP     = 4;
-  MIN_W2  = 180;
-var
-  InnerW, Center, W2, X1, X2, X3: Integer;
 begin
-  // When card redesign is active, ReflowOptiScalerTabNew drives the
-  // inner layout directly — skip this call to avoid double-positioning.
-  if Assigned(FOsScrollBox) then Exit;
-
-  // optionsGroupBox ClientWidth ≈ AContentW - 8
-  InnerW := AContentW - 8;
-  Center := InnerW div 2;
-
-  // Position imgmenu centered on the content area; expand symmetrically outward
-  W2 := Max(MIN_W2, InnerW - MARGIN - W1 - GAP - W3 - MARGIN - GAP);
-  X2 := Center - W2 div 2;
-
-  // If centering would clip the left box, fall back to left-flush layout
-  if X2 - GAP - W1 < MARGIN then
-    X2 := MARGIN + W1 + GAP;
-
-  X1 := X2 - GAP - W1;
-  X3 := X2 + W2 + GAP;
-
-  optiscalerGroupBox.SetBounds(X1, BOX_TOP, W1, BOX_H);
-  imgmenuGroupBox.SetBounds(X2, BOX_TOP, W2, BOX_H);
-  fakenvapiGroupBox.SetBounds(X3, BOX_TOP, W3, BOX_H);
+  // Legacy layout routine - no-op in modern card redesign
 end;
 
 // ============================================================================
