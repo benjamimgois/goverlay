@@ -4398,7 +4398,6 @@ object goverlayform: Tgoverlayform
           Checked = True
           TabOrder = 0
           TabStop = True
-          Visible = False
         end
         object topcenterRadioButton: TRadioButton
           Left = 96
@@ -4406,7 +4405,6 @@ object goverlayform: Tgoverlayform
           Top = 11
           Width = 20
           TabOrder = 1
-          Visible = False
         end
         object toprightRadioButton: TRadioButton
           Left = 182
@@ -4414,7 +4412,6 @@ object goverlayform: Tgoverlayform
           Top = 11
           Width = 20
           TabOrder = 2
-          Visible = False
         end
         object bottomleftRadioButton: TRadioButton
           Left = 10
@@ -4422,7 +4419,6 @@ object goverlayform: Tgoverlayform
           Top = 108
           Width = 20
           TabOrder = 3
-          Visible = False
         end
         object bottomrightRadioButton: TRadioButton
           Left = 182
@@ -4430,7 +4426,6 @@ object goverlayform: Tgoverlayform
           Top = 108
           Width = 20
           TabOrder = 4
-          Visible = False
         end
         object bottomcenterRadioButton: TRadioButton
           Left = 96
@@ -4438,7 +4433,6 @@ object goverlayform: Tgoverlayform
           Top = 108
           Width = 20
           TabOrder = 5
-          Visible = False
         end
         object middleleftRadioButton: TRadioButton
           Left = 10
@@ -4446,7 +4440,6 @@ object goverlayform: Tgoverlayform
           Top = 60
           Width = 20
           TabOrder = 6
-          Visible = False
         end
         object middlerightRadioButton: TRadioButton
           Left = 182
@@ -4454,7 +4447,6 @@ object goverlayform: Tgoverlayform
           Top = 60
           Width = 20
           TabOrder = 7
-          Visible = False
         end
         object offsetxSpinEdit: TSpinEdit
           Left = 30
@@ -4463,7 +4455,6 @@ object goverlayform: Tgoverlayform
           Width = 40
           AutoSize = False
           TabOrder = 8
-          Visible = False
         end
         object offsetySpinEdit: TSpinEdit
           Left = 86
@@ -4472,7 +4463,6 @@ object goverlayform: Tgoverlayform
           Width = 40
           AutoSize = False
           TabOrder = 9
-          Visible = False
         end
         object FontcolorButton: TColorButton
           Left = 53
@@ -4484,7 +4474,6 @@ object goverlayform: Tgoverlayform
           ButtonColor = clWhite
           Color = clDefault
           Flat = True
-          Visible = False
         end
         object fontComboBox: TComboBox
           Left = 8
@@ -4499,7 +4488,6 @@ object goverlayform: Tgoverlayform
           ReadOnly = True
           TabOrder = 10
           Text = 'Default'
-          Visible = False
         end
         object fontsizeTrackBar: TTrackBar
           Left = 43
@@ -4512,7 +4500,6 @@ object goverlayform: Tgoverlayform
           TickStyle = tsNone
           OnChange = fontsizeTrackBarChange
           TabOrder = 11
-          Visible = False
         end
         object fontsizevalueLabel: TLabel
           Left = 117
@@ -4520,7 +4507,6 @@ object goverlayform: Tgoverlayform
           Top = 133
           Width = 8
           Caption = 'X'
-          Visible = False
         end
         object fontLabel: TLabel
           Left = 8
@@ -4528,7 +4514,6 @@ object goverlayform: Tgoverlayform
           Top = 114
           Width = 24
           Caption = 'Size'
-          Visible = False
         end
         object fontcolorLabel: TLabel
           Left = 8
@@ -4536,7 +4521,6 @@ object goverlayform: Tgoverlayform
           Top = 71
           Width = 34
           Caption = 'Color'
-          Visible = False
         end
         object pcidevComboBox: TComboBox
           AnchorSideLeft.Control = visualTabSheet
@@ -4639,7 +4623,6 @@ object goverlayform: Tgoverlayform
           Checked = True
           TabOrder = 12
           TabStop = True
-          Visible = False
         end
         object horizontalRadioButton: TRadioButton
           Left = 106
@@ -4647,7 +4630,6 @@ object goverlayform: Tgoverlayform
           Top = 41
           Width = 20
           TabOrder = 13
-          Visible = False
         end
         object roundRadioButton: TRadioButton
           Left = 82
@@ -4655,7 +4637,6 @@ object goverlayform: Tgoverlayform
           Top = 41
           Width = 20
           TabOrder = 14
-          Visible = False
         end
         object squareRadioButton: TRadioButton
           Left = 11
@@ -4665,7 +4646,6 @@ object goverlayform: Tgoverlayform
           Checked = True
           TabOrder = 15
           TabStop = True
-          Visible = False
         end
         object backgroundLabel: TLabel
           Left = 11
@@ -4673,7 +4653,6 @@ object goverlayform: Tgoverlayform
           Top = 19
           Width = 34
           Caption = 'Color'
-          Visible = False
         end
         object hudbackgroundColorButton: TColorButton
           Left = 56
@@ -4685,7 +4664,6 @@ object goverlayform: Tgoverlayform
           ButtonColor = clBlack
           Color = clDefault
           Flat = True
-          Visible = False
         end
         object transparencyLabel: TLabel
           Left = 11
@@ -4693,7 +4671,6 @@ object goverlayform: Tgoverlayform
           Top = 57
           Width = 35
           Caption = 'Alpha'
-          Visible = False
         end
         object transpTrackBar: TTrackBar
           Left = 57
@@ -4704,7 +4681,6 @@ object goverlayform: Tgoverlayform
           TickStyle = tsNone
           OnChange = transpTrackBarChange
           TabOrder = 16
-          Visible = False
         end
         object alphavalueLabel: TLabel
           Left = 126
@@ -4712,7 +4688,6 @@ object goverlayform: Tgoverlayform
           Top = 76
           Width = 8
           Caption = 'X'
-          Visible = False
         end
         object plusSpeedButton: TSpeedButton
           Left = 111
@@ -4721,7 +4696,6 @@ object goverlayform: Tgoverlayform
           Width = 23
           Caption = '+'
           OnClick = plusSpeedButtonClick
-          Visible = False
         end
         object minusButton: TSpeedButton
           Left = 84
@@ -4730,7 +4704,6 @@ object goverlayform: Tgoverlayform
           Width = 23
           Caption = '-'
           OnClick = minusButtonClick
-          Visible = False
         end
         object columvalueLabel: TLabel
           Left = 146
@@ -4738,7 +4711,6 @@ object goverlayform: Tgoverlayform
           Top = 136
           Width = 7
           Caption = '3'
-          Visible = False
         end
         object hudcompactCheckBox: TCheckBox
           AnchorSideTop.Control = hudonoffComboBox
@@ -4798,7 +4770,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 0
           Text = 'Shift_L+F1'
           Anchors = []
-          Visible = False
         end
         object limtoggleLabel: TLabel
           Left = 278
@@ -4815,7 +4786,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object fpscolorCheckBox: TCheckBox
           Left = 120
@@ -4827,7 +4797,6 @@ object goverlayform: Tgoverlayform
           Caption = 'Change FPS colors'
           TabOrder = 1
           Anchors = []
-          Visible = False
         end
         object fpscolor1ColorButton: TColorButton
           Left = 75
@@ -4844,7 +4813,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object fpscolor3ColorButton: TColorButton
           Left = 227
@@ -4861,7 +4829,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object fpslimmetComboBox: TComboBox
           Left = 5
@@ -4885,7 +4852,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 2
           Text = 'Late*'
           Anchors = []
-          Visible = False
         end
         object methodLabel: TLabel
           Left = 5
@@ -4903,7 +4869,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object fpscolor2SpinEdit: TSpinEdit
           Left = 156
@@ -4925,7 +4890,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 3
           Value = 30
           Anchors = []
-          Visible = False
         end
         object fpscolor3SpinEdit: TSpinEdit
           Left = 232
@@ -4947,7 +4911,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 4
           Value = 60
           Anchors = []
-          Visible = False
         end
         object fpscolor2ColorButton: TColorButton
           Left = 151
@@ -4964,7 +4927,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object vsyncComboBox: TComboBox
           Left = 221
@@ -4993,7 +4955,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 0
           Text = 'Unset'
           Anchors = []
-          Visible = False
         end
         object glvsyncComboBox: TComboBox
           Left = 221
@@ -5021,7 +4982,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           Text = 'Unset'
           Anchors = []
-          Visible = False
         end
         object vulkanImage: TImage
           Left = 109
@@ -5086,7 +5046,6 @@ object goverlayform: Tgoverlayform
           StretchInEnabled = False
           Transparent = True
           Anchors = []
-          Visible = False
         end
         object openglImage: TImage
           Left = 109
@@ -5161,7 +5120,6 @@ object goverlayform: Tgoverlayform
           StretchInEnabled = False
           Transparent = True
           Anchors = []
-          Visible = False
         end
         object mipmapvalueLabel: TLabel
           Left = 325
@@ -5177,7 +5135,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object afTrackBar: TTrackBar
           Left = 17
@@ -5199,7 +5156,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           Anchors = []
-          Visible = False
         end
         object afLabel: TLabel
           Left = 17
@@ -5213,7 +5169,6 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object mipmapLabel: TLabel
           Left = 17
@@ -5227,7 +5182,6 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object mipmapTrackBar: TTrackBar
           Left = 17
@@ -5250,7 +5204,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 1
           Anchors = []
-          Visible = False
         end
         object afvalueLabel: TLabel
           Left = 325
@@ -5266,7 +5219,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object filterRadioGroup: TRadioGroup
           Left = 17
@@ -5299,7 +5251,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           Anchors = []
-          Visible = False
         end
         object frametimegraphCheckBox: TCheckBox
           Left = 5
@@ -5318,7 +5269,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           Anchors = []
-          Visible = False
         end
         object frametimegraphColorButton: TColorButton
           Left = 5
@@ -5332,7 +5282,6 @@ object goverlayform: Tgoverlayform
           Color = 2628118
           Flat = True
           Anchors = []
-          Visible = False
         end
         object framecountCheckBox: TCheckBox
           Left = 142
@@ -5350,7 +5299,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 1
           Anchors = []
-          Visible = False
         end
         object fpsCheckBox: TCheckBox
           Left = 5
@@ -5367,7 +5315,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           Anchors = []
-          Visible = False
         end
         object showfpslimCheckBox: TCheckBox
           Left = 301
@@ -5388,7 +5335,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 3
           Anchors = []
-          Visible = False
         end
         object frametimetypeBitBtn: TBitBtn
           Left = 5
@@ -5406,7 +5352,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 4
           OnClick = frametimetypeBitBtnClick
           Anchors = []
-          Visible = False
         end
         object fpsavgCheckBox: TCheckBox
           Left = 142
@@ -5423,7 +5368,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 5
           Anchors = []
-          Visible = False
         end
         object fpsavgBitBtn: TBitBtn
           Left = 141
@@ -5441,7 +5385,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 6
           OnClick = fpsavgBitBtnClick
           Anchors = []
-          Visible = False
         end
         object vpsCheckBox: TCheckBox
           Left = 301
@@ -5458,7 +5401,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 7
           Anchors = []
-          Visible = False
         end
         object ftraceCheckBox: TCheckBox
           Left = 142
@@ -5476,7 +5418,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 8
           Anchors = []
-          Visible = False
         end
       end
       object metricsTabSheet: TTabSheet
@@ -5503,7 +5444,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           Anchors = []
-          Visible = False
         end
         object gputempCheckBox: TCheckBox
           Left = 11
@@ -5521,7 +5461,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           OnChange = gputempCheckBoxChange
           Anchors = []
-          Visible = False
         end
         object gpufreqCheckBox: TCheckBox
           Left = 381
@@ -5538,7 +5477,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           Anchors = []
-          Visible = False
         end
         object gpuColorButton: TColorButton
           Left = 281
@@ -5552,7 +5490,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object gputhrottlingCheckBox: TCheckBox
           Left = 266
@@ -5569,7 +5506,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 3
           Anchors = []
-          Visible = False
         end
         object gpumemfreqCheckBox: TCheckBox
           Left = 519
@@ -5586,7 +5522,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 4
           Anchors = []
-          Visible = False
         end
         object gpumodelCheckBox: TCheckBox
           Left = 11
@@ -5602,7 +5537,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 5
           Anchors = []
-          Visible = False
         end
         object gpupowerCheckBox: TCheckBox
           Left = 11
@@ -5619,7 +5553,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 6
           Anchors = []
-          Visible = False
         end
         object vramusageCheckBox: TCheckBox
           Left = 266
@@ -5636,7 +5569,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 7
           Anchors = []
-          Visible = False
         end
         object vramColorButton: TColorButton
           Left = 264
@@ -5650,7 +5582,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object gpunameEdit: TEdit
           Left = 285
@@ -5667,7 +5598,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 8
           TextHint = '-- GPU NAME --'
           Anchors = []
-          Visible = False
         end
         object gpuloadcolorCheckBox: TCheckBox
           Left = 120
@@ -5684,7 +5614,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 9
           Anchors = []
-          Visible = False
         end
         object gpuload1ColorButton: TColorButton
           Left = 120
@@ -5701,7 +5630,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object gpuload2ColorButton: TColorButton
           Left = 150
@@ -5721,7 +5649,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object gpuload3ColorButton: TColorButton
           Left = 181
@@ -5738,7 +5665,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object vulkandriverCheckBox: TCheckBox
           Left = 120
@@ -5754,7 +5680,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 10
           Anchors = []
-          Visible = False
         end
         object gpujunctempCheckBox: TCheckBox
           Left = 266
@@ -5770,7 +5695,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 11
           Anchors = []
-          Visible = False
         end
         object gpumemtempCheckBox: TCheckBox
           Left = 120
@@ -5786,7 +5710,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 12
           Anchors = []
-          Visible = False
         end
         object gpufanCheckBox: TCheckBox
           Left = 381
@@ -5802,7 +5725,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 13
           Anchors = []
-          Visible = False
         end
         object mainmetricLabel: TLabel
           Left = 11
@@ -5819,7 +5741,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object gputempLabel: TLabel
           Left = 11
@@ -5836,7 +5757,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object gpupowerLabel: TLabel
           Left = 11
@@ -5853,7 +5773,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object gpuinfoLabel: TLabel
           Left = 11
@@ -5870,7 +5789,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object gputhrottlinggraphCheckBox: TCheckBox
           Left = 381
@@ -5887,7 +5805,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 14
           Anchors = []
-          Visible = False
         end
         object gpuvoltageCheckBox: TCheckBox
           Left = 120
@@ -5903,7 +5820,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 15
           Anchors = []
-          Visible = False
         end
         object gpuefficiencyCheckBox: TCheckBox
           Left = 519
@@ -5920,7 +5836,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 16
           Anchors = []
-          Visible = False
         end
         object gpuframesjouleBitBtn: TBitBtn
           Left = 516
@@ -5938,7 +5853,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 17
           OnClick = gpuframesjouleBitBtnClick
           Anchors = []
-          Visible = False
         end
         object gpupowerlimitCheckBox: TCheckBox
           Left = 611
@@ -5955,7 +5869,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 18
           Anchors = []
-          Visible = False
         end
         object procvramCheckBox: TCheckBox
           Left = 266
@@ -5973,7 +5886,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 19
           Anchors = []
-          Visible = False
         end
         object cpuavgloadCheckBox: TCheckBox
           Left = 11
@@ -5990,7 +5902,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 0
           Anchors = []
-          Visible = False
         end
         object cputempCheckBox: TCheckBox
           Left = 11
@@ -6008,7 +5919,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 1
           OnChange = cputempCheckBoxChange
           Anchors = []
-          Visible = False
         end
         object cpuloadcoreCheckBox: TCheckBox
           Left = 266
@@ -6024,7 +5934,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           Anchors = []
-          Visible = False
         end
         object cpuColorButton: TColorButton
           Left = 281
@@ -6038,7 +5947,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object cpunameEdit: TEdit
           Left = 285
@@ -6055,7 +5963,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 3
           TextHint = '-- CPU Model --'
           Anchors = []
-          Visible = False
         end
         object ramusageCheckBox: TCheckBox
           Left = 11
@@ -6072,7 +5979,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 4
           Anchors = []
-          Visible = False
         end
         object ramColorButton: TColorButton
           Left = 5
@@ -6086,7 +5992,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object diskioCheckBox: TCheckBox
           Left = 120
@@ -6102,7 +6007,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 5
           Anchors = []
-          Visible = False
         end
         object iordrwColorButton: TColorButton
           Left = 114
@@ -6116,7 +6020,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object cpupowerCheckBox: TCheckBox
           Left = 120
@@ -6132,7 +6035,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 6
           Anchors = []
-          Visible = False
         end
         object cpuloadcolorCheckBox: TCheckBox
           Left = 120
@@ -6148,7 +6050,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 7
           Anchors = []
-          Visible = False
         end
         object cpufreqCheckBox: TCheckBox
           Left = 382
@@ -6164,7 +6065,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 8
           Anchors = []
-          Visible = False
         end
         object cpuload1ColorButton: TColorButton
           Left = 120
@@ -6181,7 +6081,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object cpuload2ColorButton: TColorButton
           Left = 150
@@ -6198,7 +6097,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object cpuload3ColorButton: TColorButton
           Left = 181
@@ -6215,7 +6113,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           ParentShowHint = False
           Anchors = []
-          Visible = False
         end
         object intelpowerfixBitBtn: TBitBtn
           Left = 213
@@ -6231,7 +6128,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 9
           OnClick = intelpowerfixBitBtnClick
           Anchors = []
-          Visible = False
         end
         object swapusageCheckBox: TCheckBox
           Left = 382
@@ -6247,7 +6143,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 10
           Anchors = []
-          Visible = False
         end
         object procmemCheckBox: TCheckBox
           Left = 266
@@ -6264,7 +6159,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 11
           Anchors = []
-          Visible = False
         end
         object cpumainmetricsLabel: TLabel
           Left = 11
@@ -6281,7 +6175,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object cputempLabel: TLabel
           Left = 11
@@ -6298,7 +6191,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object memLabel: TLabel
           Left = 11
@@ -6315,7 +6207,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object coreloadtypeBitBtn: TBitBtn
           Left = 264
@@ -6333,7 +6224,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 12
           OnClick = coreloadtypeBitBtnClick
           Anchors = []
-          Visible = False
         end
         object cpuefficiencyCheckBox: TCheckBox
           Left = 266
@@ -6349,7 +6239,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 13
           Anchors = []
-          Visible = False
         end
         object cpuframesjouleBitBtn: TBitBtn
           Left = 263
@@ -6367,7 +6256,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 14
           OnClick = gpuframesjouleBitBtnClick
           Anchors = []
-          Visible = False
         end
         object cpucoretypeCheckBox: TCheckBox
           Left = 516
@@ -6383,7 +6271,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 15
           Anchors = []
-          Visible = False
         end
         object ramtempCheckBox: TCheckBox
           Left = 382
@@ -6400,7 +6287,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 16
           Anchors = []
-          Visible = False
         end
       end
       object extrasTabSheet: TTabSheet
@@ -6435,7 +6321,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 0
           Text = 'Shift_L+F2'
           Anchors = []
-          Visible = False
         end
         object autouploadCheckBox: TCheckBox
           Left = 475
@@ -6454,7 +6339,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 1
           Anchors = []
-          Visible = False
         end
         object logfolderBitBtn: TBitBtn
           Left = 783
@@ -6468,7 +6352,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 2
           OnClick = logfolderBitBtnClick
           Anchors = []
-          Visible = False
         end
         object logfolderEdit: TEdit
           Left = 335
@@ -6484,7 +6367,6 @@ object goverlayform: Tgoverlayform
           ReadOnly = True
           TabOrder = 3
           Anchors = []
-          Visible = False
         end
         object logfolderLabel: TLabel
           Left = 527
@@ -6500,7 +6382,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object logdurationLabel: TLabel
           Left = 11
@@ -6516,7 +6397,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object durationTrackBar: TTrackBar
           Left = 26
@@ -6534,7 +6414,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           TabOrder = 4
           Anchors = []
-          Visible = False
         end
         object durationvalueLabel: TLabel
           Left = 54
@@ -6549,7 +6428,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object logdelayLabel: TLabel
           Left = 105
@@ -6564,7 +6442,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object delayTrackBar: TTrackBar
           Left = 123
@@ -6582,7 +6459,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           TabOrder = 5
           Anchors = []
-          Visible = False
         end
         object delayvalueLabel: TLabel
           Left = 151
@@ -6597,7 +6473,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object intervalTrackBar: TTrackBar
           Left = 218
@@ -6615,7 +6490,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           TabOrder = 6
           Anchors = []
-          Visible = False
         end
         object intervalvalueLabel: TLabel
           Left = 246
@@ -6630,7 +6504,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object logintervalLabel: TLabel
           Left = 206
@@ -6645,7 +6518,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object versioningCheckBox: TCheckBox
           Left = 607
@@ -6664,7 +6536,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 7
           Anchors = []
-          Visible = False
         end
         object logtoggleLabel: TLabel
           Left = 356
@@ -6680,7 +6551,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object distroinfoCheckBox: TCheckBox
           Left = 11
@@ -6699,7 +6569,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 0
           Anchors = []
-          Visible = False
         end
         object archCheckBox: TCheckBox
           Left = 597
@@ -6715,7 +6584,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 1
           Anchors = []
-          Visible = False
         end
         object resolutionCheckBox: TCheckBox
           Left = 254
@@ -6731,7 +6599,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 2
           Anchors = []
-          Visible = False
         end
         object engineversionCheckBox: TCheckBox
           Left = 128
@@ -6747,7 +6614,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 3
           Anchors = []
-          Visible = False
         end
         object wineCheckBox: TCheckBox
           Left = 11
@@ -6763,7 +6629,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 4
           Anchors = []
-          Visible = False
         end
         object mediaCheckBox: TCheckBox
           Left = 11
@@ -6779,7 +6644,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 5
           Anchors = []
-          Visible = False
         end
         object gamemodestatusCheckBox: TCheckBox
           Left = 128
@@ -6797,7 +6661,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 6
           Anchors = []
-          Visible = False
         end
         object mediaColorButton: TColorButton
           Left = 6
@@ -6811,7 +6674,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object vkbasaltstatusCheckBox: TCheckBox
           Left = 254
@@ -6829,7 +6691,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 7
           Anchors = []
-          Visible = False
         end
         object engineColorButton: TColorButton
           Left = 122
@@ -6846,7 +6707,6 @@ object goverlayform: Tgoverlayform
           Font.Quality = fqAntialiased
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object wineColorButton: TColorButton
           Left = 7
@@ -6860,7 +6720,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object engineshortCheckBox: TCheckBox
           Left = 254
@@ -6875,7 +6734,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 8
           Anchors = []
-          Visible = False
         end
         object systemLabel: TLabel
           Left = 11
@@ -6892,7 +6750,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object wineLabel: TLabel
           Left = 11
@@ -6908,7 +6765,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object optionsLabel: TLabel
           Left = 11
@@ -6924,7 +6780,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object batteryLabel: TLabel
           Left = 8
@@ -6940,7 +6795,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object deviceCheckBox: TCheckBox
           Left = 372
@@ -6958,7 +6812,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 9
           Anchors = []
-          Visible = False
         end
         object batterytimeCheckBox: TCheckBox
           Left = 254
@@ -6973,7 +6826,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 10
           Anchors = []
-          Visible = False
         end
         object batterywattCheckBox: TCheckBox
           Left = 128
@@ -6988,7 +6840,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 11
           Anchors = []
-          Visible = False
         end
         object batteryColorButton: TColorButton
           Left = 6
@@ -7002,7 +6853,6 @@ object goverlayform: Tgoverlayform
           Color = 3684408
           Flat = True
           Anchors = []
-          Visible = False
         end
         object batteryCheckBox: TCheckBox
           Left = 11
@@ -7018,7 +6868,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 12
           Anchors = []
-          Visible = False
         end
         object othersLabel: TLabel
           Left = 11
@@ -7034,7 +6883,6 @@ object goverlayform: Tgoverlayform
           ParentColor = False
           ParentFont = False
           Anchors = []
-          Visible = False
         end
         object fsrCheckBox: TCheckBox
           Left = 513
@@ -7052,7 +6900,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 13
           Anchors = []
-          Visible = False
         end
         object hdrCheckBox: TCheckBox
           Left = 597
@@ -7070,7 +6917,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 14
           Anchors = []
-          Visible = False
         end
         object fcatCheckBox: TCheckBox
           Left = 372
@@ -7088,7 +6934,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 15
           Anchors = []
-          Visible = False
         end
         object customcommandEdit: TEdit
           Left = 372
@@ -7109,7 +6954,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 16
           TextHint = '-- Custom command --'
           Anchors = []
-          Visible = False
         end
         object hudversionCheckBox: TCheckBox
           Left = 11
@@ -7125,7 +6969,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 17
           Anchors = []
-          Visible = False
         end
         object timeCheckBox: TCheckBox
           Left = 513
@@ -7141,7 +6984,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 18
           Anchors = []
-          Visible = False
         end
         object displayserverCheckBox: TCheckBox
           Left = 372
@@ -7160,7 +7002,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 19
           Anchors = []
-          Visible = False
         end
         object refreshrateCheckBox: TCheckBox
           Left = 128
@@ -7177,7 +7018,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 20
           Anchors = []
-          Visible = False
         end
         object networkCheckBox: TCheckBox
           Left = 128
@@ -7193,7 +7033,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 21
           Anchors = []
-          Visible = False
         end
         object networkComboBox: TComboBox
           Left = 128
@@ -7220,7 +7059,6 @@ object goverlayform: Tgoverlayform
           TabOrder = 22
           Text = 'Interface'
           Anchors = []
-          Visible = False
         end
         object fahrenheitCheckBox: TCheckBox
           Left = 254
@@ -7238,7 +7076,6 @@ object goverlayform: Tgoverlayform
           ShowHint = True
           TabOrder = 23
           Anchors = []
-          Visible = False
         end
         object winesyncCheckBox: TCheckBox
           Left = 372
@@ -7252,7 +7089,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 24
           Anchors = []
-          Visible = False
         end
         object dxapiCheckBox: TCheckBox
           Left = 513
@@ -7267,7 +7103,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 25
           Anchors = []
-          Visible = False
         end
         object fexstatsCheckBox: TCheckBox
           Left = 597
@@ -7282,7 +7117,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
           TabOrder = 26
           Anchors = []
-          Visible = False
         end
       end
       object vkbasaltTabSheet: TTabSheet
