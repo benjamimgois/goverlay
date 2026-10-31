@@ -5,7 +5,7 @@ unit overlay_config;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, FileUtil, StrUtils, Types, Graphics, configfile, configmanager, overlay_utils, configkeys, bgmod_resources, optiscaler_update, systemdetector, apputils;
+  Classes, SysUtils, IniFiles, FileUtil, StrUtils, Graphics, configfile, configmanager, overlay_utils, configkeys, bgmod_resources, systemdetector, apputils;
 
 const
   // GpuFramesJouleCaption, CoreLoadTypeCaption, FrametimeTypeCaption,

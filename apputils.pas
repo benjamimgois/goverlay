@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, process, FileUtil, StrUtils, Graphics, Types, Math, BaseUnix, Unix,
-  IntfGraphics, FPImage, constants, configmanager, systemdetector;
+  IntfGraphics, FPImage, constants, systemdetector;
 
 /// <summary>Write a timestamped debug message to stderr.</summary>
 procedure DbgLog(const Msg: string);

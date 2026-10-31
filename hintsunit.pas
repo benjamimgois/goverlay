@@ -304,8 +304,6 @@ begin
     'Checks if there is a new Goverlay version');
   SetHint('checkupdBitBtn', 'Check MangoHud updates' + LineEnding +
     'Checks latest MangoHud version');
-  SetHint('themeToggleSpeedButton', 'Toggle theme' + LineEnding +
-    'Switches between light and dark theme');
   SetHint('geSpeedButton', 'Global Enable' + LineEnding +
     'Automatically enables for all games using FGMOD');
 

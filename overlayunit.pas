@@ -440,7 +440,6 @@ type
     settingsAboutMenuItem: TMenuItem;
     timeCheckBox: TCheckBox;
     toggleImage: TImage;
-    ToggleSpeedButton: TSpeedButton;
     Timer: TTimer;
     openConfigFileMenuItem: TMenuItem;
     openLogFileMenuItem: TMenuItem;
@@ -456,7 +455,6 @@ type
     iconsImageList: TImageList;
     columImageList: TImageList;
     dependencieSpeedButton: TSpeedButton;
-    casTrackBar2: TTrackBar;
     globalbuttonImageList: TImageList;
     mangohudLabel: TLabel;
     dependenciesLabel: TLabel;
@@ -504,7 +502,6 @@ type
     dlssLabel1: TLabel;
 
 
-    procedure aboutBitBtnClick(Sender: TObject);
     procedure aboutMenuItemClick(Sender: TObject);
     procedure addBitBtnClick(Sender: TObject);
     procedure afterburnercolorBitBtn1Click(Sender: TObject);
@@ -601,7 +598,6 @@ type
     procedure saveasMenuItemClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
-    procedure ToggleSpeedButtonClick(Sender: TObject);
     procedure settingsSpeedButtonClick(Sender: TObject);
     procedure themeMenuItemClick(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -848,11 +844,8 @@ type
 
 
 
-    // Exposed: procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure AddNavyBgToTab(ATab: TTabSheet);
-    // Exposed: procedure PresetsBgBoxPaint(Sender: TObject);
-    // Exposed: procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
     procedure PresetCardClick(Sender: TObject);
     procedure PresetCardMouseEnter(Sender: TObject);
@@ -864,87 +857,35 @@ type
     procedure AddSplashLog(const AMsg: string);
     procedure OnSplashDetailsClick(Sender: TObject);
     procedure OnSplashLogFormClose(Sender: TObject; var CloseAction: TCloseAction);
-    // Exposed: procedure ShowBootSplash(const AStatus: string);
     procedure SplashFormPaint(Sender: TObject);
     procedure UpdateBootSplash(APercent: Integer; const AStatus: string);
-    // Exposed: procedure HideBootSplash;
     procedure StartupDownloadsAsync(Data: PtrInt);
-    // Exposed: procedure BuildSettingsButton;
-    // Exposed: procedure RestoreNavRailColors;
-    // Exposed: procedure SettingsBtnMouseEnter(Sender: TObject);
-    // Exposed: procedure SettingsBtnMouseLeave(Sender: TObject);
-    // Exposed: procedure SettingsBtnClick(Sender: TObject);
-    // Exposed: procedure CubeAutoLaunchMenuItemClick(Sender: TObject);
-    // Exposed: procedure BuildNavToolToggles;
-    // Exposed: procedure BuildSmallToggleImages;
-    // Exposed: procedure NavToolToggleClick(Sender: TObject);
-    // Exposed: procedure UpdateNavToolToggleVisibility(AShowLabels: Boolean);
-    // Exposed: procedure LoadGameToggleStates;
-    // Exposed: function  GetGameToolEnabled(const AGameName: string; AToolIdx: Integer): Boolean;
-    // Exposed: procedure SetGameToolEnabled(const AGameName: string; AToolIdx: Integer; AEnabled: Boolean);
-    // Exposed: procedure ApplyToolEnabledState(AToolIdx: Integer; AEnabled: Boolean);
-    // Exposed: function  ActiveToolIndex: Integer;
-    // Exposed: procedure SetSaveBtnEnabled(AEnabled: Boolean);
-    // Exposed: procedure SetControlTreeEnabled(ACtrl: TWinControl; AEnabled: Boolean);
-    // Exposed: procedure PatchGameFGModWineDllOverrides(const AFGModFile: string; AEnabled: Boolean);
-    // Exposed: procedure PatchGameFGModConditionalExport(const AFGModFile, AConditionalLine, ASearchKey: string);
     procedure BuildVkSumiTab;
     procedure VkSumiSliderChange(Sender: TObject);
     procedure VsRestoreBtnClick(Sender: TObject);
     procedure VsCompareToggleChange(Sender: TObject);
     procedure VsDaltonizeComboChange(Sender: TObject);
-    // Exposed: procedure PatchGameFGModConfigPath(const AFGModFile, AEnvVar, AConfigPath: string);
-    // Exposed: procedure RemoveTweaksFromGameFGMod(const AFGModFile: string);
-    // Exposed: procedure RemoveOptiScalerGameFiles(const AGameCfgDir: string);
-    // Exposed: procedure CopyOptiScalerGameFiles(const AGameCfgDir: string);
-    // Exposed: procedure EnsureGameFGModOptiScalerConditional(const AFGModFile: string);
-    // Exposed: procedure NavItemClick(Sender: TObject);
-    // Exposed: procedure NavItemMouseEnter(Sender: TObject);
-    // Exposed: procedure NavItemMouseLeave(Sender: TObject);
-    // Exposed: procedure NavItemPaint(Sender: TObject);
-    // Exposed: procedure SetNavActive(AIndex: Integer);
-    // Exposed: procedure NavToggleClick(Sender: TObject);
-    // Exposed: procedure NavAnimTick(Sender: TObject);
-    // Exposed: procedure ApplyNavWidth(AWidth: Integer);
-    // Exposed: procedure ApplyNavCollapsed;
     procedure FormResize(Sender: TObject);
-    // Exposed: procedure ReflowPresetTab(AContentW: Integer);
-    // Exposed: procedure ReflowVisualTab(AContentW: Integer);
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
-    // Exposing: procedure SubCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
-    // Exposing: procedure CaptureBtnClick(Sender: TObject);
     procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
-    // Exposed: procedure optiscalerTabSheetShow(Sender: TObject);
     procedure InitLosslessScalingTab;
-    // Exposed: procedure losslessScalingTabSheetShow(Sender: TObject);
     procedure BuildFpsLimitEdit;
     procedure UpdatePerfCardTheme;
-    // Exposing: procedure UpdateGenericCardTheme(Card: TPanel);
     procedure UpdateExtrasCardTheme;
-    // Exposed: procedure ReflowPerformanceTab(AContentW: Integer);
-    // Exposed: procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure InitMetricsTab;
-    // Exposed: procedure ReflowMetricsTab(AContentW: Integer);
-    // Exposed: procedure ReflowExtrasTab(AContentW: Integer);
     procedure InitVkBasaltTab;
     procedure InitTweaksCards;
-    // Exposed: procedure ReflowVkBasaltTab(AContentW: Integer);
-    // Exposed: procedure ReflowVkSumiTab(AContentW: Integer);
-    // Exposing: procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
 
-    // Exposed: procedure StartCube;
-    // Exposed: procedure StopCube;
 
     procedure InitGamesTab;
     procedure LoadSteamGames;
     procedure RefreshGameCards;
     procedure UpdateGameCardBadge(const AGameName: string);
-    // Exposed: procedure ReflowGamesGrid;
     procedure GamesScrollBoxResize(Sender: TObject);
     procedure GamesEmptySpaceClick(Sender: TObject);
     procedure GameCardMouseEnter(Sender: TObject);
@@ -954,19 +895,11 @@ type
     procedure GameCardOpenPrefixClick(Sender: TObject);
     procedure GameCardUninstallClick(Sender: TObject);
     procedure AddNonSteamFolderClick(Sender: TObject);
-    // Exposed: procedure ShowRemoveFoldersMenu(Sender: TObject; X, Y: Integer);
     procedure RemoveFolderMenuItemClick(Sender: TObject);
     procedure LoadNonSteamFolders(var ACardIndex: Integer; const ACardsPerRow, ARowMargin: Integer);
-    // Exposed: procedure CoverThreadTerminated(Sender: TObject);
     procedure DrawCardRibbon(Bmp: TBitmap; BadgeMask: Integer);
-    // Exposed: function  SearchSteamStoreGame(const AGameName: string; out AAppId: string): Boolean;
-    // Exposed: function  DownloadSteamCover(const AAppId, ACachePath: string): Boolean;
-    // Exposed: function  CleanGameNameForSearch(const AName: string): string;
     function  InsertSpacesInUppercase(const AName: string): string;
-    // Exposed: function  SearchWebCover(const AGameName, ACachePath: string): Boolean;
-    // Exposed: function  GetGameConfigDir(const AGameName: string): string;
     function  SanitizeFileName(const AName: string): string;
-    // Exposed: function  FindFileInDir(const ADir, AFileName: string): string;
     procedure CheckAndUpdateConfigVersion;
   public
     FClearedConfig: Boolean;
@@ -988,31 +921,18 @@ type
     function  GetTweaksLaunchEnv: string;
     function  GetPasCubeUncappedParam: string;
     function  GetPasCubeLosslessParam: string;
-    // Exposed: procedure UpdateGameContextLabel;
-    // Exposed: procedure PreviewBtnClick(Sender: TObject);
-    // Exposed: procedure LoadGlobalThumb;
     procedure ShowGameThumb(ACard: TPanel);
-    // Exposed: procedure HideGameThumb;
-    // Exposed: procedure ApplyCardBrightness(ACard: TPanel; BrightFactor: Integer);
     procedure ApplyAllCardsDim;
-    // Exposed: procedure HoverTimerTick(Sender: TObject);
-    // Exposed: function ParseAcfValue(const AContent, AKey: string): string;
-    // Exposed: procedure GetSteamLibraries(Libraries: TStringList);
-    // Exposed: function GetAppBaseDir: string;
     // Moved to public:
     {     function GetGeneralCheckBox(Index: Integer): TCheckBox;
     function GetGraphicsCheckBox(Index: Integer): TCheckBox;
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
     function OsHexToKeyStr(const HexStr: string): string; }
-    // Exposing: procedure ReshadeGitProgress(APhase: string; APercent: Integer);
-    // Exposed: procedure UpdateGlobalEnableMenuItemVisibility;
     procedure RemoveMangoHudFromFGMod;
     procedure InitCustomEnvGroupBox;
     procedure ApplyCustomEnvTheme;
     procedure CustomEnvAddClick(Sender: TObject);
     procedure CustomEnvRemoveClick(Sender: TObject);
-    procedure UpdateTweaksVarListBox;
-    procedure TweaksVarRemoveClick(Sender: TObject);
     procedure TweaksGridPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure TweaksGridDrawCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState: TGridDrawState);
     procedure TweaksGridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -1032,7 +952,6 @@ type
     
     // Home tab
     procedure InitHomeTab;
-    // Exposed: procedure ShowHomeTab(Sender: TObject = nil);
     procedure RefreshHomeModuleStatus;
     procedure RefreshHomeDeps;
     procedure HomeDiagramPaint(Sender: TObject);
@@ -1074,7 +993,6 @@ type
     procedure SaveTweaksConfig;
     procedure SaveOptiScalerConfig(ASilent: Boolean = False);
     procedure SaveVkBasaltConfig;
-    // Exposing: procedure SaveVkSumiConfig;
 
     // MangoHud config loading helpers
     procedure LoadMangoHudBoolFlag(const ATrimmedLine: string);
@@ -1306,7 +1224,6 @@ type
     FOsDriverLoading: Boolean;
     FCustomSec:       TPanel;
     FCustomListBox:   TListBox;
-    FTweaksVarListBox: TListBox;
     FTweaksGrid:       TStringGrid;
 
     // Tweaks tab MD3-style custom list (replaces TStringGrid)
@@ -1460,8 +1377,6 @@ type
     procedure TweaksMD3MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure TweaksMD3MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure TweaksMD3ScrollChange(Sender: TObject);
-    procedure TweaksMD3BuildItems;
-    procedure TweaksMD3ToggleItem(Index: Integer);
     procedure TweaksMD3FABClick(Sender: TObject);
     procedure TweaksMD3MouseLeave(Sender: TObject);
     procedure ArgsMD3Paint(Sender: TObject);
@@ -4294,24 +4209,6 @@ begin
   Timer.Enabled := False;  // no animated repaint — static glassmorphism
   goverlayPaintBox.OnPaint := @goverlayPaintBoxPaint;
 
-
-   // Ajust tab text color
-//  for i := 0 to goverlayPageControl.PageCount - 1 do
-//  begin
-//    goverlayPageControl.Pages[i].Font.Color := clBtnText;
-//  end;
-
-  // fix for radiobutton wrong colors
- // topleftRadiobutton.Color:=clDefault;
- // topcenterRadiobutton.Color:=clDefault;
- // toprightRadiobutton.Color:=clDefault;
- // bottomleftRadiobutton.Color:=clDefault;
- // bottomrightRadiobutton.Color:=clDefault;
- // bottomcenterRadiobutton.Color:=clDefault;
- // middleleftRadiobutton.Color:=clDefault;
- // middlerightRadiobutton.Color:=clDefault;
-
-
   // Define important file paths with proper XDG and Flatpak support
   GOVERLAYFOLDER := IncludeTrailingPathDelimiter(GetGOverlayConfigDir());
   // Use XDG-compliant path with proper Flatpak support (HOST_XDG_CONFIG_HOME)
@@ -4723,69 +4620,6 @@ begin
   // Listbox reflects the saved fgmod file; updated after Save
 end;
 
-procedure Tgoverlayform.UpdateTweaksVarListBox;
-var
-  FGModFilePath: string;
-  FileLines: TStringList;
-  i: Integer;
-  Line, DisplayLine: string;
-  MarkerPos: Integer;
-begin
-  if not Assigned(FTweaksVarListBox) then Exit;
-  FTweaksVarListBox.Items.BeginUpdate;
-  try
-    FTweaksVarListBox.Items.Clear;
-    if FActiveGameName <> '' then
-      FGModFilePath := GetGameConfigDir(FActiveGameName) + 'fgmod'
-    else
-      FGModFilePath := GetFGModPath + PathDelim + 'fgmod';
-    if not FileExists(FGModFilePath) then Exit;
-    FileLines := TStringList.Create;
-    try
-      FileLines.LoadFromFile(FGModFilePath);
-      for i := 0 to FileLines.Count - 1 do
-      begin
-        Line := Trim(FileLines[i]);
-        if (Copy(Line, 1, 7) = 'export ') or (Line = '#gamemode') then
-        begin
-          MarkerPos := Pos(' #customenv', Line);
-          if MarkerPos > 0 then
-            DisplayLine := Copy(Line, 1, MarkerPos - 1)
-          else
-            DisplayLine := Line;
-          FTweaksVarListBox.Items.Add(DisplayLine);
-        end;
-      end;
-    finally
-      FileLines.Free;
-    end;
-  finally
-    FTweaksVarListBox.Items.EndUpdate;
-  end;
-end;
-
-procedure Tgoverlayform.TweaksVarRemoveClick(Sender: TObject);
-var
-  Selected, CustomVal: string;
-  Idx: Integer;
-begin
-  if not Assigned(FTweaksVarListBox) then Exit;
-  if FTweaksVarListBox.ItemIndex < 0 then Exit;
-  Selected := FTweaksVarListBox.Items[FTweaksVarListBox.ItemIndex];
-  if Copy(Selected, 1, 7) = 'export ' then
-    CustomVal := Copy(Selected, 8, MaxInt)
-  else
-    Exit;
-  if not Assigned(FCustomListBox) then Exit;
-  Idx := FCustomListBox.Items.IndexOf(CustomVal);
-  if Idx >= 0 then
-  begin
-    FCustomListBox.Items.Delete(Idx);
-    // Remove directly from listbox (file not saved yet, can't re-read from it)
-    FTweaksVarListBox.Items.Delete(FTweaksVarListBox.ItemIndex);
-  end;
-end;
-
 // ---------------------------------------------------------------------------
 // Tweaks grid event handlers
 // ---------------------------------------------------------------------------
@@ -4980,11 +4814,6 @@ procedure Tgoverlayform.InitTweaksMD3;
 begin
   TTweaksMD3Helper(FTweaksHelper).InitTweaksMD3;
 end;
-procedure Tgoverlayform.TweaksMD3BuildItems;
-// Virtual — items are rendered on-the-fly in paint event using checkboxes + custom list
-begin
-  // No persistent list needed; paint event reads directly from checkboxes + grid custom rows
-end;
 
 procedure Tgoverlayform.TweaksMD3Paint(Sender: TObject);
 begin
@@ -5005,10 +4834,6 @@ end;
 procedure Tgoverlayform.TweaksMD3ScrollChange(Sender: TObject);
 begin
   TTweaksMD3Helper(FTweaksHelper).ScrollChange(Sender);
-end;
-procedure Tgoverlayform.TweaksMD3ToggleItem(Index: Integer);
-begin
-  // Not used directly — mouse down handles toggling via checkbox
 end;
 
 procedure Tgoverlayform.TweaksMD3FABClick(Sender: TObject);
@@ -6724,11 +6549,6 @@ begin
   GenericControlChange(Sender);
 end;
 
-procedure Tgoverlayform.aboutBitBtnClick(Sender: TObject);
-begin
-
-end;
-
 procedure Tgoverlayform.aboutMenuItemClick(Sender: TObject);
 begin
   aboutForm.ShowModal;
@@ -8325,11 +8145,6 @@ begin
   end;
 
   TriggerAutoSave;
-end;
-
-procedure Tgoverlayform.ToggleSpeedButtonClick(Sender: TObject);
-begin
-  // Original ToggleSpeedButton code (if any)
 end;
 
 procedure Tgoverlayform.settingsSpeedButtonClick(Sender: TObject);

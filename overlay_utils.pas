@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, StdCtrls, Graphics, Types, FileUtil, StrUtils, process,
-  constants, configmanager, systemdetector, apputils;
+  systemdetector, apputils;
 
 var
   FONTS: TStringList;                   // Available system fonts cache

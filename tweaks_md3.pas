@@ -5,7 +5,7 @@ unit tweaks_md3;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, bgmod_resources, configkeys, goverlay_system, apputils, overlayunit, goverlay_strings, themeunit;
+  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Buttons, Grids, Graphics, Types, Dialogs, Math, Forms, IniFiles, goverlay_system, apputils, overlayunit, goverlay_strings, themeunit;
 
 type
   TTweakRow = record
@@ -113,11 +113,10 @@ implementation
 uses
   {$IFDEF LCLqt6}
   qt6,
-  qtobjects,
+  qtobjects;
   {$ELSE}
-  qt5,
+  qt5;
   {$ENDIF}
-  qtwidgets;
 
 function TweakCategoryName(ACategory: Integer): string;
 begin
