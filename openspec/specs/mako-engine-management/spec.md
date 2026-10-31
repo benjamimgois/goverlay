@@ -62,3 +62,19 @@ The system dependency checker and Home tab module indicators SHALL recognize MAK
 #### Scenario: Displaying available MAKO update on Home tab
 - **WHEN** background update check discovers a newer MAKO version than currently installed
 - **THEN** the Home tab Frame Generation module version label is updated to show `InstalledVer → RemoteVer` in update accent styling, consistent with OptiScaler.
+
+### Requirement: GPU Headroom Configuration and Persistence
+The system SHALL allow users to configure and persist the MAKO GPU Headroom percentage (`gpu_headroom_percent`) across discrete choices (0% [Off], 5%, 10%, 15%, 20%) within the Lossless Scaling tab. The setting SHALL be serialized to `conf.toml` for the active game profile and exported as `MAKO_GPU_HEADROOM_PERCENT` in generated launch environment commands.
+
+#### Scenario: Configuring GPU Headroom in Lossless Scaling tab
+- **WHEN** user selects MAKO as the interpolation method on the Lossless Scaling tab
+- **THEN** system displays the GPU Headroom selector with options: "Off (0%)", "5%", "10%", "15%", "20%".
+
+#### Scenario: Persisting GPU Headroom to conf.toml
+- **WHEN** user changes the GPU Headroom setting and saves or launches the profile
+- **THEN** system writes `gpu_headroom_percent = <val>` into `conf.toml` under the active game profile.
+
+#### Scenario: Generating environment variables for headless or custom launch
+- **WHEN** launch options are assembled for a game using MAKO
+- **AND** GPU Headroom is set to a non-zero value (e.g., 10%)
+- **THEN** system includes `MAKO_GPU_HEADROOM_PERCENT=10` in the environment launch string.

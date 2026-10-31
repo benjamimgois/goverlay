@@ -78,6 +78,9 @@ const
   URL_RESHADE_HOME = 'https://reshade.me';
   FALLBACK_RESHADE_VERSION = '6.8.0';
 
+  // HelixSR Repository
+  FALLBACK_HELIXSR_VERSION = '3.1.0';
+
   // OptiScaler / Decky Framegen
   URL_DECKY_FRAMEGEN_API = 'https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest';
   URL_DECKY_FRAMEGEN_REPO = 'https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/';
@@ -93,8 +96,16 @@ const
   // NVIDIA DLSS DLLs (official NVIDIA repository)
   URL_NVIDIA_DLSS_BASE = 'https://raw.githubusercontent.com/NVIDIA/DLSS/main/lib/Windows_x86_64/rel/';
 
-  // Browser-like User-Agent for hosts that reject generic download clients
-  HTTP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  // User-Agents for HTTP requests and downloads:
+  // Primary simulation: Firefox on Linux / CachyOS
+  HTTP_USER_AGENT_FIREFOX = 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0';
+  // Fallback 1: Chrome on Linux / CachyOS
+  HTTP_USER_AGENT_CHROME  = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  // Fallback 2: No User-Agent header (empty string)
+  HTTP_USER_AGENT_NONE    = '';
+
+  // Default general User-Agent
+  HTTP_USER_AGENT = HTTP_USER_AGENT_FIREFOX;
 
   // ============================================================================
   // SOCIAL MEDIA URLS

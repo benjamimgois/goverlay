@@ -5487,9 +5487,14 @@ begin
 end;
 
 function Tgoverlayform.IsHelixSrInstalled: Boolean;
+var
+  HelixPath: string;
 begin
-  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') or
-            FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') or
+  HelixPath := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+  Result := FileExists(HelixPath + 'amd_fidelityfx_dx12.dll') or
+            FileExists(HelixPath + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') or
+            FileExists(HelixPath + 'HelixSR' + PathDelim + 'helixsr.dll') or
+            FileExists(HelixPath + 'helixsr_setup.json') or
             FileExists('/usr/share/HelixSR');
 end;
 
@@ -6289,7 +6294,7 @@ begin
 
   RefreshOsStatusDots;
 
-  if (not IsHelixSRCompiled) and (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
+  if (not FLoadingConfig) and (not IsHelixSRCompiled) and (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
   begin
     // Switch controls in Software Status card to embedded progress mode
     if Assigned(optversionComboBox) then optversionComboBox.Visible := False;

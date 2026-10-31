@@ -167,6 +167,7 @@ const
   VKSUMI_KEY_VIGNETTE          = 'vignette';
 
   MAKO_KEY_DISABLE_STEAM_OVERLAY = 'disable_steam_overlay';
+  MAKO_KEY_GPU_HEADROOM_PERCENT  = 'gpu_headroom_percent';
 
 // ============================================================================
 // VKNEMU CONFIG KEYS

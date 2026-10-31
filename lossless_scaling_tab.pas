@@ -33,8 +33,11 @@ type
     OverridePresentMode: Boolean;
     PreserveSwapchainImageCount: Boolean;
     Gpu: string;
+    GpuHeadroomPercent: Integer;
   end;
 
+function IndexToGpuHeadroomPercent(AIndex: Integer): Integer;
+function GpuHeadroomPercentToIndex(APercent: Integer): Integer;
 procedure InitDefaultMakoConfig(out ACfg: TMakoConfig);
 procedure ParseMakoToml(const AFilePath: string; out ACfg: TMakoConfig);
 procedure ParseLsfgToml(const AFilePath: string; out ADll: string; out AMultiplier: Integer;
@@ -182,6 +185,8 @@ type
     FLsTargetFpsValueLabel: TLabel;
     FLsAdaptiveMaxMultTitleLbl: TLabel;
     FLsAdaptiveMaxMultComboBox: TComboBox;
+    FLsGpuHeadroomTitleLbl: TLabel;
+    FLsGpuHeadroomComboBox: TComboBox;
     FLsSteady2xCapCheckBox: TCheckBox;
     FLsSteady2xCapToggle: TToggleSwitch;
     FLsSmoothCadenceCheckBox: TCheckBox;
@@ -391,6 +396,8 @@ type
     property TargetFpsTrackBar: TTrackBar read FLsTargetFpsTrackBar;
     property TargetFpsValueLabel: TLabel read FLsTargetFpsValueLabel;
     property AdaptiveMaxMultComboBox: TComboBox read FLsAdaptiveMaxMultComboBox;
+    property GpuHeadroomTitleLbl: TLabel read FLsGpuHeadroomTitleLbl;
+    property GpuHeadroomComboBox: TComboBox read FLsGpuHeadroomComboBox;
     property Steady2xCapCheckBox: TCheckBox read FLsSteady2xCapCheckBox;
     property Steady2xCapToggle: TToggleSwitch read FLsSteady2xCapToggle;
     property SmoothCadenceCheckBox: TCheckBox read FLsSmoothCadenceCheckBox;
@@ -474,6 +481,30 @@ const
   PAD      = 14;  // inner horizontal padding inside cards
   ROW_H    = 28;  // control row height
 
+function IndexToGpuHeadroomPercent(AIndex: Integer): Integer;
+begin
+  case AIndex of
+    1: Result := 5;
+    2: Result := 10;
+    3: Result := 15;
+    4: Result := 20;
+  else
+    Result := 0;
+  end;
+end;
+
+function GpuHeadroomPercentToIndex(APercent: Integer): Integer;
+begin
+  case APercent of
+    5: Result := 1;
+    10: Result := 2;
+    15: Result := 3;
+    20: Result := 4;
+  else
+    Result := 0;
+  end;
+end;
+
 procedure InitDefaultMakoConfig(out ACfg: TMakoConfig);
 begin
   ACfg.Dll := '';
@@ -499,6 +530,7 @@ begin
   ACfg.OverridePresentMode := True;
   ACfg.PreserveSwapchainImageCount := False;
   ACfg.Gpu := '';
+  ACfg.GpuHeadroomPercent := 0;
 end;
 
 procedure ParseMakoToml(const AFilePath: string; out ACfg: TMakoConfig);
@@ -558,6 +590,8 @@ begin
           ACfg.AdaptiveMaxMultiplier := StrToIntDef(Val, ACfg.AdaptiveMaxMultiplier)
         else if Key = 'adaptive_auto_base_fps_cap' then
           ACfg.AdaptiveAutoBaseFpsCap := (LowerCase(Val) = 'true') or (Val = '1')
+        else if Key = 'gpu_headroom_percent' then
+          ACfg.GpuHeadroomPercent := StrToIntDef(Val, ACfg.GpuHeadroomPercent)
         else if Key = 'scaling_enabled' then
           ACfg.ScalingEnabled := (LowerCase(Val) = 'true') or (Val = '1')
         else if Key = 'scaling_method' then
@@ -3146,6 +3180,29 @@ begin
   FLsPacingComboBox.Visible := False;
   StyleInputControl(FLsPacingComboBox);
 
+  FLsGpuHeadroomTitleLbl := TLabel.Create(FLsFrameGenCard);
+  FLsGpuHeadroomTitleLbl.Parent := FLsFrameGenCard;
+  FLsGpuHeadroomTitleLbl.Caption := 'GPU Headroom';
+  FLsGpuHeadroomTitleLbl.Hint := 'Reserves 5% to 20% GPU capacity to stabilize frame pacing and prevent 100% saturation spikes on AMD RADV devices.';
+  FLsGpuHeadroomTitleLbl.ShowHint := True;
+  FLsGpuHeadroomTitleLbl.Visible := False;
+  StyleLabel(FLsGpuHeadroomTitleLbl, lrControlLabel);
+
+  FLsGpuHeadroomComboBox := TComboBox.Create(FLsFrameGenCard);
+  FLsGpuHeadroomComboBox.Parent := FLsFrameGenCard;
+  FLsGpuHeadroomComboBox.Style := csDropDownList;
+  FLsGpuHeadroomComboBox.Items.Add('Off (0%)');
+  FLsGpuHeadroomComboBox.Items.Add('5%');
+  FLsGpuHeadroomComboBox.Items.Add('10%');
+  FLsGpuHeadroomComboBox.Items.Add('15%');
+  FLsGpuHeadroomComboBox.Items.Add('20%');
+  FLsGpuHeadroomComboBox.ItemIndex := 0;
+  FLsGpuHeadroomComboBox.Hint := 'Reserves 5% to 20% GPU capacity to stabilize frame pacing and prevent 100% saturation spikes on AMD RADV devices.';
+  FLsGpuHeadroomComboBox.ShowHint := True;
+  FLsGpuHeadroomComboBox.OnChange := @ControlStateChange;
+  FLsGpuHeadroomComboBox.Visible := False;
+  StyleInputControl(FLsGpuHeadroomComboBox);
+
   // ── Card 2: Spatial Scaling ───────────────────────────────────────────────
   FLsSpatialCard := TPanel.Create(FForm);
   FLsSpatialCard.Parent := FLsBgPanel;
@@ -3948,6 +4005,8 @@ begin
     FLsNoFp16Toggle.Visible := False;
     FLsPacingTitleLbl.Visible := False;
     FLsPacingComboBox.Visible := False;
+    if Assigned(FLsGpuHeadroomTitleLbl) then FLsGpuHeadroomTitleLbl.Visible := False;
+    if Assigned(FLsGpuHeadroomComboBox) then FLsGpuHeadroomComboBox.Visible := False;
 
     if Assigned(FLsPerfModeToggle) then FLsPerfModeToggle.SetBounds(PAD, 106, Col3W, 24);
     if Assigned(FLsHdrModeToggle) then FLsHdrModeToggle.SetBounds(PAD + Col3W + 12, 106, Col3W, 24);
@@ -3992,6 +4051,8 @@ begin
     FLsRefreshThresholdValueLabel.Visible := False;
     FLsFgLiveToggle.Visible := False;
     FLsUltraPerfToggle.Visible := False;
+    if Assigned(FLsGpuHeadroomTitleLbl) then FLsGpuHeadroomTitleLbl.Visible := False;
+    if Assigned(FLsGpuHeadroomComboBox) then FLsGpuHeadroomComboBox.Visible := False;
 
     // Row 1: Sliders
     FLsMultiplierTitleLbl.Visible := True;
@@ -4072,21 +4133,32 @@ begin
 
     IsAdaptive := Assigned(FLsFgModeComboBox) and (FLsFgModeComboBox.ItemIndex = 1);
 
-    // Row 1: Mode dropdown (left) and Target GPU Device (right)
+    // Row 1: Mode dropdown (col 1), GPU Headroom (col 2), Target GPU Device (col 3)
     FLsFgModeTitleLbl.Visible := True;
-    FLsFgModeTitleLbl.SetBounds(PAD, 36, Col2W, 18);
+    FLsFgModeTitleLbl.SetBounds(PAD, 36, Col3W, 18);
     FLsFgModeComboBox.Visible := True;
-    FLsFgModeComboBox.SetBounds(PAD, 56, Col2W, ROW_H);
+    FLsFgModeComboBox.SetBounds(PAD, 56, Col3W, ROW_H);
+
+    if Assigned(FLsGpuHeadroomTitleLbl) then
+    begin
+      FLsGpuHeadroomTitleLbl.Visible := True;
+      FLsGpuHeadroomTitleLbl.SetBounds(PAD + Col3W + 12, 36, Col3W, 18);
+    end;
+    if Assigned(FLsGpuHeadroomComboBox) then
+    begin
+      FLsGpuHeadroomComboBox.Visible := True;
+      FLsGpuHeadroomComboBox.SetBounds(PAD + Col3W + 12, 56, Col3W, ROW_H);
+    end;
 
     if Assigned(FLsGpuTitleLbl) then
     begin
       FLsGpuTitleLbl.Visible := True;
-      FLsGpuTitleLbl.SetBounds(RightColX, 36, Col2W, 18);
+      FLsGpuTitleLbl.SetBounds(PAD + (Col3W + 12) * 2, 36, Col3W, 18);
     end;
     if Assigned(FLsGpuComboBox) then
     begin
       FLsGpuComboBox.Visible := True;
-      FLsGpuComboBox.SetBounds(RightColX, 56, Col2W, ROW_H);
+      FLsGpuComboBox.SetBounds(PAD + (Col3W + 12) * 2, 56, Col3W, ROW_H);
     end;
 
     // Row 2: Multiplier (if fixed) or Target FPS (if adaptive) on left, Flow Scale on right
@@ -4186,7 +4258,7 @@ begin
     if IsAdaptive then
       MinFgH := 304
     else
-      MinFgH := 240;
+      MinFgH := 236;
 
 
     MinSpatialH := 144;
@@ -5109,7 +5181,7 @@ var
   Lines, LegacyLines: TStringList;
   OutDir, OutPath, LegacyOutPath, PacingStr, DllP, ExeName, ProfileName: string;
   ScalingMethodStr, FactorStr, SharpnessStr, FlowStr, ConfFile, CachedTargetExe: string;
-  MultVal, TargetFpsVal, MaxMultVal, RefreshVal, BaseCapVal: Integer;
+  MultVal, TargetFpsVal, MaxMultVal, RefreshVal, BaseCapVal, HeadroomVal: Integer;
   IsAdaptive, ScalingEn, ScalingSs, AllowFp16Val, PerfVal, UltraPerfVal, FgLiveVal, HdrVal: Boolean;
   HasLosslessDll, AutoBaseCapVal: Boolean;
   ConfIni: TIniFile;
@@ -5158,6 +5230,10 @@ begin
     MaxMultVal := FLsAdaptiveMaxMultComboBox.ItemIndex + 2
   else
     MaxMultVal := 3;
+
+  HeadroomVal := 0;
+  if Assigned(FLsGpuHeadroomComboBox) then
+    HeadroomVal := IndexToGpuHeadroomPercent(FLsGpuHeadroomComboBox.ItemIndex);
 
   AutoBaseCapVal := Assigned(FLsSteady2xCapCheckBox) and FLsSteady2xCapCheckBox.Checked;
   RefreshVal := FLsRefreshThresholdTrackBar.Position;
@@ -5235,6 +5311,7 @@ begin
 
     Lines.Add('frame_generation_refresh_threshold = ' + IntToStr(RefreshVal));
     Lines.Add('base_fps_cap = ' + IntToStr(BaseCapVal));
+    Lines.Add('gpu_headroom_percent = ' + IntToStr(HeadroomVal));
     if PerfVal then Lines.Add('performance_mode = true') else Lines.Add('performance_mode = false');
     if UltraPerfVal then Lines.Add('ultra_performance = true') else Lines.Add('ultra_performance = false');
     if HdrVal then Lines.Add('hdr_mode = true') else Lines.Add('hdr_mode = false');
@@ -5279,6 +5356,7 @@ begin
 
     Lines.Add('frame_generation_refresh_threshold = ' + IntToStr(RefreshVal));
     Lines.Add('base_fps_cap = ' + IntToStr(BaseCapVal));
+    Lines.Add('gpu_headroom_percent = ' + IntToStr(HeadroomVal));
     if PerfVal then Lines.Add('performance_mode = true') else Lines.Add('performance_mode = false');
     if UltraPerfVal then Lines.Add('ultra_performance = true') else Lines.Add('ultra_performance = false');
     if HdrVal then Lines.Add('hdr_mode = true') else Lines.Add('hdr_mode = false');
@@ -5351,6 +5429,7 @@ begin
 
       Lines.Add('frame_generation_refresh_threshold = ' + IntToStr(RefreshVal));
       Lines.Add('base_fps_cap = ' + IntToStr(BaseCapVal));
+      Lines.Add('gpu_headroom_percent = ' + IntToStr(HeadroomVal));
       if PerfVal then Lines.Add('performance_mode = true') else Lines.Add('performance_mode = false');
       if UltraPerfVal then Lines.Add('ultra_performance = true') else Lines.Add('ultra_performance = false');
       if HdrVal then Lines.Add('hdr_mode = true') else Lines.Add('hdr_mode = false');
@@ -5854,6 +5933,8 @@ begin
         Result := Result + ' MAKO_PROFILE="' + ChangeFileExt(ExtractFileName(Tgoverlayform(FForm).FActiveGameName), '') + '"';
       if Assigned(FLsScalingMethodComboBox) and (FLsScalingMethodComboBox.ItemIndex > 0) then
         Result := Result + ' ENABLE_MAKO_SPATIAL_SCALING=1';
+      if Assigned(FLsGpuHeadroomComboBox) and (FLsGpuHeadroomComboBox.ItemIndex > 0) then
+        Result := Result + ' MAKO_GPU_HEADROOM_PERCENT=' + IntToStr(IndexToGpuHeadroomPercent(FLsGpuHeadroomComboBox.ItemIndex));
     end;
   end;
 end;
@@ -5885,6 +5966,8 @@ begin
     if Assigned(FLsTargetFpsValueLabel) then
       FLsTargetFpsValueLabel.Caption := '90 FPS';
     FLsAdaptiveMaxMultComboBox.ItemIndex := 1;
+    if Assigned(FLsGpuHeadroomComboBox) then
+      FLsGpuHeadroomComboBox.ItemIndex := 0;
     FLsSteady2xCapCheckBox.Checked := False;
     FLsSmoothCadenceCheckBox.Checked := False;
 
@@ -6078,6 +6161,9 @@ begin
       if (MakoCfg.AdaptiveMaxMultiplier >= 2) and (MakoCfg.AdaptiveMaxMultiplier <= 5) then
         FLsAdaptiveMaxMultComboBox.ItemIndex := MakoCfg.AdaptiveMaxMultiplier - 2;
 
+      if Assigned(FLsGpuHeadroomComboBox) then
+        FLsGpuHeadroomComboBox.ItemIndex := GpuHeadroomPercentToIndex(MakoCfg.GpuHeadroomPercent);
+
       FLsSteady2xCapCheckBox.Checked := MakoCfg.AdaptiveAutoBaseFpsCap;
         
       FlowInt := Round(MakoCfg.FlowScale * 100);
@@ -6181,6 +6267,10 @@ begin
         PacingVal := LowerCase(Trim(Ini.ReadString('Config', 'LS_PACING', Ini.ReadString('Env', 'LSFG_EXPERIMENTAL_PRESENT_MODE', Ini.ReadString('Env', 'LSFGVK_PACING', 'vsync')))));
         if PacingVal = 'none' then FLsPacingComboBox.ItemIndex := 1
         else FLsPacingComboBox.ItemIndex := 0;
+
+        if Assigned(FLsGpuHeadroomComboBox) then
+          FLsGpuHeadroomComboBox.ItemIndex :=
+            GpuHeadroomPercentToIndex(Ini.ReadInteger('Config', 'MAKO_GPU_HEADROOM_PERCENT', 0));
       finally
         Ini.Free;
       end;
@@ -6251,6 +6341,12 @@ begin
       Ini.WriteString('Config', 'LS_GPU', IntToStr(FLsGpuComboBox.ItemIndex - 1))
     else
       Ini.DeleteKey('Config', 'LS_GPU');
+
+    if Assigned(FLsGpuHeadroomComboBox) then
+      Ini.WriteInteger('Config', 'MAKO_GPU_HEADROOM_PERCENT',
+        IndexToGpuHeadroomPercent(FLsGpuHeadroomComboBox.ItemIndex))
+    else
+      Ini.WriteInteger('Config', 'MAKO_GPU_HEADROOM_PERCENT', 0);
 
     if FInterpolationMethod = imAfmf then
     begin

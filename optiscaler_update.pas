@@ -3557,7 +3557,7 @@ begin
   end;
 end;
 
-function RunCurlWithProgress(const AUrl, AOutputFile: string; AStartPct, AEndPct: Integer; const AStatusPrefix: string; AOnProgress: TDownloadProgressProc): Integer;
+function RunSingleCurlWithProgress(const AUrl, AOutputFile: string; AStartPct, AEndPct: Integer; const AStatusPrefix: string; AOnProgress: TDownloadProgressProc; const AUserAgent: string): Integer;
 var
   Process: TProcess;
   Buffer: string;
@@ -3579,8 +3579,11 @@ begin
     Process.Parameters.Add('--fail');
     Process.Parameters.Add('--connect-timeout');
     Process.Parameters.Add('10');
-    Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
+    if AUserAgent <> '' then
+    begin
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: ' + AUserAgent);
+    end;
     Process.Parameters.Add('-o');
     Process.Parameters.Add(AOutputFile);
     Process.Parameters.Add(AUrl);
@@ -3634,6 +3637,27 @@ begin
 
   if (Result = 0) and Assigned(AOnProgress) then
     AOnProgress(AEndPct, AStatusPrefix);
+end;
+
+function RunCurlWithProgress(const AUrl, AOutputFile: string; AStartPct, AEndPct: Integer; const AStatusPrefix: string; AOnProgress: TDownloadProgressProc): Integer;
+var
+  Candidates: array[0..2] of string;
+  i: Integer;
+begin
+  Result := -1;
+  Candidates[0] := HTTP_USER_AGENT_FIREFOX;
+  Candidates[1] := HTTP_USER_AGENT_CHROME;
+  Candidates[2] := HTTP_USER_AGENT_NONE;
+
+  for i := 0 to High(Candidates) do
+  begin
+    Result := RunSingleCurlWithProgress(AUrl, AOutputFile, AStartPct, AEndPct,
+      AStatusPrefix, AOnProgress, Candidates[i]);
+    if (Result = 0) and FileExists(AOutputFile) then
+      Break;
+    if FileExists(AOutputFile) then
+      DeleteFile(AOutputFile);
+  end;
 end;
 
 procedure SyncOptiScalerFilesToDlssEnabler(AIsStable: Boolean = True);
@@ -4294,6 +4318,10 @@ begin
   Result := Root + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll';
   if not FileExists(Result) then
     Result := Root + 'amd_fidelityfx_dx12.dll';
+  if not FileExists(Result) then
+    Result := Root + 'HelixSR' + PathDelim + 'helixsr.dll';
+  if not FileExists(Result) then
+    Result := Root + 'helixsr-scaler' + PathDelim + 'OptiScaler' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
 end;
 
 function CheckAndInstallHelixSR(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
@@ -4389,12 +4417,12 @@ begin
   begin
     if not FileExists(Dx12Dll) then
     begin
-      Tag := 'v1.9.0';
-      DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v1.9.0/HelixSR-1.9.0.zip';
+      Tag := 'v' + FALLBACK_HELIXSR_VERSION;
+      DownloadUrl := 'https://github.com/lonewolf0622/HelixSR/releases/download/v' + FALLBACK_HELIXSR_VERSION + '/HelixSR-' + FALLBACK_HELIXSR_VERSION + '.zip';
     end;
   end;
   if Tag = '' then
-    Tag := 'v1.9.0';
+    Tag := 'v' + FALLBACK_HELIXSR_VERSION;
 
   if DownloadUrl = '' then
   begin
@@ -4510,9 +4538,57 @@ function IsHelixSRCompiled(const ARootPath: string): Boolean;
 var
   Root, DllPath, WeightsPath, KernelsPath: string;
   Stream: TFileStream;
-  Buf: array[0..31] of Byte;
-  ReadLen: Integer;
-  Tail: string;
+
+  function FileSizeGreaterThan(const APath: string; AMinSize: Int64): Boolean;
+  var
+    LStream: TFileStream;
+  begin
+    Result := False;
+    if not FileExists(APath) then Exit;
+    try
+      LStream := TFileStream.Create(APath, fmOpenRead or fmShareDenyNone);
+      try
+        Result := LStream.Size > AMinSize;
+      finally
+        LStream.Free;
+      end;
+    except
+      Result := False;
+    end;
+  end;
+
+  function HasHxsrNetMarker(const ADllPath: string): Boolean;
+  var
+    LStream: TFileStream;
+    LBuf: array[0..31] of Byte;
+    LReadLen: Integer;
+    LTail: string;
+  begin
+    Result := False;
+    if not FileExists(ADllPath) then Exit;
+    try
+      LStream := TFileStream.Create(ADllPath, fmOpenRead or fmShareDenyNone);
+      try
+        if LStream.Size >= 32 then
+        begin
+          LStream.Position := LStream.Size - 32;
+          LReadLen := LStream.Read(LBuf, SizeOf(LBuf));
+          if LReadLen > 0 then
+          begin
+            SetLength(LTail, LReadLen);
+            Move(LBuf[0], LTail[1], LReadLen);
+            Result := Pos('HXSRNET1', LTail) > 0;
+          end;
+        end;
+      finally
+        LStream.Free;
+      end;
+    except
+      // Unreadable/corrupt DLL: treat as not compiled.
+      Result := False;
+    end;
+  end;
+
 begin
   Result := False;
 
@@ -4521,32 +4597,20 @@ begin
   else
     Root := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
 
-  DllPath := GetHelixSRDx12DllPath(Root);
-  if FileExists(DllPath) then
-  begin
-    try
-      Stream := TFileStream.Create(DllPath, fmOpenRead or fmShareDenyNone);
-      try
-        if Stream.Size >= 32 then
-        begin
-          Stream.Position := Stream.Size - 32;
-          ReadLen := Stream.Read(Buf, SizeOf(Buf));
-          if ReadLen > 0 then
-          begin
-            SetLength(Tail, ReadLen);
-            Move(Buf[0], Tail[1], ReadLen);
-            if Pos('HXSRNET1', Tail) > 0 then
-              Exit(True);
-          end;
-        end;
-      finally
-        Stream.Free;
-      end;
-    except
-      // Unreadable/corrupt DLL: fall through to the payload-based check.
-    end;
-  end;
+  // HelixSR 2.x/3.x compilation artifacts.
+  if FileSizeGreaterThan(Root + 'helixsr_setup.json', 10) then
+    Exit(True);
+  if FileSizeGreaterThan(Root + 'HelixSR' + PathDelim + 'helixsr_weights.bin', 1000) then
+    Exit(True);
 
+  // Check the DX12 runtime (and the HelixSR 3.x scaler) for the HXSRNET1 footer marker.
+  DllPath := GetHelixSRDx12DllPath(Root);
+  if HasHxsrNetMarker(DllPath) then
+    Exit(True);
+  if HasHxsrNetMarker(Root + 'HelixSR' + PathDelim + 'helixsr.dll') then
+    Exit(True);
+
+  // Legacy v1.x payload-based check (also used by unit tests).
   WeightsPath := Root + 'helixsr_weights.bin';
   KernelsPath := Root + 'helixsr_kernels.pak';
   if FileExists(WeightsPath) and FileExists(KernelsPath) then
@@ -7668,38 +7732,56 @@ var
   RespFile: string;
   Process: TProcess;
   OutputList: TStringList;
+  Candidates: array[0..2] of string;
+  i: Integer;
 begin
   Result := '';
   AUrl := '';
 
   RespFile := IncludeTrailingPathDelimiter(GetTempDir) + 'lsfgvk_builds_' + IntToStr(fpgetpid) + '.html';
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := 'curl';
-    Process.Parameters.Add('-sL');
-    Process.Parameters.Add('--max-time');
-    Process.Parameters.Add('10');
-    Process.Parameters.Add('-H');
-    Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
-    Process.Parameters.Add('-o');
-    Process.Parameters.Add(RespFile);
-    Process.Parameters.Add(URL_LSFGVK_BUILDS);
-    Process.Options := [poWaitOnExit];
-    Process.Execute;
+  Candidates[0] := HTTP_USER_AGENT_FIREFOX;
+  Candidates[1] := HTTP_USER_AGENT_CHROME;
+  Candidates[2] := HTTP_USER_AGENT_NONE;
 
+  for i := 0 to High(Candidates) do
+  begin
     if FileExists(RespFile) then
-    begin
-      OutputList := TStringList.Create;
-      try
-        OutputList.LoadFromFile(RespFile);
-        Result := ParseLsfgVkBuildsHtml(OutputList.Text, AUrl);
-      finally
-        OutputList.Free;
-        DeleteFile(RespFile);
+      DeleteFile(RespFile);
+
+    Process := TProcess.Create(nil);
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('--max-time');
+      Process.Parameters.Add('10');
+      if Candidates[i] <> '' then
+      begin
+        Process.Parameters.Add('-H');
+        Process.Parameters.Add('User-Agent: ' + Candidates[i]);
       end;
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(RespFile);
+      Process.Parameters.Add(URL_LSFGVK_BUILDS);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+
+      if FileExists(RespFile) then
+      begin
+        OutputList := TStringList.Create;
+        try
+          OutputList.LoadFromFile(RespFile);
+          Result := ParseLsfgVkBuildsHtml(OutputList.Text, AUrl);
+        finally
+          OutputList.Free;
+          DeleteFile(RespFile);
+        end;
+      end;
+    finally
+      Process.Free;
     end;
-  finally
-    Process.Free;
+
+    if Result <> '' then
+      Break;
   end;
 
   if Result = '' then

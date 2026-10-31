@@ -2138,8 +2138,10 @@ begin
                   HelixVars.Free;
                 end;
               end;
-              if (Ver = '') and FileExists(IncludeTrailingPathDelimiter(HelixDir) + 'amd_fidelityfx_dx12.dll') then
-                Ver := 'v1.8.1';
+              if (Ver = '') and (FileExists(IncludeTrailingPathDelimiter(HelixDir) + 'amd_fidelityfx_dx12.dll') or
+                                 FileExists(GetHelixSRDx12DllPath(HelixDir)) or
+                                 FileExists(IncludeTrailingPathDelimiter(HelixDir) + 'helixsr_setup.json')) then
+                Ver := FALLBACK_HELIXSR_VERSION;
 
               VerCaption := IfThen(Ver <> '', Ver, '—');
               FOsStatVerLbls[2].Caption    := VerCaption;

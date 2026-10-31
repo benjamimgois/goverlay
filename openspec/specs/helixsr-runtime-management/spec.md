@@ -6,12 +6,16 @@ Provides automated lifecycle management, verification, on-demand compilation, an
 ## Requirements
 
 ### Requirement: Startup Verification and Download of HelixSR
-The system SHALL verify the presence of the HelixSR runtime package in the central data directory during application initialization. If missing or lacking `amd_fidelityfx_dx12.dll` (either directly at the cache root or in the `HelixSR-fsrfg/` subdirectory) and `helixsr-setup.sh`, the system SHALL discover the latest release using GitHub REST API and unthrottled Atom feed fallbacks, unpacking the archive without executing shader compilation at startup. The system SHALL mirror `HelixSR-fsrfg/amd_fidelityfx_dx12.dll` and `HelixSR-fsrfg/helixsr.ini` to the cache root for backwards compatibility. Companion OptiScaler files SHALL be synchronized from `optiscaler-stable` or the bundled `helixsr-scaler/` payload. If compiled shaders are present, the system SHALL preserve the runtime and prevent re-download overwrites.
+The system SHALL verify the presence of the HelixSR runtime package in the central data directory during application initialization. If missing or lacking `amd_fidelityfx_dx12.dll` (either directly at the cache root or in the `HelixSR-fsrfg/` subdirectory) and `helixsr-setup.sh`, the system SHALL discover the latest release using GitHub REST API and unthrottled Atom feed fallbacks, unpacking the archive without executing shader compilation at startup. When remote release discovery fails, the system SHALL fall back to a modern release asset (v3.1.0 series) defined in constants. The system SHALL mirror `HelixSR-fsrfg/amd_fidelityfx_dx12.dll` and `HelixSR-fsrfg/helixsr.ini` to the cache root for backwards compatibility. Companion OptiScaler files SHALL be synchronized from `optiscaler-stable` or the bundled `helixsr-scaler/` payload. If compiled shaders are present, the system SHALL preserve the runtime and prevent re-download overwrites.
 
 #### Scenario: Missing HelixSR assets at startup
 - **WHEN** GOverlay launches and checks mandatory runtime libraries
 - **AND** `~/.local/share/goverlay/optiscaler-helixsr/` is missing or lacks `amd_fidelityfx_dx12.dll` in both the cache root and `HelixSR-fsrfg/`
 - **THEN** the system SHALL resolve the latest release via GitHub API or unthrottled Atom feed, download the archive, unpack it to `optiscaler-helixsr/`, mirror `HelixSR-fsrfg/amd_fidelityfx_dx12.dll` to root, synchronize companion OptiScaler binaries, and proceed to the main interface without initiating shader compilation.
+
+#### Scenario: Startup fallback when discovery fails
+- **WHEN** GitHub API and Atom feed discovery both fail during runtime resolution
+- **THEN** the system SHALL use `FALLBACK_HELIXSR_VERSION` (v3.1.0) and its corresponding release URL rather than legacy v1.x fallback URLs.
 
 #### Scenario: HelixSR assets already present at startup
 - **WHEN** GOverlay launches and verifies mandatory runtime libraries

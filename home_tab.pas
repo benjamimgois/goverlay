@@ -1357,9 +1357,13 @@ begin
 end;
 
 function THomeTabHelper.IsHelixSrInstalled: Boolean;
+var
+  HelixPath: string;
 begin
-  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'amd_fidelityfx_dx12.dll') or
-            FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath) + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll');
+  HelixPath := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
+  Result := FileExists(GetHelixSRDx12DllPath(HelixPath)) or
+            FileExists(HelixPath + 'helixsr_setup.json') or
+            FileExists('/usr/share/HelixSR');
 end;
 
 function THomeTabHelper.GetHelixSrVersion: string;
@@ -1369,8 +1373,9 @@ var
 begin
   Result := '';
   HelixDir := IncludeTrailingPathDelimiter(GetBGModOriginalHelixSRPath);
-  if not FileExists(HelixDir + 'amd_fidelityfx_dx12.dll') and
-     not FileExists(HelixDir + 'HelixSR-fsrfg' + PathDelim + 'amd_fidelityfx_dx12.dll') then
+  if not FileExists(GetHelixSRDx12DllPath(HelixDir)) and
+     not FileExists(HelixDir + 'helixsr_setup.json') and
+     not FileExists('/usr/share/HelixSR') then
     Exit;
 
   VarsPath := HelixDir + 'goverlay.vars';
@@ -1386,7 +1391,7 @@ begin
   end;
 
   if Ver = '' then
-    Ver := 'v1.9.0';
+    Ver := FALLBACK_HELIXSR_VERSION;
 
   Result := Ver;
 end;
