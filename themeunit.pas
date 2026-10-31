@@ -481,13 +481,6 @@ begin
       TCheckBox(ctrl).Font.Color := TextColor
     else if ctrl is TRadioButton then
       TRadioButton(ctrl).Font.Color := TextColor
-    else if ctrl is TGroupBox then
-    begin
-      TGroupBox(ctrl).Font.Color := TextColor;
-      TGroupBox(ctrl).Color := BgColor;
-      if TGroupBox(ctrl) is TWinControl then
-        DoApplyTheme(TWinControl(ctrl), ATheme);
-    end
     else if ctrl is TCheckGroup then
     begin
       TCheckGroup(ctrl).Font.Color := TextColor;

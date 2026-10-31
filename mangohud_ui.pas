@@ -3432,11 +3432,6 @@ begin
         TLabel(Card.Controls[j]).Font.Color := TextColor;
         TLabel(Card.Controls[j]).Color      := CardBg;
       end;
-      if Card.Controls[j] is TGroupBox then
-      begin
-        TGroupBox(Card.Controls[j]).Color      := CardBg;
-        TGroupBox(Card.Controls[j]).Font.Color := TextColor;
-      end;
       if Card.Controls[j] is TPanel then
       begin
         TPanel(Card.Controls[j]).Color := CardBg;

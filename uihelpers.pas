@@ -32,13 +32,6 @@ begin
 
   for i := 0 to AControl.ControlCount - 1 do
   begin
-    if AControl.Controls[i] is TGroupBox then
-    begin
-      TGroupBox(AControl.Controls[i]).Font.Size := FONT_SIZE_TITLE;
-      TGroupBox(AControl.Controls[i]).Font.Style := [fsBold];
-      TGroupBox(AControl.Controls[i]).Font.Quality := fqAntialiased;
-    end;
-
     if AControl.Controls[i] is TButton then
     begin
       TButton(AControl.Controls[i]).Font.Size := FONT_SIZE_BODY;
@@ -64,17 +57,6 @@ var
 begin
   for i := 0 to AControl.ControlCount - 1 do
   begin
-    if AControl.Controls[i] is TGroupBox then
-    begin
-      with TGroupBox(AControl.Controls[i]) do
-      begin
-        BorderSpacing.Left   := MARGIN_MEDIUM;
-        BorderSpacing.Top    := MARGIN_MEDIUM;
-        BorderSpacing.Right  := MARGIN_MEDIUM;
-        BorderSpacing.Bottom := MARGIN_MEDIUM;
-      end;
-    end;
-
     if AControl.Controls[i] is TCheckBox then
     begin
       Checkbox := TCheckBox(AControl.Controls[i]);

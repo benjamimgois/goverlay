@@ -1570,7 +1570,6 @@ begin
   FForm.ReflowPerformanceTab(ContentW, FForm.ClientHeight);
   FForm.ReflowMetricsTab(ContentW);
   FForm.ReflowExtrasTab(ContentW);
-  FForm.ReflowOptiScalerTab(ContentW);
   FForm.ReflowOptiScalerTabNew(ContentW);
   FForm.ReflowVkBasaltTab(ContentW);
   FForm.ReflowVkSumiTab(ContentW);

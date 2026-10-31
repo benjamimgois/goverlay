@@ -557,7 +557,6 @@ type
     procedure filenameComboBoxChange(Sender: TObject);
     procedure gputempCheckBoxChange(Sender: TObject);
     procedure cputempCheckBoxChange(Sender: TObject);
-    procedure geSpeedButtonClick(Sender: TObject);
     procedure mangocolorBitBtnClick(Sender: TObject);
     procedure gamesLabelClick(Sender: TObject);
     procedure mangohudLabelClick(Sender: TObject);
@@ -852,7 +851,6 @@ type
     // Exposed: procedure BuildNavRail;
     procedure BuildPresetsWrapper;
     procedure AddNavyBgToTab(ATab: TTabSheet);
-    procedure StyleGroupBoxNavy(GB: TGroupBox);
     // Exposed: procedure PresetsBgBoxPaint(Sender: TObject);
     // Exposed: procedure PresetsWrapperPaint(Sender: TObject);
     procedure PresetCardPaint(Sender: TObject);
@@ -929,7 +927,6 @@ type
     // Exposing: procedure UpdateGenericCardTheme(Card: TPanel);
     procedure UpdateExtrasCardTheme;
     // Exposed: procedure ReflowPerformanceTab(AContentW: Integer);
-    // Exposed: procedure ReflowOptiScalerTab(AContentW: Integer);
     // Exposed: procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure InitMetricsTab;
     // Exposed: procedure ReflowMetricsTab(AContentW: Integer);
@@ -1008,7 +1005,6 @@ type
     function GetPerformanceCheckBox(Index: Integer): TCheckBox;
     function OsHexToKeyStr(const HexStr: string): string; }
     // Exposing: procedure ReshadeGitProgress(APhase: string; APercent: Integer);
-    // Exposed: procedure UpdateGeSpeedButtonState;
     // Exposed: procedure UpdateGlobalEnableMenuItemVisibility;
     procedure RemoveMangoHudFromFGMod;
     procedure InitCustomEnvGroupBox;
@@ -1556,7 +1552,6 @@ type
     procedure ReflowVisualTab(AContentW, AContentH: Integer);
     procedure ReflowPerformanceTab(AContentW, AContentH: Integer);
     procedure FpsPresetChipClick(Sender: TObject);
-    procedure ReflowOptiScalerTab(AContentW: Integer);
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure ReflowLosslessScalingTab(AContentW: Integer);
     procedure ReflowMetricsTab(AContentW: Integer);
@@ -1590,7 +1585,6 @@ type
     function ParseAcfValue(const AContent, AKey: string): string;
     procedure GetSteamLibraries(Libraries: TStringList);
     function GetAppBaseDir: string;
-    procedure UpdateGeSpeedButtonState;
     procedure UpdateGlobalEnableMenuItemVisibility;
     procedure UpdateCommandPanelRightAnchor(AButtonsVisible: Boolean);
     procedure InitFloatingDock;
@@ -2030,7 +2024,6 @@ commandPanel.Visible:=false;
 
 // Floating dock — show Menu, Add button, and Finish on tweaks tab
 if Assigned(FFADock) then FFADock.UpdateForTab(False, True, True);
-UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
   ApplyToolEnabledState(3, FNavToolEnabled[3]);
   SetSaveBtnEnabled(FNavToolEnabled[3]);
@@ -2059,8 +2052,6 @@ begin
     updateBitBtn.Visible := True;
     checkupdBitBtn.Visible := True;
   end;
-  // Re-enable controls after installation completes
-  UpdateGeSpeedButtonState;
   // Reload installed versions and refresh the Software Status card immediately.
   // UpdateButtonClick internally reassigns FGModPath to the global pristine
   // (bgmod/) for asset sync purposes; restore it to the active game/global
@@ -2183,8 +2174,6 @@ begin
 
   // Floating dock — show Preview and Menu buttons for vkBasalt/vkSumi
   if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
-  //Update geSpeedButton state for vkBasalt
-  UpdateGeSpeedButtonState;
   UpdateGlobalEnableMenuItemVisibility;
   UpdateToolMissingDependencyBanners;
 
@@ -2302,17 +2291,6 @@ begin
   BgBox.Parent  := ATab;
   BgBox.Align   := alClient;
   BgBox.OnPaint := @PresetsBgBoxPaint;
-end;
-
-procedure Tgoverlayform.StyleGroupBoxNavy(GB: TGroupBox);
-var
-  SS: WideString;
-begin
-  if CurrentTheme = tmLight then
-    SS := 'background-color: rgb(240,240,240); border: 1px solid rgb(200,200,200); color: black;'
-  else
-    SS := 'background-color: rgb(26,30,46); border: 1px solid rgb(36,40,62); color: white;';
-  QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
 end;
 
 procedure Tgoverlayform.PresetsBgBoxPaint(Sender: TObject);
@@ -3212,11 +3190,6 @@ begin
         TCheckBox(TabSheet.Controls[j]).Font.Color := ThemeTextColor;
         TCheckBox(TabSheet.Controls[j]).Color := ThemeBgColor;
       end
-      else if TabSheet.Controls[j] is TGroupBox then
-      begin
-        TGroupBox(TabSheet.Controls[j]).Font.Style := [];
-        TGroupBox(TabSheet.Controls[j]).Font.Color := ThemeTextColor;
-      end
       else if TabSheet.Controls[j] is TLabel then
       begin
         TLabel(TabSheet.Controls[j]).Font.Style := [];
@@ -3234,11 +3207,6 @@ begin
             TCheckBox(Container.Controls[k]).Font.Style := [];
             TCheckBox(Container.Controls[k]).Font.Color := ThemeTextColor;
             TCheckBox(Container.Controls[k]).Color := ThemeBgColor;
-          end
-          else if Container.Controls[k] is TGroupBox then
-          begin
-            TGroupBox(Container.Controls[k]).Font.Style := [];
-            TGroupBox(Container.Controls[k]).Font.Color := ThemeTextColor;
           end
           else if Container.Controls[k] is TLabel then
           begin
@@ -3272,21 +3240,6 @@ var
         TCheckBox(AControl).Color := $00FFFF80;  // Light yellow background
         Inc(MatchCount);
         WriteLn('[SEARCH] Match (CheckBox): ', TCheckBox(AControl).Caption);
-        if not FoundAny then
-        begin
-          goverlayPageControl.ActivePage := TabSheet;
-          FoundAny := True;
-        end;
-      end;
-    end
-    else if AControl is TGroupBox then
-    begin
-      if Pos(Query, LowerCase(TGroupBox(AControl).Caption)) > 0 then
-      begin
-        TGroupBox(AControl).Font.Style := [fsBold];
-        TGroupBox(AControl).Font.Color := $0000CCFF;  // Orange text (no background)
-        Inc(MatchCount);
-        WriteLn('[SEARCH] Match (GroupBox): ', TGroupBox(AControl).Caption);
         if not FoundAny then
         begin
           goverlayPageControl.ActivePage := TabSheet;
@@ -4335,9 +4288,6 @@ begin
   geSpeedButton.Visible := False;
   geLabel.Visible       := False;
 
-  // Update geSpeedButton state from fgmod file (kept for internal state tracking)
-  UpdateGeSpeedButtonState;
-
   // Load tweaks tab state from fgmod file
   LoadTweaksFromFGMod;
 
@@ -5222,7 +5172,6 @@ begin
   ReflowPerformanceTab(InitW, Self.ClientHeight);
   ReflowMetricsTab(InitW);
   ReflowExtrasTab(InitW);
-  ReflowOptiScalerTab(InitW);
   ReflowOptiScalerTabNew(InitW);
   ReflowVkBasaltTab(InitW);
   ReflowVkSumiTab(InitW);
@@ -5322,11 +5271,6 @@ begin
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).RefreshFormatPills;
   GenericControlChange(Sender);
-end;
-
-procedure Tgoverlayform.geSpeedButtonClick(Sender: TObject);
-begin
-  // Obsolete: global enable button is no longer used
 end;
 
 function Tgoverlayform.GetCachedMissingDeps: TStringList;
@@ -5724,11 +5668,6 @@ begin
             FileExists('/usr/share/HelixSR');
 end;
 
-procedure Tgoverlayform.UpdateGeSpeedButtonState;
-begin
-  // Obsolete: global enable button is no longer used
-end;
-
 procedure Tgoverlayform.UpdateGlobalEnableMenuItemVisibility;
 var
   IsMangoHudTab: Boolean;
@@ -6087,7 +6026,6 @@ commandPanel.Visible:=false;
 
 // Floating dock — show Preview and Menu buttons for MangoHud
 if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
-UpdateGeSpeedButtonState;
 UpdateGlobalEnableMenuItemVisibility;
 
 // Reload config when entering the MangoHud tab (global or game-specific)
@@ -9195,7 +9133,6 @@ begin
   ReflowPerformanceTab(ContentW, ContentH);
   ReflowMetricsTab(ContentW);
   ReflowExtrasTab(ContentW);
-  ReflowOptiScalerTab(ContentW);
   ReflowOptiScalerTabNew(ContentW);
   ReflowLosslessScalingTab(ContentW);
   ReflowVkBasaltTab(ContentW);
@@ -9725,11 +9662,6 @@ var
         end;
         QWidget_setStyleSheet(TQtWidget(TEdit(Container.Controls[k]).Handle).Widget, @SS);
       end
-      else if Container.Controls[k] is TGroupBox then
-      begin
-        TGroupBox(Container.Controls[k]).Color      := CardBg;
-        TGroupBox(Container.Controls[k]).Font.Color := TextColor;
-      end
       else if Container.Controls[k] is TPanel then
       begin
         // Recurse into sub-panels (e.g. FOsOptiSec, FOsImguiSec)
@@ -9817,11 +9749,6 @@ begin
   end;
 end;
 
-procedure Tgoverlayform.ReflowOptiScalerTab(AContentW: Integer);
-begin
-  // Legacy layout routine - no-op in modern card redesign
-end;
-
 // ============================================================================
 // OPTISCALER TAB — card redesign (GroupBox-level reparenting)
 // ============================================================================
@@ -9888,7 +9815,6 @@ begin
     LoadOptiScalerConfig;
     fsrversionComboBoxChange(nil);
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
-    UpdateGeSpeedButtonState;
     UpdateGlobalEnableMenuItemVisibility;
     TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
     if Assigned(FFADock) then FFADock.UpdateForTab(False, True, False);
@@ -9937,7 +9863,6 @@ begin
     ApplyToolEnabledState(2, FNavToolEnabled[2]);
     if FNavToolEnabled[2] and Assigned(FLosslessScalingHelper) then
       TLosslessScalingTabHelper(FLosslessScalingHelper).UpdateControlsEnabled;
-    UpdateGeSpeedButtonState;
     UpdateGlobalEnableMenuItemVisibility;
     TSidebarNavHelper(FNavHelper).SetSaveBtnEnabled(FNavToolEnabled[2]);
     if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);

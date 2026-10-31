@@ -9435,7 +9435,6 @@ object goverlayform: Tgoverlayform
         ImageWidth = 40
         ShowHint = True
         ParentShowHint = False
-        OnClick = geSpeedButtonClick
       end
       object notificationLabel: TLabel
         AnchorSideLeft.Control = geSpeedButton

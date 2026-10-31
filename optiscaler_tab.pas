@@ -635,26 +635,6 @@ const
     end;
   end;
 
-  procedure ReparentGB(GB: TGroupBox; Card: TPanel);
-  var SS: WideString;
-  begin
-    with FForm do
-    begin
-      GB.Parent   := Card;
-      GB.Visible  := True;
-      GB.Caption  := '';
-      GB.Color    := DARK_CARD_BG;
-      GB.Font.Color := CLR_TEXT_PRIMARY;
-      GB.AnchorSideLeft.Control   := nil;
-      GB.AnchorSideTop.Control    := nil;
-      GB.AnchorSideRight.Control  := nil;
-      GB.AnchorSideBottom.Control := nil;
-      GB.Anchors := [akLeft, akTop];
-      SS := 'QGroupBox { border: none; }';
-      QWidget_setStyleSheet(TQtWidget(GB.Handle).Widget, @SS);
-    end;
-  end;
-
   procedure DarkCheck(C: TCheckBox);
   begin
     StyleToggleControl(C);
