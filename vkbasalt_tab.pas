@@ -127,6 +127,13 @@ begin
   // Hide old dual-listbox UI (data still kept in hidden listboxes for save/load)
   if Assigned(FVkAvHdrLbl) then FVkAvHdrLbl.Visible := False;
   if Assigned(FVkActHdrLbl) then FVkActHdrLbl.Visible := False;
+  UnanchorControl(aveffectsListBox);
+  UnanchorControl(acteffectsListBox);
+  UnanchorControl(addBitBtn);
+  UnanchorControl(subBitBtn);
+  UnanchorControl(reshaderefreshBitBtn);
+  UnanchorControl(reshadeLabel1);
+  UnanchorControl(reshadeLabel2);
   aveffectsListBox.Visible     := False;
   aveffectsListBox.Parent      := FForm;   // move off-card so it doesn't clip
   acteffectsListBox.Visible    := False;

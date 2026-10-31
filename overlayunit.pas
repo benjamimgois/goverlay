@@ -1072,6 +1072,7 @@ type
 
     // Layout helper
     procedure UnanchorControl(Ctrl: TControl);
+    procedure UnanchorAllChildren(AParent: TWinControl);
 
     // Save helpers (extracted from saveBitBtnClick)
     procedure SaveTweaksConfig;
@@ -3416,14 +3417,23 @@ end;
 
 procedure Tgoverlayform.UnanchorControl(Ctrl: TControl);
 begin
-  if Ctrl is TWinControl then
+  if Assigned(Ctrl) then
   begin
-    TWinControl(Ctrl).AnchorSideLeft.Control := nil;
-    TWinControl(Ctrl).AnchorSideRight.Control := nil;
-    TWinControl(Ctrl).AnchorSideTop.Control := nil;
-    TWinControl(Ctrl).AnchorSideBottom.Control := nil;
+    Ctrl.AnchorSideLeft.Control := nil;
+    Ctrl.AnchorSideRight.Control := nil;
+    Ctrl.AnchorSideTop.Control := nil;
+    Ctrl.AnchorSideBottom.Control := nil;
+    Ctrl.Anchors := [akTop, akLeft];
   end;
-  Ctrl.Anchors := [akTop, akLeft];
+end;
+
+procedure Tgoverlayform.UnanchorAllChildren(AParent: TWinControl);
+var
+  i: Integer;
+begin
+  if not Assigned(AParent) then Exit;
+  for i := 0 to AParent.ControlCount - 1 do
+    UnanchorControl(AParent.Controls[i]);
 end;
 
 procedure Tgoverlayform.UpdateCommandPanelRightAnchor(AButtonsVisible: Boolean);

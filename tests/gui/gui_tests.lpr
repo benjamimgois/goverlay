@@ -104,6 +104,18 @@ begin
   end;
 end;
 
+type
+  TExceptionHandler = class
+    class procedure HandleTestException(Sender: TObject; E: Exception);
+  end;
+
+class procedure TExceptionHandler.HandleTestException(Sender: TObject; E: Exception);
+begin
+  WriteLn('*** EXCEPTION IN GUI TESTS: ', E.ClassName, ': ', E.Message);
+  DumpExceptionBackTrace(Output);
+  Flush(Output);
+end;
+
 var
   i: Integer;
 begin
@@ -113,6 +125,7 @@ begin
   Application.Scaled := True;
   Application.Title := 'goverlay-gui-tests';
   Application.Initialize;
+  Application.OnException := @TExceptionHandler.HandleTestException;
   Application.CreateForm(Tgoverlayform, goverlayform);
 
   // Show offscreen so FormShow-time initialization runs, then pump queued

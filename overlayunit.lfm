@@ -7126,14 +7126,10 @@ object goverlayform: Tgoverlayform
         ParentShowHint = False
         TabVisible = False
         object vktoggleLabel: TLabel
-          AnchorSideLeft.Control = vkbtogglekeyCombobox
-          AnchorSideBottom.Control = vkbtogglekeyCombobox
           Left = 36
           Height = 18
           Top = 512
           Width = 66
-          Anchors = [akLeft, akBottom]
-          BorderSpacing.Bottom = 2
           Caption = 'Toggle Key'
           Font.Color = clWhite
           Font.Height = -13
@@ -7143,10 +7139,6 @@ object goverlayform: Tgoverlayform
           ParentFont = False
         end
         object vkbtogglekeyCombobox: TComboBox
-          AnchorSideLeft.Control = toggleImage
-          AnchorSideLeft.Side = asrBottom
-          AnchorSideTop.Control = toggleImage
-          AnchorSideTop.Side = asrCenter
           Left = 36
           Height = 32
           Hint = 'Key that will enable and disable effects'
@@ -7172,16 +7164,11 @@ object goverlayform: Tgoverlayform
           Text = 'Home'
         end
         object toggleImage: TImage
-          Anchors = []
           Left = 5
           Height = 28
           Hint = 'Key to enable and disable the HUD'#10'(Shift_L = left shift)'#10'(Shift_R = right shift)'
           Top = 534
           Width = 28
-          BorderSpacing.Left = 5
-          BorderSpacing.Top = 30
-          BorderSpacing.Right = 3
-          BorderSpacing.Bottom = 60
           Picture.Data = {
             1754506F727461626C654E6574776F726B477261706869639E70000089504E47
             0D0A1A0A0000000D494844520000020900000205080600000058A06E83000000
@@ -8090,14 +8077,10 @@ object goverlayform: Tgoverlayform
           Stretch = True
         end
         object pbarLabel: TLabel
-          AnchorSideLeft.Side = asrCenter
-          AnchorSideBottom.Control = vkbtogglekeyCombobox
           Left = 72
           Height = 15
           Top = 234
           Width = 10
-          BorderSpacing.Top = 9
-          BorderSpacing.Bottom = 20
           Caption = '- -'
           Font.Color = clMaroon
           Font.Height = -11
@@ -8107,15 +8090,10 @@ object goverlayform: Tgoverlayform
           ParentFont = False
         end
           object acteffectsListBox: TListBox
-          Anchors = []
-            AnchorSideLeft.Control = addBitBtn
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Side = asrCenter
             Left = 445
             Height = 250
             Top = 39
             Width = 200
-            BorderSpacing.Left = 20
             Color = 6381921
             Enabled = False
             Font.Color = clYellow
@@ -8128,15 +8106,10 @@ object goverlayform: Tgoverlayform
             TopIndex = -1
           end
           object reshadeLabel2: TLabel
-            AnchorSideLeft.Control = acteffectsListBox
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideBottom.Control = acteffectsListBox
             Left = 501
             Height = 18
             Top = 11
             Width = 88
-          Anchors = []
-            BorderSpacing.Bottom = 10
             Caption = 'Active Effects'
             Font.Color = clWhite
             Font.Height = -13
@@ -8147,9 +8120,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object addBitBtn: TBitBtn
-          Anchors = []
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = reshaderefreshBitBtn
             Left = 396
             Height = 29
             Hint = 'Add effect to the list'
@@ -8168,19 +8138,11 @@ object goverlayform: Tgoverlayform
             OnClick = addBitBtnClick
           end
           object subBitBtn: TBitBtn
-            AnchorSideLeft.Control = addBitBtn
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = reshaderefreshBitBtn
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = reshaderefreshBitBtn
-            AnchorSideBottom.Side = asrBottom
             Left = 396
             Height = 29
             Hint = 'Remove effect from the list'
             Top = 166
             Width = 29
-          Anchors = []
-            BorderSpacing.Top = 5
             Caption = '-'
             Enabled = False
             Font.Height = -16
@@ -8194,14 +8156,10 @@ object goverlayform: Tgoverlayform
             OnClick = subBitBtnClick
           end
           object aveffectsListBox: TListBox
-            AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Control = addBitBtn
             Left = 176
             Height = 250
             Top = 39
             Width = 200
-          Anchors = []
-            BorderSpacing.Right = 20
             Color = 6381921
             DoubleBuffered = True
             Enabled = False
@@ -8216,16 +8174,10 @@ object goverlayform: Tgoverlayform
             TopIndex = -1
           end
           object reshadeLabel1: TLabel
-            AnchorSideLeft.Control = aveffectsListBox
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = aveffectsListBox
-            AnchorSideBottom.Control = aveffectsListBox
             Left = 223
             Height = 18
             Top = 11
             Width = 107
-          Anchors = []
-            BorderSpacing.Bottom = 10
             Caption = 'Available Effects'
             Font.Color = clWhite
             Font.Height = -13
@@ -8236,16 +8188,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object reshaderefreshBitBtn: TBitBtn
-          Anchors = []
-            AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Control = saveBitBtn
-            AnchorSideBottom.Control = goverlaybarPanel
-            AnchorSideBottom.Side = asrCenter
             Left = 45
             Height = 61
             Top = 134
             Width = 64
-            BorderSpacing.Left = 45
             Caption = 'Update'
             Font.Height = -12
             Font.Name = 'Sans'
@@ -8262,8 +8208,6 @@ object goverlayform: Tgoverlayform
             OnClick = reshaderefreshBitBtnClick
           end
           object casTrackBar: TTrackBar
-          Anchors = []
-            AnchorSideTop.Side = asrCenter
             Left = 10
             Height = 20
             Hint = 'Contrast Adaptive Sharpening'
@@ -8272,8 +8216,6 @@ object goverlayform: Tgoverlayform
             Position = 0
             TickStyle = tsNone
             OnChange = casTrackBarChange
-            BorderSpacing.Left = 10
-            BorderSpacing.Top = 40
             Color = clBtnFace
             ParentColor = False
             ParentShowHint = False
@@ -8281,17 +8223,10 @@ object goverlayform: Tgoverlayform
             TabOrder = 0
           end
           object casLabel: TLabel
-            AnchorSideLeft.Control = casTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = casTrackBar
-            AnchorSideBottom.Control = casTrackBar
-            AnchorSideBottom.Side = asrBottom
             Left = 78
             Height = 18
             Top = 28
             Width = 24
-          Anchors = []
-            BorderSpacing.Bottom = 20
             Caption = 'CAS'
             Font.Color = clWhite
             Font.Height = -13
@@ -8301,11 +8236,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object casvalueLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = casTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = casTrackBar
-            AnchorSideTop.Side = asrBottom
             Left = 87
             Height = 17
             Top = 66
@@ -8319,10 +8249,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fxaaTrackBar: TTrackBar
-          Anchors = []
-            AnchorSideLeft.Control = casTrackBar
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Side = asrCenter
             Left = 195
             Height = 20
             Top = 46
@@ -8330,24 +8256,15 @@ object goverlayform: Tgoverlayform
             Position = 0
             TickStyle = tsNone
             OnChange = fxaaTrackBarChange
-            BorderSpacing.Left = 25
-            BorderSpacing.Top = 40
             Color = clBtnFace
             ParentColor = False
             TabOrder = 1
           end
           object fxaaLabel: TLabel
-            AnchorSideLeft.Control = fxaaTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = fxaaTrackBar
-            AnchorSideBottom.Control = fxaaTrackBar
-            AnchorSideBottom.Side = asrBottom
             Left = 259
             Height = 18
             Top = 28
             Width = 32
-          Anchors = []
-            BorderSpacing.Bottom = 20
             Caption = 'FXAA'
             Font.Color = clWhite
             Font.Height = -13
@@ -8357,11 +8274,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fxaavalueLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = fxaaTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = fxaaTrackBar
-            AnchorSideTop.Side = asrBottom
             Left = 272
             Height = 17
             Top = 66
@@ -8375,10 +8287,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object smaaTrackBar: TTrackBar
-          Anchors = []
-            AnchorSideLeft.Control = fxaaTrackBar
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Side = asrCenter
             Left = 380
             Height = 20
             Top = 46
@@ -8386,24 +8294,15 @@ object goverlayform: Tgoverlayform
             Position = 0
             TickStyle = tsNone
             OnChange = smaaTrackBarChange
-            BorderSpacing.Left = 25
-            BorderSpacing.Top = 40
             Color = clBtnFace
             ParentColor = False
             TabOrder = 2
           end
           object smaaLabel: TLabel
-            AnchorSideLeft.Control = smaaTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = smaaTrackBar
-            AnchorSideBottom.Control = smaaTrackBar
-            AnchorSideBottom.Side = asrBottom
             Left = 442
             Height = 18
             Top = 28
             Width = 37
-          Anchors = []
-            BorderSpacing.Bottom = 20
             Caption = 'SMAA'
             Font.Color = clWhite
             Font.Height = -13
@@ -8413,11 +8312,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object smaavalueLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = smaaTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = smaaTrackBar
-            AnchorSideTop.Side = asrBottom
             Left = 457
             Height = 17
             Top = 66
@@ -8431,10 +8325,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object dlsTrackBar: TTrackBar
-          Anchors = []
-            AnchorSideLeft.Control = smaaTrackBar
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Side = asrCenter
             Left = 565
             Height = 20
             Top = 46
@@ -8442,24 +8332,15 @@ object goverlayform: Tgoverlayform
             Position = 0
             TickStyle = tsNone
             OnChange = dlsTrackBarChange
-            BorderSpacing.Left = 25
-            BorderSpacing.Top = 40
             Color = clBtnFace
             ParentColor = False
             TabOrder = 3
           end
           object dlsLabel: TLabel
-            AnchorSideLeft.Control = dlsTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = dlsTrackBar
-            AnchorSideBottom.Control = dlsTrackBar
-            AnchorSideBottom.Side = asrBottom
             Left = 633
             Height = 18
             Top = 28
             Width = 24
-          Anchors = []
-            BorderSpacing.Bottom = 20
             Caption = 'DLS'
             Font.Color = clWhite
             Font.Height = -13
@@ -8469,11 +8350,6 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object dlsvalueLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = dlsTrackBar
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = dlsTrackBar
-            AnchorSideTop.Side = asrBottom
             Left = 642
             Height = 17
             Top = 66
@@ -8492,17 +8368,11 @@ object goverlayform: Tgoverlayform
         ClientHeight = 648
         ClientWidth = 828
           object nvidiaImage: TImage
-          Anchors = []
-            AnchorSideLeft.Control = nvidiaRadioButton
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = nvidiaRadioButton
-            AnchorSideTop.Side = asrCenter
             Left = 100
             Height = 43
             Top = 29
             Width = 172
             AntialiasingMode = amOn
-            BorderSpacing.Left = 10
             ParentShowHint = False
             Picture.Data = {
               1754506F727461626C654E6574776F726B477261706869637C07000089504E47
@@ -8570,43 +8440,27 @@ object goverlayform: Tgoverlayform
             Transparent = True
           end
           object nvidiaRadioButton: TRadioButton
-          Anchors = []
-            AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Side = asrBottom
             Left = 70
             Height = 20
             Top = 40
             Width = 20
-            BorderSpacing.Left = 70
-            BorderSpacing.Right = 2
             TabOrder = 0
             OnChange = nvidiaRadioButtonChange
           end
           object mesaRadioButton: TRadioButton
-            AnchorSideTop.Control = nvidiaRadioButton
-            AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Side = asrBottom
             Left = 500
             Height = 20
             Top = 40
             Width = 20
-          Anchors = []
-            BorderSpacing.Left = 185
-            BorderSpacing.Right = 300
             TabOrder = 1
             OnChange = mesaRadioButtonChange
           end
           object mesaImage: TImage
-          Anchors = []
-            AnchorSideLeft.Control = mesaRadioButton
-            AnchorSideTop.Control = mesaRadioButton
-            AnchorSideTop.Side = asrCenter
             Left = 540
             Height = 62
             Top = 19
             Width = 144
             AntialiasingMode = amOn
-            BorderSpacing.Left = 40
             ParentShowHint = False
             Picture.Data = {
               1754506F727461626C654E6574776F726B47726170686963B811000089504E47
@@ -8755,11 +8609,6 @@ object goverlayform: Tgoverlayform
             }
           end
           object autodetectnvLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = nvidiaImage
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = nvidiaImage
-            AnchorSideTop.Side = asrBottom
             Left = 146
             Height = 17
             Top = 72
@@ -8773,11 +8622,6 @@ object goverlayform: Tgoverlayform
             Visible = False
           end
           object autodetectmesaLabel: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = mesaImage
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = mesaImage
-            AnchorSideTop.Side = asrBottom
             Left = 572
             Height = 17
             Top = 81
@@ -8793,15 +8637,10 @@ object goverlayform: Tgoverlayform
             Visible = False
           end
             object filenameComboBox: TComboBox
-          Anchors = []
-              AnchorSideLeft.Control = filenameLabel
-              AnchorSideTop.Control = filenameLabel
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 32
               Top = 35
               Width = 109
-              BorderSpacing.Top = 2
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
@@ -8825,29 +8664,17 @@ object goverlayform: Tgoverlayform
               Text = 'dxgi.dll'
             end
             object filenameLabel: TLabel
-          Anchors = []
               Left = 10
               Height = 18
               Top = 15
               Width = 61
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 15
               Caption = 'Proxy DLL'
             end
             object spoofCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = filenameComboBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = filenameComboBox
-              AnchorSideTop.Side = asrCenter
-              AnchorSideRight.Side = asrBottom
               Left = 134
               Height = 21
               Top = 41
               Width = 88
-              BorderSpacing.Left = 15
-              BorderSpacing.Top = 25
-              BorderSpacing.Right = 20
               Caption = 'Spoof DLSS'
               Font.Height = -12
               Font.Name = 'Noto Sans'
@@ -8856,31 +8683,18 @@ object goverlayform: Tgoverlayform
               TabOrder = 1
             end
             object fsrversionLabel: TLabel
-          Anchors = []
-              AnchorSideLeft.Control = filenameLabel
-              AnchorSideTop.Control = filenameComboBox
-              AnchorSideTop.Side = asrBottom
-              AnchorSideRight.Side = asrBottom
-              AnchorSideBottom.Side = asrCenter
               Left = 10
               Height = 18
               Top = 87
               Width = 71
-              BorderSpacing.Top = 20
-              BorderSpacing.Right = 85
               Caption = 'FSR Version'
             end
             object fsrversionComboBox: TComboBox
-          Anchors = []
-              AnchorSideLeft.Control = fsrversionLabel
-              AnchorSideTop.Control = fsrversionLabel
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 32
               Hint = 'Latest FSR versions are compatible with RDNA4+ and newer.'#10'Also sets "Fsr4Update=auto" in Optiscaler.ini'#10#10'4.0.2c INT8 FSR is compatible with RDNA2 and RDNA3'
               Top = 107
               Width = 109
-              BorderSpacing.Top = 2
               Font.Height = -13
               Font.Name = 'Noto Sans'
               Font.Quality = fqAntialiased
@@ -8897,34 +8711,20 @@ object goverlayform: Tgoverlayform
               OnChange = fsrversionComboBoxChange
             end
             object emufp8CheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = fsrversionComboBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = fsrversionComboBox
-              AnchorSideTop.Side = asrCenter
               Left = 134
               Height = 22
               Hint = 'Emulate FP8 with FP16 on RDNA2 / RDNA3'
               Top = 112
               Width = 100
-              BorderSpacing.Left = 15
-              BorderSpacing.Top = 25
               Caption = 'Emulate FP8'
               TabOrder = 3
             end
             object optipatcherCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = emufp8CheckBox
-              AnchorSideTop.Control = preferredUpscalerComboBox
-              AnchorSideTop.Side = asrCenter
-              AnchorSideRight.Side = asrBottom
               Left = 134
               Height = 21
               Hint = 'An ASI Plugin for OptiScaler for exposing DLSS/DLSS-FG inputs '#10'without spoofing in supported games.'
               Top = 185
               Width = 92
-              BorderSpacing.Top = 30
-              BorderSpacing.Right = 20
               Caption = 'OptiPatcher'
               Checked = True
               Font.Height = -12
@@ -8935,11 +8735,6 @@ object goverlayform: Tgoverlayform
               TabOrder = 4
             end
             object patcherlistLabel: TLabel
-          Anchors = []
-              AnchorSideLeft.Control = optipatcherCheckBox
-              AnchorSideLeft.Side = asrCenter
-              AnchorSideTop.Control = optipatcherCheckBox
-              AnchorSideTop.Side = asrBottom
               Cursor = crHandPoint
               Left = 142
               Height = 13
@@ -8955,30 +8750,17 @@ object goverlayform: Tgoverlayform
               OnClick = patcherlistLabelClick
             end
             object preferredUpscalerLabel: TLabel
-          Anchors = []
-              AnchorSideLeft.Control = filenameLabel
-              AnchorSideTop.Control = fsrversionComboBox
-              AnchorSideTop.Side = asrBottom
-              AnchorSideRight.Side = asrBottom
-              AnchorSideBottom.Side = asrCenter
               Left = 10
               Height = 18
               Top = 159
               Width = 114
-              BorderSpacing.Top = 20
-              BorderSpacing.Right = 85
               Caption = 'Preferred upscaler'
             end
             object preferredUpscalerComboBox: TComboBox
-          Anchors = []
-              AnchorSideLeft.Control = preferredUpscalerLabel
-              AnchorSideTop.Control = preferredUpscalerLabel
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 32
               Top = 179
               Width = 109
-              BorderSpacing.Top = 2
               Font.Height = -13
               Font.Name = 'Noto Sans'
               Font.Quality = fqAntialiased
@@ -8999,33 +8781,21 @@ object goverlayform: Tgoverlayform
               OnChange = preferredUpscalerComboBoxChange
             end
             object forcelatencyflexCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = forcereflexCheckBox
-              AnchorSideTop.Control = reflexComboBox
-              AnchorSideTop.Side = asrBottom
-              AnchorSideRight.Side = asrBottom
               Left = 58
               Height = 22
               Hint = 'Useful in native fsg fg games'
               Top = 86
               Width = 132
-              BorderSpacing.Top = 10
-              BorderSpacing.Right = 36
               Caption = 'Force LatencyFlex'
               TabOrder = 0
               OnChange = forcelatencyflexCheckBoxChange
             end
             object latencyflexComboBox: TComboBox
-          Anchors = []
-              AnchorSideLeft.Control = forcelatencyflexCheckBox
-              AnchorSideTop.Control = forcelatencyflexCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 58
               Height = 32
               Hint = 'Use reflex frame ids - Activates a new Reflex ID-based frame pacing mode for LatencyFlex, '#10'which offers good latency reduction with stable frame times, particularly in Unreal Engine games. '#10'If unsupported, it will fall back to aggressive mode.'
               Top = 110
               Width = 152
-              BorderSpacing.Top = 2
               Enabled = False
               Font.Height = -13
               Font.Name = 'Sans'
@@ -9045,31 +8815,21 @@ object goverlayform: Tgoverlayform
               Text = 'Choose mode'
             end
             object forcereflexCheckBox: TCheckBox
-              AnchorSideRight.Side = asrBottom
               Left = 58
               Height = 22
               Hint = 'Forces the use of Reflex, which can help enable AMD''s Anti-Lag 2 (AL2) for lower latency.'#10'The recommended setting is "Force enable"'
               Top = 20
               Width = 98
-          Anchors = []
-              BorderSpacing.Left = 30
-              BorderSpacing.Top = 20
-              BorderSpacing.Right = 92
               Caption = 'Force Reflex'
               TabOrder = 2
               OnChange = forcereflexCheckBoxChange
             end
             object reflexComboBox: TComboBox
-          Anchors = []
-              AnchorSideLeft.Control = forcereflexCheckBox
-              AnchorSideTop.Control = forcereflexCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 58
               Height = 32
               Hint = 'Forces the use of Reflex, which can help enable AMD''s Anti-Lag 2 (AL2) for lower latency.'#10'The recommended setting is "Force enable"'
               Top = 44
               Width = 152
-              BorderSpacing.Top = 2
               Enabled = False
               Font.Height = -13
               Font.Name = 'Sans'
@@ -9089,51 +8849,28 @@ object goverlayform: Tgoverlayform
               Text = 'Choose mode'
             end
             object overrideCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = forcereflexCheckBox
-              AnchorSideTop.Control = latencyflexComboBox
-              AnchorSideTop.Side = asrBottom
-              AnchorSideBottom.Side = asrBottom
               Left = 58
               Height = 22
               Hint = 'you may need to set this to true in if Fakenvapi isn''t automatically loaded.'
               Top = 157
               Width = 136
-              BorderSpacing.Top = 15
-              BorderSpacing.Right = 2
-              BorderSpacing.Bottom = 19
               Caption = 'Override Nvapi Dll'
               TabOrder = 4
             end
             object tracelogCheckBox: TCheckBox
-              AnchorSideLeft.Control = forcelatencyflexCheckBox
-              AnchorSideTop.Control = overrideCheckBox
-              AnchorSideTop.Side = asrBottom
-              AnchorSideBottom.Side = asrBottom
               Left = 58
               Height = 22
               Hint = 'Use this to generate detailed log files for troubleshooting. '#10'This is useful for debugging issues when reporting them to the developers.'
               Top = 190
               Width = 128
-          Anchors = []
-              BorderSpacing.Top = 10
-              BorderSpacing.Bottom = 10
               Caption = 'Enable trace logs'
               TabOrder = 5
             end
             object menuLabel: TLabel
-              AnchorSideLeft.Control = menuscaleTrackBar
-              AnchorSideLeft.Side = asrCenter
-              AnchorSideTop.Control = filenameLabel
-              AnchorSideRight.Side = asrBottom
               Left = 132
               Height = 18
               Top = 32
               Width = 32
-          Anchors = []
-              BorderSpacing.Left = 80
-              BorderSpacing.Right = 30
-              BorderSpacing.Bottom = 4
               Caption = 'Scale'
               Font.Height = -13
               Font.Name = 'Noto Sans'
@@ -9143,17 +8880,10 @@ object goverlayform: Tgoverlayform
               WordWrap = True
             end
             object menuscalevalueLabel: TLabel
-              AnchorSideLeft.Control = menuscaleTrackBar
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Side = asrCenter
-              AnchorSideRight.Control = menuscaleTrackBar
-              AnchorSideRight.Side = asrBottom
               Left = 276
               Height = 17
               Top = 64
               Width = 7
-          Anchors = []
-              BorderSpacing.Left = 9
               Caption = '1'
               Font.Height = -12
               Font.Name = 'Noto Sans'
@@ -9162,10 +8892,6 @@ object goverlayform: Tgoverlayform
               ParentFont = False
             end
             object menuscaleTrackBar: TTrackBar
-              AnchorSideLeft.Side = asrCenter
-              AnchorSideTop.Side = asrBottom
-              AnchorSideRight.Side = asrCenter
-              AnchorSideBottom.Side = asrBottom
               Left = 48
               Height = 19
               Hint = 'The size of the in game menu'
@@ -9175,26 +8901,15 @@ object goverlayform: Tgoverlayform
               Min = 5
               Position = 10
               OnChange = menuscaleTrackBarChange
-          Anchors = []
-              BorderSpacing.Left = 20
-              BorderSpacing.Right = 60
-              BorderSpacing.Bottom = 20
               Color = clBtnFace
               ParentColor = False
               TabOrder = 0
             end
             object mark2Label: TLabel
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Side = asrCenter
-              AnchorSideRight.Control = menuscaleTrackBar
-              AnchorSideRight.Side = asrBottom
               Left = 169
               Height = 11
               Top = 88
               Width = 24
-          Anchors = []
-              BorderSpacing.Left = 60
-              BorderSpacing.Right = 55
               Caption = '1440p'
               Font.Height = -8
               Font.Name = 'Noto Sans'
@@ -9202,16 +8917,10 @@ object goverlayform: Tgoverlayform
               ParentFont = False
             end
             object mark1Label: TLabel
-              AnchorSideRight.Control = menuscaleTrackBar
-              AnchorSideRight.Side = asrBottom
               Left = 95
               Height = 11
               Top = 88
               Width = 24
-          Anchors = []
-              BorderSpacing.Left = 85
-              BorderSpacing.Top = 25
-              BorderSpacing.Right = 129
               Caption = '1080p'
               Font.Height = -8
               Font.Name = 'Noto Sans'
@@ -9219,17 +8928,10 @@ object goverlayform: Tgoverlayform
               ParentFont = False
             end
             object mark3Label: TLabel
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = menuscaleTrackBar
-              AnchorSideTop.Side = asrCenter
-              AnchorSideRight.Control = menuscaleTrackBar
-              AnchorSideRight.Side = asrBottom
               Left = 238
               Height = 11
               Top = 88
               Width = 10
-          Anchors = []
-              BorderSpacing.Left = 71
               Caption = '4K'
               Font.Height = -8
               Font.Name = 'Noto Sans'
@@ -9237,17 +8939,11 @@ object goverlayform: Tgoverlayform
               ParentFont = False
             end
             object shortcutkeyComboBox: TComboBox
-              AnchorSideLeft.Side = asrCenter
-              AnchorSideTop.Side = asrCenter
-              AnchorSideBottom.Side = asrBottom
               Left = 108
               Height = 32
               Hint = 'optifg - requires amd_fidelityfx_dx12.dll'#10'nukems - requires dlssg_to_fsr3_amd_is_better.dll, AMD/Intel GPU users need to add fakenvapi as well'
               Top = 170
               Width = 81
-          Anchors = []
-              BorderSpacing.Top = 2
-              BorderSpacing.Bottom = 20
               Font.Height = -13
               Font.Name = 'Sans'
               Font.Quality = fqAntialiased
@@ -9269,26 +8965,17 @@ object goverlayform: Tgoverlayform
               Text = '0x2d'
             end
             object shortcutkeyLabel: TLabel
-          Anchors = []
               Left = 80
               Height = 18
               Top = 152
               Width = 77
-              BorderSpacing.Top = 26
-              BorderSpacing.Bottom = 2
               Caption = 'Shortcut key'
             end
           object optLabel: TLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = fakenvapiLabel
             Left = 20
             Height = 17
             Top = 10
             Width = 62
-          Anchors = []
-            BorderSpacing.Left = 20
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'OptiScaler:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9296,17 +8983,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fakenvapiLabel: TLabel
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Control = optLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = optipatcherLabel
             Left = 20
             Height = 17
             Top = 32
             Width = 60
-          Anchors = []
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'Fakenvapi:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9314,17 +8994,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fsrLabel: TLabel
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Control = fakenvapiLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = xessLabel
             Left = 20
             Height = 17
             Top = 76
             Width = 24
-          Anchors = []
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'FSR:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9332,17 +9005,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object xessLabel: TLabel
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Control = fsrLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = dlssLabel
             Left = 20
             Height = 17
             Top = 98
             Width = 31
-          Anchors = []
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'XeSS:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9350,16 +9016,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object optLabel1: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = optLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = optLabel
-            AnchorSideTop.Side = asrCenter
             Left = 87
             Height = 17
             Top = 10
             Width = 8
-            BorderSpacing.Left = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9368,19 +9028,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fakenvapi1: TLabel
-            AnchorSideLeft.Control = fakenvapiLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = optLabel1
-            AnchorSideTop.Side = asrCenter
-            AnchorSideBottom.Control = fakenvapiLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 85
             Height = 17
             Top = 31
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9389,19 +9040,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object fsrLabel1: TLabel
-            AnchorSideLeft.Control = fsrLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = fakenvapiLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = fsrLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 49
             Height = 17
             Top = 75
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9410,19 +9052,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object xessLabel1: TLabel
-            AnchorSideLeft.Control = xessLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = fsrLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = xessLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 56
             Height = 17
             Top = 97
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9431,19 +9064,11 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object updateBitBtn: TBitBtn
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Side = asrCenter
-            AnchorSideRight.Side = asrBottom
-            AnchorSideBottom.Control = goverlaybarPanel
-            AnchorSideBottom.Side = asrCenter
             Left = 718
             Height = 56
             Hint = 'Update packages'
             Top = 43
             Width = 62
-          Anchors = []
-            BorderSpacing.Left = 45
-            BorderSpacing.Right = 40
             Caption = 'Update'
             Color = clTeal
             Font.Height = -12
@@ -9461,19 +9086,10 @@ object goverlayform: Tgoverlayform
             OnClick = updateBitBtnClick
           end
           object fakenvapi2: TLabel
-            AnchorSideLeft.Control = fakenvapi1
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = optLabel1
-            AnchorSideTop.Side = asrCenter
-            AnchorSideBottom.Control = fakenvapiLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 103
             Height = 17
             Top = 31
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 10
-            BorderSpacing.Top = 5
             Caption = '--'
             Color = 2628118
             Font.Color = clLime
@@ -9486,11 +9102,6 @@ object goverlayform: Tgoverlayform
             Visible = False
           end
           object checkupdBitBtn: TBitBtn
-          Anchors = []
-            AnchorSideLeft.Control = updateBitBtn
-            AnchorSideLeft.Side = asrCenter
-            AnchorSideTop.Control = updateBitBtn
-            AnchorSideTop.Side = asrBottom
             Left = 685
             Height = 31
             Top = 99
@@ -9508,20 +9119,12 @@ object goverlayform: Tgoverlayform
             OnClick = checkupdBitBtnClick
           end
           object optversionComboBox: TComboBox
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideRight.Control = optLabel1
-            AnchorSideRight.Side = asrBottom
-            AnchorSideBottom.Control = optLabel
             Left = 20
             Height = 32
             Hint = 'Choose OptiScaler branch'
             Top = -27
             Width = 130
-          Anchors = []
             AutoSize = False
-            BorderSpacing.Top = 2
-            BorderSpacing.Bottom = 5
             Font.Height = 12
             Font.Name = 'Noto Sans'
             Font.Quality = fqAntialiased
@@ -9542,16 +9145,10 @@ object goverlayform: Tgoverlayform
             Text = 'Stable Channel'
           end
           object optLabel2: TLabel
-          Anchors = []
-            AnchorSideLeft.Control = optLabel1
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = optLabel
-            AnchorSideTop.Side = asrCenter
             Left = 105
             Height = 17
             Top = 10
             Width = 8
-            BorderSpacing.Left = 10
             Caption = '--'
             Font.Color = clLime
             Font.Height = 12
@@ -9562,17 +9159,10 @@ object goverlayform: Tgoverlayform
             Visible = False
           end
           object optipatcherLabel: TLabel
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Control = fakenvapiLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = fsrLabel
             Left = 20
             Height = 17
             Top = 54
             Width = 67
-          Anchors = []
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'Optipacher:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9580,19 +9170,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object optipatcherLabel1: TLabel
-            AnchorSideLeft.Control = optipatcherLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = fakenvapiLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = optipatcherLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 92
             Height = 17
             Top = 53
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9601,17 +9182,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object dlssLabel: TLabel
-            AnchorSideLeft.Control = optLabel
-            AnchorSideTop.Control = fsrLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Side = asrBottom
             Left = 20
             Height = 17
             Top = 120
             Width = 32
-          Anchors = []
-            BorderSpacing.Top = 5
-            BorderSpacing.Bottom = 5
             Caption = 'DLSS:'
             Font.Height = 12
             Font.Name = 'Noto Sans'
@@ -9619,19 +9193,10 @@ object goverlayform: Tgoverlayform
             ParentFont = False
           end
           object dlssLabel1: TLabel
-            AnchorSideLeft.Control = xessLabel
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideTop.Control = fsrLabel
-            AnchorSideTop.Side = asrBottom
-            AnchorSideBottom.Control = dlssLabel
-            AnchorSideBottom.Side = asrCenter
             Left = 56
             Height = 17
             Top = 119
             Width = 8
-          Anchors = []
-            BorderSpacing.Left = 5
-            BorderSpacing.Top = 5
             Caption = '--'
             Font.Color = clOlive
             Font.Height = 12
@@ -9645,200 +9210,127 @@ object goverlayform: Tgoverlayform
         ClientHeight = 648
         ClientWidth = 828
             object simdeckCheckBox: TCheckBox
-          Anchors = []
               Left = 10
               Height = 22
               Hint = 'SteamDeck=1'#10'Mimics Steam Deck environment for specific UI/features.'
               Top = 10
               Width = 153
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Simulate Steam Deck'
               TabOrder = 0
             end
             object enhdrCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = simdeckCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'PROTON_ENABLE_HDR=1'#10'ENABLE_HDR_WSI=1'#10'Enables High Dynamic Range output support.'
               Top = 42
               Width = 96
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Enable HDR'
               TabOrder = 1
             end
             object actprotonlogsCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = enhdrCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'PROTON_LOG=1'#10'Generates a log file for debugging game issues.'
               Top = 74
               Width = 138
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Active Proton Logs'
               TabOrder = 2
             end
             object gamemodeCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = simdeckCheckBox
-              AnchorSideLeft.Side = asrBottom
               Left = 183
               Height = 22
               Hint = 'Forces Feral GameMode for CPU/GPU priority.'
               Top = 10
               Width = 166
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Always use GameMode'
               TabOrder = 3
             end
             object enwaylandCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = simdeckCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = gamemodeCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 183
               Height = 22
               Hint = 'PROTON_ENABLE_WAYLAND=1'#10'Allows/forces the use of the Wayland display protocol.'
               Top = 42
               Width = 121
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Enable Wayland'
               TabOrder = 4
             end
             object usesdlCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = simdeckCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = enwaylandCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 183
               Height = 22
               Hint = 'PROTON_USE_SDL=1'#10'Uses SDL library for better controller compatibility.'
               Top = 74
               Width = 111
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Use SDL Input'
               TabOrder = 5
             end
             object obs_vkcaptureCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = actprotonlogsCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'OBS_VKCAPTURE=1'#10'Activate Vulkan capture for OBS Studio'
               Top = 106
               Width = 147
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'OBS Vulkan Capture'
               TabOrder = 6
             end
             object emurtCheckBox: TCheckBox
-          Anchors = []
               Left = 10
               Height = 22
               Hint = 'RADV_PERFTEST=rt,emulate_rt'#10'Simulates Ray Tracing support on older AMD hardware.'
               Top = 10
               Width = 156
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Emulate RT (old AMD)'
               TabOrder = 0
             end
             object forcenvapiCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = emurtCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'PROTON_ENABLE_NVAPI=1'#10'Enable Nvidia''s specific APIs'
               Top = 42
               Width = 144
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Force enable NVAPI'
               TabOrder = 1
             end
             object forcezinkCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = forcenvapiCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = '(AMD/INTEL)'#10'MESA_LOADER_DRIVER_OVERRIDE=zink'#10#10'(NVIDIA)'#10'__GLX_VENDOR_LIBRARY_NAME=mesa '#10'MESA_LOADER_DRIVER_OVERRIDE=zink'#10#10'Translation layor for OpenGL over Vulkan'
               Top = 74
               Width = 82
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Use ZINK'
               TabOrder = 2
             end
             object hidenvidiaCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = emurtCheckBox
-              AnchorSideLeft.Side = asrBottom
               Left = 186
               Height = 22
               Hint = 'PROTON_HIDE_NVIDIA_GPU=1'#10'Prevents games from detecting Nvidia-specific libraries.'
               Top = 10
               Width = 125
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Hide Nvidia GPU'
               TabOrder = 3
             end
             object wined3dCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = emurtCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = hidenvidiaCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 186
               Height = 22
               Hint = 'PROTON_USE_WINED3D=1'#10'Forces OpenGL-based translation instead of Vulkan (DXVK).'
               Top = 42
               Width = 133
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Use old WINED3D'
               TabOrder = 4
             end
             object nofastclearsCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = emurtCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = wined3dCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 186
               Height = 22
               Hint = 'Working around rendering corruption and GPU hangs on AMD graphics cards, '#10'particularly with older or specific DXVK titles.'
               Top = 74
               Width = 107
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'No fast clears'
               TabOrder = 5
             end
           object customenvEdit: TEdit
-            AnchorSideLeft.Side = asrBottom
-            AnchorSideBottom.Side = asrBottom
             Left = 405
             Height = 29
             Top = 113
             Width = 336
-          Anchors = []
-            BorderSpacing.Left = 30
             Font.Height = -11
             Font.Name = 'Monospace'
             Font.Quality = fqAntialiased
@@ -9847,88 +9339,56 @@ object goverlayform: Tgoverlayform
             TextHint = '-- Custom environment variables --'
           end
             object gameperfCheckBox: TCheckBox
-          Anchors = []
               Left = 10
               Height = 22
               Hint = 'game-performance'#10'Sets CPU governor to performance.'
               Top = 10
               Width = 237
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Sets CPU governor to performance'
               TabOrder = 0
             end
             object largeaddressCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = gameperfCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'#10'Allows 32-bit games to access more than 2GB of RAM.'
               Top = 42
               Width = 153
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Large Address Aware'
               TabOrder = 1
             end
             object stagememCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideTop.Control = largeaddressCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 10
               Height = 22
               Hint = 'STAGING_SHARED_MEMORY=1'#10'Improves performance through efficient memory sharing.'
               Top = 74
               Width = 171
-              BorderSpacing.Left = 10
-              BorderSpacing.Top = 10
               Caption = 'Staging shared memory'
               TabOrder = 2
             end
             object wow64CheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = gameperfCheckBox
-              AnchorSideLeft.Side = asrBottom
               Left = 267
               Height = 22
               Hint = 'PROTON_USE_WOW64=1'#10'Enables the modern 64-bit container for 32-bit apps.'
               Top = 10
               Width = 101
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Use WOW64'
               TabOrder = 3
             end
             object disablentsyncCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = gameperfCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = wow64CheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 267
               Height = 22
               Hint = 'PROTON_NO_NTSYNC=1'#10'Disables ntsync (use if game has sync-related bugs).'
               Top = 42
               Width = 122
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Disable NTSYNC'
               TabOrder = 4
             end
             object heapdelayCheckBox: TCheckBox
-          Anchors = []
-              AnchorSideLeft.Control = gameperfCheckBox
-              AnchorSideLeft.Side = asrBottom
-              AnchorSideTop.Control = disablentsyncCheckBox
-              AnchorSideTop.Side = asrBottom
               Left = 267
               Height = 22
               Hint = 'PROTON_HEAP_DELAY_FREE=1'#10'Prevents crashes in games with memory management bugs.'
               Top = 74
               Width = 124
-              BorderSpacing.Left = 20
-              BorderSpacing.Top = 10
               Caption = 'Heap Delay Free'
               TabOrder = 5
             end

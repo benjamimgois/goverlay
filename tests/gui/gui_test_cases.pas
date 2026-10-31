@@ -189,6 +189,7 @@ type
     procedure TestFirstRunSetupDialogUI;
     procedure TestOnDemandTabPlaceholders;
     procedure TestSettingsMenuHasModulesItem;
+    procedure TestOptiscalerToPostProcessingNavigation;
   end;
 
 implementation
@@ -9064,6 +9065,16 @@ procedure TGoverlayGuiTests.TestSettingsMenuHasModulesItem;
 begin
   AssertTrue('FModulesMenuItem is assigned in settings menu', Assigned(goverlayform.FModulesMenuItem));
   AssertEquals('FModulesMenuItem has correct caption', 'Manage Integrations / Modules', goverlayform.FModulesMenuItem.Caption);
+end;
+
+procedure TGoverlayGuiTests.TestOptiscalerToPostProcessingNavigation;
+begin
+  NavigateOptiScalerTab;
+  goverlayform.optiscalerLabelClick(goverlayform.optiscalerLabel);
+  Application.ProcessMessages;
+  goverlayform.vkbasaltLabelClick(goverlayform.vkbasaltLabel);
+  Application.ProcessMessages;
+  AssertTrue('reshadeTabSheet is active', goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
 end;
 
 initialization
