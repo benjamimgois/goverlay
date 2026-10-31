@@ -89,6 +89,7 @@ type
     constructor Create(AForm: Tgoverlayform);
     destructor Destroy; override;
     procedure InitOptiScalerTab;
+    procedure PopulateFsrVersionComboBox;
     procedure ReflowOptiScalerTabNew(AContentW: Integer);
     procedure OsScrollBoxResize(Sender: TObject);
     procedure RefreshOsStatusDots;
@@ -1257,12 +1258,7 @@ begin
     fsrversionComboBox.Anchors := [akLeft, akTop];
     fsrversionComboBox.Parent  := FOsSpatialSec;
     fsrversionComboBox.Visible := True;
-    fsrversionComboBox.Items.Clear;
-    fsrversionComboBox.Items.Add('Latest');
-    fsrversionComboBox.Items.Add('4.1.1b');
-    fsrversionComboBox.Items.Add('4.0.2c');
-    if (fsrversionComboBox.ItemIndex < 0) or (fsrversionComboBox.ItemIndex > 2) then
-      fsrversionComboBox.ItemIndex := 0;
+    PopulateFsrVersionComboBox;
 
     spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
     spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
@@ -2021,6 +2017,137 @@ begin
   end;
 end;
 
+procedure TOptiScalerTabHelper.PopulateFsrVersionComboBox;
+var
+  Combo: TComboBox;
+  SR: TSearchRec;
+  BasePath, PrevText, Tmp, DirName: string;
+  Versions: TStringList;
+  I, J, Idx: Integer;
+
+  function NormalizeChar(C: Char): Char;
+  begin
+    if (C >= 'a') and (C <= 'z') then
+      Result := Chr(Ord(C) - 32)
+    else
+      Result := C;
+  end;
+
+  function CompareVersionDesc(const A, B: string): Integer;
+  var
+    IA, IB, LA, LB, NA, NB: Integer;
+    CA, CB: Char;
+  begin
+    IA := 1;
+    IB := 1;
+    while (IA <= Length(A)) and (IB <= Length(B)) do
+    begin
+      if (A[IA] >= '0') and (A[IA] <= '9') and (B[IB] >= '0') and (B[IB] <= '9') then
+      begin
+        LA := IA;
+        while (LA <= Length(A)) and (A[LA] >= '0') and (A[LA] <= '9') do
+          Inc(LA);
+        LB := IB;
+        while (LB <= Length(B)) and (B[LB] >= '0') and (B[LB] <= '9') do
+          Inc(LB);
+        NA := StrToIntDef(Copy(A, IA, LA - IA), 0);
+        NB := StrToIntDef(Copy(B, IB, LB - IB), 0);
+        if NA <> NB then
+        begin
+          if NA > NB then Result := -1 else Result := 1;
+          Exit;
+        end;
+        IA := LA;
+        IB := LB;
+      end
+      else
+      begin
+        CA := NormalizeChar(A[IA]);
+        CB := NormalizeChar(B[IB]);
+        if CA <> CB then
+        begin
+          if CA > CB then Result := -1 else Result := 1;
+          Exit;
+        end;
+        Inc(IA);
+        Inc(IB);
+      end;
+    end;
+    if IA <= Length(A) then
+      Result := -1
+    else if IB <= Length(B) then
+      Result := 1
+    else
+      Result := 0;
+  end;
+
+begin
+  if (FForm = nil) or (FForm.fsrversionComboBox = nil) then
+    Exit;
+
+  Combo := FForm.fsrversionComboBox;
+  if Combo.ItemIndex >= 0 then
+    PrevText := Combo.Items[Combo.ItemIndex]
+  else
+    PrevText := Combo.Text;
+
+  Versions := TStringList.Create;
+  try
+    BasePath := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+    if DirectoryExists(BasePath) and (FindFirst(BasePath + '*', faDirectory, SR) = 0) then
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
+        begin
+          DirName := SR.Name;
+          if not (SameText(DirName, 'Latest') or SameText(DirName, 'FSR4_LATEST') or
+                  SameText(DirName, 'FSR4_INT8')) then
+            Versions.Add(DirName);
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+
+    for I := 1 to Versions.Count - 1 do
+    begin
+      Tmp := Versions[I];
+      J := I - 1;
+      while (J >= 0) and (CompareVersionDesc(Tmp, Versions[J]) < 0) do
+      begin
+        Versions[J + 1] := Versions[J];
+        Dec(J);
+      end;
+      Versions[J + 1] := Tmp;
+    end;
+
+    Combo.Items.BeginUpdate;
+    try
+      Combo.Items.Clear;
+      Combo.Items.Add('Latest');
+      for I := 0 to Versions.Count - 1 do
+        Combo.Items.Add(Versions[I]);
+      if Versions.Count = 0 then
+      begin
+        Combo.Items.Add('4.1.2');
+        Combo.Items.Add('4.1.1b');
+        Combo.Items.Add('4.0.2c');
+      end;
+    finally
+      Combo.Items.EndUpdate;
+    end;
+  finally
+    Versions.Free;
+  end;
+
+  Idx := -1;
+  if PrevText <> '' then
+    Idx := Combo.Items.IndexOf(PrevText);
+  if Idx < 0 then
+    Idx := 0;
+  Combo.ItemIndex := Idx;
+end;
+
 procedure TOptiScalerTabHelper.RefreshOsStatusDots;
 const
   CLR_OK     = $0044BB44;   // green — library found
@@ -2323,7 +2450,7 @@ begin
     else if IsHelixSrActive then
       MinOptH := 325
     else if IsDlssNrActive then
-      MinOptH := 405;
+      MinOptH := 320;
 
     if Assigned(FOptiMissingBanner) and FOptiMissingBanner.Visible then
     begin
@@ -2519,11 +2646,11 @@ begin
       end;
 
       shortcutkeyLabel.Visible := True;
-      shortcutkeyLabel.SetBounds(10, Y0 + 146, ColW - 20, 16);
+      shortcutkeyLabel.SetBounds(10, Y0 + 142, ColW - 20, 16);
       if Assigned(FOsShortcutCaptureBtn) then
       begin
         FOsShortcutCaptureBtn.Visible := True;
-        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 164, Min(ColW - 20, 120), 26);
+        FOsShortcutCaptureBtn.SetBounds(10, Y0 + 160, Min(ColW - 20, 120), 24);
       end;
 
       if IsDlssNrActive then
@@ -2533,12 +2660,12 @@ begin
         if Assigned(FMainDlssNrToggleLabel) then
         begin
           FMainDlssNrToggleLabel.Visible := True;
-          FMainDlssNrToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
+          FMainDlssNrToggleLabel.SetBounds(10, Y0 + 188, ColW - 20, 16);
         end;
         if Assigned(FMainDlssNrToggleBtn) then
         begin
           FMainDlssNrToggleBtn.Visible := True;
-          FMainDlssNrToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+          FMainDlssNrToggleBtn.SetBounds(10, Y0 + 206, Min(ColW - 20, 120), 24);
         end;
       end
       else
@@ -2548,12 +2675,12 @@ begin
         if Assigned(dlssenablerToggleLabel) then
         begin
           dlssenablerToggleLabel.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
-          dlssenablerToggleLabel.SetBounds(10, Y0 + 196, ColW - 20, 16);
+          dlssenablerToggleLabel.SetBounds(10, Y0 + 188, ColW - 20, 16);
         end;
         if Assigned(dlssenablerToggleBtn) then
         begin
           dlssenablerToggleBtn.Visible := Assigned(dlssenablerRadioButton) and dlssenablerRadioButton.Checked;
-          dlssenablerToggleBtn.SetBounds(10, Y0 + 214, Min(ColW - 20, 120), 26);
+          dlssenablerToggleBtn.SetBounds(10, Y0 + 206, Min(ColW - 20, 120), 24);
         end;
       end;
     end;
@@ -2780,30 +2907,12 @@ begin
           FDlssNrPassesComboBox.SetBounds(10, Y0 + 190, FakeW, 26);
         end;
 
-        // Row 5: Int4 Mixed Precision
-        if Assigned(FDlssNrInt4Toggle) then
-        begin
-          FDlssNrInt4Toggle.Visible := True;
-          FDlssNrInt4Toggle.SetBounds(10, Y0 + 224, FakeW, 20);
-        end;
-
-        // Row 6: Run before SR
-        if Assigned(FDlssNrRunBeforeSrToggle) then
-        begin
-          FDlssNrRunBeforeSrToggle.Visible := True;
-          FDlssNrRunBeforeSrToggle.SetBounds(10, Y0 + 250, FakeW, 20);
-        end;
-
-        // Row 7: Advanced Settings button
-        if Assigned(FDlssNrAdvancedBtn) then
-        begin
-          FDlssNrAdvancedBtn.Visible := True;
-          FDlssNrAdvancedBtn.SetBounds(10, Y0 + 278, FakeW, 26);
-          if CurrentTheme = tmLight then
-            StyleBitBtnTheme(FDlssNrAdvancedBtn, LightTextColor, FOsFakeSec.Color)
-          else
-            StyleBitBtnTheme(FDlssNrAdvancedBtn, clWhite, FOsFakeSec.Color);
-        end;
+        // Int4 mixed Precision, Run before SR, and Advanced Settings are hidden
+        if Assigned(FDlssNrInt4Toggle) then FDlssNrInt4Toggle.Visible := False;
+        if Assigned(FDlssNrInt4CheckBox) then FDlssNrInt4CheckBox.Visible := False;
+        if Assigned(FDlssNrRunBeforeSrToggle) then FDlssNrRunBeforeSrToggle.Visible := False;
+        if Assigned(FDlssNrRunBeforeSrCheckBox) then FDlssNrRunBeforeSrCheckBox.Visible := False;
+        if Assigned(FDlssNrAdvancedBtn) then FDlssNrAdvancedBtn.Visible := False;
       end
       else if IsHelixSrActive then
       begin
@@ -3183,7 +3292,20 @@ begin
       overrideCheckBox.Checked := Settings.OverrideChecked;
       optipatcherCheckBox.Checked := Settings.OptipatcherChecked;
 
-      fsrversionComboBox.ItemIndex := Settings.FsrversionItemIndex;
+      PopulateFsrVersionComboBox;
+      if Settings.FsrVersionName <> '' then
+      begin
+        Idx := fsrversionComboBox.Items.IndexOf(Settings.FsrVersionName);
+        if Idx >= 0 then
+          fsrversionComboBox.ItemIndex := Idx
+        else
+          fsrversionComboBox.ItemIndex := 0;
+      end
+      else if (Settings.FsrversionItemIndex >= 0) and
+              (Settings.FsrversionItemIndex < fsrversionComboBox.Items.Count) then
+        fsrversionComboBox.ItemIndex := Settings.FsrversionItemIndex
+      else
+        fsrversionComboBox.ItemIndex := 0;
       spoofCheckBox.Checked := Settings.SpoofChecked;
 
       forcereflexCheckBox.Checked := Settings.ForceReflexChecked;
@@ -3450,6 +3572,11 @@ begin
     Settings.OverrideChecked := overrideCheckBox.Checked;
     Settings.SpoofChecked := spoofCheckBox.Checked;
     Settings.FsrversionItemIndex := fsrversionComboBox.ItemIndex;
+    if (fsrversionComboBox.ItemIndex >= 0) and
+       (fsrversionComboBox.ItemIndex < fsrversionComboBox.Items.Count) then
+      Settings.FsrVersionName := fsrversionComboBox.Items[fsrversionComboBox.ItemIndex]
+    else
+      Settings.FsrVersionName := Trim(fsrversionComboBox.Text);
     Settings.OptipatcherChecked := optipatcherCheckBox.Checked;
     Settings.OptVersionItemIndex := optversionComboBox.ItemIndex;
     if Assigned(unmanagedIniCheckBox) then

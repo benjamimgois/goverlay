@@ -969,7 +969,9 @@ var
   UpscalerType: Integer;
   NativeDlss: Integer;
   Settings: TOptiScalerSettings;
-  FsrDllSrc: string;
+  FsrDllSrc, FsrSrcDir, FsrVersionName, FsrFileName: string;
+  FsrFiles: TStringList;
+  FsrCopied: Boolean;
   Arch: TRDNAArchitecture;
   ModelsDir, ProxyDllName, FFile: string;
   DlssNrSrcDir, DlssNrDstDir: string;
@@ -1221,28 +1223,65 @@ begin
       ExecuteShellCommand('rm -rf ' + QuotedStr(DlssNrDstDir) + ' 2>/dev/null');
   end;
 
-  // Copy the correct FSR DLL based on the saved version configuration for this game profile
+  // Copy the correct FSR DLLs based on the saved version configuration for this game profile
   if LoadOptiScalerConfig(FForm.FActiveGameName, Settings) then
   begin
-    case Settings.FsrversionItemIndex of
-      1: FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-      2: FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-    else
-      FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-    end;
-
-    // Fallback to Latest if selected alternative DLL is missing
-    if not FileExists(FsrDllSrc) then
-      FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-    // Fallback to cache root if Latest in central FSR4 is missing
-    if not FileExists(FsrDllSrc) then
-      FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_upscaler_dx12.dll';
-
-    if FileExists(FsrDllSrc) then
+    FsrVersionName := Trim(Settings.FsrVersionName);
+    if FsrVersionName = '' then
     begin
-      WriteLn('[BGMOD] CopyOptiScalerGameFiles: Copying correct FSR DLL for FsrversionItemIndex ', Settings.FsrversionItemIndex, ' to ', AGameCfgDir);
-      CopyFile(FsrDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+      case Settings.FsrversionItemIndex of
+        1: FsrVersionName := '4.1.1b';
+        2: FsrVersionName := '4.0.2c';
+      else
+        FsrVersionName := 'Latest';
+      end;
+    end
+    else if SameText(FsrVersionName, '4.0.2c (INT8)') or SameText(FsrVersionName, '4.0.2c INT8') then
+      FsrVersionName := '4.0.2c'
+    else if SameText(FsrVersionName, 'Latest (FP8)') then
+      FsrVersionName := 'Latest';
+
+    // Purge previous FSR DLL variants so multi-DLL builds cannot leave orphans.
+    DeleteFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+    DeleteFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'amdvkffx64.dll');
+    DeleteFile(IncludeTrailingPathDelimiter(AGameCfgDir) + 'amdxcffx64.dll');
+
+    FsrCopied := False;
+    if not SameText(FsrVersionName, 'Latest') then
+    begin
+      FsrSrcDir := IncludeTrailingPathDelimiter(GetFSR4BasePath) + FsrVersionName;
+      if DirectoryExists(FsrSrcDir) then
+      begin
+        FsrFiles := FindAllFiles(FsrSrcDir, '*.dll', False);
+        try
+          for FsrFileName in FsrFiles do
+          begin
+            if CopyFile(FsrFileName,
+                        IncludeTrailingPathDelimiter(AGameCfgDir) + ExtractFileName(FsrFileName)) then
+              FsrCopied := True;
+          end;
+        finally
+          FsrFiles.Free;
+        end;
+      end;
     end;
+
+    if not FsrCopied then
+    begin
+      // Fallback to Latest if selected alternative DLLs are missing
+      FsrDllSrc := IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+      // Fallback to cache root if Latest in central FSR4 is missing
+      if not FileExists(FsrDllSrc) then
+        FsrDllSrc := IncludeTrailingPathDelimiter(CacheDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+
+      if FileExists(FsrDllSrc) then
+      begin
+        WriteLn('[BGMOD] CopyOptiScalerGameFiles: Copying Latest FSR DLL fallback to ', AGameCfgDir);
+        CopyFile(FsrDllSrc, IncludeTrailingPathDelimiter(AGameCfgDir) + 'amd_fidelityfx_upscaler_dx12.dll');
+      end;
+    end
+    else
+      WriteLn('[BGMOD] CopyOptiScalerGameFiles: Copying FSR ', FsrVersionName, ' DLLs to ', AGameCfgDir);
   end;
 end;
 

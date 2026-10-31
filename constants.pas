@@ -88,6 +88,11 @@ const
   // OptiScaler Builds (Stable Channel)
   URL_OPTISCALER_BUILDS_API = 'https://api.github.com/repos/benjamimgois/OptiScaler-builds/tags';
   URL_OPTISCALER_MANIFEST = 'https://raw.githubusercontent.com/benjamimgois/OptiScaler-builds/nightly-action/versions.json';
+  URL_FSR_BUILDS_TARBALL = 'https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-builds-311026/fsr-builds.tar.gz';
+
+  // Official OptiScaler Nightly Repository
+  URL_OPTISCALER_NIGHTLY_RELEASES = 'https://github.com/optiscaler/OptiScaler-nightly/releases';
+  URL_OPTISCALER_NIGHTLY_EXPANDED = 'https://github.com/optiscaler/OptiScaler-nightly/releases/expanded_assets/';
 
   // FakeNvapi
   URL_FAKENVAPI_API = 'https://api.github.com/repos/optiscaler/fakenvapi/releases/latest';

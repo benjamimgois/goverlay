@@ -30,11 +30,15 @@ The system SHALL persist the selected upscaler channel (`OPT_CHANNEL`) in `bgmod
 - **THEN** system restores the "FSR4VK" selection in the channel combobox.
 
 ### Requirement: Software Status In-Card Synchronization with Selected Channel
-The system SHALL refresh the Software Status card version labels (DLSS Enabler and OptiScaler) immediately when the channel combobox selection changes or when loading a game profile, displaying the installed version corresponding to that channel.
+The system SHALL refresh the Software Status card version labels (DLSS Enabler and OptiScaler) immediately when the channel combobox selection changes or when loading a game profile, displaying the installed version corresponding to that channel, and recognizing both `edge-*` and `nightly-*` tags as Bleeding-edge versions.
 
 #### Scenario: Switching channel refreshes in-card version labels
 - **WHEN** user changes the channel combobox between "Stable Channel", "Bleeding-edge", "FSR4VK", and "Custom Build"
 - **THEN** the Software Status card reloads local version manifest files and immediately updates the displayed version labels for the selected channel, suppressing remote update checks when Custom Build is selected.
+
+#### Scenario: Recognizing official nightly version tag
+- **WHEN** the installed OptiScaler version in `optiscaler-edge/goverlay.vars` has tag prefix `nightly-` (e.g., `nightly-20261031`)
+- **THEN** the channel combobox reflects "Bleeding-edge" selection and the Software Status card renders the tag correctly.
 
 ### Requirement: Correct Channel Asset Deployment for DLSS Enabler
 The system SHALL copy DLSS Enabler assets from the cache folder corresponding to the active profile's configured channel (Stable vs Bleeding-edge/Trunk) when deploying game assets.

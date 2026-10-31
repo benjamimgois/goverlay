@@ -257,6 +257,7 @@ var
 begin
   Base := IncludeTrailingPathDelimiter(GetFSR4BasePath);
   ForceDirectories(Base + 'Latest');
+  ForceDirectories(Base + '4.1.2');
   ForceDirectories(Base + '4.1.1b');
   ForceDirectories(Base + '4.0.2c');
 end;

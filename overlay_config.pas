@@ -63,6 +63,7 @@ type
     OverrideChecked: Boolean;
     SpoofChecked: Boolean;
     FsrversionItemIndex: Integer;
+    FsrVersionName: string;
     OptipatcherChecked: Boolean;
     OptVersionItemIndex: Integer;
     
@@ -926,6 +927,9 @@ var
   IsStable: Boolean;
   ConfigConf: string;
   VarsPath, CacheVarsPath, TargetFsrVersion: string;
+  FsrSrcDir, FsrSrcVersion, FsrDestDll, FsrFileName: string;
+  FsrFiles: TStringList;
+  FsrCopied: Boolean;
   VarsList, CacheList: TStringList;
   VarsIdx, SepPos: Integer;
   Key, Value: string;
@@ -1470,14 +1474,19 @@ begin
 
   end;
 
-  // ##### Copy FSR4 DLL based on fsrversion selection #####
-  // NOTE: the FSR library version (4.1 / 4.1.1) is written to goverlay.vars by
-  // the OptiScaler install/update flow (UpdateButtonClick) using the value
-  // fetched from vars.txt (fsrstable/fsredge). The FP8-vs-INT8 DLL choice is
-  // persisted separately in OptiScaler.ini (FsrAgilitySDKUpgrade), so this
-  // routine MUST NOT overwrite the fsrversion key in goverlay.vars — doing so
-  // would clobber the real library version with "Latest"/"4.0.2c (INT8)" and
-  // make the Software status card show the wrong value after a channel install.
+  // ##### Copy FSR4 DLLs based on fsrversion selection #####
+  // Persist by directory name when available; the index is only a legacy fallback.
+  TargetFsrVersion := Trim(Settings.FsrVersionName);
+  if TargetFsrVersion = '' then
+  begin
+    case Settings.FsrversionItemIndex of
+      1: TargetFsrVersion := '4.1.1b';
+      2: TargetFsrVersion := '4.0.2c';
+    else
+      TargetFsrVersion := 'Latest';
+    end;
+  end;
+
   try
     FGModDestPath := ExcludeTrailingPathDelimiter(GetGameConfigDir(Settings.ActiveGameName));
 
@@ -1499,53 +1508,57 @@ begin
     else
       FGModPath := GetBGModOriginalEdgePath;
 
-    case Settings.FsrversionItemIndex of
-      1: // 4.1.1b
-        begin
-          if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-            CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll')
-          else
-          begin
-            WriteLn('[OPTISCALER] Warning: FSR 4.1.1b DLL not found, falling back to Latest');
-            if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-              CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                       IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-          end;
-        end;
+    // Purge previous FSR DLL variants so multi-DLL builds cannot leave orphans.
+    DeleteFile(IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
+    DeleteFile(IncludeTrailingPathDelimiter(FGModDestPath) + 'amdvkffx64.dll');
+    DeleteFile(IncludeTrailingPathDelimiter(FGModDestPath) + 'amdxcffx64.dll');
 
-      2: // 4.0.2c
-        begin
-          if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-            CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                     IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll')
-          else
-          begin
-            WriteLn('[OPTISCALER] Warning: FSR 4.0.2c DLL not found, falling back to Latest');
-            if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-              CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                       IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
-          end;
-        end;
-    else
-      // 0: Latest
+    FsrCopied := False;
+    FsrSrcVersion := TargetFsrVersion;
+    if SameText(FsrSrcVersion, '4.0.2c (INT8)') or SameText(FsrSrcVersion, '4.0.2c INT8') then
+      FsrSrcVersion := '4.0.2c'
+    else if SameText(FsrSrcVersion, 'Latest (FP8)') then
+      FsrSrcVersion := 'Latest';
+
+    if not SameText(FsrSrcVersion, 'Latest') then
+    begin
+      FsrSrcDir := IncludeTrailingPathDelimiter(GetFSR4BasePath) + FsrSrcVersion + PathDelim;
+      if DirectoryExists(FsrSrcDir) then
       begin
-        // Auto-heal Latest if missing from central cache but present in FGModPath
-        if not FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') and
-           FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
-        begin
-          EnsureFSR4Directories;
-          CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-                   IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+        FsrFiles := FindAllFiles(FsrSrcDir, '*.dll', False);
+        try
+          for FsrFileName in FsrFiles do
+          begin
+            FsrDestDll := IncludeTrailingPathDelimiter(FGModDestPath) + ExtractFileName(FsrFileName);
+            if CopyFile(FsrFileName, FsrDestDll) then
+              FsrCopied := True;
+          end;
+        finally
+          FsrFiles.Free;
         end;
-
-        if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-          CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
-                   IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll')
-        else if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
-          CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
-                   IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll');
       end;
+      if not FsrCopied then
+        WriteLn('[OPTISCALER] Warning: FSR ', TargetFsrVersion, ' DLLs not found, falling back to Latest');
+    end;
+
+    if not FsrCopied then
+    begin
+      // Auto-heal Latest if missing from central cache but present in FGModPath
+      if not FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') and
+         FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+      begin
+        EnsureFSR4Directories;
+        CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+                 IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+      end;
+
+      FsrDestDll := IncludeTrailingPathDelimiter(FGModDestPath) + 'amd_fidelityfx_upscaler_dx12.dll';
+      if FileExists(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(GetFSR4BasePath) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll',
+                 FsrDestDll)
+      else if FileExists(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll') then
+        CopyFile(IncludeTrailingPathDelimiter(FGModPath) + 'amd_fidelityfx_upscaler_dx12.dll',
+                 FsrDestDll);
     end;
   except
     on E: Exception do
@@ -1566,13 +1579,21 @@ begin
         VarsList.LoadFromFile(CacheVarsPath);
     end;
 
-    // Determine correct FSR version string to save
-    case Settings.FsrversionItemIndex of
-      1: TargetFsrVersion := '4.1.1b';
-      2: TargetFsrVersion := '4.0.2c';
-    else
+    // Persist the FSR folder name so future versions do not shift indices.
+    TargetFsrVersion := Trim(Settings.FsrVersionName);
+    if TargetFsrVersion = '' then
+    begin
+      case Settings.FsrversionItemIndex of
+        1: TargetFsrVersion := '4.1.1b';
+        2: TargetFsrVersion := '4.0.2c';
+      else
+        TargetFsrVersion := 'Latest';
+      end;
+    end
+    else if SameText(TargetFsrVersion, '4.0.2c (INT8)') or SameText(TargetFsrVersion, '4.0.2c INT8') then
+      TargetFsrVersion := '4.0.2c'
+    else if SameText(TargetFsrVersion, 'Latest (FP8)') then
       TargetFsrVersion := 'Latest';
-    end;
 
     // Update fsrversion in the list
     Found := False;
@@ -1872,6 +1893,7 @@ begin
   Settings.OverrideChecked := False;
   Settings.SpoofChecked := False;
   Settings.FsrversionItemIndex := 0;
+  Settings.FsrVersionName := '';
   Settings.OptipatcherChecked := True;
   Settings.ForceReflexChecked := False;
   Settings.ReflexItemIndex := 0;
@@ -2181,10 +2203,20 @@ begin
           end;
         end;
       end;
-      if (FsrVer = '4.1.1b') then
+      if SameText(FsrVer, '4.0.2c (INT8)') or SameText(FsrVer, '4.0.2c INT8') then
+        FsrVer := '4.0.2c'
+      else if SameText(FsrVer, 'Latest (FP8)') then
+        FsrVer := 'Latest';
+
+      if FsrVer <> '' then
+        Settings.FsrVersionName := FsrVer;
+
+      if SameText(FsrVer, '4.1.2') then
         Settings.FsrversionItemIndex := 1
-      else if (FsrVer = '4.0.2c') or (FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8') then
+      else if SameText(FsrVer, '4.1.1b') then
         Settings.FsrversionItemIndex := 2
+      else if SameText(FsrVer, '4.0.2c') then
+        Settings.FsrversionItemIndex := 3
       else
         Settings.FsrversionItemIndex := 0;
     finally

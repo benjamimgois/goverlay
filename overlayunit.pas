@@ -6014,7 +6014,8 @@ begin
 
     if Pos('custom', LowerCase(OptVer)) > 0 then
       optversionComboBox.ItemIndex := 2
-    else if (Length(OptVer) > 5) and (Copy(OptVer, 1, 5) = 'edge-') then
+    else if ((Length(OptVer) > 5) and (Copy(OptVer, 1, 5) = 'edge-')) or
+            ((Length(OptVer) > 8) and (Copy(OptVer, 1, 8) = 'nightly-')) then
       optversionComboBox.ItemIndex := 1
     else
       optversionComboBox.ItemIndex := 0;

@@ -91,6 +91,7 @@ type
     procedure TestOptiScalerOptionsCardHeightAndNoScroll;
     procedure TestOptiNoneUpscalerHidesOptionsSections;
     procedure TestHelixSRMethodSelectionAndPersistence;
+    procedure TestOptiDlssNrHiddenControls;
     // MangoHud tabs - full control coverage
     procedure TestMangoNavigateAndPreset;
     procedure TestMangoVisualTab;
@@ -1573,10 +1574,20 @@ end;
 
 procedure TGoverlayGuiTests.TestOptiFsrVersionSelector;
 var
-  VarsPath, Content, IniContent: string;
+  VarsPath, Content, IniContent, FsrBase: string;
   SL: TStringList;
+  F: TextFile;
 begin
   SeedOptiScalerFiles;
+
+  // Seed the FSR4 cache directories so the combo is populated from disk in a
+  // deterministic order (Latest, 4.1.2, 4.1.1b, 4.0.2c).
+  FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+  ForceDirectories(FsrBase + 'Latest');
+  ForceDirectories(FsrBase + '4.1.2');
+  ForceDirectories(FsrBase + '4.1.1b');
+  ForceDirectories(FsrBase + '4.0.2c');
+
   NavigateOptiScalerTab;
 
   // 1. Controls existence, visibility, and items
@@ -1584,13 +1595,16 @@ begin
   AssertTrue('fsrversionLabel assigned', Assigned(goverlayform.fsrversionLabel));
   AssertTrue('fsrversionComboBox visible', goverlayform.fsrversionComboBox.Visible);
   AssertTrue('fsrversionLabel visible', goverlayform.fsrversionLabel.Visible);
-  AssertEquals('fsrversionComboBox item count is 3', 3, goverlayform.fsrversionComboBox.Items.Count);
+  AssertEquals('fsrversionComboBox item count is 4', 4, goverlayform.fsrversionComboBox.Items.Count);
   AssertEquals('item 0 is Latest', 'Latest', goverlayform.fsrversionComboBox.Items[0]);
-  AssertEquals('item 1 is 4.1.1b', '4.1.1b', goverlayform.fsrversionComboBox.Items[1]);
-  AssertEquals('item 2 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[2]);
+  AssertEquals('item 1 is 4.1.2', '4.1.2', goverlayform.fsrversionComboBox.Items[1]);
+  AssertEquals('item 2 is 4.1.1b', '4.1.1b', goverlayform.fsrversionComboBox.Items[2]);
+  AssertEquals('item 3 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[3]);
   AssertEquals('default item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 2. Select 4.1.1b (index 1) and test auto-save
+  VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
+
+  // 2. Select 4.1.2 (index 1) and test auto-save
   goverlayform.fsrversionComboBox.ItemIndex := 1;
   goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
   AssertTrue('autoSaveTimer enabled after fsrversionComboBox change', goverlayform.autoSaveTimer.Enabled);
@@ -1600,44 +1614,66 @@ begin
   // Trigger channel change handler to verify combobox stays at index 1 and visible
   if Assigned(goverlayform.optversionComboBox.OnChange) then
     goverlayform.optversionComboBox.OnChange(goverlayform.optversionComboBox);
+  goverlayform.autoSaveTimer.Enabled := False;
   AssertEquals('item index remains 1 after channel switch', 1, goverlayform.fsrversionComboBox.ItemIndex);
   AssertTrue('fsrversionComboBox remains visible after channel switch', goverlayform.fsrversionComboBox.Visible);
 
-  VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
-  if FileExists(VarsPath) then
-  begin
-    Content := ReadFileText(VarsPath);
-    AssertTrue('fsrversion=4.1.1b persisted in goverlay.vars', Pos('fsrversion=4.1.1b', Content) > 0);
-  end;
+  AssertTrue('goverlay.vars exists after auto-save', FileExists(VarsPath));
+  Content := ReadFileText(VarsPath);
+  AssertTrue('fsrversion=4.1.2 persisted in goverlay.vars', Pos('fsrversion=4.1.2', Content) > 0);
+
+  // Seed dummy FSR 4.1.2 DLLs, then save and verify they are deployed.
+  ForceDirectories(FsrBase + '4.1.2');
+  AssignFile(F, FsrBase + '4.1.2' + PathDelim + 'amdvkffx64.dll');
+  Rewrite(F);
+  WriteLn(F, 'dummy amdvkffx64');
+  CloseFile(F);
+  AssignFile(F, FsrBase + '4.1.2' + PathDelim + 'amdxcffx64.dll');
+  Rewrite(F);
+  WriteLn(F, 'dummy amdxcffx64');
+  CloseFile(F);
+
+  SaveOpti;
+  AssertTrue('amdvkffx64.dll copied for 4.1.2',
+    FileExists(IsolatedHome + '/.local/share/goverlay/gameconfig/global/amdvkffx64.dll'));
+  AssertTrue('amdxcffx64.dll copied for 4.1.2',
+    FileExists(IsolatedHome + '/.local/share/goverlay/gameconfig/global/amdxcffx64.dll'));
 
   // Reload tab and verify index 1 restored
   NavigateOptiScalerTab;
-  AssertEquals('reloaded item index is 1 (4.1.1b)', 1, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertEquals('reloaded item index is 1 (4.1.2)', 1, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 3. Select 4.0.2c (index 2) and test auto-save
+  // 3. Select 4.1.1b (index 2) and test auto-save
   goverlayform.fsrversionComboBox.ItemIndex := 2;
+  goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
+  AssertTrue('autoSaveTimer enabled after selecting 4.1.1b', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+  Content := ReadFileText(VarsPath);
+  AssertTrue('fsrversion=4.1.1b persisted in goverlay.vars', Pos('fsrversion=4.1.1b', Content) > 0);
+
+  // Reload tab and verify index 2 restored
+  NavigateOptiScalerTab;
+  AssertEquals('reloaded item index is 2 (4.1.1b)', 2, goverlayform.fsrversionComboBox.ItemIndex);
+
+  // 4. Select 4.0.2c (index 3) and test auto-save
+  goverlayform.fsrversionComboBox.ItemIndex := 3;
   goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
   AssertTrue('autoSaveTimer enabled after selecting 4.0.2c', goverlayform.autoSaveTimer.Enabled);
   goverlayform.autoSaveTimer.Enabled := False;
   goverlayform.TriggerAutoSave;
-  if FileExists(VarsPath) then
-  begin
-    Content := ReadFileText(VarsPath);
-    AssertTrue('fsrversion=4.0.2c persisted in goverlay.vars', Pos('fsrversion=4.0.2c', Content) > 0);
-  end;
+  Content := ReadFileText(VarsPath);
+  AssertTrue('fsrversion=4.0.2c persisted in goverlay.vars', Pos('fsrversion=4.0.2c', Content) > 0);
 
-  // Reload tab and verify index 2 restored
+  // Reload tab and verify index 3 restored
   NavigateOptiScalerTab;
-  AssertEquals('reloaded item index is 2 (4.0.2c)', 2, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertEquals('reloaded item index is 3 (4.0.2c)', 3, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 4. Select Latest (index 0) and Save
+  // 5. Select Latest (index 0) and Save
   goverlayform.fsrversionComboBox.ItemIndex := 0;
   SaveOpti;
-  if FileExists(VarsPath) then
-  begin
-    Content := ReadFileText(VarsPath);
-    AssertTrue('fsrversion=Latest persisted in goverlay.vars', Pos('fsrversion=Latest', Content) > 0);
-  end;
+  Content := ReadFileText(VarsPath);
+  AssertTrue('fsrversion=Latest persisted in goverlay.vars', Pos('fsrversion=Latest', Content) > 0);
   IniContent := ReadFileText(OptiIniPath);
   AssertTrue('FsrAgilitySDKUpgrade=true persisted for Latest', Pos('FsrAgilitySDKUpgrade=true', IniContent) > 0);
 
@@ -1645,19 +1681,16 @@ begin
   NavigateOptiScalerTab;
   AssertEquals('reloaded item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 5. Test backwards compatibility with legacy "4.0.2c INT8"
-  if FileExists(VarsPath) then
-  begin
-    SL := TStringList.Create;
-    try
-      SL.Add('fsrversion=4.0.2c INT8');
-      SL.SaveToFile(VarsPath);
-    finally
-      SL.Free;
-    end;
-    NavigateOptiScalerTab;
-    AssertEquals('legacy 4.0.2c INT8 maps to index 2', 2, goverlayform.fsrversionComboBox.ItemIndex);
+  // 6. Test backwards compatibility with legacy "4.0.2c INT8"
+  SL := TStringList.Create;
+  try
+    SL.Add('fsrversion=4.0.2c INT8');
+    SL.SaveToFile(VarsPath);
+  finally
+    SL.Free;
   end;
+  NavigateOptiScalerTab;
+  AssertEquals('legacy 4.0.2c INT8 maps to index 3', 3, goverlayform.fsrversionComboBox.ItemIndex);
 end;
 
 procedure TGoverlayGuiTests.TestOptiPreferredUpscalerSave;
@@ -3913,6 +3946,60 @@ begin
   AssertFalse('optversionComboBox disabled when None selected', goverlayform.optversionComboBox.Enabled);
   goverlayform.SaveOptiScalerConfig(True);
   AssertEquals('UPSCALER_TYPE in bgmod.conf is 2 for None', '2', ReadBgmodConf('Config', 'UPSCALER_TYPE'));
+end;
+
+procedure TGoverlayGuiTests.TestOptiDlssNrHiddenControls;
+var
+  Helper: TOptiScalerTabHelper;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  Helper := TOptiScalerTabHelper(goverlayform.FOptiScalerHelper);
+
+  // Mock DLSS-NR model as ready so no warning banner is displayed
+  goverlayform.FMockDlssNrModelReady := 1;
+  try
+    // Select DLSS-NR method
+    goverlayform.dlssnrRadioButton.Checked := True;
+    goverlayform.dlssnrRadioButtonClick(goverlayform.dlssnrRadioButton);
+
+    AssertTrue('DLSS-NR radio button is checked', goverlayform.dlssnrRadioButton.Checked);
+    AssertEquals('Sub-card 4 title is DLSS-NR', 'DLSS-NR', goverlayform.FOsFakeLbl.Caption);
+
+    // Visible controls in DLSS-NR method
+    AssertNotNull('DlssNrArchComboBox exists', Helper.DlssNrArchComboBox);
+    AssertTrue('DlssNrArchComboBox is visible', Helper.DlssNrArchComboBox.Visible);
+    AssertNotNull('DlssNrModelVerComboBox exists', Helper.DlssNrModelVerComboBox);
+    AssertTrue('DlssNrModelVerComboBox is visible', Helper.DlssNrModelVerComboBox.Visible);
+    AssertNotNull('DlssNrScaleComboBox exists', Helper.DlssNrScaleComboBox);
+    AssertTrue('DlssNrScaleComboBox is visible', Helper.DlssNrScaleComboBox.Visible);
+    AssertNotNull('DlssNrPassesComboBox exists', Helper.DlssNrPassesComboBox);
+    AssertTrue('DlssNrPassesComboBox is visible', Helper.DlssNrPassesComboBox.Visible);
+
+    // Hidden controls in DLSS-NR method (per UX spec)
+    if Assigned(Helper.DlssNrInt4Toggle) then
+      AssertFalse('Int4 mixed Precision toggle is hidden in DLSS-NR', Helper.DlssNrInt4Toggle.Visible);
+    if Assigned(Helper.DlssNrRunBeforeSrToggle) then
+      AssertFalse('Run before SR toggle is hidden in DLSS-NR', Helper.DlssNrRunBeforeSrToggle.Visible);
+    if Assigned(Helper.DlssNrAdvancedBtn) then
+      AssertFalse('Advanced Settings button is hidden in DLSS-NR', Helper.DlssNrAdvancedBtn.Visible);
+
+    // Height and vertical scrolling check in DLSS-NR method:
+    // Options card height should not force vertical scrolling (reduced from old 405)
+    AssertTrue('FOsOptionsCard height is reduced in DLSS-NR (< 400)', goverlayform.FOsOptionsCard.Height < 400);
+    AssertTrue('FOsBgPanel height does not exceed FOsScrollBox client height in DLSS-NR',
+      goverlayform.FOsBgPanel.Height <= goverlayform.FOsScrollBox.ClientHeight);
+    AssertTrue('FOsStatusCard fits within FOsScrollBox client height without vertical scrolling in DLSS-NR',
+      goverlayform.FOsStatusCard.Top + goverlayform.FOsStatusCard.Height <= goverlayform.FOsScrollBox.ClientHeight);
+
+    // Re-switch to OptiScaler
+    goverlayform.optiscalerRadioButton.Checked := True;
+    goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  finally
+    goverlayform.FMockDlssNrModelReady := -1;
+    goverlayform.UpdateToolMissingDependencyBanners;
+  end;
 end;
 
 // ────────────────────────── MangoHud tabs - full coverage ──────────────────────────

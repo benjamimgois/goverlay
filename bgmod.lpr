@@ -1782,8 +1782,17 @@ end;
 // the correct FSR DLL in ConfigDir based on the saved fsrversion value.
 // This ensures the subsequent copy to GameDir picks the right DLL.
 procedure RestoreFsrDllInConfigDir(const AConfigDir, ASourceDir: string);
+const
+  FSR_DLL_VARIANTS: array[0..2] of string = (
+    'amd_fidelityfx_upscaler_dx12.dll',
+    'amdvkffx64.dll',
+    'amdxcffx64.dll'
+  );
 var
-  FsrVer, SrcDll, DestDll, FsrBase: string;
+  FsrVer, SrcDll, DestDll, FsrBase, FsrSrcDir, FileName: string;
+  SR: TSearchRec;
+  I: Integer;
+  Copied: Boolean;
 begin
   FsrVer := ReadVarFromFile(IncludeTrailingPathDelimiter(AConfigDir) + 'goverlay.vars', 'fsrversion');
   if FsrVer = '' then Exit;
@@ -1792,30 +1801,60 @@ begin
   if not DirectoryExists(FsrBase) then
     FsrBase := IncludeTrailingPathDelimiter(ExtractFilePath(ExcludeTrailingPathDelimiter(ASourceDir))) + 'FSR4';
 
-  if FsrVer = '4.1.1b' then
-    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
-  else if (FsrVer = '4.0.2c') or (FsrVer = '4.0.2c INT8') or (FsrVer = '4.0.2c (INT8)') then
-    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
-  else if (FsrVer = 'Latest') or (FsrVer = 'Latest (FP8)') then
-    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll'
-  else
-    Exit;
-
-  // Fallbacks if target version DLL is not present
-  if not FileExists(SrcDll) then
-    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-  if not FileExists(SrcDll) then
-    SrcDll := IncludeTrailingPathDelimiter(ASourceDir) + 'amd_fidelityfx_upscaler_dx12.dll';
-
-  DestDll := IncludeTrailingPathDelimiter(AConfigDir) + 'amd_fidelityfx_upscaler_dx12.dll';
-  if FileExists(SrcDll) then
+  // Purge previous FSR DLL variants so switching builds cannot leave orphans.
+  for I := 0 to High(FSR_DLL_VARIANTS) do
   begin
-    Log('Restoring FSR4 ' + FsrVer + ' DLL in config dir after sync.');
-    if FileExists(DestDll) then DeleteFile(DestDll);
-    CopyFile(SrcDll, DestDll);
+    DestDll := IncludeTrailingPathDelimiter(AConfigDir) + FSR_DLL_VARIANTS[I];
+    if FileExists(DestDll) then
+      DeleteFile(DestDll);
+  end;
+
+  Copied := False;
+  if (FsrVer <> 'Latest') and (FsrVer <> 'Latest (FP8)') then
+  begin
+    FsrSrcDir := IncludeTrailingPathDelimiter(FsrBase) + FsrVer;
+    if SameText(FsrVer, '4.0.2c INT8') or SameText(FsrVer, '4.0.2c (INT8)') then
+      FsrSrcDir := IncludeTrailingPathDelimiter(FsrBase) + '4.0.2c';
+
+    if DirectoryExists(FsrSrcDir) then
+    begin
+      if FindFirst(IncludeTrailingPathDelimiter(FsrSrcDir) + '*.dll', faAnyFile, SR) = 0 then
+      try
+        repeat
+          if (SR.Attr and faDirectory) = 0 then
+          begin
+            FileName := SR.Name;
+            if CopyFile(IncludeTrailingPathDelimiter(FsrSrcDir) + FileName,
+                        IncludeTrailingPathDelimiter(AConfigDir) + FileName) then
+              Copied := True;
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+  end;
+
+  if not Copied then
+  begin
+    // Fall back to Latest, then to the OptiScaler cache root.
+    SrcDll := IncludeTrailingPathDelimiter(FsrBase) + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
+    if not FileExists(SrcDll) then
+      SrcDll := IncludeTrailingPathDelimiter(ASourceDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+
+    DestDll := IncludeTrailingPathDelimiter(AConfigDir) + 'amd_fidelityfx_upscaler_dx12.dll';
+    if FileExists(SrcDll) then
+    begin
+      Log('Restoring Latest FSR4 DLL in config dir after sync.');
+      CopyFile(SrcDll, DestDll);
+    end
+    else
+      Log('Warning: FSR4 DLL not found at: ' + SrcDll);
   end
   else
-    Log('Warning: FSR4 DLL not found at: ' + SrcDll);
+  begin
+    Log('Restoring FSR4 ' + FsrVer + ' DLLs in config dir after sync.');
+  end;
 end;
 
 procedure PreserveFileTimestamp(const Src, Dest: string);

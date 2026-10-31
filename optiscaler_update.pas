@@ -17,7 +17,7 @@ type
 // Returns True if OptiScaler is installed (or was successfully installed)
 function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
-// Check and automatically install/heal central FSR4 libraries (Latest, 4.1.1b, 4.0.2c)
+// Check and automatically install/heal central FSR4 runtime builds (Latest, 4.1.2, 4.1.1b, 4.0.2c)
 function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 // Fetch the latest HelixSR release (lonewolf0622/HelixSR) tag and .zip asset URL
@@ -692,7 +692,8 @@ begin
         if (Length(NormCurrent) > 7) and (Copy(NormCurrent, 1, 7) = 'stable.') then
           NormCurrent := Copy(NormCurrent, 8, MaxInt);
 
-        CurrentIsEdge := (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-');
+        CurrentIsEdge := ((Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-')) or
+                         ((Length(CurrentVersion) > 8) and (Copy(CurrentVersion, 1, 8) = 'nightly-'));
         if FIsStableChannel then
           IsCrossChannel := CurrentIsEdge
         else
@@ -1275,9 +1276,108 @@ end;
 
 function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
 var
+  Process: TProcess;
+  OutputList: TStringList;
+  Response, TmpFile, NightlyTag, AssetHref, FullURL: string;
+  TagPos, QuotePos, HrefPos: Integer;
   StableVer, StableURL, EdgeVer, EdgeURL: string;
 begin
   Result := '';
+
+  // 1. Return cached version if already fetched
+  if (FOptiEdgeVersion <> '') and (FOptiEdgeURL <> '') then
+  begin
+    Result := FOptiEdgeVersion;
+    Exit;
+  end;
+
+  // 2. Fetch latest official nightly from optiscaler/OptiScaler-nightly via HTML scraping
+  Process := TProcess.Create(nil);
+  OutputList := TStringList.Create;
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_optiscaler_nightly.html';
+  try
+    try
+      Process.Executable := 'curl';
+      Process.Parameters.Add('-sL');
+      Process.Parameters.Add('-H');
+      Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
+      Process.Parameters.Add('-o');
+      Process.Parameters.Add(TmpFile);
+      Process.Parameters.Add(URL_OPTISCALER_NIGHTLY_RELEASES);
+      Process.Options := [poWaitOnExit];
+      Process.Execute;
+
+      if FileExists(TmpFile) then
+      begin
+        OutputList.LoadFromFile(TmpFile);
+        Response := OutputList.Text;
+        DeleteFile(TmpFile);
+      end;
+
+      TagPos := Pos('releases/tag/nightly-', Response);
+      if TagPos > 0 then
+      begin
+        TagPos := TagPos + Length('releases/tag/');
+        QuotePos := PosEx('"', Response, TagPos);
+        if QuotePos = 0 then
+          QuotePos := PosEx('''', Response, TagPos);
+        if QuotePos = 0 then
+          QuotePos := PosEx('/', Response, TagPos);
+
+        if QuotePos > TagPos then
+        begin
+          NightlyTag := Trim(Copy(Response, TagPos, QuotePos - TagPos));
+          WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Found official nightly tag: ', NightlyTag);
+
+          // Fetch expanded assets for this nightly tag
+          TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_optiscaler_nightly_assets.html';
+          Process.Parameters.Clear;
+          Process.Parameters.Add('-sL');
+          Process.Parameters.Add('-H');
+          Process.Parameters.Add('User-Agent: ' + HTTP_USER_AGENT);
+          Process.Parameters.Add('-o');
+          Process.Parameters.Add(TmpFile);
+          Process.Parameters.Add(URL_OPTISCALER_NIGHTLY_EXPANDED + NightlyTag);
+          Process.Execute;
+
+          if FileExists(TmpFile) then
+          begin
+            OutputList.Clear;
+            OutputList.LoadFromFile(TmpFile);
+            Response := OutputList.Text;
+            DeleteFile(TmpFile);
+          end;
+
+          HrefPos := Pos('/optiscaler/OptiScaler-nightly/releases/download/', Response);
+          if HrefPos > 0 then
+          begin
+            QuotePos := PosEx('"', Response, HrefPos);
+            if QuotePos > HrefPos then
+            begin
+              AssetHref := Copy(Response, HrefPos, QuotePos - HrefPos);
+              if Pos('.7z', AssetHref) > 0 then
+              begin
+                FullURL := 'https://github.com' + AssetHref;
+                FOptiEdgeVersion := NightlyTag;
+                FOptiEdgeURL := FullURL;
+                Result := NightlyTag;
+                WriteLn('[DEBUG] GetOptiScalerPreReleaseTag: Resolved official nightly download URL: ', FullURL);
+                Exit;
+              end;
+            end;
+          end;
+        end;
+      end;
+    except
+      on E: Exception do
+        WriteLn('[WARN] GetOptiScalerPreReleaseTag: Failed to scrape official nightly: ', E.Message);
+    end;
+  finally
+    OutputList.Free;
+    Process.Free;
+  end;
+
+  // 3. Fallback: query versions.json manifest
   if FetchManifest(ASilent, StableVer, StableURL, EdgeVer, EdgeURL) then
   begin
     FOptiStableVersion := StableVer;
@@ -1417,12 +1517,13 @@ begin
 
       // Use curl to download file with progress
       Process.Executable := 'curl';
+      Process.Parameters.Add('-f');  // Fail silently on server errors (HTTP >= 400)
       Process.Parameters.Add('-L');  // Follow redirects
       Process.Parameters.Add('-#');  // Show progress bar
       Process.Parameters.Add('-o');
       Process.Parameters.Add(ADestFile);
       Process.Parameters.Add('-A');  // User agent
-      Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
+      Process.Parameters.Add(HTTP_USER_AGENT);
       Process.Parameters.Add(AURL);
       // Don't use poWaitOnExit - we'll wait manually while processing UI events
       Process.Options := [poUsePipes];
@@ -1687,10 +1788,9 @@ begin
     try
       WriteLn('[DEBUG] FetchFakeNvapiLatest: Fetching from ', URL_FAKENVAPI_API);
       Process.Executable := 'curl';
-      Process.Parameters.Add('-s');
-      Process.Parameters.Add('-L');
+      Process.Parameters.Add('-fsL');
       Process.Parameters.Add('-A');
-      Process.Parameters.Add('Goverlay/1.6 (Linux; Flatpak-compatible)');
+      Process.Parameters.Add(HTTP_USER_AGENT);
       Process.Parameters.Add(URL_FAKENVAPI_API);
       Process.Options := [poWaitOnExit, poUsePipes];
       Process.Execute;
@@ -1735,7 +1835,7 @@ begin
     begin
       WriteLn('[DEBUG] FetchFakeNvapiLatest: Using direct release URL fallback (bypassing GitHub API rate limit)');
       ATag := 'v1.4.1';
-      AURL := 'https://github.com/optiscaler/fakenvapi/releases/latest/download/fakenvapi.7z';
+      AURL := 'https://github.com/optiscaler/fakenvapi/releases/download/v1.4.1/fakenvapi-v1.4.1.7z';
       Result := True;
     end;
   finally
@@ -2603,7 +2703,8 @@ begin
             FOptVersionComboBox.ItemIndex := 2;
             WriteLn('[DEBUG] InitializeTab: Detected custom version, set ComboBox to index 2');
           end
-          else if (Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-') then
+          else if ((Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-')) or
+                  ((Length(CurrentVersion) > 8) and (Copy(CurrentVersion, 1, 8) = 'nightly-')) then
           begin
             FOptVersionComboBox.ItemIndex := 1;
             WriteLn('[DEBUG] InitializeTab: Detected bleeding-edge version, set ComboBox to index 1');
@@ -2964,10 +3065,25 @@ begin
                         IncludeTrailingPathDelimiter(OrigPath) + 'dlssg_to_fsr3_amd_is_better.dll') then
       WriteLn('[WARN] UpdateButtonClick: Failed to download dlssg_to_fsr3_amd_is_better.dll, continuing...');
 
-    // Fetch and download/extract latest FakeNVAPI
-    UpdateStatus('Downloading FakeNVAPI');
+    // Resolve FakeNVAPI: Check if already present in extracted archive, or inherit from stable cache, or download
+    UpdateStatus('Setting up FakeNVAPI');
     FakeNvapiVerClean := '';
-    if FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
+    if FileExists(IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: FakeNVAPI already bundled in extracted archive');
+      FakeNvapiVerClean := '1.4.1';
+    end
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll') then
+    begin
+      WriteLn('[DEBUG] UpdateButtonClick: Inheriting FakeNVAPI from stable cache...');
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll',
+               IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.dll');
+      if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini',
+                 IncludeTrailingPathDelimiter(OrigPath) + 'fakenvapi.ini');
+      FakeNvapiVerClean := '1.4.1';
+    end
+    else if FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
     begin
       WriteLn('[DEBUG] UpdateButtonClick: Found FakeNVAPI tag: ', FakeNvapiTag);
       Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest.7z';
@@ -4175,30 +4291,61 @@ end;
 
 function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
-  BaseDir, LatestPath, Ver411bPath, Ver402cPath, OrigDll: string;
-  AllPresent: Boolean;
+  BaseDir, LatestPath, OrigDll, TempTar: string;
+  AllDirsPresent: Boolean;
   ExitCode: Integer;
 begin
   Result := True;
   BaseDir := IncludeTrailingPathDelimiter(GetFSR4BasePath);
-  EnsureFSR4Directories;
 
   LatestPath := BaseDir + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-  Ver411bPath := BaseDir + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
-  Ver402cPath := BaseDir + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
 
-  AllPresent := FileExists(LatestPath) and FileExists(Ver411bPath) and FileExists(Ver402cPath);
+  AllDirsPresent := DirectoryExists(BaseDir + 'Latest') and
+    DirectoryExists(BaseDir + '4.1.2') and
+    DirectoryExists(BaseDir + '4.1.1b') and
+    DirectoryExists(BaseDir + '4.0.2c');
 
-  if not AForce and AllPresent then
+  if AForce or not AllDirsPresent then
   begin
-    WriteLn('[FSR4] All FSR4 libraries are present in ', BaseDir);
-    Exit(True);
-  end;
+    WriteLn('[FSR4] Verifying and downloading FSR runtime builds...');
 
-  WriteLn('[FSR4] Verifying and downloading FSR4 libraries...');
+    TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'fsr-builds.tar.gz';
+    if Assigned(AOnProgress) then
+      AOnProgress(35, 'Downloading FSR builds');
 
-  // 1. Latest: copy from OptiScaler stable cache if missing
-  if AForce or not FileExists(LatestPath) then
+    ExitCode := RunCurlWithProgress(
+      URL_FSR_BUILDS_TARBALL, TempTar, 35, 48, 'Downloading FSR builds', AOnProgress);
+
+    if (ExitCode = 0) and FileExists(TempTar) then
+    begin
+      if ExtractTarArchive(TempTar, BaseDir, 1) then
+        WriteLn('[FSR4] Extracted FSR runtime builds to ', BaseDir)
+      else
+      begin
+        WriteLn('[FSR4] Failed to extract FSR runtime builds');
+        if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('FSR4 runtime builds') = -1) then
+          AFailedFiles.Add('FSR4 runtime builds');
+        Result := False;
+      end;
+    end
+    else
+    begin
+      WriteLn('[FSR4] Failed to download FSR runtime builds');
+      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('FSR4 runtime builds') = -1) then
+        AFailedFiles.Add('FSR4 runtime builds');
+      Result := False;
+    end;
+
+    if FileExists(TempTar) then
+      DeleteFile(TempTar);
+  end
+  else
+    WriteLn('[FSR4] All FSR4 runtime directories are present in ', BaseDir);
+
+  EnsureFSR4Directories;
+
+  // Ensure Latest: copy from OptiScaler stable cache if missing
+  if not FileExists(LatestPath) then
   begin
     OrigDll := IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'amd_fidelityfx_upscaler_dx12.dll';
     if FileExists(OrigDll) then
@@ -4213,44 +4360,6 @@ begin
         AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
       Result := False;
     end;
-  end;
-
-  // 2. FSR 4.1.1b
-  if AForce or not FileExists(Ver411bPath) then
-  begin
-    if Assigned(AOnProgress) then
-      AOnProgress(35, 'Downloading FSR 4.1.1b');
-    ExitCode := RunCurlWithProgress(
-      'https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
-      Ver411bPath, 35, 42, 'Downloading FSR 4.1.1b', AOnProgress);
-    if (ExitCode <> 0) or not FileExists(Ver411bPath) then
-    begin
-      WriteLn('[FSR4] Failed to download FSR 4.1.1b');
-      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)') = -1) then
-        AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
-      Result := False;
-    end
-    else
-      WriteLn('[FSR4] Successfully downloaded FSR 4.1.1b');
-  end;
-
-  // 3. FSR 4.0.2c
-  if AForce or not FileExists(Ver402cPath) then
-  begin
-    if Assigned(AOnProgress) then
-      AOnProgress(43, 'Downloading FSR 4.0.2c');
-    ExitCode := RunCurlWithProgress(
-      'https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-      Ver402cPath, 43, 50, 'Downloading FSR 4.0.2c', AOnProgress);
-    if (ExitCode <> 0) or not FileExists(Ver402cPath) then
-    begin
-      WriteLn('[FSR4] Failed to download FSR 4.0.2c');
-      if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)') = -1) then
-        AFailedFiles.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
-      Result := False;
-    end
-    else
-      WriteLn('[FSR4] Successfully downloaded FSR 4.0.2c');
   end;
 
   // Clean up legacy directories if present
@@ -5460,13 +5569,12 @@ begin
     if not FileExists(OptiDir + 'fakenvapi.dll') then
       AMissingList.Add('fakenvapi.dll');
 
-    // FSR4 central directory DLLs
-    if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR4 Latest)');
-    if not FileExists(FsrBase + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.1.1b)');
-    if not FileExists(FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      AMissingList.Add('amd_fidelityfx_upscaler_dx12.dll (FSR 4.0.2c)');
+    // FSR4 central runtime builds
+    if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') or
+       not DirectoryExists(FsrBase + '4.1.2') or
+       not DirectoryExists(FsrBase + '4.1.1b') or
+       not DirectoryExists(FsrBase + '4.0.2c') then
+      AMissingList.Add('FSR4 runtime builds');
 
     // OptiPatcher ASI plugin (OptiScaler)
     if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
@@ -5905,38 +6013,50 @@ begin
     // 3. Check & heal FakeNVAPI
     if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
     begin
-      WriteLn('[AUTO-INSTALL] Self-healing: downloading missing FakeNVAPI...');
-      try
-        OptiscalerTabTemp := TOptiscalerTab.Create;
+      if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll') then
+      begin
+        WriteLn('[AUTO-INSTALL] Self-healing: inheriting FakeNVAPI from stable cache...');
+        CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll',
+                 IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll');
+        if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') then
+          CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini',
+                   IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.ini');
+      end
+      else
+      begin
+        WriteLn('[AUTO-INSTALL] Self-healing: downloading missing FakeNVAPI...');
         try
-          UserDir := GetUserDir;
-          if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
-          begin
-            Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
-            ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ' (fakenvapi)', AOnProgress);
-            if (ExitCode = 0) and FileExists(Fake7zPath) then
+          OptiscalerTabTemp := TOptiscalerTab.Create;
+          try
+            UserDir := GetUserDir;
+            if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
             begin
-              Process := TProcess.Create(nil);
-              try
-                Process.Executable := '7z';
-                Process.Parameters.Add('x');
-                Process.Parameters.Add('-y');
-                Process.Parameters.Add('-o' + TargetCacheDir);
-                Process.Parameters.Add(Fake7zPath);
-                Process.Options := [poWaitOnExit];
-                Process.Execute;
-              finally
-                Process.Free;
+              Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
+              ExitCode := RunCurlWithProgress(FakeNvapiURL, Fake7zPath, StartPct + 23, StartPct + 24, ChanLabel + ' (fakenvapi)', AOnProgress);
+              if (ExitCode = 0) and FileExists(Fake7zPath) then
+              begin
+                Process := TProcess.Create(nil);
+                try
+                  Process.Executable := '7z';
+                  Process.Parameters.Add('x');
+                  Process.Parameters.Add('-y');
+                  Process.Parameters.Add('-o' + TargetCacheDir);
+                  Process.Parameters.Add(Fake7zPath);
+                  Process.Options := [poWaitOnExit];
+                  Process.Execute;
+                finally
+                  Process.Free;
+                end;
+                DeleteFile(Fake7zPath);
               end;
-              DeleteFile(Fake7zPath);
             end;
+          finally
+            OptiscalerTabTemp.Free;
           end;
-        finally
-          OptiscalerTabTemp.Free;
+        except
+          on E: Exception do
+            WriteLn('[AUTO-INSTALL] WARN: Self-healing FakeNVAPI failed: ', E.Message);
         end;
-      except
-        on E: Exception do
-          WriteLn('[AUTO-INSTALL] WARN: Self-healing FakeNVAPI failed: ', E.Message);
       end;
       if not FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
         if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('fakenvapi.dll') = -1) then
@@ -6104,10 +6224,25 @@ begin
       if Assigned(AFailedFiles) and (AFailedFiles.IndexOf('dlssg_to_fsr3_amd_is_better.dll') = -1) then
         AFailedFiles.Add('dlssg_to_fsr3_amd_is_better.dll');
 
-    // Fetch and download/extract latest FakeNVAPI
-    WriteLn('[AUTO-INSTALL] Downloading FakeNVAPI...');
+    // Setup FakeNVAPI: check if bundled, inherit from stable cache, or download
+    WriteLn('[AUTO-INSTALL] Setting up FakeNVAPI...');
     FakeNvapiVerClean := '';
-    if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
+    if FileExists(IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] FakeNVAPI already bundled in extracted archive');
+      FakeNvapiVerClean := '1.4.1';
+    end
+    else if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll') then
+    begin
+      WriteLn('[AUTO-INSTALL] Inheriting FakeNVAPI from stable cache...');
+      CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.dll',
+               IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.dll');
+      if FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini') then
+        CopyFile(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'fakenvapi.ini',
+                 IncludeTrailingPathDelimiter(TargetCacheDir) + 'fakenvapi.ini');
+      FakeNvapiVerClean := '1.4.1';
+    end
+    else if OptiscalerTabTemp.FetchFakeNvapiLatest(FakeNvapiTag, FakeNvapiURL) then
     begin
       WriteLn('[AUTO-INSTALL] Found FakeNVAPI tag: ', FakeNvapiTag);
       Fake7zPath := IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi-latest-auto.7z';
