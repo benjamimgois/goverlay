@@ -1112,6 +1112,7 @@ begin
 
   // Setup: ReShade is active and OptiScaler is active
   Helper.SelectMethod(rmReshade);
+  goverlayform.FNavToolEnabled[1] := True;
   goverlayform.FNavToolEnabled[2] := True;
   goverlayform.noneUpscalerRadioButton.Checked := False;
   goverlayform.optiscalerRadioButton.Checked := True;
@@ -1195,7 +1196,27 @@ begin
   AssertEquals('ReShade accepts dxgi.dll without conflict prompt when OptiScaler disabled', 0, Helper.ProxyComboBox.ItemIndex);
   AssertFalse('OptiScaler remains inactive', goverlayform.IsOptiScalerActive);
 
-  // Restore state to avoid leaking OptiScaler active into subsequent tests
+  // --- Scenario 8: Post processing master toggle is disabled (FNavToolEnabled[1] = False) ---
+  // OptiScaler / HelixSR selects dxgi.dll without warning toast or being redirected to version.dll
+  Helper.ProxyComboBox.ItemIndex := 0; // ReShade configured with dxgi.dll
+  Helper.PreviousProxyIndex := 0;
+  goverlayform.FNavToolEnabled[1] := False; // Post processing toggle OFF
+  AssertFalse('IsReshadeActive returns False when Post processing toggle is disabled', goverlayform.IsReshadeActive);
+
+  goverlayform.FNavToolEnabled[2] := True; // Upscalers toggle ON
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertEquals('OptiScaler defaults to dxgi.dll (not version.dll) when Post processing is OFF',
+    goverlayform.filenameComboBox.Items.IndexOf('dxgi.dll'), goverlayform.filenameComboBox.ItemIndex);
+
+  if Assigned(goverlayform.helixsrRadioButton) then
+  begin
+    goverlayform.helixsrRadioButtonClick(goverlayform.helixsrRadioButton);
+    AssertEquals('HelixSR defaults to dxgi.dll (not version.dll) when Post processing is OFF',
+      goverlayform.filenameComboBox.Items.IndexOf('dxgi.dll'), goverlayform.filenameComboBox.ItemIndex);
+  end;
+
+  // Restore state to avoid leaking active flags into subsequent tests
+  goverlayform.FNavToolEnabled[1] := True;
   if Assigned(goverlayform.noneUpscalerRadioButton) then
     goverlayform.noneUpscalerRadioButton.Checked := True;
   if Assigned(goverlayform.optiscalerRadioButton) then

@@ -4530,12 +4530,16 @@ begin
 
   // Synchronize companion libraries from the stable OptiScaler cache so that
   // even if the upstream archive lacks optiscaler/OptiScaler.dll it is populated.
+  // If the dedicated helixsr-scaler/OptiScaler.dll is present, prefer it over the generic cache.
   StableDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
   if DirectoryExists(StableDir) then
   begin
     ForceDirectories(TargetDir + 'optiscaler');
-    if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and FileExists(StableDir + 'OptiScaler.dll') then
+    if FileExists(TargetDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll') then
+      CopyFile(TargetDir + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll', TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll')
+    else if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') and FileExists(StableDir + 'OptiScaler.dll') then
       CopyFile(StableDir + 'OptiScaler.dll', TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll');
+
     if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll') and FileExists(StableDir + 'fakenvapi.dll') then
       CopyFile(StableDir + 'fakenvapi.dll', TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.dll');
     if not FileExists(TargetDir + 'optiscaler' + PathDelim + 'fakenvapi.ini') and FileExists(StableDir + 'fakenvapi.ini') then

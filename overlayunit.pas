@@ -7341,6 +7341,7 @@ end;
 function Tgoverlayform.IsOptiScalerActive: Boolean;
 begin
   Result := FNavToolEnabled[2] and
+            TConfigManager.IsModuleEnabled(MODULE_UPSCALERS) and
             Assigned(noneUpscalerRadioButton) and
             not noneUpscalerRadioButton.Checked;
 end;
@@ -7355,7 +7356,10 @@ end;
 
 function Tgoverlayform.IsReshadeActive: Boolean;
 begin
-  Result := Assigned(FReshadeHelper) and (TReshadeTabHelper(FReshadeHelper).SelectedMethod = rmReshade);
+  Result := FNavToolEnabled[1] and
+            TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING) and
+            Assigned(FReshadeHelper) and
+            (TReshadeTabHelper(FReshadeHelper).SelectedMethod = rmReshade);
 end;
 
 function Tgoverlayform.GetReshadeProxyDll: string;
