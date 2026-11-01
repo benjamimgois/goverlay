@@ -102,6 +102,12 @@ function IsOptiPatcherUpdateAvailable: Boolean;
 // Import a custom OptiScaler build from a local directory
 function ImportCustomOptiScalerBuild(const ASourceDir: string; out AErrorMsg: string): Boolean;
 
+// Import a custom FSR build from a local DLL file or directory
+function ImportCustomFsrBuild(const ASourcePath, AVersionName: string; out AErrorMsg: string): Boolean;
+
+// Prompt user to select FSR build and version name, then import
+function SelectAndImportCustomFsrBuild(out AImportedVersion: string): Boolean;
+
 // Check and automatically install DLSS Enabler if not present
 function CheckAndInstallDlssEnabler(AIsStable: Boolean = True; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
@@ -2171,6 +2177,144 @@ begin
     end;
   finally
     DirDlg.Free;
+  end;
+end;
+
+function ImportCustomFsrBuild(const ASourcePath, AVersionName: string; out AErrorMsg: string): Boolean;
+var
+  CleanSrc, CleanVer, TargetDir, TargetFile, DllPath, DllExt: string;
+  FoundFiles: TStringList;
+  I: Integer;
+begin
+  Result := False;
+  AErrorMsg := '';
+  CleanVer := Trim(AVersionName);
+  CleanSrc := Trim(ASourcePath);
+
+  // 1. Validate version name
+  if CleanVer = '' then
+  begin
+    AErrorMsg := 'Version name cannot be empty.';
+    Exit;
+  end;
+
+  if SameText(CleanVer, 'Latest') or SameText(CleanVer, 'FSR4_LATEST') or SameText(CleanVer, 'FSR4_INT8') then
+  begin
+    AErrorMsg := 'Version name "' + CleanVer + '" is reserved.';
+    Exit;
+  end;
+
+  if (Pos('/', CleanVer) > 0) or (Pos('\', CleanVer) > 0) or (Pos('..', CleanVer) > 0) or (Pos(':', CleanVer) > 0) then
+  begin
+    AErrorMsg := 'Version name contains invalid path characters.';
+    Exit;
+  end;
+
+  // 2. Validate source path
+  if (CleanSrc = '') or (not FileExists(CleanSrc) and not DirectoryExists(CleanSrc)) then
+  begin
+    AErrorMsg := 'The selected file or folder does not exist: ' + CleanSrc;
+    Exit;
+  end;
+
+  TargetDir := IncludeTrailingPathDelimiter(GetFSR4BasePath) + CleanVer + PathDelim;
+  if not ForceDirectories(TargetDir) then
+  begin
+    AErrorMsg := 'Failed to create target directory: ' + TargetDir;
+    Exit;
+  end;
+
+  // 3. Process source
+  if FileExists(CleanSrc) then
+  begin
+    DllExt := ExtractFileExt(CleanSrc);
+    if not SameText(DllExt, '.dll') then
+    begin
+      AErrorMsg := 'The selected file must be a .dll library.';
+      Exit;
+    end;
+
+    if SameText(ExtractFileName(CleanSrc), 'amd_fidelityfx_upscaler_dx12.dll') or
+       SameText(ExtractFileName(CleanSrc), 'amdvkffx64.dll') or
+       SameText(ExtractFileName(CleanSrc), 'amdxcffx64.dll') then
+      TargetFile := TargetDir + ExtractFileName(CleanSrc)
+    else
+      TargetFile := TargetDir + 'amd_fidelityfx_upscaler_dx12.dll'; // normalize single DLL
+
+    if not CopyFile(CleanSrc, TargetFile) then
+    begin
+      AErrorMsg := 'Failed to copy ' + ExtractFileName(CleanSrc) + ' to ' + TargetDir;
+      Exit;
+    end;
+    Result := True;
+  end
+  else if DirectoryExists(CleanSrc) then
+  begin
+    FoundFiles := FindAllFiles(CleanSrc, '*.dll', False);
+    try
+      if (FoundFiles = nil) or (FoundFiles.Count = 0) then
+      begin
+        AErrorMsg := 'The selected folder does not contain any .dll files.';
+        Exit;
+      end;
+      for I := 0 to FoundFiles.Count - 1 do
+      begin
+        DllPath := FoundFiles[I];
+        TargetFile := TargetDir + ExtractFileName(DllPath);
+        if not CopyFile(DllPath, TargetFile) then
+        begin
+          AErrorMsg := 'Failed to copy ' + ExtractFileName(DllPath) + ' to ' + TargetDir;
+          Exit;
+        end;
+      end;
+      Result := True;
+    finally
+      if Assigned(FoundFiles) then
+        FoundFiles.Free;
+    end;
+  end;
+end;
+
+function SelectAndImportCustomFsrBuild(out AImportedVersion: string): Boolean;
+var
+  OpenDlg: TOpenDialog;
+  VerName, DefaultName, ErrMsg: string;
+begin
+  Result := False;
+  AImportedVersion := '';
+
+  // Test mode: never open GUI dialogs
+  if GetEnvironmentVariable('GOVERLAY_TEST') = '1' then Exit;
+
+  OpenDlg := TOpenDialog.Create(nil);
+  try
+    OpenDlg.Title := 'Select Custom FSR 4 DLL or Library';
+    OpenDlg.Filter := 'FSR Libraries (*.dll)|*.dll|All Files (*.*)|*.*';
+    OpenDlg.InitialDir := GetUserDir;
+    if OpenDlg.Execute then
+    begin
+      DefaultName := ChangeFileExt(ExtractFileName(OpenDlg.FileName), '');
+      if SameText(DefaultName, 'amd_fidelityfx_upscaler_dx12') then
+        DefaultName := '4.1.0-custom';
+
+      VerName := DefaultName;
+      if InputQuery('Import Custom FSR Build', 'Enter version name (e.g. 4.1.0-deck):', VerName) then
+      begin
+        VerName := Trim(VerName);
+        if ImportCustomFsrBuild(OpenDlg.FileName, VerName, ErrMsg) then
+        begin
+          AImportedVersion := VerName;
+          ShowToast(ntSuccess, 'FSR version "' + VerName + '" imported successfully!', 4000);
+          Result := True;
+        end
+        else if ErrMsg <> '' then
+        begin
+          ShowToast(ntWarning, ErrMsg, 5000);
+        end;
+      end;
+    end;
+  finally
+    OpenDlg.Free;
   end;
 end;
 

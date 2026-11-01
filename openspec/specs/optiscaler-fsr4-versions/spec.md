@@ -51,3 +51,22 @@ The system SHALL preserve the independent "Force FSR4-i8" toggle switch controll
 #### Scenario: Toggle switch operates independently
 - **WHEN** user toggles "Force FSR4-i8"
 - **THEN** `Fsr4ForceEnableInt8` in `OptiScaler.ini` is set to `true` or `false` without overriding the selected FSR version DLL.
+
+### Requirement: Custom FSR Build Import UI and Validation
+The system SHALL provide an import button adjacent to the "FSR Version" combobox allowing users to import custom FSR builds from single DLL files or multi-DLL folders into `~/.local/share/goverlay/FSR4/<VersionName>/`, validating version names and automatically updating UI options.
+
+#### Scenario: Successful single DLL import
+- **WHEN** user clicks the FSR import button, selects a DLL file, and inputs a valid custom version name (e.g., "4.1.0-deck-int8")
+- **THEN** the system creates `~/.local/share/goverlay/FSR4/4.1.0-deck-int8/`, copies the DLL as `amd_fidelityfx_upscaler_dx12.dll`, refreshes the combobox, selects the new entry, and displays a success toast notification.
+
+#### Scenario: Successful multi-DLL folder import
+- **WHEN** user clicks the FSR import button, selects a directory containing multiple FSR companion DLLs (`amdvkffx64.dll`, `amdxcffx64.dll`), and enters a valid version name
+- **THEN** the system copies all companion DLLs into `~/.local/share/goverlay/FSR4/<VersionName>/`, refreshes the combobox, and selects the imported version.
+
+#### Scenario: Invalid or reserved version tag rejected
+- **WHEN** user attempts to import a custom FSR build with an empty name or a reserved tag such as "Latest"
+- **THEN** the system displays a warning notification, aborts the import, and leaves existing FSR versions intact.
+
+#### Scenario: Immediate selection and persistence upon import
+- **WHEN** a custom FSR build is imported successfully
+- **THEN** the "FSR Version" combobox immediately selects the imported version and triggers auto-save so `fsrversion=<VersionName>` is persisted to `goverlay.vars`.

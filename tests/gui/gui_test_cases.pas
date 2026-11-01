@@ -54,6 +54,7 @@ type
     procedure TestOptiOverrideNvapiSave;
     procedure TestOptiPatcherToggleSave;
     procedure TestOptiFsrVersionSelector;
+    procedure TestCustomFsrBuildImport;
     procedure TestOptiLogLevelSelector;
     procedure TestOptiPreferredUpscalerSave;
     procedure TestOptiForceFsr4Int8Save;
@@ -1691,6 +1692,87 @@ begin
   end;
   NavigateOptiScalerTab;
   AssertEquals('legacy 4.0.2c INT8 maps to index 3', 3, goverlayform.fsrversionComboBox.ItemIndex);
+end;
+
+procedure TGoverlayGuiTests.TestCustomFsrBuildImport;
+var
+  FsrBase, CustomDll, DummyTxtFile, MultiDir, ErrMsg, VarsPath, Content: string;
+  F: TextFile;
+begin
+  SeedOptiScalerFiles;
+  FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+  ForceDirectories(FsrBase + 'Latest');
+  ForceDirectories(FsrBase + '4.1.2');
+
+  NavigateOptiScalerTab;
+
+  // 1. Verify FsrImportBtn control presence and initial state
+  AssertTrue('FsrImportBtn assigned', Assigned(TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).FsrImportBtn));
+  AssertTrue('FsrImportBtn visible', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).FsrImportBtn.Visible);
+  AssertEquals('FsrImportBtn caption is +', '+', TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).FsrImportBtn.Caption);
+  AssertEquals('FsrImportBtn height matches fsrversionComboBox height',
+    goverlayform.fsrversionComboBox.Height,
+    TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).FsrImportBtn.Height);
+  AssertEquals('FsrImportBtn top matches fsrversionComboBox top',
+    goverlayform.fsrversionComboBox.Top,
+    TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).FsrImportBtn.Top);
+
+  // 2. Test ImportCustomFsrBuild validation
+  CustomDll := IsolatedHome + '/custom_deck_int8.dll';
+  AssignFile(F, CustomDll); Rewrite(F); WriteLn(F, 'dummy_deck_dll'); CloseFile(F);
+
+  DummyTxtFile := IsolatedHome + '/not_a_dll.txt';
+  AssignFile(F, DummyTxtFile); Rewrite(F); WriteLn(F, 'text'); CloseFile(F);
+
+  // Empty version name rejected
+  AssertFalse('Empty version rejected', ImportCustomFsrBuild(CustomDll, '', ErrMsg));
+  AssertTrue('ErrMsg mentions empty', Pos('empty', ErrMsg) > 0);
+
+  // Reserved names rejected
+  AssertFalse('Reserved Latest rejected', ImportCustomFsrBuild(CustomDll, 'Latest', ErrMsg));
+  AssertTrue('ErrMsg mentions reserved', Pos('reserved', ErrMsg) > 0);
+  AssertFalse('Reserved FSR4_LATEST rejected', ImportCustomFsrBuild(CustomDll, 'FSR4_LATEST', ErrMsg));
+
+  // Invalid path characters rejected
+  AssertFalse('Path separator in name rejected', ImportCustomFsrBuild(CustomDll, 'bad/ver', ErrMsg));
+  AssertFalse('Traversal in name rejected', ImportCustomFsrBuild(CustomDll, '..bad', ErrMsg));
+
+  // Non-existent source rejected
+  AssertFalse('Non-existent source rejected', ImportCustomFsrBuild(IsolatedHome + '/no_file.dll', 'valid_ver', ErrMsg));
+
+  // Non-dll file rejected
+  AssertFalse('Non-dll file rejected', ImportCustomFsrBuild(DummyTxtFile, 'valid_ver', ErrMsg));
+
+  // 3. Test single DLL import with normalization to amd_fidelityfx_upscaler_dx12.dll
+  AssertTrue('Single DLL import succeeds', ImportCustomFsrBuild(CustomDll, '4.1.0-deck-int8', ErrMsg));
+  AssertTrue('Single DLL normalized to amd_fidelityfx_upscaler_dx12.dll in target folder',
+    FileExists(FsrBase + '4.1.0-deck-int8/amd_fidelityfx_upscaler_dx12.dll'));
+
+  // 4. Test multi-DLL directory import
+  MultiDir := IsolatedHome + '/multi_fsr_source';
+  ForceDirectories(MultiDir);
+  AssignFile(F, MultiDir + '/amdvkffx64.dll'); Rewrite(F); WriteLn(F, 'vk'); CloseFile(F);
+  AssignFile(F, MultiDir + '/amdxcffx64.dll'); Rewrite(F); WriteLn(F, 'xc'); CloseFile(F);
+
+  AssertTrue('Multi-DLL folder import succeeds', ImportCustomFsrBuild(MultiDir, '4.2.0-custom', ErrMsg));
+  AssertTrue('amdvkffx64.dll copied', FileExists(FsrBase + '4.2.0-custom/amdvkffx64.dll'));
+  AssertTrue('amdxcffx64.dll copied', FileExists(FsrBase + '4.2.0-custom/amdxcffx64.dll'));
+
+  // 5. Verify dynamic discovery in combobox and persistence
+  TOptiScalerTabHelper(goverlayform.FOptiScalerHelper).PopulateFsrVersionComboBox;
+  AssertTrue('4.2.0-custom listed in combo', goverlayform.fsrversionComboBox.Items.IndexOf('4.2.0-custom') >= 0);
+  AssertTrue('4.1.0-deck-int8 listed in combo', goverlayform.fsrversionComboBox.Items.IndexOf('4.1.0-deck-int8') >= 0);
+
+  // Select custom imported version and trigger change
+  goverlayform.fsrversionComboBox.ItemIndex := goverlayform.fsrversionComboBox.Items.IndexOf('4.1.0-deck-int8');
+  goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
+  goverlayform.autoSaveTimer.Enabled := False;
+  goverlayform.TriggerAutoSave;
+
+  VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
+  AssertTrue('goverlay.vars exists', FileExists(VarsPath));
+  Content := ReadFileText(VarsPath);
+  AssertTrue('fsrversion=4.1.0-deck-int8 persisted', Pos('fsrversion=4.1.0-deck-int8', Content) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiPreferredUpscalerSave;

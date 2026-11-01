@@ -74,6 +74,7 @@ type
     FDlssNrPreprocessChecked: Boolean;
     FDlssNrSkinProtectionChecked: Boolean;
     FDlssNrModelDllPath: string;
+    FFsrImportBtn: TBitBtn;
     FOsToggles: TFPList;
     procedure HelixSrSharpnessChange(Sender: TObject);
     procedure HelixSrControlChange(Sender: TObject);
@@ -81,6 +82,7 @@ type
     procedure DlssNrModelDllBrowseClick(Sender: TObject);
     procedure DlssNrBannerSelectDllClick(Sender: TObject);
     procedure DlssNrAdvancedBtnClick(Sender: TObject);
+    procedure FsrImportBtnClick(Sender: TObject);
     procedure UpdateDlssNrStatusUI;
     function IsDlssNrModelReadyEffective: Boolean;
     function PlaceOsToggle(ACheckBox: TCheckBox; AParent: TWinControl): TToggleSwitch;
@@ -132,6 +134,7 @@ type
     property DlssNrInt4Toggle: TToggleSwitch read FDlssNrInt4Toggle;
     property DlssNrRenoDxToggle: TToggleSwitch read FDlssNrRenoDxToggle;
     property DlssNrPreprocessToggle: TToggleSwitch read FDlssNrPreprocessToggle;
+    property FsrImportBtn: TBitBtn read FFsrImportBtn;
     property OsToggles: TFPList read FOsToggles;
   end;
 
@@ -500,6 +503,27 @@ begin
     end;
 
     SaveOptiScalerConfig(False);
+  end;
+end;
+
+procedure TOptiScalerTabHelper.FsrImportBtnClick(Sender: TObject);
+var
+  ImportedVer: string;
+  Idx: Integer;
+begin
+  if SelectAndImportCustomFsrBuild(ImportedVer) then
+  begin
+    PopulateFsrVersionComboBox;
+    if Assigned(FForm) and Assigned(FForm.fsrversionComboBox) and (ImportedVer <> '') then
+    begin
+      Idx := FForm.fsrversionComboBox.Items.IndexOf(ImportedVer);
+      if Idx >= 0 then
+      begin
+        FForm.fsrversionComboBox.ItemIndex := Idx;
+        if Assigned(FForm.fsrversionComboBox.OnChange) then
+          FForm.fsrversionComboBox.OnChange(FForm.fsrversionComboBox);
+      end;
+    end;
   end;
 end;
 
@@ -1259,6 +1283,22 @@ begin
     fsrversionComboBox.Parent  := FOsSpatialSec;
     fsrversionComboBox.Visible := True;
     PopulateFsrVersionComboBox;
+
+    if FFsrImportBtn = nil then
+    begin
+      FFsrImportBtn := TBitBtn.Create(FForm);
+      FFsrImportBtn.Name := 'FFsrImportBtn';
+      FFsrImportBtn.Caption := '+';
+      FFsrImportBtn.Font.Name := UI_FONT_FAMILY;
+      FFsrImportBtn.Font.Size := 10;
+      FFsrImportBtn.Font.Style := [fsBold];
+      FFsrImportBtn.Hint := 'Import Custom FSR Build' + LineEnding + 'Import a custom FSR DLL file or folder into GOverlay';
+      FFsrImportBtn.ShowHint := True;
+      FFsrImportBtn.OnClick := @FsrImportBtnClick;
+      FFsrImportBtn.Parent := FOsSpatialSec;
+      FFsrImportBtn.Cursor := crHandPoint;
+      StyleBitBtnTheme(FFsrImportBtn, IfThen(CurrentTheme = tmLight, LightTextColor, clWhite), FOsSpatialSec.Color);
+    end;
 
     spoofCheckBox.AnchorSideLeft.Control   := nil; spoofCheckBox.AnchorSideTop.Control    := nil;
     spoofCheckBox.AnchorSideRight.Control  := nil; spoofCheckBox.AnchorSideBottom.Control := nil;
@@ -2730,7 +2770,12 @@ begin
       fsrversionLabel.Visible := True;
       fsrversionComboBox.Visible := True;
       fsrversionLabel.SetBounds(10, Y0 + 56, ColW - 20, 16);
-      fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW, 26);
+      fsrversionComboBox.SetBounds(10, Y0 + 78, ComboW - 32, 26);
+      if Assigned(FFsrImportBtn) then
+      begin
+        FFsrImportBtn.Visible := True;
+        FFsrImportBtn.SetBounds(10 + ComboW - 28, fsrversionComboBox.Top, 28, fsrversionComboBox.Height);
+      end;
 
       if Assigned(spoofCheckBox) then
       begin
