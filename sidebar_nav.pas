@@ -879,6 +879,11 @@ begin
       SetControlTreeEnabled(TWinControl(Child), AEnabled);
       Continue;
     end;
+    if (Child = FForm.dlssenablerToggleBtn) or (Child.Name = 'FMainDlssNrToggleBtn') then
+    begin
+      Child.Enabled := False;
+      Continue;
+    end;
     Child.Enabled := AEnabled;
     if Child is TWinControl then
       SetControlTreeEnabled(TWinControl(Child), AEnabled);

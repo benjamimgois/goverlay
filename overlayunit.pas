@@ -6149,8 +6149,10 @@ procedure Tgoverlayform.optiscalerLogoImageClick(Sender: TObject);
 begin
   if Assigned(optiscalerRadioButton) then
   begin
-    optiscalerRadioButton.Checked := True;
-    optiscalerRadioButtonClick(optiscalerRadioButton);
+    if not optiscalerRadioButton.Checked then
+      optiscalerRadioButton.Checked := True
+    else
+      optiscalerRadioButtonClick(optiscalerRadioButton);
   end;
 end;
 
@@ -6158,8 +6160,10 @@ procedure Tgoverlayform.dlssEnablerLogoImageClick(Sender: TObject);
 begin
   if Assigned(dlssenablerRadioButton) then
   begin
-    dlssenablerRadioButton.Checked := True;
-    dlssenablerRadioButtonClick(dlssenablerRadioButton);
+    if not dlssenablerRadioButton.Checked then
+      dlssenablerRadioButton.Checked := True
+    else
+      dlssenablerRadioButtonClick(dlssenablerRadioButton);
   end;
 end;
 
@@ -6167,8 +6171,10 @@ procedure Tgoverlayform.noneUpscalerLogoImageClick(Sender: TObject);
 begin
   if Assigned(noneUpscalerRadioButton) then
   begin
-    noneUpscalerRadioButton.Checked := True;
-    noneUpscalerRadioButtonClick(noneUpscalerRadioButton);
+    if not noneUpscalerRadioButton.Checked then
+      noneUpscalerRadioButton.Checked := True
+    else
+      noneUpscalerRadioButtonClick(noneUpscalerRadioButton);
   end;
 end;
 
@@ -6176,8 +6182,10 @@ procedure Tgoverlayform.helixsrLogoImageClick(Sender: TObject);
 begin
   if Assigned(helixsrRadioButton) then
   begin
-    helixsrRadioButton.Checked := True;
-    helixsrRadioButtonClick(helixsrRadioButton);
+    if not helixsrRadioButton.Checked then
+      helixsrRadioButton.Checked := True
+    else
+      helixsrRadioButtonClick(helixsrRadioButton);
   end;
 end;
 
@@ -6185,8 +6193,10 @@ procedure Tgoverlayform.dlssnrLogoImageClick(Sender: TObject);
 begin
   if Assigned(dlssnrRadioButton) then
   begin
-    dlssnrRadioButton.Checked := True;
-    dlssnrRadioButtonClick(dlssnrRadioButton);
+    if not dlssnrRadioButton.Checked then
+      dlssnrRadioButton.Checked := True
+    else
+      dlssnrRadioButtonClick(dlssnrRadioButton);
   end;
 end;
 

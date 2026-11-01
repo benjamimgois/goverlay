@@ -2665,6 +2665,7 @@ begin
         if Assigned(FMainDlssNrToggleBtn) then
         begin
           FMainDlssNrToggleBtn.Visible := True;
+          FMainDlssNrToggleBtn.Enabled := False;
           FMainDlssNrToggleBtn.SetBounds(10, Y0 + 206, Min(ColW - 20, 120), 24);
         end;
       end

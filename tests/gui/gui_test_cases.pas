@@ -3976,6 +3976,9 @@ begin
     AssertTrue('DlssNrScaleComboBox is visible', Helper.DlssNrScaleComboBox.Visible);
     AssertNotNull('DlssNrPassesComboBox exists', Helper.DlssNrPassesComboBox);
     AssertTrue('DlssNrPassesComboBox is visible', Helper.DlssNrPassesComboBox.Visible);
+    AssertNotNull('MainDlssNrToggleBtn exists', Helper.MainDlssNrToggleBtn);
+    AssertTrue('MainDlssNrToggleBtn is visible in DLSS-NR', Helper.MainDlssNrToggleBtn.Visible);
+    AssertFalse('MainDlssNrToggleBtn is disabled by default in DLSS-NR', Helper.MainDlssNrToggleBtn.Enabled);
 
     // Hidden controls in DLSS-NR method (per UX spec)
     if Assigned(Helper.DlssNrInt4Toggle) then
