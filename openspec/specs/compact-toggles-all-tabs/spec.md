@@ -45,7 +45,7 @@ The system SHALL synchronize all toggle switches across all MangoHud tabs immedi
 - **THEN** each tab synchronizes its toggle switches with the underlying active configuration upon becoming visible
 
 ### Requirement: OptiScaler Tab Toggle Switches
-The system SHALL display compact toggle switches (28x16px with anti-aliasing SDF rendering and neon glow) for all active toggleable settings on the OptiScaler tab, including OptiPatcher, Spoof DLSS, Force FSR4-i8, Force MLFG in RDNA3, Force Reflex, and Force LatencyFlex, and SHALL automatically trigger configuration auto-save upon state modification.
+The system SHALL display compact toggle switches (28x16px with anti-aliasing SDF rendering and neon glow) for all active toggleable settings on the OptiScaler tab, including OptiPatcher, Spoof DLSS, Force FSR4-i8, Force MLFG in RDNA3, Force Reflex, and Force LatencyFlex, and SHALL automatically trigger configuration auto-save upon state modification with debounced background persistence to guarantee instantaneous toggle rendering.
 
 #### Scenario: OptiScaler toggle switch state synchronization
 - **WHEN** OptiScaler configuration is loaded or modified
@@ -53,15 +53,19 @@ The system SHALL display compact toggle switches (28x16px with anti-aliasing SDF
 
 #### Scenario: OptiScaler toggle automatic persistence
 - **WHEN** a user clicks any toggle switch on the OptiScaler tab
-- **THEN** the configuration is automatically saved without requiring an explicit finish button click
+- **THEN** the configuration is automatically saved via debounced auto-save without blocking toggle rendering and without requiring an explicit finish button click
 
 #### Scenario: OptiPatcher companion button alignment
 - **WHEN** the OptiScaler tab layout is reflowed
 - **THEN** the OptiPatcher toggle switch and its companion games list button align seamlessly within the Main options sub-card
 
 ### Requirement: Global Auto-Save for Toggle Switches
-The system SHALL automatically wire all toggle switches and checkboxes to trigger auto-save timers across all tabs so that user state changes persist across application restarts.
+The system SHALL automatically wire all toggle switches and checkboxes to trigger debounced auto-save timers across all tabs so that user state changes update visual controls instantly and persist reliably across application restarts.
 
 #### Scenario: Auto-save event registration
 - **WHEN** the application wires controls for auto-saving during startup or dynamic initialization
 - **THEN** both `OnChange` and `OnClick` handlers on `TCheckBox` and `TToggleSwitch` are wired to trigger the background auto-save timer
+
+#### Scenario: Immediate visual toggle response
+- **WHEN** a user clicks or flips a toggle switch
+- **THEN** the toggle updates its visual state immediately without blocking on synchronous disk I/O or subprocesses

@@ -3757,10 +3757,10 @@ begin
       end;
     end;
 
-    // Immediately sync assets (DLLs, plugins, configs) when saving profile
-    if FActiveGameName = '' then
-      InitializeGlobalConfigDirectory
-    else
+    // Sync assets (DLLs, plugins, configs) when saving profile if needed.
+    // For global mode, asset directories are initialized at startup and during updates;
+    // skip running heavy rsync and SyncAllGameConfigBinaries on routine toggle changes.
+    if FActiveGameName <> '' then
       CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
 
     if ErrMsg <> '' then

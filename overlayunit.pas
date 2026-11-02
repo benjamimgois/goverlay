@@ -3231,6 +3231,11 @@ procedure Tgoverlayform.FormClose(Sender: TObject; var CloseAction: TCloseAction
 var
   k: Integer;
 begin
+  if Assigned(autoSaveTimer) and autoSaveTimer.Enabled then
+  begin
+    autoSaveTimer.Enabled := False;
+    TriggerAutoSave;
+  end;
   if not FClearedConfig then
     SaveWindowGeometry;
   FClosing := True;
@@ -8740,7 +8745,7 @@ begin
   // Any intentional user interaction cancels the fps_only preset mode
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).SetFpsOnly(False);
-  TriggerAutoSave;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.GenericControlChange(Sender: TObject);
@@ -8749,7 +8754,7 @@ begin
   // Any intentional user interaction cancels the fps_only preset mode
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).SetFpsOnly(False);
-  TriggerAutoSave;
+  StartAutoSaveTimer;
 end;
 
 procedure Tgoverlayform.WireAutoSaveEvents;
