@@ -1330,7 +1330,10 @@ type
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FCloneGlobalMenuItem: TMenuItem;
     FUninstallMenuItem: TMenuItem;
+    FUninstallSeparatorMenuItem: TMenuItem;
     FSetCoverMenuItem: TMenuItem;    // import custom cover art
+    FSetCoverFileMenuItem: TMenuItem; // import cover from local file
+    FSetCoverUrlMenuItem: TMenuItem;  // import cover from URL
     FResetCoverMenuItem: TMenuItem;  // reset cover to local/fallback art
     FRightClickedCard: TPanel;      // card that triggered the context menu
     FGameMenuImgList: TImageList;   // icons for the game card context menu
@@ -1513,6 +1516,7 @@ type
     function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
     procedure GameCardCloneGlobalClick(Sender: TObject);
     procedure GameCardSetCoverClick(Sender: TObject);
+    procedure GameCardSetCoverUrlClick(Sender: TObject);
     procedure GameCardResetCoverClick(Sender: TObject);
 
     // Exposed vkBasalt/Reshade/Sumi methods
@@ -9997,6 +10001,12 @@ procedure Tgoverlayform.GameCardSetCoverClick(Sender: TObject);
 begin
   if Assigned(FGamesHelper) then
     TGamesTabHelper(FGamesHelper).GameCardSetCoverClick(Sender);
+end;
+
+procedure Tgoverlayform.GameCardSetCoverUrlClick(Sender: TObject);
+begin
+  if Assigned(FGamesHelper) then
+    TGamesTabHelper(FGamesHelper).GameCardSetCoverUrlClick(Sender);
 end;
 
 procedure Tgoverlayform.GameCardResetCoverClick(Sender: TObject);

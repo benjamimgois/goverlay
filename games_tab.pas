@@ -131,6 +131,7 @@ type
     function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
     procedure GameCardCloneGlobalClick(Sender: TObject);
     procedure GameCardSetCoverClick(Sender: TObject);
+    procedure GameCardSetCoverUrlClick(Sender: TObject);
     procedure GameCardResetCoverClick(Sender: TObject);
     function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath, AAppId: string): Boolean; overload;
     function  GetCardGameInfo(ACard: TPanel; out AGameName, ASubPath: string): Boolean; overload;
@@ -1356,6 +1357,77 @@ begin
     Bmp.Free;
   end;
 
+  // --- Icon 4: Image / Picture frame (Set custom cover parent) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.Rectangle(2, 2, 14, 14); // outer frame
+    // Sun / Moon dot
+    Bmp.Canvas.Brush.Color := IconColor;
+    Bmp.Canvas.Ellipse(4, 4, 7, 7);
+    // Mountain triangle / diagonal lines
+    Bmp.Canvas.Polyline([Point(3, 12), Point(7, 7), Point(10, 11), Point(13, 8), Point(13, 12)]);
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
+  // --- Icon 5: Select file (File / document) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := IconColor;
+    Bmp.Canvas.Rectangle(3, 2, 10, 14); // document body
+    Bmp.Canvas.Rectangle(9, 2, 13, 6);   // corner fold
+    Bmp.Canvas.Pen.Color := clFuchsia;
+    Bmp.Canvas.MoveTo(5, 6); Bmp.Canvas.LineTo(9, 6);
+    Bmp.Canvas.MoveTo(5, 8); Bmp.Canvas.LineTo(11, 8);
+    Bmp.Canvas.MoveTo(5, 10); Bmp.Canvas.LineTo(11, 10);
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
+  // --- Icon 6: Set URL (Globe / Link) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.Ellipse(2, 2, 14, 14);     // globe outline
+    Bmp.Canvas.MoveTo(2, 8); Bmp.Canvas.LineTo(14, 8); // equator
+    Bmp.Canvas.MoveTo(8, 2); Bmp.Canvas.LineTo(8, 14); // meridian
+    Bmp.Canvas.Ellipse(5, 2, 11, 14);    // inner curved meridian
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
+  // --- Icon 7: Reset cover art (Refresh / Undo circle) ---
+  Bmp := TBitmap.Create;
+  try
+    Bmp.SetSize(16, 16);
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.FillRect(0, 0, 16, 16);
+    Bmp.Canvas.Pen.Color := IconColor;
+    Bmp.Canvas.Brush.Color := clFuchsia;
+    Bmp.Canvas.Arc(3, 3, 13, 13, 0, 270 * 16); // partial circle
+    Bmp.Canvas.Brush.Color := IconColor;
+    Bmp.Canvas.Polygon([Point(8, 1), Point(8, 5), Point(12, 3)]); // arrow head
+    FGameMenuImgList.AddMasked(Bmp, clFuchsia);
+  finally
+    Bmp.Free;
+  end;
+
   FGameCardMenu.Images := FGameMenuImgList;
 
   OpenFolderItem := TMenuItem.Create(FGameCardMenu);
@@ -1376,21 +1448,38 @@ begin
   FCloneGlobalMenuItem.OnClick := @GameCardCloneGlobalClick;
   FGameCardMenu.Items.Add(FCloneGlobalMenuItem);
 
+  FSetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
+  FSetCoverMenuItem.Caption := 'Set custom cover';
+  FSetCoverMenuItem.ImageIndex := 4;
+  FGameCardMenu.Items.Add(FSetCoverMenuItem);
+
+  FSetCoverFileMenuItem := TMenuItem.Create(FSetCoverMenuItem);
+  FSetCoverFileMenuItem.Caption := 'Select file...';
+  FSetCoverFileMenuItem.ImageIndex := 5;
+  FSetCoverFileMenuItem.OnClick := @GameCardSetCoverClick;
+  FSetCoverMenuItem.Add(FSetCoverFileMenuItem);
+
+  FSetCoverUrlMenuItem := TMenuItem.Create(FSetCoverMenuItem);
+  FSetCoverUrlMenuItem.Caption := 'Set URL...';
+  FSetCoverUrlMenuItem.ImageIndex := 6;
+  FSetCoverUrlMenuItem.OnClick := @GameCardSetCoverUrlClick;
+  FSetCoverMenuItem.Add(FSetCoverUrlMenuItem);
+
+  FResetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
+  FResetCoverMenuItem.Caption := 'Reset cover art';
+  FResetCoverMenuItem.ImageIndex := 7;
+  FResetCoverMenuItem.OnClick := @GameCardResetCoverClick;
+  FGameCardMenu.Items.Add(FResetCoverMenuItem);
+
+  FUninstallSeparatorMenuItem := TMenuItem.Create(FGameCardMenu);
+  FUninstallSeparatorMenuItem.Caption := '-';
+  FGameCardMenu.Items.Add(FUninstallSeparatorMenuItem);
+
   FUninstallMenuItem := TMenuItem.Create(FGameCardMenu);
   FUninstallMenuItem.Caption := 'Uninstall changes';
   FUninstallMenuItem.ImageIndex := 2;
   FUninstallMenuItem.OnClick := @GameCardUninstallClick;
   FGameCardMenu.Items.Add(FUninstallMenuItem);
-
-  FSetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
-  FSetCoverMenuItem.Caption := 'Set custom cover...';
-  FSetCoverMenuItem.OnClick := @GameCardSetCoverClick;
-  FGameCardMenu.Items.Add(FSetCoverMenuItem);
-
-  FResetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
-  FResetCoverMenuItem.Caption := 'Reset cover art';
-  FResetCoverMenuItem.OnClick := @GameCardResetCoverClick;
-  FGameCardMenu.Items.Add(FResetCoverMenuItem);
 
   FGamesScrollBox := TScrollBox.Create(FForm);
   FGamesScrollBox.Parent := gamesTabSheet;
@@ -3182,6 +3271,8 @@ begin
         end;
       end;
       FUninstallMenuItem.Visible := HasMods;
+      if Assigned(FUninstallSeparatorMenuItem) then
+        FUninstallSeparatorMenuItem.Visible := HasMods;
     end;
 
     Pt := Ctrl.ClientToScreen(Point(Ctrl.Width div 2, Ctrl.Height div 2));
@@ -3728,6 +3819,160 @@ begin
     if AppId <> '' then
       CopyFile(SrcPath, CustomCacheDir + AppId + Ext);
     CopyFile(SrcPath, NonSteamCacheDir + SanitizedName + Ext);
+
+    UpdateCardCoverImage(CardPanel, TargetPath);
+  end;
+end;
+
+procedure TGamesTabHelper.GameCardSetCoverUrlClick(Sender: TObject);
+var
+  CardPanel: TPanel;
+  GameName, SubPath, AppId: string;
+  CustomCacheDir, NonSteamCacheDir, SanitizedName, Ext, TargetPath, TempFile, UrlStr: string;
+  P: TProcess;
+  CurlOk: Boolean;
+  Exts: array[0..3] of string;
+  i: Integer;
+  FS: TFileStream;
+  HeaderBuf: array[0..15] of Byte;
+  BytesRead: Integer;
+begin
+  with FForm do
+  begin
+    CardPanel := FRightClickedCard;
+    if not GetCardGameInfo(CardPanel, GameName, SubPath, AppId) then Exit;
+
+    UrlStr := '';
+    if not InputQuery('Set Custom Cover from URL', 'Enter image URL (PNG, JPG, WebP):', UrlStr) then
+      Exit;
+
+    UrlStr := Trim(UrlStr);
+    if UrlStr = '' then Exit;
+
+    if (Pos('http://', LowerCase(UrlStr)) <> 1) and (Pos('https://', LowerCase(UrlStr)) <> 1) then
+    begin
+      ShowMessage('Invalid URL. Please enter an HTTP or HTTPS link.');
+      Exit;
+    end;
+
+    CustomCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/custom_covers/';
+    NonSteamCacheDir := IncludeTrailingPathDelimiter(GetUserDir) + '.cache/goverlay/nonsteam_covers/';
+    ForceDirectories(CustomCacheDir);
+    ForceDirectories(NonSteamCacheDir);
+    SanitizedName := SanitizeFileName(GameName);
+
+    TempFile := CustomCacheDir + 'temp_url_cover_' + IntToStr(GetTickCount64);
+    if FileExists(TempFile) then DeleteFile(TempFile);
+
+    P := TProcess.Create(nil);
+    try
+      P.Executable := 'curl';
+      P.Parameters.Add('-L');
+      P.Parameters.Add('--fail');
+      P.Parameters.Add('-s');
+      P.Parameters.Add('--connect-timeout');
+      P.Parameters.Add('5');
+      P.Parameters.Add('--max-time');
+      P.Parameters.Add('15');
+      P.Parameters.Add('-o');
+      P.Parameters.Add(TempFile);
+      P.Parameters.Add(UrlStr);
+      P.Options := [poWaitOnExit];
+      try
+        P.Execute;
+        CurlOk := (P.ExitStatus = 0);
+      except
+        CurlOk := False;
+      end;
+    finally
+      P.Free;
+    end;
+
+    if not CurlOk or not FileExists(TempFile) or (FileSize(TempFile) <= 2048) then
+    begin
+      if FileExists(TempFile) then DeleteFile(TempFile);
+      ShowMessage('Failed to download cover image from the provided URL. Please verify the link and try again.');
+      Exit;
+    end;
+
+    // Detect format from magic bytes:
+    // PNG: 89 50 4E 47
+    // JPG: FF D8 FF
+    // WEBP: RIFF....WEBP (52 49 46 46 .... 57 45 42 50)
+    Ext := '';
+    FillChar(HeaderBuf, SizeOf(HeaderBuf), 0);
+    try
+      FS := TFileStream.Create(TempFile, fmOpenRead or fmShareDenyNone);
+      try
+        BytesRead := FS.Read(HeaderBuf, SizeOf(HeaderBuf));
+      finally
+        FS.Free;
+      end;
+    except
+      BytesRead := 0;
+    end;
+
+    if (BytesRead >= 4) and (HeaderBuf[0] = $89) and (HeaderBuf[1] = $50) and
+       (HeaderBuf[2] = $4E) and (HeaderBuf[3] = $47) then
+      Ext := '.png'
+    else if (BytesRead >= 3) and (HeaderBuf[0] = $FF) and (HeaderBuf[1] = $D8) and (HeaderBuf[2] = $FF) then
+      Ext := '.jpg'
+    else if (BytesRead >= 12) and (HeaderBuf[0] = Ord('R')) and (HeaderBuf[1] = Ord('I')) and
+            (HeaderBuf[2] = Ord('F')) and (HeaderBuf[3] = Ord('F')) and
+            (HeaderBuf[8] = Ord('W')) and (HeaderBuf[9] = Ord('E')) and
+            (HeaderBuf[10] = Ord('B')) and (HeaderBuf[11] = Ord('P')) then
+      Ext := '.webp'
+    else
+    begin
+      // Fallback: check extension from URL path
+      Ext := LowerCase(ExtractFileExt(UrlStr));
+      if Pos('?', Ext) > 0 then
+        Ext := Copy(Ext, 1, Pos('?', Ext) - 1);
+      if (Ext <> '.png') and (Ext <> '.jpg') and (Ext <> '.jpeg') and (Ext <> '.webp') then
+        Ext := '';
+    end;
+
+    if Ext = '' then
+    begin
+      if FileExists(TempFile) then DeleteFile(TempFile);
+      ShowMessage('Downloaded file is not a supported image format (PNG, JPG, WebP).');
+      Exit;
+    end;
+
+    Exts[0] := '.png';
+    Exts[1] := '.jpg';
+    Exts[2] := '.jpeg';
+    Exts[3] := '.webp';
+
+    // Purge previous custom cover variants and fallback markers for this game.
+    for i := Low(Exts) to High(Exts) do
+    begin
+      if AppId <> '' then
+      begin
+        DeleteFile(CustomCacheDir + AppId + Exts[i]);
+        DeleteFile(CustomCacheDir + AppId + Exts[i] + '.fallback');
+      end;
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(CustomCacheDir + SanitizedName + Exts[i] + '.fallback');
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i]);
+      DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i] + '.fallback');
+    end;
+
+    TargetPath := CustomCacheDir + SanitizedName + Ext;
+    if not RenameFile(TempFile, TargetPath) then
+    begin
+      if not CopyFile(TempFile, TargetPath) then
+      begin
+        if FileExists(TempFile) then DeleteFile(TempFile);
+        ShowMessage('Could not save downloaded cover image.');
+        Exit;
+      end;
+      DeleteFile(TempFile);
+    end;
+
+    if AppId <> '' then
+      CopyFile(TargetPath, CustomCacheDir + AppId + Ext);
+    CopyFile(TargetPath, NonSteamCacheDir + SanitizedName + Ext);
 
     UpdateCardCoverImage(CardPanel, TargetPath);
   end;

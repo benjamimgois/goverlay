@@ -42,12 +42,31 @@ The system SHALL validate remote cover downloads with `--fail` using temporary f
 - **THEN** the temporary file is discarded, no corrupt cache file is retained, and fallback rendering is triggered
 
 ### Requirement: Custom Cover Selection and Reset
-The system SHALL provide menu actions in the game card popup menu to allow users to select custom artwork from disk or reset cached cover art.
+The system SHALL provide menu actions in the game card popup menu to allow users to select custom artwork from disk, download and apply custom artwork from a direct image URL, or reset cached cover art, displaying representative icons for all actions.
 
 #### Scenario: User sets custom cover
-- **WHEN** the user selects "Set custom cover..." from the game card menu and chooses an image file
+- **WHEN** the user selects "Select file..." from the "Set custom cover" game card submenu and chooses an image file
 - **THEN** the system copies the image to the non-Steam cover cache and refreshes the card and per-game preview immediately
+
+#### Scenario: User sets custom cover from image URL
+- **WHEN** the user selects "Set URL..." from the "Set custom cover" game card submenu and enters a valid image URL
+- **THEN** the system downloads the image, validates its format, copies it to the custom cover cache, and refreshes the card and per-game preview immediately
+
+#### Scenario: User enters invalid or unreachable URL
+- **WHEN** the user enters an invalid URL, a non-image URL, or network download fails
+- **THEN** the system displays an informative error message and preserves the existing cover art
 
 #### Scenario: User resets cover
 - **WHEN** the user selects "Reset cover art" from the game card menu
 - **THEN** the system deletes the cached cover and fallback files for the game and re-evaluates cover discovery
+
+### Requirement: Game Card Context Menu Ordering and Visual Consistency
+The system SHALL organize the game card context menu such that "Uninstall changes" is positioned as the final action in the list with a visual separator, and all menu items and subitems display representative greyscale icons.
+
+#### Scenario: Context menu items ordering
+- **WHEN** the user opens the context menu on any game card
+- **THEN** "Uninstall changes" appears at the bottom of the menu preceded by a separator line, and remains conditionally visible only when mods are detected
+
+#### Scenario: Menu items and subitems have icons
+- **WHEN** the game card context menu and its "Set custom cover" submenu are opened
+- **THEN** each item and subitem displays a distinct representative 16x16 icon

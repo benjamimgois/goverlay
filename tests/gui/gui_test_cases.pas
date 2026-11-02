@@ -2718,20 +2718,62 @@ begin
 end;
 
 procedure TGoverlayGuiTests.TestGameCardCustomCoverMenuItems;
+var
+  IdxUninstall, IdxSep, IdxSetCover, IdxResetCover: Integer;
 begin
   AssertNotNull('FGameCardMenu is initialized', goverlayform.FGameCardMenu);
   AssertNotNull('FSetCoverMenuItem is initialized', goverlayform.FSetCoverMenuItem);
+  AssertNotNull('FSetCoverFileMenuItem is initialized', goverlayform.FSetCoverFileMenuItem);
+  AssertNotNull('FSetCoverUrlMenuItem is initialized', goverlayform.FSetCoverUrlMenuItem);
   AssertNotNull('FResetCoverMenuItem is initialized', goverlayform.FResetCoverMenuItem);
+  AssertNotNull('FUninstallMenuItem is initialized', goverlayform.FUninstallMenuItem);
+  AssertNotNull('FUninstallSeparatorMenuItem is initialized', goverlayform.FUninstallSeparatorMenuItem);
 
+  // Set custom cover parent and subitems
   AssertTrue('FSetCoverMenuItem is in FGameCardMenu',
     goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FSetCoverMenuItem) >= 0);
+  AssertEquals('FSetCoverMenuItem caption', 'Set custom cover',
+    goverlayform.FSetCoverMenuItem.Caption);
+  AssertEquals('FSetCoverMenuItem ImageIndex', 4,
+    goverlayform.FSetCoverMenuItem.ImageIndex);
+
+  AssertEquals('FSetCoverMenuItem has 2 subitems', 2,
+    goverlayform.FSetCoverMenuItem.Count);
+  AssertTrue('FSetCoverFileMenuItem is first subitem',
+    goverlayform.FSetCoverMenuItem.Items[0] = goverlayform.FSetCoverFileMenuItem);
+  AssertEquals('FSetCoverFileMenuItem caption', 'Select file...',
+    goverlayform.FSetCoverFileMenuItem.Caption);
+  AssertEquals('FSetCoverFileMenuItem ImageIndex', 5,
+    goverlayform.FSetCoverFileMenuItem.ImageIndex);
+
+  AssertTrue('FSetCoverUrlMenuItem is second subitem',
+    goverlayform.FSetCoverMenuItem.Items[1] = goverlayform.FSetCoverUrlMenuItem);
+  AssertEquals('FSetCoverUrlMenuItem caption', 'Set URL...',
+    goverlayform.FSetCoverUrlMenuItem.Caption);
+  AssertEquals('FSetCoverUrlMenuItem ImageIndex', 6,
+    goverlayform.FSetCoverUrlMenuItem.ImageIndex);
+
+  // Reset cover art
   AssertTrue('FResetCoverMenuItem is in FGameCardMenu',
     goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FResetCoverMenuItem) >= 0);
-
-  AssertEquals('FSetCoverMenuItem caption', 'Set custom cover...',
-    goverlayform.FSetCoverMenuItem.Caption);
   AssertEquals('FResetCoverMenuItem caption', 'Reset cover art',
     goverlayform.FResetCoverMenuItem.Caption);
+  AssertEquals('FResetCoverMenuItem ImageIndex', 7,
+    goverlayform.FResetCoverMenuItem.ImageIndex);
+
+  // Order assertions: Uninstall changes is the last item
+  IdxSetCover := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FSetCoverMenuItem);
+  IdxResetCover := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FResetCoverMenuItem);
+  IdxSep := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FUninstallSeparatorMenuItem);
+  IdxUninstall := goverlayform.FGameCardMenu.Items.IndexOf(goverlayform.FUninstallMenuItem);
+
+  AssertTrue('Set cover is before Reset cover', IdxSetCover < IdxResetCover);
+  AssertTrue('Reset cover is before Separator', IdxResetCover < IdxSep);
+  AssertTrue('Separator is right before Uninstall changes', IdxSep < IdxUninstall);
+  AssertEquals('Uninstall changes is the last item',
+    goverlayform.FGameCardMenu.Items.Count - 1, IdxUninstall);
+  AssertEquals('FUninstallMenuItem ImageIndex', 2,
+    goverlayform.FUninstallMenuItem.ImageIndex);
 end;
 
 procedure TGoverlayGuiTests.TestCustomCoverPersistenceAcrossRestart;
