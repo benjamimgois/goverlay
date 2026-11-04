@@ -14,62 +14,120 @@ layout (push_constant) uniform PushConsts {
 void main() {
     vec2 uv = inUV;
 
-    // Use raw sRGB-like linear base colors to match the look of the reference gradient
-    vec3 skyTopColor = vec3(0.125, 0.129, 0.141);      // #202124 (dark top)
-    vec3 maxColor = vec3(0.270, 0.275, 0.290);         // #3a3b3f (brighter studio light peak)
+    // Angles from push constants (rotation around Y and X/Z)
+    float rotY = pushConsts.angles.x * 6.28318530718;
+    float rotX = pushConsts.angles.y * 6.28318530718;
 
-    // Smooth vertical spotlight gradient peaking around y = 0.78 (simulating studio floor horizon)
-    float yFactor = 1.0 - pow(uv.y - 0.78, 2.0) * 1.55;
-    yFactor = clamp(yFactor, 0.0, 1.0);
-    vec3 color = mix(skyTopColor, maxColor, yFactor);
+    // Floating cube physical motion offsets
+    float xOffset = sin(rotY) * 0.015;
+    float yOffset = cos(rotY * 2.0) * 0.006;
 
-    // Subtle 3D perspective floor grid below the horizon (uv.y >= 0.51)
+    // ----------------------------------------------------
+    // CYBER DARK STUDIO (Deep Obsidian in Vulkan sRGB space)
+    // ----------------------------------------------------
+    // In Vulkan with VK_FORMAT_B8G8R8A8_SRGB, outColor is converted to sRGB: C_screen = C_linear^(1/2.2).
+    // To achieve true obsidian black (#080a10), linear colors must be deep (~0.002 - 0.006).
+    vec3 bgDeep = vec3(0.0020, 0.0025, 0.0040); // #080a10 top obsidian
+    vec3 bgMid  = vec3(0.0040, 0.0055, 0.0090); // #0e121a horizon transition
+
+    // Focused, atmospheric studio backlight centered behind the floating cube
+    vec2 spotCenter = vec2(0.5 + xOffset, 0.46 + yOffset);
+    vec2 spotDiff = vec2(uv.x - spotCenter.x, (uv.y - spotCenter.y) * 1.6);
+    float spotDistSq = dot(spotDiff, spotDiff);
+    float spotGlow = exp(-spotDistSq * 16.0);
+    vec3 spotColor = vec3(0.007, 0.022, 0.050); // Elegant deep cyan rim halo
+
+    vec3 color = mix(bgDeep, bgMid, clamp(uv.y / 0.51, 0.0, 1.0)) + spotColor * spotGlow;
+
+    // ----------------------------------------------------
+    // Polished dark obsidian floor with refined perspective grid (uv.y >= 0.51)
+    // ----------------------------------------------------
     if (uv.y >= 0.51) {
-        float z = 0.08 / (uv.y - 0.50);
+        float z = 0.08 / max(uv.y - 0.50, 0.001);
         float x = (uv.x - 0.5) * z * 1.6;
-        
+
         float dx = fwidth(x);
         float dz = fwidth(z);
-        
-        // Anti-aliased grid lines using fwidth (thicker lines)
-        float gridLineX = smoothstep(2.2 * dx, 0.0, abs(fract(x / 0.20 + 0.5) - 0.5) * 0.20);
-        float gridLineZ = smoothstep(2.2 * dz, 0.0, abs(fract(z / 0.20 + 0.5) - 0.5) * 0.20);
-        
-        // Fade out grid lines near the horizon to avoid aliasing and moire
-        float fade = smoothstep(0.51, 0.68, uv.y);
-        
+
+        // Anti-aliased perspective grid lines
+        float gridLineX = smoothstep(2.0 * dx, 0.0, abs(fract(x / 0.20 + 0.5) - 0.5) * 0.20);
+        float gridLineZ = smoothstep(2.0 * dz, 0.0, abs(fract(z / 0.20 + 0.5) - 0.5) * 0.20);
+
+        float fade = smoothstep(0.51, 0.69, uv.y);
         float grid = max(gridLineX, gridLineZ) * fade;
-        
-        // Blend in a subtle, dark graphite grid color for an engraved look
-        vec3 gridColor = vec3(0.11, 0.11, 0.12); 
-        color = mix(color, gridColor, grid * 0.35);
+
+        // Polished obsidian dark floor tone
+        vec3 darkFloor = vec3(0.0025, 0.0032, 0.0050);
+        color = mix(color, darkFloor, 0.88);
+
+        // Fine cyber blue floor grid trace
+        vec3 gridColor = vec3(0.003, 0.012, 0.025);
+        color += gridColor * grid;
     }
 
-    // Studio vignette to darken the left and right edges smoothly
-    float dist = distance(uv, vec2(0.5, 0.5));
-    float vignette = smoothstep(0.0, 0.9, dist);
-    color = mix(color, vec3(0.08, 0.08, 0.09), vignette * 0.22);
+    // ----------------------------------------------------
+    // True Anisotropic Glossy Floor Reflection (Underneath Floating Cube)
+    // ----------------------------------------------------
+    float contactY = 0.69 + yOffset;
+    float centerX = 0.50 + xOffset;
 
-    // Extract angle from push constants
-    float angle = pushConsts.angles.x * 6.28318530718;
+    if (uv.y >= contactY) {
+        float dy = uv.y - contactY;
+        float dx = uv.x - centerX;
 
-    // Soft contact shadow underneath the floating central cube
-    float xOffset = sin(angle) * 0.022;
-    float yOffset = cos(angle * 2.0) * 0.007;
-    float scaleFactor = 1.0 + sin(angle * 2.0) * 0.06;
+        // Realistic anisotropic reflection: stretches vertically and softly diffuses horizontally
+        float spread = 0.05 + dy * 0.20;
+        float vertDecay = exp(-dy * 10.0);
+        float horizMask = exp(-(dx * dx) / (spread * spread * 3.5));
+        float totalReflMask = vertDecay * horizMask;
 
-    vec2 shadowCenter = vec2(0.5 + xOffset, 0.72 + yOffset);
-    vec2 diff = (uv - shadowCenter) / (vec2(0.24, 0.065) * scaleFactor);
-    float shadowDist = length(diff);
-    float shadowIntensity = pow(1.0 - smoothstep(0.0, 1.0, shadowDist), 1.5);
+        // 3D synced neon reflections mirroring the rotating cube's edges
+        float cyanX = centerX - cos(rotY) * 0.055;
+        float violetX = centerX + cos(rotY) * 0.055;
 
-    // Apply soft drop shadow (dark gray contact shadow)
-    color = mix(color, vec3(0.04, 0.04, 0.05), shadowIntensity * 0.60);
+        float cyanDx = uv.x - (cyanX + sin(rotY) * 0.01 * (1.0 - dy * 0.4));
+        float cyanWidth = 0.020 + dy * 0.05;
+        float cyanStreak = exp(-(cyanDx * cyanDx) / (cyanWidth * cyanWidth * 2.8)) * totalReflMask;
 
-    // Dithering to prevent color banding
+        float violetDx = uv.x - (violetX - sin(rotY) * 0.01 * (1.0 - dy * 0.4));
+        float violetWidth = 0.020 + dy * 0.05;
+        float violetStreak = exp(-(violetDx * violetDx) / (violetWidth * violetWidth * 2.8)) * totalReflMask;
+
+        // Center brushed metallic specular highlight
+        float centerWidth = 0.018 + dy * 0.04;
+        float centerSpec = exp(-(dx * dx) / (centerWidth * centerWidth * 3.2)) * totalReflMask;
+
+        vec3 reflCyan = vec3(0.025, 0.35, 0.60);
+        vec3 reflViolet = vec3(0.45, 0.03, 0.60);
+        vec3 reflSpec = vec3(0.04, 0.05, 0.07);
+
+        vec3 glossyReflection = reflCyan * cyanStreak +
+                               reflViolet * violetStreak +
+                               reflSpec * centerSpec;
+
+        color += glossyReflection;
+    }
+
+    // ----------------------------------------------------
+    // Tight Ambient Occlusion Contact Shadow
+    // ----------------------------------------------------
+    vec2 shadowCenter = vec2(centerX, 0.70 + yOffset);
+    vec2 shadowDiff = (uv - shadowCenter) / vec2(0.16, 0.035);
+    float shadowDist = length(shadowDiff);
+    float shadowIntensity = pow(1.0 - smoothstep(0.0, 1.0, shadowDist), 1.8);
+    color *= (1.0 - shadowIntensity * 0.85);
+
+    // ----------------------------------------------------
+    // Elegant Studio Corner Vignette
+    // ----------------------------------------------------
+    float cornerDist = distance(uv, vec2(0.5, 0.5));
+    float vignette = smoothstep(0.35, 1.0, cornerDist);
+    color *= (1.0 - vignette * 0.50);
+
+    // Subtle dithering to eliminate banding on 8-bit displays
     float ditherVal = fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
-    vec3 dither = vec3(ditherVal) * (1.0 / 255.0);
-    color += dither;
+    vec3 dither = vec3(ditherVal) * (0.5 / 255.0);
+    color = max(vec3(0.0), color + dither);
 
     outColor = vec4(color, 1.0);
 }
