@@ -1887,6 +1887,7 @@ begin
 
   // Defaults
   Settings.FilenameItemIndex := 0;
+  Settings.UpscalerTypeItemIndex := 2;
   Settings.EmuFp8Checked := False;
   Settings.ShortcutKey := '0x2d';
   Settings.MenuScalePosition := 0;
@@ -2131,6 +2132,7 @@ begin
   if not FileExists(ConfigPath) then
   begin
     Settings.FilenameItemIndex := 0;
+    Settings.UpscalerTypeItemIndex := 2;
     Settings.EmuFp8Checked := False;
   end
   else

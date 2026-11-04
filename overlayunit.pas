@@ -5785,6 +5785,25 @@ begin
           WriteLn('[WARN] gamesLabelClick: could not reload OptiScaler status - ', E.Message);
       end;
     end;
+
+    if Assigned(FLosslessScalingHelper) then
+    begin
+      try
+        TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
+      except
+        on E: Exception do
+          WriteLn('[WARN] gamesLabelClick: could not reload Lossless config - ', E.Message);
+      end;
+    end;
+    if Assigned(FOptiScalerHelper) then
+    begin
+      try
+        TOptiScalerTabHelper(FOptiScalerHelper).LoadOptiScalerConfig;
+      except
+        on E: Exception do
+          WriteLn('[WARN] gamesLabelClick: could not reload OptiScaler config - ', E.Message);
+      end;
+    end;
   end;
 
   SetNavActive(0);
@@ -9656,6 +9675,8 @@ begin
   FLastLosslessShowTick := 0;
   FLoadingConfig := True;
   try
+    if Assigned(FLosslessScalingHelper) then
+      TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
     LoadOptiScalerConfig;
     fsrversionComboBoxChange(nil);
     ApplyToolEnabledState(2, FNavToolEnabled[2]);

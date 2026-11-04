@@ -149,6 +149,9 @@ function ResolveUnofficialPortName(const AGameName: string): string;
 
 implementation
 
+uses
+  lossless_scaling_tab, optiscaler_tab;
+
 function NormalizeAppImageName(const AFileName: string): string;
 var
   BaseName: string;
@@ -2826,6 +2829,25 @@ begin
     except
       on E: Exception do
         WriteLn('[WARN] GameCardClick: could not reload OptiScaler status - ', E.Message);
+    end;
+  end;
+
+  if Assigned(FLosslessScalingHelper) then
+  begin
+    try
+      TLosslessScalingTabHelper(FLosslessScalingHelper).LoadLosslessConfig;
+    except
+      on E: Exception do
+        WriteLn('[WARN] GameCardClick: could not reload Lossless config - ', E.Message);
+    end;
+  end;
+  if Assigned(FOptiScalerHelper) then
+  begin
+    try
+      TOptiScalerTabHelper(FOptiScalerHelper).LoadOptiScalerConfig;
+    except
+      on E: Exception do
+        WriteLn('[WARN] GameCardClick: could not reload OptiScaler config - ', E.Message);
     end;
   end;
 

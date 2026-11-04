@@ -192,6 +192,8 @@ type
     procedure TestOnDemandTabPlaceholders;
     procedure TestSettingsMenuHasModulesItem;
     procedure TestOptiscalerToPostProcessingNavigation;
+    procedure TestProfileSwitchAfmfToOptiscalerNoConflict;
+    procedure TestSetGameToolEnabledUpscalerCoherence;
   end;
 
 implementation
@@ -2303,11 +2305,15 @@ begin
 
   // Toggle switch to True and verify auto-save wrote to disk
   Helper.SpoofToggle.Checked := True;
+  if goverlayform.autoSaveTimer.Enabled then
+    goverlayform.TriggerAutoSave;
   Content := ReadFileText(OptiIniPath);
   AssertTrue('Dxgi=auto persisted via toggle autosave', Pos('Dxgi=auto', Content) > 0);
 
   // Toggle switch to False and verify auto-save wrote to disk
   Helper.SpoofToggle.Checked := False;
+  if goverlayform.autoSaveTimer.Enabled then
+    goverlayform.TriggerAutoSave;
   Content := ReadFileText(OptiIniPath);
   AssertTrue('Dxgi=false persisted via toggle autosave', Pos('Dxgi=false', Content) > 0);
 end;
@@ -9310,6 +9316,76 @@ begin
   goverlayform.vkbasaltLabelClick(goverlayform.vkbasaltLabel);
   Application.ProcessMessages;
   AssertTrue('reshadeTabSheet is active', goverlayform.goverlayPageControl.ActivePage = goverlayform.reshadeTabSheet);
+end;
+
+procedure TGoverlayGuiTests.TestProfileSwitchAfmfToOptiscalerNoConflict;
+var
+  CleanGameDir: string;
+begin
+  // 1. In global mode, activate AFMF
+  goverlayform.FActiveGameName := '';
+  TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).SetInterpolationMethod(imAfmf);
+  AssertEquals('Global interpolation is AFMF', Ord(imAfmf), Ord(TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).InterpolationMethod));
+
+  // 2. Set up a clean game profile directory with no AFMF
+  CleanGameDir := goverlayform.GetGameConfigDir('TestAfmfSwitchGame');
+  ForceDirectories(CleanGameDir);
+  try
+    // 3. Switch to game profile and navigate to Upscalers tab
+    goverlayform.FActiveGameName := 'TestAfmfSwitchGame';
+    goverlayform.optiscalerLabelClick(goverlayform.optiscalerLabel);
+    Application.ProcessMessages;
+
+    // Lossless helper must have reloaded and detected no AFMF
+    AssertEquals('Game interpolation is imNone', Ord(imNone), Ord(TLosslessScalingTabHelper(goverlayform.FLosslessScalingHelper).InterpolationMethod));
+
+    // Activating OptiScaler must succeed without AFMF conflict
+    goverlayform.optiscalerRadioButton.Checked := True;
+    goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+    AssertTrue('OptiScaler radio button remains checked without conflict dialog cancellation',
+      goverlayform.optiscalerRadioButton.Checked);
+  finally
+    goverlayform.FActiveGameName := '';
+    if DirectoryExists(CleanGameDir) then
+      DeleteDirectory(CleanGameDir, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestSetGameToolEnabledUpscalerCoherence;
+var
+  GameDir, ConfPath: string;
+  Ini: TIniFile;
+begin
+  GameDir := goverlayform.GetGameConfigDir('TestToggleCoherenceGame');
+  ForceDirectories(GameDir);
+  ConfPath := GameDir + 'bgmod.conf';
+  try
+    // Set UPSCALER_TYPE=2 (None) in bgmod.conf
+    Ini := TIniFile.Create(ConfPath);
+    try
+      Ini.WriteInteger('Config', 'UPSCALER_TYPE', 2);
+      Ini.WriteString('Config', 'INTERPOLATION_METHOD', 'none');
+    finally
+      Ini.Free;
+    end;
+
+    // Toggling Upscalers tool ON (Idx=2) when upscaler is None must NOT write GOVERLAY_OPTISCALER=1
+    goverlayform.SetGameToolEnabled('TestToggleCoherenceGame', 2, True);
+
+    Ini := TIniFile.Create(ConfPath);
+    try
+      AssertEquals('GOVERLAY_OPTISCALER remains 0 when UPSCALER_TYPE=2', '0',
+        Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '1'));
+      AssertEquals('GOVERLAY_LOSSLESS remains 0 when INTERPOLATION_METHOD=none', '0',
+        Ini.ReadString('Config', 'GOVERLAY_LOSSLESS', '1'));
+    finally
+      Ini.Free;
+    end;
+  finally
+    goverlayform.FActiveGameName := '';
+    if DirectoryExists(GameDir) then
+      DeleteDirectory(GameDir, False);
+  end;
 end;
 
 initialization

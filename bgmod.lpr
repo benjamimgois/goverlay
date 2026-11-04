@@ -1689,7 +1689,10 @@ begin
      FileExists(GamePath + 'OptiScaler.ini') or
      FileExists(GamePath + 'fakenvapi.dll') or
      FileExists(GamePath + 'dlssg_to_fsr3_amd_is_better.dll') or
-     DirectoryExists(GamePath + 'D3D12_OptiScaler') then
+     DirectoryExists(GamePath + 'D3D12_OptiScaler') or
+     DirectoryExists(GamePath + 'HelixSR') or
+     DirectoryExists(GamePath + 'helixsr-fg') or
+     FileExists(GamePath + 'helixsr.ini') then
   begin
     Result := True;
     Exit;
@@ -3835,6 +3838,8 @@ begin
         if HasOptiScalerLeftovers(GameDir, DllName) then
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
+          if CentralLogDir <> '' then
+            SyncGameDirLogsToCentral(GameDir, CentralLogDir);
           for i := 0 to High(OrigDlls) do
           begin
             if IsNativeGameDll(OrigDlls[i]) or ((BackupsDir <> '') and FileExists(IncludeTrailingPathDelimiter(BackupsDir) + OrigDlls[i])) then
@@ -3865,6 +3870,9 @@ begin
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'fakenvapi.dll');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'dlssg_to_fsr3_amd_is_better.dll');
           SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'D3D12_OptiScaler');
+          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'HelixSR');
+          SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'helixsr-fg');
+          SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'helixsr.ini');
           if IsOptiScalerDirExternallyManaged(GameDir) then
             Log('OptiScaler directory is managed externally by Vortex or another mod manager; skipping deletion.')
           else

@@ -718,6 +718,9 @@ begin
     begin
       if (TargetSize = GetFileSize(CandidatePath + 'renames' + PathDelim + FileName)) or
          (TargetSize = GetFileSize(CandidatePath + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + 'helixsr-scaler' + PathDelim + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + 'optiscaler' + PathDelim + 'OptiScaler.dll')) or
+         (TargetSize = GetFileSize(CandidatePath + 'dlss-loader' + PathDelim + 'dxgi.dll')) or
          (TargetSize = GetFileSize(CandidatePath + FileName)) then
       begin
         Result := True;

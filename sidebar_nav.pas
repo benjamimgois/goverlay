@@ -652,7 +652,7 @@ function TSidebarNavHelper.GetGameToolEnabled(const AGameName: string; AToolIdx:
 const
   FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
-  ConfigPath: string;
+  ConfigPath, InterpMethod: string;
   Ini: TIniFile;
   DefaultVal: string;
 begin
@@ -694,7 +694,7 @@ procedure TSidebarNavHelper.SetGameToolEnabled(const AGameName: string; AToolIdx
 const
   FLAGS: array[0..3] of string = ('GOVERLAY_MANGOHUD', 'GOVERLAY_VKBASALT', 'GOVERLAY_OPTISCALER', 'GOVERLAY_TWEAKS');
 var
-  ConfigPath: string;
+  ConfigPath, InterpMethod: string;
   Ini: TIniFile;
 begin
   ConfigPath := FForm.GetGameConfigDir(AGameName) + 'bgmod.conf';
@@ -718,7 +718,18 @@ begin
     else if AToolIdx = 2 then
     begin
       if AEnabled then
-        Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1')
+      begin
+        if Ini.ReadInteger('Config', 'UPSCALER_TYPE', 2) <> 2 then
+          Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '1')
+        else
+          Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '0');
+
+        InterpMethod := LowerCase(Trim(Ini.ReadString('Config', 'INTERPOLATION_METHOD', 'none')));
+        if (InterpMethod <> 'none') and (InterpMethod <> '') then
+          Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '1')
+        else
+          Ini.WriteString('Config', 'GOVERLAY_LOSSLESS', '0');
+      end
       else
       begin
         Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '0');
@@ -892,7 +903,7 @@ end;
 
 procedure TSidebarNavHelper.RemoveTweaksFromGameFGMod(const AFGModFile: string);
 var
-  ConfigPath: string;
+  ConfigPath, InterpMethod: string;
   Ini: TIniFile;
 begin
   ConfigPath := ExtractFilePath(AFGModFile) + 'bgmod.conf';

@@ -118,6 +118,7 @@ type
     procedure TestBgmodLauncherRuleCaseInsensitive;
     procedure TestBgmodSensitiveArgRedaction;
     procedure TestBgmodWineDllOverridesSemicolonDelimiter;
+    procedure TestBgmodDisabledOptiscalerPurgesHelixSRLeftovers;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -186,6 +187,7 @@ type
     procedure TestModuleMigrationExistingAndFresh;
     procedure TestScopedHasMissingMandatoryLibraries;
     procedure TestUninstallUserModulesAndLayers;
+    procedure TestCleanProfileDefaultsUpscalerToNone;
   end;
 
 implementation
@@ -2697,6 +2699,75 @@ begin
   end;
 end;
 
+procedure TBgmodSupervisorTests.TestBgmodDisabledOptiscalerPurgesHelixSRLeftovers;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockExe: string;
+  F: TextFile;
+begin
+  EnsureBgmodBinary;
+  MockGameDir := IsolatedHome + '/games/HelixSRGame/bin';
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/HelixSRGame';
+  ForceDirectories(MockGameDir);
+  ForceDirectories(TestGameCfgDir);
+
+  // Copy bgmod binary to TestGameCfgDir
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  // Mock game executable (script with .exe name that runs true)
+  MockExe := MockGameDir + '/Game.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockExe), &755);
+
+  // Seed HelixSR leftovers
+  ForceDirectories(MockGameDir + '/HelixSR');
+  AssignFile(F, MockGameDir + '/HelixSR/helixsr.dll'); Rewrite(F); WriteLn(F, 'HELIXSR_MOCK_DLL'); CloseFile(F);
+  ForceDirectories(MockGameDir + '/helixsr-fg');
+  AssignFile(F, MockGameDir + '/helixsr-fg/dummy.txt'); Rewrite(F); WriteLn(F, 'FG_DUMMY'); CloseFile(F);
+  AssignFile(F, MockGameDir + '/helixsr.ini'); Rewrite(F); WriteLn(F, '[Upscaling]'); CloseFile(F);
+
+  // Configure bgmod.conf with OptiScaler disabled (GOVERLAY_OPTISCALER=0)
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+  WriteLn(F, 'DLL=dxgi.dll');
+  CloseFile(F);
+
+  // Run bgmod launching MockExe
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly with 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // HelixSR leftovers must be purged
+  AssertFalse('HelixSR directory must be deleted', DirectoryExists(MockGameDir + '/HelixSR'));
+  AssertFalse('helixsr-fg directory must be deleted', DirectoryExists(MockGameDir + '/helixsr-fg'));
+  AssertFalse('helixsr.ini must be deleted', FileExists(MockGameDir + '/helixsr.ini'));
+end;
+
 procedure TBgmodSupervisorTests.TestBgmodLauncherRuleSpacelessGameName;
 var
   Proc: TProcess;
@@ -3983,6 +4054,16 @@ begin
   AssertFalse('afmf-linux dir deleted', DirectoryExists(LibDir + 'afmf-linux'));
   AssertFalse('optiscaler dir deleted', DirectoryExists(ShareDir + 'optiscaler'));
   AssertFalse('reshade dir deleted', DirectoryExists(ShareDir + 'reshade'));
+end;
+
+procedure TGoverlayLogicTests.TestCleanProfileDefaultsUpscalerToNone;
+var
+  Settings: TOptiScalerSettings;
+begin
+  AssertTrue('LoadOptiScalerConfig succeeds for nonexistent profile',
+    LoadOptiScalerConfig('NonExistentCleanProfile999', Settings));
+  AssertEquals('Clean profile defaults to None (UpscalerTypeItemIndex = 2)',
+    2, Settings.UpscalerTypeItemIndex);
 end;
 
 initialization
