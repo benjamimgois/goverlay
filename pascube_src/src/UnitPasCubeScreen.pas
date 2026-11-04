@@ -3638,7 +3638,7 @@ begin
   aRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
 
   aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 2087; aRefs[1].RTScore := 1250; aRefs[1].IsCurrent := false;
-  aRefs[1].Specs := 'CPU: AMD Zen 4 6C/12T 4.8GHz | RAM: 16GB DDR5 | GPU: AMD RDNA3 28CU 8GB GDDR6 2.45GHz | OS: SteamOS';
+  aRefs[1].Specs := 'CPU: Zen 4 6C/12T | RAM: 16GB DDR5 | GPU: RDNA3 28CU | OS: SteamOS';
 
   aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 750; aRefs[2].RTScore := 240; aRefs[2].IsCurrent := false;
   aRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
@@ -3711,7 +3711,7 @@ begin
   // Determine which item is hovered using animated Y layout
   itemY := cardY + 3.5 * charHeight;
   for i := 0 to 11 do begin
-   itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
+   itemH := 2.6 * charHeight + 2.5 * charHeight * fHWExpandProgress[i];
 
    if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
       (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
@@ -4486,7 +4486,7 @@ var app: TPasCubeApplication;
     totalPhases, activePhase, chipIdx: Integer;
     chipTexts: array[0..4] of String;
     chipWidths: array[0..4] of TpvFloat;
-    charW, charH, chipH, chipGap, chipPad, chipY: TpvFloat;
+    charW, charH, chipH, chipGap, chipPad, chipY, chipTextScale: TpvFloat;
     rowWidth, chipLeft, chipTop, chipCX, chipTextY: TpvFloat;
     chipR, chipG, chipB: TpvFloat;
     fillR, fillG, fillB: TpvFloat;
@@ -4514,11 +4514,11 @@ begin
  if progress > 1.0 then progress := 1.0;
  if progress < 0.0 then progress := 0.0;
 
-  // Render header centered (below the phase stepper to avoid overlap)
-  app.TextOverlay.AddText(1920.0 * 0.5, 58.0, 2.2, toaCenter, phaseStr);
+  // Render header centered (below the phase stepper with ample breathing room)
+  app.TextOverlay.AddText(1920.0 * 0.5, 72.0, 2.2, toaCenter, phaseStr);
 
   // ------------------------------------------------------------------
-  // Phase Stepper (top center, y = 35.0)
+  // Phase Stepper (top center, enlarged, clear, and perfectly centered)
   // ------------------------------------------------------------------
   chipTexts[0] := '1. Warmup';
   chipTexts[1] := '2. CPU ST';
@@ -4543,15 +4543,16 @@ begin
 
   charW := app.TextOverlay.FontCharWidth;
   charH := app.TextOverlay.FontCharHeight;
-  chipH := 30.0;
-  chipGap := 10.0;
-  chipPad := 16.0;
-  chipY := 35.0;
-  chipTextY := chipY - (charH * 0.7 * 0.5);
+  chipTextScale := 1.0;
+  chipH := 38.0;
+  chipGap := 12.0;
+  chipPad := 18.0;
+  chipY := 36.0;
+  chipTextY := chipY - (charH * chipTextScale * 0.5);
 
   rowWidth := 0.0;
   for chipIdx := 0 to totalPhases - 1 do begin
-    chipWidths[chipIdx] := (Length(chipTexts[chipIdx]) * charW * 0.7) + (chipPad * 2.0);
+    chipWidths[chipIdx] := (Length(chipTexts[chipIdx]) * charW * chipTextScale) + (chipPad * 2.0);
     rowWidth := rowWidth + chipWidths[chipIdx];
     if chipIdx < totalPhases - 1 then
       rowWidth := rowWidth + chipGap;
@@ -4589,7 +4590,7 @@ begin
                              255.0);
     end;
 
-    app.TextOverlay.AddText(chipCX, chipTextY, 0.7, toaCenter, chipTexts[chipIdx],
+    app.TextOverlay.AddText(chipCX, chipTextY, chipTextScale, toaCenter, chipTexts[chipIdx],
                             1.0, 1.0, 1.0, 0.0,
                             chipR, chipG, chipB, 1.0);
 
@@ -4597,20 +4598,20 @@ begin
   end;
 
   // ------------------------------------------------------------------
-  // Top-Right Floating Live Telemetry Panel
+  // Top-Right Floating Live Telemetry Panel (Enlarged & Prominent)
   // ------------------------------------------------------------------
-  cardX := 1920.0 - 320.0;
-  cardY := 25.0;
-  cardW := 295.0;
-  cardH := 95.0;
+  cardW := 360.0;
+  cardH := 142.0;
+  cardX := 1920.0 - cardW - 25.0;
+  cardY := 22.0;
   DrawStyledCard(cardX, cardY, cardW, cardH, true);
 
-  lineX := cardX + 15.0;
-  app.TextOverlay.AddText(lineX, cardY + 18.0, 0.7, toaLeft, 'LIVE SENSORS',
+  lineX := cardX + 20.0;
+  app.TextOverlay.AddText(lineX, cardY + 14.0, 0.95, toaLeft, 'LIVE SENSORS',
                           1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 1.0);
 
-  app.TextOverlay.AddText(lineX, cardY + 40.0, 0.85, toaLeft,
+  app.TextOverlay.AddText(lineX, cardY + 42.0, 1.25, toaLeft,
                           Format('FPS: %.1f', [pvApplication.FramesPerSecond]),
                           1.0, 1.0, 1.0, 0.0,
                           1.0, 1.0, 1.0, 1.0);
@@ -4624,7 +4625,7 @@ begin
   else
     gpuStr := 'GPU: --';
   tempStr := cpuStr + '   ' + gpuStr;
-  app.TextOverlay.AddText(lineX, cardY + 62.0, 0.7, toaLeft, tempStr,
+  app.TextOverlay.AddText(lineX, cardY + 78.0, 0.95, toaLeft, tempStr,
                           1.0, 1.0, 1.0, 0.0,
                           180.0 / 255.0, 190.0 / 255.0, 205.0 / 255.0, 1.0);
 
@@ -4632,7 +4633,7 @@ begin
     pwrStr := Format('Power: %.0f W', [fLiveGPUPower])
   else
     pwrStr := 'Power: --';
-  app.TextOverlay.AddText(lineX, cardY + 80.0, 0.65, toaLeft, pwrStr,
+  app.TextOverlay.AddText(lineX, cardY + 106.0, 0.95, toaLeft, pwrStr,
                           1.0, 1.0, 1.0, 0.0,
                           180.0 / 255.0, 190.0 / 255.0, 205.0 / 255.0, 1.0);
 
@@ -4653,13 +4654,13 @@ begin
   end;
 
   pbWidth := 1920.0 * 0.6;
-  pbHeight := 18.0;
+  pbHeight := 24.0;
   pbX := (1920.0 - pbWidth) * 0.5;
   pbY := 1080.0 - 120.0;
 
    // Draw stage description (shifted up to avoid overlapping with progress bar)
    if infoStr <> '' then
-    app.TextOverlay.AddText(1920.0 * 0.5, pbY - 45.0, 1.2, toaCenter, infoStr);
+    app.TextOverlay.AddText(1920.0 * 0.5, pbY - 48.0, 1.35, toaCenter, infoStr);
 
    // Sleek progress bar track (dark inset with a subtle blue-grey outline)
    app.TextOverlay.AddBox(pbX, pbY, pbWidth, pbHeight,
@@ -4677,8 +4678,8 @@ begin
 
    // Draw progress percentage text centered inside the progress bar
    app.TextOverlay.AddText(1920.0 * 0.5,
-                          pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.7) * 0.5,
-                          0.7,
+                          pbY + (pbHeight - app.TextOverlay.FontCharHeight * 0.85) * 0.5,
+                          0.85,
                           toaCenter,
                           Format('%.0f%%', [progress * 100.0]));
 end;
@@ -5841,6 +5842,7 @@ var app: TPasCubeApplication;
     textR, textG, textB, textA: TpvFloat;
     pwrPeakStr, cpuTempStr, gpuTempStr: String;
     cpuTempV, gpuTempV, pwrV: Double;
+    specsScale: TpvFloat;
     // Graph variables
     graphY, graphH, graphW, barW, scoreRange: TpvFloat;
     graphMaxScore, graphMinScore: Integer;
@@ -6130,7 +6132,7 @@ begin
 
   for i := 0 to 11 do begin
     isHovered := (fHoveredHardwareIdx = i);
-    itemH := 2.6 * charHeight + 2.3 * charHeight * fHWExpandProgress[i];
+    itemH := 2.6 * charHeight + 2.5 * charHeight * fHWExpandProgress[i];
 
     // Hover background highlight (subtle cyan glow)
     if isHovered then begin
@@ -6175,7 +6177,7 @@ begin
     if barWidth < 2.0 then barWidth := 2.0;
 
     barHeight := 0.18 * charHeight;
-    barY := itemY + 1.1 * charHeight;
+    barY := itemY + 1.15 * charHeight;
 
     // Background track
     app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
@@ -6196,8 +6198,8 @@ begin
       end;
 
       app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                              itemY + 1.55 * charHeight,
-                              0.7,
+                              itemY + 1.60 * charHeight,
+                              0.85,
                               toaLeft,
                               'Ray Tracing',
                               1.0, 1.0, 1.0, 0.0,
@@ -6210,16 +6212,16 @@ begin
 
       if HWRefs[i].RTScore > 0 then begin
         app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                                itemY + 1.55 * charHeight,
-                                0.7,
+                                itemY + 1.60 * charHeight,
+                                0.85,
                                 toaRight,
                                 hwRTStr,
                                 1.0, 1.0, 1.0, 0.0,
                                 rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
       end else begin
         app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                                itemY + 1.55 * charHeight,
-                                0.7,
+                                itemY + 1.60 * charHeight,
+                                0.85,
                                 toaRight,
                                 hwRTStr,
                                 1.0, 1.0, 1.0, 0.0,
@@ -6227,7 +6229,7 @@ begin
       end;
 
       // Segunda barra (Ray Tracing)
-      rtBarY := itemY + 2.35 * charHeight;
+      rtBarY := itemY + 2.50 * charHeight;
       if HWRefs[i].RTScore > 0 then begin
         rtBarWidth := (HWRefs[i].RTScore / MaxRTScore) * maxBarWidth;
         if rtBarWidth < 2.0 then rtBarWidth := 2.0;
@@ -6248,14 +6250,29 @@ begin
                                255.0);
       end;
 
-      // Especificacoes (accordion com fade)
-      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                              itemY + 2.9 * charHeight,
-                              0.6,
-                              toaLeft,
-                              HWRefs[i].Specs,
-                              1.0, 1.0, 1.0, 0.0,
-                              179.0 / 255.0, 179.0 / 255.0, 179.0 / 255.0, fHWExpandProgress[i]);
+      // Especificações com escala aumentada e ajuste dinâmico para caber perfeitamente
+      specsScale := 0.82;
+      if (Length(HWRefs[i].Specs) * charWidth * specsScale) > maxBarWidth then
+        specsScale := maxBarWidth / (Length(HWRefs[i].Specs) * charWidth);
+      if specsScale < 0.68 then specsScale := 0.68;
+
+      if HWRefs[i].IsCurrent then begin
+        app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                                itemY + 3.05 * charHeight,
+                                specsScale,
+                                toaLeft,
+                                HWRefs[i].Specs,
+                                1.0, 1.0, 1.0, 0.0,
+                                215.0 / 255.0, 225.0 / 255.0, 240.0 / 255.0, fHWExpandProgress[i]);
+      end else begin
+        app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
+                                itemY + 3.05 * charHeight,
+                                specsScale,
+                                toaLeft,
+                                HWRefs[i].Specs,
+                                1.0, 1.0, 1.0, 0.0,
+                                195.0 / 255.0, 200.0 / 255.0, 215.0 / 255.0, fHWExpandProgress[i]);
+      end;
     end;
 
     itemY := itemY + itemH;
