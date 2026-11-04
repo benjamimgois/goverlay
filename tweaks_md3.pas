@@ -367,6 +367,7 @@ begin
 
   // Hide old LFM visual elements from the Tweaks tab
   FForm.tweaksLabel.Visible := False;
+  FForm.customenvEdit.Visible := False;
 
   // PaintBox fills the tab client area
   FForm.FTweaksPaintBox := TPaintBox.Create(FForm);
