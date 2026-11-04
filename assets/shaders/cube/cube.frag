@@ -308,20 +308,38 @@ void main() {
             }
         }
     } else {
-        // NORMAL MODE: directional light from top-front
-        vec3 L = normalize(vec3(0.2, 0.95, 0.4));
+        // NORMAL / IDLE MODE: Dark Titanium Cyber Edge Neon + Iridescent Electrochemical Fresnel
+        vec3 L = normalize(vec3(0.3, 0.9, 0.4));
         
         // Lambertian diffuse shading
         float diff = max(dot(N, L), 0.0);
         
-        // Specular highlight for a satin titanium finish
+        // Specular highlight
         vec3 H = normalize(L + V);
-        float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.35;
+        float spec = pow(max(dot(N, H), 0.0), 38.0) * 0.45;
         
-        vec3 ambient = vec3(0.12);
-        vec3 diffuseColor = diff * vec3(0.70);
-        
-        lighting = ambient + diffuseColor + vec3(spec);
+        // Dark Brushed Titanium Body (matches simulation: vec3(0.18, 0.20, 0.24) * (0.20 + 0.80 * diff))
+        vec3 titanium = vec3(0.18, 0.20, 0.24) * (0.20 + 0.80 * diff) + vec3(spec);
+
+        // 1. Iridescent Electrochemical Fresnel (grazing angle glow shifting cyan -> violet, concentrated at sharp edges)
+        float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.8);
+        vec3 iridCyan = vec3(0.10, 0.70, 0.95);
+        vec3 iridViolet = vec3(0.55, 0.15, 0.85);
+        // Animate/shift iridescence phase along normal Y and position
+        float iridPhase = sin(inPosition.y * 1.5 + N.x * 2.0) * 0.5 + 0.5;
+        vec3 iridColor = mix(iridCyan, iridViolet, iridPhase);
+        vec3 iridGlow = iridColor * fresnel * 1.8;
+
+        // 2. Cyber Edge Neon (anti-aliased bright border lines on face perimeters)
+        vec2 edgeDist = min(inTexCoord, vec2(1.0) - inTexCoord);
+        float distToBorder = min(edgeDist.x, edgeDist.y);
+        float edge = 1.0 - smoothstep(0.015, 0.045, distToBorder);
+        vec3 neonColor = vec3(0.18, 0.78, 1.0); // GOverlay Cyan (#30beee)
+        vec3 neonGlow = neonColor * edge * 2.5;
+
+        // For idle mode, replace lighting and baseColor with the dark simulation composite
+        outColor = vec4(titanium + iridGlow + neonGlow, pushConsts.vector.a);
+        return;
     }
     
     // Base color: satin titanium

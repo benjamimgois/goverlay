@@ -3470,15 +3470,15 @@ begin
 
  // Hardware Specifications Pill Card (moved above bottom buttons, using original card colors)
  subtitle := GetCPUName + '  |  ' + CleanGPUName(app.VulkanDevice.PhysicalDevice.DeviceName) + '  |  Vulkan 1.3  |  1080p';
- specsW := (Length(subtitle) * charWidth * 0.90) + 48.0;
- dockY := 1080.0 - 190.0;
- app.TextOverlay.AddBox(cx - (specsW * 0.5), dockY, specsW, 44.0,
+ specsW := (Length(subtitle) * charWidth * 1.30) + 64.0;
+ dockY := 1080.0 - 195.0;
+ app.TextOverlay.AddBox(cx - (specsW * 0.5), dockY, specsW, 52.0,
                         22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.95,
                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 1.0,
                         255.0);
- app.TextOverlay.AddText(cx, dockY + 11.0, 0.90, toaCenter, subtitle,
+ app.TextOverlay.AddText(cx, dockY + 13.0, 1.30, toaCenter, subtitle,
                          0.0, 0.0, 0.0, 0.0,
-                         221.0 / 255.0, 221.0 / 255.0, 221.0 / 255.0, 1.0);
+                         240.0 / 255.0, 240.0 / 255.0, 245.0 / 255.0, 1.0);
 
  // 1. Start benchmark button
  if app.LosslessScalingActive then begin
