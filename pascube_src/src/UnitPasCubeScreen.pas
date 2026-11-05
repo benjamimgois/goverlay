@@ -300,6 +300,7 @@ type
        procedure DrawStyledCard(const aX, aY, aW, aH: TpvFloat; const aHighlighted: Boolean = false; const aAccentR: TpvFloat = 0.0; const aAccentG: TpvFloat = 0.0; const aAccentB: TpvFloat = 0.0; const aBorderR: TpvFloat = 0.0; const aBorderG: TpvFloat = 0.0; const aBorderB: TpvFloat = 0.0);
        procedure DrawPillBadge(const aX, aY: TpvFloat; const aText: String; const aR, aG, aB: TpvFloat; const aScale: TpvFloat = 0.7);
        procedure GetScoreTier(const aScore: Integer; out aTierName: String; out aR, aG, aB: TpvFloat);
+       procedure DrawCyberButton(const aX, aY, aW, aH: TpvFloat; const aText: String; const aHovered: Boolean; const aRole: Integer; const aTextScale: TpvFloat = 1.12);
 
        public
         fOffscreenColorAttachments: array of TpvVulkanFrameBufferAttachment;
@@ -3411,32 +3412,150 @@ begin
   end;
 end;
 
+procedure TPasCubeScreen.DrawCyberButton(const aX, aY, aW, aH: TpvFloat; const aText: String; const aHovered: Boolean; const aRole: Integer; const aTextScale: TpvFloat = 1.12);
+var app: TPasCubeApplication;
+    charHeight, textY, textX: TpvFloat;
+    borderR, borderG, borderB, borderA: TpvFloat;
+    bgR, bgG, bgB, bgA: TpvFloat;
+    textR, textG, textB, textA: TpvFloat;
+    sheenR, sheenG, sheenB, sheenA: TpvFloat;
+    haloA: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charHeight := app.TextOverlay.FontCharHeight;
+  textY := aY + (aH - (charHeight * aTextScale)) * 0.5;
+  textX := aX + (aW * 0.5);
+
+  case aRole of
+    0: begin // Primary Goverlay Cyan CTA (Start Benchmark, Return to Menu)
+      if aHovered then begin
+        bgR := 30.0 / 255.0; bgG := 52.0 / 255.0; bgB := 82.0 / 255.0; bgA := 1.0;
+        borderR := 82.0 / 255.0; borderG := 215.0 / 255.0; borderB := 255.0 / 255.0; borderA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        haloA := 0.40;
+      end else begin
+        bgR := 20.0 / 255.0; bgG := 28.0 / 255.0; bgB := 44.0 / 255.0; bgA := 1.0;
+        borderR := 48.0 / 255.0; borderG := 190.0 / 255.0; borderB := 240.0 / 255.0; borderA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        haloA := 0.0;
+      end;
+    end;
+
+    1: begin // Secondary Ghost Goverlay (View Results, Submit Results Idle)
+      if aHovered then begin
+        bgR := 30.0 / 255.0; bgG := 38.0 / 255.0; bgB := 58.0 / 255.0; bgA := 1.0;
+        borderR := 90.0 / 255.0; borderG := 115.0 / 255.0; borderB := 168.0 / 255.0; borderA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        haloA := 0.25;
+      end else begin
+        bgR := 18.0 / 255.0; bgG := 22.0 / 255.0; bgB := 34.0 / 255.0; bgA := 1.0;
+        borderR := 55.0 / 255.0; borderG := 70.0 / 255.0; borderB := 108.0 / 255.0; borderA := 0.95;
+        textR := 185.0 / 255.0; textG := 195.0 / 255.0; textB := 215.0 / 255.0; textA := 1.0;
+        haloA := 0.0;
+      end;
+    end;
+
+    2: begin // Refined Dark Danger Goverlay (Clear Results)
+      if aHovered then begin
+        bgR := 55.0 / 255.0; bgG := 20.0 / 255.0; bgB := 28.0 / 255.0; bgA := 1.0;
+        borderR := 244.0 / 255.0; borderG := 63.0 / 255.0; borderB := 94.0 / 255.0; borderA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        haloA := 0.35;
+      end else begin
+        bgR := 28.0 / 255.0; bgG := 14.0 / 255.0; bgB := 18.0 / 255.0; bgA := 1.0;
+        borderR := 120.0 / 255.0; borderG := 38.0 / 255.0; borderB := 50.0 / 255.0; borderA := 0.95;
+        textR := 244.0 / 255.0; textG := 120.0 / 255.0; textB := 135.0 / 255.0; textA := 1.0;
+        haloA := 0.0;
+      end;
+    end;
+
+    3: begin // Warning / Submitting (Amber/Gold)
+      bgR := 36.0 / 255.0; bgG := 26.0 / 255.0; bgB := 14.0 / 255.0; bgA := 1.0;
+      borderR := 245.0 / 255.0; borderG := 166.0 / 255.0; borderB := 35.0 / 255.0; borderA := 1.0;
+      textR := 245.0 / 255.0; textG := 166.0 / 255.0; textB := 35.0 / 255.0; textA := 1.0;
+      haloA := 0.25;
+    end;
+
+    4: begin // Success / Submitted (Emerald)
+      bgR := 16.0 / 255.0; bgG := 36.0 / 255.0; bgB := 24.0 / 255.0; bgA := 1.0;
+      borderR := 46.0 / 255.0; borderG := 204.0 / 255.0; borderB := 113.0 / 255.0; borderA := 1.0;
+      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+      haloA := 0.30;
+    end;
+
+    else begin // Error (Coral / Red)
+      if aHovered then begin
+        bgR := 65.0 / 255.0; bgG := 22.0 / 255.0; bgB := 22.0 / 255.0; bgA := 1.0;
+        borderR := 240.0 / 255.0; borderG := 70.0 / 255.0; borderB := 70.0 / 255.0; borderA := 1.0;
+        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
+        haloA := 0.40;
+      end else begin
+        bgR := 46.0 / 255.0; bgG := 18.0 / 255.0; bgB := 18.0 / 255.0; bgA := 1.0;
+        borderR := 200.0 / 255.0; borderG := 60.0 / 255.0; borderB := 60.0 / 255.0; borderA := 1.0;
+        textR := 240.0 / 255.0; textG := 140.0 / 255.0; textB := 140.0 / 255.0; textA := 1.0;
+        haloA := 0.0;
+      end;
+    end;
+  end;
+
+  // 1. Subtle Bloom Stroke when Hovered (tight 1.5px bloom, NOT a distant floating box)
+  if haloA > 0.01 then begin
+    app.TextOverlay.AddBox(aX - 1.5, aY - 1.5, aW + 3.0, aH + 3.0,
+                           bgR, bgG, bgB, 1.0,
+                           borderR, borderG, borderB, haloA,
+                           255.0);
+  end;
+
+  // 2. Outer Border Reinforcement (for solid 2px border)
+  app.TextOverlay.AddBox(aX - 0.75, aY - 0.75, aW + 1.5, aH + 1.5,
+                         bgR, bgG, bgB, 1.0,
+                         borderR, borderG, borderB, borderA,
+                         255.0);
+
+  // 3. Core Button Body Fill
+  app.TextOverlay.AddBox(aX, aY, aW, aH,
+                         bgR, bgG, bgB, 1.0,
+                         borderR, borderG, borderB, borderA,
+                         255.0);
+
+  // 4. Subtle Top Glass Highlight (Specular Sheen)
+  sheenR := borderR * 0.5 + 0.5;
+  sheenG := borderG * 0.5 + 0.5;
+  sheenB := borderB * 0.5 + 0.5;
+  if aHovered then
+    sheenA := 0.35
+  else
+    sheenA := 0.18;
+
+  app.TextOverlay.AddBox(aX + 8.0, aY + 2.0, aW - 16.0, 1.0,
+                         sheenR, sheenG, sheenB, sheenA,
+                         sheenR, sheenG, sheenB, sheenA,
+                         255.0);
+
+  // 5. Crisp, Perfectly Centered Typography
+  app.TextOverlay.AddText(textX, textY, aTextScale, toaCenter, aText,
+                          0.0, 0.0, 0.0, 0.0,
+                          textR, textG, textB, textA);
+end;
+
 procedure TPasCubeScreen.DrawMenuOverlay;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, paddingX, paddingY: TpvFloat;
+    cx, charWidth, charHeight: TpvFloat;
+    btnWidth, btnHeight, btnY, gap, totalW: TpvFloat;
+    startBtnX, viewBtnX: TpvFloat;
     boxW, boxH, boxX, boxY: TpvFloat;
     isStartHovered, isViewHovered: Boolean;
-    bgR, bgG, bgB, bgA: TpvFloat;
-    fgR, fgG, fgB, fgA: TpvFloat;
-    textR, textG, textB, textA: TpvFloat;
-    subtitle: String;
-    specsW, dockY: TpvFloat;
+    startRole: Integer;
 begin
  app := UnitPasCubeApplication.Application;
  if not Assigned(app) then Exit;
 
  cx := 1920.0 * 0.5;
- yText := 1080.0 - 110.0;
 
  charWidth := app.TextOverlay.FontCharWidth;
  charHeight := app.TextOverlay.FontCharHeight;
-
- paddingX := charWidth * 1.5;
- paddingY := charHeight * 0.4;
-
- btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
- btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
 
  // Centered Title (Increased font size to 3.0, using default font)
  app.TextOverlay.AddText(cx, 80.0, 3.0, toaCenter, 'PasCube Benchmark');
@@ -3468,71 +3587,40 @@ begin
                           185.0/255.0, 190.0/255.0, 205.0/255.0, 1.0);
  end;
 
- // Hardware Specifications Pill Card (moved above bottom buttons, using original card colors)
- subtitle := GetCPUName + '  |  ' + CleanGPUName(app.VulkanDevice.PhysicalDevice.DeviceName) + '  |  Vulkan 1.3  |  1080p';
- specsW := (Length(subtitle) * charWidth * 1.30) + 64.0;
- dockY := 1080.0 - 195.0;
- app.TextOverlay.AddBox(cx - (specsW * 0.5), dockY, specsW, 52.0,
-                        22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.95,
-                        50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 1.0,
-                        255.0);
- app.TextOverlay.AddText(cx, dockY + 13.0, 1.30, toaCenter, subtitle,
-                         0.0, 0.0, 0.0, 0.0,
-                         240.0 / 255.0, 240.0 / 255.0, 245.0 / 255.0, 1.0);
+ // Button geometry: proportional 270x50 with 20px gap, docked 90px from bottom (40px bottom margin)
+ btnWidth := 270.0;
+ btnHeight := 50.0;
+ gap := 20.0;
+ btnY := 1080.0 - 90.0;
 
- // 1. Start benchmark button
- if app.LosslessScalingActive then begin
-  bgR := 18.0 / 255.0; bgG := 20.0 / 255.0; bgB := 28.0 / 255.0; bgA := 1.0;
-  fgR := 40.0 / 255.0; fgG := 45.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-  textR := 110.0 / 255.0; textG := 115.0 / 255.0; textB := 130.0 / 255.0; textA := 1.0;
+ if fHistoryCount > 0 then begin
+  totalW := (btnWidth * 2.0) + gap;
+  startBtnX := cx - (totalW * 0.5);
+  viewBtnX := startBtnX + btnWidth + gap;
  end else begin
-  isStartHovered := IsStartButtonHovered(fLastMousePosition);
-  if isStartHovered then begin
-   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
+  startBtnX := cx - (btnWidth * 0.5);
+  viewBtnX := 0.0;
  end;
 
- if fHistoryCount > 0 then
-  btnX := cx - btnWidth - 15.0
+ // 1. Start benchmark button (Primary CTA Cyber-Accent)
+ if app.LosslessScalingActive then
+  startRole := 1
  else
-  btnX := cx - (btnWidth * 0.5);
+  startRole := 0;
 
- app.TextOverlay.AddBox(btnX, yText - paddingY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
- 
- if fHistoryCount > 0 then
-  app.TextOverlay.AddText(cx - (btnWidth * 0.5) - 15.0, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA)
- else
-  app.TextOverlay.AddText(cx, yText, 1.8, toaCenter, 'Start benchmark', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+ isStartHovered := IsStartButtonHovered(fLastMousePosition);
+ DrawCyberButton(startBtnX, btnY, btnWidth, btnHeight, 'START BENCHMARK', isStartHovered, startRole, 1.12);
 
- // 2. View results button (only if history exists)
+ // 2. View results button (Secondary Ghost button)
  if fHistoryCount > 0 then begin
   isViewHovered := IsViewResultsButtonHovered(fLastMousePosition);
-  if isViewHovered then begin
-   bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-   fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-   textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-  end else begin
-   bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-   fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-   textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-  end;
-
-  btnX := cx + 15.0;
-  app.TextOverlay.AddBox(btnX, yText - paddingY, btnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-  app.TextOverlay.AddText(cx + (btnWidth * 0.5) + 15.0, yText, 1.8, toaCenter, 'View results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+  DrawCyberButton(viewBtnX, btnY, btnWidth, btnHeight, 'VIEW RESULTS', isViewHovered, 1, 1.12);
  end;
 end;
 
 function TPasCubeScreen.IsStartButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    cx, btnWidth, btnHeight, btnX, btnY, gap, totalW: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpIdleMenu then Exit;
@@ -3541,23 +3629,17 @@ begin
   if app.LosslessScalingActive then Exit;
 
   cx := 1920.0 * 0.5;
-  yText := 1080.0 - 110.0;
+  btnWidth := 270.0;
+  btnHeight := 50.0;
+  gap := 20.0;
+  btnY := 1080.0 - 90.0;
 
-  charWidth := app.TextOverlay.FontCharWidth;
-  charHeight := app.TextOverlay.FontCharHeight;
-
-  paddingX := charWidth * 1.5;
-  paddingY := charHeight * 0.4;
-
-  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  
-  if fHistoryCount > 0 then
-    btnX := cx - btnWidth - 15.0
-  else
+  if fHistoryCount > 0 then begin
+    totalW := (btnWidth * 2.0) + gap;
+    btnX := cx - (totalW * 0.5);
+  end else begin
     btnX := cx - (btnWidth * 0.5);
-    
-  btnY := yText - paddingY;
+  end;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
@@ -3565,8 +3647,7 @@ end;
 
 function TPasCubeScreen.IsViewResultsButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
+    cx, btnWidth, btnHeight, btnX, btnY, gap, totalW: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpIdleMenu then Exit;
@@ -3575,19 +3656,13 @@ begin
   if not Assigned(app) then Exit;
 
   cx := 1920.0 * 0.5;
-  yText := 1080.0 - 110.0;
+  btnWidth := 270.0;
+  btnHeight := 50.0;
+  gap := 20.0;
+  btnY := 1080.0 - 90.0;
 
-  charWidth := app.TextOverlay.FontCharWidth;
-  charHeight := app.TextOverlay.FontCharHeight;
-
-  paddingX := charWidth * 1.5;
-  paddingY := charHeight * 0.4;
-
-  btnWidth := (15.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  
-  btnX := cx + 15.0;
-  btnY := yText - paddingY;
+  totalW := (btnWidth * 2.0) + gap;
+  btnX := cx - (totalW * 0.5) + btnWidth + gap;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
@@ -3595,9 +3670,7 @@ end;
 
 function TPasCubeScreen.IsReturnButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    submitBtnWidth, clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
+    cx, btnWidth, btnHeight, btnX, btnY, gap, groupWidth, groupX: TpvFloat;
 begin
  Result := false;
  if fBenchmarkPhase <> bpResults then Exit;
@@ -3606,26 +3679,19 @@ begin
  if not Assigned(app) then Exit;
 
  cx := 1920.0 * 0.5;
- yText := 1080.0 - 55.0;
- charWidth := app.TextOverlay.FontCharWidth;
- charHeight := app.TextOverlay.FontCharHeight;
- paddingX := charWidth * 1.5;
- paddingY := charHeight * 0.4;
- btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
- clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
- gap := 4.0 * charWidth;
+ btnWidth := 260.0;
+ btnHeight := 50.0;
+ gap := 20.0;
+ btnY := 1080.0 - 75.0;
  
  if fSubmitStatus = 4 then begin
-  groupWidth := btnWidth + gap + clearBtnWidth;
+  groupWidth := (btnWidth * 2.0) + gap;
  end else begin
-  submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  groupWidth := btnWidth + gap + submitBtnWidth + gap + clearBtnWidth;
+  groupWidth := (btnWidth * 3.0) + (gap * 2.0);
  end;
  
  groupX := cx - (groupWidth * 0.5);
- btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
  btnX := groupX;
- btnY := yText - paddingY;
  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
@@ -3725,9 +3791,7 @@ end;
 
 function TPasCubeScreen.IsClearButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    returnBtnWidth, submitBtnWidth, gap, groupWidth, groupX: TpvFloat;
+    cx, btnWidth, btnHeight, btnX, btnY, gap, groupWidth, groupX: TpvFloat;
 begin
   Result := false;
   if fBenchmarkPhase <> bpResults then Exit;
@@ -3736,29 +3800,20 @@ begin
   if not Assigned(app) then Exit;
 
   cx := 1920.0 * 0.5;
-  yText := 1080.0 - 55.0;
-  charWidth := app.TextOverlay.FontCharWidth;
-  charHeight := app.TextOverlay.FontCharHeight;
-  paddingX := charWidth * 1.5;
-  paddingY := charHeight * 0.4;
-
-  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  btnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
-  gap := 4.0 * charWidth;
+  btnWidth := 260.0;
+  btnHeight := 50.0;
+  gap := 20.0;
+  btnY := 1080.0 - 75.0;
 
   if fSubmitStatus = 4 then begin
-    groupWidth := returnBtnWidth + gap + btnWidth;
+    groupWidth := (btnWidth * 2.0) + gap;
     groupX := cx - (groupWidth * 0.5);
-    btnX := groupX + returnBtnWidth + gap;
+    btnX := groupX + btnWidth + gap;
   end else begin
-    submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-    groupWidth := returnBtnWidth + gap + submitBtnWidth + gap + btnWidth;
+    groupWidth := (btnWidth * 3.0) + (gap * 2.0);
     groupX := cx - (groupWidth * 0.5);
-    btnX := groupX + returnBtnWidth + gap + submitBtnWidth + gap;
+    btnX := groupX + (btnWidth * 2.0) + (gap * 2.0);
   end;
-
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-  btnY := yText - paddingY;
 
   Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
             (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
@@ -3766,9 +3821,7 @@ end;
 
 function TPasCubeScreen.IsSubmitButtonHovered(const aPos: TpvVector2): Boolean;
 var app: TPasCubeApplication;
-    cx, yText, charWidth, charHeight: TpvFloat;
-    btnWidth, btnHeight, btnX, btnY, paddingX, paddingY: TpvFloat;
-    returnBtnWidth, clearBtnWidth, gap, groupWidth, groupX: TpvFloat;
+    cx, btnWidth, btnHeight, btnX, btnY, gap, groupWidth, groupX: TpvFloat;
 begin
  Result := false;
  if fBenchmarkPhase <> bpResults then Exit;
@@ -3778,20 +3831,15 @@ begin
  if not Assigned(app) then Exit;
 
  cx := 1920.0 * 0.5;
- yText := 1080.0 - 55.0;
- charWidth := app.TextOverlay.FontCharWidth;
- charHeight := app.TextOverlay.FontCharHeight;
- paddingX := charWidth * 1.5;
- paddingY := charHeight * 0.4;
- returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
- btnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
- clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
- gap := 4.0 * charWidth;
- groupWidth := returnBtnWidth + gap + btnWidth + gap + clearBtnWidth;
+ btnWidth := 260.0;
+ btnHeight := 50.0;
+ gap := 20.0;
+ btnY := 1080.0 - 75.0;
+
+ groupWidth := (btnWidth * 3.0) + (gap * 2.0);
  groupX := cx - (groupWidth * 0.5);
- btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
- btnX := groupX + returnBtnWidth + gap;
- btnY := yText - paddingY;
+ btnX := groupX + btnWidth + gap;
+
  Result := (aPos.x >= btnX) and (aPos.x <= btnX + btnWidth) and
            (aPos.y >= btnY) and (aPos.y <= btnY + btnHeight);
 end;
@@ -5832,7 +5880,7 @@ var app: TPasCubeApplication;
     charWidth, charHeight: TpvFloat;
     cardY, cardHeight, availableH, fixedH, itemY, telemH: TpvFloat;
     halfWidth, gap, hwCardY, hwTotalH, colW: TpvFloat;
-    btnHeight, btnY, paddingX, paddingY, yText: TpvFloat;
+    btnWidth, btnHeight, btnY, paddingX, paddingY, yText: TpvFloat;
     clearBtnWidth, clearBtnX: TpvFloat;
     returnBtnWidth, returnBtnX, groupX, groupWidth: TpvFloat;
     submitBtnWidth, submitBtnX: TpvFloat;
@@ -6278,136 +6326,50 @@ begin
     itemY := itemY + itemH;
   end;
 
-  // --- BOTTOM BUTTON BAR ---
-  yText := 1080.0 - 55.0;
-  paddingX := charWidth * 1.5;
-  paddingY := charHeight * 0.4;
-  btnHeight := (charHeight * 1.8) + (2.0 * paddingY);
-
-  returnBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-  clearBtnWidth := (14.0 * charWidth * 1.6) + (2.0 * paddingX);
-  gap := 4.0 * charWidth;
-  btnY := yText - paddingY;
+  // --- BOTTOM BUTTON BAR (GOVERLAY CYBER-ACCENT) ---
+  btnWidth := 260.0;
+  btnHeight := 50.0;
+  gap := 20.0;
+  btnY := 1080.0 - 75.0;
 
   if fSubmitStatus = 4 then begin
     // 2-button layout: Return to Menu and Clear results
-    groupWidth := returnBtnWidth + gap + clearBtnWidth;
+    groupWidth := (btnWidth * 2.0) + gap;
     groupX := cx - (groupWidth * 0.5);
 
-    // --- RETURN TO MENU BUTTON ---
-    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
-    if isReturnHovered then begin
-      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-    end else begin
-      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-    end;
-
     returnBtnX := groupX;
-    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    clearBtnX := groupX + btnWidth + gap;
 
-    // --- CLEAR RESULTS BUTTON ---
+    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+    DrawCyberButton(returnBtnX, btnY, btnWidth, btnHeight, 'RETURN TO MENU', isReturnHovered, 0, 1.12);
+
     isClearHovered := IsClearButtonHovered(fLastMousePosition);
-    if isClearHovered then begin
-      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
-      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-    end else begin
-      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-    end;
-
-    clearBtnX := groupX + returnBtnWidth + gap;
-    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    DrawCyberButton(clearBtnX, btnY, btnWidth, btnHeight, 'CLEAR RESULTS', isClearHovered, 2, 1.12);
   end else begin
-    // 3-button layout: Return to Menu, Submit results (with status), and Clear results
-    submitBtnWidth := (14.0 * charWidth * 1.8) + (2.0 * paddingX);
-    groupWidth := returnBtnWidth + gap + submitBtnWidth + gap + clearBtnWidth;
+    // 3-button layout: Return to Menu, Submit results (with status feedback), and Clear results
+    groupWidth := (btnWidth * 3.0) + (gap * 2.0);
     groupX := cx - (groupWidth * 0.5);
 
-    // --- RETURN TO MENU BUTTON ---
-    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
-    if isReturnHovered then begin
-      bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-      fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-    end else begin
-      bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-      fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-    end;
-
     returnBtnX := groupX;
-    app.TextOverlay.AddBox(returnBtnX, btnY, returnBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(returnBtnX + returnBtnWidth * 0.5, yText, 1.8, toaCenter, 'Return to Menu', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    submitBtnX := groupX + btnWidth + gap;
+    clearBtnX := groupX + (btnWidth * 2.0) + (gap * 2.0);
 
-    // --- SUBMIT RESULTS BUTTON ---
-    submitBtnX := groupX + returnBtnWidth + gap;
+    // 1. Return to Menu (Primary CTA Cyan)
+    isReturnHovered := IsReturnButtonHovered(fLastMousePosition);
+    DrawCyberButton(returnBtnX, btnY, btnWidth, btnHeight, 'RETURN TO MENU', isReturnHovered, 0, 1.12);
+
+    // 2. Submit Results (Secondary Ghost with state-aware feedback)
     isSubmitHovered := IsSubmitButtonHovered(fLastMousePosition);
-
     case fSubmitStatus of
-      0: begin
-        submitStr := 'Submit results';
-        if isSubmitHovered then begin
-          bgR := 33.0 / 255.0; bgG := 38.0 / 255.0; bgB := 56.0 / 255.0; bgA := 1.0;
-          fgR := 48.0 / 255.0; fgG := 190.0 / 255.0; fgB := 240.0 / 255.0; fgA := 1.0;
-          textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-        end else begin
-          bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-          fgR := 50.0 / 255.0; fgG := 60.0 / 255.0; fgB := 85.0 / 255.0; fgA := 1.0;
-          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-        end;
-      end;
-      1: begin
-        submitStr := 'Submitting...';
-        bgR := 22.0 / 255.0; bgG := 25.0 / 255.0; bgB := 37.0 / 255.0; bgA := 1.0;
-        fgR := 245.0 / 255.0; fgG := 166.0 / 255.0; fgB := 35.0 / 255.0; fgA := 1.0;
-        textR := 245.0 / 255.0; textG := 166.0 / 255.0; textB := 35.0 / 255.0; textA := 1.0;
-      end;
-      2: begin
-        submitStr := 'Submitted!';
-        bgR := 20.0 / 255.0; bgG := 60.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-        fgR := 46.0 / 255.0; fgG := 204.0 / 255.0; fgB := 113.0 / 255.0; fgA := 1.0;
-        textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-      end;
-      3: begin
-        submitStr := 'Error! Retry?';
-        if isSubmitHovered then begin
-          bgR := 90.0 / 255.0; bgG := 35.0 / 255.0; bgB := 35.0 / 255.0; bgA := 1.0;
-          fgR := 240.0 / 255.0; fgG := 80.0 / 255.0; fgB := 80.0 / 255.0; fgA := 1.0;
-          textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-        end else begin
-          bgR := 70.0 / 255.0; bgG := 25.0 / 255.0; bgB := 25.0 / 255.0; bgA := 1.0;
-          fgR := 200.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-          textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-        end;
-      end;
+      0: DrawCyberButton(submitBtnX, btnY, btnWidth, btnHeight, 'SUBMIT RESULTS', isSubmitHovered, 1, 1.12);
+      1: DrawCyberButton(submitBtnX, btnY, btnWidth, btnHeight, 'SUBMITTING...', false, 3, 1.12);
+      2: DrawCyberButton(submitBtnX, btnY, btnWidth, btnHeight, 'SUBMITTED!', false, 4, 1.12);
+      3: DrawCyberButton(submitBtnX, btnY, btnWidth, btnHeight, 'ERROR! RETRY?', isSubmitHovered, 5, 1.12);
     end;
 
-    app.TextOverlay.AddBox(submitBtnX, btnY, submitBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(submitBtnX + submitBtnWidth * 0.5, yText, 1.8, toaCenter, submitStr, 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
-
-    // --- CLEAR RESULTS BUTTON ---
+    // 3. Clear Results (Refined Dark Danger)
     isClearHovered := IsClearButtonHovered(fLastMousePosition);
-    if isClearHovered then begin
-      bgR := 160.0 / 255.0; bgG := 60.0 / 255.0; bgB := 60.0 / 255.0; bgA := 1.0;
-      fgR := 200.0 / 255.0; fgG := 90.0 / 255.0; fgB := 90.0 / 255.0; fgA := 1.0;
-      textR := 1.0; textG := 1.0; textB := 1.0; textA := 1.0;
-    end else begin
-      bgR := 120.0 / 255.0; bgG := 40.0 / 255.0; bgB := 40.0 / 255.0; bgA := 1.0;
-      fgR := 160.0 / 255.0; fgG := 60.0 / 255.0; fgB := 60.0 / 255.0; fgA := 1.0;
-      textR := 221.0 / 255.0; textG := 221.0 / 255.0; textB := 221.0 / 255.0; textA := 1.0;
-    end;
-
-    clearBtnX := groupX + returnBtnWidth + gap + submitBtnWidth + gap;
-    app.TextOverlay.AddBox(clearBtnX, btnY, clearBtnWidth, btnHeight, bgR, bgG, bgB, bgA, fgR, fgG, fgB, fgA, 255.0);
-    app.TextOverlay.AddText(clearBtnX + clearBtnWidth * 0.5, yText, 1.8, toaCenter, 'Clear results', 0.0, 0.0, 0.0, 0.0, textR, textG, textB, textA);
+    DrawCyberButton(clearBtnX, btnY, btnWidth, btnHeight, 'CLEAR RESULTS', isClearHovered, 2, 1.12);
   end;
 
   // --- CLEAR CONFIRMATION DIALOG ---

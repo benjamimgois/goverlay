@@ -6,11 +6,11 @@ Defines visual layout, system specs presentation, live in-engine telemetry HUD, 
 ## Requirements
 
 ### Requirement: System Specifications Summary Pill
-The benchmark interface SHALL render a system specifications summary badge displaying the active CPU model, GPU model, Vulkan API version, and resolution preset across both the idle menu and the results overlay with high-legibility typography.
+The benchmark interface SHALL render a system specifications summary badge exclusively on the results overlay, omitting it from the idle menu to provide visual clearance for the 3D scene and floor reflections.
 
 #### Scenario: Display on idle menu
 - **WHEN** PasCube enters the idle menu state (`bpIdleMenu`)
-- **THEN** the interface renders a centered pill card with font scale `1.30` and height `52.0px`, rendering the CPU, GPU, Vulkan version, and resolution preset (1080p) in high-contrast text.
+- **THEN** the interface omits the specifications summary pill from the bottom viewport to maximize visual clearance for 3D reflections.
 
 #### Scenario: Display on results overlay
 - **WHEN** PasCube renders the final results screen (`bpResults`)
@@ -85,3 +85,18 @@ The PasCube environment renderer SHALL render an attenuated glossy reflection of
 #### Scenario: Deep obsidian studio contrast
 - **WHEN** PasCube displays the Cyber Dark Studio environment
 - **THEN** background colors are calibrated for Vulkan sRGB swapchain encoding to present true obsidian dark backdrop with a focused backlight halo and corner vignette.
+
+### Requirement: Modern Cyber-Accent Action Buttons
+The PasCube interface SHALL render interactive action buttons with clear visual hierarchy, directional navigation glyphs, and Goverlay Cyber-Accent styling across idle menu and results views.
+
+#### Scenario: Idle menu primary and secondary buttons
+- **WHEN** PasCube renders the idle menu overlay (`bpIdleMenu`)
+- **THEN** the "Start benchmark" action is rendered as a primary Call-to-Action with a Goverlay Cyan border (`#30BEF0`) and play glyph `▶`, and "View results" is rendered as a secondary Ghost action with glyph `≡` when benchmark history exists.
+
+#### Scenario: Results overlay action buttons
+- **WHEN** PasCube renders the results overlay (`bpResults`)
+- **THEN** "Return to Menu" is rendered with primary Goverlay Cyan CTA styling and back glyph `◀`, "Submit results" is rendered with secondary Ghost styling and dynamic status text, and "Clear results" is rendered with refined dark danger styling (subtle crimson border and glyph `✕`).
+
+#### Scenario: Interactive button hover feedback
+- **WHEN** the mouse cursor hovers over any action button
+- **THEN** the hovered button displays high-contrast border and background illumination corresponding to its role (luminous cyan for primary, elevated blue-grey for ghost, vibrant red for danger).
