@@ -3701,37 +3701,37 @@ var i, j: Integer;
     TempHW: THardwareRef;
 begin
   aRefs[0].Name := 'Raspberry Pi 5'; aRefs[0].Score := 400; aRefs[0].RTScore := 0; aRefs[0].IsCurrent := false;
-  aRefs[0].Specs := 'CPU: BCM2712 4C | RAM: 8GB LPDDR4X | GPU: VideoCore VII | OS: Raspberry Pi OS';
+  aRefs[0].Specs := 'BCM2712 4C | 8GB LPDDR4X | VideoCore VII | Raspberry Pi OS';
 
   aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 2087; aRefs[1].RTScore := 1250; aRefs[1].IsCurrent := false;
-  aRefs[1].Specs := 'CPU: Zen 4 6C/12T | RAM: 16GB DDR5 | GPU: RDNA3 28CU | OS: SteamOS';
+  aRefs[1].Specs := 'Zen 4 6C/12T | 16GB DDR5 | RDNA3 28CU | SteamOS';
 
   aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 750; aRefs[2].RTScore := 240; aRefs[2].IsCurrent := false;
-  aRefs[2].Specs := 'CPU: Cortex-A78C 8C | RAM: 12GB LPDDR5X | GPU: Ampere 768 | OS: Horizon';
+  aRefs[2].Specs := 'Cortex-A78C 8C | 12GB LPDDR5X | Ampere 768 | Horizon';
 
   aRefs[3].Name := 'Steam Deck'; aRefs[3].Score := 818; aRefs[3].RTScore := 174; aRefs[3].IsCurrent := false;
-  aRefs[3].Specs := 'CPU: Zen 2 4C/8T | RAM: 16GB LPDDR5 | GPU: RDNA2 8CU | OS: SteamOS';
+  aRefs[3].Specs := 'Zen 2 4C/8T | 16GB LPDDR5 | RDNA2 8CU | SteamOS';
 
   aRefs[4].Name := 'ROG Ally X'; aRefs[4].Score := 1212; aRefs[4].RTScore := 340; aRefs[4].IsCurrent := false;
-  aRefs[4].Specs := 'CPU: Z1 Extreme | RAM: 24GB LPDDR5X | GPU: RDNA3 12CU | OS: Win11';
+  aRefs[4].Specs := 'Z1 Extreme | 24GB LPDDR5X | RDNA3 12CU | Win11';
 
   aRefs[5].Name := 'Entry Gamer PC'; aRefs[5].Score := 1580; aRefs[5].RTScore := 761; aRefs[5].IsCurrent := false;
-  aRefs[5].Specs := 'CPU: i3 12100F | RAM: 16GB DDR4 | GPU: RX 6600 8GB | OS: Win11';
+  aRefs[5].Specs := 'i3 12100F | 16GB DDR4 | RX 6600 8GB | Win11';
 
   aRefs[6].Name := 'PlayStation 5';     aRefs[6].Score := 1800; aRefs[6].RTScore := 680; aRefs[6].IsCurrent := false;
-  aRefs[6].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 36CU | OS: Custom OS';
+  aRefs[6].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA2 36CU | Custom OS';
 
   aRefs[7].Name := 'XBOX Series X';     aRefs[7].Score := 2000; aRefs[7].RTScore := 850; aRefs[7].IsCurrent := false;
-  aRefs[7].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA2 52CU | OS: Custom OS';
+  aRefs[7].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA2 52CU | Custom OS';
 
   aRefs[8].Name := 'PlayStation 5 Pro'; aRefs[8].Score := 2700; aRefs[8].RTScore := 1450; aRefs[8].IsCurrent := false;
-  aRefs[8].Specs := 'CPU: Zen 2 8C/16T | RAM: 16GB GDDR6 | GPU: RDNA3 60CU | OS: Custom OS';
+  aRefs[8].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA3 60CU | Custom OS';
 
   aRefs[9].Name := 'Mid-Range Gamer PC'; aRefs[9].Score := 2751; aRefs[9].RTScore := 1713; aRefs[9].IsCurrent := false;
-  aRefs[9].Specs := 'CPU: R5 7600 | RAM: 32GB DDR5 | GPU: RTX 4060 Ti | OS: Win11';
+  aRefs[9].Specs := 'R5 7600 | 32GB DDR5 | RTX 4060 Ti | Win11';
 
   aRefs[10].Name := 'High-End Gamer PC'; aRefs[10].Score := 8062; aRefs[10].RTScore := 7450; aRefs[10].IsCurrent := false;
-  aRefs[10].Specs := 'CPU: R9 9950X3D | RAM: 48GB DDR5 | GPU: RTX 5090 | OS: CachyOS';
+  aRefs[10].Specs := 'R9 9950X3D | 48GB DDR5 | RTX 5090 | CachyOS';
 
   aRefs[11].Name := 'Current System'; aRefs[11].Score := fCurrentResult.TotalScore;
   if fCurrentResult.RTSupported then
@@ -3739,7 +3739,7 @@ begin
   else
     aRefs[11].RTScore := 0;
   aRefs[11].IsCurrent := true;
-  aRefs[11].Specs := 'CPU: ' + GetCPUName + ' | RAM: ' + GetRAMSize + ' | GPU: ' + CleanGPUName(fCurrentResult.DeviceName) + ' | OS: ' + GetOSName;
+  aRefs[11].Specs := GetCPUName + ' | ' + GetRAMSize + ' | ' + CleanGPUName(fCurrentResult.DeviceName) + ' | ' + GetOSName;
 
   // Ordenar decrescente por pontuacao principal
   for i := 0 to 10 do begin
@@ -3777,7 +3777,7 @@ begin
   // Determine which item is hovered using animated Y layout
   itemY := cardY + 3.5 * charHeight;
   for i := 0 to 11 do begin
-   itemH := 2.6 * charHeight + 2.5 * charHeight * fHWExpandProgress[i];
+   itemH := 2.40 * charHeight + 2.80 * charHeight * fHWExpandProgress[i];
 
    if (aPos.x >= rightColX1) and (aPos.x <= rightColX1 + rightColWidth) and
       (aPos.y >= itemY) and (aPos.y <= itemY + itemH) then begin
@@ -4406,14 +4406,18 @@ begin
                          0.0, 0.0, 0.0, 0.6,
                          0.0, 0.0, 0.0, 0.0, 255.0);
 
-  // Dialog box
+  // Dialog box (100% solid Goverlay navy with 2px cyan border)
   boxW := 68.0 * charWidth;
   boxH := 26.0 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
+  app.TextOverlay.AddBox(boxX - 0.75, boxY - 0.75, boxW + 1.5, boxH + 1.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                         255.0);
   app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
-                         22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
-                         48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
                          255.0);
 
   // Title
@@ -5890,7 +5894,14 @@ var app: TPasCubeApplication;
     textR, textG, textB, textA: TpvFloat;
     pwrPeakStr, cpuTempStr, gpuTempStr: String;
     cpuTempV, gpuTempV, pwrV: Double;
-    specsScale: TpvFloat;
+    specsScale, specsY: TpvFloat;
+    // Tier badge variables
+    tierName: String;
+    tierR, tierG, tierB: TpvFloat;
+    tierBadgeW, tierBadgeH, tierBadgeX, tierBadgeY, headerStartX: TpvFloat;
+    tierTextScale, tierTextY, titleScale, titleY: TpvFloat;
+    // RT badge variables
+    rtBadgeW, rtBadgeH, rtBadgeX, rtBadgeY, rtTextScale, rtTextY: TpvFloat;
     // Graph variables
     graphY, graphH, graphW, barW, scoreRange: TpvFloat;
     graphMaxScore, graphMinScore: Integer;
@@ -5911,6 +5922,12 @@ begin
   cx := 1920.0 * 0.5;
   cy := 1080.0 * 0.5;
 
+  // 1. Cinematic backdrop scrim (dims active 3D cube and floor lighting by 88%)
+  app.TextOverlay.AddBox(0.0, 0.0, 1920.0, 1080.0,
+                         4.0 / 255.0, 6.0 / 255.0, 12.0 / 255.0, 0.88,
+                         0.0, 0.0, 0.0, 0.0,
+                         255.0);
+
   leftColX1 := 1920.0 * 0.05;
   leftColWidth := 1920.0 * 0.43;
   rightColX1 := 1920.0 * 0.52;
@@ -5921,10 +5938,10 @@ begin
   // Leave comfortable margin above Return button (55px)
   hwTotalH := 1080.0 - 55.0 - hwCardY - 55.0;
 
-  // Draw right card background first (so text draws on top)
+  // Draw right card background (100% solid Goverlay navy fill with crisp slate border)
   app.TextOverlay.AddBox(rightColX1, hwCardY, rightColWidth, hwTotalH,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.95,
-                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
 
   // --- COLUNA ESQUERDA: Main Score + 2x2 CPU/GPU + Live Telemetry + Score Trend ---
@@ -5938,14 +5955,45 @@ begin
   if cardHeight < 4.6 * charHeight then cardHeight := 4.6 * charHeight;
   if cardHeight > 6.5 * charHeight then cardHeight := 6.5 * charHeight;
 
-  // --- Card 0: Main Score (spans both CPU card widths) ---
+  // --- Card 0: Hero Main Score (spans both CPU card widths) ---
   cardY := 1.0 * charHeight;
-  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, 6.0 * charHeight,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.6,
+  // Outer reinforcement for 2px Goverlay Cyan border
+  app.TextOverlay.AddBox(leftColX1 - 0.75, cardY - 0.75, leftColWidth + 1.5, 6.0 * charHeight + 1.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 0.5 * charHeight, 1.0, toaCenter, 'Main Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
-  app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.0 * charHeight, 3.2, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
+  app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, 6.0 * charHeight,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                         255.0);
+
+  // Main Score Header: Title + Tier Badge centered to avoid MangoHud overlap
+  GetScoreTier(fCurrentResult.TotalScore, tierName, tierR, tierG, tierB);
+  tierTextScale := 0.68;
+  tierBadgeH := 1.35 * charHeight;
+  tierBadgeW := (Length(tierName) * charWidth * tierTextScale) + (3.0 * charWidth);
+
+  titleScale := 0.95;
+  colW := 10.0 * charWidth * titleScale; // Title width approx
+  gap := 1.5 * charWidth;
+  headerStartX := (leftColX1 + leftColWidth * 0.5) - ((colW + gap + tierBadgeW) * 0.5);
+
+  tierBadgeX := headerStartX + colW + gap;
+  tierBadgeY := cardY + 0.40 * charHeight;
+
+  // Title vertical centering relative to badge
+  titleY := tierBadgeY + (tierBadgeH - (charHeight * titleScale)) * 0.5;
+  app.TextOverlay.AddText(headerStartX, titleY, titleScale, toaLeft, 'Main Score', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
+
+  app.TextOverlay.AddBox(tierBadgeX, tierBadgeY, tierBadgeW, tierBadgeH,
+                         tierR * 0.20, tierG * 0.20, tierB * 0.20, 0.95,
+                         tierR, tierG, tierB, 0.90,
+                         255.0);
+  tierTextY := tierBadgeY + (tierBadgeH - (charHeight * tierTextScale)) * 0.5;
+  app.TextOverlay.AddText(tierBadgeX + tierBadgeW * 0.5, tierTextY, tierTextScale, toaCenter, tierName, 1.0, 1.0, 1.0, 0.0, tierR, tierG, tierB, 1.0);
+
+  // Big score value centered in card
+  app.TextOverlay.AddText(leftColX1 + leftColWidth * 0.5, cardY + 2.2 * charHeight, 3.4, toaCenter, FormatScoreValue(fCurrentResult.TotalScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
   // --- Methodology hint (?) aligned right of Main Score title ---
   if fShowMethodology then begin
@@ -5953,7 +6001,7 @@ begin
   end else begin
     fgR := 150.0 / 255.0; fgG := 160.0 / 255.0; fgB := 180.0 / 255.0; fgA := 0.9;
   end;
-  app.TextOverlay.AddText(leftColX1 + leftColWidth - 1.0 * charWidth, cardY + 0.5 * charHeight, 1.4, toaRight, '?',
+  app.TextOverlay.AddText(leftColX1 + leftColWidth - 1.5 * charWidth, cardY + 0.65 * charHeight, 1.3, toaRight, '?',
                           0.0, 0.0, 0.0, 0.0, fgR, fgG, fgB, fgA);
 
   // --- Row 1: CPU Single-Thread | CPU Multi-Thread ---
@@ -5961,18 +6009,18 @@ begin
 
   // CPU Single-Thread (left)
   app.TextOverlay.AddBox(leftColX1, cardY, halfWidth, cardHeight,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(leftColX1 + 1.2 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Single-Thread', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
   app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.46, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[1].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
   // CPU Multi-Thread (right)
   app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.2 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'CPU Multi-Thread', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
   app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.46, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[2].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
   // --- Row 2: GPU Raster Score | Ray Tracing Score ---
@@ -5980,18 +6028,44 @@ begin
 
   // GPU Raster Score (left)
   app.TextOverlay.AddBox(leftColX1, cardY, halfWidth, cardHeight,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Raster Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(leftColX1 + 1.2 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'GPU Raster Score', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
   app.TextOverlay.AddText(leftColX1 + halfWidth * 0.5, cardY + cardHeight * 0.46, 2.2, toaCenter, FormatScoreValue(fCurrentResult.PhaseResults[7].Score), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
 
   // Ray Tracing Score (right)
   app.TextOverlay.AddBox(leftColX1 + halfWidth + gap, cardY, halfWidth, cardHeight,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.0 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'Ray Tracing Score', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(leftColX1 + halfWidth + gap + 1.2 * charWidth, cardY + 0.5 * charHeight, 0.85, toaLeft, 'Ray Tracing Score', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
+
+  // Thematic RT Badge (magenta/violet)
+  rtTextScale := 0.72;
+  rtBadgeW := 4.0 * charWidth;
+  rtBadgeH := 1.35 * charHeight;
+  rtBadgeX := leftColX1 + halfWidth + gap + halfWidth - rtBadgeW - 1.2 * charWidth;
+  rtBadgeY := cardY + 0.40 * charHeight;
+  rtTextY := rtBadgeY + (rtBadgeH - (charHeight * rtTextScale)) * 0.5;
+  if fCurrentResult.RTSupported then begin
+    app.TextOverlay.AddBox(rtBadgeX, rtBadgeY, rtBadgeW, rtBadgeH,
+                           217.0 / 255.0 * 0.2, 70.0 / 255.0 * 0.2, 239.0 / 255.0 * 0.2, 0.95,
+                           217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, 0.90,
+                           255.0);
+    app.TextOverlay.AddText(rtBadgeX + rtBadgeW * 0.5, rtTextY, rtTextScale, toaCenter, 'RT',
+                           1.0, 1.0, 1.0, 0.0,
+                           217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, 1.0);
+  end else begin
+    app.TextOverlay.AddBox(rtBadgeX, rtBadgeY, rtBadgeW, rtBadgeH,
+                           30.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.7,
+                           70.0 / 255.0, 80.0 / 255.0, 100.0 / 255.0, 0.5,
+                           255.0);
+    app.TextOverlay.AddText(rtBadgeX + rtBadgeW * 0.5, rtTextY, rtTextScale, toaCenter, 'RT',
+                           1.0, 1.0, 1.0, 0.0,
+                           120.0 / 255.0, 130.0 / 255.0, 150.0 / 255.0, 0.8);
+  end;
+
   if fCurrentResult.RTSupported and (fCurrentResult.RTScore > 0) then begin
     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.46, 2.2, toaCenter, FormatScoreValue(fCurrentResult.RTScore), 1.0, 1.0, 1.0, 0.0, 48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0);
   end else if not fCurrentResult.RTSupported then begin
@@ -6001,13 +6075,13 @@ begin
     app.TextOverlay.AddText(leftColX1 + halfWidth + gap + halfWidth * 0.5, cardY + cardHeight * 0.46, 1.8, toaCenter, 'N/A', 1.0, 1.0, 1.0, 0.0, 150.0 / 255.0, 160.0 / 255.0, 180.0 / 255.0, 0.8);
   end;
 
-  // --- Row 3: Live Telemetry Card (in original colors) ---
+  // --- Row 3: Live Telemetry Card ---
   cardY := cardY + cardHeight + 0.45 * charHeight;
   app.TextOverlay.AddBox(leftColX1, cardY, leftColWidth, telemH,
-                         33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                         50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                          255.0);
-  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.45 * charHeight, 0.85, toaLeft, 'Live Telemetry', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+  app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, cardY + 0.45 * charHeight, 0.85, toaLeft, 'Live Telemetry', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
 
   cpuTempV := fCurrentResult.CPUTempMax;
   if cpuTempV <= 0.0 then cpuTempV := fLiveCPUTemp;
@@ -6032,12 +6106,12 @@ begin
     if graphH < 8.0 * charHeight then graphH := 8.0 * charHeight;
     graphW := leftColWidth;
 
-    // Graph background card
+    // Graph background card (100% solid Goverlay navy fill with crisp slate border)
     app.TextOverlay.AddBox(leftColX1, graphY, graphW, graphH,
-                           33.0 / 255.0, 38.0 / 255.0, 56.0 / 255.0, 0.92,
-                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.5,
+                           19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                           46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, 1.0,
                            255.0);
-    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 1.0);
+    app.TextOverlay.AddText(leftColX1 + 2.0 * charWidth, graphY + 0.5 * charHeight, 0.9, toaLeft, 'Score Trend', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, 1.0);
 
     // Find min/max for scaling
     graphMaxScore := fHistory[0].TotalScore;
@@ -6114,10 +6188,10 @@ begin
       popupY := graphY + graphH * 0.5 - popupH * 0.5;
       if popupY < graphY + 0.5 * charHeight then popupY := graphY + 0.5 * charHeight;
 
-      // Popup background
+      // Popup background (100% solid Goverlay navy)
       app.TextOverlay.AddBox(popupX, popupY, popupW, popupH,
-                             22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95,
-                             48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6,
+                             19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, 1.0,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
                              255.0);
 
       // Title
@@ -6133,7 +6207,7 @@ begin
       detailStr := 'CPU ST: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[1].Score) +
                    '  MT: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[2].Score);
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.2 * charHeight, 0.65, toaLeft, detailStr,
-                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+                              1.0, 1.0, 1.0, 0.0, 203.0/255.0, 213.0/255.0, 225.0/255.0, 1.0);
 
       if fHistory[fHoveredHistoryIdx].RTSupported and (fHistory[fHoveredHistoryIdx].RTScore > 0) then
         detailStr := 'GPU: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[7].Score) +
@@ -6141,7 +6215,7 @@ begin
       else
         detailStr := 'GPU 1080p: ' + FormatScoreValue(fHistory[fHoveredHistoryIdx].PhaseResults[7].Score);
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 2.9 * charHeight, 0.65, toaLeft, detailStr,
-                              1.0, 1.0, 1.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
+                              1.0, 1.0, 1.0, 0.0, 203.0/255.0, 213.0/255.0, 225.0/255.0, 1.0);
 
       detailStr := 'Kernel: ' + fHistory[fHoveredHistoryIdx].KernelVersion;
       app.TextOverlay.AddText(popupX + 1.5 * charWidth, popupY + 3.6 * charHeight, 0.6, toaLeft, detailStr,
@@ -6158,14 +6232,20 @@ begin
 
   GetHardwareReferences(HWRefs);
 
-  MaxScore := HWRefs[0].Score;
-  if MaxScore = 0 then MaxScore := 1;
+  // Reference max score with headroom so 8,062 doesn't hit the wall and remains proportional
+  MaxScore := 10000;
+  for i := 0 to 11 do begin
+    if HWRefs[i].Score > MaxScore then
+      MaxScore := HWRefs[i].Score;
+  end;
+  if MaxScore > 10000 then MaxScore := Round(MaxScore * 1.10);
 
-  MaxRTScore := 1;
+  MaxRTScore := 10000;
   for i := 0 to 11 do begin
     if HWRefs[i].RTScore > MaxRTScore then
       MaxRTScore := HWRefs[i].RTScore;
   end;
+  if MaxRTScore > 10000 then MaxRTScore := Round(MaxRTScore * 1.10);
 
   // Find Current System index and always keep it expanded
   for i := 0 to 11 do begin
@@ -6180,87 +6260,122 @@ begin
 
   for i := 0 to 11 do begin
     isHovered := (fHoveredHardwareIdx = i);
-    itemH := 2.6 * charHeight + 2.5 * charHeight * fHWExpandProgress[i];
+    itemH := 2.40 * charHeight + 2.80 * charHeight * fHWExpandProgress[i];
 
-    // Hover background highlight (subtle cyan glow)
-    if isHovered then begin
-      app.TextOverlay.AddBox(rightColX1 + 1.0 * charWidth,
+    // Card background highlight
+    if HWRefs[i].IsCurrent then begin
+      boxY := itemY - 0.20 * charHeight;
+      boxH := 4.90 * charHeight;
+      // Illuminated container card for Current System (with 2px cyan border reinforcement)
+      app.TextOverlay.AddBox(rightColX1 + 1.2 * charWidth - 0.75,
+                             boxY - 0.75,
+                             rightColWidth - 2.4 * charWidth + 1.5,
+                             boxH + 1.5,
+                             14.0 / 255.0, 32.0 / 255.0, 52.0 / 255.0, 1.0,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                             255.0);
+      app.TextOverlay.AddBox(rightColX1 + 1.2 * charWidth,
+                             boxY,
+                             rightColWidth - 2.4 * charWidth,
+                             boxH,
+                             14.0 / 255.0, 32.0 / 255.0, 52.0 / 255.0, 1.0,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                             255.0);
+    end else if (fExpandedHardwareIdx = i) then begin
+      boxY := itemY - 0.20 * charHeight;
+      boxH := 4.90 * charHeight;
+      // Refined subtle highlight container card for expanded reference hardware
+      app.TextOverlay.AddBox(rightColX1 + 1.2 * charWidth,
+                             boxY,
+                             rightColWidth - 2.4 * charWidth,
+                             boxH,
+                             24.0 / 255.0, 33.0 / 255.0, 50.0 / 255.0, 1.0 * fHWExpandProgress[i],
+                             75.0 / 255.0, 105.0 / 255.0, 150.0 / 255.0, 0.85 * fHWExpandProgress[i],
+                             255.0);
+    end else if isHovered then begin
+      app.TextOverlay.AddBox(rightColX1 + 1.2 * charWidth,
                              itemY - 0.1 * charHeight,
-                             rightColWidth - 2.0 * charWidth,
+                             rightColWidth - 2.4 * charWidth,
                              itemH,
-                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.07,
-                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.07,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.08,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 0.08,
                              255.0);
     end;
 
     // Determine colors: Current > Selected (expanded) > Hover > Normal
     if HWRefs[i].IsCurrent then begin
-      nameR := 48.0 / 255.0;  nameG := 190.0 / 255.0; nameB := 240.0 / 255.0;
-      scoreR := 48.0 / 255.0; scoreG := 190.0 / 255.0; scoreB := 240.0 / 255.0;
+      nameR := 82.0 / 255.0;  nameG := 215.0 / 255.0; nameB := 255.0 / 255.0;
+      scoreR := 82.0 / 255.0; scoreG := 215.0 / 255.0; scoreB := 255.0 / 255.0;
       barR := 48.0 / 255.0;   barG := 190.0 / 255.0;  barB := 240.0 / 255.0;  barA := 1.0;
     end else if (fExpandedHardwareIdx = i) then begin
-      nameR := 210.0 / 255.0;  nameG := 215.0 / 255.0; nameB := 225.0 / 255.0;
-      scoreR := 210.0 / 255.0; scoreG := 215.0 / 255.0; scoreB := 225.0 / 255.0;
+      nameR := 226.0 / 255.0;  nameG := 232.0 / 255.0; nameB := 240.0 / 255.0;
+      scoreR := 226.0 / 255.0; scoreG := 232.0 / 255.0; scoreB := 240.0 / 255.0;
       barR := 130.0 / 255.0;   barG := 145.0 / 255.0;  barB := 165.0 / 255.0; barA := 0.95;
     end else if isHovered then begin
       nameR := 1.0;  nameG := 1.0;  nameB := 1.0;
       scoreR := 1.0; scoreG := 1.0; scoreB := 1.0;
-      barR := 120.0 / 255.0; barG := 135.0 / 255.0; barB := 155.0 / 255.0; barA := 0.95;
+      barR := 130.0 / 255.0; barG := 150.0 / 255.0; barB := 180.0 / 255.0; barA := 0.95;
     end else begin
-      nameR := 180.0 / 255.0;  nameG := 185.0 / 255.0; nameB := 200.0 / 255.0;
-      scoreR := 180.0 / 255.0; scoreG := 185.0 / 255.0; scoreB := 200.0 / 255.0;
+      nameR := 190.0 / 255.0;  nameG := 200.0 / 255.0; nameB := 215.0 / 255.0;
+      scoreR := 190.0 / 255.0; scoreG := 200.0 / 255.0; scoreB := 215.0 / 255.0;
       barR := 75.0 / 255.0;    barG := 85.0 / 255.0;  barB := 105.0 / 255.0; barA := 0.75;
     end;
 
     // --- Linha 1: Nome (esquerda) + Pontuacao (direita) ---
-    app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, nameR, nameG, nameB, 1.0);
+    if HWRefs[i].IsCurrent then begin
+      // Beacon indicator dot for Current System
+      app.TextOverlay.AddBox(rightColX1 + 2.3 * charWidth, itemY + 0.32 * charHeight, 0.38 * charHeight, 0.38 * charHeight,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                             48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, 1.0,
+                             255.0);
+      app.TextOverlay.AddText(rightColX1 + 3.4 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, nameR, nameG, nameB, 1.0);
+    end else begin
+      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth, itemY, 1.0, toaLeft, HWRefs[i].Name, 1.0, 1.0, 1.0, 0.0, nameR, nameG, nameB, 1.0);
+    end;
 
     hwScoreStr := FormatScoreValue(HWRefs[i].Score) + ' points';
     app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth, itemY, 1.0, toaRight, hwScoreStr, 1.0, 1.0, 1.0, 0.0, scoreR, scoreG, scoreB, 1.0);
 
-    // --- Linha 2: Barra fina moderna (Main Score) ---
+    // --- Linha 2: Barra de Main Score (cor única limpa, espessura moderna arredondada) ---
     barStartX := rightColX1 + 2.5 * charWidth;
     maxBarWidth := rightColWidth - 5.0 * charWidth;
     barWidth := (HWRefs[i].Score / MaxScore) * maxBarWidth;
     if barWidth < 2.0 then barWidth := 2.0;
 
-    barHeight := 0.18 * charHeight;
-    barY := itemY + 1.15 * charHeight;
+    barHeight := 0.28 * charHeight;
+    barY := itemY + 1.25 * charHeight;
 
-    // Background track
+    // Background track (cantos arredondados tipo cápsula)
     app.TextOverlay.AddBox(barStartX, barY, maxBarWidth, barHeight,
-                           22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8,
-                           50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6,
+                           22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.85,
+                           46.0 / 255.0, 58.0 / 255.0, 80.0 / 255.0, 0.6,
                            255.0);
-    // Fill
+    // Fill sólido uniforme (Ciano Goverlay para Current System, azul/cinza para outros)
     app.TextOverlay.AddBox(barStartX, barY, barWidth, barHeight, barR, barG, barB, barA, barR, barG, barB, barA, 255.0);
 
-    // --- Linha 3, 4, 5: Detalhes expandidos (RT Score + Barra de RT + Specs) ---
+    // --- Detalhes expandidos: Barra separada de Ray Tracing + Especificações ---
     if fHWExpandProgress[i] > 0.01 then begin
+      // Linha 3: Ray Tracing Header e Pontuação
       if HWRefs[i].IsCurrent then begin
-        rtTextR := 192.0 / 255.0; rtTextG := 132.0 / 255.0; rtTextB := 252.0 / 255.0;
-        rtBarR := 175.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 255.0 / 255.0; rtBarA := 1.0;
+        rtTextR := 217.0 / 255.0; rtTextG := 70.0 / 255.0; rtTextB := 239.0 / 255.0;
+        rtBarR := 217.0 / 255.0;  rtBarG := 70.0 / 255.0;  rtBarB := 239.0 / 255.0; rtBarA := 1.0;
       end else begin
-        rtTextR := 160.0 / 255.0; rtTextG := 150.0 / 255.0; rtTextB := 195.0 / 255.0;
-        rtBarR := 140.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 190.0 / 255.0; rtBarA := 0.95;
+        rtTextR := 180.0 / 255.0; rtTextG := 160.0 / 255.0; rtTextB := 215.0 / 255.0;
+        rtBarR := 160.0 / 255.0;  rtBarG := 120.0 / 255.0;  rtBarB := 210.0 / 255.0; rtBarA := 0.95;
       end;
-
-      app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                              itemY + 1.60 * charHeight,
-                              0.85,
-                              toaLeft,
-                              'Ray Tracing',
-                              1.0, 1.0, 1.0, 0.0,
-                              rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
 
       if HWRefs[i].RTScore > 0 then
         hwRTStr := FormatScoreValue(HWRefs[i].RTScore) + ' points'
       else
         hwRTStr := 'N/A';
 
+      app.TextOverlay.AddText(barStartX, itemY + 1.95 * charHeight, 0.85, toaLeft, 'Ray Tracing',
+                              1.0, 1.0, 1.0, 0.0,
+                              rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
+
       if HWRefs[i].RTScore > 0 then begin
         app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                                itemY + 1.60 * charHeight,
+                                itemY + 1.95 * charHeight,
                                 0.85,
                                 toaRight,
                                 hwRTStr,
@@ -6268,58 +6383,53 @@ begin
                                 rtTextR, rtTextG, rtTextB, fHWExpandProgress[i]);
       end else begin
         app.TextOverlay.AddText(rightColX1 + rightColWidth - 2.5 * charWidth,
-                                itemY + 1.60 * charHeight,
+                                itemY + 1.95 * charHeight,
                                 0.85,
                                 toaRight,
-                                hwRTStr,
+                                'No Hardware RT',
                                 1.0, 1.0, 1.0, 0.0,
                                 150.0 / 255.0, 155.0 / 255.0, 170.0 / 255.0, 0.8 * fHWExpandProgress[i]);
       end;
 
-      // Segunda barra (Ray Tracing)
-      rtBarY := itemY + 2.50 * charHeight;
+      // Linha 4: Barra SEPARADA de Ray Tracing (Magenta)
+      rtBarY := itemY + 2.85 * charHeight;
+      // Background track
+      app.TextOverlay.AddBox(barStartX, rtBarY, maxBarWidth, barHeight,
+                             22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.85 * fHWExpandProgress[i],
+                             46.0 / 255.0, 58.0 / 255.0, 80.0 / 255.0, 0.6 * fHWExpandProgress[i],
+                             255.0);
       if HWRefs[i].RTScore > 0 then begin
         rtBarWidth := (HWRefs[i].RTScore / MaxRTScore) * maxBarWidth;
         if rtBarWidth < 2.0 then rtBarWidth := 2.0;
-      end else begin
-        rtBarWidth := 0.0;
-      end;
-
-      // Background track da barra de RT
-      app.TextOverlay.AddBox(barStartX, rtBarY, maxBarWidth, barHeight,
-                             22.0 / 255.0, 25.0 / 255.0, 37.0 / 255.0, 0.8 * fHWExpandProgress[i],
-                             50.0 / 255.0, 60.0 / 255.0, 85.0 / 255.0, 0.6 * fHWExpandProgress[i],
-                             255.0);
-      // Fill da barra de RT
-      if rtBarWidth > 0.0 then begin
         app.TextOverlay.AddBox(barStartX, rtBarY, rtBarWidth, barHeight,
                                rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
                                rtBarR, rtBarG, rtBarB, rtBarA * fHWExpandProgress[i],
                                255.0);
       end;
 
-      // Especificações com escala aumentada e ajuste dinâmico para caber perfeitamente
-      specsScale := 0.82;
+      // Linha 5: Especificações limpas com fonte ampliada para alta legibilidade
+      specsY := itemY + 3.60 * charHeight;
+      specsScale := 0.88;
       if (Length(HWRefs[i].Specs) * charWidth * specsScale) > maxBarWidth then
         specsScale := maxBarWidth / (Length(HWRefs[i].Specs) * charWidth);
-      if specsScale < 0.68 then specsScale := 0.68;
+      if specsScale < 0.72 then specsScale := 0.72;
 
       if HWRefs[i].IsCurrent then begin
-        app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                                itemY + 3.05 * charHeight,
+        app.TextOverlay.AddText(barStartX,
+                                specsY,
                                 specsScale,
                                 toaLeft,
                                 HWRefs[i].Specs,
                                 1.0, 1.0, 1.0, 0.0,
-                                215.0 / 255.0, 225.0 / 255.0, 240.0 / 255.0, fHWExpandProgress[i]);
+                                226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, fHWExpandProgress[i]);
       end else begin
-        app.TextOverlay.AddText(rightColX1 + 2.5 * charWidth,
-                                itemY + 3.05 * charHeight,
+        app.TextOverlay.AddText(barStartX,
+                                specsY,
                                 specsScale,
                                 toaLeft,
                                 HWRefs[i].Specs,
                                 1.0, 1.0, 1.0, 0.0,
-                                195.0 / 255.0, 200.0 / 255.0, 215.0 / 255.0, fHWExpandProgress[i]);
+                                190.0 / 255.0, 200.0 / 255.0, 215.0 / 255.0, fHWExpandProgress[i]);
       end;
     end;
 
@@ -6380,7 +6490,10 @@ begin
     boxH := 7.0 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
-    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH, 22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6, 255.0);
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                           19.0/255.0, 26.0/255.0, 40.0/255.0, 1.0,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                           255.0);
 
     app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.0, toaCenter, 'Clear benchmark history', 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
     app.TextOverlay.AddText(cx, boxY + 2.4 * charHeight, 0.75, toaCenter, 'This will permanently delete all results.', 0.0, 0.0, 0.0, 0.0, 179.0/255.0, 179.0/255.0, 179.0/255.0, 1.0);
@@ -6428,7 +6541,10 @@ begin
     boxH := 43.5 * charHeight;
     boxX := cx - boxW * 0.5;
     boxY := cy - boxH * 0.5;
-    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH, 22.0/255.0, 25.0/255.0, 37.0/255.0, 0.95, 48.0/255.0, 190.0/255.0, 240.0/255.0, 0.6, 255.0);
+    app.TextOverlay.AddBox(boxX, boxY, boxW, boxH,
+                           19.0/255.0, 26.0/255.0, 40.0/255.0, 1.0,
+                           48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0,
+                           255.0);
 
     app.TextOverlay.AddText(cx, boxY + 1.0 * charHeight, 1.4, toaCenter, 'Submit benchmark results', 0.0, 0.0, 0.0, 0.0, 48.0/255.0, 190.0/255.0, 240.0/255.0, 1.0);
     app.TextOverlay.AddText(cx, boxY + 2.2 * charHeight, 0.9, toaCenter, 'Do you want to submit the following anonymous data?', 0.0, 0.0, 0.0, 0.0, 221.0/255.0, 221.0/255.0, 221.0/255.0, 1.0);

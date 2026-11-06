@@ -627,27 +627,55 @@ begin
   end;
 end;
 
+function SrgbToLinear(const aVal: TpvFloat): TpvFloat; inline;
+begin
+  if aVal <= 0.0 then
+    Result := 0.0
+  else if aVal >= 1.0 then
+    Result := 1.0
+  else if aVal <= 0.04045 then
+    Result := aVal * (1.0 / 12.92)
+  else
+    Result := Power((aVal + 0.055) * (1.0 / 1.055), 2.4);
+end;
+
 procedure TTextOverlay.AddBox(const pX,pY,pW,pH:TpvFloat;const pBR,pBG,pBB,pBA:TpvFloat;const pFR:TpvFloat=0.0;const pFG:TpvFloat=0.0;const pFB:TpvFloat=0.0;const pFA:TpvFloat=0.0;const pType:TpvFloat=32.0);
 var EdgeIndex:TpvInt32;
     BufferChar:PTextOverlayBufferChar;
+    linBR, linBG, linBB, linFR, linFG, linFB: TpvFloat;
 begin
   if pBA>0.0 then begin
     if fCountBufferChars<TextOverlayBufferCharSize then begin
       BufferChar:=@fBufferChars^[fCountBufferChars];
       inc(fCountBufferChars);
+      if pType > 250.0 then begin
+        linBR := SrgbToLinear(pBR);
+        linBG := SrgbToLinear(pBG);
+        linBB := SrgbToLinear(pBB);
+        linFR := SrgbToLinear(pFR);
+        linFG := SrgbToLinear(pFG);
+        linFB := SrgbToLinear(pFB);
+      end else begin
+        linBR := pBR;
+        linBG := pBG;
+        linBB := pBB;
+        linFR := pFR;
+        linFG := pFG;
+        linFB := pFB;
+      end;
       for EdgeIndex:=0 to 3 do begin
         BufferChar^.Vertices[EdgeIndex].x:=(((pX+((EdgeIndex and 1)*pW))*fInvWidth)*2.0)-1.0;
         BufferChar^.Vertices[EdgeIndex].y:=(((pY+((EdgeIndex shr 1)*pH))*fInvHeight)*2.0)-1.0;
         BufferChar^.Vertices[EdgeIndex].u:=EdgeIndex and 1;
         BufferChar^.Vertices[EdgeIndex].v:=EdgeIndex shr 1;
         BufferChar^.Vertices[EdgeIndex].w:=pType;
-        BufferChar^.Vertices[EdgeIndex].br:=pBR;
-        BufferChar^.Vertices[EdgeIndex].bg:=pBG;
-        BufferChar^.Vertices[EdgeIndex].bb:=pBB;
+        BufferChar^.Vertices[EdgeIndex].br:=linBR;
+        BufferChar^.Vertices[EdgeIndex].bg:=linBG;
+        BufferChar^.Vertices[EdgeIndex].bb:=linBB;
         BufferChar^.Vertices[EdgeIndex].ba:=pBA;
-        BufferChar^.Vertices[EdgeIndex].fr:=pFR;
-        BufferChar^.Vertices[EdgeIndex].fg:=pFG;
-        BufferChar^.Vertices[EdgeIndex].fb:=pFB;
+        BufferChar^.Vertices[EdgeIndex].fr:=linFR;
+        BufferChar^.Vertices[EdgeIndex].fg:=linFG;
+        BufferChar^.Vertices[EdgeIndex].fb:=linFB;
         BufferChar^.Vertices[EdgeIndex].fa:=pFA;
       end;
     end;
