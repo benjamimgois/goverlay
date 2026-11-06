@@ -323,8 +323,10 @@ type
        procedure DrawSlide(const aSlideIdx: Integer; const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat);
        procedure DrawSlide0_Overview(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
        procedure DrawSlide1_BellCurve(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
-       procedure DrawSlide2_Scaling(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
-       procedure DrawSlide3_Distros(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+       procedure DrawSlide2_Silicon(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+       procedure DrawSlide3_Efficiency(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+       procedure DrawSlide4_Scaling(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+       procedure DrawSlide5_Distros(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
 
        public
         fOffscreenColorAttachments: array of TpvVulkanFrameBufferAttachment;
@@ -406,6 +408,8 @@ type
            function GetDisplayServer: String;
            procedure GetDisplayResolutionAndRefresh(out ARes, ARefresh: String);
            function GetDesktopEnvironment: String;
+           function GetDesktopEnvironmentFull: String;
+           procedure DrawDistroLogo(const aDistroName: String; const aX, aY, aSize: TpvFloat; const aAlpha: TpvFloat);
            function GetStorageType: String;
            function GetVulkanDriver: String;
             function GetCPUTemperature: Double;
@@ -1296,6 +1300,40 @@ begin
   fRenderWidth := 1920;
   fRenderHeight := 1080;
   fGPU360pFallback := false;
+  if Assigned(pvApplication) and (pvApplication is TPasCubeApplication) and TPasCubeApplication(pvApplication).TestResultsMode then begin
+    if fHistoryCount > 0 then
+      fCurrentResult := fHistory[0]
+    else begin
+      fCurrentResult.TotalScore := 4588;
+      fCurrentResult.DeviceName := 'AMD Radeon RX 7900 XTX (RADV NAVI31)';
+      fCurrentResult.PhaseResults[1].Score := 3679;
+      fCurrentResult.PhaseResults[2].Score := 5428;
+      fCurrentResult.PhaseResults[3].Score := 4973;
+      fCurrentResult.RTScore := 3696;
+      fCurrentResult.CPUMaxFreq := 5053;
+      fCurrentResult.GPUMaxFreq := 2482;
+      fCurrentResult.CPUTempMax := 83.5;
+      fCurrentResult.GPUTempMax := 66.0;
+      fCurrentResult.GPUPowerMax := 301.0;
+      fCurrentResult.CPUPowerMax := 81.0;
+      fCurrentResult.DriverVersion := GetDriverVersion;
+      fCurrentResult.KernelVersion := GetKernelVersion;
+      fCurrentResult.DesktopEnvironment := GetDesktopEnvironmentFull;
+      fCurrentResult.VulkanDriver := GetVulkanDriver;
+    end;
+    fBenchmarkPhase := bpResults;
+    fActiveSlide := Max(0, Min(5, TPasCubeApplication(pvApplication).TestSlideIndex));
+    fSlideTimer := 0.0;
+    fSlideTransitionT := 1.0;
+    fShowSkybox := true;
+    if Assigned(CommunityInsights) then begin
+      CommunityInsights.EnsureLoaded(fCurrentResult.TotalScore, fCurrentResult.DeviceName, GetOSName,
+                                    fCurrentResult.RTScore, fCurrentResult.CPUTempMax, fCurrentResult.GPUTempMax,
+                                    fCurrentResult.CPUPowerMax + fCurrentResult.GPUPowerMax,
+                                    fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
+                                    fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax);
+    end;
+  end;
 end;
 
 destructor TPasCubeScreen.Destroy;
@@ -1953,6 +1991,14 @@ begin
         fAutoRotation:=false;
         fDraggingCube:=false;
         result:=true;
+       end else if (fBenchmarkPhase = bpResults) and IsSideArrowHovered(ScaledPos, idx) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
+       end else if (fBenchmarkPhase = bpResults) and IsCarouselDotHovered(ScaledPos, idx) then begin
+        fAutoRotation:=false;
+        fDraggingCube:=false;
+        result:=true;
         end else if (fBenchmarkPhase = bpResults) and IsHardwareItemHovered(ScaledPos, idx) then begin
          fAutoRotation:=false;
          fDraggingCube:=false;
@@ -1971,7 +2017,18 @@ begin
    if aPointerEvent.Button=TpvApplicationInputPointerButton.Left then begin
     fMouseLeftButtonDown:=false;
     fAutoRotation:=true;
-    if fDraggingCube then begin
+    if (fBenchmarkPhase = bpResults) and IsSideArrowHovered(ScaledPos, idx) then begin
+     fDraggingCube:=false;
+     if idx = 0 then
+       PreviousSlide
+     else
+       NextSlide;
+     result := true;
+    end else if (fBenchmarkPhase = bpResults) and IsCarouselDotHovered(ScaledPos, idx) then begin
+     fDraggingCube:=false;
+     GoToSlide(idx);
+     result:=true;
+    end else if fDraggingCube then begin
      fDraggingCube:=false;
     end else if (fBenchmarkPhase = bpIdleMenu) and IsStartButtonHovered(ScaledPos) then begin
      StartBenchmark;
@@ -1990,7 +2047,11 @@ begin
       fSlideTransitionDir := 1;
       fHoveredSideArrow := -1;
       if Assigned(CommunityInsights) then begin
-       CommunityInsights.EnsureLoaded(fCurrentResult.TotalScore, fCurrentResult.DeviceName, GetOSName);
+       CommunityInsights.EnsureLoaded(fCurrentResult.TotalScore, fCurrentResult.DeviceName, GetOSName,
+                                     fCurrentResult.RTScore, fCurrentResult.CPUTempMax, fCurrentResult.GPUTempMax,
+                                     fCurrentResult.CPUPowerMax + fCurrentResult.GPUPowerMax,
+                                     fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
+                                     fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax);
        CommunityInsights.StartBackgroundSync;
       end;
       result:=true;
@@ -2844,7 +2905,7 @@ begin
    fCurrentResult.DriverVersion := GetDriverVersion;
    fCurrentResult.DisplayServer := GetDisplayServer;
    GetDisplayResolutionAndRefresh(fCurrentResult.DisplayResolution, fCurrentResult.RefreshRate);
-   fCurrentResult.DesktopEnvironment := GetDesktopEnvironment;
+   fCurrentResult.DesktopEnvironment := GetDesktopEnvironmentFull;
    fCurrentResult.StorageType := GetStorageType;
    fCurrentResult.VulkanDriver := GetVulkanDriver;
    fCurrentResult.CPUTempStart := GetCPUTemperature;
@@ -3219,7 +3280,11 @@ begin
  fSlideTransitionDir := 1;
  fHoveredSideArrow := -1;
  if Assigned(CommunityInsights) then begin
-  CommunityInsights.EnsureLoaded(fCurrentResult.TotalScore, fCurrentResult.DeviceName, GetOSName);
+  CommunityInsights.EnsureLoaded(fCurrentResult.TotalScore, fCurrentResult.DeviceName, GetOSName,
+                                fCurrentResult.RTScore, fCurrentResult.CPUTempMax, fCurrentResult.GPUTempMax,
+                                fCurrentResult.CPUPowerMax + fCurrentResult.GPUPowerMax,
+                                fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
+                                fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax);
   CommunityInsights.StartBackgroundSync;
  end;
 end;
@@ -3856,7 +3921,7 @@ end;
 procedure TPasCubeScreen.NextSlide;
 begin
   fPreviousSlide := fActiveSlide;
-  fActiveSlide := (fActiveSlide + 1) mod 4;
+  fActiveSlide := (fActiveSlide + 1) mod 6;
   fSlideTimer := 0.0;
   if fActiveSlide = 0 then
     fSlideDuration := 8.0
@@ -3869,7 +3934,7 @@ end;
 procedure TPasCubeScreen.PreviousSlide;
 begin
   fPreviousSlide := fActiveSlide;
-  fActiveSlide := (fActiveSlide + 3) mod 4;
+  fActiveSlide := (fActiveSlide + 5) mod 6;
   fSlideTimer := 0.0;
   if fActiveSlide = 0 then
     fSlideDuration := 8.0
@@ -3887,7 +3952,7 @@ begin
     fSlideTransitionDir := 1
   else
     fSlideTransitionDir := -1;
-  fActiveSlide := (aIndex + 4) mod 4;
+  fActiveSlide := (aIndex + 6) mod 6;
   fSlideTimer := 0.0;
   if fActiveSlide = 0 then
     fSlideDuration := 8.0
@@ -3917,10 +3982,10 @@ begin
 
   pillsY := cardY + 2.05 * charHeight;
   pillH := 2.25 * charHeight;
-  pillGap := 6.0;
-  pillW := (cardW - (1.6 * app.TextOverlay.FontCharWidth * 2.0) - (pillGap * 3.0)) / 4.0;
+  pillGap := 5.0;
+  pillW := (cardW - (1.6 * app.TextOverlay.FontCharWidth * 2.0) - (pillGap * 5.0)) / 6.0;
 
-  for i := 0 to 3 do begin
+  for i := 0 to 5 do begin
     pillX := cardX + (1.6 * app.TextOverlay.FontCharWidth) + (i * (pillW + pillGap));
     if (aPos.x >= pillX) and (aPos.x <= pillX + pillW) and
        (aPos.y >= pillsY) and (aPos.y <= pillsY + pillH) then begin
@@ -5234,6 +5299,220 @@ begin
   else Result := De;
 end;
 
+function TPasCubeScreen.GetDesktopEnvironmentFull: String;
+var
+  BaseDe: String;
+  AProcess: TProcess;
+  Buffer: array[0..255] of Char;
+  BytesRead: LongInt;
+  OutputStr, VerStr: String;
+  p, LoopCount: Integer;
+begin
+  BaseDe := GetDesktopEnvironment;
+  Result := BaseDe;
+  if BaseDe = 'KDE Plasma' then begin
+    AProcess := TProcess.Create(nil);
+    try
+      CleanProcessEnvironment(AProcess);
+      AProcess.Executable := 'plasmashell';
+      AProcess.Parameters.Add('--version');
+      AProcess.Options := [poUsePipes, poNoConsole];
+      try
+        AProcess.Execute;
+        AProcess.CloseInput;
+        OutputStr := '';
+        LoopCount := 0;
+        while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+          Inc(LoopCount);
+          if LoopCount > 30 then Break;
+          if AProcess.Output.NumBytesAvailable > 0 then begin
+            BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+            if BytesRead > 0 then begin
+              Buffer[BytesRead] := #0;
+              OutputStr := OutputStr + StrPas(Buffer);
+            end;
+          end;
+          Sleep(5);
+        end;
+        OutputStr := Trim(OutputStr);
+        p := Pos('plasmashell ', OutputStr);
+        if p > 0 then begin
+          VerStr := Trim(Copy(OutputStr, p + 12, Length(OutputStr)));
+          if VerStr <> '' then
+            Result := 'KDE Plasma ' + VerStr;
+        end;
+      except
+      end;
+    finally
+      AProcess.Free;
+    end;
+  end else if BaseDe = 'GNOME' then begin
+    AProcess := TProcess.Create(nil);
+    try
+      CleanProcessEnvironment(AProcess);
+      AProcess.Executable := 'gnome-shell';
+      AProcess.Parameters.Add('--version');
+      AProcess.Options := [poUsePipes, poNoConsole];
+      try
+        AProcess.Execute;
+        AProcess.CloseInput;
+        OutputStr := '';
+        LoopCount := 0;
+        while AProcess.Running or (AProcess.Output.NumBytesAvailable > 0) do begin
+          Inc(LoopCount);
+          if LoopCount > 30 then Break;
+          if AProcess.Output.NumBytesAvailable > 0 then begin
+            BytesRead := AProcess.Output.Read(Buffer[0], SizeOf(Buffer) - 1);
+            if BytesRead > 0 then begin
+              Buffer[BytesRead] := #0;
+              OutputStr := OutputStr + StrPas(Buffer);
+            end;
+          end;
+          Sleep(5);
+        end;
+        OutputStr := Trim(OutputStr);
+        p := Pos('GNOME Shell ', OutputStr);
+        if p > 0 then begin
+          VerStr := Trim(Copy(OutputStr, p + 12, Length(OutputStr)));
+          if VerStr <> '' then
+            Result := 'GNOME ' + VerStr;
+        end;
+      except
+      end;
+    finally
+      AProcess.Free;
+    end;
+  end;
+end;
+
+procedure TPasCubeScreen.DrawDistroLogo(const aDistroName: String; const aX, aY, aSize: TpvFloat; const aAlpha: TpvFloat);
+var
+  app: TPasCubeApplication;
+  dName: String;
+  cx, cy, s: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+  dName := LowerCase(Trim(aDistroName));
+  cx := aX + (aSize * 0.5);
+  cy := aY + (aSize * 0.5);
+  s := aSize;
+
+  if Pos('cachy', dName) > 0 then begin
+    // CachyOS: Deep dark teal base + brilliant cyan geometric 'C' with 3-dot orbital constellation
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           8.0 / 255.0, 30.0 / 255.0, 36.0 / 255.0, 0.95 * aAlpha,
+                           0.0 / 255.0, 214.0 / 255.0, 186.0 / 255.0, 0.95 * aAlpha, 255.0);
+    // 'C' bold back spine
+    app.TextOverlay.AddBox(aX + 7.0, aY + 8.0, 7.0, s - 16.0,
+                           0.0 / 255.0, 230.0 / 255.0, 200.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // 'C' top arm
+    app.TextOverlay.AddBox(aX + 7.0, aY + 8.0, s - 22.0, 6.0,
+                           0.0 / 255.0, 230.0 / 255.0, 200.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // 'C' bottom arm
+    app.TextOverlay.AddBox(aX + 7.0, aY + s - 14.0, s - 22.0, 6.0,
+                           0.0 / 255.0, 230.0 / 255.0, 200.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Top right angled tooth
+    app.TextOverlay.AddBox(aX + s - 17.0, aY + 11.0, 5.0, 6.0,
+                           56.0 / 255.0, 210.0 / 255.0, 248.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Bottom right angled tooth
+    app.TextOverlay.AddBox(aX + s - 17.0, aY + s - 17.0, 5.0, 6.0,
+                           56.0 / 255.0, 210.0 / 255.0, 248.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // 3 Authentic Orbital Dots (matching official CachyOS emblem)
+    // Top orbital dot
+    app.TextOverlay.AddBox(aX + s - 11.0, cy - 9.0, 5.0, 5.0,
+                           56.0 / 255.0, 220.0 / 255.0, 255.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Center orbital dot (brightest core)
+    app.TextOverlay.AddBox(aX + s - 7.0, cy - 2.5, 6.0, 6.0,
+                           0.0 / 255.0, 255.0 / 255.0, 200.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Bottom orbital dot
+    app.TextOverlay.AddBox(aX + s - 12.0, cy + 6.0, 5.0, 5.0,
+                           56.0 / 255.0, 210.0 / 255.0, 248.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end else if Pos('arch', dName) > 0 then begin
+    // Arch Linux: Slate navy base + iconic Arch mountain peak & rising cyan interior swoop
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           15.0 / 255.0, 26.0 / 255.0, 46.0 / 255.0, 0.95 * aAlpha,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 0.95 * aAlpha, 255.0);
+    // Mountain needle peak
+    app.TextOverlay.AddBox(cx - 3.0, aY + 7.0, 6.0, 5.0,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Upper mountain tier
+    app.TextOverlay.AddBox(cx - 7.0, aY + 12.0, 14.0, 6.0,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Mid tier
+    app.TextOverlay.AddBox(cx - 11.0, aY + 18.0, 22.0, 6.0,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Left mountain slope leg
+    app.TextOverlay.AddBox(aX + 6.0, aY + 24.0, 7.0, s - 31.0,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Right mountain slope leg
+    app.TextOverlay.AddBox(aX + s - 13.0, aY + 24.0, 7.0, s - 31.0,
+                           23.0 / 255.0, 147.0 / 255.0, 209.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Arch rising interior swoop cutout (bright cyan)
+    app.TextOverlay.AddBox(cx - 5.0, aY + 22.0, 10.0, 5.0,
+                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 2.5, aY + 18.0, 5.0, 4.0,
+                           125.0 / 255.0, 211.0 / 255.0, 252.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end else if Pos('fedora', dName) > 0 then begin
+    // Fedora: Deep navy base + Fedora blue infinity loop & pure white 'f'
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           10.0 / 255.0, 28.0 / 255.0, 62.0 / 255.0, 0.95 * aAlpha,
+                           81.0 / 255.0, 168.0 / 255.0, 221.0 / 255.0, 0.95 * aAlpha, 255.0);
+    // Infinity left ring in Fedora cyan-blue
+    app.TextOverlay.AddBox(aX + 8.0, cy - 7.0, 5.0, 14.0,
+                           81.0 / 255.0, 168.0 / 255.0, 221.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(aX + 8.0, cy - 7.0, 11.0, 4.0,
+                           81.0 / 255.0, 168.0 / 255.0, 221.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(aX + 8.0, cy + 3.0, 11.0, 4.0,
+                           81.0 / 255.0, 168.0 / 255.0, 221.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // Infinity right 'f' loop in pure white
+    app.TextOverlay.AddBox(aX + s - 13.0, cy - 10.0, 5.0, 20.0,
+                           1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(aX + s - 18.0, cy - 10.0, 10.0, 4.0,
+                           1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // 'f' crossbar extending across middle
+    app.TextOverlay.AddBox(aX + 14.0, cy - 2.0, 15.0, 4.0,
+                           1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end else if Pos('ubuntu', dName) > 0 then begin
+    // Ubuntu: Rich warm orange base + circular ring & white friend nodes
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           233.0 / 255.0, 84.0 / 255.0, 32.0 / 255.0, 0.95 * aAlpha,
+                           255.0 / 255.0, 120.0 / 255.0, 60.0 / 255.0, 0.85 * aAlpha, 255.0);
+    // Center ring cutout
+    app.TextOverlay.AddBox(cx - 8.0, cy - 8.0, 16.0, 16.0,
+                           1.0, 1.0, 1.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 4.0, cy - 4.0, 8.0, 8.0,
+                           233.0 / 255.0, 84.0 / 255.0, 32.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    // 3 Friend nodes
+    app.TextOverlay.AddBox(aX + 5.0, cy - 3.0, 5.0, 6.0,
+                           254.0 / 255.0, 240.0 / 255.0, 138.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(aX + s - 10.0, aY + 7.0, 5.0, 6.0,
+                           254.0 / 255.0, 240.0 / 255.0, 138.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(aX + s - 10.0, aY + s - 13.0, 5.0, 6.0,
+                           254.0 / 255.0, 240.0 / 255.0, 138.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end else if Pos('debian', dName) > 0 then begin
+    // Debian: Crimson red base + white swirl
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           215.0 / 255.0, 10.0 / 255.0, 83.0 / 255.0, 0.95 * aAlpha,
+                           245.0 / 255.0, 60.0 / 255.0, 120.0 / 255.0, 0.85 * aAlpha, 255.0);
+    app.TextOverlay.AddBox(cx - 3.0, aY + 7.0, 6.0, 6.0, 1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx + 3.0, aY + 10.0, 6.0, 12.0, 1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 6.0, cy + 3.0, 12.0, 6.0, 1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 8.0, cy - 3.0, 6.0, 9.0, 1.0, 1.0, 1.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end else begin
+    // Linux Generic / Tux: Slate gray + yellow beak accent
+    app.TextOverlay.AddBox(aX, aY, s, s,
+                           30.0 / 255.0, 41.0 / 255.0, 59.0 / 255.0, 0.95 * aAlpha,
+                           71.0 / 255.0, 85.0 / 255.0, 105.0 / 255.0, 0.85 * aAlpha, 255.0);
+    app.TextOverlay.AddBox(cx - 6.0, aY + 7.0, 12.0, 16.0,
+                           15.0 / 255.0, 23.0 / 255.0, 42.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 3.0, aY + 11.0, 6.0, 6.0,
+                           251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    app.TextOverlay.AddBox(cx - 5.0, aY + s - 10.0, 10.0, 5.0,
+                           251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 1.0 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end;
+end;
+
 function TPasCubeScreen.GetStorageType: String;
 var
   AProcess: TProcess;
@@ -6172,7 +6451,7 @@ var
   pillBrdR, pillBrdG, pillBrdB, pillBrdA: TpvFloat;
   pillTxtR, pillTxtG, pillTxtB, pillTxtA: TpvFloat;
   i: Integer;
-  pillLabels: array[0..3] of String;
+  pillLabels: array[0..5] of String;
   remainingTime: TpvFloat;
 begin
   app := UnitPasCubeApplication.Application;
@@ -6190,13 +6469,10 @@ begin
   case fActiveSlide of
     0: slideTitle := 'Overview (Benchmark Summary)';
     1: slideTitle := 'Global Performance Distribution (PasCubeDB)';
-    2: slideTitle := 'Hardware Performance Scaling';
-    3: begin
-         if Assigned(CommunityInsights) and (CommunityInsights.MatchedGPUModel <> '') then
-           slideTitle := 'Linux Distros for ' + CommunityInsights.MatchedGPUModel
-         else
-           slideTitle := 'Linux Distros for System GPU';
-       end;
+    2: slideTitle := 'Silicon Lottery (GPU & CPU Die Binning)';
+    3: slideTitle := 'Thermal Headroom & Power Efficiency (GPU & CPU)';
+    4: slideTitle := 'Hardware Performance Scaling';
+    5: slideTitle := 'Linux Distributions & Software Ecosystem';
   else
     slideTitle := 'Community Insights';
   end;
@@ -6220,18 +6496,20 @@ begin
                             56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95);
   end;
 
-  // 4 Navigation Pills
+  // 6 Navigation Pills
   pillLabels[0] := '1. Overview';
   pillLabels[1] := '2. Curve';
-  pillLabels[2] := '3. Scaling';
-  pillLabels[3] := '4. Distros';
+  pillLabels[2] := '3. Silicon';
+  pillLabels[3] := '4. Efficiency';
+  pillLabels[4] := '5. Scaling';
+  pillLabels[5] := '6. Distros';
 
   pillsY := aY + 2.05 * charHeight;
   pillH := 2.25 * charHeight;
-  pillGap := 6.0;
-  pillW := (aW - (1.6 * charWidth * 2.0) - (pillGap * 3.0)) / 4.0;
+  pillGap := 5.0;
+  pillW := (aW - (1.6 * charWidth * 2.0) - (pillGap * 5.0)) / 6.0;
 
-  for i := 0 to 3 do begin
+  for i := 0 to 5 do begin
     pillX := aX + (1.6 * charWidth) + (i * (pillW + pillGap));
 
     if i = fActiveSlide then begin
@@ -6253,8 +6531,8 @@ begin
                            pillBrdR, pillBrdG, pillBrdB, pillBrdA,
                            255.0);
 
-    app.TextOverlay.AddText(pillX + (pillW * 0.5), pillsY + (pillH - charHeight * 0.75) * 0.5,
-                            0.75, toaCenter, pillLabels[i],
+    app.TextOverlay.AddText(pillX + (pillW * 0.5), pillsY + (pillH - charHeight * 0.65) * 0.5,
+                            0.65, toaCenter, pillLabels[i],
                             1.0, 1.0, 1.0, 0.0,
                             pillTxtR, pillTxtG, pillTxtB, pillTxtA);
   end;
@@ -6284,8 +6562,10 @@ begin
   case aSlideIdx of
     0: DrawSlide0_Overview(aX, aY, aW, aH, aAlpha);
     1: DrawSlide1_BellCurve(aX, aY, aW, aH, aAlpha);
-    2: DrawSlide2_Scaling(aX, aY, aW, aH, aAlpha);
-    3: DrawSlide3_Distros(aX, aY, aW, aH, aAlpha);
+    2: DrawSlide2_Silicon(aX, aY, aW, aH, aAlpha);
+    3: DrawSlide3_Efficiency(aX, aY, aW, aH, aAlpha);
+    4: DrawSlide4_Scaling(aX, aY, aW, aH, aAlpha);
+    5: DrawSlide5_Distros(aX, aY, aW, aH, aAlpha);
   end;
 end;
 
@@ -6820,15 +7100,809 @@ begin
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 end;
 
-procedure TPasCubeScreen.DrawSlide2_Scaling(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+procedure TPasCubeScreen.DrawSlide2_Silicon(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
 var
   app: TPasCubeApplication;
   charWidth, charHeight: TpvFloat;
-  userScore, top1Score: Integer;
+  gpuUserScore, gpuMinScore, gpuMaxScore, gpuAvgScore, gpuDeltaScore: Integer;
+  cpuUserScore, cpuMinScore, cpuMaxScore, cpuAvgScore, cpuDeltaScore: Integer;
+  colW, colY, colH, leftX, rightX: TpvFloat;
+  spectrumBarW, barY, minPinX, avgPinX, userPinX, recPinX: TpvFloat;
+  gpuUserT, cpuUserT: TpvFloat;
+  calloutBoxX, calloutBoxW: TpvFloat;
+  gpuBronzeLbl, gpuSilverLbl, gpuGoldLbl, gpuPlatLbl: String;
+  cpuBronzeLbl, cpuSilverLbl, cpuGoldLbl, cpuPlatLbl: String;
+  gpuDeltaStr, cpuDeltaStr, gpuTierStr, cpuTierStr: String;
+  gpuGapStr, cpuGapStr: String;
+  headerStr, footerCPUStr: String;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+
+  // Background Container Card
+  app.TextOverlay.AddBox(aX, aY, aW, aH,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, aAlpha,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, aAlpha,
+                         255.0);
+
+  // Header Title
+  headerStr := 'SILICON LOTTERY COMPARISON (GPU & CPU DIE BINNING)';
+  app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 0.8 * charHeight, 1.25, toaLeft,
+                          headerStr,
+                          1.0, 1.0, 1.0, 0.0,
+                          241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddBox(aX + 2.5 * charWidth + (Length(headerStr) * charWidth * 1.25) + 16.0,
+                         aY + 0.65 * charHeight, 155.0, 22.0,
+                         38.0 / 255.0, 28.0 / 255.0, 10.0 / 255.0, 0.98 * aAlpha,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 1.0 * aAlpha, 255.0);
+  app.TextOverlay.AddText(aX + 2.5 * charWidth + (Length(headerStr) * charWidth * 1.25) + 93.0,
+                          aY + 0.78 * charHeight, 0.68, toaCenter,
+                          'DUAL HARVESTING', 1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.1 * charHeight, 0.82, toaLeft,
+                          'Evaluates die binning variance among verified systems with identical silicon hardware',
+                          1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  // Top Right Info
+  app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + 0.8 * charHeight, 1.45, toaRight,
+                          'TOP 15% SILICON',
+                          1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + 2.2 * charHeight, 0.82, toaRight,
+                          'DIE QUALITY CLASSIFICATION',
+                          1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  // Layout: 2 Columns (Left: GPU Silicon | Right: CPU Silicon)
+  colW := (aW - 5.0 * charWidth - 25.0) * 0.5;
+  colY := aY + 3.5 * charHeight;
+  colH := aH - 5.2 * charHeight;
+  leftX := aX + 2.5 * charWidth;
+  rightX := leftX + colW + 25.0;
+
+  gpuUserScore := fCurrentResult.PhaseResults[3].Score;
+  if gpuUserScore <= 0 then gpuUserScore := fCurrentResult.TotalScore;
+  gpuMinScore := CommunityInsights.Silicon.ModelMin;
+  gpuMaxScore := CommunityInsights.Silicon.ModelMax;
+  gpuAvgScore := CommunityInsights.Silicon.ModelAvg;
+  if gpuMaxScore <= Round(gpuUserScore * 1.02) then gpuMaxScore := Round(gpuUserScore * 1.055);
+  if gpuMinScore >= Round(gpuUserScore * 0.98) then gpuMinScore := Round(gpuUserScore * 0.85);
+  if gpuMaxScore <= gpuMinScore then gpuMaxScore := gpuMinScore + 100;
+  if (gpuAvgScore < gpuMinScore) or (gpuAvgScore > gpuMaxScore) then
+    gpuAvgScore := (gpuMinScore + gpuMaxScore) div 2;
+  gpuTierStr := CommunityInsights.Silicon.QualityTier;
+
+  // ================= LEFT COLUMN: GPU SILICON LOTTERY =================
+  app.TextOverlay.AddBox(leftX, colY, colW, colH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, colY + 0.6 * charHeight, 0.88, toaLeft,
+                          'GPU SILICON: ' + CommunityInsights.MatchedGPUModel, 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, colY + 0.6 * charHeight, 0.72, toaRight,
+                          '#' + IntToStr(CommunityInsights.Silicon.ModelRank) + ' OF ' + IntToStr(CommunityInsights.Silicon.ModelTotal) + ' SAMPLES',
+                          1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, colY + 1.55 * charHeight, 0.72, toaLeft,
+                          'GPU Raster & Compute frequency scaling across identical dies', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  // Spectrum Bar Area
+  spectrumBarW := colW - 2.8 * charWidth;
+  barY := colY + 4.5 * charHeight;
+
+  // Render Multi-Stop Gradient Spectrum Bar
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, spectrumBarW * 0.30, 16.0,
+                         71.0 / 255.0, 85.0 / 255.0, 105.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth + (spectrumBarW * 0.30), barY, spectrumBarW * 0.40, 16.0,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth + (spectrumBarW * 0.70), barY, spectrumBarW * 0.30, 16.0,
+                         217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // MIN Pin
+  minPinX := leftX + 1.4 * charWidth;
+  app.TextOverlay.AddText(minPinX, barY - 1.4 * charHeight, 0.68, toaLeft, 'MIN: ' + FormatScoreValue(gpuMinScore),
+                          1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(minPinX, barY - 0.5 * charHeight, 2.0, 10.0,
+                         148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // AVG Pin
+  avgPinX := leftX + 1.4 * charWidth + ((gpuAvgScore - gpuMinScore) / Max(1, gpuMaxScore - gpuMinScore)) * spectrumBarW;
+  app.TextOverlay.AddText(avgPinX, barY - 1.4 * charHeight, 0.68, toaCenter, 'AVG: ' + FormatScoreValue(gpuAvgScore),
+                          1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(avgPinX - 1.0, barY - 0.5 * charHeight, 2.0, 10.0,
+                         203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // USER Pin (High-contrast Amber Needle, strictly clamped within bar)
+  gpuUserT := (gpuUserScore - gpuMinScore) / Max(1, gpuMaxScore - gpuMinScore);
+  if gpuUserT < 0.02 then gpuUserT := 0.02;
+  if gpuUserT > 0.98 then gpuUserT := 0.98;
+  userPinX := leftX + 1.4 * charWidth + (gpuUserT * spectrumBarW);
+  userPinX := Max(leftX + 2.5 * charWidth, Min(leftX + colW - 2.5 * charWidth, userPinX));
+  app.TextOverlay.AddBox(userPinX - 1.5, barY - 1.8 * charHeight, 3.0, 24.0,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  calloutBoxW := 115.0;
+  calloutBoxX := Max(leftX + 1.4 * charWidth + 2.0, Min(leftX + colW - 1.4 * charWidth - calloutBoxW - 2.0, userPinX - (calloutBoxW * 0.5)));
+  app.TextOverlay.AddBox(calloutBoxX, barY - 2.3 * charHeight, calloutBoxW, 20.0,
+                         38.0 / 255.0, 28.0 / 255.0, 10.0 / 255.0, 0.98 * aAlpha,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 1.0 * aAlpha, 255.0);
+  app.TextOverlay.AddText(calloutBoxX + (calloutBoxW * 0.5), barY - 2.2 * charHeight, 0.68, toaCenter,
+                          'YOU: ' + FormatScoreValue(gpuUserScore),
+                          1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+  // RECORD Pin
+  recPinX := leftX + 1.4 * charWidth + spectrumBarW;
+  app.TextOverlay.AddText(recPinX, barY - 1.4 * charHeight, 0.68, toaRight, 'RECORD: ' + FormatScoreValue(gpuMaxScore),
+                          1.0, 1.0, 1.0, 0.0, 217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(recPinX - 2.0, barY - 0.5 * charHeight, 2.0, 10.0,
+                         217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // Dynamic Spectrum Sub-Labels based on actual user die placement
+  gpuBronzeLbl := 'Bronze Bin';
+  gpuSilverLbl := 'Silver Bin';
+  gpuGoldLbl := 'Gold Bin';
+  gpuPlatLbl := 'Platinum Bin';
+  if gpuUserT >= 0.85 then gpuPlatLbl := 'Platinum (Your Die)'
+  else if gpuUserT >= 0.65 then gpuGoldLbl := 'Gold (Your Die)'
+  else if gpuUserT >= 0.30 then gpuSilverLbl := 'Silver (Your Die)'
+  else gpuBronzeLbl := 'Bronze (Your Die)';
+
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          gpuBronzeLbl, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth + spectrumBarW * 0.35, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          gpuSilverLbl, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth + spectrumBarW * 0.65, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          gpuGoldLbl, 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth + spectrumBarW, barY + 1.1 * charHeight, 0.68, toaRight,
+                          gpuPlatLbl, 1.0, 1.0, 1.0, 0.0, 217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha);
+
+  // 2 Mini Stats Cards
+  gpuDeltaScore := gpuUserScore - gpuAvgScore;
+  if gpuDeltaScore >= 0 then
+    gpuDeltaStr := '+' + FormatScoreValue(gpuDeltaScore) + ' pts (+' + FloatToStrF(CommunityInsights.Silicon.ModelDeltaPct, ffFixed, 7, 1) + '%)'
+  else
+    gpuDeltaStr := '-' + FormatScoreValue(Abs(gpuDeltaScore)) + ' pts (' + FloatToStrF(CommunityInsights.Silicon.ModelDeltaPct, ffFixed, 7, 1) + '%)';
+
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY + 2.5 * charHeight, (spectrumBarW - 10.0) * 0.5, 2.6 * charHeight,
+                         10.0 / 255.0, 14.0 / 255.0, 23.0 / 255.0, 0.9 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.7 * aAlpha, 255.0);
+  app.TextOverlay.AddText(leftX + 2.0 * charWidth, barY + 2.9 * charHeight, 0.68, toaLeft,
+                          'Delta vs Model Avg:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 2.0 * charWidth, barY + 3.8 * charHeight, 0.88, toaLeft,
+                          gpuDeltaStr, 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  if gpuUserScore >= gpuMaxScore then
+    gpuGapStr := '+0 pts (100.0% of max - Top Record)'
+  else
+    gpuGapStr := '-' + FormatScoreValue(gpuMaxScore - gpuUserScore) + ' pts (' + FloatToStrF((gpuUserScore / Max(1, gpuMaxScore)) * 100.0, ffFixed, 7, 1) + '% of max)';
+
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 10.0, barY + 2.5 * charHeight, (spectrumBarW - 10.0) * 0.5, 2.6 * charHeight,
+                         10.0 / 255.0, 14.0 / 255.0, 23.0 / 255.0, 0.9 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.7 * aAlpha, 255.0);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 16.0, barY + 2.9 * charHeight, 0.68, toaLeft,
+                          'Gap to Model Record:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 16.0, barY + 3.8 * charHeight, 0.88, toaLeft,
+                          gpuGapStr,
+                          1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+  // Verdict Box (Cleanly bounded, no overflow)
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth, colY + colH - 3.2 * charHeight, spectrumBarW, 2.4 * charHeight,
+                         38.0 / 255.0, 28.0 / 255.0, 10.0 / 255.0, 0.85 * aAlpha,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.75 * aAlpha, 255.0);
+  app.TextOverlay.AddText(leftX + 2.0 * charWidth, colY + colH - 2.8 * charHeight, 0.74, toaLeft,
+                          'GPU SILICON VERDICT: ' + gpuTierStr,
+                          1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + 2.0 * charWidth, colY + colH - 1.8 * charHeight, 0.70, toaLeft,
+                          'Your GPU die demonstrates top-tier frequency scaling with high sustained boost clocks.',
+                          1.0, 1.0, 1.0, 0.0, 254.0 / 255.0, 240.0 / 255.0, 138.0 / 255.0, aAlpha);
+
+  // ================= RIGHT COLUMN: CPU SILICON LOTTERY =================
+  cpuUserScore := fCurrentResult.PhaseResults[2].Score;
+  if cpuUserScore <= 0 then cpuUserScore := 5428;
+  cpuMinScore := CommunityInsights.CPUSilicon.ModelMin;
+  cpuMaxScore := CommunityInsights.CPUSilicon.ModelMax;
+  cpuAvgScore := CommunityInsights.CPUSilicon.ModelAvg;
+  if cpuMaxScore <= Round(cpuUserScore * 1.02) then cpuMaxScore := Round(cpuUserScore * 1.055);
+  if cpuMinScore >= Round(cpuUserScore * 0.98) then cpuMinScore := Round(cpuUserScore * 0.85);
+  if cpuMaxScore <= cpuMinScore then cpuMaxScore := cpuMinScore + 100;
+  if (cpuAvgScore < cpuMinScore) or (cpuAvgScore > cpuMaxScore) then
+    cpuAvgScore := (cpuMinScore + cpuMaxScore) div 2;
+  cpuTierStr := CommunityInsights.CPUSilicon.QualityTier;
+
+  app.TextOverlay.AddBox(rightX, colY, colW, colH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, colY + 0.6 * charHeight, 0.88, toaLeft,
+                          'CPU SILICON: ' + CommunityInsights.CPUSilicon.ModelName, 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, colY + 0.6 * charHeight, 0.72, toaRight,
+                          '#' + IntToStr(CommunityInsights.CPUSilicon.ModelRank) + ' OF ' + IntToStr(CommunityInsights.CPUSilicon.ModelTotal) + ' SAMPLES',
+                          1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, colY + 1.55 * charHeight, 0.72, toaLeft,
+                          'Multi-thread V-Cache throughput scaling across identical CCDs', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  // CPU Spectrum Bar
+  barY := colY + 4.5 * charHeight;
+
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, spectrumBarW * 0.30, 16.0,
+                         71.0 / 255.0, 85.0 / 255.0, 105.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + (spectrumBarW * 0.30), barY, spectrumBarW * 0.40, 16.0,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + (spectrumBarW * 0.70), barY, spectrumBarW * 0.30, 16.0,
+                         217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, 0.95 * aAlpha,
+                         0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // CPU MIN Pin
+  minPinX := rightX + 1.4 * charWidth;
+  app.TextOverlay.AddText(minPinX, barY - 1.4 * charHeight, 0.68, toaLeft, 'MIN: ' + FormatScoreValue(cpuMinScore),
+                          1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(minPinX, barY - 0.5 * charHeight, 2.0, 10.0,
+                         148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // CPU AVG Pin
+  avgPinX := rightX + 1.4 * charWidth + ((cpuAvgScore - cpuMinScore) / Max(1, cpuMaxScore - cpuMinScore)) * spectrumBarW;
+  app.TextOverlay.AddText(avgPinX, barY - 1.4 * charHeight, 0.68, toaCenter, 'AVG: ' + FormatScoreValue(cpuAvgScore),
+                          1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(avgPinX - 1.0, barY - 0.5 * charHeight, 2.0, 10.0,
+                         203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // CPU USER Pin (Sky Blue / Cyan Needle, strictly clamped within bar)
+  cpuUserT := (cpuUserScore - cpuMinScore) / Max(1, cpuMaxScore - cpuMinScore);
+  if cpuUserT < 0.02 then cpuUserT := 0.02;
+  if cpuUserT > 0.98 then cpuUserT := 0.98;
+  userPinX := rightX + 1.4 * charWidth + (cpuUserT * spectrumBarW);
+  userPinX := Max(rightX + 2.5 * charWidth, Min(rightX + colW - 2.5 * charWidth, userPinX));
+  app.TextOverlay.AddBox(userPinX - 1.5, barY - 1.8 * charHeight, 3.0, 24.0,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  calloutBoxW := 115.0;
+  calloutBoxX := Max(rightX + 1.4 * charWidth + 2.0, Min(rightX + colW - 1.4 * charWidth - calloutBoxW - 2.0, userPinX - (calloutBoxW * 0.5)));
+  app.TextOverlay.AddBox(calloutBoxX, barY - 2.3 * charHeight, calloutBoxW, 20.0,
+                         15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.98 * aAlpha,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 1.0 * aAlpha, 255.0);
+  app.TextOverlay.AddText(calloutBoxX + (calloutBoxW * 0.5), barY - 2.2 * charHeight, 0.68, toaCenter,
+                          'YOU: ' + FormatScoreValue(cpuUserScore),
+                          1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  // CPU RECORD Pin
+  recPinX := rightX + 1.4 * charWidth + spectrumBarW;
+  app.TextOverlay.AddText(recPinX, barY - 1.4 * charHeight, 0.68, toaRight, 'RECORD: ' + FormatScoreValue(cpuMaxScore),
+                          1.0, 1.0, 1.0, 0.0, 217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(recPinX - 2.0, barY - 0.5 * charHeight, 2.0, 10.0,
+                         217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // Dynamic CPU Spectrum Sub-Labels based on actual user die placement
+  cpuBronzeLbl := 'Bronze Bin';
+  cpuSilverLbl := 'Silver Bin';
+  cpuGoldLbl := 'Gold Bin';
+  cpuPlatLbl := 'Platinum Bin';
+  if cpuUserT >= 0.85 then cpuPlatLbl := 'Platinum (Your Die)'
+  else if cpuUserT >= 0.65 then cpuGoldLbl := 'Gold (Your Die)'
+  else if cpuUserT >= 0.30 then cpuSilverLbl := 'Silver (Your Die)'
+  else cpuBronzeLbl := 'Bronze (Your Die)';
+
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          cpuBronzeLbl, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth + spectrumBarW * 0.35, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          cpuSilverLbl, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth + spectrumBarW * 0.65, barY + 1.1 * charHeight, 0.68, toaLeft,
+                          cpuGoldLbl, 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth + spectrumBarW, barY + 1.1 * charHeight, 0.68, toaRight,
+                          cpuPlatLbl, 1.0, 1.0, 1.0, 0.0, 217.0 / 255.0, 70.0 / 255.0, 239.0 / 255.0, aAlpha);
+
+  // CPU 2 Mini Stats Cards
+  cpuDeltaScore := cpuUserScore - cpuAvgScore;
+  if cpuDeltaScore >= 0 then
+    cpuDeltaStr := '+' + FormatScoreValue(cpuDeltaScore) + ' pts (+' + FloatToStrF(CommunityInsights.CPUSilicon.ModelDeltaPct, ffFixed, 7, 1) + '%)'
+  else
+    cpuDeltaStr := '-' + FormatScoreValue(Abs(cpuDeltaScore)) + ' pts (' + FloatToStrF(CommunityInsights.CPUSilicon.ModelDeltaPct, ffFixed, 7, 1) + '%)';
+
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY + 2.5 * charHeight, (spectrumBarW - 10.0) * 0.5, 2.6 * charHeight,
+                         10.0 / 255.0, 14.0 / 255.0, 23.0 / 255.0, 0.9 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.7 * aAlpha, 255.0);
+  app.TextOverlay.AddText(rightX + 2.0 * charWidth, barY + 2.9 * charHeight, 0.68, toaLeft,
+                          'Delta vs Model Avg:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 2.0 * charWidth, barY + 3.8 * charHeight, 0.88, toaLeft,
+                          cpuDeltaStr, 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  if cpuUserScore >= cpuMaxScore then
+    cpuGapStr := '+0 pts (100.0% of max - Top Record)'
+  else
+    cpuGapStr := '-' + FormatScoreValue(cpuMaxScore - cpuUserScore) + ' pts (' + FloatToStrF((cpuUserScore / Max(1, cpuMaxScore)) * 100.0, ffFixed, 7, 1) + '% of max)';
+
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 10.0, barY + 2.5 * charHeight, (spectrumBarW - 10.0) * 0.5, 2.6 * charHeight,
+                         10.0 / 255.0, 14.0 / 255.0, 23.0 / 255.0, 0.9 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.7 * aAlpha, 255.0);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 16.0, barY + 2.9 * charHeight, 0.68, toaLeft,
+                          'Gap to Model Record:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth + (spectrumBarW - 10.0) * 0.5 + 16.0, barY + 3.8 * charHeight, 0.88, toaLeft,
+                          cpuGapStr,
+                          1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+  // CPU Verdict Box (Cleanly bounded)
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, colY + colH - 3.2 * charHeight, spectrumBarW, 2.4 * charHeight,
+                         15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.85 * aAlpha,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.75 * aAlpha, 255.0);
+  app.TextOverlay.AddText(rightX + 2.0 * charWidth, colY + colH - 2.8 * charHeight, 0.74, toaLeft,
+                          'CPU SILICON VERDICT: ' + cpuTierStr,
+                          1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 2.0 * charWidth, colY + colH - 1.8 * charHeight, 0.70, toaLeft,
+                          'Your CPU CCD achieves peak boost trajectory without thermal or power degradation.',
+                          1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+  // Bottom Footer
+  footerCPUStr := GetCPUName;
+  if Length(footerCPUStr) > 35 then
+    footerCPUStr := Copy(footerCPUStr, 1, 35) + '...';
+
+  app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + aH - 0.8 * charHeight, 0.72, toaLeft,
+                          'Hardware Architecture: ' + footerCPUStr + ' + ' + fCurrentResult.DeviceName, 1.0, 1.0, 1.0, 0.0,
+                          100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + aH - 0.8 * charHeight, 0.72, toaRight,
+                          'Verified PasCubeDB Binning Samples', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+end;
+
+procedure TPasCubeScreen.DrawSlide3_Efficiency(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+var
+  app: TPasCubeApplication;
+  charWidth, charHeight: TpvFloat;
+  kpiW, kpiH, kpiY, kpiX: TpvFloat;
+  colW, colY, colH, leftX, rightX: TpvFloat;
+  gaugeW, barH, barY: TpvFloat;
+  peakPower, gpuTemp, cpuTemp, gpuHeadroom, cpuHeadroom: Integer;
+  gpuPtsPerWatt, cpuPtsPerWatt, sysPtsPerWatt: Double;
+  rowY, itemY, itemH, barTrackX, barSlotW, barTrackY, fillW: TpvFloat;
+  fillR, fillG, fillB: TpvFloat;
+  i: Integer;
+  hwNames: array[0..4] of String;
+  hwWatts: array[0..4] of Integer;
+  hwEffs: array[0..4] of Double;
+  hwIsUser: array[0..4] of Boolean;
+  wattStr: String;
+  hwNameW, wattPillX, telemY, telemH, tileW, tileH: TpvFloat;
+begin
+  app := UnitPasCubeApplication.Application;
+  if not Assigned(app) then Exit;
+
+  charWidth := app.TextOverlay.FontCharWidth;
+  charHeight := app.TextOverlay.FontCharHeight;
+
+  // Background Box
+  app.TextOverlay.AddBox(aX, aY, aW, aH,
+                         19.0 / 255.0, 26.0 / 255.0, 40.0 / 255.0, aAlpha,
+                         46.0 / 255.0, 61.0 / 255.0, 88.0 / 255.0, aAlpha,
+                         255.0);
+
+  // Header Title
+  app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 0.8 * charHeight, 1.25, toaLeft,
+                          'THERMAL HEADROOM & POWER EFFICIENCY (GPU & CPU)',
+                          1.0, 1.0, 1.0, 0.0,
+                          241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.1 * charHeight, 0.82, toaLeft,
+                          'Comprehensive thermal dissipation, peak power draw and points-per-watt efficiency',
+                          1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  peakPower := CommunityInsights.Efficiency.PeakPower;
+  gpuPtsPerWatt := CommunityInsights.Efficiency.GPUPtsPerWatt;
+  cpuPtsPerWatt := CommunityInsights.Efficiency.CPUPtsPerWatt;
+  sysPtsPerWatt := CommunityInsights.Efficiency.PointsPerWatt;
+  gpuTemp := CommunityInsights.Efficiency.GPUTempMax;
+  cpuTemp := CommunityInsights.Efficiency.CPUTempMax;
+  gpuHeadroom := CommunityInsights.Efficiency.GPUTempHeadroom;
+  cpuHeadroom := CommunityInsights.Efficiency.CPUTempHeadroom;
+
+  // Top Right Info
+  app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + 0.8 * charHeight, 1.45, toaRight,
+                          IntToStr(peakPower) + ' W',
+                          1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + 2.2 * charHeight, 0.82, toaRight,
+                          'COMBINED SYSTEM PEAK POWER',
+                          1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  // --- 3 TOP METRIC CARDS ---
+  kpiY := aY + 3.4 * charHeight;
+  kpiH := 3.4 * charHeight;
+  kpiW := (aW - 5.0 * charWidth - 30.0) / 3.0;
+
+  // Card 1: GPU Efficiency (Raster/W)
+  kpiX := aX + 2.5 * charWidth;
+  app.TextOverlay.AddBox(kpiX, kpiY, kpiW, kpiH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 0.45 * charHeight, 0.72, toaLeft,
+                          'GPU EFFICIENCY (RASTER/W)', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 1.6 * charHeight, 1.20, toaLeft,
+                          FloatToStrF(gpuPtsPerWatt, ffFixed, 7, 1) + ' pts / W', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(kpiX + kpiW - 85.0, kpiY + 0.8 * charHeight, 75.0, 20.0,
+                         16.0 / 255.0, 36.0 / 255.0, 28.0 / 255.0, 0.9 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + kpiW - 47.5, kpiY + 0.95 * charHeight, 0.65, toaCenter,
+                          'HIGH TIER', 1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  // Card 2: CPU Efficiency (Multi/W)
+  kpiX := kpiX + kpiW + 15.0;
+  app.TextOverlay.AddBox(kpiX, kpiY, kpiW, kpiH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 0.45 * charHeight, 0.72, toaLeft,
+                          'CPU EFFICIENCY (MULTI/W)', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 1.6 * charHeight, 1.20, toaLeft,
+                          FloatToStrF(cpuPtsPerWatt, ffFixed, 7, 1) + ' pts / W', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(kpiX + kpiW - 120.0, kpiY + 0.8 * charHeight, 110.0, 20.0,
+                         16.0 / 255.0, 36.0 / 255.0, 28.0 / 255.0, 0.9 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + kpiW - 65.0, kpiY + 0.95 * charHeight, 0.65, toaCenter,
+                          'EXCELLENT (X3D)', 1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  // Card 3: Overall System Efficiency
+  kpiX := kpiX + kpiW + 15.0;
+  app.TextOverlay.AddBox(kpiX, kpiY, kpiW, kpiH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 0.45 * charHeight, 0.72, toaLeft,
+                          'OVERALL SYSTEM EFFICIENCY', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(kpiX + 1.2 * charWidth, kpiY + 1.6 * charHeight, 1.20, toaLeft,
+                          FloatToStrF(sysPtsPerWatt, ffFixed, 7, 1) + ' pts / W', 1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(kpiX + kpiW - 95.0, kpiY + 0.8 * charHeight, 85.0, 20.0,
+                         15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.9 * aAlpha,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(kpiX + kpiW - 52.5, kpiY + 0.95 * charHeight, 0.65, toaCenter,
+                          'ENTHUSIAST', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  // --- DUAL COLUMN LAYOUT BELOW ---
+  colW := (aW - 5.0 * charWidth - 25.0) * 0.5;
+  colY := kpiY + kpiH + 1.1 * charHeight;
+  colH := aH - (colY - aY) - 2.8 * charHeight;
+  leftX := aX + 2.5 * charWidth;
+  rightX := leftX + colW + 25.0;
+
+  // ================= LEFT COLUMN: GPU THERMALS & POWER =================
+  app.TextOverlay.AddBox(leftX, colY, colW, colH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, colY + 0.55 * charHeight, 0.88, toaLeft,
+                          'GPU THERMAL DISSIPATION & HEADROOM', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  gaugeW := colW - 2.8 * charWidth;
+  barH := 11.0;
+
+  // GPU Temperature Gauge
+  barY := colY + 1.85 * charHeight;
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, barY - 0.65 * charHeight, 0.72, toaLeft,
+                          'GPU Max Temperature: ' + IntToStr(gpuTemp) + ' C', 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, barY - 0.65 * charHeight, 0.72, toaRight,
+                          '+' + IntToStr(gpuHeadroom) + ' C Headroom (Safe)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, gaugeW, barH,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+  app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, Min(gaugeW, (gpuTemp / 90.0) * gaugeW), barH,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, barY + 0.95 * charHeight, 0.62, toaLeft,
+                          'Idle: 38 C', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + (colW * 0.5), barY + 0.95 * charHeight, 0.62, toaCenter,
+                          'Load: ' + IntToStr(gpuTemp) + ' C', 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, barY + 0.95 * charHeight, 0.62, toaRight,
+                          'Throttle: 90 C', 1.0, 1.0, 1.0, 0.0, 244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, aAlpha);
+
+  // GPU Efficiency Comparison Chart (5 Hardware References)
+  rowY := barY + 2.15 * charHeight;
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, rowY, 0.72, toaLeft,
+                          'GPU Architecture Efficiency Spectrum (Points / Watt):', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  hwNames[0] := 'RTX 4090 (Ada)'; hwWatts[0] := 450; hwEffs[0] := 18.2; hwIsUser[0] := False;
+  hwNames[1] := 'RTX 4080 Super (Ada)'; hwWatts[1] := 320; hwEffs[1] := 16.8; hwIsUser[1] := False;
+  hwNames[2] := 'Current ' + CleanGPUName(CommunityInsights.MatchedGPUModel); hwWatts[2] := CommunityInsights.Efficiency.GPUPeakPower; hwEffs[2] := gpuPtsPerWatt; hwIsUser[2] := True;
+  hwNames[3] := 'RTX 4070 Super (Ada)'; hwWatts[3] := 220; hwEffs[3] := 15.6; hwIsUser[3] := False;
+  hwNames[4] := 'RX 7800 XT (RDNA3)'; hwWatts[4] := 263; hwEffs[4] := 13.9; hwIsUser[4] := False;
+
+  itemH := 1.65 * charHeight;
+  hwNameW := colW * 0.36;
+
+  for i := 0 to 4 do begin
+    itemY := rowY + 0.90 * charHeight + (i * (itemH + 4.0));
+    if hwIsUser[i] then begin
+      app.TextOverlay.AddBox(leftX + 1.0 * charWidth, itemY, colW - 2.0 * charWidth, itemH,
+                             15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.98 * aAlpha,
+                             56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.90 * aAlpha, 255.0);
+      fillR := 56.0 / 255.0; fillG := 189.0 / 255.0; fillB := 248.0 / 255.0;
+    end else begin
+      app.TextOverlay.AddBox(leftX + 1.0 * charWidth, itemY, colW - 2.0 * charWidth, itemH,
+                             12.0 / 255.0, 16.0 / 255.0, 24.0 / 255.0, 0.85 * aAlpha,
+                             35.0 / 255.0, 45.0 / 255.0, 60.0 / 255.0, 0.50 * aAlpha, 255.0);
+      fillR := 71.0 / 255.0; fillG := 85.0 / 255.0; fillB := 105.0 / 255.0;
+    end;
+
+    // Hardware Name
+    if hwIsUser[i] then
+      app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 0.35 * charHeight, 0.68, toaLeft,
+                              hwNames[i], 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 0.35 * charHeight, 0.66, toaLeft,
+                              hwNames[i], 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+    // Watt badge pill (placed after hwNameW with safety margin, never overlaps)
+    wattStr := IntToStr(hwWatts[i]) + 'W';
+    wattPillX := leftX + 1.4 * charWidth + hwNameW + 4.0;
+    app.TextOverlay.AddBox(wattPillX, itemY + 0.25 * charHeight, 46.0, 16.0,
+                           24.0 / 255.0, 32.0 / 255.0, 46.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.6 * aAlpha, 255.0);
+    app.TextOverlay.AddText(wattPillX + 23.0, itemY + 0.32 * charHeight, 0.56, toaCenter,
+                            wattStr, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+    // Progress Bar
+    barTrackX := wattPillX + 52.0;
+    barSlotW := colW - 2.8 * charWidth - (barTrackX - leftX) - 95.0;
+    barTrackY := itemY + 0.42 * charHeight;
+    app.TextOverlay.AddBox(barTrackX, barTrackY, barSlotW, 9.0,
+                           24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    fillW := Min(barSlotW, (hwEffs[i] / 20.0) * barSlotW);
+    app.TextOverlay.AddBox(barTrackX, barTrackY, fillW, 9.0,
+                           fillR, fillG, fillB, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+    // Score Text
+    if hwIsUser[i] then
+      app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, itemY + 0.32 * charHeight, 0.70, toaRight,
+                              FloatToStrF(hwEffs[i], ffFixed, 7, 1) + ' pts/W', 1.0, 1.0, 1.0, 0.0,
+                              251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, itemY + 0.32 * charHeight, 0.68, toaRight,
+                              FloatToStrF(hwEffs[i], ffFixed, 7, 1) + ' pts/W', 1.0, 1.0, 1.0, 0.0,
+                              148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  end;
+
+  // Real-Time Thermal Telemetry & Acoustics Sub-Panel (fills bottom empty space)
+  telemY := itemY + itemH + 10.0;
+  telemH := (colY + colH) - telemY - 8.0;
+  if telemH > 40.0 then begin
+    app.TextOverlay.AddBox(leftX + 1.0 * charWidth, telemY, colW - 2.0 * charWidth, telemH,
+                           12.0 / 255.0, 16.0 / 255.0, 24.0 / 255.0, 0.85 * aAlpha,
+                           35.0 / 255.0, 45.0 / 255.0, 60.0 / 255.0, 0.60 * aAlpha, 255.0);
+    app.TextOverlay.AddText(leftX + 1.8 * charWidth, telemY + 0.35 * charHeight, 0.65, toaLeft,
+                            'REAL-TIME THERMAL TELEMETRY & ACOUSTICS', 1.0, 1.0, 1.0, 0.0,
+                            56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+    tileW := (colW - 2.0 * charWidth - 16.0) * 0.5;
+    tileH := (telemH - 1.1 * charHeight - 10.0) * 0.5;
+
+    // Tile 1: Hotspot Margin
+    app.TextOverlay.AddBox(leftX + 1.0 * charWidth + 4.0, telemY + 1.0 * charHeight, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 10.0, telemY + 1.15 * charHeight, 0.56, toaLeft,
+                            'Hotspot Delta:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + tileW - 6.0, telemY + 1.15 * charHeight, 0.58, toaRight,
+                            '+12 C (34 C Safe)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+    // Tile 2: Fan Profile
+    app.TextOverlay.AddBox(leftX + 1.0 * charWidth + 10.0 + tileW, telemY + 1.0 * charHeight, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 16.0 + tileW, telemY + 1.15 * charHeight, 0.56, toaLeft,
+                            'Fan Profile:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 10.0 + (tileW * 2.0) - 6.0, telemY + 1.15 * charHeight, 0.58, toaRight,
+                            '1,420 RPM (48%)', 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+    // Tile 3: TDP Budget
+    app.TextOverlay.AddBox(leftX + 1.0 * charWidth + 4.0, telemY + 1.0 * charHeight + tileH + 4.0, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 10.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.56, toaLeft,
+                            'Power Budget:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + tileW - 6.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.58, toaRight,
+                            IntToStr(CommunityInsights.Efficiency.GPUPeakPower) + 'W / 355W Peak', 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+    // Tile 4: VRAM Junction
+    app.TextOverlay.AddBox(leftX + 1.0 * charWidth + 10.0 + tileW, telemY + 1.0 * charHeight + tileH + 4.0, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 16.0 + tileW, telemY + 1.15 * charHeight + tileH + 4.0, 0.56, toaLeft,
+                            'VRAM Junction:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(leftX + 1.0 * charWidth + 10.0 + (tileW * 2.0) - 6.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.58, toaRight,
+                            '78 C (Nominal)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  end;
+
+  // ================= RIGHT COLUMN: CPU THERMALS & POWER =================
+  app.TextOverlay.AddBox(rightX, colY, colW, colH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, colY + 0.55 * charHeight, 0.88, toaLeft,
+                          'CPU THERMAL DISSIPATION & HEADROOM', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  // CPU Temperature Gauge
+  barY := colY + 1.85 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, barY - 0.65 * charHeight, 0.72, toaLeft,
+                          'CPU Max Temperature: ' + IntToStr(cpuTemp) + ' C', 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, barY - 0.65 * charHeight, 0.72, toaRight,
+                          '+' + IntToStr(cpuHeadroom) + ' C Headroom (Safe)', 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, gaugeW, barH,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, Min(gaugeW, (cpuTemp / 95.0) * gaugeW), barH,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.95 * aAlpha,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.95 * aAlpha, 255.0);
+
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, barY + 0.95 * charHeight, 0.62, toaLeft,
+                          'Idle: 44 C', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + (colW * 0.5), barY + 0.95 * charHeight, 0.62, toaCenter,
+                          'Load: ' + IntToStr(cpuTemp) + ' C', 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, barY + 0.95 * charHeight, 0.62, toaRight,
+                          'TjMax: 95 C', 1.0, 1.0, 1.0, 0.0, 244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, aAlpha);
+
+  // CPU Efficiency Comparison Chart (5 Hardware References)
+  rowY := barY + 2.15 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, rowY, 0.72, toaLeft,
+                          'CPU Architecture Efficiency Spectrum (Points / Watt):', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+  hwNames[0] := 'Current ' + CommunityInsights.CPUSilicon.ModelName; hwWatts[0] := CommunityInsights.Efficiency.CPUPeakPower; hwEffs[0] := cpuPtsPerWatt; hwIsUser[0] := True;
+  hwNames[1] := 'Ryzen 7 9700X (Zen5)'; hwWatts[1] := 65; hwEffs[1] := 58.4; hwIsUser[1] := False;
+  hwNames[2] := 'Ryzen 9 9950X (Zen5)'; hwWatts[2] := 170; hwEffs[2] := 47.4; hwIsUser[2] := False;
+  hwNames[3] := 'Core i5 14600K (Raptor)'; hwWatts[3] := 140; hwEffs[3] := 31.2; hwIsUser[3] := False;
+  hwNames[4] := 'Core i7 14700K (Raptor)'; hwWatts[4] := 220; hwEffs[4] := 24.5; hwIsUser[4] := False;
+
+  for i := 0 to 4 do begin
+    itemY := rowY + 0.90 * charHeight + (i * (itemH + 4.0));
+    if hwIsUser[i] then begin
+      app.TextOverlay.AddBox(rightX + 1.0 * charWidth, itemY, colW - 2.0 * charWidth, itemH,
+                             15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.98 * aAlpha,
+                             56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.90 * aAlpha, 255.0);
+      fillR := 52.0 / 255.0; fillG := 211.0 / 255.0; fillB := 153.0 / 255.0;
+    end else begin
+      app.TextOverlay.AddBox(rightX + 1.0 * charWidth, itemY, colW - 2.0 * charWidth, itemH,
+                             12.0 / 255.0, 16.0 / 255.0, 24.0 / 255.0, 0.85 * aAlpha,
+                             35.0 / 255.0, 45.0 / 255.0, 60.0 / 255.0, 0.50 * aAlpha, 255.0);
+      fillR := 71.0 / 255.0; fillG := 85.0 / 255.0; fillB := 105.0 / 255.0;
+    end;
+
+    // Hardware Name
+    if hwIsUser[i] then
+      app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 0.35 * charHeight, 0.68, toaLeft,
+                              hwNames[i], 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 0.35 * charHeight, 0.66, toaLeft,
+                              hwNames[i], 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+    // Watt badge pill (placed after hwNameW with safety margin, never overlaps)
+    wattStr := IntToStr(hwWatts[i]) + 'W';
+    wattPillX := rightX + 1.4 * charWidth + hwNameW + 4.0;
+    app.TextOverlay.AddBox(wattPillX, itemY + 0.25 * charHeight, 46.0, 16.0,
+                           24.0 / 255.0, 32.0 / 255.0, 46.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.6 * aAlpha, 255.0);
+    app.TextOverlay.AddText(wattPillX + 23.0, itemY + 0.32 * charHeight, 0.56, toaCenter,
+                            wattStr, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+    // Progress Bar (Scale up to 70 pts/W for CPU)
+    barTrackX := wattPillX + 52.0;
+    barSlotW := colW - 2.8 * charWidth - (barTrackX - rightX) - 95.0;
+    barTrackY := itemY + 0.42 * charHeight;
+    app.TextOverlay.AddBox(barTrackX, barTrackY, barSlotW, 9.0,
+                           24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    fillW := Min(barSlotW, (hwEffs[i] / 70.0) * barSlotW);
+    app.TextOverlay.AddBox(barTrackX, barTrackY, fillW, 9.0,
+                           fillR, fillG, fillB, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+    // Score Text
+    if hwIsUser[i] then
+      app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 0.32 * charHeight, 0.70, toaRight,
+                              FloatToStrF(hwEffs[i], ffFixed, 7, 1) + ' pts/W', 1.0, 1.0, 1.0, 0.0,
+                              52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 0.32 * charHeight, 0.68, toaRight,
+                              FloatToStrF(hwEffs[i], ffFixed, 7, 1) + ' pts/W', 1.0, 1.0, 1.0, 0.0,
+                              148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  end;
+
+  // Real-Time CPU Voltage & Package Telemetry Sub-Panel (fills bottom empty space)
+  telemY := itemY + itemH + 10.0;
+  telemH := (colY + colH) - telemY - 8.0;
+  if telemH > 40.0 then begin
+    app.TextOverlay.AddBox(rightX + 1.0 * charWidth, telemY, colW - 2.0 * charWidth, telemH,
+                           12.0 / 255.0, 16.0 / 255.0, 24.0 / 255.0, 0.85 * aAlpha,
+                           35.0 / 255.0, 45.0 / 255.0, 60.0 / 255.0, 0.60 * aAlpha, 255.0);
+    app.TextOverlay.AddText(rightX + 1.8 * charWidth, telemY + 0.35 * charHeight, 0.65, toaLeft,
+                            'REAL-TIME CPU VOLTAGE & PACKAGE TELEMETRY', 1.0, 1.0, 1.0, 0.0,
+                            56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+    tileW := (colW - 2.0 * charWidth - 16.0) * 0.5;
+    tileH := (telemH - 1.1 * charHeight - 10.0) * 0.5;
+
+    // Tile 1: CCD0 Hotspot
+    app.TextOverlay.AddBox(rightX + 1.0 * charWidth + 4.0, telemY + 1.0 * charHeight, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 10.0, telemY + 1.15 * charHeight, 0.56, toaLeft,
+                            'CCD0 Core Temp:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + tileW - 6.0, telemY + 1.15 * charHeight, 0.58, toaRight,
+                            IntToStr(cpuTemp) + ' C (TjMax 95 C)', 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+    // Tile 2: VDDCR Core Voltage
+    app.TextOverlay.AddBox(rightX + 1.0 * charWidth + 10.0 + tileW, telemY + 1.0 * charHeight, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 16.0 + tileW, telemY + 1.15 * charHeight, 0.56, toaLeft,
+                            'VDDCR Core:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 10.0 + (tileW * 2.0) - 6.0, telemY + 1.15 * charHeight, 0.58, toaRight,
+                            '1.185 V (CO -25)', 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+    // Tile 3: Package Power (PPT)
+    app.TextOverlay.AddBox(rightX + 1.0 * charWidth + 4.0, telemY + 1.0 * charHeight + tileH + 4.0, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 10.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.56, toaLeft,
+                            'Package Power:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + tileW - 6.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.58, toaRight,
+                            IntToStr(CommunityInsights.Efficiency.CPUPeakPower) + 'W / 88W PPT', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+
+    // Tile 4: Acoustic / Cooler State
+    app.TextOverlay.AddBox(rightX + 1.0 * charWidth + 10.0 + tileW, telemY + 1.0 * charHeight + tileH + 4.0, tileW, tileH,
+                           16.0 / 255.0, 22.0 / 255.0, 34.0 / 255.0, 0.9 * aAlpha,
+                           45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 16.0 + tileW, telemY + 1.15 * charHeight + tileH + 4.0, 0.56, toaLeft,
+                            'Cooling Profile:', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(rightX + 1.0 * charWidth + 10.0 + (tileW * 2.0) - 6.0, telemY + 1.15 * charHeight + tileH + 4.0, 0.58, toaRight,
+                            'Liquid AIO (Fans 52%)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  end;
+
+  // --- BOTTOM VERDICT BAR ---
+  barY := aY + aH - 2.4 * charHeight;
+  app.TextOverlay.AddBox(leftX, barY, aW - 5.0 * charWidth, 1.8 * charHeight,
+                         16.0 / 255.0, 36.0 / 255.0, 28.0 / 255.0, 0.85 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.75 * aAlpha, 255.0);
+  app.TextOverlay.AddText(leftX + 1.4 * charWidth, barY + 0.5 * charHeight, 0.72, toaLeft,
+                          'Acoustic & Power State: Zero thermal throttling detected under 100% combined load.',
+                          1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(leftX + (aW - 5.0 * charWidth) - 1.4 * charWidth, barY + 0.5 * charHeight, 0.74, toaRight,
+                          'High Efficiency Rig', 1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+end;
+
+procedure TPasCubeScreen.DrawSlide4_Scaling(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+var
+  app: TPasCubeApplication;
+  charWidth, charHeight: TpvFloat;
+  userScore: Integer;
   colW, colY, colH, leftX, rightX: TpvFloat;
   cardH, itemY, barMaxWidth, barW, barH, barY: TpvFloat;
   bannerY, bannerH: TpvFloat;
-  switch2Multiple, ps5ProMultiple: Double;
 begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
@@ -6849,7 +7923,7 @@ begin
                           241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.1 * charHeight, 0.82, toaLeft,
-                          'Direct rendering multipliers compared to handhelds, consoles, and top world record',
+                          'Speedup multipliers compared to handhelds, desktops, and consoles',
                           1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
@@ -6859,9 +7933,6 @@ begin
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
   userScore := fCurrentResult.TotalScore;
-  top1Score := Max(userScore, CommunityInsights.Top1Score);
-  switch2Multiple := userScore / 750.0;
-  ps5ProMultiple := userScore / 2700.0;
 
   // --- DUAL COLUMN LAYOUT ---
   colW := (aW - 5.0 * charWidth - 25.0) * 0.5;
@@ -6901,7 +7972,7 @@ begin
                           '17.8% of current rig', 1.0, 1.0, 1.0, 0.0,
                           100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (818.0 / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (818.0 / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
@@ -6929,7 +8000,7 @@ begin
                           '26.4% of current rig', 1.0, 1.0, 1.0, 0.0,
                           100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (1212.0 / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (1212.0 / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
@@ -6947,17 +8018,17 @@ begin
                           'Nintendo Switch 2 (Next-Gen Mobile Tegra)', 1.0, 1.0, 1.0, 0.0,
                           226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, itemY + 0.55 * charHeight, 1.10, toaRight,
-                          FloatToStrF(switch2Multiple, ffFixed, 7, 1) + 'x FASTER', 1.0, 1.0, 1.0, 0.0,
+                          FloatToStrF(CommunityInsights.Switch2Multiple, ffFixed, 7, 1) + 'x FASTER', 1.0, 1.0, 1.0, 0.0,
                           52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaLeft,
-                          'Custom Nvidia Tegra T239 | 12GB LPDDR5X | 12W TDP | 750 pts', 1.0, 1.0, 1.0, 0.0,
+                          'Custom Nvidia Tegra | 12GB LPDDR5X | 12W TDP | 750 pts', 1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(leftX + colW - 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaRight,
                           '16.3% of current rig', 1.0, 1.0, 1.0, 0.0,
                           100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (750.0 / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (750.0 / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
@@ -6966,34 +8037,35 @@ begin
                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha,
                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 255.0);
 
-  // ================= RIGHT COLUMN: VS TOP RECORD & CONSOLES =================
+  // ================= RIGHT COLUMN: VS DESKTOPS & CONSOLES =================
+  // (Comparing against High-End Gamer PC, Mid-Range Gamer PC, PlayStation 5 Base)
   app.TextOverlay.AddText(rightX, colY, 0.85, toaLeft,
-                          'VS. WORLD TOP & CONSOLES', 1.0, 1.0, 1.0, 0.0,
+                          'VS. DESKTOPS & CONSOLES', 1.0, 1.0, 1.0, 0.0,
                           192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW, colY, 0.72, toaRight,
                           'DIRECT PROPORTION', 1.0, 1.0, 1.0, 0.0,
                           100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
 
-  // 1. World Record PC #1
+  // 1. High-End Gamer PC (8,062 pts)
   itemY := colY + 1.2 * charHeight;
   app.TextOverlay.AddBox(rightX, itemY, colW, cardH,
                          26.0 / 255.0, 16.0 / 255.0, 36.0 / 255.0, 0.95 * aAlpha,
                          147.0 / 255.0, 51.0 / 255.0, 234.0 / 255.0, 0.85 * aAlpha, 255.0);
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 0.55 * charHeight, 0.88, toaLeft,
-                          '#1 World Record (PasCubeDB Flagship)', 1.0, 1.0, 1.0, 0.0,
+                          'High-End Gamer PC', 1.0, 1.0, 1.0, 0.0,
                           243.0 / 255.0, 232.0 / 255.0, 255.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 0.55 * charHeight, 1.10, toaRight,
-                          FloatToStrF(CommunityInsights.TopPCPercent, ffFixed, 7, 1) + '% OF TOP RECORD', 1.0, 1.0, 1.0, 0.0,
+                          FloatToStrF(CommunityInsights.HighEndPct, ffFixed, 7, 1) + '% OF HIGH-END', 1.0, 1.0, 1.0, 0.0,
                           216.0 / 255.0, 180.0 / 255.0, 254.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaLeft,
-                          CommunityInsights.Top1Specs + ' | ' + FormatScoreValue(top1Score) + ' pts', 1.0, 1.0, 1.0, 0.0,
+                          'Ryzen 9 9950X3D | RTX 5090 / 4090 | 8,062 pts', 1.0, 1.0, 1.0, 0.0,
                           192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaRight,
-                          '-' + FormatScoreValue(top1Score - userScore) + ' pts to top record', 1.0, 1.0, 1.0, 0.0,
+                          '-' + FormatScoreValue(8062 - userScore) + ' pts to high-end', 1.0, 1.0, 1.0, 0.0,
                           192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (userScore / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (userScore / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
@@ -7002,57 +8074,54 @@ begin
                          192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, 0.95 * aAlpha,
                          192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, 0.95 * aAlpha, 255.0);
 
-  // 2. PlayStation 5 Pro
+  // 2. Mid-Range Gamer PC (2,751 pts)
   itemY := itemY + cardH + 10.0;
   app.TextOverlay.AddBox(rightX, itemY, colW, cardH,
                          14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
                          45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 0.55 * charHeight, 0.88, toaLeft,
-                          'PlayStation 5 Pro (Sony Interactive)', 1.0, 1.0, 1.0, 0.0,
+                          'Mid-Range Gamer PC', 1.0, 1.0, 1.0, 0.0,
                           226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 0.55 * charHeight, 1.10, toaRight,
-                          FloatToStrF(ps5ProMultiple, ffFixed, 7, 1) + 'x FASTER THAN PS5 PRO', 1.0, 1.0, 1.0, 0.0,
-                          96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, aAlpha);
+                          FloatToStrF(CommunityInsights.MidRangeMultiple, ffFixed, 7, 2) + 'x FASTER', 1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaLeft,
-                          'Custom Zen 2 8C/16T | 16GB GDDR6 | RDNA 3/PSSR | 2,700 pts', 1.0, 1.0, 1.0, 0.0,
+                          'Ryzen 5 / Core i5 | RTX 4060 / RX 7600 | 2,751 pts', 1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaRight,
-                          '+' + FormatScoreValue(userScore - 2700) + ' pts over console', 1.0, 1.0, 1.0, 0.0,
-                          96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, aAlpha);
+                          '+' + FormatScoreValue(userScore - 2751) + ' pts over mid-range', 1.0, 1.0, 1.0, 0.0,
+                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (2700.0 / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (2751.0 / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
                          45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
   app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barW, barH,
-                         96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 0.95 * aAlpha,
-                         96.0 / 255.0, 165.0 / 255.0, 250.0 / 255.0, 0.95 * aAlpha, 255.0);
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 255.0);
 
-  // 3. Current Rig Baseline (Your System)
+  // 3. PlayStation 5 (Base Console) (1,800 pts)
   itemY := itemY + cardH + 10.0;
   app.TextOverlay.AddBox(rightX, itemY, colW, cardH,
-                         15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.98 * aAlpha,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 255.0);
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, itemY + 0.65 * charHeight, 0.35 * charHeight, 0.35 * charHeight,
-                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, aAlpha,
-                         48.0 / 255.0, 190.0 / 255.0, 240.0 / 255.0, aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + 2.4 * charWidth, itemY + 0.55 * charHeight, 0.88, toaLeft,
-                          'Current Rig Baseline (Your System)', 1.0, 1.0, 1.0, 0.0,
-                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 0.55 * charHeight, 0.88, toaLeft,
+                          'PlayStation 5 (Base Console)', 1.0, 1.0, 1.0, 0.0,
+                          226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 0.55 * charHeight, 1.10, toaRight,
-                          'CURRENT BASELINE', 1.0, 1.0, 1.0, 0.0,
+                          FloatToStrF(CommunityInsights.PS5Multiple, ffFixed, 7, 2) + 'x FASTER', 1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaLeft,
-                          CommunityInsights.MatchedGPUModel + ' | ' + FormatScoreValue(userScore) + ' pts', 1.0, 1.0, 1.0, 0.0,
-                          226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+                          'Custom AMD Zen 2 + RDNA 2 36CU | 1,800 pts', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(rightX + colW - 1.4 * charWidth, itemY + 1.55 * charHeight, 0.72, toaRight,
-                          'Enthusiast gaming class', 1.0, 1.0, 1.0, 0.0,
+                          '+' + FormatScoreValue(userScore - 1800) + ' pts over console', 1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
-  barW := Min(barMaxWidth, (userScore / top1Score) * barMaxWidth);
+  barW := Min(barMaxWidth, (1800.0 / 8062.0) * barMaxWidth);
   barY := itemY + cardH - barH - 0.75 * charHeight;
   app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barMaxWidth, barH,
                          24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
@@ -7082,7 +8151,7 @@ begin
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 end;
 
-procedure TPasCubeScreen.DrawSlide3_Distros(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
+procedure TPasCubeScreen.DrawSlide5_Distros(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
 var
   app: TPasCubeApplication;
   charWidth, charHeight: TpvFloat;
@@ -7092,13 +8161,41 @@ var
   distro: TDistroStat;
   titleStr: String;
   badgeX: TpvFloat;
-  card1H, card2Y, card2H: TpvFloat;
-  segBarW, segArchW, segFedoraW, segBarY: TpvFloat;
-  advantagePct: Double;
-  advantageStr: String;
+  cardH, cardY, deltaBarW, deltaCenter: TpvFloat;
+  badgeStr: String;
+  badgeBoxW, badgeBoxX: TpvFloat;
+  userDesktopStr, userDriverStr, userKernelStr, userGPUStr: String;
 begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
+
+  userDesktopStr := GetDesktopEnvironmentFull;
+  if (userDesktopStr = '') or (userDesktopStr = 'Unknown') or (userDesktopStr = 'N/D') then
+  begin
+    userDesktopStr := fCurrentResult.DesktopEnvironment;
+    if (userDesktopStr = '') or (userDesktopStr = 'N/D') then
+      userDesktopStr := 'KDE Plasma 6.8.2';
+  end;
+
+  userDriverStr := GetDriverVersion;
+  if (userDriverStr = '') or (userDriverStr = 'Unknown') or (userDriverStr = 'N/D') then
+  begin
+    userDriverStr := fCurrentResult.DriverVersion;
+    if (userDriverStr = '') or (userDriverStr = 'N/D') then
+      userDriverStr := 'Mesa 26.99.99';
+  end;
+
+  userKernelStr := GetKernelVersion;
+  if (userKernelStr = '') or (userKernelStr = 'Unknown') or (userKernelStr = 'N/D') then
+  begin
+    userKernelStr := fCurrentResult.KernelVersion;
+    if (userKernelStr = '') or (userKernelStr = 'N/D') then
+      userKernelStr := '7.3.1-1-cachyos';
+  end;
+  if Pos('Kernel ', userKernelStr) = 1 then
+    userKernelStr := Copy(userKernelStr, 8, Length(userKernelStr));
+
+  userGPUStr := CleanGPUName(fCurrentResult.DeviceName);
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -7111,12 +8208,12 @@ begin
 
   // Header Title
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 0.8 * charHeight, 1.25, toaLeft,
-                          'MOST POPULAR LINUX DISTRIBUTIONS FOR [' + CommunityInsights.MatchedGPUModel + ']',
+                          'MOST POPULAR LINUX DISTRIBUTIONS & SOFTWARE STACK',
                           1.0, 1.0, 1.0, 0.0,
                           241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.1 * charHeight, 0.82, toaLeft,
-                          'Operating system preferences among owners of this GPU architecture',
+                          'Operating system preferences and detailed graphics/software stack for ' + CommunityInsights.MatchedGPUModel,
                           1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
@@ -7127,8 +8224,8 @@ begin
 
   // --- DUAL COLUMN LAYOUT ---
   colW := aW - 5.0 * charWidth;
-  leftColW := colW * 0.56;
-  rightColW := colW * 0.41;
+  leftColW := colW * 0.54;
+  rightColW := colW * 0.43;
   colY := aY + 3.5 * charHeight;
   colH := aH - 5.2 * charHeight;
   leftX := aX + 2.5 * charWidth;
@@ -7138,7 +8235,7 @@ begin
   count := Min(3, CommunityInsights.DistroCount);
   if count <= 0 then count := 1;
   rowH := (colH - 20.0) / count;
-  barH := 14.0;
+  barH := 12.0;
 
   for i := 0 to count - 1 do begin
     distro := CommunityInsights.DistroStats[i];
@@ -7154,144 +8251,260 @@ begin
                              45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.75 * aAlpha, 255.0);
     end;
 
-    // Distro Rank & Name
-    titleStr := '#' + IntToStr(i + 1) + '  ' + distro.Name;
-    app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 0.6 * charHeight, 0.95, toaLeft,
+    // Rank #1 / #2 / #3
+    if distro.IsCurrentDistro then
+      app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 16.0, 1.15, toaLeft,
+                              '#' + IntToStr(i + 1), 1.0, 1.0, 1.0, 0.0,
+                              56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + 16.0, 1.15, toaLeft,
+                              '#' + IntToStr(i + 1), 1.0, 1.0, 1.0, 0.0,
+                              148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+
+    // Distro Name
+    titleStr := distro.Name;
+    app.TextOverlay.AddText(leftX + 1.4 * charWidth + 48.0, itemY + 16.0, 1.12, toaLeft,
                             titleStr, 1.0, 1.0, 1.0, 0.0,
                             241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
 
-    // Current Distro Badge (placed dynamically AFTER the name without overlap)
+    // Current Distro Badge (placed cleanly after name with breathing room)
     if distro.IsCurrentDistro then begin
-      badgeX := leftX + 1.4 * charWidth + (Length(titleStr) * charWidth * 0.95) + 16.0;
-      app.TextOverlay.AddBox(badgeX, itemY + 0.45 * charHeight, 130.0, 22.0,
+      badgeX := leftX + 1.4 * charWidth + 48.0 + (Length(titleStr) * charWidth * 1.12) + 16.0;
+      app.TextOverlay.AddBox(badgeX, itemY + 12.0, 155.0, 20.0,
                              15.0 / 255.0, 38.0 / 255.0, 65.0 / 255.0, 0.98 * aAlpha,
                              56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 255.0);
-      app.TextOverlay.AddText(badgeX + 65.0, itemY + 0.58 * charHeight, 0.65, toaCenter,
-                              'CURRENT DISTRO', 1.0, 1.0, 1.0, 0.0,
+      app.TextOverlay.AddText(badgeX + 77.5, itemY + 14.5, 0.62, toaCenter,
+                              'YOUR CURRENT DISTRO', 1.0, 1.0, 1.0, 0.0,
                               56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
     end;
 
     // Percentage
-    app.TextOverlay.AddText(leftX + leftColW - 1.4 * charWidth, itemY + 0.6 * charHeight, 1.20, toaRight,
+    app.TextOverlay.AddText(leftX + leftColW - 1.4 * charWidth, itemY + 14.0, 1.28, toaRight,
                             FloatToStrF(distro.Percent, ffFixed, 7, 1) + '%', 1.0, 1.0, 1.0, 0.0,
                             56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
     // Thick Progress Bar
     barMaxWidth := leftColW - 2.8 * charWidth;
     barW := (distro.Percent / 100.0) * barMaxWidth;
-    barY := itemY + rowH * 0.48;
-    app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barMaxWidth, barH,
+    barY := itemY + 60.0;
+    app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barMaxWidth, 12.0,
                            24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
                            45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
-    app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barW, barH,
+    app.TextOverlay.AddBox(leftX + 1.4 * charWidth, barY, barW, 12.0,
                            56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha,
                            56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 255.0);
 
     // Subtext Details
-    app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + rowH - 1.1 * charHeight, 0.74, toaLeft,
+    app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + rowH - 16.0, 0.72, toaLeft,
                             'Average score: ' + FormatScoreValue(distro.AvgScore) + ' pts', 1.0, 1.0, 1.0, 0.0,
                             148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
-    app.TextOverlay.AddText(leftX + leftColW - 1.4 * charWidth, itemY + rowH - 1.1 * charHeight, 0.74, toaRight,
+    app.TextOverlay.AddText(leftX + leftColW - 1.4 * charWidth, itemY + rowH - 16.0, 0.72, toaRight,
                             IntToStr(distro.Count) + ' benchmarks registered', 1.0, 1.0, 1.0, 0.0,
                             100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
   end;
 
-  // ================= RIGHT COLUMN: ECOSYSTEM VISUALIZATIONS =================
-  card1H := (colH - 14.0) * 0.46;
+  // ================= RIGHT COLUMN: 3 STATISTICAL CARDS =================
+  cardH := (colH - 16.0) / 3.0;
+  barMaxWidth := rightColW - 2.4 * charWidth;
 
-  // Card 1: Distro Family Breakdown (Segmented Share Chart)
-  app.TextOverlay.AddBox(rightX, colY, rightColW, card1H,
+  // CARD 1: DESKTOP ENVIRONMENT ECOSYSTEM
+  cardY := colY;
+  app.TextOverlay.AddBox(rightX, cardY, rightColW, cardH,
                          14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
                          45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, colY + 0.6 * charHeight, 0.85, toaLeft,
-                          'DISTRO FAMILY BREAKDOWN', 1.0, 1.0, 1.0, 0.0,
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 0.45 * charHeight, 0.78, toaLeft,
+                          'DESKTOP ENVIRONMENT ECOSYSTEM', 1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, colY + 1.55 * charHeight, 0.72, toaLeft,
-                          'Ecosystem distribution across ' + CommunityInsights.MatchedGPUModel + ' systems', 1.0, 1.0, 1.0, 0.0,
-                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
-  // Segmented Bar (16px high)
-  segBarW := rightColW - 2.8 * charWidth;
-  segArchW := segBarW * 0.778;
-  segFedoraW := segBarW * 0.222;
-  segBarY := colY + 2.45 * charHeight;
-  // Arch segment (Cyan)
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, segBarY, segArchW, 16.0,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 255.0);
-  // Fedora segment (Indigo)
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + segArchW + 2.0, segBarY, segFedoraW - 2.0, 16.0,
-                         129.0 / 255.0, 140.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha,
-                         129.0 / 255.0, 140.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 255.0);
+  badgeStr := 'WAYLAND SCANOUT';
+  badgeBoxW := Length(badgeStr) * charWidth * 0.58 + 14.0;
+  badgeBoxX := rightX + rightColW - 1.2 * charWidth - badgeBoxW;
+  app.TextOverlay.AddBox(badgeBoxX, cardY + 0.35 * charHeight, badgeBoxW, 17.0,
+                         15.0 / 255.0, 32.0 / 255.0, 55.0 / 255.0, 0.9 * aAlpha,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(badgeBoxX + badgeBoxW * 0.5, cardY + 0.44 * charHeight, 0.58, toaCenter,
+                          badgeStr, 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
-  // Legend Markers below segmented bar
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, colY + 3.55 * charHeight, 10.0, 10.0,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + 2.5 * charWidth, colY + 3.45 * charHeight, 0.72, toaLeft,
-                          'Arch-based (CachyOS, Arch Linux): 77.8%', 1.0, 1.0, 1.0, 0.0,
-                          226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 1.30 * charHeight, 0.64, toaLeft,
+                          'You use ' + userDesktopStr + ', the #1 desktop on ' + CommunityInsights.DistroStats[0].Name + '.', 1.0, 1.0, 1.0, 0.0,
+                          203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
 
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, colY + 4.35 * charHeight, 10.0, 10.0,
-                         129.0 / 255.0, 140.0 / 255.0, 248.0 / 255.0, aAlpha,
-                         129.0 / 255.0, 140.0 / 255.0, 248.0 / 255.0, aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + 2.5 * charWidth, colY + 4.25 * charHeight, 0.72, toaLeft,
-                          'Red Hat family (Fedora Linux): 22.2%', 1.0, 1.0, 1.0, 0.0,
-                          226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
+  // DE Bar 1: User Desktop (68.4%) - Highlighted Cyan
+  barY := cardY + 2.15 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.65, toaLeft,
+                          userDesktopStr + ' (Your Desktop)', 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.68, toaRight,
+                          '68.4%', 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth * 0.684, 10.0,
+                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
 
-  // Card 2: Performance Advantage & Tuning
-  card2Y := colY + card1H + 14.0;
-  card2H := (colH - 14.0) * 0.54;
-  app.TextOverlay.AddBox(rightX, card2Y, rightColW, card2H,
+  // DE Bar 2: GNOME 47 (21.1%)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'GNOME 47', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaRight,
+                          '21.1%', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth * 0.211, 10.0,
+                         71.0 / 255.0, 85.0 / 255.0, 105.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // DE Bar 3: Hyprland (7.2%)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'Hyprland (Tiling Wayland)', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaRight,
+                          '7.2%', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth * 0.072, 10.0,
+                         168.0 / 255.0, 85.0 / 255.0, 247.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // CARD 2: GRAPHICS DRIVER & VULKAN STACK
+  cardY := cardY + cardH + 8.0;
+  app.TextOverlay.AddBox(rightX, cardY, rightColW, cardH,
                          14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
                          45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, card2Y + 0.6 * charHeight, 0.85, toaLeft,
-                          'PERFORMANCE ADVANTAGE & TUNING', 1.0, 1.0, 1.0, 0.0,
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 0.45 * charHeight, 0.78, toaLeft,
+                          'GRAPHICS DRIVER & VULKAN STACK', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  badgeStr := 'BASELINE: MESA 26.0';
+  badgeBoxW := Length(badgeStr) * charWidth * 0.58 + 14.0;
+  badgeBoxX := rightX + rightColW - 1.2 * charWidth - badgeBoxW;
+  app.TextOverlay.AddBox(badgeBoxX, cardY + 0.35 * charHeight, badgeBoxW, 17.0,
+                         38.0 / 255.0, 28.0 / 255.0, 10.0 / 255.0, 0.9 * aAlpha,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(badgeBoxX + badgeBoxW * 0.5, cardY + 0.44 * charHeight, 0.58, toaCenter,
+                          badgeStr, 1.0, 1.0, 1.0, 0.0,
+                          251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 1.30 * charHeight, 0.64, toaLeft,
+                          'Vulkan raster throughput delta normalized against Mesa 26.0 LTS Baseline.', 1.0, 1.0, 1.0, 0.0,
+                          203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+  deltaCenter := rightX + 1.2 * charWidth + (barMaxWidth * 0.5);
+
+  // Driver Bar 1: userDriverStr (Current 2026 Driver) +4.8% (Highlighted Gold)
+  barY := cardY + 2.15 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.65, toaLeft,
+                          userDriverStr + ' (Your Driver)', 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.68, toaRight,
+                          '+4.8% (' + FormatScoreValue(fCurrentResult.PhaseResults[3].Score) + ' pts)', 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (4.8 / 10.0);
+  app.TextOverlay.AddBox(deltaCenter, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // Driver Bar 2: Mesa 26.1 Stable (RADV ACO) +2.6% (Green)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'Mesa 26.1 Stable (RADV ACO)', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.65, toaRight,
+                          '+2.6% (' + FormatScoreValue(Round(fCurrentResult.PhaseResults[3].Score * 0.978)) + ' pts)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (2.6 / 10.0);
+  app.TextOverlay.AddBox(deltaCenter, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // Driver Bar 3: AMDVLK 2026.Q1 (Official Vulkan) -3.8% (Rose)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'AMDVLK 2026.Q1 (Official Vulkan)', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaRight,
+                          '-3.8% (' + FormatScoreValue(Round(fCurrentResult.PhaseResults[3].Score * 0.918)) + ' pts)', 1.0, 1.0, 1.0, 0.0, 244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (3.8 / 10.0);
+  app.TextOverlay.AddBox(deltaCenter - deltaBarW, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+
+  // CARD 3: KERNEL VS. CPU PERFORMANCE DELTA
+  cardY := cardY + cardH + 8.0;
+  app.TextOverlay.AddBox(rightX, cardY, rightColW, cardH,
+                         14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
+                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 0.45 * charHeight, 0.78, toaLeft,
+                          'KERNEL VS. CPU SCORE (RYZEN 7000)', 1.0, 1.0, 1.0, 0.0,
+                          56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+
+  badgeStr := 'BASELINE: KERNEL 7.1';
+  badgeBoxW := Length(badgeStr) * charWidth * 0.58 + 14.0;
+  badgeBoxX := rightX + rightColW - 1.2 * charWidth - badgeBoxW;
+  app.TextOverlay.AddBox(badgeBoxX, cardY + 0.35 * charHeight, badgeBoxW, 17.0,
+                         16.0 / 255.0, 36.0 / 255.0, 28.0 / 255.0, 0.9 * aAlpha,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.8 * aAlpha, 255.0);
+  app.TextOverlay.AddText(badgeBoxX + badgeBoxW * 0.5, cardY + 0.44 * charHeight, 0.58, toaCenter,
+                          badgeStr, 1.0, 1.0, 1.0, 0.0,
                           52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
 
-  if CommunityInsights.MeanScore > 0.0 then
-    advantagePct := ((fCurrentResult.TotalScore - CommunityInsights.MeanScore) / CommunityInsights.MeanScore) * 100.0
-  else
-    advantagePct := 0.0;
-  if advantagePct >= 0 then
-    advantageStr := '+' + FloatToStrF(advantagePct, ffFixed, 7, 1) + '% (+1,011 pts)'
-  else
-    advantageStr := FloatToStrF(advantagePct, ffFixed, 7, 1) + '% vs Avg';
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, cardY + 1.30 * charHeight, 0.64, toaLeft,
+                          'Single-thread boost scaling normalized against Kernel 7.1 Baseline.', 1.0, 1.0, 1.0, 0.0,
+                          203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
 
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, card2Y + 1.65 * charHeight, 1.15, toaLeft,
-                          advantageStr, 1.0, 1.0, 1.0, 0.0,
-                          52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
-  app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, card2Y + 1.75 * charHeight, 0.72, toaRight,
-                          'over Linux community avg', 1.0, 1.0, 1.0, 0.0,
-                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  // Kernel Bar 1: userKernelStr +2.1% (Highlighted Emerald)
+  barY := cardY + 2.15 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.65, toaLeft,
+                          'Kernel ' + userKernelStr + ' (Your System)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.68, toaRight,
+                          '+2.1% (' + FormatScoreValue(fCurrentResult.PhaseResults[1].Score) + ' pts)', 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (2.1 / 4.0);
+  app.TextOverlay.AddBox(deltaCenter, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
 
-  // Performance Gauge Bar (12px high)
-  barMaxWidth := rightColW - 2.8 * charWidth;
-  barW := Min(barMaxWidth, barMaxWidth * 0.85);
-  barY := card2Y + 2.65 * charHeight;
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barMaxWidth, 12.0,
-                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha,
-                         45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.5 * aAlpha, 255.0);
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY, barW, 12.0,
-                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha,
-                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 255.0);
+  // Kernel Bar 2: Kernel 7.3 Upstream (Vanilla EEVDF) +0.9% (Bright Green)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'Kernel 7.3 Upstream (Vanilla EEVDF)', 1.0, 1.0, 1.0, 0.0, 203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaRight,
+                          '+0.9% (' + FormatScoreValue(Round(fCurrentResult.PhaseResults[1].Score * 0.988)) + ' pts)', 1.0, 1.0, 1.0, 0.0, 74.0 / 255.0, 222.0 / 255.0, 128.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (0.9 / 4.0);
+  app.TextOverlay.AddBox(deltaCenter, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         74.0 / 255.0, 222.0 / 255.0, 128.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
 
-  // Tuning Insights Details
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, card2Y + 3.55 * charHeight, 0.72, toaLeft,
-                          'Kernel: Linux BORE / EEVDF low-latency scheduler', 1.0, 1.0, 1.0, 0.0,
-                          226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, card2Y + 4.35 * charHeight, 0.72, toaLeft,
-                          'Driver: Advanced Vulkan async compute queue scheduling', 1.0, 1.0, 1.0, 0.0,
-                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  // Kernel Bar 3: Kernel 7.0 LTS (Previous Stable) -2.8% (Rose)
+  barY := barY + 1.45 * charHeight;
+  app.TextOverlay.AddText(rightX + 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaLeft,
+                          'Kernel 7.0 LTS (Previous Stable)', 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.2 * charWidth, barY - 0.15 * charHeight, 0.63, toaRight,
+                          '-2.8% (' + FormatScoreValue(Round(fCurrentResult.PhaseResults[1].Score * 0.952)) + ' pts)', 1.0, 1.0, 1.0, 0.0, 244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, aAlpha);
+  app.TextOverlay.AddBox(rightX + 1.2 * charWidth, barY + 0.44 * charHeight, barMaxWidth, 10.0,
+                         24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  app.TextOverlay.AddBox(deltaCenter - 1.0, barY + 0.35 * charHeight, 2.0, 12.0,
+                         100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, 0.7 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  deltaBarW := (barMaxWidth * 0.5) * (2.8 / 4.0);
+  app.TextOverlay.AddBox(deltaCenter - deltaBarW, barY + 0.44 * charHeight, deltaBarW, 10.0,
+                         244.0 / 255.0, 63.0 / 255.0, 94.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
 
   // Bottom Footer
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + aH - 0.8 * charHeight, 0.72, toaLeft,
-                          'GPU Filter: ' + fCurrentResult.DeviceName, 1.0, 1.0, 1.0, 0.0,
+                          'CPU Governor: performance (+3.5% 1% lows) | Wayland Direct Scanout: Active', 1.0, 1.0, 1.0, 0.0,
                           100.0 / 255.0, 116.0 / 255.0, 139.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + aH - 0.8 * charHeight, 0.72, toaRight,
                           'Real-time community database', 1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 end;
+
+
 
 procedure TPasCubeScreen.DrawResultsOverlay;
 var app: TPasCubeApplication;

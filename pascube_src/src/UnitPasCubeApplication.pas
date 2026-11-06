@@ -42,6 +42,8 @@ type TPasCubeApplication=class(TpvApplication)
        fVersion:string;
        fUncappedFPS:boolean;
        fLosslessScalingActive:boolean;
+       fTestResultsMode:boolean;
+       fTestSlideIndex:TpvInt32;
       public
        constructor Create; override;
        destructor Destroy; override;
@@ -59,6 +61,8 @@ type TPasCubeApplication=class(TpvApplication)
        property Version:string read fVersion write fVersion;
        property UncappedFPS:boolean read fUncappedFPS write fUncappedFPS;
        property LosslessScalingActive:boolean read fLosslessScalingActive write fLosslessScalingActive;
+       property TestResultsMode:boolean read fTestResultsMode write fTestResultsMode;
+       property TestSlideIndex:TpvInt32 read fTestSlideIndex write fTestSlideIndex;
       end;
 
 var Application:TPasCubeApplication=nil;
@@ -80,6 +84,8 @@ begin
  fVersion:='1.8.0';
  fUncappedFPS:=false;
  fLosslessScalingActive:=false;
+ fTestResultsMode:=false;
+ fTestSlideIndex:=0;
 end;
 
 destructor TPasCubeApplication.Destroy;
@@ -134,6 +140,12 @@ begin
    fUncappedFPS:=true;
   end else if (Arg='--lossless-scaling') or (Arg='--lossless') or (Arg='--lsfg-active') or (Arg='--mako-active') then begin
    fLosslessScalingActive:=true;
+  end else if (Arg='--test-results') or (Arg='--view-results') then begin
+   fTestResultsMode:=true;
+   if (Index<ParamCount) and (Length(ParamStr(Index+1)) > 0) and (ParamStr(Index+1)[1] <> '-') then begin
+    Inc(Index);
+    fTestSlideIndex:=StrToIntDef(ParamStr(Index), 0);
+   end;
   end;
   Inc(Index);
  end;
