@@ -42,11 +42,11 @@ The analytics engine SHALL aggregate community submissions matching the user's d
 - **THEN** the system filters submissions matching the user's GPU model and renders a ranked horizontal bar chart of the most popular Linux distributions along with their average scores.
 
 ### Requirement: Results Carousel Navigation
-The PasCube user interface SHALL present results in a six-slide carousel in the exact order: Overview, Curve, Silicon, Efficiency, Scaling, Distros, with compact pill navigation and pause-on-hover autoplay.
+The PasCube user interface SHALL present results in a six-slide carousel in the exact order: Overview, Curve, Silicon, Efficiency, Scaling, Distros, with a compact bottom-right dash/dot pagination and countdown pill indicator (`[ ━━ ▪ ▪ ▪ ▪ ▪ | Xs ]` / `PAUSED`) and pause-on-hover autoplay, without rendering a top-right navigation card.
 
 #### Scenario: Navigating through six results slides
 - **WHEN** the user views the benchmark results screen
-- **THEN** the interface provides 6 navigation pills (1. Overview, 2. Curve, 3. Silicon, 4. Efficiency, 5. Scaling, 6. Distros), supports smooth transitions, advances every 6 seconds on autoplay, pauses autoplay on mouse hover, and supports keyboard and side arrow navigation.
+- **THEN** the interface omits the top-right slide navigation box, renders a compact bottom-right indicator pill displaying an elongated active slide dash (`━━`), five inactive clickable slide dots (`▪`), and a live countdown (`8s`/`6s` or `PAUSED` on hover), supports smooth horizontal transitions, advances automatically when not hovered, and supports keyboard, mouse wheel, and side arrow navigation.
 
 ### Requirement: Dual GPU and CPU Silicon Lottery Dispersion and Ranking
 The benchmark analytics engine SHALL filter community benchmark submissions to isolate the user's actual detected GPU and CPU models using their respective component scores (`GPU Score` and `CPU Multi`), computing non-inflated model rank, model average, minimum bin, and record scores alongside a Top 4 Same-Silicon Leaderboard for both components side-by-side.
