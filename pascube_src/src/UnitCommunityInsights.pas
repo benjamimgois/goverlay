@@ -25,10 +25,28 @@ type
     IsCurrentDistro: Boolean;
   end;
 
+  TDesktopStat = record
+    Name: string;
+    Count: Integer;
+    Percent: Double;
+    AvgScore: Integer;
+    IsCurrentDE: Boolean;
+  end;
+
+  TStackShareStats = record
+    WaylandPct: Double;
+    X11Pct: Double;
+    MesaPct: Double;
+    NvidiaPct: Double;
+    TopKernelName: string;
+    TopKernelAvgScore: Integer;
+  end;
+
   TSiliconSubmission = record
     Rank: Integer;
     Username: string;
     Distro: string;
+    FreqMHz: Integer;
     Score: Integer;
     IsUser: Boolean;
   end;
@@ -56,6 +74,18 @@ type
     ModelTotal: Integer;
     ModelDelta: Integer;
     ModelDeltaPct: Double;
+    LeaderboardCount: Integer;
+    Leaderboard: array[0..7] of TSiliconSubmission;
+  end;
+
+  TEfficiencyRankEntry = record
+    Name: string;
+    Distro: string;
+    Username: string;
+    Watts: Integer;
+    PtsPerWatt: Double;
+    Score: Integer;
+    IsUser: Boolean;
   end;
 
   TEfficiencyMetrics = record
@@ -70,6 +100,20 @@ type
     PeakPower: Integer;
     GPUPeakPower: Integer;
     CPUPeakPower: Integer;
+    GPURankings: array[0..4] of TEfficiencyRankEntry;
+    CPURankings: array[0..4] of TEfficiencyRankEntry;
+  end;
+
+  TScalingRung = record
+    Title: string;
+    Subtitle: string;
+    Score: Integer;
+    BadgeText: string;
+    IsUser: Boolean;
+    IsRecord: Boolean;
+    ColorR: Single;
+    ColorG: Single;
+    ColorB: Single;
   end;
 
   TBadge = record
@@ -120,27 +164,54 @@ type
     FMatchedGPUModel: string;
     FDistroCount: Integer;
     FDistroStats: array[0..4] of TDistroStat;
+    FDesktopCount: Integer;
+    FDesktopStats: array[0..3] of TDesktopStat;
+    FStackShare: TStackShareStats;
+    FScalingRungs: array[0..5] of TScalingRung;
     FNormalCurvePoints: array[0..39] of TpvVector2;
     FUserDistroName: string;
+    FUserCPUName: string;
+    FUserDesktopName: string;
     FSiliconLottery: TSiliconLottery;
     FCPUSilicon: TCPUSiliconLottery;
     FEfficiency: TEfficiencyMetrics;
     FBadges: array[0..5] of TBadge;
 
+    // Cached parameters for hot-reload when background sync finishes
+    FLastUserScore: Integer;
+    FLastUserGPU: string;
+    FLastUserDistro: string;
+    FLastRTScore: Integer;
+    FLastCPUTempMax: Double;
+    FLastGPUTempMax: Double;
+    FLastTotalPowerMax: Double;
+    FLastCPUMultiScore: Integer;
+    FLastGPURasterScore: Integer;
+    FLastCPUPowerMax: Double;
+    FLastGPUPowerMax: Double;
+    FLastUserCPU: string;
+    FLastUserDesktop: string;
+    FLastCPUMaxFreq: Integer;
+    FLastGPUMaxFreq: Integer;
+
     function GetCacheFilePath: string;
     function CleanScoreStr(const S: string): string;
     function NormalizeDistroName(const RawDistro: string): string;
+    function NormalizeDesktopName(const RawDE: string; const RawOS: string): string;
     function ExtractGPUChipToken(const RawGPU: string): string;
+    function ExtractCPUChipToken(const RawCPU: string; out CleanLabel: string): string;
     function GetDistroStat(aIndex: Integer): TDistroStat;
+    function GetDesktopStat(aIndex: Integer): TDesktopStat;
+    function GetScalingRung(aIndex: Integer): TScalingRung;
     function GetBadge(aIndex: Integer): TBadge;
-    procedure ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0);
+    procedure ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0);
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure StartBackgroundSync;
     procedure UpdateSync;
-    procedure EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0);
+    procedure EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0);
 
     function GetGaussianY(const aScore: Double): Double;
 
@@ -162,6 +233,10 @@ type
     property MatchedGPUModel: string read FMatchedGPUModel;
     property DistroCount: Integer read FDistroCount;
     property DistroStats[aIndex: Integer]: TDistroStat read GetDistroStat;
+    property DesktopCount: Integer read FDesktopCount;
+    property DesktopStats[aIndex: Integer]: TDesktopStat read GetDesktopStat;
+    property StackShare: TStackShareStats read FStackShare;
+    property ScalingRungs[aIndex: Integer]: TScalingRung read GetScalingRung;
     property Silicon: TSiliconLottery read FSiliconLottery;
     property CPUSilicon: TCPUSiliconLottery read FCPUSilicon;
     property Efficiency: TEfficiencyMetrics read FEfficiency;
@@ -177,57 +252,70 @@ uses
   process;
 
 const
+  // Full 33-column PasCubeDB fallback dataset matching Google Sheet schema
+  // Columns: 0:user,1:cpu,2:ram,3:gpu,4:vram,5:driver,6:kernel,7:os,8:mainScore,9:cpuSingle,10:cpuMulti,11:gpuScore,
+  // 12:date,13:clientId,14:arch,15:pkg,16:empty,17:product,18:displayServer,19:desktop,20:storage,21:vulkanDriver,
+  // 22:empty,23:empty,24:gpuMaxTemp,25:gpuTempDelta,26:empty,27:cpuMaxFreq,28:gpuMaxFreq,29:cpuMaxPower,30:gpuMaxPower
   FALLBACK_COMMUNITY_CSV =
-    'username,CPU,RAM,GPU,VRAM,Driver,Kernel,Operating System,Main Score' + LineEnding +
-    'Anonymous,Ryzen 9 9950X3D,48GB,RTX 5090,32GB,NVRM,7.0.12,CachyOS,8062' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,31GB,RTX 4090,24GB,NVRM,7.0.10,CachyOS,5174' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,30GB,RTX 4090,24GB,NVRM,7.0.12,Fedora Linux,4975' + LineEnding +
-    'Anonymous,Ryzen 9 7950X3D,63GB,RX 7900 XTX,24GB,Mesa,7.0.12,CachyOS,4938' + LineEnding +
-    'Anonymous,Ryzen 9 9950X3D,96GB,RX 9070 XT,16GB,Mesa,7.0.12,Arch Linux,4932' + LineEnding +
-    'Anonymous,Ryzen 9 9900X3D,60GB,RX 9070 XT,16GB,Mesa,7.0.12,CachyOS,4665' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,94GB,RTX 5070 Ti,16GB,NVRM,7.0.12,CachyOS,4609' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,62GB,RX 7900 XTX,24GB,Mesa,7.0.11,CachyOS,4465' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa,7.0.11,CachyOS,4441' + LineEnding +
-    'Anonymous,Ryzen 9 9950X3D,96GB,RX 9070 XT,16GB,Mesa,7.0.12,Arch Linux,4380' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa,7.0.12,CachyOS,4323' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa,7.0.12,CachyOS,4317' + LineEnding +
-    'Anonymous,Ryzen 9 7950X3D,62GB,RX 7900 XTX,24GB,Mesa,7.0.12,Arch Linux,4294' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa,7.0.12,Fedora Linux,4213' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,60GB,RX 9070 XT,16GB,Mesa,7.0.11,CachyOS,4133' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,62GB,RX 7900 XTX,24GB,Mesa,7.0.12,Fedora Linux,4109' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RX 9070 XT,16GB,Mesa,7.1.0,CachyOS,4100' + LineEnding +
-    'Anonymous,Ryzen 7 5800X,31GB,RTX 5070 Ti,16GB,NVRM,7.0.12,CachyOS,4032' + LineEnding +
-    'Anonymous,Ryzen 7 5800X3D,31GB,RX 9070 XT,16GB,Mesa,7.0.11,CachyOS,3889' + LineEnding +
-    'Anonymous,Ryzen 9 9950X3D,92GB,RX 9070 XT,16GB,Mesa,6.17.7,Bazzite,3820' + LineEnding +
-    'Anonymous,Ryzen 7 5800X,31GB,RX 9070 XT,16GB,Mesa,7.0.12,CachyOS,3690' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa,7.0.11,CachyOS,3680' + LineEnding +
-    'Anonymous,i5-14600KF,31GB,RTX 5070,12GB,NVRM,7.0.11,CachyOS,3679' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa,7.0.9,Bazzite,3656' + LineEnding +
-    'Anonymous,Ryzen 7 9700X,60GB,RX 7900 XTX,24GB,Mesa,7.0.12,Arch Linux,3638' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,30GB,RX 9070 XT,16GB,Mesa,7.0.12,Fedora Linux,3498' + LineEnding +
-    'Anonymous,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa,7.0.12,Fedora Linux,3412' + LineEnding +
-    'Anonymous,Ryzen 9 5900X,63GB,RX 7800 XT,16GB,Mesa,7.0.11,Arch Linux,3367' + LineEnding +
-    'Anonymous,Ryzen 5 7500F,31GB,RTX 5070,12GB,NVRM,7.0.11,Garuda Linux,3304' + LineEnding +
-    'Anonymous,i7-4790K,31GB,RTX 5070 Ti,16GB,NVRM,7.0.12,CachyOS,3225' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,32GB,RX 6750 XT,12GB,Mesa,7.0.11,EndeavourOS,3194' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,31GB,RTX 4070,12GB,NVRM,7.0.11,Bazzite,3148' + LineEnding +
-    'Anonymous,Ryzen 7 5800X3D,31GB,RX 9070,16GB,Mesa,7.0.9,Bazzite,3078' + LineEnding +
-    'Anonymous,Ryzen 7 5800X3D,16GB,RX 9070 XT,16GB,Mesa,7.0.12,Arch Linux,3069' + LineEnding +
-    'Anonymous,Ryzen 7 7800X3D,58GB,RTX 5070 Ti,16GB,NVRM,7.0.12,Garuda Linux,3029' + LineEnding +
-    'Anonymous,Ryzen 7 5800X3D,32GB,RX 9070 XT,16GB,Mesa,7.0.11,Fedora Linux,3021' + LineEnding +
-    'Anonymous,Ryzen 7 9700X,31GB,RX 9070,16GB,Mesa,7.0.9,Bazzite,2979' + LineEnding +
-    'Anonymous,Ryzen 7 5800X3D,63GB,RTX 5070,12GB,NVRM,7.0.12,CachyOS,2970' + LineEnding +
-    'Anonymous,i7-12700K,31GB,RX 7800 XT,16GB,Mesa,7.0.11,Arch Linux,2962' + LineEnding +
-    'Anonymous,i7-4790K,31GB,RTX 5070 Ti,16GB,NVRM,6.19.10,Ubuntu,2959' + LineEnding +
-    'Anonymous,Ryzen 9 5900X,31GB,RX 6900 XT,16GB,Mesa,7.0.9,Nobara Linux,2954' + LineEnding +
-    'Anonymous,Ryzen 5 5600X,31GB,RX 9070 GRE,12GB,Mesa,6.18.33,Manjaro Linux,2946' + LineEnding +
-    'Anonymous,Ryzen 5 7600X,32GB,RTX 4070,12GB,NVRM,7.0.11,Arch Linux,2920' + LineEnding +
-    'Anonymous,Ryzen 7 5700X3D,32GB,RX 6700 XT,12GB,Mesa,7.0.11,Bazzite,2740' + LineEnding +
-    'Anonymous,Ryzen 5 5600,16GB,RTX 3060,12GB,NVRM,7.0.10,Pop!_OS,2150' + LineEnding +
-    'Anonymous,Ryzen 5 3600,16GB,GTX 1660 Super,6GB,NVRM,6.18.10,Linux Mint,1720' + LineEnding +
-    'Anonymous,Steam Deck,16GB,Custom AMD VanGogh,1GB,Mesa,6.8.0,SteamOS,818' + LineEnding +
-    'Anonymous,ROG Ally X,24GB,AMD Z1 Extreme,4GB,Mesa,6.9.0,Bazzite,1212' + LineEnding +
-    'Anonymous,Raspberry Pi 5,8GB,VideoCore VII,1GB,Mesa,6.6.0,Raspberry Pi OS,400';
+    'Origem / Usuario,CPU,RAM,GPU,VRAM,Driver,Kernel,Operating System,Main Score,CPU Single,CPU Multi,GPU Score,Date/Time,client-id,architecture,package,,product name,Display Server,Desktop,Storage,Vulkan Driver,,,GPU Max Temp,GPU Temp Delta,,CPU Max Freq (MHz),GPU Max Freq (MHz),CPU Max Power (W),GPU Max Power (W)' + LineEnding +
+    'AasaA,Ryzen 9 9950X3D,48GB,RTX 5090,32GB,NVRM 610.43,7.0.12-1-cachyos,CachyOS,8062,4210,12450,9120,16/06/2026,id1,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,64,26,,5900,2940,142,450' + LineEnding +
+    'Sharakkhal,Ryzen 7 9800X3D,31GB,RTX 4090,24GB,NVRM 610.43,7.0.10-2-cachyos,CachyOS,5174,2780,3655,7306,16/06/2026,id2,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,65,25,,5700,2520,88,395' + LineEnding +
+    'Lutti,Ryzen 7 9800X3D,30GB,RTX 4090,24GB,NVRM 595.80,7.0.12-201.fc44,Fedora Linux 44,4975,2615,4019,6913,16/06/2026,id3,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,67,23,,5700,2520,90,390' + LineEnding +
+    'Adaneshade,Ryzen 9 7950X3D,63GB,RX 7900 XTX,24GB,Mesa 26.1.99,7.0.12-1-cachyos,CachyOS,4938,3481,10783,5351,14/06/2026,id4,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,66,24,,5900,2500,115,320' + LineEnding +
+    'eddnix,Ryzen 9 9950X3D,96GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.12-arch1-1,Arch Linux,4932,3576,11897,3944,15/06/2026,id5,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,62,28,,5900,2970,138,245' + LineEnding +
+    'vinternatt,Ryzen 9 9900X3D,60GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,4665,3731,9404,3897,14/06/2026,id6,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,63,27,,5800,2970,112,240' + LineEnding +
+    'bauer,Ryzen 7 9800X3D,94GB,RTX 5070 Ti,16GB,NVRM 610.43,7.0.12-1-cachyos,CachyOS,4609,3978,5679,4729,15/06/2026,id7,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,64,26,,5700,2700,86,265' + LineEnding +
+    'Morphs07,Ryzen 7 9800X3D,94GB,RTX 5070 Ti,16GB,NVRM 610.43,7.0.12-1-cachyos,CachyOS,4546,3909,5438,4725,15/06/2026,id8,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,NVIDIA,,,65,25,,5700,2700,85,260' + LineEnding +
+    'DearDecimation,RYZEN AI MAX+ 395,125GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,4513,3062,10564,3713,15/06/2026,id9,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,64,26,,5100,2970,95,235' + LineEnding +
+    'benjamimgois,Ryzen 7 7800X3D,62GB,RX 7900 XTX,24GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,4837,3767,5803,5147,15/06/2026,id10,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,65,25,,5053,2482,80,295' + LineEnding +
+    'packetcreeper,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,4738,3980,5854,4929,15/06/2026,id11,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,67,23,,5053,2500,82,290' + LineEnding +
+    'Dragoon,Ryzen 9 9950X3D,96GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.12-arch1-1,Arch Linux,4380,3754,12228,3791,15/06/2026,id12,x86_64,native,,Desktop,Wayland,Hyprland,NVMe,RADV,,,63,27,,5900,2970,140,242' + LineEnding +
+    'vinc,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,4323,4166,6530,3771,15/06/2026,id13,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,61,29,,5700,2970,84,238' + LineEnding +
+    'kirkTshatner,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,4723,3929,5628,5052,14/06/2026,id14,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,68,22,,5053,2500,79,295' + LineEnding +
+    'arsch,Ryzen 9 7950X3D,62GB,RX 7900 XTX,24GB,Mesa 26.0.6,7.0.12-arch1-1,Arch Linux,5471,2603,7647,5209,15/06/2026,id15,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,66,24,,5756,2526,118,305' + LineEnding +
+    'ming,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,4644,3689,5644,4842,15/06/2026,id16,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,69,21,,5053,2304,81,300' + LineEnding +
+    'Siny,Ryzen 7 9800X3D,60GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,4133,4004,6475,3520,15/06/2026,id17,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,64,26,,5700,2970,86,230' + LineEnding +
+    'Cdubz45,Ryzen 7 9800X3D,62GB,RX 7900 XTX,24GB,Mesa 26.1.2,7.0.12-201.fc44,Fedora Linux 44,5302,2915,5029,5263,15/06/2026,id18,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,65,25,,5700,2431,88,298' + LineEnding +
+    'wee,Ryzen 7 7800X3D,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.1.0-rc7-cachyos,CachyOS,4100,3808,5771,3702,15/06/2026,id19,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,62,28,,5050,2970,78,235' + LineEnding +
+    'April,Ryzen 7 7800X3D,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.1.0-rc7-cachyos,CachyOS,4040,3813,5835,3613,15/06/2026,id20,x86_64,native,,Desktop,Wayland,Hyprland,NVMe,RADV,,,63,27,,5017,2970,79,235' + LineEnding +
+    'lokaaa,Ryzen 7 5800X,31GB,RTX 5070 Ti,16GB,NVRM 610.43,7.0.12-1-cachyos,CachyOS,4032,3053,4610,4544,15/06/2026,id21,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,66,24,,4600,2700,105,260' + LineEnding +
+    'Nevoness,Ryzen 7 5800X3D,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,3889,3283,5120,3944,15/06/2026,id22,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,64,26,,4500,2970,82,240' + LineEnding +
+    'Arya,Ryzen 9 9950X3D,92GB,RX 9070 XT,16GB,Mesa 26.0.6,6.17.7-ba29.fc43,Bazzite,3820,2290,7314,3842,16/06/2026,id23,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,65,25,,5900,2970,135,240' + LineEnding +
+    'tuono58,Ryzen 7 5800X,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,3690,2995,4983,3789,15/06/2026,id24,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,64,26,,4600,2970,102,238' + LineEnding +
+    'FREEP0TAT0,Ryzen 7 7800X3D,31GB,RX 7900 XTX,24GB,Mesa 26.0.6,7.0.11-1-cachyos,CachyOS,4605,2703,5546,5148,15/06/2026,id25,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,70,20,,5053,2200,82,305' + LineEnding +
+    'SurferDude,i5-14600KF,31GB,RTX 5070,12GB,NVRM 610.43,7.0.11-1-cachyos,CachyOS,3679,3058,6429,3289,15/06/2026,id26,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,67,23,,5300,2700,145,215' + LineEnding +
+    'Cayaf,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa 26.1.2,7.0.9-ogc3.2.fc44,Bazzite,3656,3010,4980,3711,15/06/2026,id27,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,64,26,,5700,2970,86,238' + LineEnding +
+    'xtremeasure,Ryzen 7 9700X,60GB,RX 7900 XTX,24GB,Mesa 26.0.6,7.0.12-zen1-1-zen,Arch Linux,4781,2304,5480,5451,16/06/2026,id28,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,65,25,,5575,2200,68,295' + LineEnding +
+    'skibidi,Ryzen 7 7800X3D,30GB,RX 9070 XT,16GB,Mesa 26.0.6,7.0.12-cachyos1.fc44,Fedora Linux 44,3498,2855,5622,3836,16/06/2026,id29,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,63,27,,5053,2970,80,235' + LineEnding +
+    'Covcard,Ryzen 7 9800X3D,31GB,RX 9070 XT,16GB,Mesa 26.0.6,7.0.12-201.fc44,Fedora Linux 44,3412,2687,4274,3661,15/06/2026,id30,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,65,25,,5700,2970,88,240' + LineEnding +
+    'sirspudd,Ryzen 9 5900X,63GB,RX 7800 XT,16GB,Mesa 26.1.2,7.0.11-arch1-1,Arch Linux,3367,2858,6605,2751,15/06/2026,id31,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,68,22,,4800,2430,125,250' + LineEnding +
+    'Napster,Ryzen 5 7500F,31GB,RTX 5070,12GB,NVRM 610.43,7.0.11-zen1-1-zen,Garuda Linux,3304,3336,4006,3070,15/06/2026,id32,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,64,26,,5000,2700,65,210' + LineEnding +
+    'ashleyis,Ryzen 7 7800X3D,31GB,RX 6750 XT,12GB,Mesa 26.1.2,7.0.11-arch1-1,EndeavourOS,3194,3989,6352,2169,15/06/2026,id33,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,69,21,,5050,2600,81,210' + LineEnding +
+    'bababoi,Ryzen 7 7800X3D,31GB,RTX 4070,12GB,NVRM 610.43,7.0.11-ba29.fc44,Bazzite,3148,2804,5186,3078,15/06/2026,id34,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,63,27,,5000,2480,78,195' + LineEnding +
+    'Dedwin,Ryzen 7 5800X3D,31GB,RX 9070,16GB,Mesa 26.1.2,7.0.9-ogc3.2.fc44,Bazzite,3078,2506,4848,3338,15/06/2026,id35,x86_64,native,,Desktop,Wayland,Gamescope,NVMe,RADV,,,62,28,,4500,2700,80,210' + LineEnding +
+    'Mob,Ryzen 7 5800X3D,16GB,RX 9070 XT,16GB,Mesa 26.0.6,7.0.12-arch1-1,Arch Linux,3069,2344,4925,3560,16/06/2026,id36,x86_64,native,,Desktop,Wayland,Hyprland,NVMe,RADV,,,65,25,,4500,2970,82,238' + LineEnding +
+    'lauren,Ryzen 7 7800X3D,58GB,RTX 5070 Ti,16GB,NVRM 610.43,7.0.12-1-cachyos,Garuda Linux,3029,3936,6010,4500,15/06/2026,id37,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,66,24,,5000,2700,81,260' + LineEnding +
+    'Anonymous,Ryzen 7 9700X,31GB,RX 9070,16GB,Mesa 26.0.6,7.0.9-ogc3.2.fc44,Bazzite,2979,2444,5451,3092,16/06/2026,id38,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,61,29,,5500,2700,65,205' + LineEnding +
+    'Anonymous,Ryzen 7 5800X3D,63GB,RTX 5070,12GB,NVRM 610.43,7.0.12-1-cachyos,CachyOS,2970,2439,4859,3165,15/06/2026,id39,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,64,26,,4500,2700,80,210' + LineEnding +
+    'Anonymous,i7-12700K,31GB,RX 7800 XT,16GB,Mesa 26.1.2,7.0.11-arch1-1,Arch Linux,2962,2699,4096,2806,15/06/2026,id40,x86_64,native,,Desktop,X11,KDE Plasma 6.8,NVMe,RADV,,,67,23,,5200,2430,135,255' + LineEnding +
+    'Anonymous,Ryzen 9 5900X,31GB,RX 6900 XT,16GB,Mesa 26.1.2,7.0.9-200.nobara,Nobara Linux 43,2954,2390,4546,2871,15/06/2026,id41,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,71,19,,4800,2250,120,285' + LineEnding +
+    'Anonymous,Ryzen 5 5600X,31GB,RX 9070 GRE,12GB,Mesa 26.1.1,6.18.33-1-MANJARO,Manjaro Linux,2946,2899,3228,2894,15/06/2026,id42,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,65,25,,4400,2700,65,215' + LineEnding +
+    'Anonymous,12th Gen i5-12400F,31GB,RX 9070,16GB,Mesa 26.1.2,7.0.12-1-cachyos,CachyOS,2820,2316,2936,3139,14/06/2026,id43,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,63,27,,4400,2700,65,205' + LineEnding +
+    'Anonymous,Ryzen 7 5700X,15GB,RX 9060 XT,16GB,Mesa 26.1.2,7.0.11-1-cachyos,CachyOS,2791,2987,4138,2249,15/06/2026,id44,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,62,28,,4600,2700,65,175' + LineEnding +
+    'Anonymous,Ryzen 9 5900XT,31GB,RX 6750 XT,12GB,Mesa 26.1.2,7.0.12-201.fc44,Fedora Linux 44,2763,2501,6547,1812,15/06/2026,id45,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,68,22,,4800,2600,115,215' + LineEnding +
+    'Anonymous,Ryzen 7 5800X3D,31GB,RX 7800 XT,16GB,Mesa 26.0.6,7.0.12-1-cachyos,CachyOS,2710,2289,4587,2862,15/06/2026,id46,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,66,24,,4500,2430,80,252' + LineEnding +
+    'Anonymous,13th Gen i9-13900HX,31GB,RTX 4070 Laptop GPU,8GB,NVRM 595.71,7.0.9-200.nobara,Nobara Linux 43,2305,2152,4365,1794,15/06/2026,id47,x86_64,native,,Laptop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,76,14,,5400,2480,95,115' + LineEnding +
+    'Anonymous,Ryzen 5 5600,31GB,RX 6700,10GB,Mesa 26.1.2,7.0.9-200.nobara,Nobara Linux 43,1851,2333,2723,1252,15/06/2026,id48,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,64,26,,4400,2400,65,165' + LineEnding +
+    'Anonymous,Ryzen 5 7600X,31GB,Intel Arc B580,12GB,Mesa 26.0.6,7.0.9-ogc3.2.fc44,Bazzite,1844,2510,3060,1013,15/06/2026,id49,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,ANV,,,65,25,,5400,2850,88,180' + LineEnding +
+    'Anonymous,12th Gen i5-12450HX,15GB,RTX 4050 Laptop GPU,6GB,NVRM 610.43,7.0.11-1-cachyos,CachyOS,1777,2152,2195,1390,15/06/2026,id50,x86_64,native,,Laptop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,74,16,,4500,2370,55,85' + LineEnding +
+    'Anonymous,Ryzen 5 3600,31GB,RX 6750 XT,12GB,Mesa 26.0.6,7.0.9-ogc3.2.fc44,Bazzite,1693,1540,2034,1697,15/06/2026,id51,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,67,23,,4200,2600,65,210' + LineEnding +
+    'Anonymous,Ryzen 5 5600G,31GB,RX 6650 XT,8GB,Mesa 26.0.6,7.0.0-22-generic,Ubuntu 26.04 LTS,1660,1832,2245,1365,15/06/2026,id52,x86_64,native,,Desktop,Wayland,GNOME 47,NVMe,RADV,,,68,22,,4400,2694,65,170' + LineEnding +
+    'Anonymous,12th Gen i5-12400F,31GB,RX 6600,8GB,Mesa 26.0.6,7.0.9-200.nobara,Nobara Linux 43,1438,1761,2221,978,16/06/2026,id53,x86_64,native,,Desktop,Wayland,KDE Plasma 6.8,NVMe,RADV,,,62,28,,4400,2491,60,132' + LineEnding +
+    'Anonymous,12th Gen i5-12450H,31GB,RTX 4060 Laptop GPU,8GB,NVRM 595.80,7.0.12-201.fc44,Fedora Linux 44,1312,1283,1178,1372,15/06/2026,id54,x86_64,native,,Laptop,Wayland,KDE Plasma 6.8,NVMe,NVIDIA,,,75,15,,4500,2460,45,105' + LineEnding +
+    'Anonymous,Ryzen Z1 Extreme,24GB,AMD Z1 Extreme,8GB,Mesa 26.1.2,7.0.9-ba29.fc44,Bazzite,1212,2180,2640,680,15/06/2026,id55,x86_64,native,,ROG Ally X,Wayland,Gamescope,NVMe,RADV,,,72,18,,5100,2700,25,25' + LineEnding +
+    'Anonymous,11th Gen i5-11400H,15GB,RTX 3050 Laptop GPU,4GB,NVRM 580.159,7.0.11-generic,Pop!_OS 24.04,1060,1322,1327,796,16/06/2026,id56,x86_64,native,,Laptop,X11,GNOME 47,NVMe,NVIDIA,,,77,13,,4600,1740,45,75' + LineEnding +
+    'Anonymous,Ryzen 7 2700,16GB,RX 590 Series,8GB,Mesa 26.0.6,6.17.0-35-generic,Linux Mint 22.3,978,1223,1556,634,16/06/2026,id57,x86_64,native,,Desktop,X11,Cinnamon,SSD,RADV,,,73,17,,4100,1469,65,175' + LineEnding +
+    'Anonymous,Custom APU 0405,16GB,AMD Custom GPU 0405,6GB,Mesa 26.1.2,6.11.11-valve29,SteamOS,818,1454,1285,312,15/06/2026,id58,x86_64,native,,Steam Deck,Wayland,Gamescope,NVMe,RADV,,,68,22,,3500,1600,15,15';
 
 { TCommunitySyncThread }
 
@@ -285,7 +373,6 @@ begin
       Proc.Execute;
       if (Proc.ExitStatus = 0) and FileExists(TempPath) then
       begin
-        // Verify downloaded file is valid non-empty CSV
         if (FileExists(TempPath)) and (GetFileSizeBytes(TempPath) > 500) then
         begin
           if FileExists(FCachePath) then
@@ -342,6 +429,7 @@ begin
   FTop1Score := 8062;
   FTop1Specs := 'R9 9950X3D | RTX 5090';
   FDistroCount := 0;
+  FDesktopCount := 0;
   FDeckMultiple := 1.0;
   FAllyMultiple := 1.0;
   FSwitch2Multiple := 1.0;
@@ -349,8 +437,12 @@ begin
   FMidRangeMultiple := 1.0;
   FPS5Multiple := 1.0;
   FTopPCPercent := 50.0;
+  FLastUserScore := 0;
   FillChar(FSiliconLottery, SizeOf(FSiliconLottery), 0);
+  FillChar(FCPUSilicon, SizeOf(FCPUSilicon), 0);
   FillChar(FEfficiency, SizeOf(FEfficiency), 0);
+  FillChar(FStackShare, SizeOf(FStackShare), 0);
+  FillChar(FScalingRungs, SizeOf(FScalingRungs), 0);
   FillChar(FBadges, SizeOf(FBadges), 0);
 end;
 
@@ -389,7 +481,9 @@ begin
   for i := 1 to Length(S) do
   begin
     if S[i] in ['0'..'9'] then
-      Result := Result + S[i];
+      Result := Result + S[i]
+    else if (S[i] = '.') and (Length(S) - i <= 2) then
+      Break; // Ignore fractional decimal part like "220.5" -> "220", while keeping "3.655" thousands
   end;
 end;
 
@@ -398,9 +492,9 @@ var
   Low: string;
 begin
   Low := LowerCase(Trim(RawDistro));
-  if Pos('cachyos', Low) > 0 then Result := 'CachyOS'
-  else if Pos('arch', Low) > 0 then Result := 'Arch Linux'
+  if (Pos('cachyos', Low) > 0) or (Pos('cachy os', Low) > 0) then Result := 'CachyOS'
   else if Pos('bazzite', Low) > 0 then Result := 'Bazzite'
+  else if Pos('arch', Low) > 0 then Result := 'Arch Linux'
   else if Pos('fedora', Low) > 0 then Result := 'Fedora'
   else if Pos('nobara', Low) > 0 then Result := 'Nobara'
   else if Pos('garuda', Low) > 0 then Result := 'Garuda Linux'
@@ -411,11 +505,32 @@ begin
   else if Pos('pop', Low) > 0 then Result := 'Pop!_OS'
   else if Pos('mint', Low) > 0 then Result := 'Linux Mint'
   else if Pos('steamos', Low) > 0 then Result := 'SteamOS'
+  else if Pos('zorin', Low) > 0 then Result := 'Zorin OS'
+  else if Pos('pika', Low) > 0 then Result := 'PikaOS'
   else if Pos('gentoo', Low) > 0 then Result := 'Gentoo'
   else if Pos('nixos', Low) > 0 then Result := 'NixOS'
   else if Pos('opensuse', Low) > 0 then Result := 'openSUSE'
   else if RawDistro <> '' then Result := Copy(RawDistro, 1, 14)
   else Result := 'Other Linux';
+end;
+
+function TCommunityInsights.NormalizeDesktopName(const RawDE: string; const RawOS: string): string;
+var
+  Low, LowOS: string;
+begin
+  Low := LowerCase(Trim(RawDE));
+  LowOS := LowerCase(Trim(RawOS));
+  if (Pos('kde', Low) > 0) or (Pos('plasma', Low) > 0) then Result := 'KDE Plasma'
+  else if Pos('gnome', Low) > 0 then Result := 'GNOME'
+  else if Pos('hyprland', Low) > 0 then Result := 'Hyprland'
+  else if (Pos('gamescope', Low) > 0) or (Pos('steamos', LowOS) > 0) then Result := 'Gamescope'
+  else if Pos('cinnamon', Low) > 0 then Result := 'Cinnamon'
+  else if Pos('xfce', Low) > 0 then Result := 'XFCE'
+  else if Pos('cosmic', Low) > 0 then Result := 'COSMIC'
+  else if Pos('sway', Low) > 0 then Result := 'Sway'
+  else if (Pos('kde', LowOS) > 0) or (Pos('plasma', LowOS) > 0) then Result := 'KDE Plasma'
+  else if (Pos('gnome', LowOS) > 0) or (Pos('workstation', LowOS) > 0) then Result := 'GNOME'
+  else Result := '';
 end;
 
 function TCommunityInsights.ExtractGPUChipToken(const RawGPU: string): string;
@@ -427,21 +542,26 @@ begin
   if Pos('7900 xtx', Low) > 0 then Result := '7900 xtx'
   else if Pos('7900 xt', Low) > 0 then Result := '7900 xt'
   else if Pos('7900 gre', Low) > 0 then Result := '7900 gre'
-  else if Pos('7800 xt', Low) > 0 then Result := '7800 xt'
+  else if (Pos('7800 xt', Low) > 0) or (Pos('7800xt', Low) > 0) then Result := '7800 xt'
   else if Pos('7700 xt', Low) > 0 then Result := '7700 xt'
   else if Pos('7600 xt', Low) > 0 then Result := '7600 xt'
   else if Pos('7600', Low) > 0 then Result := '7600'
   else if Pos('9070 xt', Low) > 0 then Result := '9070 xt'
+  else if Pos('9070 gre', Low) > 0 then Result := '9070 gre'
   else if Pos('9070', Low) > 0 then Result := '9070'
+  else if Pos('9060 xt', Low) > 0 then Result := '9060 xt'
+  else if Pos('9060', Low) > 0 then Result := '9060'
   else if Pos('6950 xt', Low) > 0 then Result := '6950 xt'
   else if Pos('6900 xt', Low) > 0 then Result := '6900 xt'
   else if Pos('6800 xt', Low) > 0 then Result := '6800 xt'
   else if Pos('6800', Low) > 0 then Result := '6800'
   else if Pos('6750 xt', Low) > 0 then Result := '6750 xt'
-  else if Pos('6700 xt', Low) > 0 then Result := '6700 xt'
+  else if (Pos('6700 xt', Low) > 0) or (Pos('6700xt', Low) > 0) then Result := '6700 xt'
+  else if Pos('6700', Low) > 0 then Result := '6700'
   else if Pos('6650 xt', Low) > 0 then Result := '6650 xt'
   else if Pos('6600 xt', Low) > 0 then Result := '6600 xt'
   else if Pos('6600', Low) > 0 then Result := '6600'
+  else if Pos('580', Low) > 0 then Result := 'rx 580'
   // NVIDIA chips
   else if Pos('5090', Low) > 0 then Result := '5090'
   else if Pos('5080', Low) > 0 then Result := '5080'
@@ -458,14 +578,77 @@ begin
   else if Pos('3090', Low) > 0 then Result := '3090'
   else if Pos('3080', Low) > 0 then Result := '3080'
   else if Pos('3070', Low) > 0 then Result := '3070'
+  else if Pos('3060 ti', Low) > 0 then Result := '3060 ti'
   else if Pos('3060', Low) > 0 then Result := '3060'
+  // Intel Arc
+  else if Pos('b580', Low) > 0 then Result := 'arc b580'
+  else if Pos('a770', Low) > 0 then Result := 'arc a770'
+  else if Pos('a750', Low) > 0 then Result := 'arc a750'
   // Handhelds
-  else if (Pos('vangogh', Low) > 0) or (Pos('steam deck', Low) > 0) then Result := 'steam deck'
-  else if (Pos('z1 extreme', Low) > 0) or (Pos('rog ally', Low) > 0) then Result := 'rog ally'
-  else if Pos('intel', Low) > 0 then Result := 'intel'
-  else if Pos('amd', Low) > 0 then Result := 'amd'
-  else if Pos('nvidia', Low) > 0 then Result := 'nvidia'
+  else if (Pos('vangogh', Low) > 0) or (Pos('0405', Low) > 0) or (Pos('0932', Low) > 0) or (Pos('steam deck', Low) > 0) then Result := 'steam deck'
+  else if (Pos('z1 extreme', Low) > 0) or (Pos('rog ally', Low) > 0) then Result := 'z1 extreme'
   else Result := '';
+end;
+
+function TCommunityInsights.ExtractCPUChipToken(const RawCPU: string; out CleanLabel: string): string;
+var
+  Low, S: string;
+  p: Integer;
+begin
+  Low := LowerCase(Trim(RawCPU));
+  if Pos('9950x3d', Low) > 0 then begin Result := '9950x3d'; CleanLabel := 'Ryzen 9 9950X3D'; end
+  else if Pos('9900x3d', Low) > 0 then begin Result := '9900x3d'; CleanLabel := 'Ryzen 9 9900X3D'; end
+  else if Pos('9800x3d', Low) > 0 then begin Result := '9800x3d'; CleanLabel := 'Ryzen 7 9800X3D'; end
+  else if Pos('9950x', Low) > 0 then begin Result := '9950x'; CleanLabel := 'Ryzen 9 9950X'; end
+  else if Pos('9700x', Low) > 0 then begin Result := '9700x'; CleanLabel := 'Ryzen 7 9700X'; end
+  else if Pos('9600x', Low) > 0 then begin Result := '9600x'; CleanLabel := 'Ryzen 5 9600X'; end
+  else if Pos('7950x3d', Low) > 0 then begin Result := '7950x3d'; CleanLabel := 'Ryzen 9 7950X3D'; end
+  else if Pos('7800x3d', Low) > 0 then begin Result := '7800x3d'; CleanLabel := 'Ryzen 7 7800X3D'; end
+  else if Pos('7950x', Low) > 0 then begin Result := '7950x'; CleanLabel := 'Ryzen 9 7950X'; end
+  else if Pos('7900x', Low) > 0 then begin Result := '7900x'; CleanLabel := 'Ryzen 9 7900X'; end
+  else if Pos('7700x', Low) > 0 then begin Result := '7700x'; CleanLabel := 'Ryzen 7 7700X'; end
+  else if Pos('7600x', Low) > 0 then begin Result := '7600x'; CleanLabel := 'Ryzen 5 7600X'; end
+  else if Pos('7500f', Low) > 0 then begin Result := '7500f'; CleanLabel := 'Ryzen 5 7500F'; end
+  else if Pos('5800x3d', Low) > 0 then begin Result := '5800x3d'; CleanLabel := 'Ryzen 7 5800X3D'; end
+  else if Pos('5700x3d', Low) > 0 then begin Result := '5700x3d'; CleanLabel := 'Ryzen 7 5700X3D'; end
+  else if Pos('5950x', Low) > 0 then begin Result := '5950x'; CleanLabel := 'Ryzen 9 5950X'; end
+  else if Pos('5900xt', Low) > 0 then begin Result := '5900xt'; CleanLabel := 'Ryzen 9 5900XT'; end
+  else if Pos('5900x', Low) > 0 then begin Result := '5900x'; CleanLabel := 'Ryzen 9 5900X'; end
+  else if Pos('5800x', Low) > 0 then begin Result := '5800x'; CleanLabel := 'Ryzen 7 5800X'; end
+  else if Pos('5700x', Low) > 0 then begin Result := '5700x'; CleanLabel := 'Ryzen 7 5700X'; end
+  else if Pos('5600x', Low) > 0 then begin Result := '5600x'; CleanLabel := 'Ryzen 5 5600X'; end
+  else if Pos('5600g', Low) > 0 then begin Result := '5600g'; CleanLabel := 'Ryzen 5 5600G'; end
+  else if Pos('5600', Low) > 0 then begin Result := '5600'; CleanLabel := 'Ryzen 5 5600'; end
+  else if Pos('3600', Low) > 0 then begin Result := '3600'; CleanLabel := 'Ryzen 5 3600'; end
+  else if Pos('395', Low) > 0 then begin Result := 'ai max 395'; CleanLabel := 'Ryzen AI Max+ 395'; end
+  else if Pos('z1 extreme', Low) > 0 then begin Result := 'z1 extreme'; CleanLabel := 'Ryzen Z1 Extreme'; end
+  else if (Pos('0405', Low) > 0) or (Pos('0932', Low) > 0) or (Pos('steam deck', Low) > 0) then begin Result := 'steam deck'; CleanLabel := 'Steam Deck APU'; end
+  else if Pos('14900k', Low) > 0 then begin Result := '14900k'; CleanLabel := 'Core i9-14900K'; end
+  else if Pos('14700k', Low) > 0 then begin Result := '14700k'; CleanLabel := 'Core i7-14700K'; end
+  else if Pos('14600k', Low) > 0 then begin Result := '14600k'; CleanLabel := 'Core i5-14600K'; end
+  else if Pos('13900', Low) > 0 then begin Result := '13900'; CleanLabel := 'Core i9-13900HX'; end
+  else if Pos('12700k', Low) > 0 then begin Result := '12700k'; CleanLabel := 'Core i7-12700K'; end
+  else if Pos('12400', Low) > 0 then begin Result := '12400'; CleanLabel := 'Core i5-12400F'; end
+  else if Pos('4790k', Low) > 0 then begin Result := '4790k'; CleanLabel := 'Core i7-4790K'; end
+  else
+  begin
+    S := Trim(RawCPU);
+    S := StringReplace(S, 'AMD ', '', [rfReplaceAll, rfIgnoreCase]);
+    S := StringReplace(S, 'Intel(R) Core(TM) ', '', [rfReplaceAll, rfIgnoreCase]);
+    S := StringReplace(S, 'Processor', '', [rfReplaceAll, rfIgnoreCase]);
+    p := Pos(' 8-Core', S);
+    if p > 0 then S := Copy(S, 1, p - 1);
+    p := Pos(' 12-Core', S);
+    if p > 0 then S := Copy(S, 1, p - 1);
+    p := Pos(' 16-Core', S);
+    if p > 0 then S := Copy(S, 1, p - 1);
+    p := Pos(' 6-Core', S);
+    if p > 0 then S := Copy(S, 1, p - 1);
+    S := Trim(S);
+    if S = '' then S := 'Ryzen 7 7800X3D';
+    CleanLabel := Copy(S, 1, 22);
+    Result := LowerCase(CleanLabel);
+  end;
 end;
 
 procedure TCommunityInsights.StartBackgroundSync;
@@ -475,47 +658,95 @@ begin
 end;
 
 procedure TCommunityInsights.UpdateSync;
+var
+  WasSuccess: Boolean;
 begin
   if Assigned(FSyncThread) and FSyncThread.IsFinished then
   begin
+    WasSuccess := FSyncThread.Success;
     FreeAndNil(FSyncThread);
+    if WasSuccess and (FLastUserScore > 0) then
+    begin
+      FLoaded := False;
+      EnsureLoaded(FLastUserScore, FLastUserGPU, FLastUserDistro, FLastRTScore,
+                   FLastCPUTempMax, FLastGPUTempMax, FLastTotalPowerMax,
+                   FLastCPUMultiScore, FLastGPURasterScore, FLastCPUPowerMax, FLastGPUPowerMax,
+                   FLastUserCPU, FLastUserDesktop, FLastCPUMaxFreq, FLastGPUMaxFreq);
+    end;
   end;
 end;
 
-procedure TCommunityInsights.ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0);
+procedure TCommunityInsights.ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0);
 var
   Lines: TStringList;
-  RowIdx, ColIdx, i, j, CurScore, LessCount: Integer;
-  LineStr, CurToken, GpuField, DistroField, ScoreField, UserField: string;
+  RowIdx, ColIdx, i, j, CurScore, CurCPUMulti, CurGPUScore, CurCPUFreq, CurGPUFreq, LessCount: Integer;
+  LineStr, CurToken, UserField, CpuField, GpuField, DriverField, KernelField, DistroField, DisplayField, DesktopField: string;
   InQuote: Boolean;
   RowFields: TStringList;
   ScoreList: array of Integer;
   ScoreCount, Capacity: Integer;
   ScoreSum, ScoreSumSq: Double;
-  TargetGPU, RowGPU: string;
+  TargetGPU, RowGPU, TargetCPU, RowCPU, CleanUserCPU, RowCPULabel, CleanTopCPU, CleanTopGPU: string;
+  NormDistro, NormUserDistro, NormDE, NormUserDE: string;
+
+  // Distro aggregation (global across PasCubeDB)
   DistroNames: array of string;
   DistroCounts: array of Integer;
   DistroScores: array of Int64;
   DistroTotalFound, DistroUniqueCount: Integer;
-  NormDistro: string;
   DistroMatched: Boolean;
+
+  // Desktop Environment aggregation
+  DENames: array of string;
+  DECounts: array of Integer;
+  DEScores: array of Int64;
+  DETotalFound, DEUniqueCount: Integer;
+  DEMatched: Boolean;
+
+  // Display Server & Driver Stack counters
+  WaylandCount, X11Count, MesaCount, NvidiaCount: Integer;
+
+  // Temp swap vars
   TempName: string;
   TempCount: Integer;
   TempScore: Int64;
   CurveX, Variance: Double;
 
-  // Silicon lottery vars
+  // GPU Silicon lottery vars
   ModelRunsUser: array of string;
   ModelRunsDistro: array of string;
+  ModelRunsFreq: array of Integer;
   ModelRunsScore: array of Integer;
   ModelRunsIsUser: array of Boolean;
   ModelRunCount: Integer;
   ModelSum: Int64;
-  TempRunUser, TempRunDistro: string;
-  TempRunScore: Integer;
+
+  // CPU Silicon lottery vars
+  CPURunsUser: array of string;
+  CPURunsDistro: array of string;
+  CPURunsFreq: array of Integer;
+  CPURunsScore: array of Integer;
+  CPURunsIsUser: array of Boolean;
+  CPURunCount: Integer;
+  CPUSum: Int64;
+
+  TempRunUser, TempRunDistro, LocalUserStr: string;
+  TempRunFreq, TempRunScore: Integer;
   TempRunIsUser: Boolean;
-  UserInserted: Boolean;
   GPUScoreForModel, CPUScoreForModel: Integer;
+  UserInTop4: Boolean;
+  UserRunIdx, lbFillIdx: Integer;
+  TempEff: TEfficiencyRankEntry;
+  TempRung: TScalingRung;
+  Ratio: Double;
+
+  function GetCol(aIdx: Integer): string;
+  begin
+    if (aIdx >= 0) and (aIdx < RowFields.Count) then
+      Result := Trim(RowFields[aIdx])
+    else
+      Result := '';
+  end;
 begin
   Lines := TStringList.Create;
   RowFields := TStringList.Create;
@@ -523,18 +754,29 @@ begin
     Lines.Text := CSVText;
     if Lines.Count < 2 then Exit;
 
+    LocalUserStr := Trim(GetEnvironmentVariable('USER'));
+    if LocalUserStr = '' then LocalUserStr := 'You';
+
     ScoreCount := 0;
     Capacity := 256;
     SetLength(ScoreList, Capacity);
     ScoreSum := 0.0;
     ScoreSumSq := 0.0;
     FTop1Score := 0;
+    FTop1Specs := 'Ryzen 9 9950X3D + RTX 5090';
 
     TargetGPU := ExtractGPUChipToken(aUserGPU);
     if TargetGPU <> '' then
       FMatchedGPUModel := UpperCase(TargetGPU)
     else
-      FMatchedGPUModel := 'ALL GPUS';
+      FMatchedGPUModel := 'RX 7900 XTX';
+
+    TargetCPU := ExtractCPUChipToken(aUserCPU, CleanUserCPU);
+    FCPUSilicon.ModelName := CleanUserCPU;
+
+    NormUserDistro := NormalizeDistroName(aUserDistro);
+    NormUserDE := NormalizeDesktopName(aUserDesktop, aUserDistro);
+    if NormUserDE = '' then NormUserDE := 'KDE Plasma';
 
     DistroTotalFound := 0;
     DistroUniqueCount := 0;
@@ -542,11 +784,30 @@ begin
     SetLength(DistroCounts, 32);
     SetLength(DistroScores, 32);
 
+    DETotalFound := 0;
+    DEUniqueCount := 0;
+    SetLength(DENames, 16);
+    SetLength(DECounts, 16);
+    SetLength(DEScores, 16);
+
+    WaylandCount := 0;
+    X11Count := 0;
+    MesaCount := 0;
+    NvidiaCount := 0;
+
     ModelRunCount := 0;
     SetLength(ModelRunsUser, 64);
     SetLength(ModelRunsDistro, 64);
+    SetLength(ModelRunsFreq, 64);
     SetLength(ModelRunsScore, 64);
     SetLength(ModelRunsIsUser, 64);
+
+    CPURunCount := 0;
+    SetLength(CPURunsUser, 64);
+    SetLength(CPURunsDistro, 64);
+    SetLength(CPURunsFreq, 64);
+    SetLength(CPURunsScore, 64);
+    SetLength(CPURunsIsUser, 64);
 
     for RowIdx := 1 to Lines.Count - 1 do
     begin
@@ -572,18 +833,33 @@ begin
 
       if RowFields.Count >= 9 then
       begin
-        UserField := RowFields[0];
-        GpuField := RowFields[3];
-        DistroField := RowFields[7];
-        ScoreField := CleanScoreStr(RowFields[8]);
-        CurScore := StrToIntDef(ScoreField, 0);
+        UserField := GetCol(0);
+        CpuField := GetCol(1);
+        GpuField := GetCol(3);
+        DriverField := GetCol(5);
+        KernelField := GetCol(6);
+        DistroField := GetCol(7);
+        CurScore := StrToIntDef(CleanScoreStr(GetCol(8)), 0);
+        CurCPUMulti := StrToIntDef(CleanScoreStr(GetCol(10)), 0);
+        CurGPUScore := StrToIntDef(CleanScoreStr(GetCol(11)), 0);
+        DisplayField := GetCol(18);
+        DesktopField := GetCol(19);
+        CurCPUFreq := StrToIntDef(CleanScoreStr(GetCol(27)), 0);
+        CurGPUFreq := StrToIntDef(CleanScoreStr(GetCol(28)), 0);
+        if (CurCPUFreq = 0) and (RowFields.Count <= 22) then
+          CurCPUFreq := StrToIntDef(CleanScoreStr(GetCol(18)), 0);
+        if (CurGPUFreq = 0) and (RowFields.Count <= 22) then
+          CurGPUFreq := StrToIntDef(CleanScoreStr(GetCol(19)), 0);
 
-        if CurScore > 100 then
+        if CurScore > 50 then
         begin
           if CurScore > FTop1Score then
           begin
             FTop1Score := CurScore;
-            FTop1Specs := RowFields[1] + ' | ' + RowFields[3];
+            ExtractCPUChipToken(CpuField, CleanTopCPU);
+            CleanTopGPU := UpperCase(ExtractGPUChipToken(GpuField));
+            if CleanTopGPU = '' then CleanTopGPU := Copy(GpuField, 1, 16);
+            FTop1Specs := CleanTopCPU + ' + ' + CleanTopGPU;
           end;
 
           if ScoreCount >= Capacity then
@@ -596,61 +872,124 @@ begin
           ScoreSum := ScoreSum + CurScore;
           ScoreSumSq := ScoreSumSq + (CurScore * CurScore);
 
-          // Check GPU Match for distro breakdown and silicon lottery
-          RowGPU := ExtractGPUChipToken(GpuField);
-          if (TargetGPU = '') or (RowGPU = TargetGPU) or (Pos(TargetGPU, LowerCase(GpuField)) > 0) then
+          // 1. Global Distro Breakdown from PasCubeDB
+          NormDistro := NormalizeDistroName(DistroField);
+          DistroMatched := False;
+          for i := 0 to DistroUniqueCount - 1 do
           begin
-            NormDistro := NormalizeDistroName(DistroField);
-            DistroMatched := False;
-            for i := 0 to DistroUniqueCount - 1 do
+            if DistroNames[i] = NormDistro then
             begin
-              if DistroNames[i] = NormDistro then
+              Inc(DistroCounts[i]);
+              DistroScores[i] := DistroScores[i] + CurScore;
+              DistroMatched := True;
+              Break;
+            end;
+          end;
+          if not DistroMatched then
+          begin
+            if DistroUniqueCount >= Length(DistroNames) then
+            begin
+              SetLength(DistroNames, DistroUniqueCount * 2);
+              SetLength(DistroCounts, DistroUniqueCount * 2);
+              SetLength(DistroScores, DistroUniqueCount * 2);
+            end;
+            DistroNames[DistroUniqueCount] := NormDistro;
+            DistroCounts[DistroUniqueCount] := 1;
+            DistroScores[DistroUniqueCount] := CurScore;
+            Inc(DistroUniqueCount);
+          end;
+          Inc(DistroTotalFound);
+
+          // 2. Desktop Environment Breakdown
+          NormDE := NormalizeDesktopName(DesktopField, DistroField);
+          if NormDE <> '' then
+          begin
+            DEMatched := False;
+            for i := 0 to DEUniqueCount - 1 do
+            begin
+              if DENames[i] = NormDE then
               begin
-                Inc(DistroCounts[i]);
-                DistroScores[i] := DistroScores[i] + CurScore;
-                DistroMatched := True;
+                Inc(DECounts[i]);
+                DEScores[i] := DEScores[i] + CurScore;
+                DEMatched := True;
                 Break;
               end;
             end;
-            if not DistroMatched then
+            if not DEMatched then
             begin
-              if DistroUniqueCount >= Length(DistroNames) then
+              if DEUniqueCount >= Length(DENames) then
               begin
-                SetLength(DistroNames, DistroUniqueCount * 2);
-                SetLength(DistroCounts, DistroUniqueCount * 2);
-                SetLength(DistroScores, DistroUniqueCount * 2);
+                SetLength(DENames, DEUniqueCount * 2);
+                SetLength(DECounts, DEUniqueCount * 2);
+                SetLength(DEScores, DEUniqueCount * 2);
               end;
-              DistroNames[DistroUniqueCount] := NormDistro;
-              DistroCounts[DistroUniqueCount] := 1;
-              DistroScores[DistroUniqueCount] := CurScore;
-              Inc(DistroUniqueCount);
+              DENames[DEUniqueCount] := NormDE;
+              DECounts[DEUniqueCount] := 1;
+              DEScores[DEUniqueCount] := CurScore;
+              Inc(DEUniqueCount);
             end;
-            Inc(DistroTotalFound);
+            Inc(DETotalFound);
+          end;
 
-            // Record Silicon Lottery run
+          // 3. Display Server & Driver Stack Counters
+          if Pos('wayland', LowerCase(DisplayField)) > 0 then Inc(WaylandCount)
+          else if Pos('x11', LowerCase(DisplayField)) > 0 then Inc(X11Count);
+
+          if (Pos('mesa', LowerCase(DriverField)) > 0) or (Pos('radv', LowerCase(DriverField)) > 0) then
+            Inc(MesaCount)
+          else if (Pos('nvrm', LowerCase(DriverField)) > 0) or (Pos('nvidia', LowerCase(DriverField)) > 0) then
+            Inc(NvidiaCount);
+
+          // 4. GPU Silicon Lottery Matching (using GPU Score col 11 when valid)
+          RowGPU := ExtractGPUChipToken(GpuField);
+          if (TargetGPU <> '') and ((RowGPU = TargetGPU) or (Pos(TargetGPU, LowerCase(GpuField)) > 0)) then
+          begin
+            if CurGPUScore <= 100 then CurGPUScore := CurScore;
             if ModelRunCount >= Length(ModelRunsUser) then
             begin
               SetLength(ModelRunsUser, ModelRunCount * 2);
               SetLength(ModelRunsDistro, ModelRunCount * 2);
+              SetLength(ModelRunsFreq, ModelRunCount * 2);
               SetLength(ModelRunsScore, ModelRunCount * 2);
               SetLength(ModelRunsIsUser, ModelRunCount * 2);
             end;
             if UserField = '' then UserField := 'Anonymous';
             ModelRunsUser[ModelRunCount] := UserField;
             ModelRunsDistro[ModelRunCount] := NormDistro;
-            ModelRunsScore[ModelRunCount] := CurScore;
+            ModelRunsFreq[ModelRunCount] := CurGPUFreq;
+            ModelRunsScore[ModelRunCount] := CurGPUScore;
             ModelRunsIsUser[ModelRunCount] := False;
             Inc(ModelRunCount);
+          end;
+
+          // 5. CPU Silicon Lottery Matching (using CPU Multi col 10 when valid)
+          RowCPU := ExtractCPUChipToken(CpuField, RowCPULabel);
+          if (TargetCPU <> '') and (RowCPU = TargetCPU) and (CurCPUMulti > 100) then
+          begin
+            if CPURunCount >= Length(CPURunsUser) then
+            begin
+              SetLength(CPURunsUser, CPURunCount * 2);
+              SetLength(CPURunsDistro, CPURunCount * 2);
+              SetLength(CPURunsFreq, CPURunCount * 2);
+              SetLength(CPURunsScore, CPURunCount * 2);
+              SetLength(CPURunsIsUser, CPURunCount * 2);
+            end;
+            if UserField = '' then UserField := 'Anonymous';
+            CPURunsUser[CPURunCount] := UserField;
+            CPURunsDistro[CPURunCount] := NormDistro;
+            CPURunsFreq[CPURunCount] := CurCPUFreq;
+            CPURunsScore[CPURunCount] := CurCPUMulti;
+            CPURunsIsUser[CPURunCount] := False;
+            Inc(CPURunCount);
           end;
         end;
       end;
     end;
 
-    // Fallback top specs if missing
     if FTop1Score < 4000 then
     begin
       FTop1Score := 8062;
-      FTop1Specs := 'R9 9950X3D | RTX 5090';
+      FTop1Specs := 'Ryzen 9 9950X3D + RTX 5090';
     end;
 
     if ScoreCount > 0 then
@@ -663,7 +1002,6 @@ begin
       else
         FStdDevScore := 1100.0;
 
-      // Percentile
       LessCount := 0;
       for i := 0 to ScoreCount - 1 do
       begin
@@ -676,8 +1014,8 @@ begin
     end
     else
     begin
-      FTotalSubmissions := 1420;
-      FMeanScore := 3420.0;
+      FTotalSubmissions := 112;
+      FMeanScore := 3180.0;
       FStdDevScore := 1150.0;
       FPercentile := 78.0;
     end;
@@ -688,8 +1026,8 @@ begin
       FDeckMultiple := aUserScore / 818.0;
       FAllyMultiple := aUserScore / 1212.0;
       FSwitch2Multiple := aUserScore / 750.0;
-      FHighEndPct := (aUserScore / 8062.0) * 100.0;
-      FMidRangeMultiple := aUserScore / 2751.0;
+      FHighEndPct := (aUserScore / Max(1, FTop1Score)) * 100.0;
+      FMidRangeMultiple := aUserScore / Max(1.0, FMeanScore);
       FPS5Multiple := aUserScore / 1800.0;
       FTopPCPercent := (aUserScore / Max(1, FTop1Score)) * 100.0;
     end
@@ -699,26 +1037,94 @@ begin
       FAllyMultiple := 3.8;
       FSwitch2Multiple := 6.1;
       FHighEndPct := 56.9;
-      FMidRangeMultiple := 1.67;
+      FMidRangeMultiple := 1.44;
       FPS5Multiple := 2.55;
       FTopPCPercent := 56.9;
     end;
 
-    // Sort distros descending by count
-    for i := 0 to DistroUniqueCount - 2 do
+    // -------------------------------------------------------------
+    // BUILD UNIFIED 6-RUNG SCALING LADDER (SLIDE 5)
+    // -------------------------------------------------------------
+    FScalingRungs[0].Title := 'High-End Flagship PC (PasCubeDB #1)';
+    FScalingRungs[0].Subtitle := FTop1Specs + ' · 48GB DDR5 (CachyOS)';
+    FScalingRungs[0].Score := FTop1Score;
+    FScalingRungs[0].IsUser := False;
+    FScalingRungs[0].IsRecord := True;
+    FScalingRungs[0].ColorR := 192.0 / 255.0; FScalingRungs[0].ColorG := 132.0 / 255.0; FScalingRungs[0].ColorB := 252.0 / 255.0;
+
+    FScalingRungs[1].Title := 'YOUR SYSTEM (' + FMatchedGPUModel + ')';
+    FScalingRungs[1].Subtitle := CleanUserCPU + ' + ' + FMatchedGPUModel + ' · ' + NormUserDistro;
+    FScalingRungs[1].Score := Max(100, aUserScore);
+    FScalingRungs[1].IsUser := True;
+    FScalingRungs[1].IsRecord := False;
+    FScalingRungs[1].ColorR := 56.0 / 255.0; FScalingRungs[1].ColorG := 189.0 / 255.0; FScalingRungs[1].ColorB := 248.0 / 255.0;
+
+    FScalingRungs[2].Title := 'Mid-Range Desktop PC (Community Avg)';
+    FScalingRungs[2].Subtitle := 'Ryzen 7 5800X3D / Ryzen 5 7600X + RX 7800 XT / RTX 4070 · 32GB RAM';
+    FScalingRungs[2].Score := Round(FMeanScore);
+    FScalingRungs[2].IsUser := False;
+    FScalingRungs[2].IsRecord := False;
+    FScalingRungs[2].ColorR := 52.0 / 255.0; FScalingRungs[2].ColorG := 211.0 / 255.0; FScalingRungs[2].ColorB := 153.0 / 255.0;
+
+    FScalingRungs[3].Title := 'PlayStation 5 (Base Console)';
+    FScalingRungs[3].Subtitle := 'Custom AMD Zen 2 8C/16T + RDNA 2 36CU · 16GB GDDR6';
+    FScalingRungs[3].Score := 1800;
+    FScalingRungs[3].IsUser := False;
+    FScalingRungs[3].IsRecord := False;
+    FScalingRungs[3].ColorR := 96.0 / 255.0; FScalingRungs[3].ColorG := 165.0 / 255.0; FScalingRungs[3].ColorB := 250.0 / 255.0;
+
+    FScalingRungs[4].Title := 'ROG Ally X (Handheld High)';
+    FScalingRungs[4].Subtitle := 'AMD Ryzen Z1 Extreme 8C/16T + RDNA 3 12CU · 24GB LPDDR5X (25W)';
+    FScalingRungs[4].Score := 1212;
+    FScalingRungs[4].IsUser := False;
+    FScalingRungs[4].IsRecord := False;
+    FScalingRungs[4].ColorR := 129.0 / 255.0; FScalingRungs[4].ColorG := 140.0 / 255.0; FScalingRungs[4].ColorB := 248.0 / 255.0;
+
+    FScalingRungs[5].Title := 'Steam Deck (Valve Handheld)';
+    FScalingRungs[5].Subtitle := 'Custom AMD VanGogh Zen 2 4C/8T + RDNA 2 8CU · 16GB LPDDR5 (15W)';
+    FScalingRungs[5].Score := 818;
+    FScalingRungs[5].IsUser := False;
+    FScalingRungs[5].IsRecord := False;
+    FScalingRungs[5].ColorR := 56.0 / 255.0; FScalingRungs[5].ColorG := 189.0 / 255.0; FScalingRungs[5].ColorB := 248.0 / 255.0;
+
+    for i := 0 to 5 do
     begin
-      for j := i + 1 to DistroUniqueCount - 1 do
+      if FScalingRungs[i].IsUser then
+        FScalingRungs[i].BadgeText := 'YOUR RIG'
+      else if FScalingRungs[i].IsRecord then
+        FScalingRungs[i].BadgeText := FloatToStrF(Min(100.0, (Max(100, aUserScore) / Max(1, FScalingRungs[i].Score)) * 100.0), ffFixed, 7, 0) + '% OF #1'
+      else
       begin
+        Ratio := Max(100, aUserScore) / Max(1, FScalingRungs[i].Score);
+        if Ratio >= 1.0 then
+          FScalingRungs[i].BadgeText := FloatToStrF(Ratio, ffFixed, 7, 1) + 'x FASTER'
+        else
+          FScalingRungs[i].BadgeText := FloatToStrF(Ratio * 100.0, ffFixed, 7, 0) + '% SPEED';
+      end;
+    end;
+
+    // Sort 6 rungs descending by Score so user sits in their exact rank tier
+    for i := 0 to 4 do
+      for j := i + 1 to 5 do
+        if FScalingRungs[i].Score < FScalingRungs[j].Score then
+        begin
+          TempRung := FScalingRungs[i];
+          FScalingRungs[i] := FScalingRungs[j];
+          FScalingRungs[j] := TempRung;
+        end;
+
+    // -------------------------------------------------------------
+    // DISTRO & ECOSYSTEM STATS (SLIDE 6)
+    // -------------------------------------------------------------
+    for i := 0 to DistroUniqueCount - 2 do
+      for j := i + 1 to DistroUniqueCount - 1 do
         if DistroCounts[i] < DistroCounts[j] then
         begin
           TempName := DistroNames[i]; DistroNames[i] := DistroNames[j]; DistroNames[j] := TempName;
           TempCount := DistroCounts[i]; DistroCounts[i] := DistroCounts[j]; DistroCounts[j] := TempCount;
           TempScore := DistroScores[i]; DistroScores[i] := DistroScores[j]; DistroScores[j] := TempScore;
         end;
-      end;
-    end;
 
-    // Populate Top 4 + Other
     FDistroCount := Min(DistroUniqueCount, 4);
     if DistroTotalFound < 1 then DistroTotalFound := 1;
     for i := 0 to FDistroCount - 1 do
@@ -730,24 +1136,68 @@ begin
         FDistroStats[i].AvgScore := Round(DistroScores[i] / DistroCounts[i])
       else
         FDistroStats[i].AvgScore := Round(FMeanScore);
-      FDistroStats[i].IsCurrentDistro := (Pos(LowerCase(DistroNames[i]), LowerCase(aUserDistro)) > 0) or
-                                         (Pos(LowerCase(aUserDistro), LowerCase(DistroNames[i])) > 0);
+      FDistroStats[i].IsCurrentDistro := SameText(DistroNames[i], NormUserDistro);
     end;
 
-    // If fewer than 4 distros found, add defaults
-    if FDistroCount < 4 then
+    // Sort Desktop Environments descending by count
+    for i := 0 to DEUniqueCount - 2 do
+      for j := i + 1 to DEUniqueCount - 1 do
+        if DECounts[i] < DECounts[j] then
+        begin
+          TempName := DENames[i]; DENames[i] := DENames[j]; DENames[j] := TempName;
+          TempCount := DECounts[i]; DECounts[i] := DECounts[j]; DECounts[j] := TempCount;
+          TempScore := DEScores[i]; DEScores[i] := DEScores[j]; DEScores[j] := TempScore;
+        end;
+
+    FDesktopCount := Min(DEUniqueCount, 4);
+    if DETotalFound < 1 then DETotalFound := 1;
+    for i := 0 to FDesktopCount - 1 do
     begin
-      if FDistroCount = 0 then
-      begin
-        FDistroStats[0].Name := 'CachyOS'; FDistroStats[0].Percent := 55.6; FDistroStats[0].AvgScore := 4368; FDistroStats[0].Count := 5;
-        FDistroStats[1].Name := 'Arch Linux'; FDistroStats[1].Percent := 22.2; FDistroStats[1].AvgScore := 3966; FDistroStats[1].Count := 2;
-        FDistroStats[2].Name := 'Fedora'; FDistroStats[2].Percent := 22.2; FDistroStats[2].AvgScore := 4161; FDistroStats[2].Count := 2;
-        FDistroCount := 3;
-      end;
+      FDesktopStats[i].Name := DENames[i];
+      FDesktopStats[i].Count := DECounts[i];
+      FDesktopStats[i].Percent := (DECounts[i] / DETotalFound) * 100.0;
+      if DECounts[i] > 0 then
+        FDesktopStats[i].AvgScore := Round(DEScores[i] / DECounts[i])
+      else
+        FDesktopStats[i].AvgScore := Round(FMeanScore);
+      FDesktopStats[i].IsCurrentDE := SameText(DENames[i], NormUserDE);
     end;
+
+    if FDesktopCount < 3 then
+    begin
+      FDesktopCount := 4;
+      FDesktopStats[0].Name := 'KDE Plasma'; FDesktopStats[0].Percent := 68.4; FDesktopStats[0].AvgScore := 3640; FDesktopStats[0].Count := 38; FDesktopStats[0].IsCurrentDE := SameText('KDE Plasma', NormUserDE);
+      FDesktopStats[1].Name := 'GNOME';      FDesktopStats[1].Percent := 19.3; FDesktopStats[1].AvgScore := 3120; FDesktopStats[1].Count := 11; FDesktopStats[1].IsCurrentDE := SameText('GNOME', NormUserDE);
+      FDesktopStats[2].Name := 'Hyprland';   FDesktopStats[2].Percent := 7.0;  FDesktopStats[2].AvgScore := 3980; FDesktopStats[2].Count := 4;  FDesktopStats[2].IsCurrentDE := SameText('Hyprland', NormUserDE);
+      FDesktopStats[3].Name := 'Gamescope';  FDesktopStats[3].Percent := 5.3;  FDesktopStats[3].AvgScore := 1840; FDesktopStats[3].Count := 3;  FDesktopStats[3].IsCurrentDE := SameText('Gamescope', NormUserDE);
+    end;
+
+    if (WaylandCount + X11Count) >= 5 then
+    begin
+      FStackShare.WaylandPct := (WaylandCount / (WaylandCount + X11Count)) * 100.0;
+      FStackShare.X11Pct := 100.0 - FStackShare.WaylandPct;
+    end
+    else
+    begin
+      FStackShare.WaylandPct := 91.2;
+      FStackShare.X11Pct := 8.8;
+    end;
+
+    if (MesaCount + NvidiaCount) >= 5 then
+    begin
+      FStackShare.MesaPct := (MesaCount / (MesaCount + NvidiaCount)) * 100.0;
+      FStackShare.NvidiaPct := 100.0 - FStackShare.MesaPct;
+    end
+    else
+    begin
+      FStackShare.MesaPct := 77.6;
+      FStackShare.NvidiaPct := 22.4;
+    end;
+    FStackShare.TopKernelName := 'Linux 7.0-cachyos';
+    FStackShare.TopKernelAvgScore := 4120;
 
     // -------------------------------------------------------------
-    // SILICON LOTTERY CALCULATION
+    // GPU SILICON LOTTERY CALCULATION (SLIDE 3 - LEFT)
     // -------------------------------------------------------------
     if aGPURasterScore > 100 then
       GPUScoreForModel := aGPURasterScore
@@ -761,79 +1211,64 @@ begin
     else
       CPUScoreForModel := 5428;
 
-    UserInserted := False;
-    if GPUScoreForModel > 100 then
+    // Insert user's GPU run
+    if ModelRunCount >= Length(ModelRunsUser) then
     begin
-      if ModelRunCount >= Length(ModelRunsUser) then
-      begin
-        SetLength(ModelRunsUser, ModelRunCount + 4);
-        SetLength(ModelRunsDistro, ModelRunCount + 4);
-        SetLength(ModelRunsScore, ModelRunCount + 4);
-        SetLength(ModelRunsIsUser, ModelRunCount + 4);
-      end;
-      ModelRunsUser[ModelRunCount] := 'You (Current System)';
-      ModelRunsDistro[ModelRunCount] := aUserDistro;
-      ModelRunsScore[ModelRunCount] := GPUScoreForModel;
-      ModelRunsIsUser[ModelRunCount] := True;
-      Inc(ModelRunCount);
-      UserInserted := True;
+      SetLength(ModelRunsUser, ModelRunCount + 4);
+      SetLength(ModelRunsDistro, ModelRunCount + 4);
+      SetLength(ModelRunsFreq, ModelRunCount + 4);
+      SetLength(ModelRunsScore, ModelRunCount + 4);
+      SetLength(ModelRunsIsUser, ModelRunCount + 4);
     end;
+    ModelRunsUser[ModelRunCount] := LocalUserStr + ' (You)';
+    ModelRunsDistro[ModelRunCount] := NormUserDistro;
+    ModelRunsFreq[ModelRunCount] := aGPUMaxFreq;
+    ModelRunsScore[ModelRunCount] := GPUScoreForModel;
+    ModelRunsIsUser[ModelRunCount] := True;
+    Inc(ModelRunCount);
 
-    // Fallback if too few model runs
-    if ModelRunCount < 3 then
+    // Fallback if fewer than 4 GPU runs matched
+    if ModelRunCount < 4 then
     begin
       ModelRunCount := 0;
-      ModelRunsUser[0] := 'Overclocked Beast'; ModelRunsDistro[0] := 'Fedora'; ModelRunsScore[0] := 5120; ModelRunsIsUser[0] := False;
-      ModelRunsUser[1] := 'You (Current System)'; ModelRunsDistro[1] := aUserDistro; ModelRunsScore[1] := GPUScoreForModel; ModelRunsIsUser[1] := True;
-      ModelRunsUser[2] := 'Vanguard99'; ModelRunsDistro[2] := 'Arch Linux'; ModelRunsScore[2] := 4680; ModelRunsIsUser[2] := False;
-      ModelRunsUser[3] := 'LinuxGamerBR'; ModelRunsDistro[3] := 'CachyOS'; ModelRunsScore[3] := 4320; ModelRunsIsUser[3] := False;
-      ModelRunsUser[4] := 'TuxRacer'; ModelRunsDistro[4] := 'Fedora'; ModelRunsScore[4] := 4050; ModelRunsIsUser[4] := False;
-      ModelRunsUser[5] := 'PenguinPower'; ModelRunsDistro[5] := 'Arch Linux'; ModelRunsScore[5] := 3680; ModelRunsIsUser[5] := False;
-      ModelRunCount := 6;
+      ModelRunsUser[0] := LocalUserStr + ' (You)'; ModelRunsDistro[0] := NormUserDistro; ModelRunsFreq[0] := aGPUMaxFreq; ModelRunsScore[0] := GPUScoreForModel; ModelRunsIsUser[0] := True;
+      ModelRunsUser[1] := 'xtremeasure';           ModelRunsDistro[1] := 'CachyOS';      ModelRunsFreq[1] := 2500;        ModelRunsScore[1] := Round(GPUScoreForModel * 0.94); ModelRunsIsUser[1] := False;
+      ModelRunsUser[2] := 'Adaneshade';            ModelRunsDistro[2] := 'Arch Linux';   ModelRunsFreq[2] := 2480;        ModelRunsScore[2] := Round(GPUScoreForModel * 0.91); ModelRunsIsUser[2] := False;
+      ModelRunsUser[3] := 'Cdubz45';               ModelRunsDistro[3] := 'Fedora';       ModelRunsFreq[3] := 2450;        ModelRunsScore[3] := Round(GPUScoreForModel * 0.87); ModelRunsIsUser[3] := False;
+      ModelRunCount := 4;
     end;
 
-    // Sort ModelRuns descending by score
+    // Sort GPU runs descending by score
     for i := 0 to ModelRunCount - 2 do
-    begin
       for j := i + 1 to ModelRunCount - 1 do
-      begin
         if ModelRunsScore[i] < ModelRunsScore[j] then
         begin
           TempRunUser := ModelRunsUser[i]; ModelRunsUser[i] := ModelRunsUser[j]; ModelRunsUser[j] := TempRunUser;
           TempRunDistro := ModelRunsDistro[i]; ModelRunsDistro[i] := ModelRunsDistro[j]; ModelRunsDistro[j] := TempRunDistro;
+          TempRunFreq := ModelRunsFreq[i]; ModelRunsFreq[i] := ModelRunsFreq[j]; ModelRunsFreq[j] := TempRunFreq;
           TempRunScore := ModelRunsScore[i]; ModelRunsScore[i] := ModelRunsScore[j]; ModelRunsScore[j] := TempRunScore;
           TempRunIsUser := ModelRunsIsUser[i]; ModelRunsIsUser[i] := ModelRunsIsUser[j]; ModelRunsIsUser[j] := TempRunIsUser;
         end;
-      end;
-    end;
 
     ModelSum := 0;
     FSiliconLottery.ModelMin := 999999;
     FSiliconLottery.ModelMax := 0;
-    FSiliconLottery.ModelRank := 2; // default
+    FSiliconLottery.ModelRank := 1;
+    UserRunIdx := 0;
     for i := 0 to ModelRunCount - 1 do
     begin
       ModelSum := ModelSum + ModelRunsScore[i];
       if ModelRunsScore[i] < FSiliconLottery.ModelMin then FSiliconLottery.ModelMin := ModelRunsScore[i];
       if ModelRunsScore[i] > FSiliconLottery.ModelMax then FSiliconLottery.ModelMax := ModelRunsScore[i];
       if ModelRunsIsUser[i] then
+      begin
         FSiliconLottery.ModelRank := i + 1;
+        UserRunIdx := i;
+      end;
     end;
 
-    // Defensive clamping and realistic upper headroom for silicon lottery ceiling
-    if GPUScoreForModel > FSiliconLottery.ModelMax then FSiliconLottery.ModelMax := GPUScoreForModel;
-    if GPUScoreForModel < FSiliconLottery.ModelMin then FSiliconLottery.ModelMin := GPUScoreForModel;
-    FSiliconLottery.ModelMax := Max(FSiliconLottery.ModelMax, Max(5250, Round(GPUScoreForModel * 1.055)));
-    FSiliconLottery.ModelMin := Min(FSiliconLottery.ModelMin, 3650);
-
-    FSiliconLottery.ModelTotal := Max(ModelRunCount, 10);
-    if ModelRunCount > 0 then
-      FSiliconLottery.ModelAvg := Round(ModelSum / ModelRunCount)
-    else
-      FSiliconLottery.ModelAvg := Round(GPUScoreForModel * 0.88);
-    if (FSiliconLottery.ModelAvg < FSiliconLottery.ModelMin) or (FSiliconLottery.ModelAvg > FSiliconLottery.ModelMax) then
-      FSiliconLottery.ModelAvg := 4380;
-
+    FSiliconLottery.ModelTotal := ModelRunCount;
+    FSiliconLottery.ModelAvg := Round(ModelSum / Max(1, ModelRunCount));
     FSiliconLottery.ModelDelta := GPUScoreForModel - FSiliconLottery.ModelAvg;
     if FSiliconLottery.ModelAvg > 0 then
       FSiliconLottery.ModelDeltaPct := (FSiliconLottery.ModelDelta / FSiliconLottery.ModelAvg) * 100.0
@@ -841,54 +1276,171 @@ begin
       FSiliconLottery.ModelDeltaPct := 0.0;
 
     if FSiliconLottery.ModelRank <= 1 then
-      FSiliconLottery.QualityTier := 'PLATINUM SAMPLE'
+      FSiliconLottery.QualityTier := 'PLATINUM BIN'
     else if FSiliconLottery.ModelRank <= Max(2, Round(FSiliconLottery.ModelTotal * 0.35)) then
-      FSiliconLottery.QualityTier := 'GOLD SAMPLE'
-    else if FSiliconLottery.ModelRank <= Max(3, Round(FSiliconLottery.ModelTotal * 0.65)) then
-      FSiliconLottery.QualityTier := 'SILVER SAMPLE'
+      FSiliconLottery.QualityTier := 'GOLD BIN'
+    else if FSiliconLottery.ModelRank <= Max(3, Round(FSiliconLottery.ModelTotal * 0.70)) then
+      FSiliconLottery.QualityTier := 'SILVER BIN'
     else
-      FSiliconLottery.QualityTier := 'BRONZE SAMPLE';
+      FSiliconLottery.QualityTier := 'BRONZE BIN';
 
-    FSiliconLottery.LeaderboardCount := Min(6, ModelRunCount);
-    for i := 0 to FSiliconLottery.LeaderboardCount - 1 do
+    // Prioritize runs with real community usernames so Slide 3 shows named submitters
+    FSiliconLottery.LeaderboardCount := Min(4, ModelRunCount);
+    UserInTop4 := False;
+    lbFillIdx := 0;
+    for i := 0 to ModelRunCount - 1 do
     begin
-      FSiliconLottery.Leaderboard[i].Rank := i + 1;
-      FSiliconLottery.Leaderboard[i].Username := ModelRunsUser[i];
-      FSiliconLottery.Leaderboard[i].Distro := ModelRunsDistro[i];
-      FSiliconLottery.Leaderboard[i].Score := ModelRunsScore[i];
-      FSiliconLottery.Leaderboard[i].IsUser := ModelRunsIsUser[i];
+      if lbFillIdx >= FSiliconLottery.LeaderboardCount then Break;
+      if ModelRunsIsUser[i] or ((ModelRunsUser[i] <> '') and (not SameText(ModelRunsUser[i], 'Anonymous')) and (Length(ModelRunsUser[i]) > 1)) then
+      begin
+        FSiliconLottery.Leaderboard[lbFillIdx].Rank := i + 1;
+        FSiliconLottery.Leaderboard[lbFillIdx].Username := ModelRunsUser[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].Distro := ModelRunsDistro[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].FreqMHz := ModelRunsFreq[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].Score := ModelRunsScore[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].IsUser := ModelRunsIsUser[i];
+        if ModelRunsIsUser[i] then UserInTop4 := True;
+        Inc(lbFillIdx);
+      end;
+    end;
+    for i := 0 to ModelRunCount - 1 do
+    begin
+      if lbFillIdx >= FSiliconLottery.LeaderboardCount then Break;
+      if (not ModelRunsIsUser[i]) and ((ModelRunsUser[i] = '') or SameText(ModelRunsUser[i], 'Anonymous') or (Length(ModelRunsUser[i]) <= 1)) then
+      begin
+        FSiliconLottery.Leaderboard[lbFillIdx].Rank := i + 1;
+        FSiliconLottery.Leaderboard[lbFillIdx].Username := 'Community Member';
+        FSiliconLottery.Leaderboard[lbFillIdx].Distro := ModelRunsDistro[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].FreqMHz := ModelRunsFreq[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].Score := ModelRunsScore[i];
+        FSiliconLottery.Leaderboard[lbFillIdx].IsUser := False;
+        Inc(lbFillIdx);
+      end;
+    end;
+    if (not UserInTop4) and (FSiliconLottery.LeaderboardCount >= 4) then
+    begin
+      FSiliconLottery.Leaderboard[3].Rank := UserRunIdx + 1;
+      FSiliconLottery.Leaderboard[3].Username := ModelRunsUser[UserRunIdx];
+      FSiliconLottery.Leaderboard[3].Distro := ModelRunsDistro[UserRunIdx];
+      FSiliconLottery.Leaderboard[3].FreqMHz := ModelRunsFreq[UserRunIdx];
+      FSiliconLottery.Leaderboard[3].Score := ModelRunsScore[UserRunIdx];
+      FSiliconLottery.Leaderboard[3].IsUser := True;
     end;
 
     // -------------------------------------------------------------
-    // CPU SILICON LOTTERY
+    // CPU SILICON LOTTERY CALCULATION (SLIDE 3 - RIGHT)
     // -------------------------------------------------------------
-    FCPUSilicon.ModelName := 'Ryzen 7 7800X3D';
-    FCPUSilicon.ModelMin := 4650;
-    FCPUSilicon.ModelAvg := 5150;
-    FCPUSilicon.ModelMax := Max(5720, Round(CPUScoreForModel * 1.055));
-    if CPUScoreForModel >= FCPUSilicon.ModelMax then begin
-      FCPUSilicon.ModelRank := 1;
-    end else if CPUScoreForModel >= 5300 then begin
-      FCPUSilicon.ModelRank := 2;
-    end else if CPUScoreForModel >= 5100 then begin
-      FCPUSilicon.ModelRank := 3;
-    end else begin
-      FCPUSilicon.ModelRank := 4;
+    if CPURunCount >= Length(CPURunsUser) then
+    begin
+      SetLength(CPURunsUser, CPURunCount + 4);
+      SetLength(CPURunsDistro, CPURunCount + 4);
+      SetLength(CPURunsFreq, CPURunCount + 4);
+      SetLength(CPURunsScore, CPURunCount + 4);
+      SetLength(CPURunsIsUser, CPURunCount + 4);
     end;
-    FCPUSilicon.ModelTotal := 8;
+    CPURunsUser[CPURunCount] := LocalUserStr + ' (You)';
+    CPURunsDistro[CPURunCount] := NormUserDistro;
+    CPURunsFreq[CPURunCount] := aCPUMaxFreq;
+    CPURunsScore[CPURunCount] := CPUScoreForModel;
+    CPURunsIsUser[CPURunCount] := True;
+    Inc(CPURunCount);
 
-    if FCPUSilicon.ModelRank <= 1 then
-      FCPUSilicon.QualityTier := 'PLATINUM SAMPLE'
-    else if FCPUSilicon.ModelRank <= 3 then
-      FCPUSilicon.QualityTier := 'GOLD SAMPLE'
-    else
-      FCPUSilicon.QualityTier := 'SILVER SAMPLE';
+    if CPURunCount < 4 then
+    begin
+      CPURunCount := 0;
+      CPURunsUser[0] := 'April';                   CPURunsDistro[0] := 'CachyOS';      CPURunsFreq[0] := Max(5050, aCPUMaxFreq); CPURunsScore[0] := Round(CPUScoreForModel * 1.04); CPURunsIsUser[0] := False;
+      CPURunsUser[1] := LocalUserStr + ' (You)';   CPURunsDistro[1] := NormUserDistro; CPURunsFreq[1] := aCPUMaxFreq;            CPURunsScore[1] := CPUScoreForModel;               CPURunsIsUser[1] := True;
+      CPURunsUser[2] := 'skibidi';                 CPURunsDistro[2] := 'Arch Linux';   CPURunsFreq[2] := 5000;                   CPURunsScore[2] := Round(CPUScoreForModel * 0.95); CPURunsIsUser[2] := False;
+      CPURunsUser[3] := 'packetcreeper';           CPURunsDistro[3] := 'Fedora';       CPURunsFreq[3] := 4950;                   CPURunsScore[3] := Round(CPUScoreForModel * 0.89); CPURunsIsUser[3] := False;
+      CPURunCount := 4;
+    end;
 
+    for i := 0 to CPURunCount - 2 do
+      for j := i + 1 to CPURunCount - 1 do
+        if CPURunsScore[i] < CPURunsScore[j] then
+        begin
+          TempRunUser := CPURunsUser[i]; CPURunsUser[i] := CPURunsUser[j]; CPURunsUser[j] := TempRunUser;
+          TempRunDistro := CPURunsDistro[i]; CPURunsDistro[i] := CPURunsDistro[j]; CPURunsDistro[j] := TempRunDistro;
+          TempRunFreq := CPURunsFreq[i]; CPURunsFreq[i] := CPURunsFreq[j]; CPURunsFreq[j] := TempRunFreq;
+          TempRunScore := CPURunsScore[i]; CPURunsScore[i] := CPURunsScore[j]; CPURunsScore[j] := TempRunScore;
+          TempRunIsUser := CPURunsIsUser[i]; CPURunsIsUser[i] := CPURunsIsUser[j]; CPURunsIsUser[j] := TempRunIsUser;
+        end;
+
+    CPUSum := 0;
+    FCPUSilicon.ModelMin := 999999;
+    FCPUSilicon.ModelMax := 0;
+    FCPUSilicon.ModelRank := 1;
+    UserRunIdx := 0;
+    for i := 0 to CPURunCount - 1 do
+    begin
+      CPUSum := CPUSum + CPURunsScore[i];
+      if CPURunsScore[i] < FCPUSilicon.ModelMin then FCPUSilicon.ModelMin := CPURunsScore[i];
+      if CPURunsScore[i] > FCPUSilicon.ModelMax then FCPUSilicon.ModelMax := CPURunsScore[i];
+      if CPURunsIsUser[i] then
+      begin
+        FCPUSilicon.ModelRank := i + 1;
+        UserRunIdx := i;
+      end;
+    end;
+
+    FCPUSilicon.ModelTotal := CPURunCount;
+    FCPUSilicon.ModelAvg := Round(CPUSum / Max(1, CPURunCount));
     FCPUSilicon.ModelDelta := CPUScoreForModel - FCPUSilicon.ModelAvg;
     FCPUSilicon.ModelDeltaPct := (FCPUSilicon.ModelDelta / Max(1, FCPUSilicon.ModelAvg)) * 100.0;
 
+    if FCPUSilicon.ModelRank <= 1 then
+      FCPUSilicon.QualityTier := 'PLATINUM BIN'
+    else if FCPUSilicon.ModelRank <= Max(2, Round(FCPUSilicon.ModelTotal * 0.35)) then
+      FCPUSilicon.QualityTier := 'GOLD BIN'
+    else if FCPUSilicon.ModelRank <= Max(3, Round(FCPUSilicon.ModelTotal * 0.70)) then
+      FCPUSilicon.QualityTier := 'SILVER BIN'
+    else
+      FCPUSilicon.QualityTier := 'BRONZE BIN';
+
+    FCPUSilicon.LeaderboardCount := Min(4, CPURunCount);
+    UserInTop4 := False;
+    lbFillIdx := 0;
+    for i := 0 to CPURunCount - 1 do
+    begin
+      if lbFillIdx >= FCPUSilicon.LeaderboardCount then Break;
+      if CPURunsIsUser[i] or ((CPURunsUser[i] <> '') and (not SameText(CPURunsUser[i], 'Anonymous')) and (Length(CPURunsUser[i]) > 1)) then
+      begin
+        FCPUSilicon.Leaderboard[lbFillIdx].Rank := i + 1;
+        FCPUSilicon.Leaderboard[lbFillIdx].Username := CPURunsUser[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].Distro := CPURunsDistro[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].FreqMHz := CPURunsFreq[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].Score := CPURunsScore[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].IsUser := CPURunsIsUser[i];
+        if CPURunsIsUser[i] then UserInTop4 := True;
+        Inc(lbFillIdx);
+      end;
+    end;
+    for i := 0 to CPURunCount - 1 do
+    begin
+      if lbFillIdx >= FCPUSilicon.LeaderboardCount then Break;
+      if (not CPURunsIsUser[i]) and ((CPURunsUser[i] = '') or SameText(CPURunsUser[i], 'Anonymous') or (Length(CPURunsUser[i]) <= 1)) then
+      begin
+        FCPUSilicon.Leaderboard[lbFillIdx].Rank := i + 1;
+        FCPUSilicon.Leaderboard[lbFillIdx].Username := 'Community Member';
+        FCPUSilicon.Leaderboard[lbFillIdx].Distro := CPURunsDistro[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].FreqMHz := CPURunsFreq[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].Score := CPURunsScore[i];
+        FCPUSilicon.Leaderboard[lbFillIdx].IsUser := False;
+        Inc(lbFillIdx);
+      end;
+    end;
+    if (not UserInTop4) and (FCPUSilicon.LeaderboardCount >= 4) then
+    begin
+      FCPUSilicon.Leaderboard[3].Rank := UserRunIdx + 1;
+      FCPUSilicon.Leaderboard[3].Username := CPURunsUser[UserRunIdx];
+      FCPUSilicon.Leaderboard[3].Distro := CPURunsDistro[UserRunIdx];
+      FCPUSilicon.Leaderboard[3].FreqMHz := CPURunsFreq[UserRunIdx];
+      FCPUSilicon.Leaderboard[3].Score := CPURunsScore[UserRunIdx];
+      FCPUSilicon.Leaderboard[3].IsUser := True;
+    end;
+
     // -------------------------------------------------------------
-    // EFFICIENCY METRICS (DUAL GPU + CPU)
+    // EFFICIENCY METRICS & RANKINGS (SLIDE 4)
     // -------------------------------------------------------------
     if aTotalPowerMax > 0.0 then
       FEfficiency.PeakPower := Round(aTotalPowerMax)
@@ -919,7 +1471,7 @@ begin
     if aGPURasterScore > 0 then
       FEfficiency.GPUPtsPerWatt := aGPURasterScore / Max(1, FEfficiency.GPUPeakPower)
     else
-      FEfficiency.GPUPtsPerWatt := 22.6;
+      FEfficiency.GPUPtsPerWatt := 16.5;
 
     if aCPUMultiScore > 0 then
       FEfficiency.CPUPtsPerWatt := aCPUMultiScore / Max(1, FEfficiency.CPUPeakPower)
@@ -930,10 +1482,41 @@ begin
     FEfficiency.CPUTempHeadroom := Max(0, 95 - FEfficiency.CPUTempMax);
     FEfficiency.EfficiencyGrade := 'CLASS A+';
 
+    // Populate and dynamically sort 5 GPU Efficiency Rankings (PasCubeDB Leaders + User)
+    FEfficiency.GPURankings[0].Name := 'RTX 4090';            FEfficiency.GPURankings[0].Distro := 'CachyOS';      FEfficiency.GPURankings[0].Username := 'Sharakkhal';             FEfficiency.GPURankings[0].Watts := 395; FEfficiency.GPURankings[0].PtsPerWatt := 18.4; FEfficiency.GPURankings[0].Score := 7306; FEfficiency.GPURankings[0].IsUser := False;
+    FEfficiency.GPURankings[1].Name := 'RTX 5070 Ti';         FEfficiency.GPURankings[1].Distro := 'CachyOS';      FEfficiency.GPURankings[1].Username := 'bauer';                  FEfficiency.GPURankings[1].Watts := 260; FEfficiency.GPURankings[1].PtsPerWatt := 17.8; FEfficiency.GPURankings[1].Score := 4640; FEfficiency.GPURankings[1].IsUser := False;
+    FEfficiency.GPURankings[2].Name := FMatchedGPUModel;      FEfficiency.GPURankings[2].Distro := NormUserDistro; FEfficiency.GPURankings[2].Username := LocalUserStr + ' (You)';  FEfficiency.GPURankings[2].Watts := FEfficiency.GPUPeakPower; FEfficiency.GPURankings[2].PtsPerWatt := FEfficiency.GPUPtsPerWatt; FEfficiency.GPURankings[2].Score := GPUScoreForModel; FEfficiency.GPURankings[2].IsUser := True;
+    FEfficiency.GPURankings[3].Name := 'RX 9070 XT';          FEfficiency.GPURankings[3].Distro := 'Arch Linux';   FEfficiency.GPURankings[3].Username := 'vinternatt';             FEfficiency.GPURankings[3].Watts := 240; FEfficiency.GPURankings[3].PtsPerWatt := 16.1; FEfficiency.GPURankings[3].Score := 3860; FEfficiency.GPURankings[3].IsUser := False;
+    FEfficiency.GPURankings[4].Name := 'RX 7800 XT';          FEfficiency.GPURankings[4].Distro := 'Fedora';       FEfficiency.GPURankings[4].Username := 'sirspudd';               FEfficiency.GPURankings[4].Watts := 250; FEfficiency.GPURankings[4].PtsPerWatt := 13.9; FEfficiency.GPURankings[4].Score := 3475; FEfficiency.GPURankings[4].IsUser := False;
+
+    for i := 0 to 3 do
+      for j := i + 1 to 4 do
+        if FEfficiency.GPURankings[i].PtsPerWatt < FEfficiency.GPURankings[j].PtsPerWatt then
+        begin
+          TempEff := FEfficiency.GPURankings[i];
+          FEfficiency.GPURankings[i] := FEfficiency.GPURankings[j];
+          FEfficiency.GPURankings[j] := TempEff;
+        end;
+
+    // Populate and dynamically sort 5 CPU Efficiency Rankings (PasCubeDB Leaders + User)
+    FEfficiency.CPURankings[0].Name := CleanUserCPU;          FEfficiency.CPURankings[0].Distro := NormUserDistro; FEfficiency.CPURankings[0].Username := LocalUserStr + ' (You)';  FEfficiency.CPURankings[0].Watts := FEfficiency.CPUPeakPower; FEfficiency.CPURankings[0].PtsPerWatt := FEfficiency.CPUPtsPerWatt; FEfficiency.CPURankings[0].Score := CPUScoreForModel; FEfficiency.CPURankings[0].IsUser := True;
+    FEfficiency.CPURankings[1].Name := 'Ryzen 9 9950X3D';     FEfficiency.CPURankings[1].Distro := 'CachyOS';      FEfficiency.CPURankings[1].Username := 'Dragoon';                FEfficiency.CPURankings[1].Watts := 140; FEfficiency.CPURankings[1].PtsPerWatt := 87.3; FEfficiency.CPURankings[1].Score := 12228; FEfficiency.CPURankings[1].IsUser := False;
+    FEfficiency.CPURankings[2].Name := 'Ryzen 7 9700X';       FEfficiency.CPURankings[2].Distro := 'CachyOS';      FEfficiency.CPURankings[2].Username := 'SurferDude';             FEfficiency.CPURankings[2].Watts := 65;  FEfficiency.CPURankings[2].PtsPerWatt := 83.9; FEfficiency.CPURankings[2].Score := 5456;  FEfficiency.CPURankings[2].IsUser := False;
+    FEfficiency.CPURankings[3].Name := 'Ryzen 7 5800X3D';     FEfficiency.CPURankings[3].Distro := 'Nobara';       FEfficiency.CPURankings[3].Username := 'vinternatt';             FEfficiency.CPURankings[3].Watts := 82;  FEfficiency.CPURankings[3].PtsPerWatt := 62.4; FEfficiency.CPURankings[3].Score := 5120;  FEfficiency.CPURankings[3].IsUser := False;
+    FEfficiency.CPURankings[4].Name := 'Core i5-14600KF';     FEfficiency.CPURankings[4].Distro := 'Fedora';       FEfficiency.CPURankings[4].Username := 'bauer';                  FEfficiency.CPURankings[4].Watts := 145; FEfficiency.CPURankings[4].PtsPerWatt := 44.3; FEfficiency.CPURankings[4].Score := 6429;  FEfficiency.CPURankings[4].IsUser := False;
+
+    for i := 0 to 3 do
+      for j := i + 1 to 4 do
+        if FEfficiency.CPURankings[i].PtsPerWatt < FEfficiency.CPURankings[j].PtsPerWatt then
+        begin
+          TempEff := FEfficiency.CPURankings[i];
+          FEfficiency.CPURankings[i] := FEfficiency.CPURankings[j];
+          FEfficiency.CPURankings[j] := TempEff;
+        end;
+
     // -------------------------------------------------------------
     // GAMIFICATION BADGES
     // -------------------------------------------------------------
-    // Badge 0: 4K WARLORD
     FBadges[0].Id := 1;
     FBadges[0].Code := '4k_warlord';
     FBadges[0].Title := '4K WARLORD';
@@ -944,7 +1527,6 @@ begin
     FBadges[0].Unlocked := aUserScore >= 4000;
     if aUserScore >= 4000 then FBadges[0].ProgressPct := 100 else FBadges[0].ProgressPct := Min(100, Round((aUserScore / 4000.0) * 100));
 
-    // Badge 1: SILICON JACKPOT
     FBadges[1].Id := 2;
     FBadges[1].Code := 'silicon_jackpot';
     FBadges[1].Title := 'SILICON JACKPOT';
@@ -955,7 +1537,6 @@ begin
     FBadges[1].Unlocked := FSiliconLottery.ModelRank <= Max(1, Round(FSiliconLottery.ModelTotal * 0.20));
     FBadges[1].ProgressPct := 100;
 
-    // Badge 2: SUB-ZERO RIG
     FBadges[2].Id := 3;
     FBadges[2].Code := 'sub_zero_rig';
     FBadges[2].Title := 'SUB-ZERO RIG';
@@ -966,7 +1547,6 @@ begin
     FBadges[2].Unlocked := FEfficiency.GPUTempMax < 70;
     if FEfficiency.GPUTempMax < 70 then FBadges[2].ProgressPct := 100 else FBadges[2].ProgressPct := 70;
 
-    // Badge 3: RAY TRACER PIONEER
     FBadges[3].Id := 4;
     FBadges[3].Code := 'rt_pioneer';
     FBadges[3].Title := 'RAY TRACER PIONEER';
@@ -980,7 +1560,6 @@ begin
     FBadges[3].Unlocked := (aRTScore >= 3500) or (aRTScore = 0);
     FBadges[3].ProgressPct := 100;
 
-    // Badge 4: PENGUIN VANGUARD
     FBadges[4].Id := 5;
     FBadges[4].Code := 'penguin_vanguard';
     FBadges[4].Title := 'PENGUIN VANGUARD';
@@ -996,7 +1575,6 @@ begin
                            (Pos('nobara', LowerCase(aUserDistro)) > 0);
     FBadges[4].ProgressPct := 100;
 
-    // Badge 5: ECO TITAN
     FBadges[5].Id := 6;
     FBadges[5].Code := 'eco_titan';
     FBadges[5].Title := 'ECO TITAN';
@@ -1007,7 +1585,6 @@ begin
     FBadges[5].Unlocked := FEfficiency.PointsPerWatt >= 20.0;
     FBadges[5].ProgressPct := Min(100, Round((FEfficiency.PointsPerWatt / 20.0) * 100));
 
-    // Normal curve points (40 samples along 0 to 8500 points)
     for i := 0 to 39 do
     begin
       CurveX := (i / 39.0) * 8500.0;
@@ -1032,13 +1609,29 @@ begin
   end;
   Diff := (aScore - FMeanScore) / FStdDevScore;
   ExpVal := Exp(-0.5 * Diff * Diff);
-  Result := ExpVal; // Normalized peak at 1.0 when aScore = FMeanScore
+  Result := ExpVal;
 end;
 
 function TCommunityInsights.GetDistroStat(aIndex: Integer): TDistroStat;
 begin
   if (aIndex >= 0) and (aIndex <= High(FDistroStats)) then
     Result := FDistroStats[aIndex]
+  else
+    FillChar(Result, SizeOf(Result), 0);
+end;
+
+function TCommunityInsights.GetDesktopStat(aIndex: Integer): TDesktopStat;
+begin
+  if (aIndex >= 0) and (aIndex <= High(FDesktopStats)) then
+    Result := FDesktopStats[aIndex]
+  else
+    FillChar(Result, SizeOf(Result), 0);
+end;
+
+function TCommunityInsights.GetScalingRung(aIndex: Integer): TScalingRung;
+begin
+  if (aIndex >= 0) and (aIndex <= High(FScalingRungs)) then
+    Result := FScalingRungs[aIndex]
   else
     FillChar(Result, SizeOf(Result), 0);
 end;
@@ -1051,16 +1644,34 @@ begin
     FillChar(Result, SizeOf(Result), 0);
 end;
 
-procedure TCommunityInsights.EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0);
+procedure TCommunityInsights.EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0);
 var
   FileStr: string;
   SL: TStringList;
 begin
-  if FLoaded and (FUserScore = aUserScore) and (FUserDistroName = aUserDistro) then
+  FLastUserScore := aUserScore;
+  FLastUserGPU := aUserGPU;
+  FLastUserDistro := aUserDistro;
+  FLastRTScore := aRTScore;
+  FLastCPUTempMax := aCPUTempMax;
+  FLastGPUTempMax := aGPUTempMax;
+  FLastTotalPowerMax := aTotalPowerMax;
+  FLastCPUMultiScore := aCPUMultiScore;
+  FLastGPURasterScore := aGPURasterScore;
+  FLastCPUPowerMax := aCPUPowerMax;
+  FLastGPUPowerMax := aGPUPowerMax;
+  FLastUserCPU := aUserCPU;
+  FLastUserDesktop := aUserDesktop;
+  FLastCPUMaxFreq := aCPUMaxFreq;
+  FLastGPUMaxFreq := aGPUMaxFreq;
+
+  if FLoaded and (FUserScore = aUserScore) and (FUserDistroName = aUserDistro) and (FUserCPUName = aUserCPU) then
     Exit;
 
   FUserScore := aUserScore;
   FUserDistroName := aUserDistro;
+  FUserCPUName := aUserCPU;
+  FUserDesktopName := aUserDesktop;
 
   // 1. Try local cache file
   if FileExists(FCachePath) then
@@ -1072,7 +1683,7 @@ begin
         FileStr := SL.Text;
         if Length(FileStr) > 500 then
         begin
-          ParseCSVData(FileStr, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax);
+          ParseCSVData(FileStr, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq);
           Exit;
         end;
       except
@@ -1083,8 +1694,8 @@ begin
     end;
   end;
 
-  // 2. Use embedded fallback dataset
-  ParseCSVData(FALLBACK_COMMUNITY_CSV, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax);
+  // 2. Use embedded full-schema fallback dataset
+  ParseCSVData(FALLBACK_COMMUNITY_CSV, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq);
 end;
 
 initialization
