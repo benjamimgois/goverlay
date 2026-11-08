@@ -520,6 +520,10 @@ begin
                 FileExists('/usr/local/share/vulkan/implicit_layer.d/vkBasalt.json') or
                 FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
                 FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+                FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
+                FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+                FileExists('/app/lib/extensions/vulkan/vkBasalt/manifest.json') or
+                FileExists('/app/lib/extensions/vulkan/vkBasalt/share/vulkan/implicit_layer.d/vkBasalt.json') or
                 FileExists('/usr/lib/libvkbasalt.so') or
                 FileExists('/usr/lib64/libvkbasalt.so') or
                 FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so');
@@ -564,8 +568,11 @@ begin
     LsfgUser := FileExists(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
                 FileExists(XdgLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
                 FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') or
+                FileExists(XdgLayerDir + 'VkLayer_LS_frame_generation.json') or
                 FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') or
-                FileExists(LocalLib + 'liblsfg-vk-layer.so');
+                FileExists(XdgLayerDir + 'VkLayer_LSFGVK.json') or
+                FileExists(LocalLib + 'liblsfg-vk-layer.so') or
+                FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/lsfgvk/liblsfg-vk-layer.so');
     LsfgOK := LsfgSystem or (LsfgUser and (IsLsfgVkInstalled or (Missing.IndexOf(DEP_LSFGVK) < 0)));
     LsfgVer := Self.GetLsfgVkVersion;
     while (LsfgVer <> '') and (LsfgVer[1] in ['v', 'V']) do
@@ -591,7 +598,8 @@ begin
     MakoUser := FileExists(UserLayerDir + 'VkLayer_MAKO_render.json') or
                 FileExists(XdgLayerDir + 'VkLayer_MAKO_render.json') or
                 FileExists(LocalLib + 'libmako-render.so') or
-                FileExists(LocalBin + 'mako-launch');
+                FileExists(LocalBin + 'mako-launch') or
+                FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako/libmako-render.so');
     MakoOK := MakoSystem or (MakoUser and (IsMakoInstalled or (Missing.IndexOf(DEP_MAKO) < 0)));
     MakoVer := Self.GetMakoVersion;
     while (MakoVer <> '') and (MakoVer[1] in ['v', 'V']) do
@@ -625,7 +633,8 @@ begin
     AfmfUser := FileExists(UserLayerDir + 'afmf-linux.json') or
                 FileExists(XdgLayerDir + 'afmf-linux.json') or
                 FileExists(LocalLib + 'libafmf.so') or
-                FileExists(LocalLib + 'afmf-linux/libafmf-linux.so');
+                FileExists(LocalLib + 'afmf-linux/libafmf-linux.so') or
+                FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf/libafmf-linux.so');
     AfmfOK := AfmfSystem or (AfmfUser and IsAfmfInstalled);
     AfmfVer := Self.GetAfmfVersion;
     while (AfmfVer <> '') and (AfmfVer[1] in ['v', 'V']) do
@@ -1233,13 +1242,95 @@ begin
   // No longer used (channel combo removed from Home tab)
 end;
 
+function ReadFlatpakExtensionVersion(const AExtName: string): string;
+var
+  BaseDirs: array[0..1] of string;
+  BaseDir, MetaPath, ManifestPath, Content: string;
+  i, p1, p2: Integer;
+  SL: TStringList;
+begin
+  Result := '';
+  BaseDirs[0] := '/app/lib/extensions/vulkan/' + AExtName + '/';
+  BaseDirs[1] := '/usr/lib/extensions/vulkan/' + AExtName + '/';
+
+  for i := 0 to High(BaseDirs) do
+  begin
+    BaseDir := BaseDirs[i];
+    if not DirectoryExists(BaseDir) then Continue;
+
+    // 1. Try reading metainfo.xml
+    MetaPath := BaseDir + 'share/metainfo/org.freedesktop.Platform.VulkanLayer.' + AExtName + '.metainfo.xml';
+    if not FileExists(MetaPath) then
+      MetaPath := BaseDir + 'share/metainfo/' + AExtName + '.metainfo.xml';
+
+    if FileExists(MetaPath) then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.LoadFromFile(MetaPath);
+        Content := SL.Text;
+        p1 := Pos('<release version="', Content);
+        if p1 > 0 then
+        begin
+          Inc(p1, Length('<release version="'));
+          p2 := PosEx('"', Content, p1);
+          if p2 > p1 then
+          begin
+            Result := Copy(Content, p1, p2 - p1);
+            Exit;
+          end;
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+
+    // 2. Try parsing manifest.json
+    ManifestPath := BaseDir + 'manifest.json';
+    if FileExists(ManifestPath) then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.LoadFromFile(ManifestPath);
+        Content := SL.Text;
+        p1 := Pos('/download/v', Content);
+        if p1 > 0 then
+        begin
+          Inc(p1, Length('/download/v'));
+          p2 := PosEx('/', Content, p1);
+          if p2 > p1 then
+          begin
+            Result := Copy(Content, p1, p2 - p1);
+            Exit;
+          end;
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+
+    // 3. Fallback: if extension directory exists and contains libraries
+    if FileExists(BaseDir + 'lib/x86_64-linux-gnu/lib' + AExtName + '.so') or
+       FileExists(BaseDir + 'lib/x86_64-linux-gnu/' + LowerCase(AExtName) + '/lib' + LowerCase(AExtName) + '.so') or
+       FileExists(BaseDir + 'manifest.json') then
+    begin
+      Result := 'installed';
+      Exit;
+    end;
+  end;
+end;
+
 function THomeTabHelper.GetMangoHudVersion: string;
 var
   P: TProcess;
   S: TStringList;
 begin
   Result := '';
-  if IsRunningInFlatpak then Exit;
+  if IsRunningInFlatpak then
+  begin
+    Result := ReadFlatpakExtensionVersion('MangoHud');
+    Exit;
+  end;
   P := TProcess.Create(nil);
   try
     P.Executable := FindDefaultExecutablePath('sh');
@@ -1263,7 +1354,11 @@ var
   S: TStringList;
 begin
   Result := '';
-  if IsRunningInFlatpak then Exit;
+  if IsRunningInFlatpak then
+  begin
+    Result := ReadFlatpakExtensionVersion('vkBasalt');
+    Exit;
+  end;
   P := TProcess.Create(nil);
   try
     P.Executable := FindDefaultExecutablePath('sh');

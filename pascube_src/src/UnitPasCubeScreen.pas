@@ -1305,17 +1305,24 @@ begin
       fCurrentResult := fHistory[0]
     else begin
       fCurrentResult.TotalScore := 4588;
-      fCurrentResult.DeviceName := 'AMD Radeon RX 7900 XTX (RADV NAVI31)';
+      if Assigned(pvApplication) and Assigned(pvApplication.VulkanDevice) and Assigned(pvApplication.VulkanDevice.PhysicalDevice) then
+        fCurrentResult.DeviceName := pvApplication.VulkanDevice.PhysicalDevice.DeviceName
+      else
+        fCurrentResult.DeviceName := 'Vulkan Graphics Device';
       fCurrentResult.PhaseResults[1].Score := 3679;
       fCurrentResult.PhaseResults[2].Score := 5428;
       fCurrentResult.PhaseResults[3].Score := 4973;
-      fCurrentResult.RTScore := 3696;
-      fCurrentResult.CPUMaxFreq := 5053;
-      fCurrentResult.GPUMaxFreq := 2482;
-      fCurrentResult.CPUTempMax := 83.5;
-      fCurrentResult.GPUTempMax := 66.0;
-      fCurrentResult.GPUPowerMax := 301.0;
-      fCurrentResult.CPUPowerMax := 81.0;
+      fCurrentResult.RTSupported := CheckRayTracingSupport;
+      if fCurrentResult.RTSupported then
+        fCurrentResult.RTScore := 3696
+      else
+        fCurrentResult.RTScore := 0;
+      fCurrentResult.CPUMaxFreq := GetCPUMaxFreq;
+      fCurrentResult.GPUMaxFreq := GetGPUMaxFreq;
+      fCurrentResult.CPUTempMax := 0.0;
+      fCurrentResult.GPUTempMax := 0.0;
+      fCurrentResult.GPUPowerMax := 0.0;
+      fCurrentResult.CPUPowerMax := 0.0;
       fCurrentResult.DriverVersion := GetDriverVersion;
       fCurrentResult.KernelVersion := GetKernelVersion;
       fCurrentResult.DesktopEnvironment := GetDesktopEnvironmentFull;
@@ -1333,7 +1340,8 @@ begin
                                     fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
                                     fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                     GetCPUName, GetDesktopEnvironmentFull,
-                                    fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq);
+                                    fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
+                                    GetKernelVersion);
       CommunityInsights.StartBackgroundSync;
     end;
   end;
@@ -2056,7 +2064,8 @@ begin
                                      fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
                                      fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                      GetCPUName, GetDesktopEnvironmentFull,
-                                     fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq);
+                                     fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
+                                     GetKernelVersion);
        CommunityInsights.StartBackgroundSync;
       end;
       result:=true;
@@ -3292,7 +3301,8 @@ begin
                                 fCurrentResult.PhaseResults[2].Score, fCurrentResult.PhaseResults[3].Score,
                                 fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                 GetCPUName, GetDesktopEnvironmentFull,
-                                fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq);
+                                fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
+                                GetKernelVersion);
   CommunityInsights.StartBackgroundSync;
  end;
 end;
@@ -4718,8 +4728,8 @@ begin
                          0.0, 0.0, 0.0, 0.0, 255.0);
 
   // Dialog box (100% solid Goverlay navy with 2px cyan border)
-  boxW := 68.0 * charWidth;
-  boxH := 26.0 * charHeight;
+  boxW := 78.0 * charWidth;
+  boxH := 26.5 * charHeight;
   boxX := cx - boxW * 0.5;
   boxY := cy - boxH * 0.5;
   app.TextOverlay.AddBox(boxX - 0.75, boxY - 0.75, boxW + 1.5, boxH + 1.5,
@@ -4737,7 +4747,7 @@ begin
                           0.0, 0.0, 0.0, 0.0,
                           1.0, 1.0, 1.0, 1.0);
 
-  textScale := 0.9;
+  textScale := 0.85;
   lineH := 1.1 * charHeight;
   lineY := boxY + 2.8 * charHeight;
 
@@ -6282,11 +6292,29 @@ begin
 end;
 
 function TPasCubeScreen.CleanGPUName(const aName: String): String;
+var
+  p: Integer;
 begin
  Result := aName;
- Result := StringReplace(Result, 'NVIDIA GeForce ', '', [rfReplaceAll]);
- Result := StringReplace(Result, 'AMD Radeon ', '', [rfReplaceAll]);
- Result := StringReplace(Result, ' (TM)', '', [rfReplaceAll]);
+ Result := StringReplace(Result, 'NVIDIA GeForce ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'NVIDIA ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'AMD Radeon(TM) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'AMD Radeon(tm) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'AMD Radeon ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'Radeon(TM) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'Radeon(tm) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'Intel(R) Arc(TM) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, 'Intel(R) ', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, ' (TM)', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, '(TM)', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, ' (R)', '', [rfReplaceAll, rfIgnoreCase]);
+ Result := StringReplace(Result, '(R)', '', [rfReplaceAll, rfIgnoreCase]);
+ p := Pos(' (RADV', Result);
+ if p > 0 then Result := Copy(Result, 1, p - 1);
+ p := Pos(' (LLVM', Result);
+ if p > 0 then Result := Copy(Result, 1, p - 1);
+ Result := Trim(Result);
+ if Result = '' then Result := aName;
 end;
 
 function TPasCubeScreen.GetKernelVersion: String;
@@ -7366,7 +7394,8 @@ begin
 
   // ================= RIGHT COLUMN: CPU SILICON LOTTERY =================
   cpuUserScore := fCurrentResult.PhaseResults[2].Score;
-  if cpuUserScore <= 0 then cpuUserScore := 5428;
+  if cpuUserScore <= 0 then cpuUserScore := fCurrentResult.PhaseResults[1].Score;
+  if cpuUserScore <= 0 then cpuUserScore := fCurrentResult.TotalScore;
   cpuMinScore := CommunityInsights.CPUSilicon.ModelMin;
   cpuMaxScore := CommunityInsights.CPUSilicon.ModelMax;
   cpuAvgScore := CommunityInsights.CPUSilicon.ModelAvg;
@@ -7738,7 +7767,7 @@ begin
       fillR := 71.0 / 255.0; fillG := 85.0 / 255.0; fillB := 105.0 / 255.0;
     end;
 
-    nameStr := '#' + IntToStr(i + 1) + '  ' + entry.Name + ' · ' + entry.Distro;
+    nameStr := '#' + IntToStr(i + 1) + '  ' + entry.Name + ' - ' + entry.Distro;
     if Length(nameStr) > 27 then nameStr := Copy(nameStr, 1, 27);
 
     if entry.IsUser then begin
@@ -7836,7 +7865,7 @@ begin
       fillR := 71.0 / 255.0; fillG := 85.0 / 255.0; fillB := 105.0 / 255.0;
     end;
 
-    nameStr := '#' + IntToStr(i + 1) + '  ' + entry.Name + ' · ' + entry.Distro;
+    nameStr := '#' + IntToStr(i + 1) + '  ' + entry.Name + ' - ' + entry.Distro;
     if Length(nameStr) > 27 then nameStr := Copy(nameStr, 1, 27);
 
     if entry.IsUser then begin
@@ -7931,7 +7960,7 @@ begin
                           1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
   app.TextOverlay.AddText(aX + aW - 2.5 * charWidth, aY + 2.35 * charHeight, 0.84, toaRight,
-                          CommunityInsights.MatchedGPUModel + ' · ' + FormatScoreValue(fCurrentResult.TotalScore) + ' PTS',
+                          CommunityInsights.MatchedGPUModel + ' - ' + FormatScoreValue(fCurrentResult.TotalScore) + ' PTS',
                           1.0, 1.0, 1.0, 0.0,
                           52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
 
@@ -8047,12 +8076,13 @@ var
   charWidth, charHeight: TpvFloat;
   colW, leftColW, rightColW, colY, colH, leftX, rightX: TpvFloat;
   rowH, itemY, barMaxWidth, barW, barY: TpvFloat;
-  i, count, deCount: Integer;
+  i, count, deCount, kernelCount: Integer;
   distro: TDistroStat;
   de: TDesktopStat;
-  titleStr, deLabelStr, stackLineStr: String;
-  badgeX, card1H, card2H, cardY, deRowY, deRowStep, segW1, segW2: TpvFloat;
-  userDesktopStr, userDriverStr, userKernelStr: String;
+  kernel: TKernelStat;
+  titleStr, deLabelStr, kernelLabelStr: String;
+  badgeX, card1H, card2H, cardY, deRowY, deRowStep, kernelRowY, kernelRowStep: TpvFloat;
+  userDesktopStr: String;
 begin
   app := UnitPasCubeApplication.Application;
   if not Assigned(app) then Exit;
@@ -8064,24 +8094,6 @@ begin
     if (userDesktopStr = '') or (userDesktopStr = 'N/D') then
       userDesktopStr := 'KDE Plasma';
   end;
-
-  userDriverStr := GetDriverVersion;
-  if (userDriverStr = '') or (userDriverStr = 'Unknown') or (userDriverStr = 'N/D') then
-  begin
-    userDriverStr := fCurrentResult.DriverVersion;
-    if (userDriverStr = '') or (userDriverStr = 'N/D') then
-      userDriverStr := 'Mesa RADV';
-  end;
-
-  userKernelStr := GetKernelVersion;
-  if (userKernelStr = '') or (userKernelStr = 'Unknown') or (userKernelStr = 'N/D') then
-  begin
-    userKernelStr := fCurrentResult.KernelVersion;
-    if (userKernelStr = '') or (userKernelStr = 'N/D') then
-      userKernelStr := 'Linux';
-  end;
-  if Pos('Kernel ', userKernelStr) = 1 then
-    userKernelStr := Copy(userKernelStr, 8, Length(userKernelStr));
 
   charWidth := app.TextOverlay.FontCharWidth;
   charHeight := app.TextOverlay.FontCharHeight;
@@ -8099,7 +8111,7 @@ begin
                           241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
 
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.35 * charHeight, 0.85, toaLeft,
-                          'Community OS adoption, desktop environments, and graphics stack share from PascubeDB',
+                          'Community OS adoption, desktop environments, and Linux kernel share from PascubeDB',
                           1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
@@ -8198,8 +8210,8 @@ begin
   end;
 
   // ================= RIGHT COLUMN: 2 MODERN VISUAL CARDS =================
-  card1H := colH * 0.54;
-  card2H := colH - card1H - 12.0;
+  card1H := (colH - 12.0) * 0.50;
+  card2H := (colH - 12.0) * 0.50;
   barMaxWidth := rightColW - 2.8 * charWidth;
 
   // CARD 1: DESKTOP ENVIRONMENTS (TOP 4 FROM PASCUBEDB)
@@ -8237,7 +8249,7 @@ begin
                               226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
 
     app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, deRowY, 0.72, toaRight,
-                            FloatToStrF(de.Percent, ffFixed, 7, 1) + '%  ·  ' + FormatScoreValue(de.AvgScore) + ' pts',
+                            FloatToStrF(de.Percent, ffFixed, 7, 1) + '%  -  ' + FormatScoreValue(de.AvgScore) + ' pts',
                             1.0, 1.0, 1.0, 0.0,
                             203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
 
@@ -8252,57 +8264,55 @@ begin
                              129.0 / 255.0, 140.0 / 255.0, 248.0 / 255.0, 0.88 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
   end;
 
-  // CARD 2: DISPLAY PROTOCOL & GRAPHICS DRIVER SHARE
+  // CARD 2: LINUX KERNEL VERSIONS (TOP 4 FROM PASCUBEDB)
   cardY := cardY + card1H + 12.0;
   app.TextOverlay.AddBox(rightX, cardY, rightColW, card2H,
                          14.0 / 255.0, 18.0 / 255.0, 28.0 / 255.0, 0.95 * aAlpha,
                          45.0 / 255.0, 55.0 / 255.0, 75.0 / 255.0, 0.8 * aAlpha, 255.0);
   app.TextOverlay.AddText(rightX + 1.4 * charWidth, cardY + 0.60 * charHeight, 0.85, toaLeft,
-                          'DISPLAY & GRAPHICS STACK SHARE', 1.0, 1.0, 1.0, 0.0,
+                          'LINUX KERNEL VERSIONS (PASCUBEDB)', 1.0, 1.0, 1.0, 0.0,
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+  app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, cardY + 0.65 * charHeight, 0.68, toaRight,
+                          'SHARE / AVG SCORE', 1.0, 1.0, 1.0, 0.0,
+                          148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
-  // Segmented Bar 1: Wayland vs X11
-  barY := cardY + 1.80 * charHeight;
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, barY, 0.72, toaLeft,
-                          'Wayland  ' + FloatToStrF(CommunityInsights.StackShare.WaylandPct, ffFixed, 7, 1) + '%',
-                          1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
-  app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, barY, 0.72, toaRight,
-                          'X11 / XWayland  ' + FloatToStrF(CommunityInsights.StackShare.X11Pct, ffFixed, 7, 1) + '%',
-                          1.0, 1.0, 1.0, 0.0, 192.0 / 255.0, 132.0 / 255.0, 252.0 / 255.0, aAlpha);
+  kernelCount := Min(4, CommunityInsights.KernelCount);
+  if kernelCount <= 0 then kernelCount := 1;
+  kernelRowStep := (card2H - 1.85 * charHeight) / kernelCount;
 
-  segW1 := (CommunityInsights.StackShare.WaylandPct / 100.0) * (barMaxWidth - 4.0);
-  segW2 := (barMaxWidth - 4.0) - segW1;
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY + 0.88 * charHeight, segW1, 16.0,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + segW1 + 4.0, barY + 0.88 * charHeight, Max(4.0, segW2), 16.0,
-                         168.0 / 255.0, 85.0 / 255.0, 247.0 / 255.0, 0.90 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  for i := 0 to kernelCount - 1 do begin
+    kernel := CommunityInsights.KernelStats[i];
+    kernelRowY := cardY + 1.75 * charHeight + (i * kernelRowStep);
 
-  // Segmented Bar 2: Mesa Open-Source vs NVIDIA Proprietary
-  barY := barY + 2.45 * charHeight;
-  app.TextOverlay.AddText(rightX + 1.4 * charWidth, barY, 0.72, toaLeft,
-                          'Mesa (RADV / ANV)  ' + FloatToStrF(CommunityInsights.StackShare.MesaPct, ffFixed, 7, 1) + '%',
-                          1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
-  app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, barY, 0.72, toaRight,
-                          'NVIDIA Proprietary  ' + FloatToStrF(CommunityInsights.StackShare.NvidiaPct, ffFixed, 7, 1) + '%',
-                          1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+    if kernel.IsCurrentKernel then
+      kernelLabelStr := kernel.Name + ' (Your Kernel)'
+    else
+      kernelLabelStr := kernel.Name;
 
-  segW1 := (CommunityInsights.StackShare.MesaPct / 100.0) * (barMaxWidth - 4.0);
-  segW2 := (barMaxWidth - 4.0) - segW1;
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, barY + 0.88 * charHeight, segW1, 16.0,
-                         52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth + segW1 + 4.0, barY + 0.88 * charHeight, Max(4.0, segW2), 16.0,
-                         251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, 0.90 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    if kernel.IsCurrentKernel then
+      app.TextOverlay.AddText(rightX + 1.4 * charWidth, kernelRowY, 0.74, toaLeft,
+                              kernelLabelStr, 1.0, 1.0, 1.0, 0.0,
+                              56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha)
+    else
+      app.TextOverlay.AddText(rightX + 1.4 * charWidth, kernelRowY, 0.72, toaLeft,
+                              kernelLabelStr, 1.0, 1.0, 1.0, 0.0,
+                              226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
 
-  // Active User Software Stack Pill
-  stackLineStr := userDesktopStr + '  ·  ' + userDriverStr + '  ·  Kernel ' + userKernelStr;
-  if Length(stackLineStr) > 54 then
-    stackLineStr := Copy(stackLineStr, 1, 54);
-  app.TextOverlay.AddBox(rightX + 1.4 * charWidth, cardY + card2H - 2.45 * charHeight, barMaxWidth, 1.85 * charHeight,
-                         10.0 / 255.0, 14.0 / 255.0, 23.0 / 255.0, 0.92 * aAlpha,
-                         56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.65 * aAlpha, 255.0);
-  app.TextOverlay.AddText(rightX + rightColW * 0.5, cardY + card2H - 1.92 * charHeight, 0.68, toaCenter,
-                          stackLineStr, 1.0, 1.0, 1.0, 0.0,
-                          203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+    app.TextOverlay.AddText(rightX + rightColW - 1.4 * charWidth, kernelRowY, 0.72, toaRight,
+                            FloatToStrF(kernel.Percent, ffFixed, 7, 1) + '%  -  ' + FormatScoreValue(kernel.AvgScore) + ' pts',
+                            1.0, 1.0, 1.0, 0.0,
+                            203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+
+    app.TextOverlay.AddBox(rightX + 1.4 * charWidth, kernelRowY + 0.88 * charHeight, barMaxWidth, 12.0,
+                           24.0 / 255.0, 32.0 / 255.0, 48.0 / 255.0, 0.85 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+    barW := Max(5.0, (kernel.Percent / 100.0) * barMaxWidth);
+    if kernel.IsCurrentKernel then
+      app.TextOverlay.AddBox(rightX + 1.4 * charWidth, kernelRowY + 0.88 * charHeight, barW, 12.0,
+                             56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.95 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0)
+    else
+      app.TextOverlay.AddBox(rightX + 1.4 * charWidth, kernelRowY + 0.88 * charHeight, barW, 12.0,
+                             52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, 0.88 * aAlpha, 0.0, 0.0, 0.0, 0.0, 255.0);
+  end;
 
   // Bottom Footer
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + aH - 0.8 * charHeight, 0.72, toaLeft,

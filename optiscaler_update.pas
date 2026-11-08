@@ -3795,11 +3795,11 @@ begin
       end;
     end;
 
-    // 3. Sanitize MAKO implicit layers: check if library is missing or running in Flatpak
+    // 3. Sanitize MAKO implicit layers: check if library is missing
     if FileExists(CandidateDir + 'VkLayer_MAKO_render.json') then
     begin
-      if IsRunningInFlatpak or
-         ((not FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so')) and
+      if ((not FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so')) and
+          (not FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako/libmako-render.so')) and
           (not FileExists('/usr/lib/libmako-render.so')) and
           (not FileExists('/usr/lib/x86_64-linux-gnu/libmako-render.so')) and
           (not FileExists('/usr/lib64/libmako-render.so'))) then
@@ -5384,6 +5384,10 @@ begin
     FileExists('/usr/local/share/vulkan/implicit_layer.d/vkBasalt.json') or
     FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
     FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+    FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') or
+    FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') or
+    FileExists('/app/lib/extensions/vulkan/vkBasalt/manifest.json') or
+    FileExists('/app/lib/extensions/vulkan/vkBasalt/share/vulkan/implicit_layer.d/vkBasalt.json') or
     FileExists('/usr/lib/libvkbasalt.so') or
     FileExists('/usr/lib64/libvkbasalt.so') or
     FileExists('/usr/lib/x86_64-linux-gnu/libvkbasalt.so');
@@ -5728,6 +5732,10 @@ begin
     if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
        not FileExists(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi') then
       AMissingList.Add('OptiPatcher (OptiScaler ASI plugin)');
+
+    // DLSS-NR model weights
+    if not IsDlssNrInstalled then
+      AMissingList.Add('DLSS-NR models');
   end;
 
   // DLSS Enabler
@@ -5758,7 +5766,7 @@ begin
   // vkBasalt
   if TConfigManager.IsModuleEnabled(MODULE_VKBASALT) then
   begin
-    if not IsVkBasaltInstalled and not IsRunningInFlatpak then
+    if not IsVkBasaltInstalled then
       AMissingList.Add('vkBasalt Vulkan layer');
     if not DirectoryExists(IncludeTrailingPathDelimiter(GetVkBasaltConfigDir) + 'reshade-shaders') then
       AMissingList.Add('vkBasalt ReShade Shaders');
@@ -5767,28 +5775,28 @@ begin
   // vkSumi
   if TConfigManager.IsModuleEnabled(MODULE_VKSUMI) then
   begin
-    if not IsVkSumiInstalled and not IsRunningInFlatpak then
+    if not IsVkSumiInstalled then
       AMissingList.Add('vkSumi Vulkan layer');
   end;
 
   // AFMF
   if TConfigManager.IsModuleEnabled(MODULE_AFMF) then
   begin
-    if not IsAfmfInstalled and not IsRunningInFlatpak then
+    if not IsAfmfInstalled then
       AMissingList.Add('afmf-linux layer');
   end;
 
   // lsfg-vk
   if TConfigManager.IsModuleEnabled(MODULE_LSFGVK) then
   begin
-    if not IsLsfgVkInstalled and not IsRunningInFlatpak then
+    if not IsLsfgVkInstalled then
       AMissingList.Add('lsfg-vk layer');
   end;
 
   // MAKO
   if TConfigManager.IsModuleEnabled(MODULE_MAKO) then
   begin
-    if not IsMakoInstalled and not IsRunningInFlatpak then
+    if not IsMakoInstalled then
       AMissingList.Add('MAKO layer');
   end;
 
@@ -6636,16 +6644,6 @@ begin
   StartPct := 70;
   EndPct := 95;
 
-  // In Flatpak, skip downloading; layer cannot and should not be written to host
-  if IsRunningInFlatpak then
-  begin
-    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping vkSumi host layer installation');
-    if Assigned(AOnProgress) then
-      AOnProgress(EndPct, 'vkSumi runtime ready');
-    Result := True;
-    Exit;
-  end;
-
   ChanLabel := 'Checking vkSumi runtime';
 
   LayersDir := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vksumi' + PathDelim;
@@ -6969,16 +6967,6 @@ begin
   StartPct := 70;
   EndPct := 95;
 
-  // In Flatpak, skip downloading; layer cannot and should not be written to host
-  if IsRunningInFlatpak then
-  begin
-    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping vkNemu host layer installation');
-    if Assigned(AOnProgress) then
-      AOnProgress(EndPct, 'vkNemu runtime ready');
-    Result := True;
-    Exit;
-  end;
-
   ChanLabel := 'Checking vkNemu runtime';
 
   LayersDir := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers' + PathDelim + 'vknemu' + PathDelim;
@@ -7276,15 +7264,18 @@ end;
 
 function IsMakoInstalled: Boolean;
 var
-  LocalLayer: string;
+  LocalLayer, XdgLayer: string;
 begin
   LocalLayer := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json';
+  XdgLayer := GetUserVulkanImplicitDir + 'VkLayer_MAKO_render.json';
   Result := FileExists(LocalLayer) or
+            FileExists(XdgLayer) or
             FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
             FileExists('/etc/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
             FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_MAKO_render.json') or
             (FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/bin/mako-launch') and
-             FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so'));
+             FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so')) or
+            FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako/libmako-render.so');
 end;
 
 function GetMakoLibraryPath: string;
@@ -7292,6 +7283,9 @@ var
   Candidate: string;
 begin
   Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako/libmako-render.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
   Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/libmako-render.so';
   if FileExists(Candidate) then Exit(Candidate);
 
@@ -7494,16 +7488,6 @@ begin
   StartPct := 75;
   EndPct := 95;
 
-  // In Flatpak, skip downloading; layer cannot and should not be written to host
-  if IsRunningInFlatpak then
-  begin
-    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping MAKO host layer installation');
-    if Assigned(AOnProgress) then
-      AOnProgress(EndPct, 'MAKO runtime ready');
-    Result := True;
-    Exit;
-  end;
-
   ChanLabel := 'Checking MAKO runtime';
 
   if not AForce and IsMakoInstalled then
@@ -7601,12 +7585,14 @@ begin
           Process.Executable := '/bin/sh';
           Process.Parameters.Add('-c');
           Process.Parameters.Add(
-            'mkdir -p "$HOME/.local/bin" "$HOME/.local/lib" "$HOME/.local/lib32" "$HOME/.local/share/vulkan/implicit_layer.d" "$HOME/.local/share/mako-render"; ' +
+            'mkdir -p "$HOME/.local/bin" "$HOME/.local/lib" "$HOME/.local/lib32" "$HOME/.local/share/vulkan/implicit_layer.d" "$HOME/.local/share/mako-render" "' + IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako" "' + GetUserVulkanImplicitDir + '"; ' +
             'cp -rf "' + TempExtractDir + '"bin/* "$HOME/.local/bin/" 2>/dev/null; ' +
             'chmod +x "$HOME/.local/bin/mako"* 2>/dev/null; ' +
             'cp -rf "' + TempExtractDir + '"lib/* "$HOME/.local/lib/" 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"lib/* "' + IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/mako/" 2>/dev/null; ' +
             'cp -rf "' + TempExtractDir + '"lib32/* "$HOME/.local/lib32/" 2>/dev/null; ' +
             'cp -rf "' + TempExtractDir + '"share/vulkan/implicit_layer.d/* "$HOME/.local/share/vulkan/implicit_layer.d/" 2>/dev/null; ' +
+            'cp -rf "' + TempExtractDir + '"share/vulkan/implicit_layer.d/* "' + GetUserVulkanImplicitDir + '" 2>/dev/null; ' +
             'cp -rf "' + TempExtractDir + '"*.txt "' + TempExtractDir + '"*.json "$HOME/.local/share/mako-render/" 2>/dev/null; ' +
             'if [ ! -f "$HOME/.local/share/mako-render/active-renderer.json" ]; then ' +
             '  echo "{\"schema_version\":1,\"owner\":\"standalone\",\"version\":\"' + RemoteVer + '\"}" > "$HOME/.local/share/mako-render/active-renderer.json"; ' +
@@ -7789,24 +7775,29 @@ end;
 
 function IsLsfgVkInstalled: Boolean;
 var
-  HomeDir, UserLayerDir: string;
+  HomeDir, UserLayerDir, XdgLayerDir: string;
 begin
   EnsureUserLsfgVkManifestsPatched;
 
   HomeDir := GetUserDir;
   UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
+  XdgLayerDir := GetUserVulkanImplicitDir;
 
   Result := FileExists(UserLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
+            FileExists(XdgLayerDir + 'VkLayer_LSFGVK_frame_generation.json') or
             FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
             FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
             FileExists('/usr/local/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
             FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') or
             FileExists(UserLayerDir + 'VkLayer_LS_frame_generation.json') or
+            FileExists(XdgLayerDir + 'VkLayer_LS_frame_generation.json') or
             FileExists(UserLayerDir + 'VkLayer_LSFGVK.json') or
+            FileExists(XdgLayerDir + 'VkLayer_LSFGVK.json') or
             FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') or
             FileExists('/usr/share/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') or
             FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LS_frame_generation.json') or
-            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json');
+            FileExists('/etc/vulkan/implicit_layer.d/VkLayer_LSFGVK.json') or
+            FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/lsfgvk/liblsfg-vk-layer.so');
 end;
 
 function GetLsfgVkLibraryPath: string;
@@ -7814,6 +7805,9 @@ var
   Candidate: string;
 begin
   Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/lsfgvk/liblsfg-vk-layer.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
   Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/liblsfg-vk-layer.so';
   if FileExists(Candidate) then Exit(Candidate);
 
@@ -8085,8 +8079,8 @@ begin
   StartPct := 85;
   EndPct := 98;
 
-  // In Flatpak, skip downloading; layer is provided via Flathub extension
-  if IsRunningInFlatpak then
+  // In Flatpak, skip downloading only if extension is present
+  if IsRunningInFlatpak and FileExists('/app/lib/extensions/vulkan/lsfgvk/share/vulkan/implicit_layer.d/VkLayer_LSFGVK_frame_generation.json') then
   begin
     WriteLn('[AUTO-INSTALL] Flatpak environment detected; lsfg-vk is managed via VulkanLayer extension');
     if Assigned(AOnProgress) then
@@ -8189,16 +8183,20 @@ end;
 
 function IsAfmfInstalled: Boolean;
 var
-  HomeDir, UserLayerDir: string;
+  HomeDir, UserLayerDir, XdgLayerDir: string;
 begin
   HomeDir := GetUserDir;
   UserLayerDir := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/vulkan/implicit_layer.d/';
+  XdgLayerDir := GetUserVulkanImplicitDir;
 
   Result := FileExists(UserLayerDir + 'afmf-linux.json') or
+            FileExists(XdgLayerDir + 'afmf-linux.json') or
             FileExists('/usr/share/vulkan/implicit_layer.d/afmf-linux.json') or
             FileExists('/usr/local/share/vulkan/implicit_layer.d/afmf-linux.json') or
             FileExists('/etc/vulkan/implicit_layer.d/afmf-linux.json') or
-            FileExists('/app/share/vulkan/implicit_layer.d/afmf-linux.json');
+            FileExists('/app/share/vulkan/implicit_layer.d/afmf-linux.json') or
+            FileExists(IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/afmf-linux/libafmf-linux.so') or
+            FileExists(IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf/libafmf-linux.so');
 end;
 
 function GetAfmfLibraryPath: string;
@@ -8206,6 +8204,9 @@ var
   Candidate: string;
 begin
   Result := '';
+  Candidate := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf/libafmf-linux.so';
+  if FileExists(Candidate) then Exit(Candidate);
+
   Candidate := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/afmf-linux/libafmf-linux.so';
   if FileExists(Candidate) then Exit(Candidate);
 
@@ -8432,15 +8433,6 @@ begin
   StartPct := 88;
   EndPct := 94;
 
-  if IsRunningInFlatpak then
-  begin
-    WriteLn('[AUTO-INSTALL] Flatpak environment detected; skipping afmf-linux user layer installation');
-    if Assigned(AOnProgress) then
-      AOnProgress(EndPct, 'AFMF Flatpak layer check ready');
-    Result := True;
-    Exit;
-  end;
-
   if not AForce and IsAfmfInstalled then
   begin
     WriteLn('[AUTO-INSTALL] afmf-linux layer is already available');
@@ -8516,16 +8508,20 @@ begin
       // Ensure destination files exist; fallback manual install if install.sh did not complete
       LocalLibDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/lib/afmf-linux/';
       LocalLayerDir := IncludeTrailingPathDelimiter(GetUserDir) + '.local/share/vulkan/implicit_layer.d/';
-      if not FileExists(LocalLibDir + 'libafmf-linux.so') or not FileExists(LocalLayerDir + 'afmf-linux.json') then
+      if not FileExists(LocalLibDir + 'libafmf-linux.so') or not FileExists(LocalLayerDir + 'afmf-linux.json') or
+         not FileExists(GetUserVulkanImplicitDir + 'afmf-linux.json') then
       begin
         Process := TProcess.Create(nil);
         try
           Process.Executable := FindDefaultExecutablePath('sh');
           Process.Parameters.Add('-c');
-          Process.Parameters.Add('mkdir -p "' + LocalLibDir + '" "' + LocalLayerDir + '" && ' +
+          Process.Parameters.Add('mkdir -p "' + LocalLibDir + '" "' + LocalLayerDir + '" "' + GetUserVulkanImplicitDir + '" "' + IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf" && ' +
                                  'find "' + TempExtractDir + '" -name "libafmf-linux.so" -exec cp -f {} "' + LocalLibDir + '" \; && ' +
+                                 'find "' + TempExtractDir + '" -name "libafmf-linux.so" -exec cp -f {} "' + IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf/" \; && ' +
                                  'find "' + TempExtractDir + '" -name "afmf-linux.json" -exec cp -f {} "' + LocalLayerDir + '" \; && ' +
-                                 'sed -i "s|\"library_path\": *\"[^\"]*\"|\"library_path\": \"' + LocalLibDir + 'libafmf-linux.so\"|" "' + LocalLayerDir + 'afmf-linux.json" 2>/dev/null; true');
+                                 'find "' + TempExtractDir + '" -name "afmf-linux.json" -exec cp -f {} "' + GetUserVulkanImplicitDir + '" \; && ' +
+                                 'sed -i "s|\"library_path\": *\"[^\"]*\"|\"library_path\": \"' + LocalLibDir + 'libafmf-linux.so\"|" "' + LocalLayerDir + 'afmf-linux.json" 2>/dev/null; ' +
+                                 'sed -i "s|\"library_path\": *\"[^\"]*\"|\"library_path\": \"' + IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'layers/afmf/libafmf-linux.so\"|" "' + GetUserVulkanImplicitDir + 'afmf-linux.json" 2>/dev/null; true');
           Process.Options := [poWaitOnExit];
           Process.Execute;
         finally

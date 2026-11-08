@@ -11,7 +11,7 @@ goverlay: *.pas *.lfm goverlay.lpi goverlay.lpr goverlay.ico
 
 pascube: pascube_src/pascube.lpi pascube_src/pascube.lpr $(wildcard pascube_src/src/*.pas)
 	lazbuild -B pascube_src/pascube.lpi $(LAZBUILDOPTS)
-	cp pascube_src/pascube ./pascube
+	cp --remove-destination pascube_src/pascube ./pascube
 
 bgmod-splash: bgmod_splash_src/bgmod_splash.lpi bgmod_splash_src/bgmod_splash.lpr bgmod_splash_src/splash_form.pas
 	lazbuild -B bgmod_splash_src/bgmod_splash.lpi $(LAZBUILDOPTS)

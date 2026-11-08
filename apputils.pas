@@ -470,10 +470,18 @@ begin
   if IsRunningInFlatpak then
   begin
     if not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/x86_64-linux-gnu/libMangoHud.so') and
-       not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') then
+       not FileExists('/usr/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') and
+       not FileExists('/app/lib/extensions/vulkan/MangoHud/lib/x86_64-linux-gnu/libMangoHud.so') and
+       not FileExists('/app/lib/extensions/vulkan/MangoHud/lib/i386-linux-gnu/libMangoHud.so') and
+       not FileExists('/app/lib/extensions/vulkan/MangoHud/manifest.json') and
+       not FileExists('/app/lib/extensions/vulkan/MangoHud/share/vulkan/implicit_layer.d/MangoHud.x86_64.json') then
       Missing.Add(DEP_MANGOHUD_RUNTIME);
     if not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') and
-       not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') then
+       not FileExists('/usr/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') and
+       not FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/x86_64-linux-gnu/vkbasalt/libvkbasalt.so') and
+       not FileExists('/app/lib/extensions/vulkan/vkBasalt/lib/i386-linux-gnu/vkbasalt/libvkbasalt.so') and
+       not FileExists('/app/lib/extensions/vulkan/vkBasalt/manifest.json') and
+       not FileExists('/app/lib/extensions/vulkan/vkBasalt/share/vulkan/implicit_layer.d/vkBasalt.json') then
       Missing.Add(DEP_VKBASALT_RUNTIME);
     if not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/x86_64-linux-gnu/libVkLayer_vksumi.so') and
        not FileExists('/usr/lib/extensions/vulkan/vkSumi/lib/i386-linux-gnu/libVkLayer_vksumi.so') and

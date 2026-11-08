@@ -188,6 +188,7 @@ type
     procedure TestScopedHasMissingMandatoryLibraries;
     procedure TestUninstallUserModulesAndLayers;
     procedure TestCleanProfileDefaultsUpscalerToNone;
+    procedure TestFlatpakLayerAndExtensionDetection;
   end;
 
 implementation
@@ -4064,6 +4065,58 @@ begin
     LoadOptiScalerConfig('NonExistentCleanProfile999', Settings));
   AssertEquals('Clean profile defaults to None (UpscalerTypeItemIndex = 2)',
     2, Settings.UpscalerTypeItemIndex);
+end;
+
+procedure TGoverlayLogicTests.TestFlatpakLayerAndExtensionDetection;
+var
+  DataPath, LayerDir, SoFile, JsonFile: string;
+  F: TextFile;
+begin
+  DataPath := IncludeTrailingPathDelimiter(GetGOverlayDataPath);
+  LayerDir := GetUserVulkanImplicitDir;
+
+  // 1. Verify sandboxed vkSumi detection
+  ForceDirectories(DataPath + 'layers' + PathDelim + 'vksumi');
+  ForceDirectories(LayerDir);
+  SoFile := DataPath + 'layers' + PathDelim + 'vksumi' + PathDelim + 'libVkLayer_vksumi.so';
+  JsonFile := LayerDir + 'vksumi.json';
+
+  AssignFile(F, SoFile);
+  Rewrite(F);
+  // Write minimal ELF magic and pad past minimum size (65536 bytes) so IsValidSharedLibrary passes
+  Write(F, #$7F + 'ELF' + StringOfChar(#0, 65540));
+  CloseFile(F);
+
+  AssignFile(F, JsonFile);
+  Rewrite(F);
+  WriteLn(F, '{"file_format_version": "1.0.0"}');
+  CloseFile(F);
+
+  AssertTrue('vkSumi detected via sandboxed data path', IsVkSumiInstalled);
+
+  // 2. Verify sandboxed MAKO detection
+  ForceDirectories(DataPath + 'layers' + PathDelim + 'mako');
+  SoFile := DataPath + 'layers' + PathDelim + 'mako' + PathDelim + 'libmako-render.so';
+  AssignFile(F, SoFile);
+  Rewrite(F);
+  Write(F, #$7F + 'ELF');
+  CloseFile(F);
+
+  AssertTrue('MAKO detected via sandboxed data path', IsMakoInstalled);
+
+  // 3. Verify sandboxed AFMF detection
+  ForceDirectories(DataPath + 'layers' + PathDelim + 'afmf');
+  SoFile := DataPath + 'layers' + PathDelim + 'afmf' + PathDelim + 'libafmf-linux.so';
+  AssignFile(F, SoFile);
+  Rewrite(F);
+  Write(F, #$7F + 'ELF');
+  CloseFile(F);
+
+  AssertTrue('AFMF detected via sandboxed data path', IsAfmfInstalled);
+
+  // Clean up
+  DeleteFile(SoFile);
+  DeleteFile(JsonFile);
 end;
 
 initialization

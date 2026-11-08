@@ -3874,8 +3874,8 @@ begin
   end;
 
   //Program Version
-  GVERSION := '1.9.5';
-  GCHANNEL := 'git'; //stable ou git
+  GVERSION := '2.0.0 RC1';
+  GCHANNEL := 'stable'; //stable ou git
 
   // Initialize bgmod directory with embedded scripts
   // This ensures bgmod scripts are always available without downloading
@@ -11368,6 +11368,7 @@ begin
       CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
       CheckAndInstallOptiPatcher(False, @OnDownloadProgress, FFailedFiles);                // OptiPatcher ASI plugin
       CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
+      CheckAndInstallDlssNr('', False, @OnDownloadProgress, FFailedFiles);                 // Central DLSS-NR model weights
     end;
 
     if TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER) then
@@ -11397,7 +11398,7 @@ begin
     if TConfigManager.IsModuleEnabled(MODULE_AFMF) then
       CheckAndInstallAfmf(False, @OnDownloadProgress);                      // afmf-linux layer (88% - 90%)
 
-    if not IsRunningInFlatpak and (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
+    if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
       CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
 
     CleanupUnsolicitedDesktopFiles;
