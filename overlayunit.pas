@@ -11735,6 +11735,8 @@ begin
        FBenchmarkWasRunning := False;
        DbgLog('BenchmarkTimerTick: pascube terminated. Results shown in PasCube overlay.');
        CopyPasCubeLogs;
+       if Assigned(FHomeHelper) then
+         THomeTabHelper(FHomeHelper).RefreshUserNickname;
      end
      else
      begin

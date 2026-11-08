@@ -13,10 +13,12 @@ type
   THomeTabHelper = class
   private
     FForm: Tgoverlayform;
+    FNicknameLbl: TLabel;
   public
     constructor Create(AForm: Tgoverlayform);
     procedure InitHomeTab;
     procedure ShowHomeTab(Sender: TObject = nil);
+    procedure RefreshUserNickname;
     procedure RefreshHomeModuleStatus;
     procedure RefreshHomeOptiStatus;
     procedure RefreshHomeMakoStatus;
@@ -310,6 +312,7 @@ begin
         end;
         6:
         begin
+          FNicknameLbl := Lbl;
           IconFile := 'data/icons/system/user.png';
           if GetUserNickname <> '' then
             Lbl.Caption := 'Pascube nickname: ' + GetUserNickname + '  [click to edit]'
@@ -435,6 +438,7 @@ begin
       FFADock.UpdateForTab(False, False, False, False);
 
     // Refresh all home tab sections
+    Self.RefreshUserNickname;
     Self.RefreshHomeOptiStatus;
     Self.RefreshHomeModuleStatus;
     Self.RefreshHomeDeps;
@@ -1682,13 +1686,23 @@ begin
   end;
 end;
 
+procedure THomeTabHelper.RefreshUserNickname;
+begin
+  if not Assigned(FNicknameLbl) then Exit;
+  if GetUserNickname <> '' then
+    FNicknameLbl.Caption := 'Pascube nickname: ' + GetUserNickname + '  [click to edit]'
+  else
+    FNicknameLbl.Caption := 'Pascube nickname: Anonymous  [click to set]';
+  FNicknameLbl.Hint := FNicknameLbl.Caption;
+end;
+
 procedure THomeTabHelper.NicknameClick(Sender: TObject);
 var
   NewNick: string;
 begin
   NewNick := InputBox('Pascube nickname', 'Enter display nickname for leaderboard benchmark uploads:', GetUserNickname);
   SaveUserNickname(NewNick);
-  InitHomeTab;
+  RefreshUserNickname;
 end;
 
 end.

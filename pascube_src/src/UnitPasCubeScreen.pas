@@ -434,6 +434,8 @@ implementation
 
 uses UnitPasCubeApplication, UnitTextOverlay, process, UnitCommunityInsights;
 
+function GetEffectiveUserNickname: string; forward;
+
 function FloatToJsonStr(const AVal: Double): String;
 begin
   Result := StringReplace(FormatFloat('0.0', AVal), ',', '.', [rfReplaceAll]);
@@ -1341,7 +1343,7 @@ begin
                                     fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                     GetCPUName, GetDesktopEnvironmentFull,
                                     fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
-                                    GetKernelVersion);
+                                    GetKernelVersion, GetEffectiveUserNickname);
       CommunityInsights.StartBackgroundSync;
     end;
   end;
@@ -2065,7 +2067,7 @@ begin
                                      fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                      GetCPUName, GetDesktopEnvironmentFull,
                                      fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
-                                     GetKernelVersion);
+                                     GetKernelVersion, GetEffectiveUserNickname);
        CommunityInsights.StartBackgroundSync;
       end;
       result:=true;
@@ -2789,6 +2791,19 @@ begin
   end;
 end;
 
+function GetEffectiveUserNickname: string;
+var
+  Prompted: Boolean;
+begin
+  Result := '';
+  if Assigned(UnitPasCubeApplication.Application) then
+    Result := UnitPasCubeApplication.Application.Nickname;
+  if Result = '' then
+    Result := ReadPasCubeNickname(Prompted);
+  if SameText(Result, 'Anonymous') then
+    Result := '';
+end;
+
 procedure SavePasCubeNickname(const ANickname: string; APrompted: Boolean);
 var
   ConfigPath, Dir: string;
@@ -2880,6 +2895,8 @@ begin
       end;
     end;
     SavePasCubeNickname(CurrentNick, True);
+    if Assigned(UnitPasCubeApplication.Application) and (CurrentNick <> '') and not SameText(CurrentNick, 'Anonymous') then
+      UnitPasCubeApplication.Application.Nickname := CurrentNick;
   end;
 end;
 
@@ -3302,7 +3319,7 @@ begin
                                 fCurrentResult.CPUPowerMax, fCurrentResult.GPUPowerMax,
                                 GetCPUName, GetDesktopEnvironmentFull,
                                 fCurrentResult.CPUMaxFreq, fCurrentResult.GPUMaxFreq,
-                                GetKernelVersion);
+                                GetKernelVersion, GetEffectiveUserNickname);
   CommunityInsights.StartBackgroundSync;
  end;
 end;
@@ -7146,6 +7163,21 @@ begin
                           56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 end;
 
+function FormatSubmitterName(const aUsername: string; aIsUser: Boolean): string;
+begin
+  if aIsUser then begin
+    if (aUsername = '') or SameText(aUsername, 'Anonymous') then
+      Result := 'by Anonymous (You)'
+    else
+      Result := 'by @' + aUsername + ' (You)';
+  end else begin
+    if (aUsername = '') or SameText(aUsername, 'Anonymous') or SameText(aUsername, 'Community Member') then
+      Result := 'by ' + aUsername
+    else
+      Result := 'by @' + aUsername;
+  end;
+end;
+
 procedure TPasCubeScreen.DrawSlide2_Silicon(const aX, aY, aW, aH: TpvFloat; const aAlpha: TpvFloat = 1.0);
 var
   app: TPasCubeApplication;
@@ -7347,12 +7379,12 @@ begin
       app.TextOverlay.AddText(leftX + 2.0 * charWidth, lbItemY + 0.28 * charHeight, 0.72, toaLeft,
                               rowLabel, 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(leftX + 2.0 * charWidth, lbItemY + lbRowH - 0.96 * charHeight, 0.60, toaLeft,
-                              'by @' + sub.Username, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
+                              FormatSubmitterName(sub.Username, True), 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
     end else begin
       app.TextOverlay.AddText(leftX + 2.0 * charWidth, lbItemY + 0.28 * charHeight, 0.70, toaLeft,
                               rowLabel, 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(leftX + 2.0 * charWidth, lbItemY + lbRowH - 0.96 * charHeight, 0.60, toaLeft,
-                              'by @' + sub.Username, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+                              FormatSubmitterName(sub.Username, False), 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
     end;
 
     // Clock Pill
@@ -7520,12 +7552,12 @@ begin
       app.TextOverlay.AddText(rightX + 2.0 * charWidth, lbItemY + 0.28 * charHeight, 0.72, toaLeft,
                               rowLabel, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(rightX + 2.0 * charWidth, lbItemY + lbRowH - 0.96 * charHeight, 0.60, toaLeft,
-                              'by @' + sub.Username, 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+                              FormatSubmitterName(sub.Username, True), 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
     end else begin
       app.TextOverlay.AddText(rightX + 2.0 * charWidth, lbItemY + 0.28 * charHeight, 0.70, toaLeft,
                               rowLabel, 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(rightX + 2.0 * charWidth, lbItemY + lbRowH - 0.96 * charHeight, 0.60, toaLeft,
-                              'by @' + sub.Username, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+                              FormatSubmitterName(sub.Username, False), 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
     end;
 
     // Clock Pill
@@ -7774,12 +7806,12 @@ begin
       app.TextOverlay.AddText(leftX + 1.8 * charWidth, itemY + 0.22 * charHeight, 0.70, toaLeft,
                               nameStr, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(leftX + 1.8 * charWidth, itemY + itemH - 0.90 * charHeight, 0.60, toaLeft,
-                              'by @' + entry.Username, 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
+                              FormatSubmitterName(entry.Username, True), 1.0, 1.0, 1.0, 0.0, 251.0 / 255.0, 191.0 / 255.0, 36.0 / 255.0, aAlpha);
     end else begin
       app.TextOverlay.AddText(leftX + 1.8 * charWidth, itemY + 0.22 * charHeight, 0.68, toaLeft,
                               nameStr, 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(leftX + 1.8 * charWidth, itemY + itemH - 0.90 * charHeight, 0.60, toaLeft,
-                              'by @' + entry.Username, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+                              FormatSubmitterName(entry.Username, False), 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
     end;
 
     // Watt badge pill
@@ -7872,12 +7904,12 @@ begin
       app.TextOverlay.AddText(rightX + 1.8 * charWidth, itemY + 0.22 * charHeight, 0.70, toaLeft,
                               nameStr, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(rightX + 1.8 * charWidth, itemY + itemH - 0.90 * charHeight, 0.60, toaLeft,
-                              'by @' + entry.Username, 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
+                              FormatSubmitterName(entry.Username, True), 1.0, 1.0, 1.0, 0.0, 52.0 / 255.0, 211.0 / 255.0, 153.0 / 255.0, aAlpha);
     end else begin
       app.TextOverlay.AddText(rightX + 1.8 * charWidth, itemY + 0.22 * charHeight, 0.68, toaLeft,
                               nameStr, 1.0, 1.0, 1.0, 0.0, 226.0 / 255.0, 232.0 / 255.0, 240.0 / 255.0, aAlpha);
       app.TextOverlay.AddText(rightX + 1.8 * charWidth, itemY + itemH - 0.90 * charHeight, 0.60, toaLeft,
-                              'by @' + entry.Username, 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
+                              FormatSubmitterName(entry.Username, False), 1.0, 1.0, 1.0, 0.0, 148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
     end;
 
     // Watt badge pill

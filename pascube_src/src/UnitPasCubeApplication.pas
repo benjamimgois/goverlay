@@ -44,6 +44,7 @@ type TPasCubeApplication=class(TpvApplication)
        fLosslessScalingActive:boolean;
        fTestResultsMode:boolean;
        fTestSlideIndex:TpvInt32;
+       fNickname:string;
       public
        constructor Create; override;
        destructor Destroy; override;
@@ -63,6 +64,7 @@ type TPasCubeApplication=class(TpvApplication)
        property LosslessScalingActive:boolean read fLosslessScalingActive write fLosslessScalingActive;
        property TestResultsMode:boolean read fTestResultsMode write fTestResultsMode;
        property TestSlideIndex:TpvInt32 read fTestSlideIndex write fTestSlideIndex;
+       property Nickname:string read fNickname write fNickname;
       end;
 
 var Application:TPasCubeApplication=nil;
@@ -86,6 +88,7 @@ begin
  fLosslessScalingActive:=false;
  fTestResultsMode:=false;
  fTestSlideIndex:=0;
+ fNickname:='';
 end;
 
 destructor TPasCubeApplication.Destroy;
@@ -136,6 +139,10 @@ begin
   end else if (Arg='--version') and (Index<ParamCount) then begin
    Inc(Index);
    fVersion:=ParamStr(Index);
+  end else if (Arg='--nickname') and (Index<ParamCount) then begin
+   Inc(Index);
+   fNickname:=Trim(ParamStr(Index));
+   if SameText(fNickname, 'Anonymous') then fNickname:='';
   end else if (Arg='--uncapped') or (Arg='--unlimited-fps') then begin
    fUncappedFPS:=true;
   end else if (Arg='--lossless-scaling') or (Arg='--lossless') or (Arg='--lsfg-active') or (Arg='--mako-active') then begin
