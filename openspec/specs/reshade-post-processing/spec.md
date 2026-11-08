@@ -56,18 +56,28 @@ The system SHALL provide an interface inside the "Shaders" card to install, upda
 - **THEN** the system opens the file manager at `~/.local/share/goverlay/reshade/shaders/`.
 
 ### Requirement: Wine and Proton Path Translation in ReShade Configuration
-The system SHALL generate and maintain `ReShade.ini` referencing centralized shader and texture directories using Wine drive notation (`Z:\...`).
+The system SHALL generate and maintain `ReShade.ini` referencing centralized shader and texture directories using Wine drive notation (`Z:\...`). When running via a Flatpak game profile, the system SHALL resolve the centralized directories from the sandboxed Flatpak data path (`~/.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/...`) rather than host `$XDG_DATA_HOME`, and SHALL include both `/var/home` and `/home` search path variants to accommodate symlinked immutable filesystems.
 
 #### Scenario: Generating ReShade configuration for a game
 - **WHEN** ReShade is deployed for a game
 - **THEN** the system writes a `ReShade.ini` file in the game directory where `EffectSearchPaths` and `TextureSearchPaths` point to the centralized shaders path converted with `Z:\` and backslashes.
 
+#### Scenario: Generating ReShade configuration under Flatpak on OSTree systems
+- **WHEN** ReShade is deployed for a game via a `bgmod` wrapper configured by GOverlay running in Flatpak
+- **THEN** the system writes `EffectSearchPaths` and `TextureSearchPaths` referencing the sandboxed Flatpak shader directory (`Z:\var\home\<user>\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders` and `Textures`)
+- **AND** appends the corresponding `/home` symlink variant (`Z:\home\<user>\.var\app\...`) so shaders and textures are fully discovered regardless of container path resolution.
+
 ### Requirement: Game-Level Injection and Proxy DLL Deployment via bgmod
-The system SHALL allow enabling ReShade per game, deploying the runtime DLL under a user-selected proxy filename (`dxgi.dll`, `d3d11.dll`, `d3d12.dll`, `d3d9.dll`, `opengl32.dll`), configuring `WINEDLLOVERRIDES`, and recording the deployed proxy in `goverlay.vars`.
+The system SHALL allow enabling ReShade per game, deploying the runtime DLL under a user-selected proxy filename (`dxgi.dll`, `d3d11.dll`, `d3d12.dll`, `d3d9.dll`, `opengl32.dll`), configuring `WINEDLLOVERRIDES`, and recording the deployed proxy in `goverlay.vars`. When `bgmod` runs from a Flatpak game profile, it SHALL resolve the source runtime DLL and default settings from the sandboxed Flatpak data path.
 
 #### Scenario: Launching game with ReShade enabled
 - **WHEN** a game configured with ReShade launches via bgmod
 - **THEN** bgmod copies the ReShade runtime DLL to the target proxy name, copies or generates `ReShade.ini`, sets the corresponding `WINEDLLOVERRIDES`, and records `reshadeproxy=<name>` in `goverlay.vars`.
+
+#### Scenario: Launching game with ReShade enabled under Flatpak
+- **WHEN** a game configured with ReShade launches via `bgmod` originating from a Flatpak profile
+- **THEN** `bgmod` copies `ReShade64.dll` from the sandboxed Flatpak binary directory (`~/.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/bin/ReShade64.dll`) into the game directory
+- **AND** reads default key overlay preferences from the sandboxed `ReShade.ini`.
 
 #### Scenario: Safe cleanup of ReShade proxy
 - **WHEN** ReShade is disabled for a game or uninstalled

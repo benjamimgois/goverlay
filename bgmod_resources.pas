@@ -32,6 +32,7 @@ function GetBGModDlssNrPath(const AArch: string = ''): string;
 function GetBGModDlssNrModelsPath: string;
 
 function GetGOverlayDataPath: string;
+function GetGOverlayBaseDataPath(const LocalBgmodPath: string): string;
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 function GetFSR4BasePath: string;
 procedure EnsureFSR4Directories;
@@ -42,6 +43,7 @@ function GetReShadeShadersPath: string;
 function GetReShadePresetsPath: string;
 procedure EnsureReShadeDirectories;
 function UnixPathToWinePath(const AUnixPath: string): string;
+function BuildReShadeSearchPath(const AUnixDir: string): string;
 
 // Compatibility aliases for legacy FGMod calls
 function GetFGModPath: string;
@@ -238,6 +240,27 @@ begin
   Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
 end;
 
+function GetGOverlayBaseDataPath(const LocalBgmodPath: string): string;
+var
+  DataHome, FlatpakBase: string;
+  PosFlatpak: Integer;
+begin
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
+  end;
+  Result := IncludeTrailingPathDelimiter(Result);
+end;
+
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 begin
   if AIsStable then
@@ -303,6 +326,28 @@ begin
     Result := 'Z:' + Result
   else if (Length(Result) > 0) and (Pos(':', Result) = 0) then
     Result := 'Z:\' + Result;
+end;
+
+function BuildReShadeSearchPath(const AUnixDir: string): string;
+var
+  WinePath, AltWinePath: string;
+begin
+  Result := '';
+  if AUnixDir = '' then Exit;
+  WinePath := UnixPathToWinePath(AUnixDir);
+  Result := WinePath + ',' + WinePath + '\**';
+
+  // Support dual /var/home and /home paths on symlinked OSTree environments (e.g. Bazzite/SteamOS)
+  if Pos('Z:\var\home\', WinePath) = 1 then
+  begin
+    AltWinePath := 'Z:\home\' + Copy(WinePath, Length('Z:\var\home\') + 1, MaxInt);
+    Result := Result + ',' + AltWinePath + ',' + AltWinePath + '\**';
+  end
+  else if (Pos('Z:\home\', WinePath) = 1) and DirectoryExists('/var/home') then
+  begin
+    AltWinePath := 'Z:\var\home\' + Copy(WinePath, Length('Z:\home\') + 1, MaxInt);
+    Result := Result + ',' + AltWinePath + ',' + AltWinePath + '\**';
+  end;
 end;
 
 // Migrate FGMOD/BGMOD from old location to new XDG-compliant location

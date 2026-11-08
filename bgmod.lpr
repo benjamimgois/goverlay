@@ -1198,11 +1198,29 @@ begin
   end;
 end;
 
+function GetGOverlayBaseDataPath(const LocalBgmodPath: string): string;
+var
+  DataHome, FlatpakBase: string;
+  PosFlatpak: Integer;
+begin
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
+  end;
+  Result := IncludeTrailingPathDelimiter(Result);
+end;
+
 function GetGlobalBGModPath(const LocalBgmodPath: string): string;
 var
-  DataHome: string;
-  PosFlatpak: Integer;
-  FlatpakBase: string;
   UpscalerType: Integer;
   OptChannel: Integer;
   DlssNrArch: Integer;
@@ -1229,21 +1247,9 @@ begin
     end;
   end;
 
-  // Resolve the base data directory first (Flatpak-aware) so the DLSS-NR
+  // Resolve the base data directory (Flatpak-aware) so the DLSS-NR
   // channel fallback below can probe candidate directories.
-  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
-  if PosFlatpak > 0 then
-  begin
-    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
-    BaseDir := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay';
-  end
-  else
-  begin
-    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-    if DataHome = '' then
-      DataHome := GetUserDir + '.local/share';
-    BaseDir := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
-  end;
+  BaseDir := GetGOverlayBaseDataPath(LocalBgmodPath);
 
   if UpscalerType = 1 then
   begin
@@ -1302,24 +1308,8 @@ begin
 end;
 
 function GetFsr4BasePath(const LocalBgmodPath: string): string;
-var
-  DataHome, FlatpakBase: string;
-  PosFlatpak: Integer;
 begin
-  PosFlatpak := Pos('io.github.benjamimgois.goverlay', LocalBgmodPath);
-  if PosFlatpak > 0 then
-  begin
-    FlatpakBase := Copy(LocalBgmodPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
-    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay' + PathDelim + 'FSR4';
-  end
-  else
-  begin
-    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-    if DataHome = '' then
-      DataHome := GetUserDir + '.local/share';
-    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + 'FSR4';
-  end;
-  Result := IncludeTrailingPathDelimiter(Result);
+  Result := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(LocalBgmodPath)) + 'FSR4' + PathDelim;
 end;
 
 function GetFileSize(const APath: string): Int64;
@@ -1600,11 +1590,8 @@ begin
     end;
   end;
 
-  // 3. Check central cache folders under XDG_DATA_HOME/goverlay
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  DataHome := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim;
+  // 3. Check central cache folders under GOverlay data path
+  DataHome := GetGOverlayBaseDataPath(BgmodPath);
 
   Folders[0] := 'optiscaler-stable';
   Folders[1] := 'optiscaler-edge';
@@ -2315,7 +2302,7 @@ end;
 // and must not be deleted.
 function IsGOverlaySourcePayload(const AGameDir, ASourceDir, FileName: string): Boolean;
 var
-  GameFile, SrcFile, DataHome, GlobalPath: string;
+  GameFile, SrcFile, GlobalPath: string;
   Folders: array[0..3] of string;
   f: Integer;
 begin
@@ -2333,10 +2320,7 @@ begin
   end;
 
   // 2. Fallback to central cache directories
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  GlobalPath := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim;
+  GlobalPath := GetGOverlayBaseDataPath(BgmodPath);
   Folders[0] := GlobalPath + 'optiscaler-stable';
   Folders[1] := GlobalPath + 'optiscaler-edge';
   Folders[2] := GlobalPath + 'bgmod';
@@ -2750,14 +2734,12 @@ var
   idx: Integer;
 begin
   Result := '';
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + '.local/share';
+  DataHome := GetGOverlayBaseDataPath(ABgmodPath);
 
   Candidates[0] := IncludeTrailingPathDelimiter(ABgmodPath) + 'bgmod-splash';
   Candidates[1] := IncludeTrailingPathDelimiter(ASourceDir) + 'bgmod-splash';
-  Candidates[2] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/bgmod-splash';
-  Candidates[3] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/gameconfig/global/bgmod-splash';
+  Candidates[2] := IncludeTrailingPathDelimiter(DataHome) + 'bgmod/bgmod-splash';
+  Candidates[3] := IncludeTrailingPathDelimiter(DataHome) + 'gameconfig/global/bgmod-splash';
   Candidates[4] := '/usr/libexec/goverlay/bgmod-splash';
   Candidates[5] := '/usr/libexec/bgmod-splash';
   Candidates[6] := '/usr/local/libexec/goverlay/bgmod-splash';
@@ -2984,7 +2966,7 @@ var
   NextArgIsSensitive: Boolean;
   Key, Val, Line: string;
   ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
-  ReShadeShadersDir, WineShaders, WineTextures, EffectPaths, TexturePaths, OverlayKey: string;
+  ReShadeShadersDir, WineShaders, WineTextures, AltWineShaders, AltWineTextures, EffectPaths, TexturePaths, OverlayKey: string;
   ReShadeIniFile, PrevReshadeProxy, VarsFile: string;
   GlobalReShadeIni, GameReShadeIni, OptiIni: TIniFile;
   EnvArgs: array of PChar;
@@ -2997,6 +2979,7 @@ var
   DlssNrCentralLogFile: string;
   DlssNrModelsDir: string;
   VkLayerPath: string;
+  FlatpakVulkanDir: string;
   VkInstanceLayers: string;
   MangoCentralLogFile: string;
   SumiCentralLogFile: string;
@@ -3418,9 +3401,7 @@ begin
             begin
               Log('Installing HelixSR in Standard mode (OptiScaler + Backend HelixSR)...');
               // Base OptiScaler companion files
-              OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
-              if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
-              OptiBaseDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'optiscaler-stable' + PathDelim;
+              OptiBaseDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'optiscaler-stable' + PathDelim;
               if FileExists(OptiBaseDir + 'libxess.dll') then
                 SafeCopyFile(OptiBaseDir + 'libxess.dll', IncludeTrailingPathDelimiter(GameDir) + 'libxess.dll');
               if not DirectoryExists(SourceDir + 'helixsr-scaler' + PathDelim + 'OptiScaler' + PathDelim + 'plugins') then
@@ -3551,9 +3532,7 @@ begin
           else if UpscalerType = 1 then
           begin
             // 5a. First copy base OptiScaler files from optiscaler-stable if available
-            OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
-            if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
-            OptiBaseDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'optiscaler-stable' + PathDelim;
+            OptiBaseDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'optiscaler-stable' + PathDelim;
             if FileExists(OptiBaseDir + 'OptiScaler.dll') then
             begin
               Log('Installing base OptiScaler files for DLSS Enabler...');
@@ -3627,9 +3606,7 @@ begin
             ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd');
 
             // Central neural model weights
-            OptiBaseDir := GetEnvironmentVariable('XDG_DATA_HOME');
-            if OptiBaseDir = '' then OptiBaseDir := GetUserDir + '.local/share';
-            DlssNrModelsDir := IncludeTrailingPathDelimiter(OptiBaseDir) + 'goverlay' + PathDelim + 'dlss-nr-models';
+            DlssNrModelsDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'dlss-nr-models';
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin') then
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin') then
@@ -3915,10 +3892,7 @@ begin
       else if GOverlayReshade then
       begin
         Log('ReShade is enabled. Preparing deployment...');
-        ReShadeDataDir := GetEnvironmentVariable('XDG_DATA_HOME');
-        if ReShadeDataDir = '' then
-          ReShadeDataDir := GetUserDir + '.local/share';
-        ReShadeDataDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'goverlay' + PathDelim + 'reshade';
+        ReShadeDataDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'reshade';
         ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
 
         if not FileExists(ReShadeSrcDll) then
@@ -3957,6 +3931,29 @@ begin
           WineTextures := UnixPathToWinePath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures');
           EffectPaths := WineShaders + ',' + WineShaders + '\**';
           TexturePaths := WineTextures + ',' + WineTextures + '\**';
+
+          // Support dual /var/home and /home paths on symlinked OSTree environments (e.g. Bazzite/SteamOS)
+          if Pos('Z:\var\home\', WineShaders) = 1 then
+          begin
+            AltWineShaders := 'Z:\home\' + Copy(WineShaders, Length('Z:\var\home\') + 1, MaxInt);
+            EffectPaths := EffectPaths + ',' + AltWineShaders + ',' + AltWineShaders + '\**';
+          end
+          else if (Pos('Z:\home\', WineShaders) = 1) and DirectoryExists('/var/home') then
+          begin
+            AltWineShaders := 'Z:\var\home\' + Copy(WineShaders, Length('Z:\home\') + 1, MaxInt);
+            EffectPaths := EffectPaths + ',' + AltWineShaders + ',' + AltWineShaders + '\**';
+          end;
+
+          if Pos('Z:\var\home\', WineTextures) = 1 then
+          begin
+            AltWineTextures := 'Z:\home\' + Copy(WineTextures, Length('Z:\var\home\') + 1, MaxInt);
+            TexturePaths := TexturePaths + ',' + AltWineTextures + ',' + AltWineTextures + '\**';
+          end
+          else if (Pos('Z:\home\', WineTextures) = 1) and DirectoryExists('/var/home') then
+          begin
+            AltWineTextures := 'Z:\var\home\' + Copy(WineTextures, Length('Z:\home\') + 1, MaxInt);
+            TexturePaths := TexturePaths + ',' + AltWineTextures + ',' + AltWineTextures + '\**';
+          end;
 
           OverlayKey := '36,0,0,0';
           if FileExists(IncludeTrailingPathDelimiter(ReShadeDataDir) + 'ReShade.ini') then
@@ -4158,6 +4155,25 @@ begin
         VkInstanceLayers := 'VK_LAYER_DLSSNR_control';
       SetEnvVarInList(EnvStrings, 'VK_INSTANCE_LAYERS', VkInstanceLayers);
       Log('Export VK_INSTANCE_LAYERS=' + VkInstanceLayers);
+    end;
+  end;
+
+  // Export Flatpak Vulkan implicit layers path so host Vulkan loader finds vkSumi, vkNemu, and companion layers
+  if Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0 then
+  begin
+    FlatpakVulkanDir := ExtractFileDir(ExcludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath))) + PathDelim + 'vulkan' + PathDelim + 'implicit_layer.d';
+    if DirectoryExists(FlatpakVulkanDir) then
+    begin
+      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_LAYER_PATH');
+      if VkLayerPath <> '' then
+      begin
+        if Pos(FlatpakVulkanDir, VkLayerPath) = 0 then
+          VkLayerPath := FlatpakVulkanDir + ':' + VkLayerPath;
+      end
+      else
+        VkLayerPath := FlatpakVulkanDir;
+      SetEnvVarInList(EnvStrings, 'VK_ADD_LAYER_PATH', VkLayerPath);
+      Log('Export VK_ADD_LAYER_PATH=' + VkLayerPath);
     end;
   end;
 

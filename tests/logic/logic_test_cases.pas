@@ -119,11 +119,13 @@ type
     procedure TestBgmodSensitiveArgRedaction;
     procedure TestBgmodWineDllOverridesSemicolonDelimiter;
     procedure TestBgmodDisabledOptiscalerPurgesHelixSRLeftovers;
+    procedure TestBgmodFlatpakPathsAndLayerExport;
   end;
 
   TReShadeLogicTests = class(TTestCase)
   published
     procedure TestUnixPathToWinePath;
+    procedure TestGetGOverlayBaseDataPath;
     procedure TestReShadeDirectoryLayout;
     procedure TestReShadeIniPathFormatting;
     procedure TestReShadeInstalledVersionFallbackAndMetadata;
@@ -2769,6 +2771,131 @@ begin
   AssertFalse('helixsr.ini must be deleted', FileExists(MockGameDir + '/helixsr.ini'));
 end;
 
+procedure TBgmodSupervisorTests.TestBgmodFlatpakPathsAndLayerExport;
+var
+  Proc: TProcess;
+  FlatpakBase, TestGameDir, MockGameDir, MockRunner, MockExe, OutFile: string;
+  FlatpakVulkanDir, FlatpakReshadeDir: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content: string;
+  EnvIndex: Integer;
+begin
+  EnsureBgmodBinary;
+  FlatpakBase := IsolatedHome + '/.var/app/io.github.benjamimgois.goverlay';
+  TestGameDir := FlatpakBase + '/data/goverlay/gameconfig/FlatpakTestGame';
+  ForceDirectories(TestGameDir);
+
+  MockGameDir := IsolatedHome + '/mock_flatpak_game';
+  ForceDirectories(MockGameDir);
+
+  // Set up mock Flatpak Vulkan implicit layers
+  FlatpakVulkanDir := FlatpakBase + '/data/vulkan/implicit_layer.d';
+  ForceDirectories(FlatpakVulkanDir);
+  AssignFile(F, FlatpakVulkanDir + '/vksumi.json');
+  Rewrite(F);
+  WriteLn(F, '{"file_format_version": "1.0.0"}');
+  CloseFile(F);
+
+  // Set up mock Flatpak ReShade binaries and shaders
+  FlatpakReshadeDir := FlatpakBase + '/data/goverlay/reshade';
+  ForceDirectories(FlatpakReshadeDir + '/bin');
+  ForceDirectories(FlatpakReshadeDir + '/shaders/Shaders');
+  ForceDirectories(FlatpakReshadeDir + '/shaders/Textures');
+  AssignFile(F, FlatpakReshadeDir + '/bin/ReShade64.dll');
+  Rewrite(F);
+  WriteLn(F, 'mock flatpak reshade64 dll');
+  CloseFile(F);
+  AssignFile(F, FlatpakReshadeDir + '/shaders/Shaders/mock_shader.fx');
+  Rewrite(F);
+  WriteLn(F, '// mock fx');
+  CloseFile(F);
+
+  // Copy bgmod binary to Flatpak gameconfig
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockExe := MockGameDir + '/game.exe';
+  AssignFile(F, MockExe);
+  Rewrite(F);
+  WriteLn(F, 'mock windows pe binary');
+  CloseFile(F);
+
+  OutFile := MockGameDir + '/env_output.txt';
+  if FileExists(OutFile) then DeleteFile(OutFile);
+
+  MockRunner := TestGameDir + '/mock_runner.sh';
+  AssignFile(F, MockRunner);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'env > "' + OutFile + '"');
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRunner), &755);
+
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'RESHADE_DLL=dxgi.dll');
+  WriteLn(F, 'TARGET_EXE=game.exe');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(MockRunner);
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := TestGameDir;
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + MockGameDir);
+    Proc.Execute;
+    AssertEquals('bgmod in Flatpak path should return exit status 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  // 1. Verify ReShade DLL deployed from Flatpak data dir
+  AssertTrue('dxgi.dll should be deployed from Flatpak reshade bin', FileExists(MockGameDir + '/dxgi.dll'));
+
+  // 2. Verify ReShade.ini generated with Flatpak Wine paths
+  AssertTrue('ReShade.ini should be generated in game dir', FileExists(MockGameDir + '/ReShade.ini'));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(MockGameDir + '/ReShade.ini');
+    Content := Lines.Text;
+    AssertTrue('EffectSearchPaths should point to Flatpak reshade shaders',
+      Pos('io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  // 3. Verify VK_ADD_LAYER_PATH exported in runner environment with Flatpak vulkan implicit layers
+  AssertTrue('env_output.txt should be created', FileExists(OutFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutFile);
+    Content := Lines.Text;
+    AssertTrue('VK_ADD_LAYER_PATH should include Flatpak implicit layer path',
+      Pos(FlatpakVulkanDir, Content) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
 procedure TBgmodSupervisorTests.TestBgmodLauncherRuleSpacelessGameName;
 var
   Proc: TProcess;
@@ -3106,6 +3233,21 @@ begin
     UnixPathToWinePath('/opt/games/'));
 end;
 
+procedure TReShadeLogicTests.TestGetGOverlayBaseDataPath;
+var
+  FlatpakSample, NativeSample, Resolved: string;
+begin
+  FlatpakSample := '/var/home/bazzite/.var/app/io.github.benjamimgois.goverlay/data/goverlay/gameconfig/Control Ultimate Edition/bgmod';
+  Resolved := GetGOverlayBaseDataPath(FlatpakSample);
+  AssertEquals('Flatpak base data path correctly extracted',
+    '/var/home/bazzite/.var/app/io.github.benjamimgois.goverlay/data/goverlay/', Resolved);
+
+  NativeSample := '/home/benjamim/.local/share/goverlay/gameconfig/Control/bgmod';
+  Resolved := GetGOverlayBaseDataPath(NativeSample);
+  AssertTrue('Native base data path ends with goverlay/',
+    Pos('goverlay/', Resolved) > 0);
+end;
+
 procedure TReShadeLogicTests.TestReShadeDirectoryLayout;
 var
   BaseDir, BinDir, ShadersDir, PresetsDir: string;
@@ -3129,7 +3271,7 @@ end;
 
 procedure TReShadeLogicTests.TestReShadeIniPathFormatting;
 var
-  ShadersDir, WineShaders, EffectPaths, TexturePaths: string;
+  ShadersDir, WineShaders, EffectPaths, TexturePaths, FlatpakShaders, DualSearchPaths: string;
 begin
   ShadersDir := '/home/user/.local/share/goverlay/reshade/Shaders';
   WineShaders := UnixPathToWinePath(ShadersDir);
@@ -3138,6 +3280,19 @@ begin
 
   AssertEquals('EffectSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', EffectPaths);
   AssertEquals('TextureSearchPaths format', '.\,Z:\home\user\.local\share\goverlay\reshade\Shaders\**', TexturePaths);
+
+  // Test dual-path search path builder with Flatpak /var/home path
+  FlatpakShaders := '/var/home/bazzite/.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/shaders/Shaders';
+  DualSearchPaths := BuildReShadeSearchPath(FlatpakShaders);
+
+  AssertTrue('Dual path includes primary Z:\var\home path',
+    Pos('Z:\var\home\bazzite\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders', DualSearchPaths) > 0);
+  AssertTrue('Dual path includes primary recursive path',
+    Pos('Z:\var\home\bazzite\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders\**', DualSearchPaths) > 0);
+  AssertTrue('Dual path includes alternate Z:\home path',
+    Pos('Z:\home\bazzite\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders', DualSearchPaths) > 0);
+  AssertTrue('Dual path includes alternate recursive path',
+    Pos('Z:\home\bazzite\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders\**', DualSearchPaths) > 0);
 end;
 
 procedure TReShadeLogicTests.TestReShadeInstalledVersionFallbackAndMetadata;

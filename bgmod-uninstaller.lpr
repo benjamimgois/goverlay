@@ -595,6 +595,29 @@ begin
   end;
 end;
 
+function GetGOverlayBaseDataPath(const ARunningPath: string): string;
+var
+  DataHome, FlatpakBase: string;
+  PosFlatpak: Integer;
+begin
+  PosFlatpak := Pos('io.github.benjamimgois.goverlay', ARunningPath);
+  if PosFlatpak > 0 then
+  begin
+    FlatpakBase := Copy(ARunningPath, 1, PosFlatpak + Length('io.github.benjamimgois.goverlay'));
+    Result := IncludeTrailingPathDelimiter(FlatpakBase) + 'data' + PathDelim + 'goverlay';
+  end
+  else
+  begin
+    DataHome := GetEnvironmentVariable('HOST_XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := GetUserDir + '.local/share';
+    Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay';
+  end;
+  Result := IncludeTrailingPathDelimiter(Result);
+end;
+
 // A proxy DLL is GOverlay-owned when:
 // 1. Primary check: goverlay.vars in TargetDir records proxydll=<name>,
 //    and FileName matches that recorded name.
@@ -698,11 +721,8 @@ begin
     end;
   end;
 
-  // 2. Check central cache folders under XDG_DATA_HOME/goverlay
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  DataHome := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim;
+  // 2. Check central cache folders under GOverlay data path
+  DataHome := GetGOverlayBaseDataPath(UninstallerPath);
 
   Folders[0] := 'optiscaler-stable';
   Folders[1] := 'optiscaler-edge';
@@ -713,7 +733,7 @@ begin
 
   for f := 0 to High(Folders) do
   begin
-    CandidatePath := DataHome + Folders[f] + PathDelim;
+    CandidatePath := IncludeTrailingPathDelimiter(DataHome) + Folders[f] + PathDelim;
     if DirectoryExists(CandidatePath) then
     begin
       if (TargetSize = GetFileSize(CandidatePath + 'renames' + PathDelim + FileName)) or
@@ -729,8 +749,8 @@ begin
     end;
   end;
 
-  // 3. Check central ReShade bin folder under XDG_DATA_HOME/goverlay/reshade/bin
-  CandidatePath := DataHome + 'reshade' + PathDelim + 'bin' + PathDelim;
+  // 3. Check central ReShade bin folder under GOverlay data path/reshade/bin
+  CandidatePath := IncludeTrailingPathDelimiter(DataHome) + 'reshade' + PathDelim + 'bin' + PathDelim;
   if DirectoryExists(CandidatePath) then
   begin
     if (TargetSize = GetFileSize(CandidatePath + 'ReShade64.dll')) or
@@ -873,7 +893,6 @@ end;
 
 function GetBGModPath: string;
 var
-  DataHome: string;
   Ini: TIniFile;
   IsStable: Boolean;
   ChannelFolder: string;
@@ -894,10 +913,7 @@ begin
   else
     ChannelFolder := 'optiscaler-edge';
 
-  DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
-  if DataHome = '' then
-    DataHome := GetUserDir + '.local/share';
-  Result := IncludeTrailingPathDelimiter(DataHome) + 'goverlay' + PathDelim + ChannelFolder;
+  Result := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(UninstallerPath)) + ChannelFolder;
 end;
 
 function FindFileCaseInsensitive(const ADir, AFileName: string): string;

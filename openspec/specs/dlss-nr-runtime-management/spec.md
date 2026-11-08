@@ -44,12 +44,16 @@ The system SHALL allow the user to select their own copy of `nvngx_dlssnr.dll` o
 - **THEN** the system notifies the user of the invalid checksum or unsupported version without corrupting central cache.
 
 ### Requirement: Direct File Deployment to Game Profiles
-The system SHALL synchronize DLSS-NR runtime files into the target game directory using direct file copies without invoking external installer shell scripts. When architecture is set to Auto-detect, the deployment launcher SHALL resolve the effective architecture based on the active GPU and deploy the matching architecture channel rather than defaulting to RDNA3.
+The system SHALL synchronize DLSS-NR runtime files into the target game directory using direct file copies without invoking external installer shell scripts. When architecture is set to Auto-detect, the deployment launcher SHALL resolve the effective architecture based on the active GPU and deploy the matching architecture channel rather than defaulting to RDNA3. When launched from a Flatpak game profile, the deployment launcher SHALL resolve neural model weights from the sandboxed Flatpak data directory.
 
 #### Scenario: Deploying DLSS-NR with OptiScaler route
 - **WHEN** DLSS-NR is deployed to a game directory using the OptiScaler route
 - **THEN** the system copies the OptiScaler-NR proxy DLL, the DLSS-NR backend library, the extracted neural model binaries, and generated dlssnr-amd.ini directly into the game folder from the resolved architecture runtime channel (dlss-nr-rdna4 for RDNA4 or dlss-nr-rdna3 for RDNA3)
 - **AND** writes an install manifest listing all copied files.
+
+#### Scenario: Deploying DLSS-NR neural weights under Flatpak
+- **WHEN** DLSS-NR launches via `bgmod` originating from a Flatpak profile
+- **THEN** `bgmod` copies `dlssnr.bin` and `dlssnr-small.bin` directly from the sandboxed Flatpak models path (`~/.var/app/io.github.benjamimgois.goverlay/data/goverlay/dlss-nr-models/`) into `<Game>/dlssnr-amd/`.
 
 #### Scenario: Uninstalling DLSS-NR from game directory
 - **WHEN** the user requests to uninstall or remove DLSS-NR from a game profile
