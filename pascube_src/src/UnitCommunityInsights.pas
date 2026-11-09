@@ -41,6 +41,30 @@ type
     IsCurrentKernel: Boolean;
   end;
 
+  TSameGPUDistroStat = record
+    Name: string;
+    Count: Integer;
+    AvgScore: Integer;
+    DeltaPct: Double;
+    IsCurrentDistro: Boolean;
+  end;
+
+  TSameGPUDriverStat = record
+    Name: string;
+    Count: Integer;
+    AvgGPUScore: Integer;
+    DeltaPct: Double;
+    IsCurrentDriver: Boolean;
+  end;
+
+  TSameCPUKernelStat = record
+    Name: string;
+    Count: Integer;
+    AvgCPUScore: Integer;
+    DeltaPct: Double;
+    IsCurrentKernel: Boolean;
+  end;
+
   TStackShareStats = record
     WaylandPct: Double;
     X11Pct: Double;
@@ -176,6 +200,14 @@ type
     FDesktopStats: array[0..3] of TDesktopStat;
     FKernelCount: Integer;
     FKernelStats: array[0..3] of TKernelStat;
+    FSameGPUDistroCount: Integer;
+    FSameGPUDistroStats: array[0..3] of TSameGPUDistroStat;
+    FSameGPUDriverCount: Integer;
+    FSameGPUDriverStats: array[0..3] of TSameGPUDriverStat;
+    FSameCPUKernelCount: Integer;
+    FSameCPUKernelStats: array[0..3] of TSameCPUKernelStat;
+    FUserDriverBranch: string;
+    FUserKernelBranch: string;
     FStackShare: TStackShareStats;
     FScalingRungs: array[0..5] of TScalingRung;
     FNormalCurvePoints: array[0..39] of TpvVector2;
@@ -207,28 +239,34 @@ type
     FLastCPUMaxFreq: Integer;
     FLastGPUMaxFreq: Integer;
     FLastUserNick: string;
+    FLastUserDriver: string;
 
     function GetCacheFilePath: string;
     function CleanScoreStr(const S: string): string;
     function NormalizeDistroName(const RawDistro: string): string;
     function NormalizeDesktopName(const RawDE: string; const RawOS: string): string;
     function NormalizeKernelName(const RawKernel: string): string;
+    function NormalizeDriverBranch(const RawDriver: string): string;
+    function NormalizeKernelBranch(const RawKernel: string): string;
     function ExtractGPUChipToken(const RawGPU: string; out CleanLabel: string): string; overload;
     function ExtractGPUChipToken(const RawGPU: string): string; overload;
     function ExtractCPUChipToken(const RawCPU: string; out CleanLabel: string): string;
     function GetDistroStat(aIndex: Integer): TDistroStat;
     function GetDesktopStat(aIndex: Integer): TDesktopStat;
     function GetKernelStat(aIndex: Integer): TKernelStat;
+    function GetSameGPUDistroStat(aIndex: Integer): TSameGPUDistroStat;
+    function GetSameGPUDriverStat(aIndex: Integer): TSameGPUDriverStat;
+    function GetSameCPUKernelStat(aIndex: Integer): TSameCPUKernelStat;
     function GetScalingRung(aIndex: Integer): TScalingRung;
     function GetBadge(aIndex: Integer): TBadge;
-    procedure ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = '');
+    procedure ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = ''; const aUserDriver: string = '');
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure StartBackgroundSync;
     procedure UpdateSync;
-    procedure EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = '');
+    procedure EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = ''; const aUserDriver: string = '');
 
     function GetGaussianY(const aScore: Double): Double;
 
@@ -254,6 +292,14 @@ type
     property DesktopStats[aIndex: Integer]: TDesktopStat read GetDesktopStat;
     property KernelCount: Integer read FKernelCount;
     property KernelStats[aIndex: Integer]: TKernelStat read GetKernelStat;
+    property SameGPUDistroCount: Integer read FSameGPUDistroCount;
+    property SameGPUDistroStats[aIndex: Integer]: TSameGPUDistroStat read GetSameGPUDistroStat;
+    property SameGPUDriverCount: Integer read FSameGPUDriverCount;
+    property SameGPUDriverStats[aIndex: Integer]: TSameGPUDriverStat read GetSameGPUDriverStat;
+    property SameCPUKernelCount: Integer read FSameCPUKernelCount;
+    property SameCPUKernelStats[aIndex: Integer]: TSameCPUKernelStat read GetSameCPUKernelStat;
+    property UserDriverBranch: string read FUserDriverBranch;
+    property UserKernelBranch: string read FUserKernelBranch;
     property StackShare: TStackShareStats read FStackShare;
     property ScalingRungs[aIndex: Integer]: TScalingRung read GetScalingRung;
     property Silicon: TSiliconLottery read FSiliconLottery;
@@ -596,7 +642,7 @@ begin
   else if Pos('zen', Low) > 0 then Flavor := 'zen'
   else if Pos('arch', Low) > 0 then Flavor := 'arch'
   else if Pos('nobara', Low) > 0 then Flavor := 'nobara'
-  else if (Pos('bazzite', Low) > 0) or (Pos('ogc', Low) > 0) or (Pos('ba29', Low) > 0) then Flavor := 'bazzite'
+  else if (Pos('bazzite', Low) > 0) or (Pos('ogc', Low) > 0) or (Pos('ba29', Low) > 0) or (Pos('ba30', Low) > 0) then Flavor := 'bazzite'
   else if (Pos('fedora', Low) > 0) or (Pos('fc4', Low) > 0) then Flavor := 'fedora'
   else if (Pos('valve', Low) > 0) or (Pos('steamos', Low) > 0) then Flavor := 'valve'
   else if (Pos('generic', Low) > 0) or (Pos('ubuntu', Low) > 0) then Flavor := 'generic'
@@ -604,6 +650,91 @@ begin
   else Flavor := 'generic';
 
   Result := 'Linux ' + VerStr + '-' + Flavor;
+end;
+
+function TCommunityInsights.NormalizeKernelBranch(const RawKernel: string): string;
+begin
+  Result := NormalizeKernelName(RawKernel);
+end;
+
+function TCommunityInsights.NormalizeDriverBranch(const RawDriver: string): string;
+var
+  Low, CleanLow, VerStr: string;
+  i, j, dotPos: Integer;
+begin
+  Low := LowerCase(Trim(RawDriver));
+  if Pos('mesa', Low) > 0 then
+  begin
+    i := Pos('mesa', Low) + 4;
+    while (i <= Length(Low)) and not (Low[i] in ['0'..'9']) do Inc(i);
+    VerStr := '';
+    if i <= Length(Low) then
+    begin
+      j := i;
+      dotPos := 0;
+      while (j <= Length(Low)) and ((Low[j] in ['0'..'9']) or (Low[j] = '.')) do
+      begin
+        if Low[j] = '.' then
+        begin
+          Inc(dotPos);
+          if dotPos = 2 then Break;
+        end;
+        Inc(j);
+      end;
+      VerStr := Copy(Low, i, j - i);
+    end;
+    if VerStr <> '' then
+      Result := 'Mesa ' + VerStr + '.x'
+    else
+      Result := 'Mesa';
+  end
+  else if (Pos('nvrm', Low) > 0) or (Pos('nvidia', Low) > 0) or
+          ((Length(Low) >= 3) and (Low[1] in ['4', '5', '6']) and (Low[2] in ['0'..'9']) and (Low[3] in ['0'..'9'])) then
+  begin
+    CleanLow := StringReplace(Low, 'x86_64', ' ', [rfReplaceAll]);
+    CleanLow := StringReplace(CleanLow, 'x86', ' ', [rfReplaceAll]);
+    CleanLow := StringReplace(CleanLow, 'amd64', ' ', [rfReplaceAll]);
+    VerStr := '';
+    // Look for a 3-digit number starting with 4, 5, or 6 (NVIDIA major series)
+    for i := 1 to Length(CleanLow) - 2 do
+    begin
+      if (CleanLow[i] in ['4', '5', '6']) and
+         (CleanLow[i+1] in ['0'..'9']) and
+         (CleanLow[i+2] in ['0'..'9']) and
+         ((i = 1) or not (CleanLow[i-1] in ['0'..'9', 'a'..'z', 'A'..'Z'])) then
+      begin
+        VerStr := Copy(CleanLow, i, 3);
+        Break;
+      end;
+    end;
+    if VerStr = '' then
+    begin
+      i := 1;
+      while (i <= Length(CleanLow)) and not (CleanLow[i] in ['0'..'9']) do Inc(i);
+      if i <= Length(CleanLow) then
+      begin
+        j := i;
+        while (j <= Length(CleanLow)) and (CleanLow[j] in ['0'..'9']) do Inc(j);
+        VerStr := Copy(CleanLow, i, Min(3, j - i));
+      end;
+    end;
+
+    if Length(VerStr) >= 3 then
+      Result := 'NVIDIA ' + Copy(VerStr, 1, 3) + '.xx'
+    else if VerStr <> '' then
+      Result := 'NVIDIA ' + VerStr + '.xx'
+    else
+      Result := 'NVIDIA';
+  end
+  else if Pos('radv', Low) > 0 then
+    Result := 'Mesa RADV'
+  else if Pos('anv', Low) > 0 then
+    Result := 'Mesa ANV'
+  else
+  begin
+    Result := Trim(Copy(RawDriver, 1, 16));
+    if Result = '' then Result := 'Default Driver';
+  end;
 end;
 
 function TCommunityInsights.ExtractGPUChipToken(const RawGPU: string; out CleanLabel: string): string;
@@ -854,7 +985,7 @@ begin
       EnsureLoaded(FLastUserScore, FLastUserGPU, FLastUserDistro, FLastRTScore,
                    FLastCPUTempMax, FLastGPUTempMax, FLastTotalPowerMax,
                    FLastCPUMultiScore, FLastGPURasterScore, FLastCPUPowerMax, FLastGPUPowerMax,
-                   FLastUserCPU, FLastUserDesktop, FLastCPUMaxFreq, FLastGPUMaxFreq, FLastUserKernel, FLastUserNick);
+                   FLastUserCPU, FLastUserDesktop, FLastCPUMaxFreq, FLastGPUMaxFreq, FLastUserKernel, FLastUserNick, FLastUserDriver);
     end;
   end;
 end;
@@ -935,7 +1066,7 @@ begin
   end;
 end;
 
-procedure TCommunityInsights.ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = '');
+procedure TCommunityInsights.ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = ''; const aUserDriver: string = '');
 var
   Lines: TStringList;
   RowIdx, ColIdx, i, j, CurScore, CurCPUMulti, CurGPUScore, CurCPUFreq, CurGPUFreq, LessCount: Integer;
@@ -949,6 +1080,35 @@ var
   NormDistro, NormUserDistro, NormDE, NormUserDE, NormKernel, NormUserKernel: string;
   isAPU: Boolean;
   BaseGPUFreq, BaseCPUFreq: Integer;
+
+  // Same-GPU Distro aggregation
+  SGDistroNames: array of string;
+  SGDistroCounts: array of Integer;
+  SGDistroScores: array of Int64;
+  SGDistroTotalFound, SGDistroUniqueCount: Integer;
+  SGDistroMatched: Boolean;
+  UserDistroBaseline: Integer;
+  SGDistroAvg: array of Integer;
+
+  // Same-GPU Driver branch aggregation
+  SGDriverNames: array of string;
+  SGDriverCounts: array of Integer;
+  SGDriverScores: array of Int64;
+  SGDriverTotalFound, SGDriverUniqueCount: Integer;
+  SGDriverMatched, DriverVendorMismatch: Boolean;
+  RowDriverBranch, NormUserDriver: string;
+  UserDriverBaseline: Integer;
+  SGDriverAvgList: array of Integer;
+
+  // Same-CPU Kernel branch aggregation
+  SCKernelNames: array of string;
+  SCKernelCounts: array of Integer;
+  SCKernelScores: array of Int64;
+  SCKernelTotalFound, SCKernelUniqueCount: Integer;
+  SCKernelMatched: Boolean;
+  RowKernelBranch: string;
+  UserKernelBaseline: Integer;
+  SCKernelAvgList: array of Integer;
 
   // Distro aggregation (global across PasCubeDB)
   DistroNames: array of string;
@@ -976,7 +1136,7 @@ var
 
   // Temp swap vars
   TempName: string;
-  TempCount: Integer;
+  TempCount, TempInt: Integer;
   TempScore: Int64;
   CurveX, Variance: Double;
 
@@ -1055,6 +1215,28 @@ begin
     NormUserDE := NormalizeDesktopName(aUserDesktop, aUserDistro);
     if NormUserDE = '' then NormUserDE := 'KDE Plasma';
     NormUserKernel := NormalizeKernelName(aUserKernel);
+    NormUserDriver := NormalizeDriverBranch(aUserDriver);
+    if NormUserDriver = '' then NormUserDriver := 'Mesa';
+    FUserDriverBranch := NormUserDriver;
+    FUserKernelBranch := NormUserKernel;
+
+    SGDistroTotalFound := 0;
+    SGDistroUniqueCount := 0;
+    SetLength(SGDistroNames, 16);
+    SetLength(SGDistroCounts, 16);
+    SetLength(SGDistroScores, 16);
+
+    SGDriverTotalFound := 0;
+    SGDriverUniqueCount := 0;
+    SetLength(SGDriverNames, 16);
+    SetLength(SGDriverCounts, 16);
+    SetLength(SGDriverScores, 16);
+
+    SCKernelTotalFound := 0;
+    SCKernelUniqueCount := 0;
+    SetLength(SCKernelNames, 16);
+    SetLength(SCKernelCounts, 16);
+    SetLength(SCKernelScores, 16);
 
     DistroTotalFound := 0;
     DistroUniqueCount := 0;
@@ -1275,6 +1457,84 @@ begin
             ModelRunsScore[ModelRunCount] := CurGPUScore;
             ModelRunsIsUser[ModelRunCount] := False;
             Inc(ModelRunCount);
+
+            // Same-GPU Distro Aggregation
+            if NormDistro <> '' then
+            begin
+              SGDistroMatched := False;
+              for i := 0 to SGDistroUniqueCount - 1 do
+              begin
+                if SGDistroNames[i] = NormDistro then
+                begin
+                  Inc(SGDistroCounts[i]);
+                  SGDistroScores[i] := SGDistroScores[i] + CurScore;
+                  SGDistroMatched := True;
+                  Break;
+                end;
+              end;
+              if not SGDistroMatched then
+              begin
+                if SGDistroUniqueCount >= Length(SGDistroNames) then
+                begin
+                  SetLength(SGDistroNames, Max(16, SGDistroUniqueCount * 2));
+                  SetLength(SGDistroCounts, Max(16, SGDistroUniqueCount * 2));
+                  SetLength(SGDistroScores, Max(16, SGDistroUniqueCount * 2));
+                end;
+                SGDistroNames[SGDistroUniqueCount] := NormDistro;
+                SGDistroCounts[SGDistroUniqueCount] := 1;
+                SGDistroScores[SGDistroUniqueCount] := CurScore;
+                Inc(SGDistroUniqueCount);
+              end;
+              Inc(SGDistroTotalFound);
+            end;
+
+            // Same-GPU Driver Branch Aggregation
+            RowDriverBranch := NormalizeDriverBranch(DriverField);
+            DriverVendorMismatch := False;
+            if (Pos('nvidia', LowerCase(NormUserDriver)) > 0) and (Pos('mesa', LowerCase(RowDriverBranch)) > 0) then
+              DriverVendorMismatch := True
+            else if (Pos('mesa', LowerCase(NormUserDriver)) > 0) and (Pos('nvidia', LowerCase(RowDriverBranch)) > 0) then
+              DriverVendorMismatch := True
+            else if (Pos('rtx', TargetGPU) > 0) or (Pos('gtx', TargetGPU) > 0) or (Pos('geforce', TargetGPU) > 0) then
+            begin
+              if Pos('mesa', LowerCase(RowDriverBranch)) > 0 then DriverVendorMismatch := True;
+            end
+            else if (Pos('rx', TargetGPU) > 0) or (Pos('vega', TargetGPU) > 0) or (Pos('radeon', TargetGPU) > 0) or
+                    (Pos('7900', TargetGPU) > 0) or (Pos('7800', TargetGPU) > 0) or (Pos('7600', TargetGPU) > 0) or
+                    (Pos('6800', TargetGPU) > 0) or (Pos('6700', TargetGPU) > 0) or (Pos('9070', TargetGPU) > 0) or
+                    (Pos('890m', TargetGPU) > 0) or (Pos('780m', TargetGPU) > 0) then
+            begin
+              if Pos('nvidia', LowerCase(RowDriverBranch)) > 0 then DriverVendorMismatch := True;
+            end;
+
+            if (RowDriverBranch <> '') and (not DriverVendorMismatch) then
+            begin
+              SGDriverMatched := False;
+              for i := 0 to SGDriverUniqueCount - 1 do
+              begin
+                if SGDriverNames[i] = RowDriverBranch then
+                begin
+                  Inc(SGDriverCounts[i]);
+                  SGDriverScores[i] := SGDriverScores[i] + CurGPUScore;
+                  SGDriverMatched := True;
+                  Break;
+                end;
+              end;
+              if not SGDriverMatched then
+              begin
+                if SGDriverUniqueCount >= Length(SGDriverNames) then
+                begin
+                  SetLength(SGDriverNames, Max(16, SGDriverUniqueCount * 2));
+                  SetLength(SGDriverCounts, Max(16, SGDriverUniqueCount * 2));
+                  SetLength(SGDriverScores, Max(16, SGDriverUniqueCount * 2));
+                end;
+                SGDriverNames[SGDriverUniqueCount] := RowDriverBranch;
+                SGDriverCounts[SGDriverUniqueCount] := 1;
+                SGDriverScores[SGDriverUniqueCount] := CurGPUScore;
+                Inc(SGDriverUniqueCount);
+              end;
+              Inc(SGDriverTotalFound);
+            end;
           end;
 
           // 5. CPU Silicon Lottery Matching (using CPU Multi col 10 when valid)
@@ -1296,6 +1556,37 @@ begin
             CPURunsScore[CPURunCount] := CurCPUMulti;
             CPURunsIsUser[CPURunCount] := False;
             Inc(CPURunCount);
+
+            // Same-CPU Kernel Branch Aggregation
+            RowKernelBranch := NormalizeKernelBranch(KernelField);
+            if RowKernelBranch <> '' then
+            begin
+              SCKernelMatched := False;
+              for i := 0 to SCKernelUniqueCount - 1 do
+              begin
+                if SCKernelNames[i] = RowKernelBranch then
+                begin
+                  Inc(SCKernelCounts[i]);
+                  SCKernelScores[i] := SCKernelScores[i] + CurCPUMulti;
+                  SCKernelMatched := True;
+                  Break;
+                end;
+              end;
+              if not SCKernelMatched then
+              begin
+                if SCKernelUniqueCount >= Length(SCKernelNames) then
+                begin
+                  SetLength(SCKernelNames, Max(16, SCKernelUniqueCount * 2));
+                  SetLength(SCKernelCounts, Max(16, SCKernelUniqueCount * 2));
+                  SetLength(SCKernelScores, Max(16, SCKernelUniqueCount * 2));
+                end;
+                SCKernelNames[SCKernelUniqueCount] := RowKernelBranch;
+                SCKernelCounts[SCKernelUniqueCount] := 1;
+                SCKernelScores[SCKernelUniqueCount] := CurCPUMulti;
+                Inc(SCKernelUniqueCount);
+              end;
+              Inc(SCKernelTotalFound);
+            end;
           end;
         end;
       end;
@@ -1646,6 +1937,315 @@ begin
     end;
     FStackShare.TopKernelName := 'Linux 7.0-cachyos';
     FStackShare.TopKernelAvgScore := 4120;
+
+    // -------------------------------------------------------------
+    // SAME-HARDWARE SOFTWARE DELTA CALCULATIONS (SLIDE 6 REDESIGN)
+    // -------------------------------------------------------------
+    // 1. Same-GPU Distro Aggregation
+    if (aUserScore > 0) and (NormUserDistro <> '') then
+    begin
+      SGDistroMatched := False;
+      for i := 0 to SGDistroUniqueCount - 1 do
+      begin
+        if SameText(SGDistroNames[i], NormUserDistro) then
+        begin
+          SGDistroMatched := True;
+          Break;
+        end;
+      end;
+      if not SGDistroMatched then
+      begin
+        if SGDistroUniqueCount >= Length(SGDistroNames) then
+        begin
+          SetLength(SGDistroNames, SGDistroUniqueCount + 4);
+          SetLength(SGDistroCounts, SGDistroUniqueCount + 4);
+          SetLength(SGDistroScores, SGDistroUniqueCount + 4);
+        end;
+        SGDistroNames[SGDistroUniqueCount] := NormUserDistro;
+        SGDistroCounts[SGDistroUniqueCount] := 1;
+        SGDistroScores[SGDistroUniqueCount] := aUserScore;
+        Inc(SGDistroUniqueCount);
+      end;
+    end;
+
+    SetLength(SGDistroAvg, SGDistroUniqueCount);
+    UserDistroBaseline := 0;
+    for i := 0 to SGDistroUniqueCount - 1 do
+    begin
+      if SGDistroCounts[i] > 0 then
+        SGDistroAvg[i] := Round(SGDistroScores[i] / SGDistroCounts[i])
+      else
+        SGDistroAvg[i] := aUserScore;
+      if SameText(SGDistroNames[i], NormUserDistro) then
+        UserDistroBaseline := SGDistroAvg[i];
+    end;
+    if UserDistroBaseline <= 0 then UserDistroBaseline := Max(100, aUserScore);
+
+    // Sort descending by AvgScore
+    for i := 0 to SGDistroUniqueCount - 2 do
+      for j := i + 1 to SGDistroUniqueCount - 1 do
+        if SGDistroAvg[i] < SGDistroAvg[j] then
+        begin
+          TempName := SGDistroNames[i]; SGDistroNames[i] := SGDistroNames[j]; SGDistroNames[j] := TempName;
+          TempCount := SGDistroCounts[i]; SGDistroCounts[i] := SGDistroCounts[j]; SGDistroCounts[j] := TempCount;
+          TempScore := SGDistroScores[i]; SGDistroScores[i] := SGDistroScores[j]; SGDistroScores[j] := TempScore;
+          TempInt := SGDistroAvg[i]; SGDistroAvg[i] := SGDistroAvg[j]; SGDistroAvg[j] := TempInt;
+        end;
+
+    if SGDistroUniqueCount > 4 then
+    begin
+      UserInTop4 := False;
+      for i := 0 to 3 do
+        if SameText(SGDistroNames[i], NormUserDistro) then
+        begin
+          UserInTop4 := True;
+          Break;
+        end;
+      if not UserInTop4 then
+      begin
+        for i := 4 to SGDistroUniqueCount - 1 do
+          if SameText(SGDistroNames[i], NormUserDistro) then
+          begin
+            TempName := SGDistroNames[3]; SGDistroNames[3] := SGDistroNames[i]; SGDistroNames[i] := TempName;
+            TempCount := SGDistroCounts[3]; SGDistroCounts[3] := SGDistroCounts[i]; SGDistroCounts[i] := TempCount;
+            TempScore := SGDistroScores[3]; SGDistroScores[3] := SGDistroScores[i]; SGDistroScores[i] := TempScore;
+            TempInt := SGDistroAvg[3]; SGDistroAvg[3] := SGDistroAvg[i]; SGDistroAvg[i] := TempInt;
+            Break;
+          end;
+      end;
+    end;
+
+    FSameGPUDistroCount := Min(4, SGDistroUniqueCount);
+    for i := 0 to FSameGPUDistroCount - 1 do
+    begin
+      FSameGPUDistroStats[i].Name := SGDistroNames[i];
+      FSameGPUDistroStats[i].Count := SGDistroCounts[i];
+      FSameGPUDistroStats[i].AvgScore := SGDistroAvg[i];
+      FSameGPUDistroStats[i].IsCurrentDistro := SameText(SGDistroNames[i], NormUserDistro);
+      if FSameGPUDistroStats[i].IsCurrentDistro then
+        FSameGPUDistroStats[i].DeltaPct := 0.0
+      else if UserDistroBaseline > 0 then
+        FSameGPUDistroStats[i].DeltaPct := ((SGDistroAvg[i] - UserDistroBaseline) / (UserDistroBaseline * 1.0)) * 100.0
+      else
+        FSameGPUDistroStats[i].DeltaPct := 0.0;
+    end;
+
+    if FSameGPUDistroCount <= 0 then
+    begin
+      FSameGPUDistroCount := 1;
+      FSameGPUDistroStats[0].Name := NormUserDistro;
+      if FSameGPUDistroStats[0].Name = '' then FSameGPUDistroStats[0].Name := 'Linux';
+      FSameGPUDistroStats[0].Count := 1;
+      FSameGPUDistroStats[0].AvgScore := aUserScore;
+      FSameGPUDistroStats[0].DeltaPct := 0.0;
+      FSameGPUDistroStats[0].IsCurrentDistro := True;
+    end;
+
+    // 2. Same-GPU Graphics Driver Branch Aggregation
+    if (NormUserDriver <> '') then
+    begin
+      SGDriverMatched := False;
+      for i := 0 to SGDriverUniqueCount - 1 do
+      begin
+        if SameText(SGDriverNames[i], NormUserDriver) then
+        begin
+          SGDriverMatched := True;
+          Break;
+        end;
+      end;
+      if not SGDriverMatched then
+      begin
+        if SGDriverUniqueCount >= Length(SGDriverNames) then
+        begin
+          SetLength(SGDriverNames, SGDriverUniqueCount + 4);
+          SetLength(SGDriverCounts, SGDriverUniqueCount + 4);
+          SetLength(SGDriverScores, SGDriverUniqueCount + 4);
+        end;
+        SGDriverNames[SGDriverUniqueCount] := NormUserDriver;
+        SGDriverCounts[SGDriverUniqueCount] := 1;
+        if aGPURasterScore > 100 then
+          SGDriverScores[SGDriverUniqueCount] := aGPURasterScore
+        else
+          SGDriverScores[SGDriverUniqueCount] := aUserScore;
+        Inc(SGDriverUniqueCount);
+      end;
+    end;
+
+    SetLength(SGDriverAvgList, SGDriverUniqueCount);
+    UserDriverBaseline := 0;
+    for i := 0 to SGDriverUniqueCount - 1 do
+    begin
+      if SGDriverCounts[i] > 0 then
+        SGDriverAvgList[i] := Round(SGDriverScores[i] / SGDriverCounts[i])
+      else
+        SGDriverAvgList[i] := Max(aGPURasterScore, aUserScore);
+      if SameText(SGDriverNames[i], NormUserDriver) then
+        UserDriverBaseline := SGDriverAvgList[i];
+    end;
+    if UserDriverBaseline <= 0 then
+      UserDriverBaseline := Max(100, Max(aGPURasterScore, aUserScore));
+
+    for i := 0 to SGDriverUniqueCount - 2 do
+      for j := i + 1 to SGDriverUniqueCount - 1 do
+        if SGDriverAvgList[i] < SGDriverAvgList[j] then
+        begin
+          TempName := SGDriverNames[i]; SGDriverNames[i] := SGDriverNames[j]; SGDriverNames[j] := TempName;
+          TempCount := SGDriverCounts[i]; SGDriverCounts[i] := SGDriverCounts[j]; SGDriverCounts[j] := TempCount;
+          TempScore := SGDriverScores[i]; SGDriverScores[i] := SGDriverScores[j]; SGDriverScores[j] := TempScore;
+          TempInt := SGDriverAvgList[i]; SGDriverAvgList[i] := SGDriverAvgList[j]; SGDriverAvgList[j] := TempInt;
+        end;
+
+    if SGDriverUniqueCount > 4 then
+    begin
+      UserInTop4 := False;
+      for i := 0 to 3 do
+        if SameText(SGDriverNames[i], NormUserDriver) then
+        begin
+          UserInTop4 := True;
+          Break;
+        end;
+      if not UserInTop4 then
+      begin
+        for i := 4 to SGDriverUniqueCount - 1 do
+          if SameText(SGDriverNames[i], NormUserDriver) then
+          begin
+            TempName := SGDriverNames[3]; SGDriverNames[3] := SGDriverNames[i]; SGDriverNames[i] := TempName;
+            TempCount := SGDriverCounts[3]; SGDriverCounts[3] := SGDriverCounts[i]; SGDriverCounts[i] := TempCount;
+            TempScore := SGDriverScores[3]; SGDriverScores[3] := SGDriverScores[i]; SGDriverScores[i] := TempScore;
+            TempInt := SGDriverAvgList[3]; SGDriverAvgList[3] := SGDriverAvgList[i]; SGDriverAvgList[i] := TempInt;
+            Break;
+          end;
+      end;
+    end;
+
+    FSameGPUDriverCount := Min(4, SGDriverUniqueCount);
+    for i := 0 to FSameGPUDriverCount - 1 do
+    begin
+      FSameGPUDriverStats[i].Name := SGDriverNames[i];
+      FSameGPUDriverStats[i].Count := SGDriverCounts[i];
+      FSameGPUDriverStats[i].AvgGPUScore := SGDriverAvgList[i];
+      FSameGPUDriverStats[i].IsCurrentDriver := SameText(SGDriverNames[i], NormUserDriver);
+      if FSameGPUDriverStats[i].IsCurrentDriver then
+        FSameGPUDriverStats[i].DeltaPct := 0.0
+      else if UserDriverBaseline > 0 then
+        FSameGPUDriverStats[i].DeltaPct := ((SGDriverAvgList[i] - UserDriverBaseline) / (UserDriverBaseline * 1.0)) * 100.0
+      else
+        FSameGPUDriverStats[i].DeltaPct := 0.0;
+    end;
+
+    if FSameGPUDriverCount <= 0 then
+    begin
+      FSameGPUDriverCount := 1;
+      FSameGPUDriverStats[0].Name := NormUserDriver;
+      if FSameGPUDriverStats[0].Name = '' then FSameGPUDriverStats[0].Name := 'Mesa';
+      FSameGPUDriverStats[0].Count := 1;
+      FSameGPUDriverStats[0].AvgGPUScore := Max(aGPURasterScore, aUserScore);
+      FSameGPUDriverStats[0].DeltaPct := 0.0;
+      FSameGPUDriverStats[0].IsCurrentDriver := True;
+    end;
+
+    // 3. Same-CPU Kernel Branch Aggregation
+    if (NormUserKernel <> '') then
+    begin
+      SCKernelMatched := False;
+      for i := 0 to SCKernelUniqueCount - 1 do
+      begin
+        if SameText(SCKernelNames[i], NormUserKernel) then
+        begin
+          SCKernelMatched := True;
+          Break;
+        end;
+      end;
+      if not SCKernelMatched then
+      begin
+        if SCKernelUniqueCount >= Length(SCKernelNames) then
+        begin
+          SetLength(SCKernelNames, SCKernelUniqueCount + 4);
+          SetLength(SCKernelCounts, SCKernelUniqueCount + 4);
+          SetLength(SCKernelScores, SCKernelUniqueCount + 4);
+        end;
+        SCKernelNames[SCKernelUniqueCount] := NormUserKernel;
+        SCKernelCounts[SCKernelUniqueCount] := 1;
+        if aCPUMultiScore > 100 then
+          SCKernelScores[SCKernelUniqueCount] := aCPUMultiScore
+        else
+          SCKernelScores[SCKernelUniqueCount] := aUserScore;
+        Inc(SCKernelUniqueCount);
+      end;
+    end;
+
+    SetLength(SCKernelAvgList, SCKernelUniqueCount);
+    UserKernelBaseline := 0;
+    for i := 0 to SCKernelUniqueCount - 1 do
+    begin
+      if SCKernelCounts[i] > 0 then
+        SCKernelAvgList[i] := Round(SCKernelScores[i] / SCKernelCounts[i])
+      else
+        SCKernelAvgList[i] := Max(aCPUMultiScore, aUserScore);
+      if SameText(SCKernelNames[i], NormUserKernel) then
+        UserKernelBaseline := SCKernelAvgList[i];
+    end;
+    if UserKernelBaseline <= 0 then
+      UserKernelBaseline := Max(100, Max(aCPUMultiScore, aUserScore));
+
+    for i := 0 to SCKernelUniqueCount - 2 do
+      for j := i + 1 to SCKernelUniqueCount - 1 do
+        if SCKernelAvgList[i] < SCKernelAvgList[j] then
+        begin
+          TempName := SCKernelNames[i]; SCKernelNames[i] := SCKernelNames[j]; SCKernelNames[j] := TempName;
+          TempCount := SCKernelCounts[i]; SCKernelCounts[i] := SCKernelCounts[j]; SCKernelCounts[j] := TempCount;
+          TempScore := SCKernelScores[i]; SCKernelScores[i] := SCKernelScores[j]; SCKernelScores[j] := TempScore;
+          TempInt := SCKernelAvgList[i]; SCKernelAvgList[i] := SCKernelAvgList[j]; SCKernelAvgList[j] := TempInt;
+        end;
+
+    if SCKernelUniqueCount > 4 then
+    begin
+      UserInTop4 := False;
+      for i := 0 to 3 do
+        if SameText(SCKernelNames[i], NormUserKernel) then
+        begin
+          UserInTop4 := True;
+          Break;
+        end;
+      if not UserInTop4 then
+      begin
+        for i := 4 to SCKernelUniqueCount - 1 do
+          if SameText(SCKernelNames[i], NormUserKernel) then
+          begin
+            TempName := SCKernelNames[3]; SCKernelNames[3] := SCKernelNames[i]; SCKernelNames[i] := TempName;
+            TempCount := SCKernelCounts[3]; SCKernelCounts[3] := SCKernelCounts[i]; SCKernelCounts[i] := TempCount;
+            TempScore := SCKernelScores[3]; SCKernelScores[3] := SCKernelScores[i]; SCKernelScores[i] := TempScore;
+            TempInt := SCKernelAvgList[3]; SCKernelAvgList[3] := SCKernelAvgList[i]; SCKernelAvgList[i] := TempInt;
+            Break;
+          end;
+      end;
+    end;
+
+    FSameCPUKernelCount := Min(4, SCKernelUniqueCount);
+    for i := 0 to FSameCPUKernelCount - 1 do
+    begin
+      FSameCPUKernelStats[i].Name := SCKernelNames[i];
+      FSameCPUKernelStats[i].Count := SCKernelCounts[i];
+      FSameCPUKernelStats[i].AvgCPUScore := SCKernelAvgList[i];
+      FSameCPUKernelStats[i].IsCurrentKernel := SameText(SCKernelNames[i], NormUserKernel);
+      if FSameCPUKernelStats[i].IsCurrentKernel then
+        FSameCPUKernelStats[i].DeltaPct := 0.0
+      else if UserKernelBaseline > 0 then
+        FSameCPUKernelStats[i].DeltaPct := ((SCKernelAvgList[i] - UserKernelBaseline) / (UserKernelBaseline * 1.0)) * 100.0
+      else
+        FSameCPUKernelStats[i].DeltaPct := 0.0;
+    end;
+
+    if FSameCPUKernelCount <= 0 then
+    begin
+      FSameCPUKernelCount := 1;
+      FSameCPUKernelStats[0].Name := NormUserKernel;
+      if FSameCPUKernelStats[0].Name = '' then FSameCPUKernelStats[0].Name := 'Linux 7.x';
+      FSameCPUKernelStats[0].Count := 1;
+      FSameCPUKernelStats[0].AvgCPUScore := Max(aCPUMultiScore, aUserScore);
+      FSameCPUKernelStats[0].DeltaPct := 0.0;
+      FSameCPUKernelStats[0].IsCurrentKernel := True;
+    end;
 
     // -------------------------------------------------------------
     // GPU SILICON LOTTERY CALCULATION (SLIDE 3 - LEFT)
@@ -2171,6 +2771,30 @@ begin
     FillChar(Result, SizeOf(Result), 0);
 end;
 
+function TCommunityInsights.GetSameGPUDistroStat(aIndex: Integer): TSameGPUDistroStat;
+begin
+  if (aIndex >= 0) and (aIndex <= High(FSameGPUDistroStats)) then
+    Result := FSameGPUDistroStats[aIndex]
+  else
+    FillChar(Result, SizeOf(Result), 0);
+end;
+
+function TCommunityInsights.GetSameGPUDriverStat(aIndex: Integer): TSameGPUDriverStat;
+begin
+  if (aIndex >= 0) and (aIndex <= High(FSameGPUDriverStats)) then
+    Result := FSameGPUDriverStats[aIndex]
+  else
+    FillChar(Result, SizeOf(Result), 0);
+end;
+
+function TCommunityInsights.GetSameCPUKernelStat(aIndex: Integer): TSameCPUKernelStat;
+begin
+  if (aIndex >= 0) and (aIndex <= High(FSameCPUKernelStats)) then
+    Result := FSameCPUKernelStats[aIndex]
+  else
+    FillChar(Result, SizeOf(Result), 0);
+end;
+
 function TCommunityInsights.GetScalingRung(aIndex: Integer): TScalingRung;
 begin
   if (aIndex >= 0) and (aIndex <= High(FScalingRungs)) then
@@ -2187,7 +2811,7 @@ begin
     FillChar(Result, SizeOf(Result), 0);
 end;
 
-procedure TCommunityInsights.EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = '');
+procedure TCommunityInsights.EnsureLoaded(const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = ''; const aUserDriver: string = '');
 var
   FileStr: string;
   SL: TStringList;
@@ -2210,8 +2834,10 @@ begin
   FLastCPUMaxFreq := aCPUMaxFreq;
   FLastGPUMaxFreq := aGPUMaxFreq;
   FLastUserNick := aUserNick;
+  if aUserDriver <> '' then
+    FLastUserDriver := aUserDriver;
 
-  if FLoaded and (FUserScore = aUserScore) and (FUserDistroName = aUserDistro) and (FUserCPUName = aUserCPU) and (FUserKernelName = aUserKernel) and (FUserNick = aUserNick) then
+  if FLoaded and (FUserScore = aUserScore) and (FUserDistroName = aUserDistro) and (FUserCPUName = aUserCPU) and (FUserKernelName = aUserKernel) and (FUserNick = aUserNick) and (FLastUserDriver = aUserDriver) then
     Exit;
 
   FUserScore := aUserScore;
@@ -2231,7 +2857,7 @@ begin
         FileStr := SL.Text;
         if Length(FileStr) > 500 then
         begin
-          ParseCSVData(FileStr, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq, aUserKernel, aUserNick);
+          ParseCSVData(FileStr, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq, aUserKernel, aUserNick, FLastUserDriver);
           Exit;
         end;
       except
@@ -2243,7 +2869,7 @@ begin
   end;
 
   // 2. Use embedded full-schema fallback dataset
-  ParseCSVData(FALLBACK_COMMUNITY_CSV, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq, aUserKernel, aUserNick);
+  ParseCSVData(FALLBACK_COMMUNITY_CSV, aUserScore, aUserGPU, aUserDistro, aRTScore, aCPUTempMax, aGPUTempMax, aTotalPowerMax, aCPUMultiScore, aGPURasterScore, aCPUPowerMax, aGPUPowerMax, aUserCPU, aUserDesktop, aCPUMaxFreq, aGPUMaxFreq, aUserKernel, aUserNick, FLastUserDriver);
 end;
 
 initialization

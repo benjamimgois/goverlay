@@ -63,8 +63,12 @@ The analytics engine SHALL compute points-per-watt efficiency based on peak powe
 - **THEN** the system displays a clean two-column layout (GPU Efficiency and CPU Efficiency) featuring a thermal headroom progress gauge (`Peak Temp`, `Headroom`, and `Peak Wattage`) at the top of each column followed by a spacious 5-row horizontal bar chart comparing the user's `pts/W` against real PasCubeDB GPU and CPU efficiency leaders, omitting static voltage/fan/cooler sub-tiles and bottom verdict bars.
 
 ### Requirement: Linux Ecosystem Software & Performance Statistics
-The Distros slide SHALL display real community adoption shares and average scores from PasCubeDB for Linux distributions, desktop environments, display servers, and graphics stacks without hardcoded baseline delta explanations.
+The Distros slide SHALL display isolated hardware performance deltas from PasCubeDB comparing the user's detected GPU across Linux distributions, the user's detected GPU across graphics driver versions (Mesa or NVIDIA branches), and the user's detected CPU across Linux kernel versions, replacing global demographic share percentages and desktop environment rankings with actionable software optimization metrics.
 
 #### Scenario: Displaying Linux ecosystem software insights
 - **WHEN** the distros slide (Slide 6) is rendered
-- **THEN** the left column displays the top Linux distributions from PasCubeDB with popularity bars (`%`), real average scores, and a `YOUR DISTRO` highlight badge, while the right column renders two clean visual cards: a Desktop Environment popularity ranking (highlighting the user's DE) and segmented visual share bars for Display Server (`Wayland` vs `X11`) and Graphics Stack (`Mesa` vs `NVIDIA`) alongside a concise summary of the user's active software stack.
+- **THEN** the left column displays the top Linux distributions filtered by the user's detected GPU model with average scores, sample counts, a `YOUR DISTRO` badge, and relative performance deltas vs the active distribution, while the right column renders two clean visual cards: a graphics driver release branch comparison for the user's GPU (highlighting the active driver with `YOUR DRIVER` and showing GPU score deltas) and a Linux kernel version comparison for the user's CPU (highlighting the active kernel with `YOUR KERNEL` and showing CPU score deltas).
+
+#### Scenario: Handling limited hardware sample counts
+- **WHEN** the user's detected GPU or CPU has fewer than minimum verifiable runs across multiple distributions, drivers, or kernels in PasCubeDB
+- **THEN** the analytics engine falls back to broader hardware architecture clustering or displays a graceful sample indicator without crashing, dividing by zero, or leaving empty visual cards.
