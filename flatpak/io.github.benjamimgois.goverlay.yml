@@ -185,8 +185,9 @@ modules:
         make LAZBUILDOPTS="--lazarusdir=$LAZARUSDIR --compiler=$FPC"
       - make install prefix=/app
       - |
-        # Install bgmod binary as a Flatpak command
+        # Install bgmod and bgmod-splash binaries as Flatpak commands
         install -Dm755 data/bgmod/bgmod /app/bin/bgmod
+        install -Dm755 bgmod-splash /app/bin/bgmod-splash
         # Install bgmod data files to shared data directory
         mkdir -p /app/share/goverlay/bgmod
         cp -r data/bgmod/* /app/share/goverlay/bgmod/

@@ -56,7 +56,7 @@ The system SHALL provide an interface inside the "Shaders" card to install, upda
 - **THEN** the system opens the file manager at `~/.local/share/goverlay/reshade/shaders/`.
 
 ### Requirement: Wine and Proton Path Translation in ReShade Configuration
-The system SHALL generate and maintain `ReShade.ini` referencing centralized shader and texture directories using Wine drive notation (`Z:\...`). When running via a Flatpak game profile, the system SHALL resolve the centralized directories from the sandboxed Flatpak data path (`~/.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/...`) rather than host `$XDG_DATA_HOME`, and SHALL include both `/var/home` and `/home` search path variants to accommodate symlinked immutable filesystems.
+The system SHALL generate and maintain `ReShade.ini` referencing centralized shader and texture directories using Wine drive notation (`Z:\...`). When running via a Flatpak game profile, the system SHALL resolve the centralized directories from the sandboxed Flatpak data path (`~/.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/...`) rather than host `$XDG_DATA_HOME`, SHALL include both `/var/home` and `/home` search path variants to accommodate symlinked immutable filesystems, and SHALL unconditionally synchronize `EffectSearchPaths` and `TextureSearchPaths` in the target game's `ReShade.ini` regardless of whether `PreserveIni` is enabled, ensuring shaders are discovered without manual user configuration.
 
 #### Scenario: Generating ReShade configuration for a game
 - **WHEN** ReShade is deployed for a game
@@ -64,8 +64,13 @@ The system SHALL generate and maintain `ReShade.ini` referencing centralized sha
 
 #### Scenario: Generating ReShade configuration under Flatpak on OSTree systems
 - **WHEN** ReShade is deployed for a game via a `bgmod` wrapper configured by GOverlay running in Flatpak
-- **THEN** the system writes `EffectSearchPaths` and `TextureSearchPaths` referencing the sandboxed Flatpak shader directory (`Z:\var\home\<user>\.var\app\io.github.benjamimgois.goverlay\data\goverlay\reshade\shaders\Shaders` and `Textures`)
+- **THEN** the system writes `EffectSearchPaths` and `TextureSearchPaths` referencing the sandboxed Flatpak shader directory (`Z:\var\home\<user>\.var\app\io.github.benjamimgois.goverlay/data/goverlay/reshade/shaders/Shaders` and `Textures`)
 - **AND** appends the corresponding `/home` symlink variant (`Z:\home\<user>\.var\app\...`) so shaders and textures are fully discovered regardless of container path resolution.
+
+#### Scenario: Preserving user INI while updating search paths
+- **WHEN** a game launches with an existing `ReShade.ini` and `PreserveIni=true`
+- **THEN** `bgmod` preserves user presets, keybindings, and tweaks in `ReShade.ini`
+- **AND** updates `EffectSearchPaths` and `TextureSearchPaths` to guarantee all centralized and Flatpak shader directories remain active and valid.
 
 ### Requirement: Game-Level Injection and Proxy DLL Deployment via bgmod
 The system SHALL allow enabling ReShade per game, deploying the runtime DLL under a user-selected proxy filename (`dxgi.dll`, `d3d11.dll`, `d3d12.dll`, `d3d9.dll`, `opengl32.dll`), configuring `WINEDLLOVERRIDES`, and recording the deployed proxy in `goverlay.vars`. When `bgmod` runs from a Flatpak game profile, it SHALL resolve the source runtime DLL and default settings from the sandboxed Flatpak data path.

@@ -2296,6 +2296,29 @@ begin
     Result := 'Z:\' + Result;
 end;
 
+function BuildReShadeSearchPath(const AUnixDir: string): string;
+var
+  CleanDir, WinePath, AltWinePath: string;
+begin
+  Result := '';
+  if AUnixDir = '' then Exit;
+  CleanDir := ExcludeTrailingPathDelimiter(AUnixDir);
+  WinePath := UnixPathToWinePath(CleanDir);
+  Result := WinePath + ',' + WinePath + '\**';
+
+  // Support dual /var/home and /home paths on symlinked OSTree environments (e.g. Bazzite/SteamOS)
+  if Pos('Z:\var\home\', WinePath) = 1 then
+  begin
+    AltWinePath := 'Z:\home\' + Copy(WinePath, Length('Z:\var\home\') + 1, MaxInt);
+    Result := Result + ',' + AltWinePath + ',' + AltWinePath + '\**';
+  end
+  else if (Pos('Z:\home\', WinePath) = 1) and DirectoryExists('/var/home') then
+  begin
+    AltWinePath := 'Z:\var\home\' + Copy(WinePath, Length('Z:\home\') + 1, MaxInt);
+    Result := Result + ',' + AltWinePath + ',' + AltWinePath + '\**';
+  end;
+end;
+
 // True only when the game file exists and its size matches the payload
 // distributed by GOverlay in ASourceDir (or standard central cache folders).
 // When no source payload exists (or sizes differ), the file is treated as genuine
@@ -2437,6 +2460,65 @@ begin
   end
   else
     SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars');
+end;
+
+procedure SanitizeVkBasaltConfig(const AConfigFile: string);
+var
+  SL: TStringList;
+  i, p: Integer;
+  Line, Key, Val, HostConfigDir, FlatpakConfigMarker, HomeDir, RelPart, FlatpakShaderDir: string;
+  Modified: Boolean;
+begin
+  if not FileExists(AConfigFile) then Exit;
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := GetUserDir;
+  HostConfigDir := IncludeTrailingPathDelimiter(HomeDir) + '.config/vkBasalt/';
+  FlatpakConfigMarker := '.var/app/io.github.benjamimgois.goverlay/config/vkBasalt/';
+
+  SL := TStringList.Create;
+  try
+    try
+      SL.LoadFromFile(AConfigFile);
+      Modified := False;
+      for i := 0 to SL.Count - 1 do
+      begin
+        Line := SL[i];
+        p := Pos(FlatpakConfigMarker, Line);
+        if p > 0 then
+        begin
+          p := Pos('=', Line);
+          if p > 0 then
+          begin
+            Key := Trim(Copy(Line, 1, p - 1));
+            Val := Trim(Copy(Line, p + 1, MaxInt));
+            p := Pos(FlatpakConfigMarker, Val);
+            if p > 0 then
+            begin
+              RelPart := Copy(Val, p + Length(FlatpakConfigMarker), MaxInt);
+              FlatpakShaderDir := Copy(Val, 1, p + Length(FlatpakConfigMarker) - 1) + 'reshade-shaders';
+              if not DirectoryExists(HostConfigDir + 'reshade-shaders') and DirectoryExists(FlatpakShaderDir) then
+              begin
+                ForceDirectories(HostConfigDir);
+                CopyDirectory(FlatpakShaderDir, HostConfigDir + 'reshade-shaders');
+              end;
+              SL[i] := Key + ' = ' + HostConfigDir + RelPart;
+              Modified := True;
+            end;
+          end;
+        end;
+      end;
+      if Modified then
+      begin
+        SL.SaveToFile(AConfigFile);
+        Log('Sanitized vkBasalt.conf to use container-accessible host config paths.');
+      end;
+    except
+      on E: Exception do
+        Log('Warning: Failed to sanitize vkBasalt.conf: ' + E.Message);
+    end;
+  finally
+    SL.Free;
+  end;
 end;
 
 function IsSensitiveFlagName(const S: string): Boolean;
@@ -2729,12 +2811,14 @@ end;
 
 function FindSplashBinary(const ABgmodPath, ASourceDir: string): string;
 var
-  DataHome: string;
-  Candidates: array[0..8] of string;
+  DataHome, HomeDir: string;
+  Candidates: array[0..13] of string;
   idx: Integer;
 begin
   Result := '';
   DataHome := GetGOverlayBaseDataPath(ABgmodPath);
+  HomeDir := GetEnvironmentVariable('HOME');
+  if HomeDir = '' then HomeDir := GetUserDir;
 
   Candidates[0] := IncludeTrailingPathDelimiter(ABgmodPath) + 'bgmod-splash';
   Candidates[1] := IncludeTrailingPathDelimiter(ASourceDir) + 'bgmod-splash';
@@ -2744,7 +2828,12 @@ begin
   Candidates[5] := '/usr/libexec/bgmod-splash';
   Candidates[6] := '/usr/local/libexec/goverlay/bgmod-splash';
   Candidates[7] := '/app/bin/bgmod-splash';
-  Candidates[8] := '/usr/bin/bgmod-splash';
+  Candidates[8] := '/app/libexec/goverlay/bgmod-splash';
+  Candidates[9] := '/usr/bin/bgmod-splash';
+  Candidates[10] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/bgmod-splash';
+  Candidates[11] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/bgmod-splash';
+  Candidates[12] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/bgmod-splash';
+  Candidates[13] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/bgmod-splash';
 
   for idx := 0 to High(Candidates) do
   begin
@@ -2757,8 +2846,8 @@ end;
 
 function FindMasterBGModDir(const ARunningDir: string): string;
 var
-  DataHome, CleanRunningDir, HomeDir: string;
-  Candidates: array[0..11] of string;
+  DataHome, CleanRunningDir, HomeDir, FlatpakMaster: string;
+  Candidates: array[0..13] of string;
   idx: Integer;
   CandDir: string;
 begin
@@ -2776,6 +2865,17 @@ begin
   if DataHome = '' then
     DataHome := IncludeTrailingPathDelimiter(HomeDir) + '.local/share';
 
+  // If running from a Flatpak game profile, prioritize the sandboxed Flatpak template directory
+  if (ARunningDir <> '') and (Pos('io.github.benjamimgois.goverlay', ARunningDir) > 0) then
+  begin
+    FlatpakMaster := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(ARunningDir)) + 'bgmod/';
+    if FileExists(FlatpakMaster + 'bgmod') and ((CleanRunningDir = '') or (ExpandFileName(FlatpakMaster) <> ExpandFileName(CleanRunningDir))) then
+    begin
+      Result := FlatpakMaster;
+      Exit;
+    end;
+  end;
+
   // 1. System packages
   Candidates[0] := '/usr/libexec/goverlay/';
   Candidates[1] := '/usr/local/libexec/goverlay/';
@@ -2785,19 +2885,21 @@ begin
   Candidates[5] := '/usr/local/libexec/';
 
   // 2. Flatpak system & user host paths
-  Candidates[6] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
-  Candidates[7] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
-  Candidates[8] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
-  Candidates[9] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+  Candidates[6] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/';
+  Candidates[7] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
+  Candidates[8] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+  Candidates[9] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/';
+  Candidates[10] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
+  Candidates[11] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
 
   // 3. User template cache
-  Candidates[10] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/';
+  Candidates[12] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/';
 
   // 4. AppImage / Development
   if GetEnvironmentVariable('APPDIR') <> '' then
-    Candidates[11] := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDIR')) + 'lib/'
+    Candidates[13] := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDIR')) + 'lib/'
   else
-    Candidates[11] := '';
+    Candidates[13] := '';
 
   for idx := 0 to High(Candidates) do
   begin
@@ -2966,7 +3068,7 @@ var
   NextArgIsSensitive: Boolean;
   Key, Val, Line: string;
   ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
-  ReShadeShadersDir, WineShaders, WineTextures, AltWineShaders, AltWineTextures, EffectPaths, TexturePaths, OverlayKey: string;
+  ReShadeShadersDir, WineShaders, WineTextures, AltWineShaders, AltWineTextures, EffectPaths, TexturePaths, OverlayKey, AltShadersDir: string;
   ReShadeIniFile, PrevReshadeProxy, VarsFile: string;
   GlobalReShadeIni, GameReShadeIni, OptiIni: TIniFile;
   EnvArgs: array of PChar;
@@ -3874,7 +3976,10 @@ begin
         
       // --- vkBasalt Configuration Copy ---
       if GOverlayVkBasalt then
-        SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf')
+      begin
+        SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+        SanitizeVkBasaltConfig(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+      end
       else
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
 
@@ -3894,6 +3999,22 @@ begin
         Log('ReShade is enabled. Preparing deployment...');
         ReShadeDataDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'reshade';
         ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+
+        // Check fallback locations for ReShade64.dll if not found in primary directory
+        if not FileExists(ReShadeSrcDll) then
+        begin
+          if (Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0) and
+             FileExists(GetUserDir + '.local/share/goverlay/reshade/bin/ReShade64.dll') then
+          begin
+            ReShadeDataDir := GetUserDir + '.local/share/goverlay/reshade';
+            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+          end
+          else if FileExists(GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/bin/ReShade64.dll') then
+          begin
+            ReShadeDataDir := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade';
+            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+          end;
+        end;
 
         if not FileExists(ReShadeSrcDll) then
           Log('Warning: ReShade64.dll not found in ' + ReShadeSrcDll)
@@ -3925,34 +4046,40 @@ begin
             SafeCopyFile(ReShadeSrcDll, IncludeTrailingPathDelimiter(GameDir) + TargetReShadeDll);
           end;
 
-          // Generate/update ReShade.ini with Wine paths
-          ReShadeShadersDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'shaders';
-          WineShaders := UnixPathToWinePath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders');
-          WineTextures := UnixPathToWinePath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures');
-          EffectPaths := WineShaders + ',' + WineShaders + '\**';
-          TexturePaths := WineTextures + ',' + WineTextures + '\**';
-
-          // Support dual /var/home and /home paths on symlinked OSTree environments (e.g. Bazzite/SteamOS)
-          if Pos('Z:\var\home\', WineShaders) = 1 then
+          // Check alternative ReShade shaders directory if primary has no shaders folder
+          if not DirectoryExists(IncludeTrailingPathDelimiter(ReShadeDataDir) + 'shaders') then
           begin
-            AltWineShaders := 'Z:\home\' + Copy(WineShaders, Length('Z:\var\home\') + 1, MaxInt);
-            EffectPaths := EffectPaths + ',' + AltWineShaders + ',' + AltWineShaders + '\**';
-          end
-          else if (Pos('Z:\home\', WineShaders) = 1) and DirectoryExists('/var/home') then
-          begin
-            AltWineShaders := 'Z:\var\home\' + Copy(WineShaders, Length('Z:\home\') + 1, MaxInt);
-            EffectPaths := EffectPaths + ',' + AltWineShaders + ',' + AltWineShaders + '\**';
+            if (Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0) and
+               DirectoryExists(GetUserDir + '.local/share/goverlay/reshade/shaders') then
+              ReShadeDataDir := GetUserDir + '.local/share/goverlay/reshade'
+            else if DirectoryExists(GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/shaders') then
+              ReShadeDataDir := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade';
           end;
 
-          if Pos('Z:\var\home\', WineTextures) = 1 then
+          // Generate/update ReShade.ini with Wine paths
+          ReShadeShadersDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'shaders';
+          EffectPaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders') + ',' +
+                         BuildReShadeSearchPath(ReShadeShadersDir);
+          TexturePaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures') + ',' +
+                          BuildReShadeSearchPath(ReShadeShadersDir);
+
+          // Support cross-environment discovery: if both Flatpak and Host reshade folders exist, include both
+          AltShadersDir := '';
+          if (Pos('io.github.benjamimgois.goverlay', ReShadeDataDir) > 0) and
+             DirectoryExists(GetUserDir + '.local/share/goverlay/reshade/shaders') then
+            AltShadersDir := GetUserDir + '.local/share/goverlay/reshade/shaders'
+          else if (Pos('io.github.benjamimgois.goverlay', ReShadeDataDir) = 0) and
+                  DirectoryExists(GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/shaders') then
+            AltShadersDir := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/shaders';
+
+          if AltShadersDir <> '' then
           begin
-            AltWineTextures := 'Z:\home\' + Copy(WineTextures, Length('Z:\var\home\') + 1, MaxInt);
-            TexturePaths := TexturePaths + ',' + AltWineTextures + ',' + AltWineTextures + '\**';
-          end
-          else if (Pos('Z:\home\', WineTextures) = 1) and DirectoryExists('/var/home') then
-          begin
-            AltWineTextures := 'Z:\var\home\' + Copy(WineTextures, Length('Z:\home\') + 1, MaxInt);
-            TexturePaths := TexturePaths + ',' + AltWineTextures + ',' + AltWineTextures + '\**';
+            EffectPaths := EffectPaths + ',' +
+                           BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Shaders') + ',' +
+                           BuildReShadeSearchPath(AltShadersDir);
+            TexturePaths := TexturePaths + ',' +
+                            BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Textures') + ',' +
+                            BuildReShadeSearchPath(AltShadersDir);
           end;
 
           OverlayKey := '36,0,0,0';
@@ -4089,6 +4216,16 @@ begin
     Log('Export: ENABLE_VKSUMI=1');
     SetEnvVarInList(EnvStrings, 'VKSUMI_DEBUG', '1');
     Log('Export: VKSUMI_DEBUG=1');
+    if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf') then
+    begin
+      SetEnvVarInList(EnvStrings, 'VKSUMI_CONFIG_FILE', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
+      Log('Export: VKSUMI_CONFIG_FILE=' + IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
+    end
+    else if FileExists(BgmodPath + 'vkSumi.conf') then
+    begin
+      SetEnvVarInList(EnvStrings, 'VKSUMI_CONFIG_FILE', BgmodPath + 'vkSumi.conf');
+      Log('Export: VKSUMI_CONFIG_FILE=' + BgmodPath + 'vkSumi.conf');
+    end;
   end;
   if GOverlayVkNemu then
   begin

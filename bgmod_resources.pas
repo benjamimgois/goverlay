@@ -330,11 +330,12 @@ end;
 
 function BuildReShadeSearchPath(const AUnixDir: string): string;
 var
-  WinePath, AltWinePath: string;
+  CleanDir, WinePath, AltWinePath: string;
 begin
   Result := '';
   if AUnixDir = '' then Exit;
-  WinePath := UnixPathToWinePath(AUnixDir);
+  CleanDir := ExcludeTrailingPathDelimiter(AUnixDir);
+  WinePath := UnixPathToWinePath(CleanDir);
   Result := WinePath + ',' + WinePath + '\**';
 
   // Support dual /var/home and /home paths on symlinked OSTree environments (e.g. Bazzite/SteamOS)
@@ -550,6 +551,19 @@ begin
   end
   else
     WriteLn('[BGMOD] WARNING: Compiled bgmod templates not found in any candidate directory!');
+
+  // Ensure bgmod-splash is present even if located in libexec or bin separately
+  if not FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash') then
+  begin
+    if FileExists('/app/libexec/goverlay/bgmod-splash') then
+      PerformAtomicBinaryUpdate('/app/libexec/goverlay/bgmod-splash', IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash')
+    else if FileExists('/app/bin/bgmod-splash') then
+      PerformAtomicBinaryUpdate('/app/bin/bgmod-splash', IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash')
+    else if FileExists('/usr/libexec/goverlay/bgmod-splash') then
+      PerformAtomicBinaryUpdate('/usr/libexec/goverlay/bgmod-splash', IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash')
+    else if FileExists('/usr/bin/bgmod-splash') then
+      PerformAtomicBinaryUpdate('/usr/bin/bgmod-splash', IncludeTrailingPathDelimiter(BGModPath) + 'bgmod-splash');
+  end;
 
   // Make sure binaries are executable
   if FileExists(IncludeTrailingPathDelimiter(BGModPath) + 'bgmod') then
@@ -866,8 +880,8 @@ end;
 
 function FindMasterBGModDir(const ARunningDir: string): string;
 var
-  DataHome, CleanRunningDir, HomeDir: string;
-  Candidates: array[0..11] of string;
+  DataHome, CleanRunningDir, HomeDir, FlatpakMaster: string;
+  Candidates: array[0..13] of string;
   idx: Integer;
   CandDir: string;
 begin
@@ -875,6 +889,18 @@ begin
   CleanRunningDir := '';
   if ARunningDir <> '' then
     CleanRunningDir := IncludeTrailingPathDelimiter(ARunningDir);
+
+  // Priority: If running from Flatpak game profile, check Flatpak user template first
+  if Pos('io.github.benjamimgois.goverlay', CleanRunningDir) > 0 then
+  begin
+    FlatpakMaster := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(CleanRunningDir)) + 'bgmod/';
+    if (FlatpakMaster <> '') and FileExists(FlatpakMaster + 'bgmod') and
+       (ExpandFileName(FlatpakMaster) <> ExpandFileName(CleanRunningDir)) then
+    begin
+      Result := FlatpakMaster;
+      Exit;
+    end;
+  end;
 
   HomeDir := GetEnvironmentVariable('HOME');
   if HomeDir = '' then HomeDir := GetUserDir;
@@ -894,10 +920,10 @@ begin
   Candidates[5] := '/usr/local/libexec/';
 
   // 2. Flatpak system & user host paths
-  Candidates[6] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
-  Candidates[7] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
-  Candidates[8] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
-  Candidates[9] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+  Candidates[6] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/';
+  Candidates[7] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
+  Candidates[8] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/bin/';
+  Candidates[9] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/libexec/goverlay/';
 
   // 3. User template cache
   Candidates[10] := IncludeTrailingPathDelimiter(DataHome) + 'goverlay/bgmod/';
@@ -907,6 +933,9 @@ begin
     Candidates[11] := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDIR')) + 'lib/'
   else
     Candidates[11] := '';
+
+  Candidates[12] := '/var/lib/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
+  Candidates[13] := IncludeTrailingPathDelimiter(HomeDir) + '.local/share/flatpak/app/io.github.benjamimgois.goverlay/current/active/files/lib/goverlay/';
 
   for idx := 0 to High(Candidates) do
   begin

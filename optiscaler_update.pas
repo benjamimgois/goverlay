@@ -8951,8 +8951,8 @@ begin
       IniLines := TStringList.Create;
       try
         IniLines.Add('[GENERAL]');
-        IniLines.Add('EffectSearchPaths=' + UnixPathToWinePath(ShadersDir + 'Shaders') + '\**');
-        IniLines.Add('TextureSearchPaths=' + UnixPathToWinePath(ShadersDir + 'Textures') + '\**');
+        IniLines.Add('EffectSearchPaths=' + BuildReShadeSearchPath(ShadersDir + 'Shaders') + ',' + BuildReShadeSearchPath(ShadersDir));
+        IniLines.Add('TextureSearchPaths=' + BuildReShadeSearchPath(ShadersDir + 'Textures') + ',' + BuildReShadeSearchPath(ShadersDir));
         IniLines.Add('IntermediateCachePath=' + UnixPathToWinePath(IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'cache'));
         IniLines.Add('PresetPath=' + UnixPathToWinePath(PresetsDir + 'DefaultPreset.ini'));
         IniLines.Add('KeyOverlay=36,0,0,0');

@@ -44,41 +44,38 @@ begin
   Result := UserConfig;
 end;
 
-function GetMangoHudConfigDir(): String;
+function ResolveSharedHostConfigDir(const SubDir: String): String;
 var
-  ConfigHome: String;
+  ConfigHome, HomeDir: String;
 begin
   ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
+  if (ConfigHome = '') and (GetEnvironmentVariable('FLATPAK_ID') <> '') then
+  begin
+    HomeDir := GetEnvironmentVariable('HOME');
+    if HomeDir = '' then HomeDir := GetUserDir;
+    ConfigHome := IncludeTrailingPathDelimiter(HomeDir) + '.config';
+  end;
   if ConfigHome = '' then
     ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
   if ConfigHome = '' then
     ConfigHome := GetUserDir + '.config';
-  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'MangoHud';
+  Result := IncludeTrailingPathDelimiter(ConfigHome) + SubDir;
+end;
+
+function GetMangoHudConfigDir(): String;
+begin
+  Result := ResolveSharedHostConfigDir('MangoHud');
 end;
 
 function GetVkBasaltConfigDir(): String;
-var
-  ConfigHome: String;
 begin
-  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  if ConfigHome = '' then
-    ConfigHome := GetUserDir + '.config';
-  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkBasalt';
+  Result := ResolveSharedHostConfigDir('vkBasalt');
 end;
 
 // Function to get vkSumi config directory with proper XDG support
 function GetVkSumiConfigDir(): String;
-var
-  ConfigHome: String;
 begin
-  ConfigHome := GetEnvironmentVariable('HOST_XDG_CONFIG_HOME');
-  if ConfigHome = '' then
-    ConfigHome := GetEnvironmentVariable('XDG_CONFIG_HOME');
-  if ConfigHome = '' then
-    ConfigHome := GetUserDir + '.config';
-  Result := IncludeTrailingPathDelimiter(ConfigHome) + 'vkSumi';
+  Result := ResolveSharedHostConfigDir('vkSumi');
 end;
 
 function GetGOverlayConfigDir(): String;

@@ -43,3 +43,15 @@ The system SHALL write and read `effects = effect1:effect2:...` in `vkBasalt.con
 - **GIVEN** `vkBasalt.conf` with `effects = fxaa:dls:Clarity`
 - **WHEN** configuration is loaded in GOverlay
 - **THEN** FXAA, DLS, and Clarity are marked active with their pipeline chips displayed in that exact order (`FXAA` ➔ `DLS` ➔ `Clarity`).
+
+### Requirement: Container-Safe Shader Path Resolution
+The system SHALL ensure that all effect paths, include directories, and texture directories written to `vkBasalt.conf` reference host-shared filesystem locations (such as `~/.config/vkBasalt/reshade-shaders/`) accessible to containerized runtimes like the Steam Linux Runtime (`pressure-vessel`), preventing missing-shader fatal errors during Vulkan graphics pipeline creation.
+
+#### Scenario: Serializing shader paths under Flatpak
+- **WHEN** vkBasalt configuration is saved or deployed by GOverlay running under Flatpak
+- **THEN** the shader file paths written for active ReShade effects point to `~/.config/vkBasalt/reshade-shaders/Shaders/<Effect>.fx`
+- **AND** `reshadeTexturePath` and `reshadeIncludePath` point to `~/.config/vkBasalt/reshade-shaders/` subdirectories on the shared host filesystem.
+
+#### Scenario: Launching game with vkBasalt in Steam runtime container
+- **WHEN** a game launches inside the Steam Linux Runtime container with vkBasalt enabled
+- **THEN** vkBasalt resolves the shader file from the shared host configuration path without permission denial or path resolution failure.

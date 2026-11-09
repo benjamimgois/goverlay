@@ -48,3 +48,15 @@ The system SHALL query the latest vkSumi release from the upstream GitHub reposi
 #### Scenario: Upstream version matches local or network unavailable
 - **WHEN** the remote release tag matches the local version or the network request times out
 - **THEN** `IsVkSumiUpdateAvailable` evaluates to `False`, avoiding unnecessary downloads or application launch delays.
+
+### Requirement: Game Launch Configuration and Environment Export
+The system SHALL explicitly export the `VKSUMI_CONFIG_FILE` environment variable pointing to the deployed `vkSumi.conf` when launching a game with vkSumi enabled, and SHALL serialize `enabled = true` into the configuration file whenever the vkSumi module is enabled by the user regardless of whether slider values deviate from neutral defaults.
+
+#### Scenario: Launching a game with vkSumi enabled
+- **WHEN** a game is launched with vkSumi enabled via `bgmod`
+- **THEN** `bgmod` exports `VKSUMI_CONFIG_FILE` set to the exact path of the active `vkSumi.conf`
+- **AND** exports `ENABLE_VKSUMI=1` into the execution environment.
+
+#### Scenario: Serializing active vkSumi configuration with default sliders
+- **WHEN** user enables vkSumi in GOverlay while slider values remain at default positions
+- **THEN** `SaveVkSumiConfig` writes `enabled = true` in `vkSumi.conf`, ensuring the layer activates in game processes.

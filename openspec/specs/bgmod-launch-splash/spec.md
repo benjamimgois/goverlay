@@ -59,7 +59,7 @@ The system SHALL provide a toggle in Goverlay's Settings Menu to enable or disab
 - **THEN** `bgmod` bypasses spawning the splash window and directly executes the game binary.
 
 ### Requirement: Distribution packaging and bundling of launch splash binary
-The system packaging targets (including RPM specifications and AppImage bundling scripts) SHALL include the `bgmod-splash` binary in the expected library directory (`libexecdir` / `AppDir/lib`) and SHALL NOT leave unpackaged or misplaced ELF binaries in data directories.
+The system packaging targets (including RPM specifications, Flatpak manifests, and AppImage bundling scripts) SHALL include the `bgmod-splash` binary in expected binary and library directories (`/app/bin/`, `libexecdir`, and `AppDir/lib`), ensuring that `bgmod` running on host systems can discover and execute the splash binary across native, AppImage, and Flatpak installations on immutable distributions like Bazzite.
 
 #### Scenario: RPM package file list coverage
 - **WHEN** the Goverlay RPM package is built via `rpmbuild`
@@ -72,6 +72,11 @@ The system packaging targets (including RPM specifications and AppImage bundling
 #### Scenario: AppImage bundling of launch splash
 - **WHEN** the Goverlay AppImage is assembled via `goverlay-appimage.sh`
 - **THEN** `bgmod-splash` is copied into `./AppDir/lib/bgmod-splash`, enabling runtime extraction and execution inside AppImage environments.
+
+#### Scenario: Flatpak command packaging and host discovery
+- **WHEN** the Goverlay Flatpak is built and installed on an immutable distribution such as Bazzite
+- **THEN** `bgmod-splash` is installed to `/app/bin/bgmod-splash` alongside `bgmod`
+- **AND** `bgmod` discovers `bgmod-splash` within the game profile directory, template directory, or host Flatpak installation candidates (`/var/lib/flatpak/app/...` and `~/.local/share/flatpak/app/...`).
 
 ### Requirement: Launch Splash Wrapper Update Notification
 The launch splash window SHALL display an informational notification item (`"BGMod updated"`) in English when `bgmod` has performed a self-update during the current game launch.

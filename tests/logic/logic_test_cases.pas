@@ -791,20 +791,39 @@ begin
 
   AssertTrue('SaveVkSumiConfig succeeds', SaveVkSumiConfig(Settings, ErrMsg));
 
-  // Assert GOVERLAY_VKSUMI is 0 and GOVERLAY_VKBASALT is preserved as 1
+  // Assert GOVERLAY_VKSUMI is 1 when enabled (even if sliders at defaults) and GOVERLAY_VKBASALT is preserved as 1
   Ini := TIniFile.Create(BgmodConfPath);
   try
-    AssertEquals('GOVERLAY_VKSUMI is 0 when all sliders at default', '0', Ini.ReadString('Config', 'GOVERLAY_VKSUMI', ''));
+    AssertEquals('GOVERLAY_VKSUMI is 1 when enabled even if sliders at default', '1', Ini.ReadString('Config', 'GOVERLAY_VKSUMI', ''));
     AssertEquals('GOVERLAY_VKBASALT remains untouched as 1', '1', Ini.ReadString('Config', 'GOVERLAY_VKBASALT', ''));
   finally
     Ini.Free;
   end;
 
-  // Assert vkSumi.conf has enabled = false
+  // Assert vkSumi.conf has enabled = true
   Lines := TStringList.Create;
   try
     Lines.LoadFromFile(Settings.SumiCfgFile);
-    AssertTrue('enabled = false in vkSumi.conf when default', Pos('enabled     = false', Lines.Text) > 0);
+    AssertTrue('enabled = true in vkSumi.conf when module enabled', Pos('enabled     = true', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  // Test when module is disabled
+  Settings.Enabled := False;
+  AssertTrue('SaveVkSumiConfig succeeds when disabled', SaveVkSumiConfig(Settings, ErrMsg));
+
+  Ini := TIniFile.Create(BgmodConfPath);
+  try
+    AssertEquals('GOVERLAY_VKSUMI is 0 when disabled', '0', Ini.ReadString('Config', 'GOVERLAY_VKSUMI', ''));
+  finally
+    Ini.Free;
+  end;
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(Settings.SumiCfgFile);
+    AssertTrue('enabled = false in vkSumi.conf when module disabled', Pos('enabled     = false', Lines.Text) > 0);
   finally
     Lines.Free;
   end;

@@ -803,7 +803,7 @@ begin
     Lines.Add('PER_GAME_CONFIG_CREATION = false');
     Lines.Add('');
     
-    Lines.Add('enabled     = ' + LowerCase(BoolToStr(IsCustomized and Settings.Enabled, True)));
+    Lines.Add('enabled     = ' + LowerCase(BoolToStr(Settings.Enabled, True)));
     if Settings.ToggleKeys <> '' then
       Lines.Add('toggle_keys = ' + Settings.ToggleKeys + '    # in-game hotkey, X11 + XWayland (Wine/Proton)')
     else
@@ -887,7 +887,7 @@ begin
     ForceDirectories(ExtractFilePath(FGModFilePath));
     Ini := TIniFile.Create(FGModFilePath);
     try
-      if IsCustomized and Settings.Enabled then
+      if Settings.Enabled then
         Ini.WriteString('Config', 'GOVERLAY_VKSUMI', '1')
       else
         Ini.WriteString('Config', 'GOVERLAY_VKSUMI', '0');
