@@ -2213,12 +2213,10 @@ begin
       if FsrVer <> '' then
         Settings.FsrVersionName := FsrVer;
 
-      if SameText(FsrVer, '4.1.2') then
+      if SameText(FsrVer, '4.1.1b') then
         Settings.FsrversionItemIndex := 1
-      else if SameText(FsrVer, '4.1.1b') then
-        Settings.FsrversionItemIndex := 2
       else if SameText(FsrVer, '4.0.2c') then
-        Settings.FsrversionItemIndex := 3
+        Settings.FsrversionItemIndex := 2
       else
         Settings.FsrversionItemIndex := 0;
     finally

@@ -4132,6 +4132,7 @@ begin
       HasMissingMandatoryLibraries(Missing));
     AssertTrue('OptiScaler missing reported', Missing.IndexOf('OptiScaler.dll') >= 0);
     AssertFalse('ReShade not reported when ReShade disabled', Missing.IndexOf('ReShade64.dll') >= 0);
+    AssertFalse('Optional DLSS-NR not reported as mandatory missing library', Missing.IndexOf('DLSS-NR models') >= 0);
   finally
     Missing.Free;
   end;

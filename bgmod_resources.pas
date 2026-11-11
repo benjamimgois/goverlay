@@ -36,6 +36,8 @@ function GetGOverlayBaseDataPath(const LocalBgmodPath: string): string;
 function GetDlssEnablerPath(AIsStable: Boolean = True): string;
 function GetFSR4BasePath: string;
 procedure EnsureFSR4Directories;
+function HasDllFilesInDir(const ADir: string): Boolean;
+function HasAnyFSR4VersionBuild(const ABaseDir: string = ''): Boolean;
 
 function GetReShadeBasePath: string;
 function GetReShadeBinPath: string;
@@ -274,15 +276,93 @@ begin
   Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'FSR4';
 end;
 
+function HasDllFilesInDir(const ADir: string): Boolean;
+var
+  SR: TSearchRec;
+  CleanDir: string;
+begin
+  Result := False;
+  if (ADir = '') or not DirectoryExists(ADir) then Exit;
+  CleanDir := IncludeTrailingPathDelimiter(ADir);
+  if FindFirst(CleanDir + '*', faAnyFile, SR) = 0 then
+  try
+    repeat
+      if (SR.Attr and faDirectory) = 0 then
+      begin
+        if SameText(ExtractFileExt(SR.Name), '.dll') then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
+function HasAnyFSR4VersionBuild(const ABaseDir: string = ''): Boolean;
+var
+  Base: string;
+  SR: TSearchRec;
+begin
+  Result := False;
+  if ABaseDir <> '' then
+    Base := IncludeTrailingPathDelimiter(ABaseDir)
+  else
+    Base := IncludeTrailingPathDelimiter(GetFSR4BasePath);
+
+  if not DirectoryExists(Base) then Exit;
+  if FindFirst(Base + '*', faDirectory, SR) = 0 then
+  try
+    repeat
+      if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
+      begin
+        if not (SameText(SR.Name, 'Latest') or SameText(SR.Name, 'FSR4_LATEST') or
+                SameText(SR.Name, 'FSR4_INT8')) and
+           HasDllFilesInDir(Base + SR.Name) then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
 procedure EnsureFSR4Directories;
 var
   Base: string;
+  SR: TSearchRec;
+  EmptyDirs: TStringList;
+  i: Integer;
 begin
   Base := IncludeTrailingPathDelimiter(GetFSR4BasePath);
   ForceDirectories(Base + 'Latest');
-  ForceDirectories(Base + '4.1.2');
-  ForceDirectories(Base + '4.1.1b');
-  ForceDirectories(Base + '4.0.2c');
+
+  // Prune empty non-Latest subdirectories (e.g. stale empty 4.1.2 left by older builds)
+  // so only versions actually extracted from fsr-builds or imported with '+' remain.
+  EmptyDirs := TStringList.Create;
+  try
+    if FindFirst(Base + '*', faDirectory, SR) = 0 then
+    try
+      repeat
+        if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Attr and faDirectory) <> 0) then
+        begin
+          if not SameText(SR.Name, 'Latest') and not HasDllFilesInDir(Base + SR.Name) then
+            EmptyDirs.Add(Base + SR.Name);
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+    for i := 0 to EmptyDirs.Count - 1 do
+      RemoveDir(EmptyDirs[i]);
+  finally
+    EmptyDirs.Free;
+  end;
 end;
 
 function GetReShadeBasePath: string;

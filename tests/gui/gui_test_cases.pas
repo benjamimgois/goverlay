@@ -1326,7 +1326,8 @@ begin
   goverlayform.saveBitBtn.OnClick(goverlayform.saveBitBtn);
   Content := ReadFileText(ConfPath);
   AssertTrue('contrast = 0.0 after restore', Pos('contrast = 0.0', Content) > 0);
-  AssertEquals('GOVERLAY_VKSUMI is 0 after restoring defaults', '0', ReadBgmodConf('Config', 'GOVERLAY_VKSUMI'));
+  AssertTrue('enabled = true after restore', Pos('enabled     = true', Content) > 0);
+  AssertEquals('GOVERLAY_VKSUMI remains 1 when enabled after restoring defaults', '1', ReadBgmodConf('Config', 'GOVERLAY_VKSUMI'));
 end;
 
 // ────────────────────────── OptiScaler tab - full coverage ──────────────────────────
@@ -1605,12 +1606,19 @@ begin
   SeedOptiScalerFiles;
 
   // Seed the FSR4 cache directories so the combo is populated from disk in a
-  // deterministic order (Latest, 4.1.2, 4.1.1b, 4.0.2c).
+  // deterministic order (Latest, 4.1.1b, 4.0.2c). Also create an empty 4.1.2
+  // directory to verify that empty directories without DLLs are excluded.
   FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
   ForceDirectories(FsrBase + 'Latest');
   ForceDirectories(FsrBase + '4.1.2');
   ForceDirectories(FsrBase + '4.1.1b');
+  AssignFile(F, FsrBase + '4.1.1b' + PathDelim + 'amdvkffx64.dll');
+  Rewrite(F); WriteLn(F, 'dummy amdvkffx64'); CloseFile(F);
+  AssignFile(F, FsrBase + '4.1.1b' + PathDelim + 'amdxcffx64.dll');
+  Rewrite(F); WriteLn(F, 'dummy amdxcffx64'); CloseFile(F);
   ForceDirectories(FsrBase + '4.0.2c');
+  AssignFile(F, FsrBase + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll');
+  Rewrite(F); WriteLn(F, 'dummy 4.0.2c'); CloseFile(F);
 
   NavigateOptiScalerTab;
 
@@ -1619,16 +1627,16 @@ begin
   AssertTrue('fsrversionLabel assigned', Assigned(goverlayform.fsrversionLabel));
   AssertTrue('fsrversionComboBox visible', goverlayform.fsrversionComboBox.Visible);
   AssertTrue('fsrversionLabel visible', goverlayform.fsrversionLabel.Visible);
-  AssertEquals('fsrversionComboBox item count is 4', 4, goverlayform.fsrversionComboBox.Items.Count);
+  AssertEquals('fsrversionComboBox item count is 3 (empty 4.1.2 excluded)', 3, goverlayform.fsrversionComboBox.Items.Count);
   AssertEquals('item 0 is Latest', 'Latest', goverlayform.fsrversionComboBox.Items[0]);
-  AssertEquals('item 1 is 4.1.2', '4.1.2', goverlayform.fsrversionComboBox.Items[1]);
-  AssertEquals('item 2 is 4.1.1b', '4.1.1b', goverlayform.fsrversionComboBox.Items[2]);
-  AssertEquals('item 3 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[3]);
+  AssertEquals('item 1 is 4.1.1b', '4.1.1b', goverlayform.fsrversionComboBox.Items[1]);
+  AssertEquals('item 2 is 4.0.2c', '4.0.2c', goverlayform.fsrversionComboBox.Items[2]);
+  AssertEquals('empty 4.1.2 not listed', -1, goverlayform.fsrversionComboBox.Items.IndexOf('4.1.2'));
   AssertEquals('default item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
 
   VarsPath := IsolatedHome + '/.local/share/goverlay/gameconfig/global/goverlay.vars';
 
-  // 2. Select 4.1.2 (index 1) and test auto-save
+  // 2. Select 4.1.1b (index 1) and test auto-save + DLL deployment
   goverlayform.fsrversionComboBox.ItemIndex := 1;
   goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
   AssertTrue('autoSaveTimer enabled after fsrversionComboBox change', goverlayform.autoSaveTimer.Enabled);
@@ -1644,44 +1652,20 @@ begin
 
   AssertTrue('goverlay.vars exists after auto-save', FileExists(VarsPath));
   Content := ReadFileText(VarsPath);
-  AssertTrue('fsrversion=4.1.2 persisted in goverlay.vars', Pos('fsrversion=4.1.2', Content) > 0);
-
-  // Seed dummy FSR 4.1.2 DLLs, then save and verify they are deployed.
-  ForceDirectories(FsrBase + '4.1.2');
-  AssignFile(F, FsrBase + '4.1.2' + PathDelim + 'amdvkffx64.dll');
-  Rewrite(F);
-  WriteLn(F, 'dummy amdvkffx64');
-  CloseFile(F);
-  AssignFile(F, FsrBase + '4.1.2' + PathDelim + 'amdxcffx64.dll');
-  Rewrite(F);
-  WriteLn(F, 'dummy amdxcffx64');
-  CloseFile(F);
+  AssertTrue('fsrversion=4.1.1b persisted in goverlay.vars', Pos('fsrversion=4.1.1b', Content) > 0);
 
   SaveOpti;
-  AssertTrue('amdvkffx64.dll copied for 4.1.2',
+  AssertTrue('amdvkffx64.dll copied for 4.1.1b',
     FileExists(IsolatedHome + '/.local/share/goverlay/gameconfig/global/amdvkffx64.dll'));
-  AssertTrue('amdxcffx64.dll copied for 4.1.2',
+  AssertTrue('amdxcffx64.dll copied for 4.1.1b',
     FileExists(IsolatedHome + '/.local/share/goverlay/gameconfig/global/amdxcffx64.dll'));
 
   // Reload tab and verify index 1 restored
   NavigateOptiScalerTab;
-  AssertEquals('reloaded item index is 1 (4.1.2)', 1, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertEquals('reloaded item index is 1 (4.1.1b)', 1, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 3. Select 4.1.1b (index 2) and test auto-save
+  // 3. Select 4.0.2c (index 2) and test auto-save
   goverlayform.fsrversionComboBox.ItemIndex := 2;
-  goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
-  AssertTrue('autoSaveTimer enabled after selecting 4.1.1b', goverlayform.autoSaveTimer.Enabled);
-  goverlayform.autoSaveTimer.Enabled := False;
-  goverlayform.TriggerAutoSave;
-  Content := ReadFileText(VarsPath);
-  AssertTrue('fsrversion=4.1.1b persisted in goverlay.vars', Pos('fsrversion=4.1.1b', Content) > 0);
-
-  // Reload tab and verify index 2 restored
-  NavigateOptiScalerTab;
-  AssertEquals('reloaded item index is 2 (4.1.1b)', 2, goverlayform.fsrversionComboBox.ItemIndex);
-
-  // 4. Select 4.0.2c (index 3) and test auto-save
-  goverlayform.fsrversionComboBox.ItemIndex := 3;
   goverlayform.fsrversionComboBoxChange(goverlayform.fsrversionComboBox);
   AssertTrue('autoSaveTimer enabled after selecting 4.0.2c', goverlayform.autoSaveTimer.Enabled);
   goverlayform.autoSaveTimer.Enabled := False;
@@ -1689,11 +1673,11 @@ begin
   Content := ReadFileText(VarsPath);
   AssertTrue('fsrversion=4.0.2c persisted in goverlay.vars', Pos('fsrversion=4.0.2c', Content) > 0);
 
-  // Reload tab and verify index 3 restored
+  // Reload tab and verify index 2 restored
   NavigateOptiScalerTab;
-  AssertEquals('reloaded item index is 3 (4.0.2c)', 3, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertEquals('reloaded item index is 2 (4.0.2c)', 2, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 5. Select Latest (index 0) and Save
+  // 4. Select Latest (index 0) and Save
   goverlayform.fsrversionComboBox.ItemIndex := 0;
   SaveOpti;
   Content := ReadFileText(VarsPath);
@@ -1705,7 +1689,7 @@ begin
   NavigateOptiScalerTab;
   AssertEquals('reloaded item index is 0 (Latest)', 0, goverlayform.fsrversionComboBox.ItemIndex);
 
-  // 6. Test backwards compatibility with legacy "4.0.2c INT8"
+  // 5. Test backwards compatibility with legacy "4.0.2c INT8"
   SL := TStringList.Create;
   try
     SL.Add('fsrversion=4.0.2c INT8');
@@ -1714,7 +1698,7 @@ begin
     SL.Free;
   end;
   NavigateOptiScalerTab;
-  AssertEquals('legacy 4.0.2c INT8 maps to index 3', 3, goverlayform.fsrversionComboBox.ItemIndex);
+  AssertEquals('legacy 4.0.2c INT8 maps to index 2', 2, goverlayform.fsrversionComboBox.ItemIndex);
 end;
 
 procedure TGoverlayGuiTests.TestCustomFsrBuildImport;
@@ -1725,7 +1709,6 @@ begin
   SeedOptiScalerFiles;
   FsrBase := IncludeTrailingPathDelimiter(GetFSR4BasePath);
   ForceDirectories(FsrBase + 'Latest');
-  ForceDirectories(FsrBase + '4.1.2');
 
   NavigateOptiScalerTab;
 
@@ -9206,25 +9189,59 @@ begin
     AssertTrue('MAKO check exists', Assigned(Dlg.MakoCheck));
     AssertTrue('AFMF check exists', Assigned(Dlg.AfmfCheck));
     AssertTrue('SelectAllBtn exists', Assigned(Dlg.SelectAllBtn));
+    AssertTrue('HeaderIconBox exists', Assigned(Dlg.HeaderIconBox));
+    AssertTrue('HeaderIconImg exists', Assigned(Dlg.HeaderIconImg));
+    AssertTrue('TotalCountLabel exists', Assigned(Dlg.TotalCountLabel));
+    AssertEquals('CardCount is 10', 10, Dlg.CardCount);
+    AssertTrue('MangoHud toggle switch exists and is checked', Assigned(Dlg.GetCardToggle(0)) and Dlg.GetCardToggle(0).Checked);
+    AssertEquals('Toggle switch has empty caption', '', Dlg.GetCardToggle(0).Caption);
+    AssertEquals('Toggle switch placed on left side', 16, Dlg.GetCardToggle(0).Left);
+    AssertEquals('Toggle switch has compact width without text', 40, Dlg.GetCardToggle(0).Width);
+    AssertFalse('Underlying MangoCheck hidden', Dlg.MangoCheck.Visible);
+    AssertEquals('ConfirmBtn caption is Save and Continue on first run', 'Save and Continue', Dlg.ConfirmBtn.Caption);
+    AssertTrue('SubtitleLabel has WordWrap enabled', Dlg.SubtitleLabel.WordWrap);
+    AssertFalse('SubtitleLabel has AutoSize disabled so text wraps inside width', Dlg.SubtitleLabel.AutoSize);
+    AssertTrue('SubtitleLabel width fits inside dialog', Dlg.SubtitleLabel.Left + Dlg.SubtitleLabel.Width <= Dlg.Width);
+    AssertTrue('HeaderPanel tall enough for wrapped subtitle', Dlg.HeaderPanel.Height >= Dlg.SubtitleLabel.Top + Dlg.SubtitleLabel.Height);
 
-    // Test select all button click
+    // Ensure non-all-selected state first, then test Select All -> Deselect All toggle
+    Dlg.VkBasaltCheck.Checked := False;
     Dlg.SelectAllBtn.OnClick(Dlg.SelectAllBtn);
     AssertTrue('vkBasalt checked after Select All', Dlg.VkBasaltCheck.Checked);
+    AssertTrue('vkBasalt toggle switch synced after Select All', Dlg.GetCardToggle(1).Checked);
+    AssertEquals('vkBasalt toggle keeps empty caption after Select All', '', Dlg.GetCardToggle(1).Caption);
+    AssertEquals('vkBasalt toggle keeps compact width after Select All', 40, Dlg.GetCardToggle(1).Width);
     AssertTrue('OptiScaler checked after Select All', Dlg.OptiScalerCheck.Checked);
     AssertTrue('MAKO checked after Select All', Dlg.MakoCheck.Checked);
+    AssertEquals('SelectAllBtn flips to Deselect All', 'Deselect All', Dlg.SelectAllBtn.Caption);
+    AssertEquals('TotalCountLabel shows 10 of 10 active', '10 of 10 active', Dlg.TotalCountLabel.Caption);
+    AssertEquals('Post-Processing category summary is 3 / 3 active', '3 / 3 active', Dlg.GetCategorySummaryText(1));
 
-    // Test minimal button click
-    Dlg.MinimalBtn.OnClick(Dlg.MinimalBtn);
+    // Clicking a toggle switch directly syncs underlying checkbox and counters
+    Dlg.GetCardToggle(1).Checked := False;
+    AssertFalse('vkBasalt checkbox synced when toggle clicked off', Dlg.VkBasaltCheck.Checked);
+    AssertEquals('Post-Processing category summary updates to 2 / 3 active', '2 / 3 active', Dlg.GetCategorySummaryText(1));
+    AssertEquals('TotalCountLabel updates to 9 of 10 active', '9 of 10 active', Dlg.TotalCountLabel.Caption);
+    AssertEquals('SelectAllBtn flips back to Select All', 'Select All', Dlg.SelectAllBtn.Caption);
 
-    AssertTrue('FirstRunWizardCompleted is true after minimal button',
+    // Clicking SelectAllBtn when partially selected selects all again, then clicking again deselects all optional
+    Dlg.SelectAllBtn.OnClick(Dlg.SelectAllBtn);
+    AssertEquals('All 10 active again', '10 of 10 active', Dlg.TotalCountLabel.Caption);
+    Dlg.SelectAllBtn.OnClick(Dlg.SelectAllBtn);
+    AssertTrue('MangoHud remains locked checked after Deselect All', Dlg.MangoCheck.Checked);
+    AssertFalse('vkBasalt unchecked after Deselect All', Dlg.VkBasaltCheck.Checked);
+    AssertEquals('TotalCountLabel shows 1 of 10 active after Deselect All', '1 of 10 active', Dlg.TotalCountLabel.Caption);
+    Dlg.ConfirmBtn.OnClick(Dlg.ConfirmBtn);
+
+    AssertTrue('FirstRunWizardCompleted is true after Save and Continue',
       TConfigManager.IsFirstRunWizardCompleted);
-    AssertFalse('OptiScaler is disabled after minimal button',
+    AssertFalse('OptiScaler is disabled when unchecked',
       TConfigManager.IsModuleEnabled(MODULE_OPTISCALER));
-    AssertFalse('vkBasalt is disabled after minimal button',
+    AssertFalse('vkBasalt is disabled when unchecked',
       TConfigManager.IsModuleEnabled(MODULE_VKBASALT));
-    AssertFalse('MAKO is disabled after minimal button',
+    AssertFalse('MAKO is disabled when unchecked',
       TConfigManager.IsModuleEnabled(MODULE_MAKO));
-    AssertFalse('PostProcessing group is disabled after minimal button',
+    AssertFalse('PostProcessing group is disabled when all unchecked',
       TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING));
 
     // Test confirm button click with custom individual toggles

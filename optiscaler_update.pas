@@ -17,7 +17,7 @@ type
 // Returns True if OptiScaler is installed (or was successfully installed)
 function CheckAndInstallOptiScaler(const AFGModPath: string; AIsStable: Boolean = True; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
-// Check and automatically install/heal central FSR4 runtime builds (Latest, 4.1.2, 4.1.1b, 4.0.2c)
+// Check and automatically install/heal central FSR4 runtime builds from fsr-builds.tar.gz
 function CheckAndInstallFsr4(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
 // Fetch the latest HelixSR release (lonewolf0622/HelixSR) tag and .zip asset URL
@@ -2505,13 +2505,15 @@ begin
         FFsrLabel.Font.Color := clOlive;
 
         // Sync combobox index based on version string (Global mode only)
-        if goverlayform.FActiveGameName = '' then
+        if (goverlayform.FActiveGameName = '') and Assigned(FFsrVersionComboBox) then
         begin
-          if Assigned(FFsrVersionComboBox) and (FsrVer = '4.1.1b') then
-            FFsrVersionComboBox.ItemIndex := 1
-          else if Assigned(FFsrVersionComboBox) and ((FsrVer = '4.0.2c') or (FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8')) then
-            FFsrVersionComboBox.ItemIndex := 2
-          else if Assigned(FFsrVersionComboBox) and ((FsrVer = 'Latest (FP8)') or (FsrVer = 'Latest')) then
+          if (FsrVer = '4.0.2c (INT8)') or (FsrVer = '4.0.2c INT8') then
+            FsrVer := '4.0.2c'
+          else if FsrVer = 'Latest (FP8)' then
+            FsrVer := 'Latest';
+          if FFsrVersionComboBox.Items.IndexOf(FsrVer) >= 0 then
+            FFsrVersionComboBox.ItemIndex := FFsrVersionComboBox.Items.IndexOf(FsrVer)
+          else
             FFsrVersionComboBox.ItemIndex := 0;
         end;
 
@@ -3272,7 +3274,7 @@ begin
     DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'fakenvapi_backup.ini');
     DeleteFile(IncludeTrailingPathDelimiter(UserDir) + 'nvapi64_backup.dll');
 
-    // STEP 5b: Setup central FSR4 directories and download alternative FSR DLLs
+    // STEP 5b: Setup central FSR4 directories and download alternative FSR DLLs from fsr-builds.tar.gz
     WriteLn('[DEBUG] UpdateButtonClick: Step 5b - Setting up central FSR4 directories...');
     EnsureFSR4Directories;
 
@@ -3284,21 +3286,9 @@ begin
       WriteLn('[DEBUG] UpdateButtonClick: Copied native upscaler to FSR4/Latest');
     end;
 
-    // Download 4.1.1b alternative upscaler dll
-    UpdateStatus('Downloading FSR 4.1.1b');
-    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8-411b/amd_fidelityfx_upscaler_dx12.dll',
-                    IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.1.1b' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      WriteLn('[DEBUG] UpdateButtonClick: Downloaded FSR 4.1.1b')
-    else
-      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR 4.1.1b DLL');
-
-    // Download 4.0.2c alternative upscaler dll
-    UpdateStatus('Downloading FSR 4.0.2c');
-    if DownloadFile('https://github.com/benjamimgois/OptiScaler-builds/releases/download/fsr-int8/amd_fidelityfx_upscaler_dx12.dll',
-                    IncludeTrailingPathDelimiter(GetFSR4BasePath) + '4.0.2c' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') then
-      WriteLn('[DEBUG] UpdateButtonClick: Downloaded FSR 4.0.2c')
-    else
-      WriteLn('[WARN] UpdateButtonClick: Failed to download FSR 4.0.2c DLL');
+    UpdateStatus('Downloading FSR builds');
+    if not CheckAndInstallFsr4(True) then
+      WriteLn('[WARN] UpdateButtonClick: Failed to download/extract FSR runtime builds');
 
     // Clean up legacy directories if present
     if DirectoryExists(IncludeTrailingPathDelimiter(OrigPath) + 'FSR4_LATEST') then
@@ -4445,9 +4435,7 @@ begin
   LatestPath := BaseDir + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll';
 
   AllDirsPresent := DirectoryExists(BaseDir + 'Latest') and
-    DirectoryExists(BaseDir + '4.1.2') and
-    DirectoryExists(BaseDir + '4.1.1b') and
-    DirectoryExists(BaseDir + '4.0.2c');
+    HasAnyFSR4VersionBuild(BaseDir);
 
   if AForce or not AllDirsPresent then
   begin
@@ -5723,19 +5711,13 @@ begin
 
     // FSR4 central runtime builds
     if not FileExists(FsrBase + 'Latest' + PathDelim + 'amd_fidelityfx_upscaler_dx12.dll') or
-       not DirectoryExists(FsrBase + '4.1.2') or
-       not DirectoryExists(FsrBase + '4.1.1b') or
-       not DirectoryExists(FsrBase + '4.0.2c') then
+       not HasAnyFSR4VersionBuild(FsrBase) then
       AMissingList.Add('FSR4 runtime builds');
 
     // OptiPatcher ASI plugin (OptiScaler)
     if not FileExists(IncludeTrailingPathDelimiter(GetBGModOriginalPath) + 'plugins' + PathDelim + 'OptiPatcher.asi') and
        not FileExists(GetGOverlayDataDir + 'optiscaler' + PathDelim + 'plugins' + PathDelim + 'OptiPatcher.asi') then
       AMissingList.Add('OptiPatcher (OptiScaler ASI plugin)');
-
-    // DLSS-NR model weights
-    if not IsDlssNrInstalled then
-      AMissingList.Add('DLSS-NR models');
   end;
 
   // DLSS Enabler

@@ -2141,7 +2141,8 @@ begin
         begin
           DirName := SR.Name;
           if not (SameText(DirName, 'Latest') or SameText(DirName, 'FSR4_LATEST') or
-                  SameText(DirName, 'FSR4_INT8')) then
+                  SameText(DirName, 'FSR4_INT8')) and
+             HasDllFilesInDir(BasePath + DirName) then
             Versions.Add(DirName);
         end;
       until FindNext(SR) <> 0;
@@ -2167,12 +2168,6 @@ begin
       Combo.Items.Add('Latest');
       for I := 0 to Versions.Count - 1 do
         Combo.Items.Add(Versions[I]);
-      if Versions.Count = 0 then
-      begin
-        Combo.Items.Add('4.1.2');
-        Combo.Items.Add('4.1.1b');
-        Combo.Items.Add('4.0.2c');
-      end;
     finally
       Combo.Items.EndUpdate;
     end;

@@ -11368,7 +11368,6 @@ begin
       CheckAndInstallOptiScaler(GetFGModPath, True, @OnDownloadProgress, FFailedFiles);   // Stable channel (0% - 30%)
       CheckAndInstallOptiPatcher(False, @OnDownloadProgress, FFailedFiles);                // OptiPatcher ASI plugin
       CheckAndInstallFsr4(False, @OnDownloadProgress, FFailedFiles);                       // Central FSR4 builds (30% - 40%)
-      CheckAndInstallDlssNr('', False, @OnDownloadProgress, FFailedFiles);                 // Central DLSS-NR model weights
     end;
 
     if TConfigManager.IsModuleEnabled(MODULE_DLSSENABLER) then
