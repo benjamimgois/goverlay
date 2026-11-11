@@ -173,15 +173,49 @@ jobs:
       - name: Show downloaded artifacts
         run: ls -la
 
-      - name: Create stable Release
+      - name: Determine release metadata
+        id: release_meta
+        shell: bash
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG_LOWER="${GITHUB_REF_NAME,,}"
+          if [[ "$TAG_LOWER" == *"-rc"* ]] || [[ "$TAG_LOWER" == *"-alpha"* ]] || [[ "$TAG_LOWER" == *"-beta"* ]] || [[ "$TAG_LOWER" == *"-pre"* ]] || [[ "$TAG_LOWER" == *"-dev"* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload assets to existing Release
+        if: steps.release_meta.outputs.release_exists == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          shopt -s nullglob
+          ASSETS=(*.AppImage* *.appimage* *.deb *.rpm *.flatpak)
+          if [ ${#ASSETS[@]} -gt 0 ]; then
+            gh release upload "$GITHUB_REF_NAME" "${ASSETS[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          fi
+
+      - name: Create Release
+        if: steps.release_meta.outputs.release_exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           name: "Goverlay ${{ github.ref_name }}"
           tag_name: "${{ github.ref_name }}"
-          prerelease: false
+          prerelease: ${{ steps.release_meta.outputs.is_prerelease == 'true' }}
           draft: false
           generate_release_notes: true
-          make_latest: true
+          make_latest: ${{ steps.release_meta.outputs.make_latest }}
           files: |
             *.AppImage*
             *.appimage*
