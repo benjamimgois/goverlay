@@ -194,6 +194,7 @@ type
     procedure TestOptiscalerToPostProcessingNavigation;
     procedure TestProfileSwitchAfmfToOptiscalerNoConflict;
     procedure TestSetGameToolEnabledUpscalerCoherence;
+    procedure TestCustomConfigCardMenuAndFileFlows;
   end;
 
 implementation
@@ -5194,7 +5195,8 @@ var
   GlobalConf, GameConf: string;
   Ini: TIniFile;
   Row, i, CustomRow, LocalRow: Integer;
-  Found: Boolean;
+  CatIdx, ItemCount, BannerH, Rows, CustomItemY: Integer;
+  Is2Col, Found: Boolean;
 begin
   NavigateTweaksTab;
   goverlayform.FActiveGameName := '';
@@ -5268,7 +5270,21 @@ begin
                  'TEST_GLOBAL_CUSTOM=world', goverlayform.FTweaksGrid.Cells[2, CustomRow]);
 
     // Test MouseDown on the item delete area in MD3 mode - should toggle instead of deleting
-    goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 20, 1050);
+    Is2Col := goverlayform.FTweaksPaintBox.Width >= 700;
+    CustomItemY := -goverlayform.FTweaksScrollPos + 10;
+    for CatIdx := 0 to 4 do
+    begin
+      ItemCount := 0;
+      for i := 0 to TWEAK_ROW_COUNT - 1 do
+        if (TWEAK_ROWS[i].Category = CatIdx) and (not TWEAK_ROWS[i].Hidden) then Inc(ItemCount);
+      if ItemCount = 0 then Continue;
+      BannerH := 0;
+      if CatIdx = TWEAK_CAT_EXPERIMENTAL then BannerH := 34 + 8;
+      if Is2Col then Rows := (ItemCount + 1) div 2 else Rows := ItemCount;
+      Inc(CustomItemY, 32 + BannerH + (Rows * 50) + 8 + 10);
+    end;
+    Inc(CustomItemY, 34 + 10 + 32 + 25); // Info banner + Custom card header + half item height
+    goverlayform.TweaksMD3MouseDown(goverlayform.FTweaksPaintBox, mbLeft, [], 20, CustomItemY);
     AssertTrue('Row not deleted via delete zone in game profile',
                goverlayform.FTweaksGrid.RowCount > CustomRow);
 
@@ -6184,7 +6200,6 @@ begin
       goverlayform.saveBitBtn.Enabled);
 
     // 7. Test Tweaks banner is hidden by default and only shows on hover over missing items
-    goverlayform.FMockLowLatencyInstalled := 0; // force missing
     goverlayform.tweaksLabelClick(nil);
 
     // Initial state on Tweaks tab: banner is hidden
@@ -6192,8 +6207,8 @@ begin
       AssertFalse('FTweaksMissingBanner is hidden by default when navigating to Tweaks tab',
         goverlayform.FTweaksMissingBanner.Visible);
 
-    // Simulate hovering over Korthos low latency item
-    goverlayform.ShowTweaksMissingBanner('Korthos Low Latency is not installed', 'Test desc');
+    // Simulate hovering over GameMode item
+    goverlayform.ShowTweaksMissingBanner('GameMode is not installed', 'Test desc');
     AssertTrue('FTweaksMissingBanner is assigned when hover triggers banner',
       Assigned(goverlayform.FTweaksMissingBanner));
     AssertTrue('FTweaksMissingBanner is visible on hover',
@@ -6261,7 +6276,6 @@ begin
     goverlayform.FMockMangoHudInstalled := -1;
     goverlayform.FMockVkBasaltInstalled := -1;
     goverlayform.FMockVkSumiInstalled := -1;
-    goverlayform.FMockLowLatencyInstalled := -1;
     goverlayform.FMockDlssNrModelReady := -1;
     goverlayform.UpdateToolMissingDependencyBanners;
   end;
@@ -9398,6 +9412,94 @@ begin
     finally
       Ini.Free;
     end;
+  finally
+    goverlayform.FActiveGameName := '';
+    if DirectoryExists(GameDir) then
+      DeleteDirectory(GameDir, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestCustomConfigCardMenuAndFileFlows;
+var
+  Helper: TMangoHudUiHelper;
+  CustomCardLbl: TLabel;
+  i: Integer;
+  FoundLabel: Boolean;
+  GameDir, SavedFile, SrcFile, SavedText, LoadedText: string;
+  SL: TStringList;
+begin
+  NavigateMangoHud;
+  Helper := TMangoHudUiHelper(goverlayform.FMangoHelper);
+  AssertTrue('MangoHud Helper is assigned', Assigned(Helper));
+
+  // 1. Card 4 must carry the "Custom config" title
+  FoundLabel := False;
+  CustomCardLbl := nil;
+  for i := 0 to goverlayform.FPresetLayoutCards[4].ControlCount - 1 do
+    if goverlayform.FPresetLayoutCards[4].Controls[i] is TLabel then
+    begin
+      CustomCardLbl := TLabel(goverlayform.FPresetLayoutCards[4].Controls[i]);
+      FoundLabel := True;
+      Break;
+    end;
+  AssertTrue('Custom config card has label', FoundLabel);
+  AssertEquals('Custom config card caption', 'Custom config', CustomCardLbl.Caption);
+
+  // 2. Clicking Card 4 builds the 2-option popup menu ("Save config" / "Load config")
+  //    without changing the currently selected layout card
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[1]);
+  AssertEquals('Active layout before Custom config click is Basic (1)', 1, goverlayform.FActiveLayoutCard);
+  Helper.PresetCardClick(goverlayform.FPresetLayoutCards[4]);
+  AssertEquals('Active layout remains Basic (1) when menu opens', 1, goverlayform.FActiveLayoutCard);
+  AssertNotNull('FCustomConfigMenu created', Helper.FCustomConfigMenu);
+  AssertEquals('FCustomConfigMenu has 2 items', 2, Helper.FCustomConfigMenu.Items.Count);
+  AssertEquals('First menu item is Save config', 'Save config', Helper.FCustomConfigMenu.Items[0].Caption);
+  AssertEquals('Second menu item is Load config', 'Load config', Helper.FCustomConfigMenu.Items[1].Caption);
+
+  // 3. Dock menu has no "Custom Config" item under Save options, while Save as and Load config remain visible
+  for i := 0 to goverlayform.saveoptionsItem.Count - 1 do
+    AssertTrue('saveoptionsItem has no Custom Config item',
+      goverlayform.saveoptionsItem.Items[i].Caption <> 'Custom Config');
+  goverlayform.UpdateDockMenuItemsVisibility;
+  AssertTrue('saveasMenuItem visible on MangoHud', goverlayform.saveasMenuItem.Visible);
+  AssertTrue('loadconfigMenuItem visible on MangoHud', goverlayform.loadconfigMenuItem.Visible);
+
+  // 4. Context dir resolution: Global vs active game
+  goverlayform.FActiveGameName := '';
+  AssertEquals('Global context dir resolves to GetMangoHudConfigDir',
+    IncludeTrailingPathDelimiter(GetMangoHudConfigDir()),
+    goverlayform.GetMangoHudContextDir);
+
+  GameDir := goverlayform.GetGameConfigDir('CustomCfgTestGame');
+  ForceDirectories(GameDir);
+  SavedFile := GameDir + 'my_custom.conf';
+  SrcFile := GameDir + 'external_preset.conf';
+  try
+    goverlayform.FActiveGameName := 'CustomCfgTestGame';
+    AssertEquals('Game context dir resolves to game config dir',
+      GameDir, goverlayform.GetMangoHudContextDir);
+
+    // 5. SaveMangoHudConfigToFile exports current settings to arbitrary .conf file
+    goverlayform.fpsCheckBox.Checked := True;
+    goverlayform.gpuavgloadCheckBox.Checked := True;
+    AssertTrue('SaveMangoHudConfigToFile succeeds', goverlayform.SaveMangoHudConfigToFile(SavedFile));
+    AssertTrue('Saved custom file exists', FileExists(SavedFile));
+    SavedText := ReadFileText(SavedFile);
+    AssertTrue('Saved file contains gpu_stats', Pos('gpu_stats', SavedText) > 0);
+
+    // 6. LoadMangoHudConfigFromFile loads selected .conf, activates card 4, and syncs controls
+    SL := TStringList.Create;
+    try
+      SL.Text := 'fps_only' + LineEnding + 'frame_timing=0' + LineEnding + 'arch';
+      SL.SaveToFile(SrcFile);
+    finally
+      SL.Free;
+    end;
+    AssertTrue('LoadMangoHudConfigFromFile succeeds', goverlayform.LoadMangoHudConfigFromFile(SrcFile));
+    AssertEquals('Custom config card (4) becomes active after loading file', 4, goverlayform.FActiveLayoutCard);
+    AssertTrue('archCheckBox synced from loaded custom file', goverlayform.archCheckBox.Checked);
+    LoadedText := ReadFileText(GameDir + 'MangoHud.conf');
+    AssertTrue('Active MangoHud.conf contains arch from loaded file', Pos('arch', LoadedText) > 0);
   finally
     goverlayform.FActiveGameName := '';
     if DirectoryExists(GameDir) then

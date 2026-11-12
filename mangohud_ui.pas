@@ -130,11 +130,16 @@ type
     FmediaToggle, FnetworkToggle, FfahrenheitToggle: TToggleSwitch;
     FTimeFormat: string;
     FTimeConfigBtn: TBitBtn;
+    FCustomConfigMenu: TPopupMenu;
+    FCustomSaveItem: TMenuItem;
+    FCustomLoadItem: TMenuItem;
 
     procedure TimeToggleChanged(Sender: TObject);
     procedure NetworkToggleChanged(Sender: TObject);
     procedure TimeConfigBtnClick(Sender: TObject);
     procedure ExtTempPillBtnClick(Sender: TObject);
+    procedure CustomSaveMenuItemClick(Sender: TObject);
+    procedure CustomLoadMenuItemClick(Sender: TObject);
 
     // fps_only preset flag accessor
     procedure SetFpsOnly(AValue: Boolean);
@@ -142,6 +147,7 @@ type
     constructor Create(AForm: Tgoverlayform);
     destructor Destroy; override;
     procedure BuildPresetsWrapper;
+    procedure ShowCustomConfigMenu;
     function  FindPresetCard(ASender: TObject): TPanel;
     procedure UpdatePresetCardVisuals;
     procedure PresetCardPaint(Sender: TObject);
@@ -539,7 +545,7 @@ const
   PC_SEL_H   = 3;     // selection indicator bar height
 const
   LAYOUT_TITLES: array[0..4] of string = (
-    'Full', 'Basic', 'Basic Horizontal', 'FPS only', 'Custom');
+    'Full', 'Basic', 'Basic Horizontal', 'FPS only', 'Custom config');
   LAYOUT_IMG: array[0..4] of Integer = (0, 1, 2, 3, 4);
   COLOR_TITLES: array[0..3] of string = (
     'MangoHud Stock', 'Goverlay', 'Simple White', 'Old Afterburner');
@@ -1070,6 +1076,44 @@ begin
 end;
 
 
+procedure TMangoHudUiHelper.CustomSaveMenuItemClick(Sender: TObject);
+begin
+  FForm.SaveMangoHudConfigDialog;
+end;
+
+procedure TMangoHudUiHelper.CustomLoadMenuItemClick(Sender: TObject);
+begin
+  FForm.LoadMangoHudConfigDialog;
+end;
+
+procedure TMangoHudUiHelper.ShowCustomConfigMenu;
+var
+  Pt: TPoint;
+begin
+  if not Assigned(FCustomConfigMenu) then
+  begin
+    FCustomConfigMenu := TPopupMenu.Create(FForm);
+
+    FCustomSaveItem := TMenuItem.Create(FCustomConfigMenu);
+    FCustomSaveItem.Caption := 'Save config';
+    FCustomSaveItem.OnClick := @CustomSaveMenuItemClick;
+    FCustomConfigMenu.Items.Add(FCustomSaveItem);
+
+    FCustomLoadItem := TMenuItem.Create(FCustomConfigMenu);
+    FCustomLoadItem.Caption := 'Load config';
+    FCustomLoadItem.OnClick := @CustomLoadMenuItemClick;
+    FCustomConfigMenu.Items.Add(FCustomLoadItem);
+  end;
+
+  if Assigned(FForm.FPresetLayoutCards[4]) then
+  begin
+    Pt := FForm.FPresetLayoutCards[4].ClientToScreen(
+            Point(0, FForm.FPresetLayoutCards[4].Height + 4));
+    if GetEnvironmentVariable('GOVERLAY_TEST_SANDBOX_DIR') = '' then
+      FCustomConfigMenu.PopUp(Pt.X, Pt.Y);
+  end;
+end;
+
 procedure TMangoHudUiHelper.PresetCardClick(Sender: TObject);
 var
   Card: TPanel;
@@ -1082,21 +1126,19 @@ begin
   for i := 0 to 4 do
     if Card = FPresetLayoutCards[i] then
     begin
-      if (i = 4) and not FileExists(GetActiveCustomConfigFile) then
+      if i = 4 then
       begin
-        usercustomBitBtnClick(usercustomBitBtn);
+        ShowCustomConfigMenu;
         Exit;
       end;
       FActiveLayoutCard := i;
       UpdatePresetCardVisuals;
-      if i in [0..3] then
-        ResetMetricGraphs;
+      ResetMetricGraphs;
       case i of
         0: fullBitBtnClick(fullBitBtn);
         1: basicBitBtnClick(basicBitBtn);
         2: basichorizontalBitBtnClick(basichorizontalBitBtn);
         3: fpsonlyBitBtnClick(fpsonlyBitBtn);
-        4: usercustomBitBtnClick(usercustomBitBtn);
       end;
       SyncAllToggles;
       Exit;

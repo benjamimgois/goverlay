@@ -412,7 +412,6 @@ type
     roundRadioButton: TRadioButton;
     saveBitBtn: TBitBtn;
     searchEdit: TEdit;
-    savecustomMenuItem: TMenuItem;
     deckpreset1MenuItem: TMenuItem;
     deckpreset2MenuItem: TMenuItem;
     deckpreset3MenuItem: TMenuItem;
@@ -594,7 +593,6 @@ type
     procedure UpdateDockMenuItemsVisibility;
     procedure popupBitBtnClick(Sender: TObject);
     procedure saveBitBtnClick(Sender: TObject);
-    procedure savecustomMenuItemClick(Sender: TObject);
     procedure saveasMenuItemClick(Sender: TObject);
     procedure smaaTrackBarChange(Sender: TObject);
     procedure subBitBtnClick(Sender: TObject);
@@ -607,7 +605,6 @@ type
     procedure checkupdBitBtnClick(Sender: TObject);
     procedure tweaksLabelClick(Sender: TObject);
     procedure updateBitBtnClick(Sender: TObject);
-    procedure usercustomBitBtnClick(Sender: TObject);
     procedure vkbasaltLabelClick(Sender: TObject);
     procedure mangohudLabelMouseEnter(Sender: TObject);
     procedure mangohudLabelMouseLeave(Sender: TObject);
@@ -1356,7 +1353,6 @@ type
     FMockVkBasaltInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockReShadeInstalled: Integer;  // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockVkSumiInstalled: Integer;   // -1 = real detection, 0 = mock missing, 1 = mock installed
-    FMockLowLatencyInstalled: Integer; // -1 = real detection, 0 = mock missing, 1 = mock installed
     FMockDlssNrModelReady: Integer; // -1 = real detection, 0 = mock missing, 1 = mock ready
     property SplashForm: TForm read FSplashForm;
     property SplashBrandingImage: TImage read FSplashBrandingImage;
@@ -1393,7 +1389,6 @@ type
     function IsVkBasaltInstalled: Boolean;
     function IsReShadeInstalled: Boolean;
     function IsVkSumiInstalled: Boolean;
-    function IsLowLatencyInstalled: Boolean;
     function IsGamemodeInstalled: Boolean;
     procedure UpdateToolMissingDependencyBanners;
     procedure RecheckDependenciesClick(Sender: TObject);
@@ -1463,8 +1458,11 @@ type
     function  GetLaunchCommand: string;
     function  GetGameConfigDir(const AGameName: string): string;
     function  GetGameLogDir(const AGameName: string): string;
-    function  GetActiveCustomConfigFile: string;
-    function  GetTargetCustomConfigFile: string;
+    function  GetMangoHudContextDir: string;
+    function  SaveMangoHudConfigToFile(const ADestFile: string): Boolean;
+    procedure SaveMangoHudConfigDialog;
+    function  LoadMangoHudConfigFromFile(const ASourceFile: string): Boolean;
+    procedure LoadMangoHudConfigDialog;
     procedure LoadGameToggleStates;
     procedure ReflowPresetTab(AContentW: Integer);
     procedure ReflowVisualTab(AContentW, AContentH: Integer);
@@ -1557,7 +1555,6 @@ var
   // ============================================================================
   MANGOHUDCFGFILE: string;              // Path to MangoHud.conf
   MANGOHUDFOLDER: string;               // MangoHud configuration folder
-  CUSTOMCFGFILE: string;                // Path to custom.conf (MangoHud presets)
   VKBASALTFOLDER: string;               // vkBasalt configuration folder
   VKBASALTCFGFILE: string;              // Path to vkBasalt.conf
   VKSUMIFOLDER: string;                 // vkSumi configuration folder
@@ -1993,42 +1990,6 @@ end;
 
 
 
-
-procedure Tgoverlayform.usercustomBitBtnClick(Sender: TObject);
-var
-  GameCfgDir: string;
-begin
-  CUSTOMCFGFILE := GetActiveCustomConfigFile;
-
-  GameCfgDir := GetGameConfigDir(FActiveGameName);
-  if not DirectoryExists(GameCfgDir) then
-    ForceDirectories(GameCfgDir);
-  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
-
-  if not FileExists(CUSTOMCFGFILE) then
-  begin
-    MessageDlg(
-      rsCustomPresetTitle,
-      rsCustomPresetPrompt,
-      mtInformation,
-      [mbOK],
-      0
-    );
-    Exit;
-  end;
-
-  ExecuteShellcommand('cp ' + QuotedStr(CUSTOMCFGFILE) + ' ' + QuotedStr(MANGOHUDCFGFILE));
-  LoadMangoHudConfig;
-
-  // Change button color
-  fullBitbtn.Color:=clDefault;
-  basicBitbtn.Color:=clDefault;
-  basichorizontalBitbtn.Color:=clDefault;
-  fpsonlyBitbtn.Color:=clDefault;
-  usercustomBitbtn.Color:=$007F5500;
-
-  SendNotification('MangoHud', 'Reloading custom user preset', GetIconFile);
-end;
 
 procedure Tgoverlayform.vkbasaltLabelClick(Sender: TObject);
 var
@@ -3851,7 +3812,6 @@ begin
   FMockVkBasaltInstalled := -1;
   FMockReShadeInstalled := -1;
   FMockVkSumiInstalled := -1;
-  FMockLowLatencyInstalled := -1;
   FMockDlssNrModelReady := -1;
   FIntelCpuOverrideForTest := -1;
   FCachedMissingDeps := nil;
@@ -4229,7 +4189,6 @@ begin
   if not FileExists(MANGOHUDCFGFILE) and FileExists(MANGOHUDFOLDER + 'MangoHud.conf') then
     ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDFOLDER + 'MangoHud.conf') + ' ' + QuotedStr(MANGOHUDCFGFILE));
   BLACKLISTFILE := TConfigManager.GetBlacklistFile;
-  CUSTOMCFGFILE := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
   USERSESSION := GetEnvironmentVariable('XDG_SESSION_TYPE');
   VKBASALTFOLDER := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir());
   VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
@@ -4253,13 +4212,6 @@ begin
 
   //Enable update button
   reshaderefreshBitbtn.Enabled:=true;
-  end;
-
-  //Disable custom theme button if file doesnt exist
-  if not FileExists(CUSTOMCFGFILE) then
-  begin
-    usercustomBitbtn.Enabled:=false;
-    usercustomBitbtn.Hint:='Save a custom.conf file load the custom config';
   end;
 
 
@@ -5166,16 +5118,6 @@ begin
             (Missing.IndexOf(DEP_VKSUMI_RUNTIME) < 0);
 end;
 
-function Tgoverlayform.IsLowLatencyInstalled: Boolean;
-var
-  Missing: TStringList;
-begin
-  if FMockLowLatencyInstalled = 0 then Exit(False);
-  if FMockLowLatencyInstalled = 1 then Exit(True);
-  Missing := GetCachedMissingDeps;
-  Result := (Missing.IndexOf(DEP_LOW_LATENCY_LAYER) < 0);
-end;
-
 function Tgoverlayform.IsGamemodeInstalled: Boolean;
 var
   Missing: TStringList;
@@ -5319,7 +5261,7 @@ end;
 
 procedure Tgoverlayform.UpdateToolMissingDependencyBanners;
 var
-  MangoInstalled, VkInstalled, SumiInstalled, LowLatencyInstalled, GamemodeInstalled: Boolean;
+  MangoInstalled, VkInstalled, SumiInstalled, GamemodeInstalled: Boolean;
   IsMangoActivePage: Boolean;
   CurToolIdx, j: Integer;
   BannerTitle, BannerDesc: string;
@@ -5328,7 +5270,6 @@ begin
   MangoInstalled := IsMangoHudInstalled;
   VkInstalled := IsVkBasaltInstalled;
   SumiInstalled := IsVkSumiInstalled;
-  LowLatencyInstalled := IsLowLatencyInstalled;
   GamemodeInstalled := IsGamemodeInstalled;
   CurToolIdx := ActiveToolIndex;
 
@@ -5439,9 +5380,9 @@ begin
   begin
     FTweaksMissingBanner := CreateDependencyWarningBanner(
       tweaksTabSheet,
-      'Korthos Low Latency',
+      'GameMode',
       '',
-      'vulkan-low-latency-layer',
+      'gamemode',
       @RecheckDependenciesClick,
       @ViewStatusClick
     );
@@ -7433,7 +7374,6 @@ begin
     loadconfigMenuItem.Visible := True;
     saveoptionsItem.Visible := True;
     saveasMenuItem.Visible := True;
-    savecustomMenuItem.Visible := False;
     deckpreset1MenuItem.Visible := False;
     deckpreset2MenuItem.Visible := False;
     deckpreset3MenuItem.Visible := False;
@@ -7449,7 +7389,6 @@ begin
     loadconfigMenuItem.Visible := False;
     saveoptionsItem.Visible := False;
     saveasMenuItem.Visible := False;
-    savecustomMenuItem.Visible := False;
     deckpreset1MenuItem.Visible := False;
     deckpreset2MenuItem.Visible := False;
     deckpreset3MenuItem.Visible := False;
@@ -7462,7 +7401,6 @@ begin
     loadconfigMenuItem.Visible := True;
     saveoptionsItem.Visible := True;
     saveasMenuItem.Visible := True;
-    savecustomMenuItem.Visible := True;
     deckpreset1MenuItem.Visible := True;
     deckpreset2MenuItem.Visible := True;
     deckpreset3MenuItem.Visible := True;
@@ -7768,24 +7706,6 @@ end;  //  ################### END - SAVE MANGOHUD
 
 end; // ########################################      end save button click       ###############################################################################
 
-procedure Tgoverlayform.savecustomMenuItemClick(Sender: TObject);
-begin
-  // Save current config
-  saveBitbtn.Click;
-
-  CUSTOMCFGFILE := GetTargetCustomConfigFile;
-  MANGOHUDCFGFILE := GetGameConfigDir(FActiveGameName) + 'MangoHud.conf';
-
-  // Copy Mangohud.conf file to custom.conf
-  ExecuteShellCommand('cp ' + QuotedStr(MANGOHUDCFGFILE) + ' ' + QuotedStr(CUSTOMCFGFILE));
-
-  // Update preset card visuals so the Custom card instantly activates
-  UpdatePresetCardVisuals;
-
-  // Notification
-  SendNotification('Goverlay', 'Settings saved as custom config', GetIconFile);
-end;
-
 function Tgoverlayform.GetActiveTabConfigFile: string;
 var
   ConfigDir: string;
@@ -8002,6 +7922,13 @@ var
   ToolName: string;
   ConfigLines: TStringList;
 begin
+  if (goverlayPageControl.ActivePage <> vkbasaltTabSheet) and
+     (goverlayPageControl.ActivePage <> vksumiTabSheet) then
+  begin
+    LoadMangoHudConfigDialog;
+    Exit;
+  end;
+
   OpenDlg := TOpenDialog.Create(Self);
   try
     OpenDlg.Filter := 'Configuration files (*.conf)|*.conf|All files (*.*)|*.*';
@@ -8012,17 +7939,11 @@ begin
       ToolName := 'vkBasalt';
       TargetFile := VKBASALTCFGFILE;
     end
-    else if (goverlayPageControl.ActivePage = vksumiTabSheet) then
+    else
     begin
       OpenDlg.Title := 'Select vkSumi configuration file (*.conf)';
       ToolName := 'vkSumi';
       TargetFile := VKSUMICFGFILE;
-    end
-    else
-    begin
-      OpenDlg.Title := 'Select MangoHud configuration file (*.conf)';
-      ToolName := 'MangoHud';
-      TargetFile := MANGOHUDCFGFILE;
     end;
 
     if OpenDlg.Execute then
@@ -8040,10 +7961,8 @@ begin
 
         if (goverlayPageControl.ActivePage = vkbasaltTabSheet) then
           LoadVkBasaltConfig
-        else if (goverlayPageControl.ActivePage = vksumiTabSheet) then
-          LoadVkSumiConfig
         else
-          LoadMangoHudConfig;
+          LoadVkSumiConfig;
 
         SendNotification('Goverlay', ToolName + ' configuration loaded successfully', GetIconFile);
       end;
@@ -8058,50 +7977,30 @@ var
   SelectedDirectory: string;
   DestinationFile: string;
 begin
-  // Show directory selection dialog
+  if (goverlayPageControl.ActivePage <> vkbasaltTabSheet) then
+  begin
+    SaveMangoHudConfigDialog;
+    Exit;
+  end;
+
+  // Show directory selection dialog for vkBasalt
   with TSelectDirectoryDialog.Create(Self) do
   begin
     try
       Title := 'Select directory to save configuration file';
-      
+
       if Execute then
       begin
         SelectedDirectory := FileName;
-        
-        // Check if we're on MangoHud tab or vkBasalt tab
-        if (goverlayPageControl.ActivePage = vkbasaltTabSheet) then
+        DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'vkBasalt.conf';
+        SaveVkBasaltConfig;
+        if FileExists(VKBASALTCFGFILE) then
         begin
-          DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'vkBasalt.conf';
-          SaveVkBasaltConfig;
-          if FileExists(VKBASALTCFGFILE) then
-          begin
-            ExecuteShellCommand('cp ' + VKBASALTCFGFILE + ' ' + DestinationFile);
-            SendNotification('vkBasalt', 'Configuration exported to: ' + DestinationFile, GetIconFile);
-          end
-          else
-            ShowMessage(rsVkBasaltDirMissing);
+          ExecuteShellCommand('cp ' + QuotedStr(VKBASALTCFGFILE) + ' ' + QuotedStr(DestinationFile));
+          SendNotification('vkBasalt', 'Configuration exported to: ' + DestinationFile, GetIconFile);
         end
         else
-        begin
-          // Export MangoHud.conf
-          DestinationFile := IncludeTrailingPathDelimiter(SelectedDirectory) + 'MangoHud.conf';
-          
-          // First generate the current MangoHud config
-          SaveMangoHudConfig;
-          
-          // Copy the generated config to destination
-          if FileExists(MANGOHUDCFGFILE) then
-          begin
-            ExecuteShellCommand('cp ' + MANGOHUDCFGFILE + ' ' + DestinationFile);
-            
-            // Show notification
-            SendNotification('MangoHud', 'Configuration exported to: ' + DestinationFile, GetIconFile);
-          end
-          else
-          begin
-            ShowMessage(rsMangoHudConfigMissing);
-          end;
-        end;
+          ShowMessage(rsVkBasaltDirMissing);
       end;
     finally
       Free;
@@ -10485,35 +10384,141 @@ begin
     Result := BaseLogs + SanitizeFileName(AGameName) + '/';
 end;
 
-function Tgoverlayform.GetTargetCustomConfigFile: string;
-var
-  GameCfgDir: string;
+function Tgoverlayform.GetMangoHudContextDir: string;
 begin
   if FActiveGameName <> '' then
-  begin
-    GameCfgDir := GetGameConfigDir(FActiveGameName);
-    if not DirectoryExists(GameCfgDir) then
-      ForceDirectories(GameCfgDir);
-    Result := GameCfgDir + 'custom.conf';
-  end
+    Result := GetGameConfigDir(FActiveGameName)
   else
+    Result := IncludeTrailingPathDelimiter(GetMangoHudConfigDir());
+end;
+
+function Tgoverlayform.SaveMangoHudConfigToFile(const ADestFile: string): Boolean;
+var
+  GameCfgDir, DestDir: string;
+  ConfigLines: TStringList;
+begin
+  Result := False;
+  if Trim(ADestFile) = '' then Exit;
+
+  GameCfgDir := GetGameConfigDir(FActiveGameName);
+  if not DirectoryExists(GameCfgDir) then
+    ForceDirectories(GameCfgDir);
+  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+
+  SaveMangoHudConfig;
+  notificationLabel.Visible := False;
+  FLaunchCommand := GetLaunchCommand;
+  commandPaintBox.Invalidate;
+  SyncBlacklistToMangoHud;
+
+  if not FileExists(MANGOHUDCFGFILE) then
   begin
-    Result := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
+    ShowMessage(rsMangoHudConfigMissing);
+    Exit;
+  end;
+
+  DestDir := ExtractFileDir(ADestFile);
+  if (DestDir <> '') and not DirectoryExists(DestDir) then
+    ForceDirectories(DestDir);
+
+  if ExpandFileName(ADestFile) <> ExpandFileName(MANGOHUDCFGFILE) then
+  begin
+    ConfigLines := TStringList.Create;
+    try
+      ConfigLines.LoadFromFile(MANGOHUDCFGFILE);
+      ConfigLines.SaveToFile(ADestFile);
+    finally
+      ConfigLines.Free;
+    end;
+  end;
+
+  SendNotification('MangoHud', 'Configuration saved to: ' + ADestFile, GetIconFile);
+  Result := True;
+end;
+
+procedure Tgoverlayform.SaveMangoHudConfigDialog;
+var
+  SaveDlg: TSaveDialog;
+  ContextDir, DestFile: string;
+begin
+  ContextDir := GetMangoHudContextDir;
+  if not DirectoryExists(ContextDir) then
+    ForceDirectories(ContextDir);
+
+  SaveDlg := TSaveDialog.Create(Self);
+  try
+    SaveDlg.Title := 'Save MangoHud configuration';
+    SaveDlg.Filter := 'Configuration files (*.conf)|*.conf|All files (*.*)|*.*';
+    SaveDlg.DefaultExt := 'conf';
+    SaveDlg.InitialDir := ExcludeTrailingPathDelimiter(ContextDir);
+    SaveDlg.FileName := 'custom.conf';
+    SaveDlg.Options := SaveDlg.Options + [ofOverwritePrompt];
+    if SaveDlg.Execute then
+    begin
+      DestFile := SaveDlg.FileName;
+      if ExtractFileExt(DestFile) = '' then
+        DestFile := DestFile + '.conf';
+      SaveMangoHudConfigToFile(DestFile);
+    end;
+  finally
+    SaveDlg.Free;
   end;
 end;
 
-function Tgoverlayform.GetActiveCustomConfigFile: string;
+function Tgoverlayform.LoadMangoHudConfigFromFile(const ASourceFile: string): Boolean;
 var
-  GameCfgDir, GameCustom: string;
+  GameCfgDir: string;
+  ConfigLines: TStringList;
 begin
-  if FActiveGameName <> '' then
+  Result := False;
+  if (Trim(ASourceFile) = '') or not FileExists(ASourceFile) then Exit;
+
+  GameCfgDir := GetGameConfigDir(FActiveGameName);
+  if not DirectoryExists(GameCfgDir) then
+    ForceDirectories(GameCfgDir);
+  MANGOHUDCFGFILE := GameCfgDir + 'MangoHud.conf';
+
+  if ExpandFileName(ASourceFile) <> ExpandFileName(MANGOHUDCFGFILE) then
   begin
-    GameCfgDir := GetGameConfigDir(FActiveGameName);
-    GameCustom := GameCfgDir + 'custom.conf';
-    if FileExists(GameCustom) then
-      Exit(GameCustom);
+    ConfigLines := TStringList.Create;
+    try
+      ConfigLines.LoadFromFile(ASourceFile);
+      ConfigLines.SaveToFile(MANGOHUDCFGFILE);
+    finally
+      ConfigLines.Free;
+    end;
   end;
-  Result := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'custom.conf';
+
+  LoadMangoHudConfig;
+  FActiveLayoutCard := 4;
+  if Assigned(FMangoHelper) then
+  begin
+    UpdatePresetCardVisuals;
+    TMangoHudUiHelper(FMangoHelper).SyncAllToggles;
+  end;
+  FLaunchCommand := GetLaunchCommand;
+  commandPaintBox.Invalidate;
+  SendNotification('Goverlay', 'MangoHud configuration loaded: ' + ExtractFileName(ASourceFile), GetIconFile);
+  Result := True;
+end;
+
+procedure Tgoverlayform.LoadMangoHudConfigDialog;
+var
+  OpenDlg: TOpenDialog;
+  ContextDir: string;
+begin
+  ContextDir := GetMangoHudContextDir;
+  OpenDlg := TOpenDialog.Create(Self);
+  try
+    OpenDlg.Title := 'Select MangoHud configuration file (*.conf)';
+    OpenDlg.Filter := 'Configuration files (*.conf)|*.conf|All files (*.*)|*.*';
+    if DirectoryExists(ContextDir) then
+      OpenDlg.InitialDir := ExcludeTrailingPathDelimiter(ContextDir);
+    if OpenDlg.Execute then
+      LoadMangoHudConfigFromFile(OpenDlg.FileName);
+  finally
+    OpenDlg.Free;
+  end;
 end;
 
 function Tgoverlayform.FindFileInDir(const ADir, AFileName: string): string;

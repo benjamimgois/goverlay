@@ -27,7 +27,6 @@ const
   DEP_VKBASALT_RUNTIME  = 'vkBasalt runtime 25.08';
   DEP_VKSUMI            = 'vksumi';
   DEP_VKSUMI_RUNTIME    = 'vkSumi runtime';
-  DEP_LOW_LATENCY_LAYER = 'vulkan-low-latency-layer';
   DEP_P7ZIP             = 'p7zip';
   DEP_CURL              = 'curl';
   DEP_GIT               = 'git';

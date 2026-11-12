@@ -15,6 +15,7 @@ type
     Category: Integer;
     VarName: string;
     Description: string;
+    Hidden: Boolean;
   end;
 
   TPredefinedArg = record
@@ -44,40 +45,40 @@ const
 
   TWEAK_ROW_COUNT = 34;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'SteamDeck=1';                      Description: 'Simulate Steam Deck hardware'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF; VarName: '#gamemode';                        Description: 'Use Feral Gamemode set of optimisations'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_HDR=1';              Description: 'Enable HDR'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_ENABLE_WAYLAND=1';          Description: 'Enable Wayland'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_LOG=1';                     Description: 'Active Proton Logs'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'PROTON_USE_SDL=1';                 Description: 'Use SDL input instead steam input'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;    VarName: 'OBS_VKCAPTURE=1';                  Description: 'Activate Vulkan capture for OBS Studio'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_PERFTEST=rt,emulate_rt';      Description: 'Emulates RT on older AMD GPUs'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_HIDE_NVIDIA_GPU=1';         Description: 'Hide Nvidia GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_ENABLE_NVAPI=1';            Description: 'Force enable NVAPI'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_USE_WINED3D=1';             Description: 'Use old WINED3D'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink'; Description: '[MESA] Uses OpenGL over Vulkan translation (ZINK)'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'RADV_DEBUG=nofastclears';          Description: 'Disables fast clear optimization (AMD)'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_FSR4_UPGRADE=1';            Description: 'Automatically upgrade FSR to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_DLSS_UPGRADE=1';            Description: 'Automatically upgrade DLSS to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;   VarName: 'PROTON_XESS_UPGRADE=1';            Description: 'Automatically upgrade XeSS to the latest version'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'game-performance';                 Description: '[cachyos] Sets CPU governor to performance'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;       VarName: 'PROTON_USE_WOW64=1';               Description: 'Windows 64-bit compatibility'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1'; Description: 'Allows 32-bit games to use more than 2GB RAM'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'STAGING_SHARED_MEMORY=1';          Description: 'Memory optimization for AMD GPUs'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_NO_NTSYNC=1';               Description: 'Disable NTSYNC'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;VarName: 'PROTON_HEAP_DELAY_FREE=1';         Description: 'Delay in heap allocation (Wine)'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: '#winedetectionenable=false';       Description: 'Enable RE Engine Ray Tracing workaround'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER=1';       Description: '[low_latency_layer] Expose to enable the layer'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_REFLEX=1'; Description: '[low_latency_layer] Expose Reflex support'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1'; Description: '[low_latency_layer] Report device as NVIDIA GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"'; Description: '[low_latency_layer] Also hide AMD GPU'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';     Description: '[MESA] Enable AMD Anti-Lag 2'),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY; VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY'; Description: '[proton-cachyos] low-latency frame pacing (DX11 & DX12)'),
-    (CheckBox: nil; Category: TWEAK_CAT_PERF;    VarName: 'PROTON_LOCAL_SHADER_CACHE=1';     Description: '[proton-cachyos] Enable per-game shader cache'),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL; VarName: 'PROTON_DISCORD_BRIDGE=1';        Description: '[proton-cachyos] Enable Discord''s Rich Presence.'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap'; Description: 'Alternative descriptor heap'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                         Description: '[nvidia] Activates Ray Reconstruction'),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                            Description: 'Multiplier for Ray Tracing Acceleration Structures size')
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'SteamDeck=1';                                           Description: 'Simulate Steam Deck hardware';                                      Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: '#gamemode';                                             Description: 'Use Feral Gamemode set of optimisations';                           Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_ENABLE_HDR=1';                                   Description: 'Enable HDR';                                                        Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_ENABLE_WAYLAND=1';                               Description: 'Enable Wayland';                                                    Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_LOG=1';                                          Description: 'Active Proton Logs';                                                Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_USE_SDL=1';                                      Description: 'Use SDL input instead steam input';                                 Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'OBS_VKCAPTURE=1';                                       Description: 'Activate Vulkan capture for OBS Studio';                            Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'RADV_PERFTEST=rt,emulate_rt';                           Description: 'Emulates RT on older AMD GPUs';                                     Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_HIDE_NVIDIA_GPU=1';                              Description: 'Hide Nvidia GPU';                                                   Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_ENABLE_NVAPI=1';                                 Description: 'Force enable NVAPI';                                                Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_USE_WINED3D=1';                                  Description: 'Use old WINED3D';                                                   Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'MESA_LOADER_DRIVER_OVERRIDE=zink';                      Description: '[MESA] Uses OpenGL over Vulkan translation (ZINK)';                 Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'RADV_DEBUG=nofastclears';                               Description: 'Disables fast clear optimization (AMD)';                            Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_FSR4_UPGRADE=1';                                 Description: 'Automatically upgrade FSR to the latest version';                   Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_DLSS_UPGRADE=1';                                 Description: 'Automatically upgrade DLSS to the latest version';                  Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_XESS_UPGRADE=1';                                 Description: 'Automatically upgrade XeSS to the latest version';                  Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'game-performance';                                      Description: '[cachyos] Sets CPU governor to performance';                        Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_USE_WOW64=1';                                    Description: 'Windows 64-bit compatibility';                                      Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_FORCE_LARGE_ADDRESS_AWARE=1';                    Description: 'Allows 32-bit games to use more than 2GB RAM';                      Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'STAGING_SHARED_MEMORY=1';                               Description: 'Memory optimization for AMD GPUs';                                  Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_NO_NTSYNC=1';                                    Description: 'Disable NTSYNC';                                                    Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_HEAP_DELAY_FREE=1';                              Description: 'Delay in heap allocation (Wine)';                                   Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: '#winedetectionenable=false';                            Description: 'Enable RE Engine Ray Tracing workaround';                           Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER=1';                                   Description: '[low_latency_layer] Expose to enable the layer';                    Hidden: True),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_REFLEX=1';                            Description: '[low_latency_layer] Expose Reflex support';                         Hidden: True),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';                      Description: '[low_latency_layer] Report device as NVIDIA GPU';                   Hidden: True),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';                  Description: '[low_latency_layer] Also hide AMD GPU';                             Hidden: True),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';                          Description: '[MESA] Enable AMD Anti-Lag 2';                                      Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY';      Description: '[proton-cachyos] Low latency frame pacing (DX8 to DX12)';           Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_LOCAL_SHADER_CACHE=1';                           Description: '[proton-cachyos] Enable per-game shader cache';                     Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_DISCORD_BRIDGE=1';                               Description: '[proton-cachyos] Enable Discord''s Rich Presence.';                 Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap';                          Description: 'Alternative descriptor heap';                                       Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                               Description: '[nvidia] Activates Ray Reconstruction';                             Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                                Description: 'Multiplier for Ray Tracing Acceleration Structures size';           Hidden: False)
   );
 
 type
@@ -336,6 +337,17 @@ begin
   else
     Result := nil;
   end;
+end;
+
+function IsTweakRowHidden(Form: Tgoverlayform; ACheckBox: TCheckBox): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if not Assigned(ACheckBox) then Exit;
+  for i := 0 to TWEAK_ROW_COUNT - 1 do
+    if GetTweakRowCheckBox(Form, i) = ACheckBox then
+      Exit(TWEAK_ROWS[i].Hidden);
 end;
 
 constructor TTweaksMD3Helper.Create(AForm: Tgoverlayform);
@@ -918,7 +930,7 @@ var
   Chk: TCheckBox;
   Is2Col: Boolean;
   IsRowEnabled: Boolean;
-  LowLatencyInstalled, GamemodeInstalled: Boolean;
+  GamemodeInstalled: Boolean;
   ActiveStr, ItemVarName: string;
 const
   CARD_MARGIN_X      = 4;
@@ -1158,7 +1170,6 @@ begin
 
   HoverIdx := FForm.FTweaksHoverIdx;
   Is2Col   := PB.Width >= 700;
-  LowLatencyInstalled := FForm.IsLowLatencyInstalled;
   GamemodeInstalled   := FForm.IsGamemodeInstalled;
 
   CardLeft  := CARD_MARGIN_X;
@@ -1185,7 +1196,7 @@ begin
     ActiveCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      if TWEAK_ROWS[i].Category = CatIdx then
+      if (TWEAK_ROWS[i].Category = CatIdx) and (not TWEAK_ROWS[i].Hidden) then
       begin
         Inc(ItemCount);
         Chk := GetTweakRowCheckBox(FForm, i);
@@ -1258,7 +1269,7 @@ begin
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      if (TWEAK_ROWS[i].Category <> CatIdx) or TWEAK_ROWS[i].Hidden then Continue;
       Chk := GetTweakRowCheckBox(FForm, i);
       ItemTopY := Y + CARD_HDR_H + BannerH;
       if Is2Col then
@@ -1274,13 +1285,6 @@ begin
         R := Rect(InnerLeft, ItemTopY + (CatItemCount * ITEM_H), InnerRight, ItemTopY + ((CatItemCount + 1) * ITEM_H));
 
       IsRowEnabled := True;
-      if ((TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1') or
-          (TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1') or
-          (TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1') or
-          (TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"')) and
-         (not LowLatencyInstalled) then
-        IsRowEnabled := False;
-
       if (TWEAK_ROWS[i].VarName = '#gamemode') and (not GamemodeInstalled) then
         IsRowEnabled := False;
 
@@ -1585,7 +1589,9 @@ begin
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
-      if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
+      if (TWEAK_ROWS[i].Category = CatIdx) and (not TWEAK_ROWS[i].Hidden) then Inc(ItemCount);
+
+    if ItemCount = 0 then Continue;
 
     BannerH := 0;
     if CatIdx = TWEAK_CAT_EXPERIMENTAL then
@@ -1597,7 +1603,7 @@ begin
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      if (TWEAK_ROWS[i].Category <> CatIdx) or TWEAK_ROWS[i].Hidden then Continue;
       ItemTopY := YPos + CARD_HDR_H + BannerH;
       if Is2Col then
       begin
@@ -1642,13 +1648,7 @@ begin
         else if TWEAK_ROWS[i].VarName = '#winedetectionenable=false' then
           TweakHint := 'Disables Wine detection in RE Engine games to avoid crashes or black screens.';
 
-        if (Pos('Needs Korthos low latency', TweakHint) > 0) and (not FForm.IsLowLatencyInstalled) then
-        begin
-          TweakHint := TweakHint + ' (NOT INSTALLED)';
-          FForm.ShowTweaksMissingBanner('Korthos Low Latency is not installed',
-            'System package not found. Please install ''vulkan-low-latency-layer'' using your package manager.');
-        end
-        else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
+        if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
         begin
           TweakHint := TweakHint + ' (NOT INSTALLED)';
           FForm.ShowTweaksMissingBanner('GameMode is not installed',
@@ -1921,7 +1921,9 @@ begin
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
-      if TWEAK_ROWS[i].Category = CatIdx then Inc(ItemCount);
+      if (TWEAK_ROWS[i].Category = CatIdx) and (not TWEAK_ROWS[i].Hidden) then Inc(ItemCount);
+
+    if ItemCount = 0 then Continue;
 
     BannerH := 0;
     if CatIdx = TWEAK_CAT_EXPERIMENTAL then
@@ -1933,7 +1935,7 @@ begin
     CatItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
     begin
-      if TWEAK_ROWS[i].Category <> CatIdx then Continue;
+      if (TWEAK_ROWS[i].Category <> CatIdx) or TWEAK_ROWS[i].Hidden then Continue;
       ItemTopY := YPos + CARD_HDR_H + BannerH;
       if Is2Col then
       begin
@@ -1968,12 +1970,6 @@ begin
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
           else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
-          else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
-                   (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
-                  (not FForm.IsLowLatencyInstalled) then
-          begin
-            ShowMessage('vulkan-low-latency-layer is not installed. Please install Korthos low latency layer first.');
-          end
           else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
           begin
             ShowMessage('gamemode is not installed. Please install the gamemode package first.');
@@ -2366,10 +2362,10 @@ begin
                FForm.GetPerformanceCheckBox(4).Checked or FForm.GetPerformanceCheckBox(5).Checked or
                FForm.GetPerformanceCheckBox(6).Checked or
                FForm.FAntilagCheckBox.Checked or
-               FForm.FLowLatencyCheckBox.Checked or
-               FForm.FLowLatencyReflexCheckBox.Checked or
-               FForm.FLowLatencySpoofNvidiaCheckBox.Checked or
-               FForm.FLowLatencyHideAmdGpuCheckBox.Checked or
+               ((not IsTweakRowHidden(FForm, FForm.FLowLatencyCheckBox)) and FForm.FLowLatencyCheckBox.Checked) or
+               ((not IsTweakRowHidden(FForm, FForm.FLowLatencyReflexCheckBox)) and FForm.FLowLatencyReflexCheckBox.Checked) or
+               ((not IsTweakRowHidden(FForm, FForm.FLowLatencySpoofNvidiaCheckBox)) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked) or
+               ((not IsTweakRowHidden(FForm, FForm.FLowLatencyHideAmdGpuCheckBox)) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked) or
                FForm.FProtonVkd3dLowLatencyCheckBox.Checked or
                FForm.FProtonLocalShaderCacheCheckBox.Checked or
                FForm.FProtonDiscordBridgeCheckBox.Checked or
@@ -2481,16 +2477,16 @@ begin
     if FForm.FAntilagCheckBox.Checked then
       Ini.WriteString('Env', 'ENABLE_LAYER_MESA_ANTI_LAG', '1');
 
-    if FForm.FLowLatencyCheckBox.Checked then
+    if (not IsTweakRowHidden(FForm, FForm.FLowLatencyCheckBox)) and FForm.FLowLatencyCheckBox.Checked then
       Ini.WriteString('Env', 'LOW_LATENCY_LAYER', '1');
 
-    if FForm.FLowLatencyReflexCheckBox.Checked then
+    if (not IsTweakRowHidden(FForm, FForm.FLowLatencyReflexCheckBox)) and FForm.FLowLatencyReflexCheckBox.Checked then
       Ini.WriteString('Env', 'LOW_LATENCY_LAYER_REFLEX', '1');
 
-    if FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
+    if (not IsTweakRowHidden(FForm, FForm.FLowLatencySpoofNvidiaCheckBox)) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
       Ini.WriteString('Env', 'LOW_LATENCY_LAYER_SPOOF_NVIDIA', '1');
 
-    if FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
+    if (not IsTweakRowHidden(FForm, FForm.FLowLatencyHideAmdGpuCheckBox)) and FForm.FLowLatencyHideAmdGpuCheckBox.Checked then
       Ini.WriteString('Env', 'DXVK_CONFIG', 'dxgi.customDeviceDescription=10de:2204,dxgi.hideAmdGpu=True');
 
     if FForm.FProtonVkd3dLowLatencyCheckBox.Checked then
@@ -2670,13 +2666,13 @@ var
       else if SameText(K, 'RADV_DEBUG') and SameText(V, 'nofastclears') then
         FForm.nofastclearsCheckBox.Checked := True
       else if SameText(K, 'LOW_LATENCY_LAYER') then
-        FForm.FLowLatencyCheckBox.Checked := V = '1'
+        FForm.FLowLatencyCheckBox.Checked := (not IsTweakRowHidden(FForm, FForm.FLowLatencyCheckBox)) and (V = '1')
       else if SameText(K, 'LOW_LATENCY_LAYER_REFLEX') then
-        FForm.FLowLatencyReflexCheckBox.Checked := V = '1'
+        FForm.FLowLatencyReflexCheckBox.Checked := (not IsTweakRowHidden(FForm, FForm.FLowLatencyReflexCheckBox)) and (V = '1')
       else if SameText(K, 'LOW_LATENCY_LAYER_SPOOF_NVIDIA') then
-        FForm.FLowLatencySpoofNvidiaCheckBox.Checked := V = '1'
+        FForm.FLowLatencySpoofNvidiaCheckBox.Checked := (not IsTweakRowHidden(FForm, FForm.FLowLatencySpoofNvidiaCheckBox)) and (V = '1')
       else if SameText(K, 'DXVK_CONFIG') and (Pos('hideAmdGpu', V) > 0) then
-        FForm.FLowLatencyHideAmdGpuCheckBox.Checked := True
+        FForm.FLowLatencyHideAmdGpuCheckBox.Checked := not IsTweakRowHidden(FForm, FForm.FLowLatencyHideAmdGpuCheckBox)
       else if SameText(K, 'PROTON_VKD3D_LOWLATENCY') or SameText(K, 'PROTON_DXVK_LOWLATENCY') then
       begin
         if V = '1' then

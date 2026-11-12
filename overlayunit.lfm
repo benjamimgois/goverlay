@@ -4100,7 +4100,6 @@ object goverlayform: Tgoverlayform
           ImageIndex = 4
           ParentFont = False
           TabOrder = 3
-          OnClick = usercustomBitBtnClick
         end
         object fpsonlyBitBtn: TBitBtn
           AnchorSideLeft.Control = basichorizontalBitBtn
@@ -16100,11 +16099,6 @@ object goverlayform: Tgoverlayform
         Caption = 'Save as'
         ImageIndex = 24
         OnClick = saveasMenuItemClick
-      end
-      object savecustomMenuItem: TMenuItem
-        Caption = 'Custom Config'
-        ImageIndex = 11
-        OnClick = savecustomMenuItemClick
       end
       object deckpreset1MenuItem: TMenuItem
         Caption = 'Steam Deck preset 1'

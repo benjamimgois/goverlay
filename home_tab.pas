@@ -80,15 +80,14 @@ const
 var
   BG, CARD_BG, TXT_CLR, MUTED_CLR: TColor;
 
-  DEP_NAMES: array[0..6] of string = (
+  DEP_NAMES: array[0..5] of string = (
     '7z', 'curl', 'git', 'gamemode',
     {$IFDEF LCLqt6}
     'qt6pas',
     {$ELSE}
     'qt5pas',
     {$ENDIF}
-    'Nerd Fonts',
-    'Korthos low latency');
+    'Nerd Fonts');
   MOD_NAMES: array[0..11] of string = ('MangoHud', 'vkBasalt', 'OptiScaler', 'DLSS Enabler', 'vkSumi', 'lsfg-vk', 'MAKO', 'ReShade', 'afmf-linux', 'HelixSR', 'DLSS-NR', 'vkNemu');
 
 var
@@ -378,14 +377,14 @@ begin
     Inc(Y, Card.Height + SEC_GAP);
 
     // ── Card 2: Dependencies (2 columns) ─────────────────────────────────────
-    Card := MkCard(Y, CARD_P * 2 + 24 + 4 * ROW_H + 8);
+    Card := MkCard(Y, CARD_P * 2 + 24 + 3 * ROW_H + 8);
     MkTitle(Card, 'Dependencies', CARD_P);
     MkSep(Card, CARD_P + 22);
 
-    for i := 0 to 6 do
+    for i := 0 to 5 do
     begin
-      ColX := CARD_P + (i div 4) * COL_W;
-      Row  := CARD_P + 30 + (i mod 4) * ROW_H;
+      ColX := CARD_P + (i div 3) * COL_W;
+      Row  := CARD_P + 30 + (i mod 3) * ROW_H;
 
       Dot := MkDot(Card, ColX, Row + (ROW_H - DOT_SZ) div 2);
       Dot.ShowHint := True;
@@ -916,33 +915,29 @@ end;
 procedure THomeTabHelper.RefreshHomeDeps;
 const
   {$IFDEF LCLqt6}
-  DEP_KEYS: array[0..6] of string = (
-    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT6PAS, DEP_NERDFONTS,
-    DEP_LOW_LATENCY_LAYER);
-  DEP_DISPLAY: array[0..6] of string = (
-    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts', 'Korthos low latency');
-  DEP_HINTS: array[0..6] of string = (
+  DEP_KEYS: array[0..5] of string = (
+    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT6PAS, DEP_NERDFONTS);
+  DEP_DISPLAY: array[0..5] of string = (
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt6pas', 'Nerd Fonts');
+  DEP_HINTS: array[0..5] of string = (
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',
     'Version control used to fetch fgmod scripts',
     'Feral GameMode daemon for CPU/GPU optimisation',
     'Qt6 Pascal bindings — required for the Goverlay GUI',
-    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons',
-    'Vulkan Low Latency layer — latency reduction layer');
+    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons');
   {$ELSE}
-  DEP_KEYS: array[0..6] of string = (
-    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT5PAS, DEP_NERDFONTS,
-    DEP_LOW_LATENCY_LAYER);
-  DEP_DISPLAY: array[0..6] of string = (
-    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts', 'Korthos low latency');
-  DEP_HINTS: array[0..6] of string = (
+  DEP_KEYS: array[0..5] of string = (
+    DEP_P7ZIP, DEP_CURL, DEP_GIT, DEP_GAMEMODE, DEP_LIBQT5PAS, DEP_NERDFONTS);
+  DEP_DISPLAY: array[0..5] of string = (
+    '7z (p7zip)', 'curl', 'git', 'gamemode', 'qt5pas', 'Nerd Fonts');
+  DEP_HINTS: array[0..5] of string = (
     'Archive tool required for OptiScaler extraction',
     'HTTP client used to download OptiScaler updates and covers',
     'Version control used to fetch fgmod scripts',
     'Feral GameMode daemon for CPU/GPU optimisation',
     'Qt5 Pascal bindings — required for the Goverlay GUI',
-    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons',
-    'Vulkan Low Latency layer — latency reduction layer');
+    'Nerd Font (e.g. ttf-nerd-fonts-symbols) — required for UI icons');
   {$ENDIF}
   CLR_OK      = $0044CC55;  // vibrant emerald green
   CLR_MISSING = $005555EE;  // vibrant rose/coral red
@@ -954,7 +949,7 @@ begin
   begin
     if not Assigned(FHomeDepDots[0]) then Exit;
     Missing := FForm.GetCachedMissingDeps;
-    for i := 0 to 6 do
+    for i := 0 to 5 do
     begin
       FHomeDepDots[i].Hint := DEP_HINTS[i];
       FHomeDepLbls[i].Hint := DEP_HINTS[i];

@@ -53,15 +53,6 @@ resourcestring
   rsVkBasaltDirMissing = 'vkBasalt directory not found';
   rsReshadeSyncFailed = 'Error while synchronizing reshade repo. Code: %d';
 
-  // Custom preset
-  rsCustomPresetTitle = 'Custom Preset Required';
-  rsCustomPresetPrompt = 'No custom configuration was found to load.' + LineEnding + LineEnding
-    + 'To create your custom preset:' + LineEnding
-    + '1. Customize your desired elements and colors in Goverlay.' + LineEnding
-    + '2. Click the menu button in the bottom bar.' + LineEnding
-    + '3. Select "Save Options" -> "Save as Custom Config".' + LineEnding + LineEnding
-    + 'Once created, click "Custom" anytime to apply your preset!';
-
   // Intel CPU power fix
   rsIntelFixTitle = 'Intel CPU Power Fix';
   rsIntelFixNoFlatpak = 'Intel CPU power monitoring fix is not available directly inside Flatpak.'
