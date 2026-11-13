@@ -1249,6 +1249,12 @@ type
     FNvidiaDlssRROverrideCheckBox: TCheckBox;  // NGX_DLSS_RR_OVERRIDE=on
     FVkd3dRtasSizeMultCheckBox: TCheckBox;     // VKD3D_RTAS_SIZE_MULT
     FVkd3dRtasSizeMultValue: string;
+    FProtonZludaCheckBox: TCheckBox;           // PROTON_ZLUDA=1
+    FProtonSonyWinDevNamesCheckBox: TCheckBox; // PROTON_SONY_WINDOWS_DEVICE_NAMES=1
+    FProtonSteamInputXboxCheckBox: TCheckBox;  // PROTON_STEAM_INPUT_XBOX_PROMPTS=1
+    FProtonSonyAutoXInputCheckBox: TCheckBox;  // PROTON_SONY_AUTO_XINPUT=0
+    FProtonSonyHidrawXInputCheckBox: TCheckBox;// PROTON_SONY_HIDRAW_XINPUT=1
+    FProtonDualSenseNonEvCheckBox: TCheckBox;  // PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT=1
     FGamesHelper:      TObject;
     FBasaltHelper:     TObject;
     FMangoHelper:      TObject;

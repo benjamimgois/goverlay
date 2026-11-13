@@ -47,6 +47,16 @@ const
   ENV_LOW_LATENCY_SPOOF_NVIDIA = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';
   ENV_LOW_LATENCY_HIDE_AMD     = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';
 
+  // Controllers tweaks
+  ENV_PROTON_SONY_WINDOWS_DEVICE_NAMES       = 'PROTON_SONY_WINDOWS_DEVICE_NAMES=1';
+  ENV_PROTON_STEAM_INPUT_XBOX_PROMPTS        = 'PROTON_STEAM_INPUT_XBOX_PROMPTS=1';
+  ENV_PROTON_SONY_AUTO_XINPUT                = 'PROTON_SONY_AUTO_XINPUT=0';
+  ENV_PROTON_SONY_HIDRAW_XINPUT              = 'PROTON_SONY_HIDRAW_XINPUT=1';
+  ENV_PROTON_DUALSENSE_HAPTICS_PREFER_NON_EV = 'PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT=1';
+
+  // Experimental tweaks
+  ENV_PROTON_ZLUDA                           = 'PROTON_ZLUDA=1';
+
 // ============================================================================
 // FGMOD SCRIPT ANCHORS AND MARKERS
 // ============================================================================

@@ -28,11 +28,12 @@ const
   TWEAK_CAT_GRAPHICS     = 1;
   TWEAK_CAT_PERF         = 2;
   TWEAK_CAT_LATENCY      = 3;
-  TWEAK_CAT_EXPERIMENTAL = 4;
+  TWEAK_CAT_CONTROLLERS  = 4;
+  TWEAK_CAT_EXPERIMENTAL = 5;
   // Custom rows are added by the user at run time; they are not part of
   // TWEAK_ROWS but share the category column of the backing grid.
-  TWEAK_CAT_CUSTOM       = 5;
-  TWEAK_CAT_ARGS         = 6;
+  TWEAK_CAT_CUSTOM       = 6;
+  TWEAK_CAT_ARGS         = 7;
 
   PREDEFINED_ARG_COUNT = 5;
   PREDEFINED_ARGS: array[0..PREDEFINED_ARG_COUNT - 1] of TPredefinedArg = (
@@ -43,14 +44,14 @@ const
     (Arg: '-nojoy';  Description: 'Disable joystick subsystem')
   );
 
-  TWEAK_ROW_COUNT = 34;
+  TWEAK_ROW_COUNT = 40;
   TWEAK_ROWS: array[0..TWEAK_ROW_COUNT - 1] of TTweakRow = (
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'SteamDeck=1';                                           Description: 'Simulate Steam Deck hardware';                                      Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: '#gamemode';                                             Description: 'Use Feral Gamemode set of optimisations';                           Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_ENABLE_HDR=1';                                   Description: 'Enable HDR';                                                        Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_ENABLE_WAYLAND=1';                               Description: 'Enable Wayland';                                                    Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_LOG=1';                                          Description: 'Active Proton Logs';                                                Hidden: False),
-    (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_USE_SDL=1';                                      Description: 'Use SDL input instead steam input';                                 Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_USE_SDL=1';                                      Description: 'Use SDL instead of Steam Input';                                    Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'OBS_VKCAPTURE=1';                                       Description: 'Activate Vulkan capture for OBS Studio';                            Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'RADV_PERFTEST=rt,emulate_rt';                           Description: 'Emulates RT on older AMD GPUs';                                     Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_GRAPHICS;     VarName: 'PROTON_HIDE_NVIDIA_GPU=1';                              Description: 'Hide Nvidia GPU';                                                   Hidden: False),
@@ -78,7 +79,13 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_GENERAL;      VarName: 'PROTON_DISCORD_BRIDGE=1';                               Description: '[proton-cachyos] Enable Discord''s Rich Presence.';                 Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_CONFIG=descriptor_heap';                          Description: 'Alternative descriptor heap';                                       Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'NGX_DLSS_RR_OVERRIDE=on';                               Description: '[nvidia] Activates Ray Reconstruction';                             Hidden: False),
-    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                                Description: 'Multiplier for Ray Tracing Acceleration Structures size';           Hidden: False)
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'VKD3D_RTAS_SIZE_MULT=8';                                Description: 'Multiplier for Ray Tracing Acceleration Structures size';           Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: 'PROTON_ZLUDA=1';                                        Description: '[proton-cachyos] Enable 32-bit PhysX on AMD via ZLUDA';             Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_SONY_WINDOWS_DEVICE_NAMES=1';                    Description: '[GE] Use Windows names for Sony controllers';                        Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_STEAM_INPUT_XBOX_PROMPTS=1';                     Description: '[GE] Force Xbox prompts on Steam Deck/Controller';                  Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_SONY_AUTO_XINPUT=0';                             Description: '[GE] Disable Sony XInput auto-fallback';                            Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_SONY_HIDRAW_XINPUT=1';                           Description: '[GE] Force Sony hidraw XInput mode';                                Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_CONTROLLERS;  VarName: 'PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT=1';           Description: '[GE] Prefer non-event device for DualSense';                        Hidden: False)
   );
 
 type
@@ -126,6 +133,7 @@ begin
     TWEAK_CAT_GRAPHICS:     Result := 'Graphics';
     TWEAK_CAT_PERF:         Result := 'Performance';
     TWEAK_CAT_LATENCY:      Result := 'Latency reduction';
+    TWEAK_CAT_CONTROLLERS:  Result := 'Controllers';
     TWEAK_CAT_EXPERIMENTAL: Result := 'Experimental';
     TWEAK_CAT_CUSTOM:       Result := 'Custom';
     TWEAK_CAT_ARGS:         Result := 'Launch Arguments';
@@ -200,6 +208,12 @@ begin
             SameText(AKey, 'PROTON_VKD3D_HEAP') or
             SameText(AKey, 'NGX_DLSS_RR_OVERRIDE') or
             SameText(AKey, 'VKD3D_RTAS_SIZE_MULT') or
+            SameText(AKey, 'PROTON_ZLUDA') or
+            SameText(AKey, 'PROTON_SONY_WINDOWS_DEVICE_NAMES') or
+            SameText(AKey, 'PROTON_STEAM_INPUT_XBOX_PROMPTS') or
+            SameText(AKey, 'PROTON_SONY_AUTO_XINPUT') or
+            SameText(AKey, 'PROTON_SONY_HIDRAW_XINPUT') or
+            SameText(AKey, 'PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT') or
             SameText(AKey, 'DXIL_SPIRV_CONFIG') or
             SameText(AKey, 'MANGOHUD_CONFIGFILE');
 end;
@@ -334,6 +348,12 @@ begin
     31: Result := Form.FProtonVkd3dHeapCheckBox;
     32: Result := Form.FNvidiaDlssRROverrideCheckBox;
     33: Result := Form.FVkd3dRtasSizeMultCheckBox;
+    34: Result := Form.FProtonZludaCheckBox;
+    35: Result := Form.FProtonSonyWinDevNamesCheckBox;
+    36: Result := Form.FProtonSteamInputXboxCheckBox;
+    37: Result := Form.FProtonSonyAutoXInputCheckBox;
+    38: Result := Form.FProtonSonyHidrawXInputCheckBox;
+    39: Result := Form.FProtonDualSenseNonEvCheckBox;
   else
     Result := nil;
   end;
@@ -524,6 +544,42 @@ begin
   FForm.FVkd3dRtasSizeMultCheckBox.Name    := 'vkd3dRtasSizeMultCheckBox';
   FForm.FVkd3dRtasSizeMultCheckBox.Caption := 'Enable VKD3D_RTAS_SIZE_MULT';
   FForm.FVkd3dRtasSizeMultValue := '8';
+
+  FForm.FProtonZludaCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonZludaCheckBox.Parent  := FForm;
+  FForm.FProtonZludaCheckBox.Visible := False;
+  FForm.FProtonZludaCheckBox.Name    := 'protonZludaCheckBox';
+  FForm.FProtonZludaCheckBox.Caption := 'Enable PROTON_ZLUDA';
+
+  FForm.FProtonSonyWinDevNamesCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonSonyWinDevNamesCheckBox.Parent  := FForm;
+  FForm.FProtonSonyWinDevNamesCheckBox.Visible := False;
+  FForm.FProtonSonyWinDevNamesCheckBox.Name    := 'protonSonyWinDevNamesCheckBox';
+  FForm.FProtonSonyWinDevNamesCheckBox.Caption := 'Enable PROTON_SONY_WINDOWS_DEVICE_NAMES';
+
+  FForm.FProtonSteamInputXboxCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonSteamInputXboxCheckBox.Parent  := FForm;
+  FForm.FProtonSteamInputXboxCheckBox.Visible := False;
+  FForm.FProtonSteamInputXboxCheckBox.Name    := 'protonSteamInputXboxCheckBox';
+  FForm.FProtonSteamInputXboxCheckBox.Caption := 'Enable PROTON_STEAM_INPUT_XBOX_PROMPTS';
+
+  FForm.FProtonSonyAutoXInputCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonSonyAutoXInputCheckBox.Parent  := FForm;
+  FForm.FProtonSonyAutoXInputCheckBox.Visible := False;
+  FForm.FProtonSonyAutoXInputCheckBox.Name    := 'protonSonyAutoXInputCheckBox';
+  FForm.FProtonSonyAutoXInputCheckBox.Caption := 'Disable PROTON_SONY_AUTO_XINPUT';
+
+  FForm.FProtonSonyHidrawXInputCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonSonyHidrawXInputCheckBox.Parent  := FForm;
+  FForm.FProtonSonyHidrawXInputCheckBox.Visible := False;
+  FForm.FProtonSonyHidrawXInputCheckBox.Name    := 'protonSonyHidrawXInputCheckBox';
+  FForm.FProtonSonyHidrawXInputCheckBox.Caption := 'Enable PROTON_SONY_HIDRAW_XINPUT';
+
+  FForm.FProtonDualSenseNonEvCheckBox := TCheckBox.Create(FForm);
+  FForm.FProtonDualSenseNonEvCheckBox.Parent  := FForm;
+  FForm.FProtonDualSenseNonEvCheckBox.Visible := False;
+  FForm.FProtonDualSenseNonEvCheckBox.Name    := 'protonDualSenseNonEvCheckBox';
+  FForm.FProtonDualSenseNonEvCheckBox.Caption := 'Enable PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT';
 
   // Hidden grid used as data store for custom variables (visual is PaintBox)
   FForm.FTweaksGrid := TStringGrid.Create(FForm);
@@ -816,6 +872,19 @@ procedure TTweaksMD3Helper.Paint(Sender: TObject);
       BadgeTxtColor := RGBToColor(245, 185, 55);
       CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
     end
+    else if (Pos('[proton-ge]', ADesc) = 1) or (Pos('[GE]', ADesc) = 1) then
+    begin
+      if Pos('[proton-ge]', ADesc) = 1 then
+        Prefix := '[proton-ge]'
+      else
+        Prefix := '[GE]';
+      HasBadge := True;
+      BadgeText := 'GE';
+      BadgeBg := RGBToColor(24, 52, 54);
+      BadgeBorder := RGBToColor(56, 165, 160);
+      BadgeTxtColor := RGBToColor(110, 235, 225);
+      CleanDesc := Trim(Copy(ADesc, Length(Prefix) + 1, MaxInt));
+    end
     else if (Pos('[proton-cachyos]', ADesc) = 1) or (Pos('[cachyos]', ADesc) = 1) then
     begin
       if Pos('[proton-cachyos]', ADesc) = 1 then
@@ -924,7 +993,7 @@ var
   CardLeft, CardRight, InnerLeft, InnerRight, InnerW, ColGap, ColW, Col, Row, CatItemCount, CustomItemCount: Integer;
   CustomVarCount, ActiveCustomCount, LaunchArgCount, ActiveArgCount, ArgItemCount: Integer;
   BannerH, ItemTopY: Integer;
-  CatNames: array[0..4] of string;
+  CatNames: array[0..5] of string;
   HoverIdx: Integer;
   R: TRect;
   Chk: TCheckBox;
@@ -1187,10 +1256,11 @@ begin
   CatNames[1] := TweakCategoryName(TWEAK_CAT_GRAPHICS);
   CatNames[2] := TweakCategoryName(TWEAK_CAT_PERF);
   CatNames[3] := TweakCategoryName(TWEAK_CAT_LATENCY);
-  CatNames[4] := TweakCategoryName(TWEAK_CAT_EXPERIMENTAL);
+  CatNames[4] := TweakCategoryName(TWEAK_CAT_CONTROLLERS);
+  CatNames[5] := TweakCategoryName(TWEAK_CAT_EXPERIMENTAL);
 
-  // Draw 5 predefined category cards
-  for CatIdx := 0 to 4 do
+  // Draw 6 predefined category cards
+  for CatIdx := 0 to 5 do
   begin
     ItemCount := 0;
     ActiveCount := 0;
@@ -1585,7 +1655,7 @@ begin
   ColGap := 8;
   ColW := (InnerW - ColGap) div 2;
 
-  for CatIdx := 0 to 4 do
+  for CatIdx := 0 to 5 do
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
@@ -1635,8 +1705,12 @@ begin
         else if (Pos('PROTON_VKD3D_LOWLATENCY', TWEAK_ROWS[i].VarName) > 0) or
            (TWEAK_ROWS[i].VarName = 'PROTON_LOCAL_SHADER_CACHE=1') or
            (TWEAK_ROWS[i].VarName = 'PROTON_DISCORD_BRIDGE=1') or
+           (TWEAK_ROWS[i].VarName = 'PROTON_ZLUDA=1') or
            (TWEAK_ROWS[i].VarName = 'game-performance') then
           TweakHint := 'Works only with CachyOS'
+        else if (Pos('[GE]', TWEAK_ROWS[i].Description) = 1) or
+           (Pos('[proton-ge]', TWEAK_ROWS[i].Description) = 1) then
+          TweakHint := 'Works with proton-GE'
         else if Pos('descriptor_heap', TWEAK_ROWS[i].VarName) > 0 then
           TweakHint := 'Alternative descriptor heap for D3D12. Fixes ray tracing in Control Resonant and similar titles, but may decrease performance or crash in other games.'
         else if TWEAK_ROWS[i].VarName = 'NGX_DLSS_RR_OVERRIDE=on' then
@@ -1917,7 +1991,7 @@ begin
   ColGap := 8;
   ColW := (InnerW - ColGap) div 2;
 
-  for CatIdx := 0 to 4 do
+  for CatIdx := 0 to 5 do
   begin
     ItemCount := 0;
     for i := 0 to TWEAK_ROW_COUNT - 1 do
@@ -2369,6 +2443,12 @@ begin
                FForm.FProtonVkd3dLowLatencyCheckBox.Checked or
                FForm.FProtonLocalShaderCacheCheckBox.Checked or
                FForm.FProtonDiscordBridgeCheckBox.Checked or
+               FForm.FProtonZludaCheckBox.Checked or
+               FForm.FProtonSonyWinDevNamesCheckBox.Checked or
+               FForm.FProtonSteamInputXboxCheckBox.Checked or
+               FForm.FProtonSonyAutoXInputCheckBox.Checked or
+               FForm.FProtonSonyHidrawXInputCheckBox.Checked or
+               FForm.FProtonDualSenseNonEvCheckBox.Checked or
                FForm.FFSR4UpgradeCheckBox.Checked or
                FForm.FDLSSUpgradeCheckBox.Checked or
                FForm.FXeSSUpgradeCheckBox.Checked or
@@ -2514,6 +2594,24 @@ begin
       else
         Ini.WriteString('Env', 'VKD3D_RTAS_SIZE_MULT', '8');
     end;
+
+    if FForm.FProtonZludaCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_ZLUDA', '1');
+
+    if FForm.FProtonSonyWinDevNamesCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_SONY_WINDOWS_DEVICE_NAMES', '1');
+
+    if FForm.FProtonSteamInputXboxCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_STEAM_INPUT_XBOX_PROMPTS', '1');
+
+    if FForm.FProtonSonyAutoXInputCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_SONY_AUTO_XINPUT', '0');
+
+    if FForm.FProtonSonyHidrawXInputCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_SONY_HIDRAW_XINPUT', '1');
+
+    if FForm.FProtonDualSenseNonEvCheckBox.Checked then
+      Ini.WriteString('Env', 'PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT', '1');
 
     // 4. Custom environment variables and launch arguments from grid
     if Assigned(FForm.FTweaksGrid) then
@@ -2693,7 +2791,19 @@ var
       begin
         FForm.FVkd3dRtasSizeMultValue := V;
         FForm.FVkd3dRtasSizeMultCheckBox.Checked := True;
-      end;
+      end
+      else if SameText(K, 'PROTON_ZLUDA') then
+        FForm.FProtonZludaCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_SONY_WINDOWS_DEVICE_NAMES') then
+        FForm.FProtonSonyWinDevNamesCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_STEAM_INPUT_XBOX_PROMPTS') then
+        FForm.FProtonSteamInputXboxCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_SONY_AUTO_XINPUT') then
+        FForm.FProtonSonyAutoXInputCheckBox.Checked := V = '0'
+      else if SameText(K, 'PROTON_SONY_HIDRAW_XINPUT') then
+        FForm.FProtonSonyHidrawXInputCheckBox.Checked := V = '1'
+      else if SameText(K, 'PROTON_DUALSENSE_HAPTICS_PREFER_NON_EVENT') then
+        FForm.FProtonDualSenseNonEvCheckBox.Checked := V = '1';
     end;
   end;
 
@@ -2737,6 +2847,12 @@ begin
   FForm.FNvidiaDlssRROverrideCheckBox.Checked := False;
   FForm.FVkd3dRtasSizeMultCheckBox.Checked := False;
   FForm.FVkd3dRtasSizeMultValue := '8';
+  FForm.FProtonZludaCheckBox.Checked := False;
+  FForm.FProtonSonyWinDevNamesCheckBox.Checked := False;
+  FForm.FProtonSteamInputXboxCheckBox.Checked := False;
+  FForm.FProtonSonyAutoXInputCheckBox.Checked := False;
+  FForm.FProtonSonyHidrawXInputCheckBox.Checked := False;
+  FForm.FProtonDualSenseNonEvCheckBox.Checked := False;
 
   // Reset custom env list
   FForm.customenvEdit.Text := '';

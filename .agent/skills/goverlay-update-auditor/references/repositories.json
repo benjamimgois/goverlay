@@ -1,0 +1,254 @@
+{
+  "tools": [
+    {
+      "id": "mangohud",
+      "name": "MangoHud",
+      "repo": "flightlessmango/MangoHud",
+      "category": "hud",
+      "config_file": "MangoHud.conf",
+      "upstream_sample_config": "data/MangoHud.conf",
+      "goverlay_files": [
+        "mangohud_ui.pas",
+        "configkeys.pas",
+        "overlay_config.pas",
+        "configmanager.pas",
+        "constants.pas"
+      ],
+      "description": "Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
+    },
+    {
+      "id": "optiscaler",
+      "name": "OptiScaler",
+      "repo": "optiscaler/OptiScaler",
+      "category": "upscaling",
+      "config_file": "OptiScaler.ini",
+      "upstream_sample_config": "OptiScaler.ini",
+      "goverlay_files": [
+        "optiscaler_tab.pas",
+        "optiscaler_update.pas",
+        "configkeys.pas",
+        "constants.pas",
+        "overlay_config.pas"
+      ],
+      "description": "DLSS2/DLSS3/FSR2/FSR3/XeSS replacement middleware for DirectX and Vulkan games."
+    },
+    {
+      "id": "fakenvapi",
+      "name": "FakeNvapi",
+      "repo": "optiscaler/fakenvapi",
+      "category": "compatibility",
+      "config_file": "fakenvapi.ini",
+      "upstream_sample_config": "fakenvapi.ini",
+      "goverlay_files": [
+        "optiscaler_tab.pas",
+        "configkeys.pas",
+        "constants.pas"
+      ],
+      "description": "Proxy NVAPI library for spoofing Reflex, LatencyFlex, and DLSS support on non-NVIDIA GPUs."
+    },
+    {
+      "id": "optipatcher",
+      "name": "OptiPatcher",
+      "repo": "optiscaler/OptiPatcher",
+      "category": "compatibility",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "optiscaler_tab.pas",
+        "optiscaler_update.pas"
+      ],
+      "description": "Binary patcher for signature checks and DLL overrides in modern games."
+    },
+    {
+      "id": "mako",
+      "name": "MAKO",
+      "repo": "eugeniosegala/MAKO",
+      "category": "framegen",
+      "config_file": "mako.toml",
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "lossless_scaling_tab.pas",
+        "constants.pas"
+      ],
+      "description": "Vulkan layer for frame generation and scaling on Linux."
+    },
+    {
+      "id": "lsfg-vk",
+      "name": "LSFG-VK",
+      "repo": "PancakeTAS/lsfg-vk",
+      "category": "framegen",
+      "config_file": "lsfg.toml",
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "lossless_scaling_tab.pas",
+        "lsfg_migration_dialog.pas",
+        "lsfg_steam_beta_dialog.pas",
+        "constants.pas"
+      ],
+      "description": "Lossless Scaling Frame Generation Vulkan implementation."
+    },
+    {
+      "id": "afmf-linux",
+      "name": "AFMF Linux",
+      "repo": "serialexperimentslainnnn/afmf-linux",
+      "category": "framegen",
+      "config_file": null,
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "lossless_scaling_tab.pas",
+        "constants.pas"
+      ],
+      "description": "AMD Fluid Motion Frames implementation/packaging for Linux."
+    },
+    {
+      "id": "helixsr",
+      "name": "HelixSR",
+      "repo": "lonewolf0622/HelixSR",
+      "category": "upscaling",
+      "config_file": null,
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "optiscaler_tab.pas",
+        "helixsr_license_dialog.pas",
+        "constants.pas"
+      ],
+      "description": "Universal spatial and temporal super resolution layer."
+    },
+    {
+      "id": "vkbasalt",
+      "name": "vkBasalt",
+      "repo": "DadSchoorse/vkBasalt",
+      "category": "postprocessing",
+      "config_file": "vkBasalt.conf",
+      "upstream_sample_config": "config/vkBasalt.conf",
+      "goverlay_files": [
+        "vkbasalt_tab.pas",
+        "constants.pas",
+        "overlay_config.pas",
+        "configmanager.pas"
+      ],
+      "description": "Vulkan post-processing layer to enhance the visual graphics of games."
+    },
+    {
+      "id": "vksumi",
+      "name": "vkSumi",
+      "repo": "reakjra/vkSumi",
+      "category": "postprocessing",
+      "config_file": "vksumi.conf",
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "vkbasalt_tab.pas",
+        "constants.pas"
+      ],
+      "description": "Vulkan layer for tone mapping, gamut mapping, and HDR processing."
+    },
+    {
+      "id": "vknemu",
+      "name": "vkNemu",
+      "repo": "reakjra/vkNemu",
+      "category": "limiter",
+      "config_file": null,
+      "upstream_sample_config": "README.md",
+      "goverlay_files": [
+        "optiscaler_update.pas",
+        "overlayunit.pas"
+      ],
+      "description": "Input and focus-based idle frame limiter Vulkan layer (Radeon Chill alternative)."
+    },
+    {
+      "id": "reshade",
+      "name": "ReShade",
+      "repo": "crosire/reshade",
+      "category": "postprocessing",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "reshade_tab.pas",
+        "constants.pas",
+        "vkbasalt_tab.pas"
+      ],
+      "description": "Generic post-processing injector for games and video software."
+    },
+    {
+      "id": "reshade-shaders",
+      "name": "ReShade Shaders",
+      "repo": "crosire/reshade-shaders",
+      "category": "postprocessing",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "reshade_tab.pas",
+        "constants.pas"
+      ],
+      "description": "Standard repository of ReShade FX shaders."
+    },
+    {
+      "id": "protontricks",
+      "name": "Protontricks",
+      "repo": "Matoking/protontricks",
+      "category": "wine_proton",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "protontricksunit.pas",
+        "constants.pas"
+      ],
+      "description": "Simple wrapper that does winetricks for Proton enabled games."
+    },
+    {
+      "id": "proton-cachyos",
+      "name": "Proton-CachyOS",
+      "repo": "CachyOS/proton-cachyos",
+      "category": "tweaks",
+      "audit_mode": "release_notes_env",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "tweaks_md3.pas",
+        "configkeys.pas"
+      ],
+      "description": "CachyOS Proton fork with custom patches, FSR4/ZLUDA/low-latency environment variables."
+    },
+    {
+      "id": "proton-ge-custom",
+      "name": "Proton-GE",
+      "repo": "GloriousEggroll/proton-ge-custom",
+      "category": "tweaks",
+      "audit_mode": "release_notes_env",
+      "config_file": null,
+      "upstream_sample_config": null,
+      "goverlay_files": [
+        "tweaks_md3.pas",
+        "configkeys.pas"
+      ],
+      "description": "GloriousEggroll's custom Proton distribution with upstream fixes and protonfixes."
+    },
+    {
+      "id": "gamemode",
+      "name": "GameMode",
+      "repo": "FeralInteractive/gamemode",
+      "category": "tweaks",
+      "config_file": null,
+      "upstream_sample_config": "example/gamemode.ini",
+      "goverlay_files": [
+        "tweaks_md3.pas",
+        "configkeys.pas",
+        "constants.pas"
+      ],
+      "description": "Daemon/library combo that allows games to request a set of optimizations."
+    },
+    {
+      "id": "replaysorcery",
+      "name": "ReplaySorcery",
+      "repo": "matanui159/ReplaySorcery",
+      "category": "recording",
+      "config_file": "replay-sorcery.conf",
+      "upstream_sample_config": "replay-sorcery.conf",
+      "goverlay_files": [
+        "overlayunit.pas",
+        "constants.pas"
+      ],
+      "description": "Open-source instant replay solution for Linux."
+    }
+  ]
+}
