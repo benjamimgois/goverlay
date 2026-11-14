@@ -194,6 +194,7 @@ type
     FPS5Multiple: Double;
     FTopPCPercent: Double;
     FMatchedGPUModel: string;
+    FMatchedCPUModel: string;
     FDistroCount: Integer;
     FDistroStats: array[0..4] of TDistroStat;
     FDesktopCount: Integer;
@@ -201,6 +202,7 @@ type
     FKernelCount: Integer;
     FKernelStats: array[0..3] of TKernelStat;
     FSameGPUDistroCount: Integer;
+    FSameGPUDistroIncludesCPU: Boolean;
     FSameGPUDistroStats: array[0..3] of TSameGPUDistroStat;
     FSameGPUDriverCount: Integer;
     FSameGPUDriverStats: array[0..3] of TSameGPUDriverStat;
@@ -286,6 +288,7 @@ type
     property PS5Multiple: Double read FPS5Multiple;
     property TopPCPercent: Double read FTopPCPercent;
     property MatchedGPUModel: string read FMatchedGPUModel;
+    property MatchedCPUModel: string read FMatchedCPUModel;
     property DistroCount: Integer read FDistroCount;
     property DistroStats[aIndex: Integer]: TDistroStat read GetDistroStat;
     property DesktopCount: Integer read FDesktopCount;
@@ -293,6 +296,7 @@ type
     property KernelCount: Integer read FKernelCount;
     property KernelStats[aIndex: Integer]: TKernelStat read GetKernelStat;
     property SameGPUDistroCount: Integer read FSameGPUDistroCount;
+    property SameGPUDistroIncludesCPU: Boolean read FSameGPUDistroIncludesCPU;
     property SameGPUDistroStats[aIndex: Integer]: TSameGPUDistroStat read GetSameGPUDistroStat;
     property SameGPUDriverCount: Integer read FSameGPUDriverCount;
     property SameGPUDriverStats[aIndex: Integer]: TSameGPUDriverStat read GetSameGPUDriverStat;
@@ -1067,6 +1071,10 @@ begin
 end;
 
 procedure TCommunityInsights.ParseCSVData(const CSVText: string; const aUserScore: Integer; const aUserGPU: string; const aUserDistro: string; const aRTScore: Integer = 0; const aCPUTempMax: Double = 0.0; const aGPUTempMax: Double = 0.0; const aTotalPowerMax: Double = 0.0; const aCPUMultiScore: Integer = 0; const aGPURasterScore: Integer = 0; const aCPUPowerMax: Double = 0.0; const aGPUPowerMax: Double = 0.0; const aUserCPU: string = ''; const aUserDesktop: string = ''; const aCPUMaxFreq: Integer = 0; const aGPUMaxFreq: Integer = 0; const aUserKernel: string = ''; const aUserNick: string = ''; const aUserDriver: string = '');
+type
+  TDistroStrArr = array of string;
+  TDistroIntArr = array of Integer;
+  TDistroInt64Arr = array of Int64;
 var
   Lines: TStringList;
   RowIdx, ColIdx, i, j, CurScore, CurCPUMulti, CurGPUScore, CurCPUFreq, CurGPUFreq, LessCount: Integer;
@@ -1082,13 +1090,18 @@ var
   BaseGPUFreq, BaseCPUFreq: Integer;
 
   // Same-GPU Distro aggregation
-  SGDistroNames: array of string;
-  SGDistroCounts: array of Integer;
-  SGDistroScores: array of Int64;
+  SGDistroNames: TDistroStrArr;
+  SGDistroCounts: TDistroIntArr;
+  SGDistroScores: TDistroInt64Arr;
   SGDistroTotalFound, SGDistroUniqueCount: Integer;
-  SGDistroMatched: Boolean;
   UserDistroBaseline: Integer;
   SGDistroAvg: array of Integer;
+
+  // Same-GPU+CPU Distro aggregation (preferred over Same-GPU when >= 2 distros)
+  SGCUDistroNames: TDistroStrArr;
+  SGCUDistroCounts: TDistroIntArr;
+  SGCUDistroScores: TDistroInt64Arr;
+  SGCUDistroTotalFound, SGCUDistroUniqueCount: Integer;
 
   // Same-GPU Driver branch aggregation
   SGDriverNames: array of string;
@@ -1179,6 +1192,54 @@ var
     else
       Result := '';
   end;
+
+  procedure AddDistroSample(var aNames: TDistroStrArr; var aCounts: TDistroIntArr; var aScores: TDistroInt64Arr;
+    var aUniqueCount, aTotalFound: Integer; const aDistro: string; const aScore: Integer);
+  var
+    idx: Integer;
+  begin
+    for idx := 0 to aUniqueCount - 1 do
+    begin
+      if SameText(aNames[idx], aDistro) then
+      begin
+        Inc(aCounts[idx]);
+        aScores[idx] := aScores[idx] + aScore;
+        Inc(aTotalFound);
+        Exit;
+      end;
+    end;
+    if aUniqueCount >= Length(aNames) then
+    begin
+      SetLength(aNames, Max(16, aUniqueCount * 2));
+      SetLength(aCounts, Max(16, aUniqueCount * 2));
+      SetLength(aScores, Max(16, aUniqueCount * 2));
+    end;
+    aNames[aUniqueCount] := aDistro;
+    aCounts[aUniqueCount] := 1;
+    aScores[aUniqueCount] := aScore;
+    Inc(aUniqueCount);
+    Inc(aTotalFound);
+  end;
+
+  procedure EnsureUserDistroPresent(var aNames: TDistroStrArr; var aCounts: TDistroIntArr; var aScores: TDistroInt64Arr;
+    var aUniqueCount: Integer; const aDistro: string; const aScore: Integer);
+  var
+    idx: Integer;
+  begin
+    if (aScore <= 0) or (aDistro = '') then Exit;
+    for idx := 0 to aUniqueCount - 1 do
+      if SameText(aNames[idx], aDistro) then Exit;
+    if aUniqueCount >= Length(aNames) then
+    begin
+      SetLength(aNames, aUniqueCount + 4);
+      SetLength(aCounts, aUniqueCount + 4);
+      SetLength(aScores, aUniqueCount + 4);
+    end;
+    aNames[aUniqueCount] := aDistro;
+    aCounts[aUniqueCount] := 1;
+    aScores[aUniqueCount] := aScore;
+    Inc(aUniqueCount);
+  end;
 begin
   Lines := TStringList.Create;
   RowFields := TStringList.Create;
@@ -1210,6 +1271,12 @@ begin
 
     TargetCPU := ExtractCPUChipToken(aUserCPU, CleanUserCPU);
     FCPUSilicon.ModelName := CleanUserCPU;
+    if CleanUserCPU <> '' then
+      FMatchedCPUModel := CleanUserCPU
+    else if TargetCPU <> '' then
+      FMatchedCPUModel := UpperCase(TargetCPU)
+    else
+      FMatchedCPUModel := '';
 
     NormUserDistro := NormalizeDistroName(aUserDistro);
     NormUserDE := NormalizeDesktopName(aUserDesktop, aUserDistro);
@@ -1220,11 +1287,18 @@ begin
     FUserDriverBranch := NormUserDriver;
     FUserKernelBranch := NormUserKernel;
 
+    FSameGPUDistroIncludesCPU := False;
     SGDistroTotalFound := 0;
     SGDistroUniqueCount := 0;
     SetLength(SGDistroNames, 16);
     SetLength(SGDistroCounts, 16);
     SetLength(SGDistroScores, 16);
+
+    SGCUDistroTotalFound := 0;
+    SGCUDistroUniqueCount := 0;
+    SetLength(SGCUDistroNames, 16);
+    SetLength(SGCUDistroCounts, 16);
+    SetLength(SGCUDistroScores, 16);
 
     SGDriverTotalFound := 0;
     SGDriverUniqueCount := 0;
@@ -1438,6 +1512,7 @@ begin
             Inc(NvidiaCount);
 
           // 4. GPU Silicon Lottery Matching (using GPU Score col 11 when valid)
+          RowCPU := ExtractCPUChipToken(CpuField, RowCPULabel);
           RowGPU := ExtractGPUChipToken(GpuField);
           if (TargetGPU <> '') and ((RowGPU = TargetGPU) or (Pos(TargetGPU, LowerCase(GpuField)) > 0)) then
           begin
@@ -1458,34 +1533,12 @@ begin
             ModelRunsIsUser[ModelRunCount] := False;
             Inc(ModelRunCount);
 
-            // Same-GPU Distro Aggregation
+            // Same-GPU (and Same-GPU+CPU) Distro Aggregation
             if NormDistro <> '' then
             begin
-              SGDistroMatched := False;
-              for i := 0 to SGDistroUniqueCount - 1 do
-              begin
-                if SGDistroNames[i] = NormDistro then
-                begin
-                  Inc(SGDistroCounts[i]);
-                  SGDistroScores[i] := SGDistroScores[i] + CurScore;
-                  SGDistroMatched := True;
-                  Break;
-                end;
-              end;
-              if not SGDistroMatched then
-              begin
-                if SGDistroUniqueCount >= Length(SGDistroNames) then
-                begin
-                  SetLength(SGDistroNames, Max(16, SGDistroUniqueCount * 2));
-                  SetLength(SGDistroCounts, Max(16, SGDistroUniqueCount * 2));
-                  SetLength(SGDistroScores, Max(16, SGDistroUniqueCount * 2));
-                end;
-                SGDistroNames[SGDistroUniqueCount] := NormDistro;
-                SGDistroCounts[SGDistroUniqueCount] := 1;
-                SGDistroScores[SGDistroUniqueCount] := CurScore;
-                Inc(SGDistroUniqueCount);
-              end;
-              Inc(SGDistroTotalFound);
+              AddDistroSample(SGDistroNames, SGDistroCounts, SGDistroScores, SGDistroUniqueCount, SGDistroTotalFound, NormDistro, CurScore);
+              if (TargetCPU <> '') and (RowCPU = TargetCPU) then
+                AddDistroSample(SGCUDistroNames, SGCUDistroCounts, SGCUDistroScores, SGCUDistroUniqueCount, SGCUDistroTotalFound, NormDistro, CurScore);
             end;
 
             // Same-GPU Driver Branch Aggregation
@@ -1538,7 +1591,6 @@ begin
           end;
 
           // 5. CPU Silicon Lottery Matching (using CPU Multi col 10 when valid)
-          RowCPU := ExtractCPUChipToken(CpuField, RowCPULabel);
           if (TargetCPU <> '') and (RowCPU = TargetCPU) and (CurCPUMulti > 100) then
           begin
             if CPURunCount >= Length(CPURunsUser) then
@@ -1941,32 +1993,21 @@ begin
     // -------------------------------------------------------------
     // SAME-HARDWARE SOFTWARE DELTA CALCULATIONS (SLIDE 6 REDESIGN)
     // -------------------------------------------------------------
-    // 1. Same-GPU Distro Aggregation
-    if (aUserScore > 0) and (NormUserDistro <> '') then
+    // 1. Same-GPU+CPU Distro Aggregation (fallback to Same-GPU if < 2 distros)
+    if SGCUDistroTotalFound > 0 then
     begin
-      SGDistroMatched := False;
-      for i := 0 to SGDistroUniqueCount - 1 do
+      EnsureUserDistroPresent(SGCUDistroNames, SGCUDistroCounts, SGCUDistroScores, SGCUDistroUniqueCount, NormUserDistro, aUserScore);
+      if SGCUDistroUniqueCount >= 2 then
       begin
-        if SameText(SGDistroNames[i], NormUserDistro) then
-        begin
-          SGDistroMatched := True;
-          Break;
-        end;
-      end;
-      if not SGDistroMatched then
-      begin
-        if SGDistroUniqueCount >= Length(SGDistroNames) then
-        begin
-          SetLength(SGDistroNames, SGDistroUniqueCount + 4);
-          SetLength(SGDistroCounts, SGDistroUniqueCount + 4);
-          SetLength(SGDistroScores, SGDistroUniqueCount + 4);
-        end;
-        SGDistroNames[SGDistroUniqueCount] := NormUserDistro;
-        SGDistroCounts[SGDistroUniqueCount] := 1;
-        SGDistroScores[SGDistroUniqueCount] := aUserScore;
-        Inc(SGDistroUniqueCount);
+        FSameGPUDistroIncludesCPU := True;
+        SGDistroNames := SGCUDistroNames;
+        SGDistroCounts := SGCUDistroCounts;
+        SGDistroScores := SGCUDistroScores;
+        SGDistroUniqueCount := SGCUDistroUniqueCount;
       end;
     end;
+    if not FSameGPUDistroIncludesCPU then
+      EnsureUserDistroPresent(SGDistroNames, SGDistroCounts, SGDistroScores, SGDistroUniqueCount, NormUserDistro, aUserScore);
 
     SetLength(SGDistroAvg, SGDistroUniqueCount);
     UserDistroBaseline := 0;

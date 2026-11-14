@@ -69,10 +69,10 @@ const
     (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_NO_NTSYNC=1';                                    Description: 'Disable NTSYNC';                                                    Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_HEAP_DELAY_FREE=1';                              Description: 'Delay in heap allocation (Wine)';                                   Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_EXPERIMENTAL; VarName: '#winedetectionenable=false';                            Description: 'Enable RE Engine Ray Tracing workaround';                           Hidden: False),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER=1';                                   Description: '[low_latency_layer] Expose to enable the layer';                    Hidden: True),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_REFLEX=1';                            Description: '[low_latency_layer] Expose Reflex support';                         Hidden: True),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';                      Description: '[low_latency_layer] Report device as NVIDIA GPU';                   Hidden: True),
-    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';                  Description: '[low_latency_layer] Also hide AMD GPU';                             Hidden: True),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER=1';                                   Description: '[proton-cachyos] Expose to enable the layer';                       Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_REFLEX=1';                            Description: '[proton-cachyos] Expose Reflex support';                            Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1';                      Description: '[proton-cachyos] Report device as NVIDIA GPU';                      Hidden: False),
+    (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'DXVK_CONFIG="dxgi.hideAmdGpu = True"';                  Description: '[proton-cachyos] Also hide AMD GPU';                                Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'ENABLE_LAYER_MESA_ANTI_LAG=1';                          Description: '[MESA] Enable AMD Anti-Lag 2';                                      Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_LATENCY;      VarName: 'PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY';      Description: '[proton-cachyos] Low latency frame pacing (DX8 to DX12)';           Hidden: False),
     (CheckBox: nil; Category: TWEAK_CAT_PERF;         VarName: 'PROTON_LOCAL_SHADER_CACHE=1';                           Description: '[proton-cachyos] Enable per-game shader cache';                     Hidden: False),
@@ -1355,6 +1355,20 @@ begin
         R := Rect(InnerLeft, ItemTopY + (CatItemCount * ITEM_H), InnerRight, ItemTopY + ((CatItemCount + 1) * ITEM_H));
 
       IsRowEnabled := True;
+      if ((Chk = FForm.FLowLatencyCheckBox) or
+          (Chk = FForm.FLowLatencyReflexCheckBox) or
+          (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or
+          (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+         FForm.FProtonVkd3dLowLatencyCheckBox.Checked then
+        IsRowEnabled := False;
+
+      if (Chk = FForm.FProtonVkd3dLowLatencyCheckBox) and
+         (FForm.FLowLatencyCheckBox.Checked or
+          FForm.FLowLatencyReflexCheckBox.Checked or
+          FForm.FLowLatencySpoofNvidiaCheckBox.Checked or
+          FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
+        IsRowEnabled := False;
+
       if (TWEAK_ROWS[i].VarName = '#gamemode') and (not GamemodeInstalled) then
         IsRowEnabled := False;
 
@@ -1691,13 +1705,13 @@ begin
       begin
         FForm.FTweaksHoverIdx := RowIdx;
         if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER=1' then
-          TweakHint := 'Needs Korthos low latency'
+          TweakHint := 'Integrated Korthos low latency layer in proton-cachyos'
         else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_REFLEX=1' then
-          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (Needs Korthos low latency)'
+          TweakHint := 'Expose Reflex support (VK_NV_low_latency2) instead of AMD Anti-Lag 2 (proton-cachyos)'
         else if TWEAK_ROWS[i].VarName = 'LOW_LATENCY_LAYER_SPOOF_NVIDIA=1' then
-          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (Needs Korthos low latency)'
+          TweakHint := 'Report device as NVIDIA GPU (breaks FSR4 upgrade path) (proton-cachyos)'
         else if TWEAK_ROWS[i].VarName = 'DXVK_CONFIG="dxgi.hideAmdGpu = True"' then
-          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (Needs Korthos low latency)'
+          TweakHint := 'Also hide AMD GPU, but it''s safer than SPOOF_NVIDIA (proton-cachyos)'
         else if TWEAK_ROWS[i].VarName = '#gamemode' then
           TweakHint := 'Use Feral Gamemode set of optimisations'
         else if TWEAK_ROWS[i].VarName = 'ENABLE_LAYER_MESA_ANTI_LAG=1' then
@@ -2044,6 +2058,14 @@ begin
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
           else if (Chk = FForm.FLowLatencyHideAmdGpuCheckBox) and (not Chk.Checked) and FForm.FLowLatencySpoofNvidiaCheckBox.Checked then
             ShowMessage(rsSpoofBlockedByHideAmdGpu)
+          else if ((Chk = FForm.FLowLatencyCheckBox) or (Chk = FForm.FLowLatencyReflexCheckBox) or
+                   (Chk = FForm.FLowLatencySpoofNvidiaCheckBox) or (Chk = FForm.FLowLatencyHideAmdGpuCheckBox)) and
+                  (not Chk.Checked) and FForm.FProtonVkd3dLowLatencyCheckBox.Checked then
+            ShowMessage('Korthos Low Latency options cannot be used together with PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY.')
+          else if (Chk = FForm.FProtonVkd3dLowLatencyCheckBox) and (not Chk.Checked) and
+                  (FForm.FLowLatencyCheckBox.Checked or FForm.FLowLatencyReflexCheckBox.Checked or
+                   FForm.FLowLatencySpoofNvidiaCheckBox.Checked or FForm.FLowLatencyHideAmdGpuCheckBox.Checked) then
+            ShowMessage('PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY cannot be used together with Korthos Low Latency options.')
           else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
           begin
             ShowMessage('gamemode is not installed. Please install the gamemode package first.');

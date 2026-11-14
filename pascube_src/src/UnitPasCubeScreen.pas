@@ -6749,7 +6749,12 @@ begin
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
   tempCPUStr := 'CPU Temp: ';
-  if fLiveCPUTemp > 0.0 then valStr := FormatFloat('0', fLiveCPUTemp) + ' C' else valStr := 'N/A';
+  if fCurrentResult.CPUTempMax > 0.0 then
+    valStr := FormatFloat('0', fCurrentResult.CPUTempMax) + ' C'
+  else if fLiveCPUTemp > 0.0 then
+    valStr := FormatFloat('0', fLiveCPUTemp) + ' C'
+  else
+    valStr := 'N/A';
   lblW := Length(tempCPUStr) * charWidth * 0.82;
   valW := Length(valStr) * charWidth * 0.82;
   subW := leftColWidth / 3.0;
@@ -6759,7 +6764,12 @@ begin
                           valStr, 1.0, 1.0, 1.0, 0.0, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, aAlpha);
 
   tempGPUStr := 'GPU Temp: ';
-  if fLiveGPUTemp > 0.0 then valStr := FormatFloat('0', fLiveGPUTemp) + ' C' else valStr := 'N/A';
+  if fCurrentResult.GPUTempMax > 0.0 then
+    valStr := FormatFloat('0', fCurrentResult.GPUTempMax) + ' C'
+  else if fLiveGPUTemp > 0.0 then
+    valStr := FormatFloat('0', fLiveGPUTemp) + ' C'
+  else
+    valStr := 'N/A';
   lblW := Length(tempGPUStr) * charWidth * 0.82;
   valW := Length(valStr) * charWidth * 0.82;
   app.TextOverlay.AddText(leftColX1 + subW * 1.5 - (lblW + valW) * 0.5, cardY + 1.35 * charHeight, 0.82, toaLeft,
@@ -8112,7 +8122,7 @@ var
   distro: TSameGPUDistroStat;
   driver: TSameGPUDriverStat;
   kernel: TSameCPUKernelStat;
-  titleStr, driverLabelStr, kernelLabelStr, deltaStr: String;
+  titleStr, subLabel, driverLabelStr, kernelLabelStr, deltaStr: String;
   badgeX, card1H, card2H, cardY, rowStep, rowY: TpvFloat;
   maxDistroScore, maxDriverScore, maxKernelScore: Integer;
 begin
@@ -8134,8 +8144,12 @@ begin
                           1.0, 1.0, 1.0, 0.0,
                           241.0 / 255.0, 245.0 / 255.0, 249.0 / 255.0, aAlpha);
 
+  if CommunityInsights.SameGPUDistroIncludesCPU and (CommunityInsights.MatchedCPUModel <> '') then
+    subLabel := 'Isolated software performance delta on your exact hardware (' + CommunityInsights.MatchedCPUModel + ' + ' + CommunityInsights.MatchedGPUModel + ')'
+  else
+    subLabel := 'Isolated software performance delta on same GPU (' + CommunityInsights.MatchedGPUModel + ')';
   app.TextOverlay.AddText(aX + 2.5 * charWidth, aY + 2.35 * charHeight, 0.85, toaLeft,
-                          'Isolated software performance delta on your exact hardware (' + CommunityInsights.MatchedGPUModel + ')',
+                          subLabel,
                           1.0, 1.0, 1.0, 0.0,
                           148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
 
@@ -8251,8 +8265,12 @@ begin
     app.TextOverlay.AddText(leftX + 1.4 * charWidth, itemY + rowH - 1.20 * charHeight, 0.74, toaLeft,
                             'Avg Score: ' + FormatScoreValue(distro.AvgScore) + ' pts', 1.0, 1.0, 1.0, 0.0,
                             203.0 / 255.0, 213.0 / 255.0, 225.0 / 255.0, aAlpha);
+    if CommunityInsights.SameGPUDistroIncludesCPU then
+      subLabel := IntToStr(distro.Count) + ' runs on this GPU+CPU'
+    else
+      subLabel := IntToStr(distro.Count) + ' runs on this GPU';
     app.TextOverlay.AddText(leftX + leftColW - 1.4 * charWidth, itemY + rowH - 1.20 * charHeight, 0.74, toaRight,
-                            IntToStr(distro.Count) + ' runs on this GPU', 1.0, 1.0, 1.0, 0.0,
+                            subLabel, 1.0, 1.0, 1.0, 0.0,
                             148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, aAlpha);
   end;
 

@@ -1323,7 +1323,7 @@ type
     FActiveGameIsNonSteam: Boolean; } // true when editing a non-steam game config
     FPreviewBtn:        TBitBtn;  // bottom-bar quick preview button (pascube/vkcube)
     FFADock:            TFloatingActionDock;      // floating action pill-dock
-    FFloatingToast:     TFloatingToast;           // floating auto-save toast overlay
+    FFloatingToast:     TFloatingToast;           // floating warning/error toast overlay
     FFloatingProgress:  TFloatingProgressBanner;  // floating download progress banner
     FGameThumbBmp:      TBitmap;              // game cover drawn on the sidebar paintbox
     FGlobalThumbPng:    TPortableNetworkGraphic; // global-config icon (white, transparent)
@@ -8777,19 +8777,18 @@ end;
 
 procedure Tgoverlayform.ShowSavedStatus;
 begin
-  if Assigned(FFloatingToast) then
-    FFloatingToast.ShowToast('Settings saved')
+  if Assigned(FFADock) then
+    FFADock.TriggerMenuSavePulse
   else if Assigned(savedStatusLabel) then
   begin
     savedStatusLabel.Caption := '✓ Saved';
     savedStatusLabel.Visible := True;
-  end;
-
-  if Assigned(savedStatusTimer) then
-  begin
-    savedStatusTimer.Enabled := False;
-    savedStatusTimer.Interval := 2000;
-    savedStatusTimer.Enabled := True;
+    if Assigned(savedStatusTimer) then
+    begin
+      savedStatusTimer.Enabled := False;
+      savedStatusTimer.Interval := 1800;
+      savedStatusTimer.Enabled := True;
+    end;
   end;
 end;
 

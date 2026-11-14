@@ -195,6 +195,7 @@ type
     procedure TestProfileSwitchAfmfToOptiscalerNoConflict;
     procedure TestSetGameToolEnabledUpscalerCoherence;
     procedure TestCustomConfigCardMenuAndFileFlows;
+    procedure TestMenuButtonSavePulse;
   end;
 
 implementation
@@ -5059,7 +5060,7 @@ begin
     if TWEAK_ROWS[i].Category = TWEAK_CAT_EXPERIMENTAL then
       Inc(ExpCount);
   end;
-  AssertEquals('Experimental card has 5 items', 5, ExpCount);
+  AssertEquals('Experimental card has 6 items', 6, ExpCount);
 
   // Paint triggers without error with 5 cards and warning banner
   goverlayform.TweaksMD3Paint(goverlayform.FTweaksPaintBox);
@@ -9504,6 +9505,31 @@ begin
     goverlayform.FActiveGameName := '';
     if DirectoryExists(GameDir) then
       DeleteDirectory(GameDir, False);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestMenuButtonSavePulse;
+begin
+  goverlayform.mangohudLabelClick(nil);
+  goverlayform.FFADock.ResetMenuSavePulse;
+  try
+    // Trigger save status feedback
+    goverlayform.ShowSavedStatus;
+
+    AssertTrue('FFADock.MenuSavePulseActive is True after ShowSavedStatus',
+      goverlayform.FFADock.MenuSavePulseActive);
+
+    // Consecutive save restarts pulse cleanly
+    goverlayform.ShowSavedStatus;
+    AssertTrue('FFADock.MenuSavePulseActive remains True on consecutive save',
+      goverlayform.FFADock.MenuSavePulseActive);
+
+    // Reset restores default menu button state
+    goverlayform.FFADock.ResetMenuSavePulse;
+    AssertFalse('FFADock.MenuSavePulseActive is False after ResetMenuSavePulse',
+      goverlayform.FFADock.MenuSavePulseActive);
+  finally
+    goverlayform.FFADock.ResetMenuSavePulse;
   end;
 end;
 

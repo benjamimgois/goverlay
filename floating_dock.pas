@@ -47,6 +47,10 @@ type
     FPreviewRunning: Boolean;
     FSyncPulseActive: Boolean;
     FSyncPulseTimer: TTimer;
+    FMenuSavePulseActive: Boolean;
+    FMenuSavePulseStep: Integer;
+    FMenuSavePulseTimer: TTimer;
+    FMenuSaveResetTimer: TTimer;
 
     // Computed button hit-test rects
     FMenuRect:       TRect;
@@ -60,6 +64,8 @@ type
     FOnFinishClick:  TNotifyEvent;
 
     procedure SyncPulseTick(Sender: TObject);
+    procedure MenuSavePulseTick(Sender: TObject);
+    procedure MenuSaveResetTick(Sender: TObject);
     function  GetVisible: Boolean;
     procedure SetVisible(AValue: Boolean);
     procedure SetPreviewRunning(AValue: Boolean);
@@ -109,10 +115,13 @@ type
     procedure PerformAddClick;
     procedure PerformFinishClick;
     procedure TriggerSyncPulse;
+    procedure TriggerMenuSavePulse;
+    procedure ResetMenuSavePulse;
 
     property Visible:        Boolean      read GetVisible write SetVisible;
     property PreviewVisible: Boolean      read FPreviewVisible;
     property PreviewRunning: Boolean      read FPreviewRunning write SetPreviewRunning;
+    property MenuSavePulseActive: Boolean read FMenuSavePulseActive;
     property MenuVisible:    Boolean      read FMenuVisible;
     property AddVisible:     Boolean      read FAddVisible;
     property FinishVisible:  Boolean      read FFinishVisible;
@@ -173,11 +182,23 @@ begin
   FAddCaption     := '+ Add';
   FPreviewRunning := False;
   FSyncPulseActive := False;
+  FMenuSavePulseActive := False;
+  FMenuSavePulseStep := 0;
 
   FSyncPulseTimer          := TTimer.Create(nil);
   FSyncPulseTimer.Enabled  := False;
   FSyncPulseTimer.Interval := 350;
   FSyncPulseTimer.OnTimer  := @SyncPulseTick;
+
+  FMenuSavePulseTimer          := TTimer.Create(nil);
+  FMenuSavePulseTimer.Enabled  := False;
+  FMenuSavePulseTimer.Interval := 35;
+  FMenuSavePulseTimer.OnTimer  := @MenuSavePulseTick;
+
+  FMenuSaveResetTimer          := TTimer.Create(nil);
+  FMenuSaveResetTimer.Enabled  := False;
+  FMenuSaveResetTimer.Interval := 1800;
+  FMenuSaveResetTimer.OnTimer  := @MenuSaveResetTick;
 
   FMenuHovered    := False;
   FMenuPressed    := False;
@@ -229,6 +250,10 @@ destructor TFloatingActionDock.Destroy;
 begin
   if Assigned(FSyncPulseTimer) then
     FreeAndNil(FSyncPulseTimer);
+  if Assigned(FMenuSavePulseTimer) then
+    FreeAndNil(FMenuSavePulseTimer);
+  if Assigned(FMenuSaveResetTimer) then
+    FreeAndNil(FMenuSaveResetTimer);
   if Assigned(FDockPanel) then
     FDockPanel.Visible := False;
   inherited;
@@ -293,6 +318,61 @@ begin
   FSyncPulseActive := False;
   if Assigned(FPillBox) then
     FPillBox.Invalidate;
+end;
+
+procedure TFloatingActionDock.TriggerMenuSavePulse;
+begin
+  if not FMenuVisible then Exit;
+  FMenuSavePulseActive := True;
+  FMenuSavePulseStep := 0;
+  LayoutButtons;
+  if Assigned(FMenuSavePulseTimer) then
+  begin
+    FMenuSavePulseTimer.Enabled := False;
+    FMenuSavePulseTimer.Enabled := True;
+  end;
+  if Assigned(FMenuSaveResetTimer) then
+  begin
+    FMenuSaveResetTimer.Enabled := False;
+    FMenuSaveResetTimer.Interval := 1800;
+    FMenuSaveResetTimer.Enabled := True;
+  end;
+  if Assigned(FPillBox) then
+    FPillBox.Invalidate;
+end;
+
+procedure TFloatingActionDock.ResetMenuSavePulse;
+begin
+  if Assigned(FMenuSavePulseTimer) then
+    FMenuSavePulseTimer.Enabled := False;
+  if Assigned(FMenuSaveResetTimer) then
+    FMenuSaveResetTimer.Enabled := False;
+  if FMenuSavePulseActive then
+  begin
+    FMenuSavePulseActive := False;
+    FMenuSavePulseStep := 0;
+    LayoutButtons;
+    if Assigned(FPillBox) then
+      FPillBox.Invalidate;
+  end;
+end;
+
+procedure TFloatingActionDock.MenuSavePulseTick(Sender: TObject);
+begin
+  if not FMenuSavePulseActive then
+  begin
+    if Assigned(FMenuSavePulseTimer) then
+      FMenuSavePulseTimer.Enabled := False;
+    Exit;
+  end;
+  Inc(FMenuSavePulseStep);
+  if Assigned(FPillBox) then
+    FPillBox.Invalidate;
+end;
+
+procedure TFloatingActionDock.MenuSaveResetTick(Sender: TObject);
+begin
+  ResetMenuSavePulse;
 end;
 
 // ---------------------------------------------------------------------------
@@ -437,6 +517,7 @@ var
   IsSoloFinish: Boolean;
   FinishFill, FGColor: TColor;
   TextW, TextH, TextX, TextY: Integer;
+  CyclePos, Mix: Double;
   IconW, IconH, IconX, IconY, CX, CY, ContentX, Gap, TotalW: Integer;
   PtsTop: array[0..4] of TPoint;
   PtsBot: array[0..4] of TPoint;
@@ -521,7 +602,7 @@ begin
       PB.Canvas.TextOut(TextX, TextY, '✓ Apply');
     end;
 
-    // 2. Menu button (☰)
+    // 2. Menu button (☰ or pulsing ✓)
     if FMenuVisible then
     begin
       SubR := FMenuRect;
@@ -544,17 +625,40 @@ begin
       else
         FGColor := RGBToColor(180, 190, 205);
 
-      PB.Canvas.Font.Name   := 'Noto Sans';
-      PB.Canvas.Font.Size   := 11;
-      PB.Canvas.Font.Style  := [];
-      PB.Canvas.Font.Color  := FGColor;
-      PB.Canvas.Brush.Style := bsClear;
+      PB.Canvas.Font.Name := 'Noto Sans';
+      if FMenuSavePulseActive then
+      begin
+        // Smooth 2-cycle cyan <-> emerald pulse directly on the ✓ icon (no border)
+        CyclePos := (FMenuSavePulseStep mod 26) / 25.0;
+        Mix := 0.5 - 0.5 * Cos(CyclePos * 2 * Pi);
+        PB.Canvas.Font.Size  := 11 + Round(Mix * 2); // 11 -> 13 -> 11
+        PB.Canvas.Font.Style := [fsBold];
+        PB.Canvas.Font.Color := RGBToColor(
+          Round(48 + (85 - 48) * Mix),
+          Round(190 + (235 - 190) * Mix),
+          Round(240 + (125 - 240) * Mix)
+        );
+        PB.Canvas.Brush.Style := bsClear;
 
-      TextW := PB.Canvas.TextWidth('☰');
-      TextH := PB.Canvas.TextHeight('☰');
-      TextX := SubR.Left + (SubR.Right - SubR.Left - TextW) div 2;
-      TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
-      PB.Canvas.TextOut(TextX, TextY, '☰');
+        TextW := PB.Canvas.TextWidth('✓');
+        TextH := PB.Canvas.TextHeight('✓');
+        TextX := SubR.Left + (SubR.Right - SubR.Left - TextW) div 2;
+        TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+        PB.Canvas.TextOut(TextX, TextY, '✓');
+      end
+      else
+      begin
+        PB.Canvas.Font.Size   := 11;
+        PB.Canvas.Font.Style  := [];
+        PB.Canvas.Font.Color  := FGColor;
+        PB.Canvas.Brush.Style := bsClear;
+
+        TextW := PB.Canvas.TextWidth('☰');
+        TextH := PB.Canvas.TextHeight('☰');
+        TextX := SubR.Left + (SubR.Right - SubR.Left - TextW) div 2;
+        TextY := SubR.Top + (SubR.Bottom - SubR.Top - TextH) div 2;
+        PB.Canvas.TextOut(TextX, TextY, '☰');
+      end;
     end;
 
     // 3. Preview button (eye icon + "Preview" or live sync indicator)
