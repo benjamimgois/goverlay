@@ -80,6 +80,10 @@ const
   // HelixSR Repository
   FALLBACK_HELIXSR_VERSION = '3.1.0';
 
+  // DLSS-NR Repositories
+  FALLBACK_DLSSNR_RDNA3_VERSION = '0.0.6';
+  FALLBACK_DLSSNR_RDNA4_VERSION = '0.0.6-linux-preview';
+
   // OptiScaler / Decky Framegen
   URL_DECKY_FRAMEGEN_API = 'https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest';
   URL_DECKY_FRAMEGEN_REPO = 'https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/';

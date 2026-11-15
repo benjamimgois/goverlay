@@ -9403,13 +9403,13 @@ begin
   begin
     if IsRdna3 then
     begin
-      ATag := '0.0.6';
-      AUrl := 'https://github.com/mauri870/DLSSNR-RDNA3/releases/download/0.0.6/DLSSNR-AMD-Vulkan-Linux-0.0.6-linux-preview-54-gaa39228-x86_64-rdna3.tar.gz';
+      ATag := FALLBACK_DLSSNR_RDNA3_VERSION;
+      AUrl := 'https://github.com/mauri870/DLSSNR-RDNA3/releases/download/' + FALLBACK_DLSSNR_RDNA3_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA3_VERSION + '-linux-preview-54-gaa39228-x86_64-rdna3.tar.gz';
     end
     else
     begin
-      ATag := 'v0.0.6-linux-preview';
-      AUrl := 'https://github.com/mochizuki0323/DLSSNR-AMD/releases/download/v0.0.6-linux-preview/DLSSNR-AMD-Vulkan-Linux-0.0.6-linux-preview-x86_64.tar.gz';
+      ATag := 'v' + FALLBACK_DLSSNR_RDNA4_VERSION;
+      AUrl := 'https://github.com/mochizuki0323/DLSSNR-AMD/releases/download/v' + FALLBACK_DLSSNR_RDNA4_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA4_VERSION + '-x86_64.tar.gz';
     end;
   end;
 
@@ -9880,14 +9880,104 @@ end;
 
 // Retrieve the installed DLSS-NR version tag.
 function GetDlssNrVersion(const AArch: string = ''): string;
-begin
-  Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch)) + 'goverlay.vars');
+var
+  Candidates: array[0..3] of string;
+  DetectedArch: string;
+  i: Integer;
+  P: TProcess;
+  S: TStringList;
 
-  if Result = '' then
+  function TryReadVersionInDir(const ATargetDir: string): string;
+  var
+    SearchRec: TSearchRec;
+    FileName: string;
   begin
-    Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'goverlay.vars');
-    if Result = '' then
-      Result := ReadDlssNrVersionFromVars(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'goverlay.vars');
+    Result := ReadDlssNrVersionFromVars(ATargetDir + 'goverlay.vars');
+    if Result <> '' then Exit;
+
+    if FindFirst(ATargetDir + 'optiscaler' + PathDelim + 'OptiScaler-NR-*.zip', faAnyFile, SearchRec) = 0 then
+    begin
+      try
+        FileName := SearchRec.Name;
+        Delete(FileName, 1, Length('OptiScaler-NR-'));
+        if SameText(ExtractFileExt(FileName), '.zip') then
+          SetLength(FileName, Length(FileName) - 4);
+        Result := Trim(FileName);
+      finally
+        FindClose(SearchRec);
+      end;
+    end;
+  end;
+
+  function FallbackVersionForArch(const ACandidateArch: string): string;
+  begin
+    if SameText(ACandidateArch, 'rdna3') then
+      Result := FALLBACK_DLSSNR_RDNA3_VERSION
+    else
+      Result := FALLBACK_DLSSNR_RDNA4_VERSION;
+  end;
+
+begin
+  Result := '';
+  if AArch <> '' then
+  begin
+    Result := TryReadVersionInDir(IncludeTrailingPathDelimiter(GetBGModDlssNrPath(AArch)));
+    if (Result = '') and IsDlssNrInstalled(AArch) then
+      Result := FallbackVersionForArch(AArch);
+    Exit;
+  end;
+
+  DetectedArch := RDNAArchitectureToString(DetectRDNAArchitecture);
+  Candidates[0] := DetectedArch;
+  Candidates[1] := '';
+  Candidates[2] := 'rdna3';
+  Candidates[3] := 'rdna4';
+
+  for i := 0 to High(Candidates) do
+  begin
+    if (i > 0) and SameText(Candidates[i], DetectedArch) then Continue;
+    Result := TryReadVersionInDir(IncludeTrailingPathDelimiter(GetBGModDlssNrPath(Candidates[i])));
+    if Result <> '' then Exit;
+  end;
+
+  if (FileExists('/usr/lib/libdlss_nr.so') or FileExists('/usr/lib64/libdlss_nr.so')) and
+     not IsRunningInFlatpak then
+  begin
+    P := TProcess.Create(nil);
+    try
+      P.Executable := FindDefaultExecutablePath('sh');
+      P.Parameters.Add('-c');
+      P.Parameters.Add('pacman -Q dlssnr dlss-nr libdlss-nr 2>/dev/null | awk ''{print $2}'' | head -n 1 || ' +
+                       'dpkg-query -W -f=''${Version}'' dlssnr 2>/dev/null || ' +
+                       'rpm -q --qf ''%{VERSION}'' dlssnr 2>/dev/null || echo ""');
+      P.Options := [poUsePipes, poWaitOnExit];
+      try
+        P.Execute;
+        S := TStringList.Create;
+        try
+          S.LoadFromStream(P.Output);
+          if S.Count > 0 then Result := Trim(S[0]);
+        finally
+          S.Free;
+        end;
+      except
+      end;
+    finally
+      P.Free;
+    end;
+    if Result <> '' then Exit;
+  end;
+
+  if IsDlssNrInstalled('') then
+  begin
+    if (DetectedArch <> '') and IsDlssNrInstalled(DetectedArch) then
+      Result := FallbackVersionForArch(DetectedArch)
+    else if IsDlssNrInstalled('rdna4') then
+      Result := FALLBACK_DLSSNR_RDNA4_VERSION
+    else if IsDlssNrInstalled('rdna3') then
+      Result := FALLBACK_DLSSNR_RDNA3_VERSION
+    else
+      Result := FALLBACK_DLSSNR_RDNA4_VERSION;
   end;
 end;
 

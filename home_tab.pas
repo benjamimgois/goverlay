@@ -663,7 +663,7 @@ begin
 
     // 10. DLSS-NR
     DlssNrSystem := FileExists('/usr/lib/libdlss_nr.so') or FileExists('/usr/lib64/libdlss_nr.so');
-    DlssNrOK := IsDlssNrInstalled;
+    DlssNrOK := IsDlssNrInstalled or DlssNrSystem;
     DlssNrReady := IsDlssNrModelReady;
     if DlssNrOK and DlssNrReady then
     begin
@@ -687,6 +687,8 @@ begin
     FHomeModDots[10].ShowHint := True;
 
     DlssNrVer := GetDlssNrVersion;
+    while (DlssNrVer <> '') and (DlssNrVer[1] in ['v', 'V']) do
+      Delete(DlssNrVer, 1, 1);
     if DlssNrVer = '' then
       DlssNrVer := StrUtils.IfThen(DlssNrOK, 'installed', 'not found');
     if Assigned(FHomeModVerLbls[10]) then
