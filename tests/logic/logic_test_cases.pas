@@ -145,6 +145,7 @@ type
     procedure TestPerformAtomicBinaryUpdate;
     procedure TestPerformWrapperSelfUpdate;
     procedure TestBgmodExecutableSelfUpdate;
+    procedure TestBgmodExecutableSelfUpdatePreservesMultiArgs;
   end;
 
   TRuntimeUpdateDowngradeTests = class(TTestCase)
@@ -3646,6 +3647,72 @@ begin
     Lines.LoadFromFile(LogFile);
     AssertTrue('Log must record self-update trigger', Pos('Performing atomic self-update', Lines.Text) > 0);
     AssertTrue('Log must record successful re-exec', Pos('BGMod active after wrapper self-update', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSelfUpdateTests.TestBgmodExecutableSelfUpdatePreservesMultiArgs;
+var
+  BaseDir, MasterDir, GameDir, RepoBgmod, LogFile, OutStr: string;
+  Proc: TProcess;
+  Lines, OutLines: TStringList;
+begin
+  RepoBgmod := ExpandFileName('bgmod');
+  if not FileExists(RepoBgmod) then Exit;
+
+  BaseDir := IsolatedHome + '/.local/share/goverlay';
+  MasterDir := BaseDir + '/bgmod';
+  GameDir := BaseDir + '/gameconfig/SelfUpdateMultiArgGame';
+
+  ForceDirectories(MasterDir);
+  ForceDirectories(GameDir);
+
+  PerformAtomicBinaryUpdate(RepoBgmod, MasterDir + '/bgmod');
+  PerformAtomicBinaryUpdate(RepoBgmod, GameDir + '/bgmod');
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := 'sh';
+    Proc.Parameters.Add('-c');
+    Proc.Parameters.Add('echo "X" >> ' + QuotedStr(GameDir + '/bgmod'));
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+
+  Proc := TProcess.Create(nil);
+  OutLines := TStringList.Create;
+  try
+    Proc.Executable := GameDir + '/bgmod';
+    Proc.Parameters.Add('echo');
+    Proc.Parameters.Add('first_arg');
+    Proc.Parameters.Add('second_arg');
+    Proc.Parameters.Add('Game.exe');
+    Proc.Options := [poWaitOnExit, poUsePipes];
+    Proc.Execute;
+    OutLines.LoadFromStream(Proc.Output);
+    OutStr := Trim(OutLines.Text);
+    AssertEquals('Self-updating bgmod with echo should exit 0', 0, Proc.ExitStatus);
+    AssertTrue('echo subprocess should receive all arguments intact', Pos('first_arg second_arg Game.exe', OutStr) > 0);
+  finally
+    OutLines.Free;
+    Proc.Free;
+  end;
+
+  LogFile := BaseDir + '/logs/SelfUpdateMultiArgGame/bgmod.log';
+  AssertTrue('Central bgmod log should exist', FileExists(LogFile));
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Log must record BGMod active after self-update', Pos('BGMod active after wrapper self-update', Lines.Text) > 0);
+    AssertTrue('Log must preserve Arg 0: echo', Pos('Arg 0: echo', Lines.Text) > 0);
+    AssertTrue('Log must preserve Arg 1: first_arg', Pos('Arg 1: first_arg', Lines.Text) > 0);
+    AssertTrue('Log must preserve Arg 2: second_arg', Pos('Arg 2: second_arg', Lines.Text) > 0);
+    AssertTrue('Log must preserve Arg 3: Game.exe', Pos('Arg 3: Game.exe', Lines.Text) > 0);
+    AssertTrue('Log must launch echo, not Game.exe', Pos('Launching subprocess: echo', Lines.Text) > 0);
   finally
     Lines.Free;
   end;

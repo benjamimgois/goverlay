@@ -3101,6 +3101,7 @@ var
   k: Integer;
   MasterDir: string;
   ReExecArgs: array of PChar;
+  ReExecStrs: array of string;
 
 
 {$if defined(CPUAARCH64) and defined(LINUX)}
@@ -3194,13 +3195,16 @@ begin
         Log('Wrapper binaries self-updated successfully. Re-executing...');
         SetEnvironmentVariable('BGMOD_UPDATED', '1');
 
+        SetLength(ReExecStrs, ParamCount + 1);
         SetLength(ReExecArgs, ParamCount + 2);
-        ReExecArgs[0] := PChar(ParamStr(0));
-        for k := 1 to ParamCount do
-          ReExecArgs[k] := PChar(ParamStr(k));
+        for k := 0 to ParamCount do
+        begin
+          ReExecStrs[k] := ParamStr(k);
+          ReExecArgs[k] := PChar(ReExecStrs[k]);
+        end;
         ReExecArgs[ParamCount + 1] := nil;
 
-        execv(PChar(ParamStr(0)), @ReExecArgs[0]);
+        execv(PChar(ReExecStrs[0]), @ReExecArgs[0]);
         Log('Warning: execv failed after self-update (errno=' + IntToStr(fpGetErrno) + '). Continuing with current process.');
       end
       else
