@@ -196,6 +196,7 @@ type
     procedure TestSetGameToolEnabledUpscalerCoherence;
     procedure TestCustomConfigCardMenuAndFileFlows;
     procedure TestMenuButtonSavePulse;
+    procedure TestGlobalOptiScalerChannelAndReflexPersistence;
   end;
 
 implementation
@@ -9530,6 +9531,114 @@ begin
       goverlayform.FFADock.MenuSavePulseActive);
   finally
     goverlayform.FFADock.ResetMenuSavePulse;
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestGlobalOptiScalerChannelAndReflexPersistence;
+var
+  GlobalDir, BgmodPath, FakePath, CacheDir, CacheFakePath, FakeContent: string;
+  Ini: TIniFile;
+  SL: TStringList;
+  CreatedCacheFake: Boolean;
+begin
+  goverlayform.FActiveGameName := '';
+  GlobalDir := IncludeTrailingPathDelimiter(goverlayform.GetGameConfigDir(''));
+  BgmodPath := GlobalDir + 'bgmod.conf';
+  FakePath := GlobalDir + 'fakenvapi.ini';
+  ForceDirectories(GlobalDir);
+
+  CreatedCacheFake := False;
+  CacheDir := IncludeTrailingPathDelimiter(GetBGModOriginalPath);
+  CacheFakePath := CacheDir + 'fakenvapi.ini';
+
+  try
+    // Force optiscalerRadioButton to False first (mirrors FormCreate initial state)
+    // before seeding bgmod.conf, since setting Checked := True fires OnClick
+    if Assigned(goverlayform.noneUpscalerRadioButton) then
+      goverlayform.noneUpscalerRadioButton.Checked := True;
+    goverlayform.optversionComboBox.ItemIndex := 0;
+
+    // (a) Global OPT_CHANNEL=1 must survive LoadOptiScalerConfig even when
+    //     optiscalerRadioButton transitions from False -> True
+    Ini := TIniFile.Create(BgmodPath);
+    try
+      Ini.WriteInteger('Config', 'UPSCALER_TYPE', 0);
+      Ini.WriteInteger('Config', 'OPT_CHANNEL', 1);
+    finally
+      Ini.Free;
+    end;
+
+    goverlayform.LoadOptiScalerConfig;
+
+    AssertTrue('optiscalerRadioButton becomes checked after LoadOptiScalerConfig',
+      goverlayform.optiscalerRadioButton.Checked);
+    AssertEquals('optversionComboBox restores OPT_CHANNEL=1',
+      1, goverlayform.optversionComboBox.ItemIndex);
+
+    Ini := TIniFile.Create(BgmodPath);
+    try
+      AssertEquals('bgmod.conf OPT_CHANNEL remains 1 after LoadOptiScalerConfig',
+        1, Ini.ReadInteger('Config', 'OPT_CHANNEL', -1));
+    finally
+      Ini.Free;
+    end;
+
+    // (b) Enabling Force Reflex from Follow game setting (0) defaults to Force enable (2)
+    //     and persists across SaveOptiScalerConfig + LoadOptiScalerConfig
+    if not FileExists(FakePath) then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.Text := 'force_reflex=0' + LineEnding + 'force_latencyflex=0' + LineEnding + 'latencyflex_mode=0';
+        SL.SaveToFile(FakePath);
+      finally
+        SL.Free;
+      end;
+    end;
+
+    goverlayform.forcereflexCheckBox.Checked := False;
+    goverlayform.reflexComboBox.ItemIndex := 0;
+    goverlayform.forcereflexCheckBox.Checked := True;
+    goverlayform.forcereflexCheckBoxChange(goverlayform.forcereflexCheckBox);
+
+    AssertEquals('Enabling Force Reflex from index 0 selects Force enable (2)',
+      2, goverlayform.reflexComboBox.ItemIndex);
+
+    goverlayform.SaveOptiScalerConfig(True);
+
+    // Reset controls and reload to verify persistence
+    goverlayform.forcereflexCheckBox.Checked := False;
+    goverlayform.reflexComboBox.ItemIndex := 0;
+    goverlayform.LoadOptiScalerConfig;
+
+    AssertTrue('Force Reflex remains checked after reload',
+      goverlayform.forcereflexCheckBox.Checked);
+    AssertEquals('Reflex mode remains Force enable (2) after reload',
+      2, goverlayform.reflexComboBox.ItemIndex);
+
+    // (c) CopyOptiScalerGameFiles must NOT overwrite an existing fakenvapi.ini
+    if not FileExists(CacheFakePath) then
+    begin
+      ForceDirectories(CacheDir);
+      SL := TStringList.Create;
+      try
+        SL.Text := 'force_reflex=0' + LineEnding + 'force_latencyflex=0' + LineEnding + 'latencyflex_mode=0';
+        SL.SaveToFile(CacheFakePath);
+      finally
+        SL.Free;
+      end;
+      CreatedCacheFake := True;
+    end;
+
+    goverlayform.CopyOptiScalerGameFiles(GlobalDir);
+
+    FakeContent := ReadFileText(FakePath);
+    AssertTrue('Existing fakenvapi.ini force_reflex=2 preserved after CopyOptiScalerGameFiles',
+      Pos('force_reflex=2', FakeContent) > 0);
+  finally
+    if CreatedCacheFake and FileExists(CacheFakePath) then
+      DeleteFile(CacheFakePath);
+    goverlayform.FActiveGameName := '';
   end;
 end;
 

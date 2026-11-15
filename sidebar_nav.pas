@@ -1076,7 +1076,8 @@ begin
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.dll');
-      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini') then
+      if (not FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini')) and
+         FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini') then
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'fakenvapi.ini',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
       ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'HelixSR');
@@ -1191,8 +1192,9 @@ begin
       end;
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.ini') then
       begin
-        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.ini',
-                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
+        if not FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini') then
+          CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'fakenvapi.ini',
+                   IncludeTrailingPathDelimiter(AGameCfgDir) + 'fakenvapi.ini');
         ManifestList.Add('fakenvapi.ini');
       end;
 

@@ -4413,7 +4413,12 @@ begin
 
 
     // Load all OptiScaler configs (combines fgmod, fake-nvapi, and OptiScaler.ini settings)
-    LoadOptiScalerConfig;
+    FLoadingConfig := True;
+    try
+      LoadOptiScalerConfig;
+    finally
+      FLoadingConfig := False;
+    end;
 
     //Initiate optiscaler
 
@@ -5909,6 +5914,7 @@ var
   Idx: Integer;
   OptVer: string;
 begin
+  if FLoadingConfig then Exit;
   if Assigned(optiscalerRadioButton) and not optiscalerRadioButton.Checked then Exit;
 
   // Conflict check with AFMF
@@ -6012,6 +6018,7 @@ procedure Tgoverlayform.dlssenablerRadioButtonClick(Sender: TObject);
 var
   Idx: Integer;
 begin
+  if FLoadingConfig then Exit;
   if Assigned(dlssenablerRadioButton) and not dlssenablerRadioButton.Checked then Exit;
 
   // Conflict check with AFMF
@@ -6086,6 +6093,7 @@ end;
 
 procedure Tgoverlayform.noneUpscalerRadioButtonClick(Sender: TObject);
 begin
+  if FLoadingConfig then Exit;
   if Assigned(noneUpscalerRadioButton) and not noneUpscalerRadioButton.Checked then Exit;
 
   if Assigned(noneUpscalerRadioButton) then
@@ -6179,6 +6187,7 @@ procedure Tgoverlayform.dlssnrRadioButtonClick(Sender: TObject);
 var
   Idx: Integer;
 begin
+  if FLoadingConfig then Exit;
   if Assigned(dlssnrRadioButton) and not dlssnrRadioButton.Checked then Exit;
   if Assigned(dlssnrRadioButton) then
   begin
@@ -6234,6 +6243,7 @@ var
   CompileSuccess: Boolean;
   ErrDetail: string;
 begin
+  if FLoadingConfig then Exit;
   if Assigned(helixsrRadioButton) and not helixsrRadioButton.Checked then Exit;
 
   if Assigned(helixsrRadioButton) then
@@ -6807,8 +6817,12 @@ end;
 
 procedure Tgoverlayform.forcereflexCheckBoxChange(Sender: TObject);
 begin
-   // Enable/disable reflexComboBox based on forcereflexCheckBox state
+  // Enable/disable reflexComboBox based on forcereflexCheckBox state
   reflexComboBox.Enabled := forcereflexCheckBox.Checked;
+  // Default to "Force enable" (index 2) when enabling from "Follow game setting" (index 0)
+  // so the enabled toggle persists as force_reflex=2 instead of force_reflex=0
+  if (not FLoadingConfig) and forcereflexCheckBox.Checked and (reflexComboBox.ItemIndex <= 0) then
+    reflexComboBox.ItemIndex := 2;
   StartAutoSaveTimer;
 end;
 

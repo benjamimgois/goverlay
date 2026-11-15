@@ -3272,6 +3272,11 @@ var
   SavedPreferredUpscalerOnChange: TNotifyEvent;
   SavedLogLevelOnChange: TNotifyEvent;
   SavedFilenameOnChange: TNotifyEvent;
+  SavedOptiRadioOnClick: TNotifyEvent;
+  SavedDlssEnablerRadioOnClick: TNotifyEvent;
+  SavedNoneRadioOnClick: TNotifyEvent;
+  SavedHelixSrRadioOnClick: TNotifyEvent;
+  SavedDlssNrRadioOnClick: TNotifyEvent;
   Idx: Integer;
 begin
   with FForm do
@@ -3279,7 +3284,8 @@ begin
     if not overlay_config.LoadOptiScalerConfig(FActiveGameName, Settings) then
       Exit;
 
-    // Temporarily disable OnChange handlers to prevent event trigger loops and threads during load
+    // Temporarily disable OnChange/OnClick handlers to prevent event trigger loops,
+    // threads, and unintended SaveOptiScalerConfig calls during load
     SavedFsrOnChange := fsrversionComboBox.OnChange;
     SavedOptOnChange := optversionComboBox.OnChange;
     SavedPreferredUpscalerOnChange := preferredUpscalerComboBox.OnChange;
@@ -3289,12 +3295,23 @@ begin
       SavedLogLevelOnChange := nil;
     SavedFilenameOnChange := filenameComboBox.OnChange;
 
+    if Assigned(optiscalerRadioButton) then SavedOptiRadioOnClick := optiscalerRadioButton.OnClick else SavedOptiRadioOnClick := nil;
+    if Assigned(dlssenablerRadioButton) then SavedDlssEnablerRadioOnClick := dlssenablerRadioButton.OnClick else SavedDlssEnablerRadioOnClick := nil;
+    if Assigned(noneUpscalerRadioButton) then SavedNoneRadioOnClick := noneUpscalerRadioButton.OnClick else SavedNoneRadioOnClick := nil;
+    if Assigned(helixsrRadioButton) then SavedHelixSrRadioOnClick := helixsrRadioButton.OnClick else SavedHelixSrRadioOnClick := nil;
+    if Assigned(dlssnrRadioButton) then SavedDlssNrRadioOnClick := dlssnrRadioButton.OnClick else SavedDlssNrRadioOnClick := nil;
+
     fsrversionComboBox.OnChange := nil;
     optversionComboBox.OnChange := nil;
     preferredUpscalerComboBox.OnChange := nil;
     if Assigned(loglevelComboBox) then
       loglevelComboBox.OnChange := nil;
     filenameComboBox.OnChange := nil;
+    if Assigned(optiscalerRadioButton) then optiscalerRadioButton.OnClick := nil;
+    if Assigned(dlssenablerRadioButton) then dlssenablerRadioButton.OnClick := nil;
+    if Assigned(noneUpscalerRadioButton) then noneUpscalerRadioButton.OnClick := nil;
+    if Assigned(helixsrRadioButton) then helixsrRadioButton.OnClick := nil;
+    if Assigned(dlssnrRadioButton) then dlssnrRadioButton.OnClick := nil;
     try
       filenameComboBox.ItemIndex := Settings.FilenameItemIndex;
       FPreviousFilenameIndex := filenameComboBox.ItemIndex;
@@ -3561,13 +3578,18 @@ begin
       UpdateUpscalerImageOpacity;
       UpdateFrameGenOptionsUI;
     finally
-      // Restore OnChange handlers
+      // Restore OnChange and OnClick handlers
       fsrversionComboBox.OnChange := SavedFsrOnChange;
       optversionComboBox.OnChange := SavedOptOnChange;
       preferredUpscalerComboBox.OnChange := SavedPreferredUpscalerOnChange;
       if Assigned(loglevelComboBox) then
         loglevelComboBox.OnChange := SavedLogLevelOnChange;
       filenameComboBox.OnChange := SavedFilenameOnChange;
+      if Assigned(optiscalerRadioButton) then optiscalerRadioButton.OnClick := SavedOptiRadioOnClick;
+      if Assigned(dlssenablerRadioButton) then dlssenablerRadioButton.OnClick := SavedDlssEnablerRadioOnClick;
+      if Assigned(noneUpscalerRadioButton) then noneUpscalerRadioButton.OnClick := SavedNoneRadioOnClick;
+      if Assigned(helixsrRadioButton) then helixsrRadioButton.OnClick := SavedHelixSrRadioOnClick;
+      if Assigned(dlssnrRadioButton) then dlssnrRadioButton.OnClick := SavedDlssNrRadioOnClick;
     end;
 
     if Assigned(FOptiscalerUpdate) then
