@@ -286,6 +286,17 @@ const
 
 function SanitizeFileName(const AName: string): string;
 function GetGameConfigDir(const AGameName: string): string;
+/// Writes AProfileDir/goverlay-profile.conf: the game's install path
+/// (directory, or file for AppImages) and whether the global bgmod should
+/// load this profile for the game ("Use game-specific settings").
+procedure WriteGameProfileIdentity(const AProfileDir, AGameName, AGamePath: string; AEnabled: Boolean);
+/// Updates name and install path of an existing identity file, keeping
+/// ENABLED. Does nothing when the file does not exist.
+procedure RefreshGameProfileIdentity(const AProfileDir, AGameName, AGamePath: string);
+/// True when the game uses its own profile at launch: ENABLED=1 in the
+/// identity file, or (no identity file yet) a GAME_DIR cached by a per-game
+/// bgmod launch in bgmod.conf.
+function IsGameProfileEnabled(const AProfileDir: string): Boolean;
 function ExtractGpuMarketName(const ARawLspci: string): string;
 function IsDirectoryEmpty(const ADir: string): Boolean;
 function CleanDirectoryPreservingBackups(const ADir: string): Boolean;
@@ -438,6 +449,79 @@ begin
 
   Result := IncludeTrailingPathDelimiter(TConfigManager.GetHostDataDir) +
             'goverlay/gameconfig/' + GameDirName + '/';
+end;
+
+procedure WriteIdentityValues(const AProfileDir, AGameName, AGamePath: string;
+  AWriteEnabled, AEnabled: Boolean);
+var
+  Ini: TIniFile;
+  GamePath: string;
+begin
+  GamePath := Trim(AGamePath);
+  if (GamePath <> '') and DirectoryExists(GamePath) then
+    GamePath := IncludeTrailingPathDelimiter(GamePath);
+  try
+    ForceDirectories(AProfileDir);
+    Ini := TIniFile.Create(IncludeTrailingPathDelimiter(AProfileDir) + GAME_PROFILE_IDENTITY_FILE);
+    try
+      if AGameName <> '' then
+        Ini.WriteString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_NAME, AGameName);
+      if GamePath <> '' then
+        Ini.WriteString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_GAME_PATH, GamePath);
+      if AWriteEnabled then
+        Ini.WriteString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_ENABLED, IfThen(AEnabled, '1', '0'));
+    finally
+      Ini.Free;
+    end;
+  except
+    on E: Exception do
+      DbgLog('[WARN] WriteGameProfileIdentity: ' + E.Message);
+  end;
+end;
+
+procedure WriteGameProfileIdentity(const AProfileDir, AGameName, AGamePath: string; AEnabled: Boolean);
+begin
+  if Trim(AProfileDir) = '' then Exit;
+  WriteIdentityValues(AProfileDir, AGameName, AGamePath, True, AEnabled);
+end;
+
+procedure RefreshGameProfileIdentity(const AProfileDir, AGameName, AGamePath: string);
+begin
+  if (Trim(AProfileDir) = '') or
+     not FileExists(IncludeTrailingPathDelimiter(AProfileDir) + GAME_PROFILE_IDENTITY_FILE) then Exit;
+  WriteIdentityValues(AProfileDir, AGameName, AGamePath, False, False);
+end;
+
+function IsGameProfileEnabled(const AProfileDir: string): Boolean;
+var
+  Ini: TIniFile;
+  Dir: string;
+begin
+  Result := False;
+  if Trim(AProfileDir) = '' then Exit;
+  Dir := IncludeTrailingPathDelimiter(AProfileDir);
+  try
+    if FileExists(Dir + GAME_PROFILE_IDENTITY_FILE) then
+    begin
+      Ini := TIniFile.Create(Dir + GAME_PROFILE_IDENTITY_FILE);
+      try
+        Result := Ini.ReadString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_ENABLED, '0') = '1';
+      finally
+        Ini.Free;
+      end;
+    end
+    else if FileExists(Dir + 'bgmod.conf') then
+    begin
+      Ini := TIniFile.Create(Dir + 'bgmod.conf');
+      try
+        Result := Trim(Ini.ReadString('Config', 'GAME_DIR', '')) <> '';
+      finally
+        Ini.Free;
+      end;
+    end;
+  except
+    Result := False;
+  end;
 end;
 
 function IsDirectoryEmpty(const ADir: string): Boolean;

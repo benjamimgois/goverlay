@@ -82,6 +82,8 @@ type
     procedure TestFloatingActionDockAndFinishDialog;
     procedure TestPasCubeAutoLaunchHiddenAndLowercaseUpscalers;
     procedure TestLaunchSplashSettingsMenuItem;
+    procedure TestRuntimeProfileSettingAndLaunchCommand;
+    procedure TestCloneGlobalDropsTargetCacheAndWritesIdentity;
     procedure TestBootSplashFullBrandingLogo;
     procedure TestDlssEnablerTagMatchingNoFalseUpdate;
     procedure TestDlssEnablerUpdateStatusDisplay;
@@ -205,7 +207,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, constants, home_tab, pasplot_form, StrUtils, first_run_dialog;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, constants, home_tab, pasplot_form, StrUtils, first_run_dialog, configkeys;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -2976,6 +2978,8 @@ var
   DummyCard: TPanel;
   GlobalExpected, GameExpected: string;
 begin
+  // Per-game launch commands only apply with automatic profile selection off
+  goverlayform.FRuntimeProfile := False;
   goverlayform.FActiveGameName := '';
   GlobalExpected := goverlayform.GetLaunchCommand;
   AssertTrue('Global command references global dir', Pos('global', GlobalExpected) > 0);
@@ -2998,6 +3002,7 @@ begin
     AssertTrue('FLaunchCommand reset immediately to global', Pos('global', goverlayform.FLaunchCommand) > 0);
   finally
     DummyCard.Free;
+    goverlayform.FRuntimeProfile := True;
   end;
 end;
 
@@ -3282,6 +3287,171 @@ begin
   AssertEquals('preferredUpscalerComboBox item 3 is lowercase fsr22', 'fsr22', goverlayform.preferredUpscalerComboBox.Items[3]);
   AssertEquals('preferredUpscalerComboBox item 4 is lowercase fsr4', 'fsr4', goverlayform.preferredUpscalerComboBox.Items[4]);
   AssertEquals('preferredUpscalerComboBox item 5 is lowercase dlss', 'dlss', goverlayform.preferredUpscalerComboBox.Items[5]);
+end;
+
+procedure TGoverlayGuiTests.TestRuntimeProfileSettingAndLaunchCommand;
+var
+  Panel: TPanel;
+  GameDir, GlobalCmd, IdentityFile, GlobalConf: string;
+  Ini: TIniFile;
+  IdxSplash, IdxRuntime: Integer;
+begin
+  AssertNotNull('Runtime profile menu item is assigned', goverlayform.FRuntimeProfileItem);
+  AssertTrue('Runtime profile menu item AutoCheck is True', goverlayform.FRuntimeProfileItem.AutoCheck);
+  AssertTrue('Automatic profile selection defaults to on', goverlayform.FRuntimeProfile);
+  AssertTrue('Runtime profile menu item defaults to Checked', goverlayform.FRuntimeProfileItem.Checked);
+  IdxSplash := goverlayform.settingsMenu.Items.IndexOf(goverlayform.FLaunchSplashItem);
+  IdxRuntime := goverlayform.settingsMenu.Items.IndexOf(goverlayform.FRuntimeProfileItem);
+  AssertEquals('Runtime profile item sits directly beneath the launch splash item', IdxSplash + 1, IdxRuntime);
+
+  goverlayform.gamesLabelClick(nil);
+  goverlayform.GetPerformanceCheckBox(0).Checked := False;
+  if Assigned(goverlayform.FReEngineRTCheckBox) then
+    goverlayform.FReEngineRTCheckBox.Checked := False;
+  GlobalCmd := goverlayform.GetGameConfigDir('') + 'bgmod';
+  ForceDirectories(goverlayform.GetGameConfigDir(''));
+  GameDir := IsolatedHome + '/rp_gui_games/RuntimeSteamGame';
+  ForceDirectories(GameDir);
+
+  Panel := TPanel.Create(nil);
+  try
+    // Steam game: generic global command, identity recorded
+    Panel.Hint := '(424242) Runtime Steam Game' + LineEnding + GameDir;
+    goverlayform.GameCardClick(Panel);
+    AssertEquals('Steam game uses the global launch command',
+      '"' + GlobalCmd + '" %command%', goverlayform.GetLaunchCommand);
+    IdentityFile := goverlayform.GetGameConfigDir('Runtime Steam Game') + GAME_PROFILE_IDENTITY_FILE;
+    AssertFalse('Card selection alone does not enable game-specific settings',
+      IsGameProfileEnabled(goverlayform.GetGameConfigDir('Runtime Steam Game')));
+
+    // "Use game-specific settings" from the card context menu
+    goverlayform.FRightClickedCard := Panel;
+    TGamesTabHelper(goverlayform.FGamesHelper).GameCardGameSpecificClick(nil);
+    AssertTrue('Toggle on enables the game profile',
+      IsGameProfileEnabled(goverlayform.GetGameConfigDir('Runtime Steam Game')));
+    AssertTrue('Game profile has a bgmod.conf',
+      FileExists(goverlayform.GetGameConfigDir('Runtime Steam Game') + 'bgmod.conf'));
+    Ini := TIniFile.Create(IdentityFile);
+    try
+      AssertEquals('Identity records the install path', IncludeTrailingPathDelimiter(GameDir),
+        Ini.ReadString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_GAME_PATH, ''));
+      AssertEquals('Identity records the game name', 'Runtime Steam Game',
+        Ini.ReadString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_NAME, ''));
+      AssertEquals('Identity is enabled', '1',
+        Ini.ReadString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_ENABLED, ''));
+    finally
+      Ini.Free;
+    end;
+    TGamesTabHelper(goverlayform.FGamesHelper).GameCardGameSpecificClick(nil);
+    AssertFalse('Toggle off disables the game profile',
+      IsGameProfileEnabled(goverlayform.GetGameConfigDir('Runtime Steam Game')));
+    AssertTrue('Toggle off keeps the game settings',
+      FileExists(goverlayform.GetGameConfigDir('Runtime Steam Game') + 'bgmod.conf'));
+
+    // Non-Steam game: global wrapper path, no %command%
+    Panel.Hint := 'RuntimeHeroicGame' + LineEnding + '/path/to/heroic';
+    goverlayform.GameCardClick(Panel);
+    AssertEquals('Non-Steam game uses the global wrapper path',
+      GlobalCmd + ' ', goverlayform.GetLaunchCommand);
+
+    // Opt-out: persisted to goverlay.conf and the global bgmod.conf
+    goverlayform.FRuntimeProfileItem.Checked := False;
+    goverlayform.RuntimeProfileMenuItemClick(goverlayform.FRuntimeProfileItem);
+    AssertFalse('FRuntimeProfile updated to False', goverlayform.FRuntimeProfile);
+    Ini := TIniFile.Create(GetConfigFilePath);
+    try
+      AssertFalse('goverlay.conf stores the opt-out',
+        Ini.ReadBool('General', GOVERLAY_KEY_RUNTIME_PROFILE, True));
+    finally
+      Ini.Free;
+    end;
+    GlobalConf := goverlayform.GetGameConfigDir('') + 'bgmod.conf';
+    Ini := TIniFile.Create(GlobalConf);
+    try
+      AssertEquals('global bgmod.conf stores RUNTIME_PROFILE=0', '0',
+        Ini.ReadString('Config', BGMOD_KEY_RUNTIME_PROFILE, ''));
+    finally
+      Ini.Free;
+    end;
+    AssertEquals('Opt-out restores the per-game wrapper path',
+      goverlayform.GetGameConfigDir('RuntimeHeroicGame') + 'bgmod ', goverlayform.GetLaunchCommand);
+
+    // Opt back in
+    goverlayform.FRuntimeProfileItem.Checked := True;
+    goverlayform.RuntimeProfileMenuItemClick(goverlayform.FRuntimeProfileItem);
+    Ini := TIniFile.Create(GlobalConf);
+    try
+      AssertEquals('global bgmod.conf stores RUNTIME_PROFILE=1', '1',
+        Ini.ReadString('Config', BGMOD_KEY_RUNTIME_PROFILE, ''));
+    finally
+      Ini.Free;
+    end;
+  finally
+    goverlayform.FRightClickedCard := nil;
+    Panel.Free;
+    goverlayform.FRuntimeProfile := True;
+    goverlayform.FRuntimeProfileItem.Checked := True;
+    goverlayform.gamesLabelClick(nil);
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestCloneGlobalDropsTargetCacheAndWritesIdentity;
+var
+  GlobalConf, GameConf, GameDir, SavedGlobal: string;
+  HadGlobal: Boolean;
+  Ini: TIniFile;
+  SL: TStringList;
+begin
+  GlobalConf := goverlayform.GetGameConfigDir('') + 'bgmod.conf';
+  ForceDirectories(ExtractFilePath(GlobalConf));
+  HadGlobal := FileExists(GlobalConf);
+  SavedGlobal := '';
+  if HadGlobal then
+    SavedGlobal := ReadFileText(GlobalConf);
+  GameDir := IsolatedHome + '/rp_gui_games/CloneIdentityGame';
+  ForceDirectories(GameDir);
+  try
+    Ini := TIniFile.Create(GlobalConf);
+    try
+      Ini.WriteString('Config', 'TARGET_EXE', 'GlobalOnly.exe');
+      Ini.WriteString('Config', 'GAME_DIR', '/some/global/game/dir/');
+      Ini.WriteString('Config', 'GOVERLAY_OPTISCALER', '0');
+    finally
+      Ini.Free;
+    end;
+
+    AssertTrue('Clone succeeds', goverlayform.CloneGlobalConfigToGame('Clone Identity Game', GameDir));
+
+    GameConf := goverlayform.GetGameConfigDir('Clone Identity Game') + 'bgmod.conf';
+    AssertTrue('Cloned bgmod.conf exists', FileExists(GameConf));
+    Ini := TIniFile.Create(GameConf);
+    try
+      AssertEquals('Clone drops the global TARGET_EXE cache', '', Ini.ReadString('Config', 'TARGET_EXE', ''));
+      AssertEquals('Clone drops the global GAME_DIR cache', '', Ini.ReadString('Config', 'GAME_DIR', ''));
+    finally
+      Ini.Free;
+    end;
+    Ini := TIniFile.Create(goverlayform.GetGameConfigDir('Clone Identity Game') + GAME_PROFILE_IDENTITY_FILE);
+    try
+      AssertEquals('Clone records the install path', IncludeTrailingPathDelimiter(GameDir),
+        Ini.ReadString(GAME_PROFILE_SECTION, GAME_PROFILE_KEY_GAME_PATH, ''));
+    finally
+      Ini.Free;
+    end;
+  finally
+    if HadGlobal then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.Text := SavedGlobal;
+        SL.SaveToFile(GlobalConf);
+      finally
+        SL.Free;
+      end;
+    end
+    else
+      DeleteFile(GlobalConf);
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestLaunchSplashSettingsMenuItem;
@@ -6722,6 +6892,9 @@ var
   TestPanel: TPanel;
   GlobalExpected, SteamExpected, NonSteamExpected: string;
 begin
+  // Per-game launch commands only apply with automatic profile selection off
+  goverlayform.FRuntimeProfile := False;
+
   // 1. In Global mode, launch command targets gameconfig/global/bgmod with quotes and %command%
   goverlayform.gamesLabelClick(nil);
   goverlayform.GetPerformanceCheckBox(0).Checked := False;
@@ -6786,6 +6959,7 @@ begin
     goverlayform.globalenableMenuItem.Checked := False;
   finally
     TestPanel.Free;
+    goverlayform.FRuntimeProfile := True;
     goverlayform.gamesLabelClick(nil);
   end;
 end;
