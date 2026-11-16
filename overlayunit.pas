@@ -640,6 +640,8 @@ type
     procedure visualTabSheetShow(Sender: TObject);
     procedure metricsTabSheetShow(Sender: TObject);
     procedure extrasTabSheetShow(Sender: TObject);
+    procedure benchmarksTabSheetShow(Sender: TObject);
+    procedure BenchmarksTabSheetResize(Sender: TObject);
     procedure tweaksTabSheetShow(Sender: TObject);
     procedure launchArgsTabSheetShow(Sender: TObject);
     procedure SyncAllToggles;
@@ -1116,6 +1118,8 @@ type
     FLoggingCaptureBtn: TBitBtn;
     FExtGplotLabel:     TLabel;
     FGplotBtn:          TBitBtn;
+    benchmarksTabSheet: TTabSheet;
+    FPasPlotPanel:      TPasPlotPanel;
     FColumnsMinusBtn:   TBitBtn;
     FColumnsPlusBtn:    TBitBtn;
     // Extras tab code-generated layout
@@ -1924,6 +1928,7 @@ visualTabSheet.TabVisible:=false;
 performanceTabSheet.TabVisible:=false;
 metricsTabSheet.TabVisible:=false;
 extrasTabSheet.TabVisible:=false;
+if Assigned(benchmarksTabSheet) then benchmarksTabSheet.TabVisible:=false;
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 if Assigned(reshadeTabSheet) then reshadeTabSheet.TabVisible:=false; //disable reshade tab
 vksumiTabSheet.TabVisible:=false;   //disable vksumi tab
@@ -2031,6 +2036,8 @@ begin
   performanceTabSheet.TabVisible:=false;
   metricsTabSheet.TabVisible:=false;
   extrasTabSheet.TabVisible:=false;
+  if Assigned(benchmarksTabSheet) then benchmarksTabSheet.TabVisible:=false;
+if Assigned(benchmarksTabSheet) then benchmarksTabSheet.TabVisible:=false;
   optiscalertabsheet.TabVisible:=false;
   losslessScalingTabSheet.TabVisible:=false;
   tweakstabsheet.TabVisible:=false;
@@ -2920,6 +2927,7 @@ procedure Tgoverlayform.performanceTabSheetShow(Sender: TObject);
 var
   ContentW: Integer;
 begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
   ContentW := Max(1, Self.ClientWidth - goverlayPaintBox.Width);
   ReflowPerformanceTab(ContentW, Self.ClientHeight);
   UpdatePerfCardTheme;
@@ -2930,6 +2938,7 @@ end;
 
 procedure Tgoverlayform.visualTabSheetShow(Sender: TObject);
 begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
   UpdateVisualCardTheme;
   if Assigned(FMangoHelper) then
   begin
@@ -2940,6 +2949,7 @@ end;
 
 procedure Tgoverlayform.metricsTabSheetShow(Sender: TObject);
 begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
   if Assigned(FMangoHelper) then
   begin
     TMangoHudUiHelper(FMangoHelper).ReflowMetricsTab(metricsTabSheet.ClientWidth);
@@ -2950,12 +2960,32 @@ end;
 
 procedure Tgoverlayform.extrasTabSheetShow(Sender: TObject);
 begin
+  if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
   if Assigned(FMangoHelper) then
   begin
     TMangoHudUiHelper(FMangoHelper).ReflowExtrasTab(extrasTabSheet.ClientWidth);
     TMangoHudUiHelper(FMangoHelper).UpdateExtrasCardTheme;
     TMangoHudUiHelper(FMangoHelper).SyncExtrasToggles;
   end;
+end;
+
+procedure Tgoverlayform.benchmarksTabSheetShow(Sender: TObject);
+begin
+  if Assigned(FFADock) then
+    FFADock.UpdateForTab(False, False, False, False, False);
+  if Assigned(FPasPlotPanel) then
+  begin
+    FPasPlotPanel.ApplyThemeStyling;
+    FPasPlotPanel.RefreshGamesAndRuns(FActiveGameName);
+    if Assigned(benchmarksTabSheet) and (benchmarksTabSheet.ClientWidth > 0) then
+      FPasPlotPanel.ReflowLayout(benchmarksTabSheet.ClientWidth);
+  end;
+end;
+
+procedure Tgoverlayform.BenchmarksTabSheetResize(Sender: TObject);
+begin
+  if Assigned(FPasPlotPanel) and Assigned(benchmarksTabSheet) and (benchmarksTabSheet.ClientWidth > 0) then
+    FPasPlotPanel.ReflowLayout(benchmarksTabSheet.ClientWidth);
 end;
 
 procedure Tgoverlayform.tweaksTabSheetShow(Sender: TObject);
@@ -4131,6 +4161,19 @@ begin
 
   // Initialize Extras tab
   InitExtrasTab;
+
+  // Create Benchmarks (PasPlot) tab under MangoHud
+  benchmarksTabSheet := TTabSheet.Create(goverlayPageControl);
+  benchmarksTabSheet.PageControl := goverlayPageControl;
+  benchmarksTabSheet.Caption     := 'PasPlot';
+  benchmarksTabSheet.TabVisible  := False;
+  benchmarksTabSheet.PageIndex   := extrasTabSheet.PageIndex + 1;
+  benchmarksTabSheet.OnShow      := @benchmarksTabSheetShow;
+  benchmarksTabSheet.OnResize    := @BenchmarksTabSheetResize;
+
+  FPasPlotPanel := TPasPlotPanel.Create(benchmarksTabSheet, FActiveGameName);
+  FPasPlotPanel.Parent := benchmarksTabSheet;
+  FPasPlotPanel.Align  := alClient;
 
   // Initialize Home tab
   InitHomeTab;
@@ -5497,6 +5540,10 @@ begin
   // Update Extras tab card colors
   UpdateExtrasCardTheme;
 
+  // Update Benchmarks (PasPlot) tab theme
+  if Assigned(FPasPlotPanel) then
+    FPasPlotPanel.ApplyThemeStyling;
+
   // Update Metrics tab cards
   if Assigned(FMangoHelper) then
     TMangoHudUiHelper(FMangoHelper).UpdateMetricsCardTheme;
@@ -5816,6 +5863,7 @@ visualTabSheet.TabVisible:=true;
 performanceTabSheet.TabVisible:=true;
 metricsTabSheet.TabVisible:=true;
 extrasTabSheet.TabVisible:=true;
+if Assigned(benchmarksTabSheet) then benchmarksTabSheet.TabVisible:=true;
 
 vkbasalttabsheet.TabVisible:=false; //disable vkbasalt tab
 if Assigned(reshadeTabSheet) then reshadeTabSheet.TabVisible:=false; //disable reshade tab
@@ -6437,6 +6485,7 @@ begin
   performanceTabSheet.TabVisible := False;
   metricsTabSheet.TabVisible := False;
   extrasTabSheet.TabVisible := False;
+  if Assigned(benchmarksTabSheet) then benchmarksTabSheet.TabVisible := False;
   vkbasalttabsheet.TabVisible := False;
   if Assigned(reshadeTabSheet) then
     reshadeTabSheet.TabVisible := False;
@@ -9316,7 +9365,14 @@ end;
 
 procedure Tgoverlayform.GplotBtnClick(Sender: TObject);
 begin
-  ShowGplotDialog(Self, FActiveGameName);
+  if Assigned(benchmarksTabSheet) then
+  begin
+    benchmarksTabSheet.TabVisible := True;
+    goverlayPageControl.ActivePage := benchmarksTabSheet;
+    goverlayPageControlChange(goverlayPageControl);
+  end
+  else
+    ShowGplotDialog(Self, FActiveGameName);
 end;
 
 procedure Tgoverlayform.CaptureBtnClick(Sender: TObject);
@@ -9572,6 +9628,10 @@ begin
     tweaksTabSheetShow(nil)
   else if Assigned(launchArgsTabSheet) and (goverlayPageControl.ActivePage = launchArgsTabSheet) then
     launchArgsTabSheetShow(nil)
+  else if goverlayPageControl.ActivePage = presetTabSheet then
+  begin
+    if Assigned(FFADock) then FFADock.UpdateForTab(True, True, False);
+  end
   else if goverlayPageControl.ActivePage = visualTabSheet then
     visualTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = performanceTabSheet then
@@ -9579,7 +9639,12 @@ begin
   else if goverlayPageControl.ActivePage = metricsTabSheet then
     metricsTabSheetShow(nil)
   else if goverlayPageControl.ActivePage = extrasTabSheet then
-    extrasTabSheetShow(nil);
+    extrasTabSheetShow(nil)
+  else if Assigned(benchmarksTabSheet) and (goverlayPageControl.ActivePage = benchmarksTabSheet) then
+  begin
+    if Assigned(FFADock) then
+      FFADock.UpdateForTab(False, False, False, False, False);
+  end;
 
   UpdateToolMissingDependencyBanners;
 end;

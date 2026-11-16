@@ -761,6 +761,8 @@ begin
       FForm.SetControlTreeEnabled(FForm.performanceTabSheet,   AEnabled);
       FForm.SetControlTreeEnabled(FForm.metricsTabSheet,       AEnabled);
       FForm.SetControlTreeEnabled(FForm.extrasTabSheet,        AEnabled);
+      if Assigned(FForm.benchmarksTabSheet) then
+        FForm.SetControlTreeEnabled(FForm.benchmarksTabSheet,  AEnabled);
     end;
     1:
     begin
@@ -823,7 +825,8 @@ var
 begin
   P := FForm.goverlayPageControl.ActivePage;
   if (P = FForm.presetTabSheet) or (P = FForm.visualTabSheet) or
-     (P = FForm.performanceTabSheet) or (P = FForm.metricsTabSheet) or (P = FForm.extrasTabSheet) then
+     (P = FForm.performanceTabSheet) or (P = FForm.metricsTabSheet) or
+     (P = FForm.extrasTabSheet) or (P = FForm.benchmarksTabSheet) then
     Result := 0
   else if (P = FForm.reshadeTabSheet) or (P = FForm.vkbasaltTabsheet) or (P = FForm.vksumiTabSheet) then
     Result := 1

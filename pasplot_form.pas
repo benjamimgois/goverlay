@@ -7,10 +7,12 @@ interface
 uses
   Classes, SysUtils, Math, StrUtils, Forms, Controls, Graphics, Dialogs,
   ExtCtrls, StdCtrls, Buttons, CheckLst, Grids, LCLIntf, LCLType, Types,
-  Process, IniFiles, Menus, themeunit, overlay_utils, configmanager;
+  Process, IniFiles, Menus, themeunit, overlay_utils, configmanager
+  {$IFDEF LCLqt6}, qt6, qtwidgets{$ENDIF}
+  {$IFDEF LCLqt5}, qt5, qtwidgets{$ENDIF};
 
 type
-  TGplotViewMode = (gvmTimeline, gvmSummary, gvmHardware);
+  TGplotViewMode = (gvmResume, gvmTimeline, gvmSummary, gvmHardware, gvmTable);
 
   TGplotSystemSpecs = record
     OS: string;
@@ -65,8 +67,8 @@ type
     MaxRamUsed: Double;
   end;
 
-  { TgplotForm }
-  TgplotForm = class(TForm)
+  { TPasPlotPanel }
+  TPasPlotPanel = class(TPanel)
   private
     FBaseDataDir: string;
     FInitialGame: string;
@@ -77,6 +79,7 @@ type
     FHoverX: Integer;
     FHoverY: Integer;
     FHoverActive: Boolean;
+    FInReflow: Boolean;
 
     // Top toolbar
     FTopPanel: TPanel;
@@ -93,6 +96,14 @@ type
     FPopupRenameItem: TMenuItem;
     FPopupDeleteItem: TMenuItem;
 
+    // Horizontal Run Chips Strip (Option C)
+    FRunsStripPanel: TPanel;
+    FRunsChipScroll: TScrollBox;
+    FRunsActionsPanel: TPanel;
+    FRunChipBtns: array of TBitBtn;
+    FRunChipEditBtns: array of TBitBtn;
+    FRunChipDelBtns: array of TBitBtn;
+
     // Main body
     FBodyPanel: TPanel;
     FLeftPanel: TPanel;
@@ -105,9 +116,11 @@ type
     // Right area
     FRightPanel: TPanel;
     FViewTabsPanel: TPanel;
+    FResumeTabBtn: TBitBtn;
     FTimelineTabBtn: TBitBtn;
     FSummaryTabBtn: TBitBtn;
     FHardwareTabBtn: TBitBtn;
+    FTableTabBtn: TBitBtn;
 
     // Quick KPI Hero Cards
     FKpiContainerPanel: TPanel;
@@ -143,7 +156,6 @@ type
     FSpecsLabel: TLabel;
 
     procedure BuildUI;
-    procedure ApplyThemeStyling;
     procedure SetViewMode(AValue: TGplotViewMode);
     procedure UpdateViewTabButtons;
     procedure UpdateKpiHeroCards;
@@ -166,6 +178,12 @@ type
     procedure ExportPngClick(Sender: TObject);
     procedure ViewTabBtnClick(Sender: TObject);
     procedure PromptRenameBenchmark(AIndex: Integer);
+    procedure RebuildRunChips;
+    procedure UpdateRunChipStyles;
+    procedure RunChipClick(Sender: TObject);
+    procedure RunChipMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure RunChipRenameClick(Sender: TObject);
+    procedure RunChipDeleteClick(Sender: TObject);
 
     procedure ChartPaintBoxPaint(Sender: TObject);
     procedure ChartPaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -175,9 +193,66 @@ type
     procedure ReloadCheckedRunsData;
     procedure UpdateStatsGridAndSpecs;
 
+    procedure DrawResumeView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
     procedure DrawTimelineView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
     procedure DrawSummaryView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
     procedure DrawHardwareView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
+  protected
+    procedure Resize; override;
+  public
+    constructor Create(AOwner: TComponent; const AInitialGame: string = ''; const ABaseDataDir: string = ''); reintroduce;
+    destructor Destroy; override;
+
+    procedure ApplyThemeStyling;
+    procedure ReflowLayout(AContentW: Integer);
+    procedure RefreshGamesAndRuns(const APreferredGame: string = '');
+    procedure RenderChartToCanvas(ACanvas: TCanvas; AWidth, AHeight: Integer);
+    function ExportToPngFile(const AFilePath: string): Boolean;
+    function SelectedRunCount: Integer;
+    function GetActiveGameLogFolder: string;
+
+    property GameComboBox: TComboBox read FGameComboBox;
+    property RunCheckListBox: TCheckListBox read FRunCheckListBox;
+    property ResumeTabBtn: TBitBtn read FResumeTabBtn;
+    property TimelineTabBtn: TBitBtn read FTimelineTabBtn;
+    property SummaryTabBtn: TBitBtn read FSummaryTabBtn;
+    property HardwareTabBtn: TBitBtn read FHardwareTabBtn;
+    property TableTabBtn: TBitBtn read FTableTabBtn;
+    property RunsStripPanel: TPanel read FRunsStripPanel;
+    property RunsChipScroll: TScrollBox read FRunsChipScroll;
+    property RefreshBtn: TBitBtn read FRefreshBtn;
+    property OpenFolderBtn: TBitBtn read FOpenFolderBtn;
+    property RenameRunBtn: TBitBtn read FRenameRunBtn;
+    property DeleteRunBtn: TBitBtn read FDeleteRunBtn;
+    property ExportPngBtn: TBitBtn read FExportPngBtn;
+    property LeftPanel: TPanel read FLeftPanel;
+    property TopPanel: TPanel read FTopPanel;
+    property ChartPaintBox: TPaintBox read FChartPaintBox;
+    property StatsGrid: TStringGrid read FStatsGrid;
+    property SpecsLabel: TLabel read FSpecsLabel;
+    property ViewMode: TGplotViewMode read FViewMode write SetViewMode;
+  end;
+
+  { TgplotForm }
+  TgplotForm = class(TForm)
+  private
+    FPlotPanel: TPasPlotPanel;
+    function GetGameComboBox: TComboBox;
+    function GetRunCheckListBox: TCheckListBox;
+    function GetResumeTabBtn: TBitBtn;
+    function GetTimelineTabBtn: TBitBtn;
+    function GetSummaryTabBtn: TBitBtn;
+    function GetHardwareTabBtn: TBitBtn;
+    function GetRefreshBtn: TBitBtn;
+    function GetOpenFolderBtn: TBitBtn;
+    function GetRenameRunBtn: TBitBtn;
+    function GetDeleteRunBtn: TBitBtn;
+    function GetExportPngBtn: TBitBtn;
+    function GetChartPaintBox: TPaintBox;
+    function GetStatsGrid: TStringGrid;
+    function GetSpecsLabel: TLabel;
+    function GetViewMode: TGplotViewMode;
+    procedure SetViewMode(AValue: TGplotViewMode);
   public
     constructor Create(AOwner: TComponent; const AInitialGame: string = ''; const ABaseDataDir: string = ''); reintroduce;
     destructor Destroy; override;
@@ -188,20 +263,22 @@ type
     function SelectedRunCount: Integer;
     function GetActiveGameLogFolder: string;
 
-    property GameComboBox: TComboBox read FGameComboBox;
-    property RunCheckListBox: TCheckListBox read FRunCheckListBox;
-    property TimelineTabBtn: TBitBtn read FTimelineTabBtn;
-    property SummaryTabBtn: TBitBtn read FSummaryTabBtn;
-    property HardwareTabBtn: TBitBtn read FHardwareTabBtn;
-    property RefreshBtn: TBitBtn read FRefreshBtn;
-    property OpenFolderBtn: TBitBtn read FOpenFolderBtn;
-    property RenameRunBtn: TBitBtn read FRenameRunBtn;
-    property DeleteRunBtn: TBitBtn read FDeleteRunBtn;
-    property ExportPngBtn: TBitBtn read FExportPngBtn;
-    property ChartPaintBox: TPaintBox read FChartPaintBox;
-    property StatsGrid: TStringGrid read FStatsGrid;
-    property SpecsLabel: TLabel read FSpecsLabel;
-    property ViewMode: TGplotViewMode read FViewMode write SetViewMode;
+    property PlotPanel: TPasPlotPanel read FPlotPanel;
+    property GameComboBox: TComboBox read GetGameComboBox;
+    property RunCheckListBox: TCheckListBox read GetRunCheckListBox;
+    property ResumeTabBtn: TBitBtn read GetResumeTabBtn;
+    property TimelineTabBtn: TBitBtn read GetTimelineTabBtn;
+    property SummaryTabBtn: TBitBtn read GetSummaryTabBtn;
+    property HardwareTabBtn: TBitBtn read GetHardwareTabBtn;
+    property RefreshBtn: TBitBtn read GetRefreshBtn;
+    property OpenFolderBtn: TBitBtn read GetOpenFolderBtn;
+    property RenameRunBtn: TBitBtn read GetRenameRunBtn;
+    property DeleteRunBtn: TBitBtn read GetDeleteRunBtn;
+    property ExportPngBtn: TBitBtn read GetExportPngBtn;
+    property ChartPaintBox: TPaintBox read GetChartPaintBox;
+    property StatsGrid: TStringGrid read GetStatsGrid;
+    property SpecsLabel: TLabel read GetSpecsLabel;
+    property ViewMode: TGplotViewMode read GetViewMode write SetViewMode;
   end;
 
   TpasplotForm = TgplotForm;
@@ -754,34 +831,181 @@ end;
 constructor TgplotForm.Create(AOwner: TComponent; const AInitialGame: string; const ABaseDataDir: string);
 begin
   inherited CreateNew(AOwner, 1);
+  Caption := 'PasPlot - MangoHud Benchmark Analyzer';
+  Width := 1080;
+  Height := 720;
+  Constraints.MinWidth := 820;
+  Constraints.MinHeight := 540;
+  Position := poScreenCenter;
+
+  FPlotPanel := TPasPlotPanel.Create(Self, AInitialGame, ABaseDataDir);
+  FPlotPanel.Parent := Self;
+  FPlotPanel.Align := alClient;
+end;
+
+destructor TgplotForm.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TgplotForm.GetGameComboBox: TComboBox; begin Result := FPlotPanel.GameComboBox; end;
+function TgplotForm.GetRunCheckListBox: TCheckListBox; begin Result := FPlotPanel.RunCheckListBox; end;
+function TgplotForm.GetResumeTabBtn: TBitBtn; begin Result := FPlotPanel.ResumeTabBtn; end;
+function TgplotForm.GetTimelineTabBtn: TBitBtn; begin Result := FPlotPanel.TimelineTabBtn; end;
+function TgplotForm.GetSummaryTabBtn: TBitBtn; begin Result := FPlotPanel.SummaryTabBtn; end;
+function TgplotForm.GetHardwareTabBtn: TBitBtn; begin Result := FPlotPanel.HardwareTabBtn; end;
+function TgplotForm.GetRefreshBtn: TBitBtn; begin Result := FPlotPanel.RefreshBtn; end;
+function TgplotForm.GetOpenFolderBtn: TBitBtn; begin Result := FPlotPanel.OpenFolderBtn; end;
+function TgplotForm.GetRenameRunBtn: TBitBtn; begin Result := FPlotPanel.RenameRunBtn; end;
+function TgplotForm.GetDeleteRunBtn: TBitBtn; begin Result := FPlotPanel.DeleteRunBtn; end;
+function TgplotForm.GetExportPngBtn: TBitBtn; begin Result := FPlotPanel.ExportPngBtn; end;
+function TgplotForm.GetChartPaintBox: TPaintBox; begin Result := FPlotPanel.ChartPaintBox; end;
+function TgplotForm.GetStatsGrid: TStringGrid; begin Result := FPlotPanel.StatsGrid; end;
+function TgplotForm.GetSpecsLabel: TLabel; begin Result := FPlotPanel.SpecsLabel; end;
+function TgplotForm.GetViewMode: TGplotViewMode; begin Result := FPlotPanel.ViewMode; end;
+procedure TgplotForm.SetViewMode(AValue: TGplotViewMode); begin FPlotPanel.ViewMode := AValue; end;
+
+procedure TgplotForm.RefreshGamesAndRuns(const APreferredGame: string);
+begin
+  FPlotPanel.RefreshGamesAndRuns(APreferredGame);
+end;
+
+procedure TgplotForm.RenderChartToCanvas(ACanvas: TCanvas; AWidth, AHeight: Integer);
+begin
+  FPlotPanel.RenderChartToCanvas(ACanvas, AWidth, AHeight);
+end;
+
+function TgplotForm.ExportToPngFile(const AFilePath: string): Boolean;
+begin
+  Result := FPlotPanel.ExportToPngFile(AFilePath);
+end;
+
+function TgplotForm.SelectedRunCount: Integer;
+begin
+  Result := FPlotPanel.SelectedRunCount;
+end;
+
+function TgplotForm.GetActiveGameLogFolder: string;
+begin
+  Result := FPlotPanel.GetActiveGameLogFolder;
+end;
+
+{ TPasPlotPanel }
+
+constructor TPasPlotPanel.Create(AOwner: TComponent; const AInitialGame: string; const ABaseDataDir: string);
+begin
+  inherited Create(AOwner);
+  BevelOuter := bvNone;
   if Trim(ABaseDataDir) <> '' then
     FBaseDataDir := IncludeTrailingPathDelimiter(ABaseDataDir)
   else
     FBaseDataDir := IncludeTrailingPathDelimiter(GetGOverlayDataDir());
   FInitialGame := Trim(AInitialGame);
-  FViewMode := gvmTimeline;
+  FViewMode := gvmResume;
   FHoverActive := False;
   FDiscoveredFiles := TStringList.Create;
 
-  Caption := 'PasPlot - MangoHud Benchmark Analyzer';
-  Width := 1080;
-  Height := 720;
-  Constraints.MinWidth := 860;
-  Constraints.MinHeight := 560;
-  Position := poScreenCenter;
-
   BuildUI;
   ApplyThemeStyling;
+  ReflowLayout(IfThen(Width > 0, Width, 1080));
   RefreshGamesAndRuns(FInitialGame);
 end;
 
-destructor TgplotForm.Destroy;
+destructor TPasPlotPanel.Destroy;
 begin
   FreeAndNil(FDiscoveredFiles);
   inherited Destroy;
 end;
 
-procedure TgplotForm.BuildUI;
+procedure TPasPlotPanel.Resize;
+begin
+  inherited Resize;
+  if ClientWidth > 0 then
+    ReflowLayout(ClientWidth);
+  UpdateViewTabButtons;
+  UpdateRunChipStyles;
+end;
+
+procedure TPasPlotPanel.ReflowLayout(AContentW: Integer);
+const
+  RightPad = 10;
+  Gap = 6;
+var
+  IsCompact: Boolean;
+  X, W, ComboLeft, ComboW, AvailTabW, TabBtnW, KpiFontSize: Integer;
+begin
+  if FInReflow or (AContentW <= 0) or not Assigned(FTopPanel) then Exit;
+  FInReflow := True;
+  try
+  IsCompact := AContentW < 920;
+
+  // Layout B: single-row top toolbar (Game + Refresh, Open Folder, Export PNG)
+  X := AContentW - RightPad;
+
+  W := IfThen(IsCompact, 96, 112);
+  FExportPngBtn.SetBounds(X - W, 11, W, 30);
+  X := X - W - Gap;
+
+  W := IfThen(IsCompact, 94, 110);
+  FOpenFolderBtn.Caption := IfThen(IsCompact, 'Open Folder', 'Open Folder');
+  FOpenFolderBtn.SetBounds(X - W, 11, W, 30);
+  X := X - W - Gap;
+
+  W := IfThen(IsCompact, 78, 96);
+  FRefreshBtn.SetBounds(X - W, 11, W, 30);
+  X := X - W - Gap;
+
+  if IsCompact then
+  begin
+    FTitleLabel.Visible := False;
+    FGameLabel.Left := 10;
+    FGameLabel.Top := 17;
+    ComboLeft := 58;
+  end
+  else
+  begin
+    FTitleLabel.Visible := True;
+    FTitleLabel.Left := 14;
+    FTitleLabel.Top := 15;
+    FGameLabel.Left := 95;
+    FGameLabel.Top := 17;
+    ComboLeft := 150;
+  end;
+
+  ComboW := Max(120, Min(320, X - ComboLeft - 6));
+  FGameComboBox.Left := ComboLeft;
+  FGameComboBox.Top := 12;
+  FGameComboBox.Width := ComboW;
+
+  // Option C: hide permanent left sidebar; runs live in FRunsStripPanel
+  FLeftPanel.Visible := False;
+
+  // View switcher pills (5 tabs: Resume, Timeline, Comparison, Telemetry, Table)
+  AvailTabW := Max(400, AContentW - 24);
+  TabBtnW := Min(160, (AvailTabW - 28) div 5);
+  FResumeTabBtn.SetBounds(4, 4, TabBtnW, 32);
+  FTimelineTabBtn.SetBounds(4 + TabBtnW + 6, 4, TabBtnW, 32);
+  FSummaryTabBtn.SetBounds(4 + (TabBtnW + 6) * 2, 4, TabBtnW, 32);
+  FHardwareTabBtn.SetBounds(4 + (TabBtnW + 6) * 3, 4, TabBtnW, 32);
+  if Assigned(FTableTabBtn) then
+    FTableTabBtn.SetBounds(4 + (TabBtnW + 6) * 4, 4, TabBtnW, 32);
+
+  // Full width (~814px) gives all 4 KPI cards plenty of room
+  KpiFontSize := 15;
+  if Assigned(FKpiValAvgFps) then
+  begin
+    FKpiValAvgFps.Font.Size := KpiFontSize;
+    FKpiValLows.Font.Size := KpiFontSize;
+    FKpiValFrametime.Font.Size := KpiFontSize;
+    FKpiValPower.Font.Size := KpiFontSize;
+  end;
+  KpiContainerResize(nil);
+  finally
+    FInReflow := False;
+  end;
+end;
+
+procedure TPasPlotPanel.BuildUI;
 begin
   // Top Toolbar
   FTopPanel := TPanel.Create(Self);
@@ -827,20 +1051,6 @@ begin
   FOpenFolderBtn.Cursor := crHandPoint;
   FOpenFolderBtn.OnClick := @OpenFolderClick;
 
-  FRenameRunBtn := TBitBtn.Create(FTopPanel);
-  FRenameRunBtn.Parent := FTopPanel;
-  FRenameRunBtn.SetBounds(652, 11, 120, 30);
-  FRenameRunBtn.Caption := 'Rename Run';
-  FRenameRunBtn.Cursor := crHandPoint;
-  FRenameRunBtn.OnClick := @RenameRunClick;
-
-  FDeleteRunBtn := TBitBtn.Create(FTopPanel);
-  FDeleteRunBtn.Parent := FTopPanel;
-  FDeleteRunBtn.SetBounds(778, 11, 120, 30);
-  FDeleteRunBtn.Caption := 'Delete Run';
-  FDeleteRunBtn.Cursor := crHandPoint;
-  FDeleteRunBtn.OnClick := @DeleteRunClick;
-
   FExportPngBtn := TBitBtn.Create(FTopPanel);
   FExportPngBtn.Parent := FTopPanel;
   FExportPngBtn.SetBounds(904, 11, 120, 30);
@@ -848,11 +1058,71 @@ begin
   FExportPngBtn.Cursor := crHandPoint;
   FExportPngBtn.OnClick := @ExportPngClick;
 
-  // Bottom Status Bar (System Specs)
+  // Horizontal Run Chips Strip (Option C)
+  FRunsStripPanel := TPanel.Create(Self);
+  FRunsStripPanel.Parent := Self;
+  FRunsStripPanel.Align := alTop;
+  FRunsStripPanel.Top := FTopPanel.Height;
+  FRunsStripPanel.Height := 44;
+  FRunsStripPanel.BevelOuter := bvNone;
+
+  FRunsActionsPanel := TPanel.Create(FRunsStripPanel);
+  FRunsActionsPanel.Parent := FRunsStripPanel;
+  FRunsActionsPanel.Align := alRight;
+  FRunsActionsPanel.Width := 0;
+  FRunsActionsPanel.Visible := False;
+  FRunsActionsPanel.BevelOuter := bvNone;
+
+  FSelectAllBtn := TBitBtn.Create(FRunsActionsPanel);
+  FSelectAllBtn.Parent := FRunsActionsPanel;
+  FSelectAllBtn.SetBounds(4, 8, 42, 28);
+  FSelectAllBtn.Caption := 'All';
+  FSelectAllBtn.Hint := 'Select all benchmark runs';
+  FSelectAllBtn.ShowHint := True;
+  FSelectAllBtn.Cursor := crHandPoint;
+  FSelectAllBtn.OnClick := @SelectAllClick;
+
+  FClearSelBtn := TBitBtn.Create(FRunsActionsPanel);
+  FClearSelBtn.Parent := FRunsActionsPanel;
+  FClearSelBtn.SetBounds(50, 8, 46, 28);
+  FClearSelBtn.Caption := 'None';
+  FClearSelBtn.Hint := 'Clear run selection';
+  FClearSelBtn.ShowHint := True;
+  FClearSelBtn.Cursor := crHandPoint;
+  FClearSelBtn.OnClick := @ClearSelClick;
+
+  FRenameRunBtn := TBitBtn.Create(FRunsActionsPanel);
+  FRenameRunBtn.Parent := FRunsActionsPanel;
+  FRenameRunBtn.SetBounds(100, 8, 62, 28);
+  FRenameRunBtn.Caption := 'Rename';
+  FRenameRunBtn.Hint := 'Rename selected benchmark run (F2)';
+  FRenameRunBtn.ShowHint := True;
+  FRenameRunBtn.Cursor := crHandPoint;
+  FRenameRunBtn.OnClick := @RenameRunClick;
+
+  FDeleteRunBtn := TBitBtn.Create(FRunsActionsPanel);
+  FDeleteRunBtn.Parent := FRunsActionsPanel;
+  FDeleteRunBtn.SetBounds(166, 8, 60, 28);
+  FDeleteRunBtn.Caption := 'Delete';
+  FDeleteRunBtn.Hint := 'Delete selected benchmark run';
+  FDeleteRunBtn.ShowHint := True;
+  FDeleteRunBtn.Cursor := crHandPoint;
+  FDeleteRunBtn.OnClick := @DeleteRunClick;
+
+  FRunsChipScroll := TScrollBox.Create(FRunsStripPanel);
+  FRunsChipScroll.Parent := FRunsStripPanel;
+  FRunsChipScroll.Align := alClient;
+  FRunsChipScroll.BorderStyle := bsNone;
+  FRunsChipScroll.VertScrollBar.Visible := False;
+  FRunsChipScroll.HorzScrollBar.Tracking := True;
+  FRunsChipScroll.AutoScroll := True;
+
+  // Bottom Status Bar (hidden to maximize chart area)
   FBottomBar := TPanel.Create(Self);
   FBottomBar.Parent := Self;
   FBottomBar.Align := alBottom;
-  FBottomBar.Height := 30;
+  FBottomBar.Height := 0;
+  FBottomBar.Visible := False;
   FBottomBar.BevelOuter := bvNone;
 
   FSpecsLabel := TLabel.Create(FBottomBar);
@@ -867,45 +1137,30 @@ begin
   FBodyPanel.Align := alClient;
   FBodyPanel.BevelOuter := bvNone;
 
-  // Left Panel (Run Selector)
+  // Hidden underlying Run CheckListBox (keeps API/test compatibility & popup menu)
   FLeftPanel := TPanel.Create(FBodyPanel);
   FLeftPanel.Parent := FBodyPanel;
   FLeftPanel.Align := alLeft;
-  FLeftPanel.Width := 285;
+  FLeftPanel.Width := 236;
+  FLeftPanel.Visible := False;
   FLeftPanel.BevelOuter := bvNone;
-  FLeftPanel.BorderSpacing.Around := 6;
 
   FRunsHeaderPanel := TPanel.Create(FLeftPanel);
   FRunsHeaderPanel.Parent := FLeftPanel;
   FRunsHeaderPanel.Align := alTop;
-  FRunsHeaderPanel.Height := 62;
+  FRunsHeaderPanel.Height := 32;
   FRunsHeaderPanel.BevelOuter := bvNone;
 
   FRunsTitleLabel := TLabel.Create(FRunsHeaderPanel);
   FRunsTitleLabel.Parent := FRunsHeaderPanel;
   FRunsTitleLabel.Left := 8;
   FRunsTitleLabel.Top := 6;
-  FRunsTitleLabel.Caption := 'Benchmark Runs (check to compare)';
+  FRunsTitleLabel.Caption := 'Benchmark Runs';
   FRunsTitleLabel.Font.Style := [fsBold];
-
-  FSelectAllBtn := TBitBtn.Create(FRunsHeaderPanel);
-  FSelectAllBtn.Parent := FRunsHeaderPanel;
-  FSelectAllBtn.SetBounds(8, 28, 125, 26);
-  FSelectAllBtn.Caption := 'Select All';
-  FSelectAllBtn.Cursor := crHandPoint;
-  FSelectAllBtn.OnClick := @SelectAllClick;
-
-  FClearSelBtn := TBitBtn.Create(FRunsHeaderPanel);
-  FClearSelBtn.Parent := FRunsHeaderPanel;
-  FClearSelBtn.SetBounds(142, 28, 125, 26);
-  FClearSelBtn.Caption := 'Clear';
-  FClearSelBtn.Cursor := crHandPoint;
-  FClearSelBtn.OnClick := @ClearSelClick;
 
   FRunCheckListBox := TCheckListBox.Create(FLeftPanel);
   FRunCheckListBox.Parent := FLeftPanel;
   FRunCheckListBox.Align := alClient;
-  FRunCheckListBox.BorderSpacing.Around := 4;
   FRunCheckListBox.Style := lbOwnerDrawFixed;
   FRunCheckListBox.ItemHeight := 52;
   FRunCheckListBox.OnDrawItem := @RunCheckListDrawItem;
@@ -941,9 +1196,17 @@ begin
   FViewTabsPanel.Height := 40;
   FViewTabsPanel.BevelOuter := bvNone;
 
+  FResumeTabBtn := TBitBtn.Create(FViewTabsPanel);
+  FResumeTabBtn.Parent := FViewTabsPanel;
+  FResumeTabBtn.SetBounds(4, 4, 140, 32);
+  FResumeTabBtn.Caption := '📋 Resume';
+  FResumeTabBtn.Tag := Ord(gvmResume);
+  FResumeTabBtn.Cursor := crHandPoint;
+  FResumeTabBtn.OnClick := @ViewTabBtnClick;
+
   FTimelineTabBtn := TBitBtn.Create(FViewTabsPanel);
   FTimelineTabBtn.Parent := FViewTabsPanel;
-  FTimelineTabBtn.SetBounds(4, 4, 180, 32);
+  FTimelineTabBtn.SetBounds(150, 4, 140, 32);
   FTimelineTabBtn.Caption := '📈 Timeline';
   FTimelineTabBtn.Tag := Ord(gvmTimeline);
   FTimelineTabBtn.Cursor := crHandPoint;
@@ -959,11 +1222,19 @@ begin
 
   FHardwareTabBtn := TBitBtn.Create(FViewTabsPanel);
   FHardwareTabBtn.Parent := FViewTabsPanel;
-  FHardwareTabBtn.SetBounds(376, 4, 180, 32);
+  FHardwareTabBtn.SetBounds(376, 4, 140, 32);
   FHardwareTabBtn.Caption := '🌡 Telemetry';
   FHardwareTabBtn.Tag := Ord(gvmHardware);
   FHardwareTabBtn.Cursor := crHandPoint;
   FHardwareTabBtn.OnClick := @ViewTabBtnClick;
+
+  FTableTabBtn := TBitBtn.Create(FViewTabsPanel);
+  FTableTabBtn.Parent := FViewTabsPanel;
+  FTableTabBtn.SetBounds(522, 4, 140, 32);
+  FTableTabBtn.Caption := '📑 Table';
+  FTableTabBtn.Tag := Ord(gvmTable);
+  FTableTabBtn.Cursor := crHandPoint;
+  FTableTabBtn.OnClick := @ViewTabBtnClick;
 
   // Quick KPI Hero Cards Container
   FKpiContainerPanel := TPanel.Create(FRightPanel);
@@ -1087,11 +1358,11 @@ begin
   FKpiSubPower.Caption := 'GPU Power & Temp';
   FKpiSubPower.Font.Size := 8;
 
-  // Bottom Comparative Statistics Table
+  // Comparative Statistics Table (shown in dedicated Table view tab)
   FStatsPanel := TPanel.Create(FRightPanel);
   FStatsPanel.Parent := FRightPanel;
-  FStatsPanel.Align := alBottom;
-  FStatsPanel.Height := 165;
+  FStatsPanel.Align := alClient;
+  FStatsPanel.Visible := False;
   FStatsPanel.BevelOuter := bvNone;
 
   FStatsTitleLabel := TLabel.Create(FStatsPanel);
@@ -1118,15 +1389,15 @@ begin
   FStatsGrid.Cells[6, 0] := 'Avg Frame';
   FStatsGrid.Cells[7, 0] := 'Δ Avg FPS';
   FStatsGrid.Cells[8, 0] := 'GPU Temp / Power';
-  FStatsGrid.ColWidths[0] := 145;
-  FStatsGrid.ColWidths[1] := 65;
-  FStatsGrid.ColWidths[2] := 75;
-  FStatsGrid.ColWidths[3] := 75;
-  FStatsGrid.ColWidths[4] := 75;
-  FStatsGrid.ColWidths[5] := 115;
-  FStatsGrid.ColWidths[6] := 80;
-  FStatsGrid.ColWidths[7] := 80;
-  FStatsGrid.ColWidths[8] := 125;
+  FStatsGrid.ColWidths[0] := 140;
+  FStatsGrid.ColWidths[1] := 62;
+  FStatsGrid.ColWidths[2] := 68;
+  FStatsGrid.ColWidths[3] := 68;
+  FStatsGrid.ColWidths[4] := 68;
+  FStatsGrid.ColWidths[5] := 100;
+  FStatsGrid.ColWidths[6] := 76;
+  FStatsGrid.ColWidths[7] := 76;
+  FStatsGrid.ColWidths[8] := 120;
 
   // Interactive Chart Canvas
   FChartContainerPanel := TPanel.Create(FRightPanel);
@@ -1143,7 +1414,7 @@ begin
   FChartPaintBox.OnMouseLeave := @ChartPaintBoxMouseLeave;
 end;
 
-procedure TgplotForm.ApplyThemeStyling;
+procedure TPasPlotPanel.ApplyThemeStyling;
 var
   IsDark: Boolean;
   BgColor, CardColor, TextColor, AccentColor: TColor;
@@ -1168,6 +1439,9 @@ begin
   Font.Color := TextColor;
 
   FTopPanel.Color := CardColor;
+  if Assigned(FRunsStripPanel) then FRunsStripPanel.Color := BgColor;
+  if Assigned(FRunsChipScroll) then FRunsChipScroll.Color := BgColor;
+  if Assigned(FRunsActionsPanel) then FRunsActionsPanel.Color := BgColor;
   FBodyPanel.Color := BgColor;
   FLeftPanel.Color := CardColor;
   FRunsHeaderPanel.Color := CardColor;
@@ -1226,10 +1500,11 @@ begin
   end;
 
   UpdateViewTabButtons;
+  UpdateRunChipStyles;
   UpdateKpiHeroCards;
 end;
 
-procedure TgplotForm.KpiContainerResize(Sender: TObject);
+procedure TPasPlotPanel.KpiContainerResize(Sender: TObject);
 var
   W, H, Gap, TotalW: Integer;
 begin
@@ -1245,7 +1520,7 @@ begin
   FKpiCardPower.SetBounds((W + Gap) * 3, 0, FKpiContainerPanel.ClientWidth - ((W + Gap) * 3), H);
 end;
 
-procedure TgplotForm.UpdateKpiHeroCards;
+procedure TPasPlotPanel.UpdateKpiHeroCards;
 var
   RunCount: Integer;
   R, Base: TGplotRunData;
@@ -1379,7 +1654,7 @@ begin
   end;
 end;
 
-procedure TgplotForm.RunCheckListDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+procedure TPasPlotPanel.RunCheckListDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
 var
   Box: TCheckListBox;
   ACanvas: TCanvas;
@@ -1506,18 +1781,99 @@ begin
   ACanvas.TextOut(TextLeft, ARect.Top + 28, SubStr);
 end;
 
-procedure TgplotForm.SetViewMode(AValue: TGplotViewMode);
+procedure TPasPlotPanel.SetViewMode(AValue: TGplotViewMode);
 begin
   if FViewMode = AValue then Exit;
   FViewMode := AValue;
+  if Assigned(FStatsPanel) and Assigned(FChartContainerPanel) then
+  begin
+    if FViewMode = gvmTable then
+    begin
+      FChartContainerPanel.Visible := False;
+      FStatsPanel.Visible := True;
+      FStatsPanel.Align := alClient;
+    end
+    else
+    begin
+      FStatsPanel.Visible := False;
+      FChartContainerPanel.Visible := True;
+      FChartContainerPanel.Align := alClient;
+    end;
+  end;
   UpdateViewTabButtons;
   FChartPaintBox.Invalidate;
 end;
 
-procedure TgplotForm.UpdateViewTabButtons;
+procedure TPasPlotPanel.UpdateViewTabButtons;
 var
   IsDark: Boolean;
   ActiveBg, InactiveBg, ActiveText, InactiveText: TColor;
+
+  procedure ApplyPillStyle(ABtn: TBitBtn; AActive: Boolean);
+  {$IFDEF LCLqt6}
+  var
+    SS: WideString;
+  {$ENDIF}
+  {$IFDEF LCLqt5}
+  var
+    SS: WideString;
+  {$ENDIF}
+  begin
+    if not Assigned(ABtn) then Exit;
+    if AActive then
+    begin
+      ABtn.Font.Style := [fsBold];
+      ABtn.Color := ActiveBg;
+      ABtn.Font.Color := ActiveText;
+    end
+    else
+    begin
+      ABtn.Font.Style := [];
+      ABtn.Color := InactiveBg;
+      ABtn.Font.Color := InactiveText;
+    end;
+    {$IFDEF LCLqt6}
+    if ABtn.HandleAllocated then
+    begin
+      if AActive then
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(48,190,240); color: rgb(20,24,36); border: 1px solid rgb(48,190,240); border-radius: 6px; padding: 2px 10px; font-weight: bold; }'
+        else
+          SS := 'QPushButton { background-color: rgb(25,118,210); color: rgb(255,255,255); border: 1px solid rgb(25,118,210); border-radius: 6px; padding: 2px 10px; font-weight: bold; }';
+      end
+      else
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(36,44,66); color: rgb(200,210,230); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 10px; } QPushButton:hover { background-color: rgb(48,58,88); color: rgb(255,255,255); }'
+        else
+          SS := 'QPushButton { background-color: rgb(230,235,245); color: rgb(50,60,75); border: 1px solid rgb(200,210,225); border-radius: 6px; padding: 2px 10px; } QPushButton:hover { background-color: rgb(215,222,236); }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(ABtn.Handle).Widget, @SS);
+    end;
+    {$ENDIF}
+    {$IFDEF LCLqt5}
+    if ABtn.HandleAllocated then
+    begin
+      if AActive then
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(48,190,240); color: rgb(20,24,36); border: 1px solid rgb(48,190,240); border-radius: 6px; padding: 2px 10px; font-weight: bold; }'
+        else
+          SS := 'QPushButton { background-color: rgb(25,118,210); color: rgb(255,255,255); border: 1px solid rgb(25,118,210); border-radius: 6px; padding: 2px 10px; font-weight: bold; }';
+      end
+      else
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(36,44,66); color: rgb(200,210,230); border: 1px solid rgb(55,70,108); border-radius: 6px; padding: 2px 10px; } QPushButton:hover { background-color: rgb(48,58,88); color: rgb(255,255,255); }'
+        else
+          SS := 'QPushButton { background-color: rgb(230,235,245); color: rgb(50,60,75); border: 1px solid rgb(200,210,225); border-radius: 6px; padding: 2px 10px; } QPushButton:hover { background-color: rgb(215,222,236); }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(ABtn.Handle).Widget, @SS);
+    end;
+    {$ENDIF}
+  end;
+
 begin
   IsDark := (CurrentTheme <> tmLight);
   if IsDark then
@@ -1525,66 +1881,24 @@ begin
     ActiveBg := RGBToColor(48, 190, 240);
     ActiveText := RGBToColor(20, 24, 36);
     InactiveBg := RGBToColor(36, 44, 66);
-    InactiveText := RGBToColor(180, 190, 210);
+    InactiveText := RGBToColor(200, 210, 230);
   end
   else
   begin
     ActiveBg := RGBToColor(25, 118, 210);
     ActiveText := clWhite;
     InactiveBg := RGBToColor(230, 235, 245);
-    InactiveText := RGBToColor(60, 70, 85);
+    InactiveText := RGBToColor(50, 60, 75);
   end;
 
-  if Assigned(FTimelineTabBtn) then
-  begin
-    if FViewMode = gvmTimeline then
-    begin
-      FTimelineTabBtn.Font.Style := [fsBold];
-      FTimelineTabBtn.Color := ActiveBg;
-      FTimelineTabBtn.Font.Color := ActiveText;
-    end
-    else
-    begin
-      FTimelineTabBtn.Font.Style := [];
-      FTimelineTabBtn.Color := InactiveBg;
-      FTimelineTabBtn.Font.Color := InactiveText;
-    end;
-  end;
-
-  if Assigned(FSummaryTabBtn) then
-  begin
-    if FViewMode = gvmSummary then
-    begin
-      FSummaryTabBtn.Font.Style := [fsBold];
-      FSummaryTabBtn.Color := ActiveBg;
-      FSummaryTabBtn.Font.Color := ActiveText;
-    end
-    else
-    begin
-      FSummaryTabBtn.Font.Style := [];
-      FSummaryTabBtn.Color := InactiveBg;
-      FSummaryTabBtn.Font.Color := InactiveText;
-    end;
-  end;
-
-  if Assigned(FHardwareTabBtn) then
-  begin
-    if FViewMode = gvmHardware then
-    begin
-      FHardwareTabBtn.Font.Style := [fsBold];
-      FHardwareTabBtn.Color := ActiveBg;
-      FHardwareTabBtn.Font.Color := ActiveText;
-    end
-    else
-    begin
-      FHardwareTabBtn.Font.Style := [];
-      FHardwareTabBtn.Color := InactiveBg;
-      FHardwareTabBtn.Font.Color := InactiveText;
-    end;
-  end;
+  ApplyPillStyle(FResumeTabBtn, FViewMode = gvmResume);
+  ApplyPillStyle(FTimelineTabBtn, FViewMode = gvmTimeline);
+  ApplyPillStyle(FSummaryTabBtn, FViewMode = gvmSummary);
+  ApplyPillStyle(FHardwareTabBtn, FViewMode = gvmHardware);
+  ApplyPillStyle(FTableTabBtn, FViewMode = gvmTable);
 end;
 
-procedure TgplotForm.RefreshGamesAndRuns(const APreferredGame: string);
+procedure TPasPlotPanel.RefreshGamesAndRuns(const APreferredGame: string);
 var
   LogsRoot: string;
   SR, FileSR: TSearchRec;
@@ -1666,7 +1980,7 @@ begin
   end;
 end;
 
-function TgplotForm.GetActiveGameLogFolder: string;
+function TPasPlotPanel.GetActiveGameLogFolder: string;
 var
   LogsRoot: string;
 begin
@@ -1677,7 +1991,7 @@ begin
     Result := LogsRoot;
 end;
 
-procedure TgplotForm.LoadRunsForSelectedGame;
+procedure TPasPlotPanel.LoadRunsForSelectedGame;
 var
   GameLogDir: string;
   SR: TSearchRec;
@@ -1737,19 +2051,266 @@ begin
       end;
     end;
 
+    for I := 0 to FRunCheckListBox.Items.Count - 1 do
+      FRunCheckListBox.Checked[I] := True;
     if FRunCheckListBox.Items.Count > 0 then
-    begin
-      FRunCheckListBox.Checked[0] := True;
       FRunCheckListBox.ItemIndex := 0;
-    end;
   finally
     FileList.Free;
   end;
 
+  RebuildRunChips;
   ReloadCheckedRunsData;
 end;
 
-procedure TgplotForm.ReloadCheckedRunsData;
+procedure TPasPlotPanel.RebuildRunChips;
+var
+  I, X, TextW, ChipW: Integer;
+  Pill, EditBtn, DelBtn: TBitBtn;
+  CapStr: string;
+  MeasureBmp: TBitmap;
+begin
+  if not Assigned(FRunsChipScroll) then Exit;
+  for I := 0 to High(FRunChipBtns) do
+    if Assigned(FRunChipBtns[I]) then
+    begin
+      FRunChipBtns[I].Visible := False;
+      Application.ReleaseComponent(FRunChipBtns[I]);
+      FRunChipBtns[I] := nil;
+    end;
+  for I := 0 to High(FRunChipEditBtns) do
+    if Assigned(FRunChipEditBtns[I]) then
+    begin
+      FRunChipEditBtns[I].Visible := False;
+      Application.ReleaseComponent(FRunChipEditBtns[I]);
+      FRunChipEditBtns[I] := nil;
+    end;
+  for I := 0 to High(FRunChipDelBtns) do
+    if Assigned(FRunChipDelBtns[I]) then
+    begin
+      FRunChipDelBtns[I].Visible := False;
+      Application.ReleaseComponent(FRunChipDelBtns[I]);
+      FRunChipDelBtns[I] := nil;
+    end;
+  SetLength(FRunChipBtns, FRunCheckListBox.Items.Count);
+  SetLength(FRunChipEditBtns, FRunCheckListBox.Items.Count);
+  SetLength(FRunChipDelBtns, FRunCheckListBox.Items.Count);
+
+  MeasureBmp := TBitmap.Create;
+  try
+    MeasureBmp.SetSize(1, 1);
+    MeasureBmp.Canvas.Font.Assign(FRunsChipScroll.Font);
+    MeasureBmp.Canvas.Font.Size := 8;
+    MeasureBmp.Canvas.Font.Style := [fsBold];
+
+    X := 8;
+    for I := 0 to FRunCheckListBox.Items.Count - 1 do
+    begin
+      if (I >= 0) and (I < Length(FDiscoveredRuns)) then
+        CapStr := Format('%s (%.0f FPS)', [FDiscoveredRuns[I].DisplayName, FDiscoveredRuns[I].AvgFps])
+      else
+        CapStr := FRunCheckListBox.Items[I];
+
+      TextW := MeasureBmp.Canvas.TextWidth(CapStr);
+      ChipW := Max(115, 10 + TextW + 48);
+
+      Pill := TBitBtn.Create(FRunsChipScroll);
+      Pill.Parent := FRunsChipScroll;
+      Pill.Tag := I;
+      Pill.Caption := CapStr;
+      Pill.Font.Size := 8;
+      Pill.SetBounds(X, 7, ChipW, 28);
+      Pill.Cursor := crHandPoint;
+      Pill.PopupMenu := FRunPopupMenu;
+      Pill.OnClick := @RunChipClick;
+      Pill.OnMouseDown := @RunChipMouseDown;
+
+      EditBtn := TBitBtn.Create(FRunsChipScroll);
+      EditBtn.Parent := FRunsChipScroll;
+      EditBtn.Tag := I;
+      EditBtn.SetBounds(X + ChipW - 44, 10, 20, 22);
+      EditBtn.Caption := '✎';
+      EditBtn.Font.Size := 9;
+      EditBtn.Hint := 'Rename benchmark';
+      EditBtn.ShowHint := True;
+      EditBtn.Cursor := crHandPoint;
+      EditBtn.OnClick := @RunChipRenameClick;
+      EditBtn.BringToFront;
+
+      DelBtn := TBitBtn.Create(FRunsChipScroll);
+      DelBtn.Parent := FRunsChipScroll;
+      DelBtn.Tag := I;
+      DelBtn.SetBounds(X + ChipW - 23, 10, 20, 22);
+      DelBtn.Caption := '✕';
+      DelBtn.Font.Size := 8;
+      DelBtn.Hint := 'Delete benchmark';
+      DelBtn.ShowHint := True;
+      DelBtn.Cursor := crHandPoint;
+      DelBtn.OnClick := @RunChipDeleteClick;
+      DelBtn.BringToFront;
+
+      FRunChipBtns[I] := Pill;
+      FRunChipEditBtns[I] := EditBtn;
+      FRunChipDelBtns[I] := DelBtn;
+      Inc(X, ChipW + 6);
+    end;
+  finally
+    MeasureBmp.Free;
+  end;
+  UpdateRunChipStyles;
+end;
+
+procedure TPasPlotPanel.UpdateRunChipStyles;
+var
+  I, CheckedRank: Integer;
+  IsDark, IsChecked, IsFocused: Boolean;
+  SeriesColor: TColor;
+  RVal, GVal, BVal: Byte;
+  {$IFDEF LCLqt6}
+  SS, BtnSS, DelSS: WideString;
+  {$ENDIF}
+  {$IFDEF LCLqt5}
+  SS, BtnSS, DelSS: WideString;
+  {$ENDIF}
+begin
+  IsDark := (CurrentTheme <> tmLight);
+  CheckedRank := 0;
+  for I := 0 to High(FRunChipBtns) do
+  begin
+    if not Assigned(FRunChipBtns[I]) then Continue;
+    IsChecked := (I < FRunCheckListBox.Items.Count) and FRunCheckListBox.Checked[I];
+    IsFocused := (I = FRunCheckListBox.ItemIndex);
+    if IsChecked then
+    begin
+      SeriesColor := SERIES_COLORS[CheckedRank mod Length(SERIES_COLORS)];
+      Inc(CheckedRank);
+    end
+    else
+      SeriesColor := IfThen(IsDark, RGBToColor(90, 100, 125), RGBToColor(150, 160, 175));
+
+    RVal := Red(SeriesColor);
+    GVal := Green(SeriesColor);
+    BVal := Blue(SeriesColor);
+
+    if IsChecked then
+      FRunChipBtns[I].Font.Style := [fsBold]
+    else
+      FRunChipBtns[I].Font.Style := [];
+
+    {$IFDEF LCLqt6}
+    if FRunChipBtns[I].HandleAllocated then
+    begin
+      if IsChecked then
+      begin
+        if IsDark then
+          SS := Format('QPushButton { background-color: rgb(32,40,62); color: rgb(235,240,248); border: %dpx solid rgb(%d,%d,%d); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; font-weight: bold; }',
+            [IfThen(IsFocused, 2, 1), RVal, GVal, BVal])
+        else
+          SS := Format('QPushButton { background-color: rgb(255,255,255); color: rgb(25,30,40); border: %dpx solid rgb(%d,%d,%d); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; font-weight: bold; }',
+            [IfThen(IsFocused, 2, 1), RVal, GVal, BVal]);
+      end
+      else
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(24,29,44); color: rgb(140,150,170); border: 1px solid rgb(45,54,78); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; }'
+        else
+          SS := 'QPushButton { background-color: rgb(235,238,245); color: rgb(110,120,135); border: 1px solid rgb(205,212,224); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(FRunChipBtns[I].Handle).Widget, @SS);
+
+      if IsDark then
+      begin
+        BtnSS := 'QPushButton { background-color: transparent; color: rgb(180,192,215); border: none; border-radius: 11px; padding: 0px; } QPushButton:hover { background-color: rgb(52,65,98); color: rgb(255,255,255); }';
+        DelSS := 'QPushButton { background-color: transparent; color: rgb(180,192,215); border: none; border-radius: 11px; padding: 0px; } QPushButton:hover { background-color: rgb(170,55,65); color: rgb(255,255,255); }';
+      end
+      else
+      begin
+        BtnSS := 'QPushButton { background-color: transparent; color: rgb(90,100,120); border: none; border-radius: 11px; padding: 0px; } QPushButton:hover { background-color: rgb(220,226,238); color: rgb(20,25,35); }';
+        DelSS := 'QPushButton { background-color: transparent; color: rgb(90,100,120); border: none; border-radius: 11px; padding: 0px; } QPushButton:hover { background-color: rgb(210,60,70); color: rgb(255,255,255); }';
+      end;
+      if (I <= High(FRunChipEditBtns)) and Assigned(FRunChipEditBtns[I]) and FRunChipEditBtns[I].HandleAllocated then
+        QWidget_setStyleSheet(TQtWidget(FRunChipEditBtns[I].Handle).Widget, @BtnSS);
+      if (I <= High(FRunChipDelBtns)) and Assigned(FRunChipDelBtns[I]) and FRunChipDelBtns[I].HandleAllocated then
+        QWidget_setStyleSheet(TQtWidget(FRunChipDelBtns[I].Handle).Widget, @DelSS);
+    end;
+    {$ENDIF}
+    {$IFDEF LCLqt5}
+    if FRunChipBtns[I].HandleAllocated then
+    begin
+      if IsChecked then
+      begin
+        if IsDark then
+          SS := Format('QPushButton { background-color: rgb(32,40,62); color: rgb(235,240,248); border: %dpx solid rgb(%d,%d,%d); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; font-weight: bold; }',
+            [IfThen(IsFocused, 2, 1), RVal, GVal, BVal])
+        else
+          SS := Format('QPushButton { background-color: rgb(255,255,255); color: rgb(25,30,40); border: %dpx solid rgb(%d,%d,%d); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; font-weight: bold; }',
+            [IfThen(IsFocused, 2, 1), RVal, GVal, BVal]);
+      end
+      else
+      begin
+        if IsDark then
+          SS := 'QPushButton { background-color: rgb(24,29,44); color: rgb(140,150,170); border: 1px solid rgb(45,54,78); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; }'
+        else
+          SS := 'QPushButton { background-color: rgb(235,238,245); color: rgb(110,120,135); border: 1px solid rgb(205,212,224); border-radius: 14px; padding: 2px 46px 2px 10px; text-align: left; }';
+      end;
+      QWidget_setStyleSheet(TQtWidget(FRunChipBtns[I].Handle).Widget, @SS);
+    end;
+    {$ENDIF}
+  end;
+end;
+
+procedure TPasPlotPanel.RunChipClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if not (Sender is TControl) then Exit;
+  Idx := TControl(Sender).Tag;
+  if (Idx < 0) or (Idx >= FRunCheckListBox.Items.Count) then Exit;
+  FRunCheckListBox.ItemIndex := Idx;
+  FRunCheckListBox.Checked[Idx] := not FRunCheckListBox.Checked[Idx];
+  ReloadCheckedRunsData;
+end;
+
+procedure TPasPlotPanel.RunChipMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Idx: Integer;
+begin
+  if not (Sender is TControl) then Exit;
+  Idx := TControl(Sender).Tag;
+  if (Idx >= 0) and (Idx < FRunCheckListBox.Items.Count) then
+  begin
+    FRunCheckListBox.ItemIndex := Idx;
+    UpdateRunChipStyles;
+  end;
+end;
+
+procedure TPasPlotPanel.RunChipRenameClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if not (Sender is TControl) then Exit;
+  Idx := TControl(Sender).Tag;
+  if (Idx >= 0) and (Idx < FRunCheckListBox.Items.Count) then
+  begin
+    FRunCheckListBox.ItemIndex := Idx;
+    PromptRenameBenchmark(Idx);
+  end;
+end;
+
+procedure TPasPlotPanel.RunChipDeleteClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  if not (Sender is TControl) then Exit;
+  Idx := TControl(Sender).Tag;
+  if (Idx >= 0) and (Idx < FRunCheckListBox.Items.Count) then
+  begin
+    FRunCheckListBox.ItemIndex := Idx;
+    DeleteRunClick(nil);
+  end;
+end;
+
+procedure TPasPlotPanel.ReloadCheckedRunsData;
 var
   I, Count: Integer;
   RunData: TGplotRunData;
@@ -1776,11 +2337,12 @@ begin
 
   UpdateStatsGridAndSpecs;
   UpdateKpiHeroCards;
+  UpdateRunChipStyles;
   FRunCheckListBox.Invalidate;
   FChartPaintBox.Invalidate;
 end;
 
-procedure TgplotForm.UpdateStatsGridAndSpecs;
+procedure TPasPlotPanel.UpdateStatsGridAndSpecs;
 var
   I: Integer;
   BaselineFps, DeltaPct: Double;
@@ -1836,22 +2398,22 @@ begin
   ]);
 end;
 
-function TgplotForm.SelectedRunCount: Integer;
+function TPasPlotPanel.SelectedRunCount: Integer;
 begin
   Result := Length(FLoadedRuns);
 end;
 
-procedure TgplotForm.GameComboChange(Sender: TObject);
+procedure TPasPlotPanel.GameComboChange(Sender: TObject);
 begin
   LoadRunsForSelectedGame;
 end;
 
-procedure TgplotForm.RunCheckListClickCheck(Sender: TObject);
+procedure TPasPlotPanel.RunCheckListClickCheck(Sender: TObject);
 begin
   ReloadCheckedRunsData;
 end;
 
-procedure TgplotForm.RunCheckListMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TPasPlotPanel.RunCheckListMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Idx: Integer;
 begin
@@ -1887,13 +2449,13 @@ begin
   end;
 end;
 
-procedure TgplotForm.RunCheckListDblClick(Sender: TObject);
+procedure TPasPlotPanel.RunCheckListDblClick(Sender: TObject);
 begin
   if FRunCheckListBox.ItemIndex >= 0 then
     PromptRenameBenchmark(FRunCheckListBox.ItemIndex);
 end;
 
-procedure TgplotForm.RunCheckListKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+procedure TPasPlotPanel.RunCheckListKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   if Key = VK_F2 then
   begin
@@ -1903,7 +2465,7 @@ begin
   end;
 end;
 
-procedure TgplotForm.SelectAllClick(Sender: TObject);
+procedure TPasPlotPanel.SelectAllClick(Sender: TObject);
 var
   I: Integer;
 begin
@@ -1912,7 +2474,7 @@ begin
   ReloadCheckedRunsData;
 end;
 
-procedure TgplotForm.ClearSelClick(Sender: TObject);
+procedure TPasPlotPanel.ClearSelClick(Sender: TObject);
 var
   I: Integer;
 begin
@@ -1921,7 +2483,7 @@ begin
   ReloadCheckedRunsData;
 end;
 
-procedure TgplotForm.RefreshClick(Sender: TObject);
+procedure TPasPlotPanel.RefreshClick(Sender: TObject);
 var
   CurrGame: string;
 begin
@@ -1931,7 +2493,7 @@ begin
   RefreshGamesAndRuns(CurrGame);
 end;
 
-procedure TgplotForm.OpenFolderClick(Sender: TObject);
+procedure TPasPlotPanel.OpenFolderClick(Sender: TObject);
 var
   Folder: string;
 begin
@@ -1941,23 +2503,23 @@ begin
   OpenDocument(Folder);
 end;
 
-procedure TgplotForm.RenameRunClick(Sender: TObject);
+procedure TPasPlotPanel.RenameRunClick(Sender: TObject);
 begin
   if FRunCheckListBox.ItemIndex >= 0 then
     PromptRenameBenchmark(FRunCheckListBox.ItemIndex);
 end;
 
-procedure TgplotForm.PopupRenameClick(Sender: TObject);
+procedure TPasPlotPanel.PopupRenameClick(Sender: TObject);
 begin
   RenameRunClick(Sender);
 end;
 
-procedure TgplotForm.PopupDeleteClick(Sender: TObject);
+procedure TPasPlotPanel.PopupDeleteClick(Sender: TObject);
 begin
   DeleteRunClick(Sender);
 end;
 
-procedure TgplotForm.PromptRenameBenchmark(AIndex: Integer);
+procedure TPasPlotPanel.PromptRenameBenchmark(AIndex: Integer);
 var
   NewName: string;
 begin
@@ -1990,10 +2552,11 @@ begin
       FDiscoveredRuns[AIndex].AvgFps
     ]);
 
+  RebuildRunChips;
   ReloadCheckedRunsData;
 end;
 
-procedure TgplotForm.DeleteRunClick(Sender: TObject);
+procedure TPasPlotPanel.DeleteRunClick(Sender: TObject);
 var
   I: Integer;
   FilePath, SummaryPath, CurrGame: string;
@@ -2026,7 +2589,7 @@ begin
   end;
 end;
 
-procedure TgplotForm.ExportPngClick(Sender: TObject);
+procedure TPasPlotPanel.ExportPngClick(Sender: TObject);
 var
   SaveDlg: TSaveDialog;
   GameStr: string;
@@ -2048,18 +2611,18 @@ begin
   end;
 end;
 
-procedure TgplotForm.ViewTabBtnClick(Sender: TObject);
+procedure TPasPlotPanel.ViewTabBtnClick(Sender: TObject);
 begin
   if Sender is TControl then
     SetViewMode(TGplotViewMode(TControl(Sender).Tag));
 end;
 
-procedure TgplotForm.ChartPaintBoxPaint(Sender: TObject);
+procedure TPasPlotPanel.ChartPaintBoxPaint(Sender: TObject);
 begin
   RenderChartToCanvas(FChartPaintBox.Canvas, FChartPaintBox.Width, FChartPaintBox.Height);
 end;
 
-procedure TgplotForm.ChartPaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+procedure TPasPlotPanel.ChartPaintBoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   FHoverX := X;
   FHoverY := Y;
@@ -2067,13 +2630,13 @@ begin
   FChartPaintBox.Invalidate;
 end;
 
-procedure TgplotForm.ChartPaintBoxMouseLeave(Sender: TObject);
+procedure TPasPlotPanel.ChartPaintBoxMouseLeave(Sender: TObject);
 begin
   FHoverActive := False;
   FChartPaintBox.Invalidate;
 end;
 
-procedure TgplotForm.RenderChartToCanvas(ACanvas: TCanvas; AWidth, AHeight: Integer);
+procedure TPasPlotPanel.RenderChartToCanvas(ACanvas: TCanvas; AWidth, AHeight: Integer);
 var
   IsDark: Boolean;
   BgColor, TextColor, MutedColor: TColor;
@@ -2125,7 +2688,10 @@ begin
     ACanvas.Rectangle(LegendX, LegendY + 3, LegendX + 12, LegendY + 15);
     Inc(LegendX, 16);
 
-    LegendText := Format('%s (Avg %.0f FPS)', [FLoadedRuns[I].DisplayName, FLoadedRuns[I].AvgFps]);
+    if (Length(FLoadedRuns) > 1) and (I = 0) then
+      LegendText := Format('%s (Avg %.0f FPS) [Baseline]', [FLoadedRuns[I].DisplayName, FLoadedRuns[I].AvgFps])
+    else
+      LegendText := Format('%s (Avg %.0f FPS)', [FLoadedRuns[I].DisplayName, FLoadedRuns[I].AvgFps]);
     ACanvas.Brush.Style := bsClear;
     ACanvas.Font.Color := TextColor;
     ACanvas.TextOut(LegendX, LegendY, LegendText);
@@ -2135,13 +2701,183 @@ begin
 
   PlotRect := Rect(64, 36, AWidth - 20, AHeight - 28);
   case FViewMode of
+    gvmResume:   DrawResumeView(ACanvas, Rect(14, 34, AWidth - 14, AHeight - 12), IsDark);
     gvmTimeline: DrawTimelineView(ACanvas, PlotRect, IsDark);
     gvmSummary:  DrawSummaryView(ACanvas, PlotRect, IsDark);
     gvmHardware: DrawHardwareView(ACanvas, PlotRect, IsDark);
   end;
 end;
 
-procedure TgplotForm.DrawTimelineView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
+procedure TPasPlotPanel.DrawResumeView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
+var
+  Gap, LeftW, MidY: Integer;
+  LeftCard, TopRightCard, BotRightCard, InnerTimeline: TRect;
+  CardBg, CardBorder, TextColor, MutedColor: TColor;
+  MaxFpsVal, Val, BaseVal, Delta, MaxPwr: Double;
+  RIdx, MIdx, Y, BarTop, BarH, BarLeft, MaxBarW, BarRight: Integer;
+  LabelStr, ValStr: string;
+begin
+  if (ARect.Right <= ARect.Left + 180) or (ARect.Bottom <= ARect.Top + 120) then Exit;
+
+  CardBg := IfThen(AIsDark, RGBToColor(30, 36, 54), RGBToColor(255, 255, 255));
+  CardBorder := IfThen(AIsDark, RGBToColor(48, 58, 86), RGBToColor(215, 222, 234));
+  TextColor := IfThen(AIsDark, RGBToColor(230, 236, 245), RGBToColor(30, 35, 45));
+  MutedColor := IfThen(AIsDark, RGBToColor(150, 162, 185), RGBToColor(100, 110, 130));
+
+  Gap := 10;
+  LeftW := Round((ARect.Right - ARect.Left - Gap) * 0.56);
+  MidY := ARect.Top + ((ARect.Bottom - ARect.Top - Gap) div 2);
+
+  LeftCard := Rect(ARect.Left, ARect.Top, ARect.Left + LeftW, ARect.Bottom);
+  TopRightCard := Rect(LeftCard.Right + Gap, ARect.Top, ARect.Right, MidY);
+  BotRightCard := Rect(LeftCard.Right + Gap, MidY + Gap, ARect.Right, ARect.Bottom);
+
+  // Draw 3 segmented card frames
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := CardBg;
+  ACanvas.Pen.Color := CardBorder;
+  ACanvas.RoundRect(LeftCard.Left, LeftCard.Top, LeftCard.Right, LeftCard.Bottom, 8, 8);
+  ACanvas.RoundRect(TopRightCard.Left, TopRightCard.Top, TopRightCard.Right, TopRightCard.Bottom, 8, 8);
+  ACanvas.RoundRect(BotRightCard.Left, BotRightCard.Top, BotRightCard.Right, BotRightCard.Bottom, 8, 8);
+
+  // 1. Left Segment: Timeline (FPS & Frametime)
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size := 9;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := TextColor;
+  ACanvas.TextOut(LeftCard.Left + 10, LeftCard.Top + 7, 'Timeline (FPS & Frametime)');
+
+  InnerTimeline := Rect(LeftCard.Left + 50, LeftCard.Top + 26, LeftCard.Right - 10, LeftCard.Bottom - 22);
+  DrawTimelineView(ACanvas, InnerTimeline, AIsDark);
+
+  // 2. Top-Right Segment: Comparison (Avg FPS & 1% Low)
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size := 9;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := TextColor;
+  ACanvas.TextOut(TopRightCard.Left + 10, TopRightCard.Top + 7, 'Comparison (Avg / 1% Low)');
+
+  MaxFpsVal := 60.0;
+  for RIdx := 0 to High(FLoadedRuns) do
+    if FLoadedRuns[RIdx].AvgFps * 1.2 > MaxFpsVal then
+      MaxFpsVal := FLoadedRuns[RIdx].AvgFps * 1.2;
+
+  BarLeft := TopRightCard.Left + 10;
+  MaxBarW := Max(60, (TopRightCard.Right - TopRightCard.Left) - 125);
+  Y := TopRightCard.Top + 26;
+  BarH := Max(8, Min(14, ((TopRightCard.Bottom - Y - 10) div 2 - 18) div Max(1, Length(FLoadedRuns))));
+
+  for MIdx := 0 to 1 do
+  begin
+    if MIdx = 0 then LabelStr := 'Avg FPS' else LabelStr := '1% Low';
+    ACanvas.Font.Size := 8;
+    ACanvas.Font.Style := [fsBold];
+    ACanvas.Font.Color := MutedColor;
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.TextOut(BarLeft, Y, LabelStr);
+    Inc(Y, 15);
+
+    for RIdx := 0 to High(FLoadedRuns) do
+    begin
+      if Y + BarH > TopRightCard.Bottom - 4 then Break;
+      if MIdx = 0 then
+      begin
+        Val := FLoadedRuns[RIdx].AvgFps;
+        BaseVal := FLoadedRuns[0].AvgFps;
+      end
+      else
+      begin
+        Val := FLoadedRuns[RIdx].Fps1Low;
+        BaseVal := FLoadedRuns[0].Fps1Low;
+      end;
+
+      BarRight := BarLeft + Round(EnsureRange(Val / MaxFpsVal, 0.0, 1.0) * MaxBarW);
+      ACanvas.Brush.Style := bsSolid;
+      ACanvas.Brush.Color := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
+      ACanvas.Pen.Color := ACanvas.Brush.Color;
+      ACanvas.RoundRect(BarLeft, Y, Max(BarLeft + 4, BarRight), Y + BarH, 4, 4);
+
+      if (Length(FLoadedRuns) > 1) and (RIdx > 0) and (BaseVal > 0) then
+      begin
+        Delta := ((Val - BaseVal) / BaseVal) * 100.0;
+        if Delta >= 0 then
+          ValStr := Format('%.1f (+%.0f%%)', [Val, Delta])
+        else
+          ValStr := Format('%.1f (%.0f%%)', [Val, Delta]);
+      end
+      else if (Length(FLoadedRuns) > 1) and (RIdx = 0) then
+        ValStr := Format('%.1f [Baseline]', [Val])
+      else
+        ValStr := Format('%.1f FPS', [Val]);
+
+      ACanvas.Brush.Style := bsClear;
+      ACanvas.Font.Size := 8;
+      ACanvas.Font.Style := [];
+      ACanvas.Font.Color := TextColor;
+      ACanvas.TextOut(Max(BarLeft + 8, BarRight + 6), Y - 1, ValStr);
+      Inc(Y, BarH + 3);
+    end;
+    Inc(Y, 4);
+  end;
+
+  // 3. Bottom-Right Segment: Hardware Telemetry (GPU / CPU / Temp / Power)
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size := 9;
+  ACanvas.Font.Style := [fsBold];
+  ACanvas.Font.Color := TextColor;
+  ACanvas.TextOut(BotRightCard.Left + 10, BotRightCard.Top + 7, 'Telemetry (GPU / CPU)');
+
+  MaxPwr := 150.0;
+  for RIdx := 0 to High(FLoadedRuns) do
+    if FLoadedRuns[RIdx].AvgGpuPower * 1.2 > MaxPwr then
+      MaxPwr := FLoadedRuns[RIdx].AvgGpuPower * 1.2;
+
+  Y := BotRightCard.Top + 28;
+  for RIdx := 0 to High(FLoadedRuns) do
+  begin
+    if Y + 26 > BotRightCard.Bottom - 4 then Break;
+    ACanvas.Brush.Style := bsSolid;
+    ACanvas.Brush.Color := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
+    ACanvas.Pen.Color := ACanvas.Brush.Color;
+    ACanvas.Ellipse(BotRightCard.Left + 10, Y + 3, BotRightCard.Left + 18, Y + 11);
+
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.Font.Size := 8;
+    ACanvas.Font.Style := [fsBold];
+    ACanvas.Font.Color := TextColor;
+    if (Length(FLoadedRuns) > 1) and (RIdx = 0) then
+      ACanvas.TextOut(BotRightCard.Left + 24, Y, FLoadedRuns[RIdx].DisplayName + ' [Baseline]')
+    else
+      ACanvas.TextOut(BotRightCard.Left + 24, Y, FLoadedRuns[RIdx].DisplayName);
+
+    ACanvas.Font.Style := [];
+    ACanvas.Font.Color := MutedColor;
+    ValStr := Format('GPU %.0f%% • %.0f°C • %.0fW | CPU %.0f%%', [
+      FLoadedRuns[RIdx].AvgGpuLoad,
+      FLoadedRuns[RIdx].MaxGpuTemp,
+      FLoadedRuns[RIdx].AvgGpuPower,
+      FLoadedRuns[RIdx].AvgCpuLoad
+    ]);
+    ACanvas.TextOut(BotRightCard.Left + 24, Y + 13, ValStr);
+
+    // Compact GPU load bar
+    BarTop := Y + 27;
+    MaxBarW := Max(60, (BotRightCard.Right - BotRightCard.Left) - 34);
+    ACanvas.Brush.Style := bsSolid;
+    ACanvas.Brush.Color := IfThen(AIsDark, RGBToColor(42, 50, 74), RGBToColor(228, 234, 244));
+    ACanvas.Pen.Color := ACanvas.Brush.Color;
+    ACanvas.RoundRect(BotRightCard.Left + 24, BarTop, BotRightCard.Left + 24 + MaxBarW, BarTop + 5, 3, 3);
+
+    BarRight := BotRightCard.Left + 24 + Round(EnsureRange(FLoadedRuns[RIdx].AvgGpuLoad / 100.0, 0.0, 1.0) * MaxBarW);
+    ACanvas.Brush.Color := SERIES_COLORS[RIdx mod Length(SERIES_COLORS)];
+    ACanvas.Pen.Color := ACanvas.Brush.Color;
+    ACanvas.RoundRect(BotRightCard.Left + 24, BarTop, Max(BotRightCard.Left + 27, BarRight), BarTop + 5, 3, 3);
+
+    Inc(Y, 38);
+  end;
+end;
+
+procedure TPasPlotPanel.DrawTimelineView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
 var
   TopRect, BotRect: TRect;
   MidY, RIdx, SIdx, Step, X, Y, PrevX, PrevY: Integer;
@@ -2377,7 +3113,7 @@ begin
   end;
 end;
 
-procedure TgplotForm.DrawSummaryView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
+procedure TPasPlotPanel.DrawSummaryView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
 const
   METRIC_NAMES: array[0..3] of string = ('Average FPS', '1% Low FPS', '0.1% Low FPS', 'Peak (Max) FPS');
 var
@@ -2460,7 +3196,7 @@ begin
   end;
 end;
 
-procedure TgplotForm.DrawHardwareView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
+procedure TPasPlotPanel.DrawHardwareView(ACanvas: TCanvas; const ARect: TRect; AIsDark: Boolean);
 const
   HW_METRICS: array[0..3] of string = (
     'Avg GPU Load (%)',
@@ -2531,7 +3267,7 @@ begin
   end;
 end;
 
-function TgplotForm.ExportToPngFile(const AFilePath: string): Boolean;
+function TPasPlotPanel.ExportToPngFile(const AFilePath: string): Boolean;
 var
   Png: TPortableNetworkGraphic;
   Bmp: TBitmap;

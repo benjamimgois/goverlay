@@ -9096,6 +9096,36 @@ begin
   AssertTrue('FGplotBtn is parented to FExtLogToolsSec', goverlayform.FGplotBtn.Parent = goverlayform.FExtLogToolsSec);
   AssertEquals('FGplotBtn caption is 📊 PasPlot Viewer', '📊 PasPlot Viewer', goverlayform.FGplotBtn.Caption);
 
+  // 1b. Verify PasPlot tab under MangoHud, FGplotBtn navigation, FFADock hiding, and Layout B compact 834px layout
+  AssertNotNull('benchmarksTabSheet is created', goverlayform.benchmarksTabSheet);
+  AssertEquals('benchmarksTabSheet caption is PasPlot', 'PasPlot', goverlayform.benchmarksTabSheet.Caption);
+  AssertTrue('benchmarksTabSheet is visible under MangoHud', goverlayform.benchmarksTabSheet.TabVisible);
+  AssertNotNull('FPasPlotPanel is created', goverlayform.FPasPlotPanel);
+  AssertTrue('FPasPlotPanel is parented to benchmarksTabSheet', goverlayform.FPasPlotPanel.Parent = goverlayform.benchmarksTabSheet);
+
+  goverlayform.FGplotBtn.OnClick(goverlayform.FGplotBtn);
+  AssertTrue('FGplotBtn switches to benchmarksTabSheet', goverlayform.goverlayPageControl.ActivePage = goverlayform.benchmarksTabSheet);
+  if Assigned(goverlayform.FFADock) then
+    AssertFalse('FFADock is hidden on PasPlot tab', goverlayform.FFADock.Visible);
+
+  goverlayform.FPasPlotPanel.ReflowLayout(834);
+  AssertFalse('Option C hides permanent LeftPanel', goverlayform.FPasPlotPanel.LeftPanel.Visible);
+  AssertNotNull('Option C creates RunsStripPanel', goverlayform.FPasPlotPanel.RunsStripPanel);
+  AssertTrue('RunsStripPanel is visible', goverlayform.FPasPlotPanel.RunsStripPanel.Visible);
+  AssertNotNull('TableTabBtn is created', goverlayform.FPasPlotPanel.TableTabBtn);
+  AssertTrue('RenameRunBtn and DeleteRunBtn are in RunsStripPanel (Option C)',
+    (goverlayform.FPasPlotPanel.RenameRunBtn.Parent <> goverlayform.FPasPlotPanel.TopPanel) and
+    (goverlayform.FPasPlotPanel.DeleteRunBtn.Parent <> goverlayform.FPasPlotPanel.TopPanel));
+  AssertTrue('ExportPngBtn fits within 834px tab width',
+    goverlayform.FPasPlotPanel.ExportPngBtn.Left + goverlayform.FPasPlotPanel.ExportPngBtn.Width <= 834);
+  AssertTrue('TableTabBtn fits within 834px tab width',
+    goverlayform.FPasPlotPanel.TableTabBtn.Left + goverlayform.FPasPlotPanel.TableTabBtn.Width <= 834);
+
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.extrasTabSheet;
+  goverlayform.goverlayPageControlChange(goverlayform.goverlayPageControl);
+  if Assigned(goverlayform.FFADock) then
+    AssertTrue('FFADock is restored on Extras tab', goverlayform.FFADock.Visible);
+
   // 2. Seed two benchmark runs + a companion _summary.csv for pascube
   TempBase := IncludeTrailingPathDelimiter(GetTempDir) + 'goverlay_gplot_ui_' + IntToStr(Random(100000)) + PathDelim;
   GameLogsDir := TempBase + 'logs' + PathDelim + 'pascube' + PathDelim;
@@ -9130,7 +9160,7 @@ begin
     try
       AssertEquals('GameComboBox selected pascube', 'pascube', Dlg.GameComboBox.Text);
       AssertEquals('RunCheckListBox lists 2 runs (excluding _summary.csv)', 2, Dlg.RunCheckListBox.Items.Count);
-      AssertEquals('Newest run is checked by default', 1, Dlg.SelectedRunCount);
+      AssertEquals('All discovered runs are checked by default', 2, Dlg.SelectedRunCount);
 
       // Check both runs for comparison
       Dlg.RunCheckListBox.Checked[0] := True;
@@ -9154,9 +9184,9 @@ begin
 
       // Verify full-card click selection at X = 50 toggles checked state
       Dlg.RunCheckListBox.OnMouseDown(Dlg.RunCheckListBox, mbLeft, [], 50, 10);
-      AssertEquals('Run 0 toggled off via click on card body', 0, Dlg.SelectedRunCount);
+      AssertEquals('Run 0 toggled off via click on card body', 1, Dlg.SelectedRunCount);
       Dlg.RunCheckListBox.OnMouseDown(Dlg.RunCheckListBox, mbLeft, [], 50, 10);
-      AssertEquals('Run 0 toggled back on via click on card body', 1, Dlg.SelectedRunCount);
+      AssertEquals('Run 0 toggled back on via click on card body', 2, Dlg.SelectedRunCount);
 
       // Verify deleting run removes custom name from benchmarks.ini
       AssertEquals('benchmarks.ini has custom name before delete', 'Pascube FSR4', ReadBenchmarkCustomName(GameLogsDir, 'pascube_2026-10-17_14-10-00.csv'));
@@ -9165,6 +9195,13 @@ begin
 
       // Cycle view modes and export PNG
       PngPath := TempBase + 'exported_chart.png';
+      AssertNotNull('ResumeTabBtn exists', Dlg.ResumeTabBtn);
+      AssertTrue('ResumeTabBtn is placed before TimelineTabBtn', Dlg.ResumeTabBtn.Left < Dlg.TimelineTabBtn.Left);
+      Dlg.ViewMode := gvmResume;
+      AssertTrue('ExportToPngFile succeeds in Resume mode', Dlg.ExportToPngFile(PngPath));
+      AssertTrue('Exported Resume PNG exists on disk', FileExists(PngPath));
+
+      DeleteFile(PngPath);
       Dlg.ViewMode := gvmTimeline;
       AssertTrue('ExportToPngFile succeeds in Timeline mode', Dlg.ExportToPngFile(PngPath));
       AssertTrue('Exported PNG exists on disk', FileExists(PngPath));
