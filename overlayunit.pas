@@ -1291,6 +1291,7 @@ type
     FCubeAutoLaunchItem: TMenuItem;  // settings menu toggle for auto-launch of cube
     FCreateSteamShortcutItem: TMenuItem; // settings menu item to create steam shortcut
     FLaunchSplashItem:   TMenuItem;  // settings menu toggle for launch splash screen
+    FRuntimeProfileItem: TMenuItem;  // settings menu toggle for automatic game profile selection
     FModulesMenuItem:    TMenuItem;  // settings menu item to manage integrations / modules
     FOptiScalerPlaceholder: TPanel;
     FLosslessPlaceholder:   TPanel;
@@ -1300,6 +1301,7 @@ type
     FHowToMenuItem:      TMenuItem;  // "How to Use" shortcut inside settings menu
     FCubeAutoLaunch:     Boolean;    // whether to auto-launch pascube/vkcube
     FShowLaunchSplash:   Boolean;    // whether to show launch splash screen on game start
+    FRuntimeProfile:     Boolean;    // global bgmod selects the game profile at launch
 
     FNavToolBtns:    array[0..3] of TSpeedButton;
     FNavToolEnabled: array[0..3] of Boolean;
@@ -1336,6 +1338,7 @@ type
     FGamesPopupMenu: TPopupMenu;     // contextual menu for Games tab floating dock
     FOpenPrefixMenuItem: TMenuItem;  // hidden for non-Steam cards
     FCloneGlobalMenuItem: TMenuItem;
+    FGameSpecificMenuItem: TMenuItem; // "Use game-specific settings" toggle (runtime profile selection)
     FUninstallMenuItem: TMenuItem;
     FUninstallSeparatorMenuItem: TMenuItem;
     FSetCoverMenuItem: TMenuItem;    // import custom cover art
@@ -1429,6 +1432,9 @@ type
     procedure LaunchSplashMenuItemClick(Sender: TObject);
     procedure LoadLaunchSplashConfig;
     procedure SaveLaunchSplashConfig;
+    procedure RuntimeProfileMenuItemClick(Sender: TObject);
+    procedure LoadRuntimeProfileConfig;
+    procedure SaveRuntimeProfileConfig;
     procedure ModulesMenuItemClick(Sender: TObject);
     procedure ManageModulesClick(Sender: TObject);
     procedure EnableUpscalersModuleClick(Sender: TObject);
@@ -3905,6 +3911,7 @@ begin
   CheckAndUpdateConfigVersion;
   LoadWindowGeometry;
   LoadLaunchSplashConfig;
+  LoadRuntimeProfileConfig;
 
   //Set initial TAB
   goverlayPageControl.ActivePage:=gamesTabsheet;
@@ -10738,17 +10745,19 @@ end;
 
 function Tgoverlayform.GetLaunchCommand: string;
 var
-  Cmd: string;
+  Cmd, BgmodDir: string;
 begin
-  if FActiveGameName <> '' then
-  begin
-    if FActiveGameIsNonSteam and (Pos(' ', GetGameConfigDir(FActiveGameName)) = 0) then
-      Cmd := GetGameConfigDir(FActiveGameName) + 'bgmod '
-    else
-      Cmd := '"' + GetGameConfigDir(FActiveGameName) + 'bgmod" ';
-  end
+  // With automatic profile selection the global bgmod picks the game profile
+  // at launch, so every game uses the same generic command.
+  if (FActiveGameName <> '') and not FRuntimeProfile then
+    BgmodDir := GetGameConfigDir(FActiveGameName)
   else
-    Cmd := '"' + GetGameConfigDir('') + 'bgmod" ';
+    BgmodDir := GetGameConfigDir('');
+
+  if (FActiveGameName <> '') and FActiveGameIsNonSteam and (Pos(' ', BgmodDir) = 0) then
+    Cmd := BgmodDir + 'bgmod '
+  else
+    Cmd := '"' + BgmodDir + 'bgmod" ';
 
   // Check if gamemode should be added (performance checkbox 0)
   if GetPerformanceCheckBox(0).Checked then
@@ -11237,6 +11246,94 @@ begin
   else
     FShowLaunchSplash := not FShowLaunchSplash;
   SaveLaunchSplashConfig;
+end;
+
+// Automatic game profile selection: goverlay.conf holds the UI value, the
+// global bgmod.conf the value bgmod acts on. Load re-syncs bgmod.conf so a
+// reset or re-created global profile cannot silently flip the setting.
+procedure Tgoverlayform.LoadRuntimeProfileConfig;
+var
+  IniFile: TIniFile;
+  ConfigPath: string;
+begin
+  FRuntimeProfile := True;
+  try
+    ConfigPath := GetConfigFilePath;
+    if FileExists(ConfigPath) then
+    begin
+      IniFile := TIniFile.Create(ConfigPath);
+      try
+        FRuntimeProfile := IniFile.ReadBool('General', GOVERLAY_KEY_RUNTIME_PROFILE, True);
+      finally
+        IniFile.Free;
+      end;
+    end;
+  except
+  end;
+  if Assigned(FRuntimeProfileItem) then
+    FRuntimeProfileItem.Checked := FRuntimeProfile;
+
+  // Sync into the global bgmod.conf only when it exists and disagrees
+  try
+    ConfigPath := GetGameConfigDir('') + 'bgmod.conf';
+    if FileExists(ConfigPath) then
+    begin
+      IniFile := TIniFile.Create(ConfigPath);
+      try
+        if IniFile.ReadString('Config', BGMOD_KEY_RUNTIME_PROFILE, '') <> IfThen(FRuntimeProfile, '1', '0') then
+          IniFile.WriteString('Config', BGMOD_KEY_RUNTIME_PROFILE, IfThen(FRuntimeProfile, '1', '0'));
+      finally
+        IniFile.Free;
+      end;
+    end;
+  except
+  end;
+end;
+
+procedure Tgoverlayform.SaveRuntimeProfileConfig;
+var
+  IniFile: TIniFile;
+  ConfigPath: string;
+begin
+  try
+    ConfigPath := GetConfigFilePath;
+    ForceDirectories(ExtractFilePath(ConfigPath));
+    IniFile := TIniFile.Create(ConfigPath);
+    try
+      IniFile.WriteBool('General', GOVERLAY_KEY_RUNTIME_PROFILE, FRuntimeProfile);
+    finally
+      IniFile.Free;
+    end;
+  except
+  end;
+
+  // Only the global bgmod.conf: per-game copies never select at runtime
+  try
+    ConfigPath := GetGameConfigDir('') + 'bgmod.conf';
+    if DirectoryExists(ExtractFilePath(ConfigPath)) then
+    begin
+      IniFile := TIniFile.Create(ConfigPath);
+      try
+        IniFile.WriteString('Config', BGMOD_KEY_RUNTIME_PROFILE, IfThen(FRuntimeProfile, '1', '0'));
+      finally
+        IniFile.Free;
+      end;
+    end;
+  except
+  end;
+end;
+
+procedure Tgoverlayform.RuntimeProfileMenuItemClick(Sender: TObject);
+begin
+  if Assigned(FRuntimeProfileItem) then
+    FRuntimeProfile := FRuntimeProfileItem.Checked
+  else
+    FRuntimeProfile := not FRuntimeProfile;
+  SaveRuntimeProfileConfig;
+  // The shown launch command depends on the setting
+  FLaunchCommand := GetLaunchCommand;
+  if Assigned(commandPaintBox) then
+    commandPaintBox.Invalidate;
 end;
 
 procedure Tgoverlayform.ModulesMenuItemClick(Sender: TObject);

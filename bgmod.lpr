@@ -32,6 +32,8 @@ function execv(path: PChar; argv: PPChar): Integer; cdecl; external 'c' name 'ex
 function execvp(file_: PChar; argv: PPChar): Integer; cdecl; external 'c' name 'execvp';
 function execvpe(file_: PChar; argv: PPChar; envp: PPChar): Integer; cdecl; external 'c' name 'execvpe';
 function setenv(name: PChar; value: PChar; overwrite: Integer): Integer; cdecl; external 'c' name 'setenv';
+function realpath(path: PChar; resolved: PChar): PChar; cdecl; external 'c' name 'realpath';
+procedure libc_free(p: Pointer); cdecl; external 'c' name 'free';
 
 procedure SetEnvironmentVariable(const Name, Value: string);
 begin
@@ -130,6 +132,10 @@ var
   ConfigDir: string;
   SourceDir: string;
   GameProfileName: string;
+  // Folder holding the active profile's tool configs (MangoHud.conf,
+  // vkBasalt.conf, vkSumi.conf, plugins/). Equals BgmodPath unless the
+  // global bgmod selected a game profile at runtime.
+  ProfileDir: string;
   UpscalerType: Integer;
   HelixSrNativeDlss: Integer;
   HasGamePerformance: Boolean;
@@ -1579,7 +1585,7 @@ begin
   end;
 
   // 2. Check GlobalPath
-  GlobalPath := GetGlobalBGModPath(BgmodPath);
+  GlobalPath := GetGlobalBGModPath(ProfileDir);
   if GlobalPath <> '' then
   begin
     if (TargetSize = GetFileSize(IncludeTrailingPathDelimiter(GlobalPath) + 'renames' + PathDelim + FileName)) or
@@ -2449,7 +2455,7 @@ begin
   SafeDeleteFile(IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd-install.txt');
   if DirectoryExists(IncludeTrailingPathDelimiter(AGameDir) + 'plugins') then
   begin
-    CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
+    CleanDirectory(IncludeTrailingPathDelimiter(ProfileDir) + 'plugins', IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
     RemoveDir(IncludeTrailingPathDelimiter(AGameDir) + 'plugins');
   end;
 
@@ -2551,7 +2557,46 @@ begin
   Result := Param;
 end;
 
-procedure ResolveGameDirectory;
+// Fills TargetExeName (and GameDir when still empty) from the TARGET_EXE /
+// GAME_DIR cache in ConfigDir's bgmod.conf.
+procedure ApplyCachedTargetExe;
+var
+  CacheIni: TIniFile;
+begin
+  if (TargetExeName <> '') or (ConfigDir = '') or not FileExists(ConfigDir + 'bgmod.conf') then Exit;
+  try
+    CacheIni := TIniFile.Create(ConfigDir + 'bgmod.conf');
+    try
+      TargetExeName := CacheIni.ReadString('Config', 'TARGET_EXE', '');
+      if (GameDir = '') then
+        GameDir := CacheIni.ReadString('Config', 'GAME_DIR', '');
+      if TargetExeName <> '' then
+        Log('Resolved TargetExeName from cached bgmod.conf: ' + TargetExeName + ' (dir: ' + GameDir + ')');
+    finally
+      CacheIni.Free;
+    end;
+  except
+  end;
+end;
+
+// Unreal Engine games: point GameDir at the *-Shipping.exe folder.
+procedure AdjustUnrealGameDir;
+var
+  ExePath: string;
+begin
+  if (GameDir <> '') and DirectoryExists(IncludeTrailingPathDelimiter(GameDir) + 'Engine') then
+  begin
+    Log('UE Engine folder detected, searching for shipping executable...');
+    ExePath := FindUEShippingExe(GameDir, 1);
+    if ExePath <> '' then
+    begin
+      GameDir := ExePath;
+      Log('Adjusted UE GameDir: ' + GameDir);
+    end;
+  end;
+end;
+
+procedure ResolveGameDirectory(AUseCache: Boolean = True);
 var
   Arg, ExePath, LutrisId, Cmd, Cand, FullPath, Ext: string;
   i, j, PosPipe, LastDoubleDash, CandidateIdx: Integer;
@@ -2761,34 +2806,158 @@ begin
     end;
   end;
 
-  // 3b. Check cached TARGET_EXE from bgmod.conf
-  if (TargetExeName = '') and (ConfigDir <> '') and FileExists(ConfigDir + 'bgmod.conf') then
+  // 3b. Check cached TARGET_EXE from bgmod.conf (skipped while the global
+  // bgmod is still choosing a profile: the cache belongs to the profile)
+  if AUseCache then
+    ApplyCachedTargetExe;
+
+  // 4. Unreal Engine subfolder resolution
+  AdjustUnrealGameDir;
+end;
+
+// ---------------------------------------------------------------------------
+// Runtime profile selection (global bgmod only)
+// ---------------------------------------------------------------------------
+
+const
+  GAME_PROFILE_IDENTITY_FILE = 'goverlay-profile.conf'; // keep in sync with configkeys.pas
+
+// Absolute path with symlinks resolved (Steam libraries are often reached via
+// ~/.steam/steam). Falls back to the expanded path when it does not exist.
+function NormalizeProfilePath(const APath: string; AAsDir: Boolean): string;
+var
+  Buf: PChar;
+  P: string;
+begin
+  Result := '';
+  P := Trim(APath);
+  if P = '' then Exit;
+  P := ExpandFileName(P);
+  if P <> PathDelim then
   begin
-    try
-      LauncherIni := TIniFile.Create(ConfigDir + 'bgmod.conf');
-      try
-        TargetExeName := LauncherIni.ReadString('Config', 'TARGET_EXE', '');
-        if (GameDir = '') then
-          GameDir := LauncherIni.ReadString('Config', 'GAME_DIR', '');
-        if TargetExeName <> '' then
-          Log('Resolved TargetExeName from cached bgmod.conf: ' + TargetExeName + ' (dir: ' + GameDir + ')');
-      finally
-        LauncherIni.Free;
-      end;
-    except
+    Buf := realpath(PChar(ExcludeTrailingPathDelimiter(P)), nil);
+    if Buf <> nil then
+    begin
+      P := StrPas(Buf);
+      libc_free(Buf);
     end;
   end;
-  
-  // 4. Unreal Engine subfolder resolution
-  if (GameDir <> '') and DirectoryExists(IncludeTrailingPathDelimiter(GameDir) + 'Engine') then
-  begin
-    Log('UE Engine folder detected, searching for shipping executable...');
-    ExePath := FindUEShippingExe(GameDir, 1);
-    if ExePath <> '' then
+  if AAsDir then
+    Result := IncludeTrailingPathDelimiter(P)
+  else
+    Result := ExcludeTrailingPathDelimiter(P);
+end;
+
+// Returns the profile folder (with trailing delimiter) whose recorded game
+// path contains AGameDir, or '' when none does. Only folders with a
+// bgmod.conf count, and an identity file must say ENABLED=1. Candidates per
+// profile are GAME_PATH from goverlay-profile.conf and the cached GAME_DIR
+// from bgmod.conf.
+// A directory candidate matches AGameDir or any folder below it; a file
+// candidate (AppImage) matches AExePath exactly. The longest candidate wins.
+function FindRuntimeProfile(const AGameConfigRoot, AGameDir, AExePath: string; out AMatched: string): string;
+var
+  SR: TSearchRec;
+  Names: TStringList;
+  i, c, BestScore, Score: Integer;
+  ProfDir, NormGameDir, NormExe, HomeDir, Cand, NormCand, BestName: string;
+  Candidates: array[0..1] of string;
+  Ini: TIniFile;
+begin
+  Result := '';
+  AMatched := '';
+  if (AGameConfigRoot = '') or not DirectoryExists(AGameConfigRoot) then Exit;
+  NormGameDir := NormalizeProfilePath(AGameDir, True);
+  if NormGameDir = '' then Exit;
+  NormExe := NormalizeProfilePath(AExePath, False);
+  HomeDir := NormalizeProfilePath(GetEnvironmentVariable('HOME'), True);
+  BestScore := 0;
+  BestName := '';
+
+  Names := TStringList.Create;
+  try
+    if FindFirst(IncludeTrailingPathDelimiter(AGameConfigRoot) + '*', faDirectory, SR) = 0 then
     begin
-      GameDir := ExePath;
-      Log('Adjusted UE GameDir: ' + GameDir);
+      try
+        repeat
+          if (SR.Name = '.') or (SR.Name = '..') or ((SR.Attr and faDirectory) = 0) then Continue;
+          if SameText(SR.Name, 'global') then Continue;
+          Names.Add(SR.Name);
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
     end;
+    Names.Sort; // deterministic tie-breaking
+
+    for i := 0 to Names.Count - 1 do
+    begin
+      ProfDir := IncludeTrailingPathDelimiter(AGameConfigRoot) + Names[i] + PathDelim;
+      // A folder only counts as a profile once GOverlay saved settings for it
+      if not FileExists(ProfDir + 'bgmod.conf') then Continue;
+
+      Candidates[0] := '';
+      Candidates[1] := '';
+      try
+        // "Use game-specific settings" is an explicit user choice stored in
+        // the identity file. Profiles without one (created before runtime
+        // selection existed) are still matched via their cached GAME_DIR.
+        if FileExists(ProfDir + GAME_PROFILE_IDENTITY_FILE) then
+        begin
+          Ini := TIniFile.Create(ProfDir + GAME_PROFILE_IDENTITY_FILE);
+          try
+            if Trim(Ini.ReadString('Profile', 'ENABLED', '0')) <> '1' then
+              Continue;
+            Candidates[0] := Ini.ReadString('Profile', 'GAME_PATH', '');
+          finally
+            Ini.Free;
+          end;
+        end;
+        Ini := TIniFile.Create(ProfDir + 'bgmod.conf');
+        try
+          Candidates[1] := Ini.ReadString('Config', 'GAME_DIR', '');
+        finally
+          Ini.Free;
+        end;
+      except
+        on E: Exception do
+          Log('Profile: could not read ' + ProfDir + ': ' + E.Message);
+      end;
+
+      for c := Low(Candidates) to High(Candidates) do
+      begin
+        Cand := Trim(Candidates[c]);
+        if Cand = '' then Continue;
+        Score := 0;
+        if DirectoryExists(Cand) then
+        begin
+          NormCand := NormalizeProfilePath(Cand, True);
+          // Never let a profile claim every game on the system
+          if (NormCand = PathDelim) or (NormCand = HomeDir) then Continue;
+          if Pos(NormCand, NormGameDir) = 1 then
+            Score := Length(NormCand);
+        end
+        else
+        begin
+          NormCand := NormalizeProfilePath(Cand, False);
+          if (NormExe <> '') and (NormCand = NormExe) then
+            Score := Length(NormCand);
+        end;
+
+        if Score = 0 then Continue;
+        if Score > BestScore then
+        begin
+          BestScore := Score;
+          BestName := Names[i];
+          Result := ProfDir;
+          AMatched := Cand;
+        end
+        else if (Score = BestScore) and (Names[i] <> BestName) then
+          Log('Profile: ' + Names[i] + ' also matches ' + Cand + '; keeping ' + BestName);
+      end;
+    end;
+  finally
+    Names.Free;
   end;
 end;
 
@@ -3102,6 +3271,8 @@ var
   MasterDir: string;
   ReExecArgs: array of PChar;
   ReExecStrs: array of string;
+  IsGlobalLaunch, RuntimeProfileOn, GameDirResolved: Boolean;
+  GameConfigRoot, RuntimeProfilePath, RuntimeMatchedPath: string;
 
 
 {$if defined(CPUAARCH64) and defined(LINUX)}
@@ -3120,7 +3291,10 @@ begin
   FpSignal(SIGHUP, SignalHandler(@SupervisorSigHandler));
 
   BgmodPath := ExtractFilePath(ParamStr(0));
-  
+  ProfileDir := BgmodPath;
+  IsGlobalLaunch := False;
+  GameConfigRoot := '';
+
   // Resolve central GOverlay log path
   CentralLogDir := '';
   CentralLogFile := '';
@@ -3157,6 +3331,13 @@ begin
     // across games; the legacy global flow did not back up reliably anyway).
     Line := ExtractFileName(ExcludeTrailingPathDelimiter(Val)); // 'gameconfig' or 'goverlay' or similar
     IsPerGameProfile := (LowerCase(Line) = 'gameconfig') and (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global');
+    // Started from the global location (gameconfig/global/ or the legacy
+    // bgmod/ folder): the profile may be chosen at runtime below. A per-game
+    // copy always keeps its own profile (explicit path wins).
+    IsGlobalLaunch := (LowerCase(GameProfileName) = 'bgmod') or
+                      ((LowerCase(GameProfileName) = 'global') and (LowerCase(Line) = 'gameconfig'));
+    if IsGlobalLaunch then
+      GameConfigRoot := ExtractFilePath(ExcludeTrailingPathDelimiter(ConfigDir));
     BackupsDir := ConfigDir + 'backups' + PathDelim;
     if IsPerGameProfile and not DirectoryExists(BackupsDir) then
       ForceDirectories(BackupsDir);
@@ -3215,6 +3396,72 @@ begin
   if GetEnvironmentVariable('BGMOD_UPDATED') = '1' then
     Log('BGMod active after wrapper self-update.');
   
+  // Runtime profile selection: the global bgmod picks the game profile whose
+  // recorded game path contains the launched game's directory. Works the
+  // same for every launcher because it only relies on GameDir.
+  GameDirResolved := False;
+  if IsGlobalLaunch then
+  begin
+    RuntimeProfileOn := True;
+    if FileExists(ConfigDir + 'bgmod.conf') then
+    begin
+      try
+        Ini := TIniFile.Create(ConfigDir + 'bgmod.conf');
+        try
+          RuntimeProfileOn := Trim(Ini.ReadString('Config', 'RUNTIME_PROFILE', '1')) <> '0';
+        finally
+          Ini.Free;
+        end;
+      except
+      end;
+    end;
+
+    if not RuntimeProfileOn then
+      Log('Profile: automatic selection disabled (RUNTIME_PROFILE=0), using global profile ' + ConfigDir)
+    else
+    begin
+      ResolveGameDirectory(False);
+      GameDirResolved := True;
+      if GameDir = '' then
+        Log('Profile: game directory could not be resolved, using global profile ' + ConfigDir)
+      else
+      begin
+        if TargetExeName <> '' then
+          TempStr := IncludeTrailingPathDelimiter(GameDir) + TargetExeName
+        else
+          TempStr := '';
+        RuntimeProfilePath := FindRuntimeProfile(GameConfigRoot, GameDir, TempStr, RuntimeMatchedPath);
+        if RuntimeProfilePath = '' then
+          Log('Profile: game directory ' + GameDir + ' -> no game profile, using global profile ' + ConfigDir)
+        else
+        begin
+          ProfileDir := RuntimeProfilePath;
+          ConfigDir := RuntimeProfilePath;
+          GameProfileName := ExtractFileName(ExcludeTrailingPathDelimiter(RuntimeProfilePath));
+          SourceDir := GetGlobalBGModPath(RuntimeProfilePath);
+          if SourceDir = '' then
+            SourceDir := BgmodPath;
+          IsPerGameProfile := True;
+          BackupsDir := ConfigDir + 'backups' + PathDelim;
+          if not DirectoryExists(BackupsDir) then
+            ForceDirectories(BackupsDir);
+          CentralLogDir := ExtractFilePath(ExcludeTrailingPathDelimiter(GameConfigRoot)) + 'logs' + PathDelim + GameProfileName;
+          CentralLogFile := IncludeTrailingPathDelimiter(CentralLogDir) + 'bgmod.log';
+          if not DirectoryExists(CentralLogDir) then
+            ForceDirectories(CentralLogDir);
+          Log('Executing bgmod v' + BGMOD_VERSION + ': ' + ParamStr(0));
+          Log('Profile: game directory ' + GameDir + ' -> ' + RuntimeProfilePath +
+              ' (game profile, matched ' + RuntimeMatchedPath + ')');
+        end;
+      end;
+      // The TARGET_EXE cache belongs to the selected profile (or global)
+      TempStr := GameDir;
+      ApplyCachedTargetExe;
+      if GameDir <> TempStr then
+        AdjustUnrealGameDir;
+    end;
+  end;
+
   // Default values
   GOverlayMangoHud := False;
   GOverlayVkBasalt := False;
@@ -3343,8 +3590,9 @@ begin
     end;
   end;
   
-  // Resolve the game folder directory
-  ResolveGameDirectory;
+  // Resolve the game folder directory (already done by runtime profile selection)
+  if not GameDirResolved then
+    ResolveGameDirectory;
   
   // Cache resolved TARGET_EXE and GAME_DIR into bgmod.conf for per-game profile
   if IsPerGameProfile and (TargetExeName <> '') and (ConfigDir <> '') and FileExists(ConfigDir + 'bgmod.conf') then
@@ -3960,7 +4208,7 @@ begin
             Log('OptiScaler directory is managed externally by Vortex or another mod manager; skipping deletion.')
           else
             SafeDeleteDirectory(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
-          CleanDirectory(IncludeTrailingPathDelimiter(BgmodPath) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+          CleanDirectory(IncludeTrailingPathDelimiter(ProfileDir) + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           RemoveDir(IncludeTrailingPathDelimiter(GameDir) + 'plugins');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'bgmod.log');
           SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
@@ -3974,14 +4222,14 @@ begin
       
       // --- MangoHud Configuration Copy ---
       if GOverlayMangoHud then
-        SafeCopyFile(BgmodPath + 'MangoHud.conf', IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf')
+        SafeCopyFile(ProfileDir + 'MangoHud.conf', IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf')
       else
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'MangoHud.conf');
         
       // --- vkBasalt Configuration Copy ---
       if GOverlayVkBasalt then
       begin
-        SafeCopyFile(BgmodPath + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
+        SafeCopyFile(ProfileDir + 'vkBasalt.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
         SanitizeVkBasaltConfig(IncludeTrailingPathDelimiter(GameDir) + 'vkBasalt.conf');
       end
       else
@@ -3989,7 +4237,7 @@ begin
 
       // --- vkSumi Configuration Copy ---
       if GOverlayVkSumi then
-        SafeCopyFile(BgmodPath + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf')
+        SafeCopyFile(ProfileDir + 'vkSumi.conf', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf')
       else
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
 
@@ -4225,10 +4473,10 @@ begin
       SetEnvVarInList(EnvStrings, 'VKSUMI_CONFIG_FILE', IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
       Log('Export: VKSUMI_CONFIG_FILE=' + IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
     end
-    else if FileExists(BgmodPath + 'vkSumi.conf') then
+    else if FileExists(ProfileDir + 'vkSumi.conf') then
     begin
-      SetEnvVarInList(EnvStrings, 'VKSUMI_CONFIG_FILE', BgmodPath + 'vkSumi.conf');
-      Log('Export: VKSUMI_CONFIG_FILE=' + BgmodPath + 'vkSumi.conf');
+      SetEnvVarInList(EnvStrings, 'VKSUMI_CONFIG_FILE', ProfileDir + 'vkSumi.conf');
+      Log('Export: VKSUMI_CONFIG_FILE=' + ProfileDir + 'vkSumi.conf');
     end;
   end;
   if GOverlayVkNemu then
