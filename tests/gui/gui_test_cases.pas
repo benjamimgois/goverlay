@@ -6427,10 +6427,11 @@ begin
     AssertTrue('Dialog height is optimized', Dlg.Height <= 500);
     AssertTrue('Dialog KeyPreview is enabled for Escape key', Dlg.KeyPreview);
     AssertTrue('Platform switcher image list is created', Assigned(Dlg.PlatformImages));
-    AssertTrue('Platform switcher has 3 icons', Dlg.PlatformImages.Count >= 3);
+    AssertTrue('Platform switcher has 4 icons', Dlg.PlatformImages.Count >= 4);
     AssertTrue('Steam button has icon assigned', (Dlg.SteamBtn.Images <> nil) or (not Dlg.SteamBtn.Glyph.Empty));
     AssertTrue('Heroic button has icon assigned', (Dlg.HeroicBtn.Images <> nil) or (not Dlg.HeroicBtn.Glyph.Empty));
     AssertTrue('Lutris button has icon assigned', (Dlg.LutrisBtn.Images <> nil) or (not Dlg.LutrisBtn.Glyph.Empty));
+    AssertTrue('Bottles button has icon assigned', (Dlg.BottlesBtn.Images <> nil) or (not Dlg.BottlesBtn.Glyph.Empty));
 
     Bmp.SetSize(540, 180);
     // Exercise Steam painting and initial instructions
@@ -6469,6 +6470,8 @@ begin
         '/home/user/.local/share/goverlay/gameconfig/God of War/bgmod', Dlg2.BuildHeroicCommand);
       AssertEquals('Lutris command for custom game config preserves quotes and strips %command%',
         '"/home/user/.local/share/goverlay/gameconfig/God of War/bgmod"', Dlg2.BuildLutrisCommand);
+      AssertEquals('Bottles command for custom game config preserves quotes and %command%',
+        '"/home/user/.local/share/goverlay/gameconfig/God of War/bgmod" %command%', Dlg2.BuildBottlesCommand);
     finally
       Dlg2.Free;
     end;
@@ -6477,6 +6480,8 @@ begin
     try
       AssertEquals('Lutris command quotes unquoted path containing spaces',
         '"/home/user/.local/share/goverlay/gameconfig/Mortal Shell 2/bgmod"', Dlg3.BuildLutrisCommand);
+      AssertEquals('Bottles command quotes unquoted path with spaces and appends %command%',
+        '"/home/user/.local/share/goverlay/gameconfig/Mortal Shell 2/bgmod" %command%', Dlg3.BuildBottlesCommand);
     finally
       Dlg3.Free;
     end;
@@ -6494,13 +6499,24 @@ begin
     AssertEquals('Lutris command strips quotes and %command%',
       'MANGOHUD=1', Dlg.BuildLutrisCommand);
 
+    // Switch to Bottles and exercise Bottles painting and Launch Arguments instructions
+    Dlg.BottlesBtnClick(nil);
+    AssertTrue('Bottles platform selected', Dlg.FPlatform = fpBottles);
+    Dlg.PaintAnimBottles(Bmp.Canvas, 540, 180);
+    AssertTrue('Bottles instructions direct to Settings > Launch > Arguments',
+      Pos('Settings › Launch › "Arguments"', Dlg.FStepsLabel.Caption) > 0);
+    AssertTrue('Bottles instructions direct to Save in both dialogs',
+      Pos('Save', Dlg.FStepsLabel.Caption) > 0);
+    AssertEquals('Bottles command preserves %command%',
+      'MANGOHUD=1 %command%', Dlg.BuildBottlesCommand);
+
     // Switch back to Steam
     Dlg.SteamBtnClick(nil);
     Dlg.PaintAnimSteam(Bmp.Canvas, 540, 180);
     AssertTrue('Steam instructions restored after switching back',
       Pos('Properties › General', Dlg.FStepsLabel.Caption) > 0);
 
-    AssertTrue('Modern Steam, Heroic, and Lutris finish dialogs painted successfully', True);
+    AssertTrue('Modern Steam, Heroic, Lutris, and Bottles finish dialogs painted successfully', True);
   finally
     Bmp.Free;
     Dlg.Free;

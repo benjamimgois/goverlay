@@ -10,7 +10,7 @@ uses
 
 type
 
-  TFinishPlatform = (fpSteam, fpHeroic, fpLutris);
+  TFinishPlatform = (fpSteam, fpHeroic, fpLutris, fpBottles);
 
   { TFinishDialogForm }
   TFinishDialogForm = class(TForm)
@@ -34,6 +34,7 @@ type
     FSteamBtn:        TSpeedButton;
     FHeroicBtn:       TSpeedButton;
     FLutrisBtn:       TSpeedButton;
+    FBottlesBtn:      TSpeedButton;
 
     // Animation area
     FAnimBox:         TPaintBox;
@@ -71,15 +72,19 @@ type
     destructor Destroy; override;
     function  BuildHeroicCommand: string;
     function  BuildLutrisCommand: string;
+    function  BuildBottlesCommand: string;
     procedure PaintAnimSteam(ACanvas: TCanvas; AW, AH: Integer);
     procedure PaintAnimHeroic(ACanvas: TCanvas; AW, AH: Integer);
     procedure PaintAnimLutris(ACanvas: TCanvas; AW, AH: Integer);
+    procedure PaintAnimBottles(ACanvas: TCanvas; AW, AH: Integer);
     procedure SteamBtnClick(Sender: TObject);
     procedure HeroicBtnClick(Sender: TObject);
     procedure LutrisBtnClick(Sender: TObject);
+    procedure BottlesBtnClick(Sender: TObject);
     property SteamBtn:       TSpeedButton read FSteamBtn;
     property HeroicBtn:      TSpeedButton read FHeroicBtn;
     property LutrisBtn:      TSpeedButton read FLutrisBtn;
+    property BottlesBtn:     TSpeedButton read FBottlesBtn;
     property PlatformImages: TImageList   read FPlatformImages;
   end;
 
@@ -336,6 +341,23 @@ begin
   FLutrisBtn.OnClick    := @LutrisBtnClick;
   LoadPlatformIcon(FLutrisBtn, 'lutris-gray.png', FPlatformImages);
 
+  FBottlesBtn            := TSpeedButton.Create(Self);
+  FBottlesBtn.Parent     := Self;
+  FBottlesBtn.Caption    := 'Bottles';
+  FBottlesBtn.Font.Name  := 'Noto Sans';
+  FBottlesBtn.Font.Size  := 10;
+  FBottlesBtn.Font.Style := [fsBold];
+  FBottlesBtn.Font.Color := RGBToColor(107, 114, 128);
+  FBottlesBtn.Left       := PAD + 348;
+  FBottlesBtn.Top        := Y;
+  FBottlesBtn.Width      := 110;
+  FBottlesBtn.Height     := BTN_H;
+  FBottlesBtn.Flat       := True;
+  FBottlesBtn.GroupIndex := 1;
+  FBottlesBtn.Down       := False;
+  FBottlesBtn.OnClick    := @BottlesBtnClick;
+  LoadPlatformIcon(FBottlesBtn, 'bottles-gray.png', FPlatformImages);
+
   Inc(Y, BTN_H + 12);
 
   // --- Animation box ---
@@ -523,9 +545,10 @@ begin
   FCmdPanel.Canvas.Brush.Color := RGBToColor(12, 16, 26);
   FCmdPanel.Canvas.Brush.Style := bsSolid;
   case FPlatform of
-    fpSteam:  BorderClr := RGBToColor(48, 140, 220);
-    fpHeroic: BorderClr := RGBToColor(35, 180, 160);
-    fpLutris: BorderClr := RGBToColor(250, 124, 20);
+    fpSteam:   BorderClr := RGBToColor(48, 140, 220);
+    fpHeroic:  BorderClr := RGBToColor(35, 180, 160);
+    fpLutris:  BorderClr := RGBToColor(250, 124, 20);
+    fpBottles: BorderClr := RGBToColor(43, 138, 157);
   end;
 
   FCmdPanel.Canvas.Pen.Color := BorderClr;
@@ -581,6 +604,32 @@ begin
   Result := Trim(S);
 end;
 
+function TFinishDialogForm.BuildBottlesCommand: string;
+var
+  S, WrapperPath, Suffix: string;
+  BgmodIdx: Integer;
+begin
+  S := Trim(FLaunchCommand);
+  if S = '' then Exit('');
+
+  // Quote the bgmod wrapper path when unquoted and containing spaces
+  BgmodIdx := Pos('bgmod', S);
+  if (BgmodIdx > 0) and (not StartsStr('"', S)) then
+  begin
+    WrapperPath := Copy(S, 1, BgmodIdx + Length('bgmod') - 1);
+    Suffix := Copy(S, BgmodIdx + Length('bgmod'), MaxInt);
+    if Pos(' ', WrapperPath) > 0 then
+      S := '"' + WrapperPath + '"' + Suffix;
+  end;
+
+  // Modern Bottles' Launch Arguments field expects %command% (even when
+  // opened from a non-Steam card whose GetLaunchCommand omits it).
+  if (not EndsText('%command%', S)) and (not EndsText('%COMMAND%', S)) then
+    S := S + ' %command%';
+
+  Result := Trim(S);
+end;
+
 procedure TFinishDialogForm.UpdateForPlatform;
 begin
   case FPlatform of
@@ -589,6 +638,7 @@ begin
       FSteamBtn.Down := True;
       FHeroicBtn.Down := False;
       FLutrisBtn.Down := False;
+      FBottlesBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the launch command.' + LineEnding +
         '2. In Steam, right-click your game › Properties › General.' + LineEnding +
@@ -596,6 +646,7 @@ begin
       FSteamBtn.Font.Color := clWhite;
       FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
       FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
+      FBottlesBtn.Font.Color := RGBToColor(107, 114, 128);
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(48, 190, 240);
       if Assigned(FCmdTextLbl) then
@@ -619,6 +670,7 @@ begin
       FSteamBtn.Down := False;
       FHeroicBtn.Down := True;
       FLutrisBtn.Down := False;
+      FBottlesBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the wrapper command.' + LineEnding +
         '2. In Heroic, open game Settings › Advanced › scroll down to "Wrapper Command".' + LineEnding +
@@ -626,6 +678,7 @@ begin
       FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
       FHeroicBtn.Font.Color := clWhite;
       FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
+      FBottlesBtn.Font.Color := RGBToColor(107, 114, 128);
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(85, 235, 216);
       if Assigned(FCmdTextLbl) then
@@ -649,6 +702,7 @@ begin
       FSteamBtn.Down := False;
       FHeroicBtn.Down := False;
       FLutrisBtn.Down := True;
+      FBottlesBtn.Down := False;
       FStepsLabel.Caption :=
         '1. Click "Copy" above to copy the command prefix.' + LineEnding +
         '2. In Lutris, right-click your game › Configure › "System options" tab (enable "Advanced").' + LineEnding +
@@ -656,11 +710,44 @@ begin
       FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
       FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
       FLutrisBtn.Font.Color := clWhite;
+      FBottlesBtn.Font.Color := RGBToColor(107, 114, 128);
       if Assigned(FCmdPromptLbl) then
         FCmdPromptLbl.Font.Color := RGBToColor(250, 124, 20);
       if Assigned(FCmdTextLbl) then
       begin
         FCmdTextLbl.Caption := BuildLutrisCommand;
+        FCmdTextLbl.Font.Size := 9;
+        if Assigned(FCmdPanel) then
+        begin
+          FCmdPanel.Canvas.Font.Name := FCmdTextLbl.Font.Name;
+          FCmdPanel.Canvas.Font.Size := 9;
+          while (FCmdTextLbl.Font.Size > 7) and (FCmdPanel.Canvas.TextWidth(FCmdTextLbl.Caption) > FCmdTextLbl.Width) do
+          begin
+            FCmdTextLbl.Font.Size := FCmdTextLbl.Font.Size - 1;
+            FCmdPanel.Canvas.Font.Size := FCmdTextLbl.Font.Size;
+          end;
+        end;
+      end;
+    end;
+    fpBottles:
+    begin
+      FSteamBtn.Down := False;
+      FHeroicBtn.Down := False;
+      FLutrisBtn.Down := False;
+      FBottlesBtn.Down := True;
+      FStepsLabel.Caption :=
+        '1. Click "Copy" above to copy the launch command.' + LineEnding +
+        '2. In Bottles, open your game''s Settings › Launch › "Arguments".' + LineEnding +
+        '3. Paste into the Arguments field and click "Save" in both dialogs.';
+      FSteamBtn.Font.Color := RGBToColor(107, 114, 128);
+      FHeroicBtn.Font.Color := RGBToColor(107, 114, 128);
+      FLutrisBtn.Font.Color := RGBToColor(107, 114, 128);
+      FBottlesBtn.Font.Color := clWhite;
+      if Assigned(FCmdPromptLbl) then
+        FCmdPromptLbl.Font.Color := RGBToColor(58, 178, 202);
+      if Assigned(FCmdTextLbl) then
+      begin
+        FCmdTextLbl.Caption := BuildBottlesCommand;
         FCmdTextLbl.Font.Size := 9;
         if Assigned(FCmdPanel) then
         begin
@@ -703,6 +790,12 @@ begin
   UpdateForPlatform;
 end;
 
+procedure TFinishDialogForm.BottlesBtnClick(Sender: TObject);
+begin
+  FPlatform := fpBottles;
+  UpdateForPlatform;
+end;
+
 procedure TFinishDialogForm.CloseBtnClick(Sender: TObject);
 begin
   FAnimTimer.Enabled := False;
@@ -717,6 +810,7 @@ begin
     fpSteam:   CmdText := FLaunchCommand;
     fpHeroic:  CmdText := BuildHeroicCommand;
     fpLutris:  CmdText := BuildLutrisCommand;
+    fpBottles: CmdText := BuildBottlesCommand;
   end;
   Clipboard.AsText := CmdText;
   FCopiedTick := 90;  // show feedback for ~3 s at 30fps
@@ -757,9 +851,10 @@ end;
 procedure TFinishDialogForm.AnimBoxPaint(Sender: TObject);
 begin
   case FPlatform of
-    fpSteam:  PaintAnimSteam(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
-    fpHeroic: PaintAnimHeroic(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
-    fpLutris: PaintAnimLutris(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
+    fpSteam:   PaintAnimSteam(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
+    fpHeroic:  PaintAnimHeroic(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
+    fpLutris:  PaintAnimLutris(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
+    fpBottles: PaintAnimBottles(FAnimBox.Canvas, FAnimBox.Width, FAnimBox.Height);
   end;
 end;
 
@@ -1430,6 +1525,217 @@ begin
   ACanvas.Font.Size  := 10;
   ACanvas.Font.Color := RGBToColor(250, 124, 20);
   ACanvas.Font.Style := [fsBold];
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(ArrowX, ArrowY, '>');
+end;
+
+// Draw modern Bottles Libadwaita Game Settings + Launch Arguments walkthrough
+procedure TFinishDialogForm.PaintAnimBottles(ACanvas: TCanvas; AW, AH: Integer);
+var
+  Phase, FadeAlpha: Integer;
+  WW, WH, WL, WT, WR, WB: Integer;
+  ML, MT, MR, MB: Integer;
+  CancelL, CancelT, CancelW, CancelH: Integer;
+  SaveL, SaveT, SaveW, SaveH: Integer;
+  InputR, CursorR: TRect;
+  CmdPreview: string;
+  ArrowX, ArrowY, BounceOff: Integer;
+begin
+  // Outer background
+  ACanvas.Brush.Color := RGBToColor(14, 16, 24);
+  ACanvas.Pen.Color   := RGBToColor(14, 16, 24);
+  ACanvas.FillRect(Rect(0, 0, AW, AH));
+
+  // --- Background Window: Bottles "Game Settings" ---
+  WW := AW - 24;
+  WH := AH - 14;
+  WL := (AW - WW) div 2;
+  WT := (AH - WH) div 2;
+  WR := WL + WW;
+  WB := WT + WH;
+
+  // Window shadow
+  ACanvas.Brush.Color := RGBToColor(0, 0, 0);
+  ACanvas.Pen.Color   := RGBToColor(0, 0, 0);
+  ACanvas.FillRect(Rect(WL + 4, WT + 4, WR + 4, WB + 4));
+
+  // Window background
+  ACanvas.Brush.Color := RGBToColor(30, 30, 34);
+  ACanvas.Pen.Color   := RGBToColor(54, 54, 60);
+  ACanvas.RoundRect(WL, WT, WR, WB, 8, 8);
+
+  // Header bar: Cancel | Game Settings | Save
+  CancelL := WL + 8;
+  CancelT := WT + 5;
+  CancelW := 42;
+  CancelH := 16;
+  ACanvas.Brush.Color := RGBToColor(52, 52, 58);
+  ACanvas.Pen.Color   := RGBToColor(68, 68, 74);
+  ACanvas.RoundRect(CancelL, CancelT, CancelL + CancelW, CancelT + CancelH, 5, 5);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Name   := 'DejaVu Sans';
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [];
+  ACanvas.Font.Color  := RGBToColor(210, 210, 215);
+  ACanvas.TextOut(CancelL + 7, CancelT + 2, 'Cancel');
+
+  ACanvas.Font.Size   := 7;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := RGBToColor(215, 215, 220);
+  ACanvas.TextOut(WL + (WW - ACanvas.TextWidth('Game Settings')) div 2, WT + 6, 'Game Settings');
+
+  SaveL := WR - 44;
+  SaveT := WT + 5;
+  SaveW := 36;
+  SaveH := 16;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(32, 108, 124);
+  ACanvas.Pen.Color   := RGBToColor(43, 138, 157);
+  ACanvas.RoundRect(SaveL, SaveT, SaveL + SaveW, SaveT + SaveH, 5, 5);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := clWhite;
+  ACanvas.TextOut(SaveL + 8, SaveT + 2, 'Save');
+
+  // Subtle background hint of Game Settings rows ("Launch" -> "Arguments")
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := RGBToColor(125, 128, 136);
+  ACanvas.TextOut(WL + 14, WT + 26, 'Launch › Arguments');
+
+  // --- Overlaid Sub-Dialog: "Launch Arguments" ---
+  ML := WL + 26;
+  MT := WT + 36;
+  MR := WR - 26;
+  MB := WB - 6;
+
+  // Modal shadow
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(8, 10, 14);
+  ACanvas.Pen.Color   := RGBToColor(8, 10, 14);
+  ACanvas.RoundRect(ML + 3, MT + 3, MR + 3, MB + 3, 8, 8);
+
+  // Modal surface
+  ACanvas.Brush.Color := RGBToColor(38, 38, 43);
+  ACanvas.Pen.Color   := RGBToColor(72, 74, 84);
+  ACanvas.RoundRect(ML, MT, MR, MB, 8, 8);
+
+  // Modal header: Cancel | Launch Arguments | Save
+  CancelL := ML + 8;
+  CancelT := MT + 6;
+  CancelW := 42;
+  CancelH := 16;
+  ACanvas.Brush.Color := RGBToColor(56, 56, 62);
+  ACanvas.Pen.Color   := RGBToColor(72, 72, 80);
+  ACanvas.RoundRect(CancelL, CancelT, CancelL + CancelW, CancelT + CancelH, 5, 5);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Name   := 'DejaVu Sans';
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [];
+  ACanvas.Font.Color  := RGBToColor(225, 225, 230);
+  ACanvas.TextOut(CancelL + 7, CancelT + 2, 'Cancel');
+
+  ACanvas.Font.Size   := 7;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := clWhite;
+  ACanvas.TextOut(ML + ((MR - ML) - ACanvas.TextWidth('Launch Arguments')) div 2, MT + 7, 'Launch Arguments');
+
+  SaveL := MR - 44;
+  SaveT := MT + 6;
+  SaveW := 36;
+  SaveH := 16;
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(43, 138, 157);
+  ACanvas.Pen.Color   := RGBToColor(58, 178, 202);
+  ACanvas.RoundRect(SaveL, SaveT, SaveL + SaveW, SaveT + SaveH, 5, 5);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := clWhite;
+  ACanvas.TextOut(SaveL + 8, SaveT + 2, 'Save');
+
+  // Section title & description
+  ACanvas.Font.Size   := 7;
+  ACanvas.Font.Style  := [fsBold];
+  ACanvas.Font.Color  := clWhite;
+  ACanvas.TextOut(ML + 14, MT + 30, 'Arguments');
+
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [];
+  ACanvas.Font.Color  := RGBToColor(165, 168, 178);
+  ACanvas.TextOut(ML + 14, MT + 44, 'Use %command% to run the game through another program (e.g. bgmod %command%)');
+
+  // Input Box for Launch Arguments
+  InputR := Rect(ML + 22, MT + 62, MR - 14, MT + 86);
+  ACanvas.Brush.Style := bsSolid;
+  ACanvas.Brush.Color := RGBToColor(50, 50, 56);
+  ACanvas.Pen.Color   := RGBToColor(70, 72, 80);
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 6, 6);
+
+  // Pulsing highlight border (Bottles teal/cyan)
+  Phase := (FAnimTick mod 90);
+  if Phase < 45 then
+    FadeAlpha := Phase * 5
+  else
+    FadeAlpha := (90 - Phase) * 5;
+  FadeAlpha := Max(40, Min(220, FadeAlpha));
+
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Pen.Color := RGBToColor(
+    43 + (FadeAlpha * (80 - 43)) div 255,
+    138 + (FadeAlpha * (210 - 138)) div 255,
+    157 + (FadeAlpha * (230 - 157)) div 255);
+  ACanvas.Pen.Width := 2;
+  ACanvas.RoundRect(InputR.Left, InputR.Top, InputR.Right, InputR.Bottom, 6, 6);
+  ACanvas.Pen.Width := 1;
+
+  // Command preview inside input box
+  CmdPreview := BuildBottlesCommand;
+  if CmdPreview = '' then
+    CmdPreview := '"/home/user/.local/share/goverlay/bgmod" %command%';
+  if Length(CmdPreview) > 54 then
+    CmdPreview := Copy(CmdPreview, 1, 51) + '...';
+
+  ACanvas.Font.Name   := 'DejaVu Sans Mono';
+  ACanvas.Font.Size   := 6;
+  ACanvas.Font.Style  := [];
+  ACanvas.Font.Color  := RGBToColor(110, 220, 240);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(InputR.Left + 8, InputR.Top + 6, CmdPreview);
+
+  // Blinking cursor in input box
+  if (FAnimTick mod 30) < 18 then
+  begin
+    CursorR.Left   := InputR.Left + 8 + ACanvas.TextWidth(CmdPreview) + 2;
+    CursorR.Top    := InputR.Top + 5;
+    CursorR.Right  := CursorR.Left + 2;
+    CursorR.Bottom := InputR.Bottom - 5;
+    if CursorR.Right < InputR.Right - 22 then
+    begin
+      ACanvas.Brush.Style := bsSolid;
+      ACanvas.Brush.Color := RGBToColor(58, 178, 202);
+      ACanvas.Pen.Color   := RGBToColor(58, 178, 202);
+      ACanvas.FillRect(CursorR);
+    end;
+  end;
+
+  // Pencil edit icon on the right of the input box
+  ACanvas.Font.Name   := 'DejaVu Sans';
+  ACanvas.Font.Size   := 8;
+  ACanvas.Font.Style  := [];
+  ACanvas.Font.Color  := RGBToColor(210, 210, 215);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.TextOut(InputR.Right - 18, InputR.Top + 5, '✎');
+
+  // Bouncing guide arrow pointing to Arguments input box
+  BounceOff := Round(3 * Sin(FAnimTick * 0.12));
+  ArrowX := InputR.Left - 12 + BounceOff;
+  ArrowY := (InputR.Top + InputR.Bottom) div 2 - 5;
+  ACanvas.Font.Name   := 'DejaVu Sans';
+  ACanvas.Font.Size   := 10;
+  ACanvas.Font.Color  := RGBToColor(58, 178, 202);
+  ACanvas.Font.Style  := [fsBold];
   ACanvas.Brush.Style := bsClear;
   ACanvas.TextOut(ArrowX, ArrowY, '>');
 end;
