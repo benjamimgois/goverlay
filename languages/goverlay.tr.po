@@ -78,40 +78,6 @@ msgstr "Yapılandırmayı Temizle"
 msgid "Error copying file: %s"
 msgstr "Dosya kopyalama hatası: %s"
 
-#: goverlay_strings.rscustompresetprompt
-#, fuzzy
-#| msgid ""
-#| "No custom configuration was found to load.\n"
-#| "\n"
-#| "To create your custom preset:\n"
-#| "1. Customize your desired elements and colors in GOverlay.\n"
-#| "2. Click the menu button in the bottom bar.\n"
-#| "3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
-#| "\n"
-#| "Once created, click \"Custom\" anytime to apply your preset!"
-msgid ""
-"No custom configuration was found to load.\n"
-"\n"
-"To create your custom preset:\n"
-"1. Customize your desired elements and colors in Goverlay.\n"
-"2. Click the menu button in the bottom bar.\n"
-"3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
-"\n"
-"Once created, click \"Custom\" anytime to apply your preset!"
-msgstr ""
-"Yüklenecek bir özel yapılandırma bulunamadı.\n"
-"\n"
-"Özel yapılandırma oluşturmak için:\n"
-"1. GOverlay'de istediğiniz öğeleri ve renkleri özelleştirin.\n"
-"2. Alt çubukta bulunan menü düğmesine basın.\n"
-"3. \"Ayarları Kaydet\" -> \"Özel Yapılandırma olarak kaydet\" seçeneğini seçin.\n"
-"\n"
-"Oluşturduktan sonra, ön ayarınızı uygulamak için istediğiniz zaman \"Özel\"e tıklayın!"
-
-#: goverlay_strings.rscustompresettitle
-msgid "Custom Preset Required"
-msgstr "Özel Ön Ayar Gerekli"
-
 #: goverlay_strings.rsdownloadcurlfailed
 #, object-pascal-format
 msgid ""
@@ -553,10 +519,6 @@ msgstr "Uygulama adını kaydet"
 msgid "Remove selected application"
 msgstr "Seçilmiş uygulamayı kaldır"
 
-#: tgoverlayform.activegpulabel.caption
-msgid "Active GPU"
-msgstr "Aktif GPU"
-
 #: tgoverlayform.actprotonlogscheckbox.caption
 msgid "Active Proton Logs"
 msgstr "Aktif Proton Günlükleri"
@@ -577,10 +539,6 @@ msgstr "+"
 #: tgoverlayform.addbitbtn.hint
 msgid "Add effect to the list"
 msgstr "Listeye efekt ekle"
-
-#: tgoverlayform.advancedgroupbox.caption
-msgid "Advanced Tweaks"
-msgstr "Gelişmiş İnce Ayarlar"
 
 #: tgoverlayform.aflabel.caption
 msgid "Anisotropic filtering "
@@ -636,18 +594,10 @@ msgstr "Otoyükleme sonuçları"
 msgid "Enables automatic uploads of logs to flightlessmango.com"
 msgstr "Günlüklerin flightlessmango.com'a otomatik olarak yüklenmesini sağlar."
 
-#: tgoverlayform.backgroundgroupbox.caption
-msgid "Background"
-msgstr "Arka plan"
-
 #: tgoverlayform.backgroundlabel.caption
 msgctxt "tgoverlayform.backgroundlabel.caption"
 msgid "Color"
 msgstr "Renk"
-
-#: tgoverlayform.basicgroupbox.caption
-msgid "Basic Tweaks"
-msgstr "Temel İnce Ayarlar"
 
 #: tgoverlayform.basichorizontallabel.caption
 msgid "Basic Horizontal"
@@ -678,14 +628,6 @@ msgctxt "tgoverlayform.blacklistmenuitem.caption"
 msgid "Blacklisted Apps"
 msgstr "Kara Listedeki Uygulamalar"
 
-#: tgoverlayform.bordergroupbox.caption
-msgid "Borders"
-msgstr "Sınırlar"
-
-#: tgoverlayform.builtineffectsgroupbox.caption
-msgid "Built in Effects "
-msgstr "Dahili Efektler"
-
 #: tgoverlayform.caption
 msgid "Goverlay <GVERSION> <GCHANNEL>"
 msgstr "Goverlay <GVERSION> <GCHANNEL>"
@@ -710,10 +652,6 @@ msgstr "Güncellemeleri kontrol et"
 #: tgoverlayform.colorthemelabel.caption
 msgid "Color Theme"
 msgstr "Renk Teması"
-
-#: tgoverlayform.columsgroupbox.caption
-msgid "Columns"
-msgstr "Sütunlar"
 
 #: tgoverlayform.columvaluelabel.caption
 msgid "3"
@@ -746,10 +684,6 @@ msgstr "Kareler / Joule"
 msgctxt "tgoverlayform.cpufreqcheckbox.caption"
 msgid "Core Freq"
 msgstr "Çekirdek Frekansı"
-
-#: tgoverlayform.cpugroupbox.caption
-msgid "CPU / Memory"
-msgstr "CPU / Bellek"
 
 #: tgoverlayform.cpuload1colorbutton.hint
 msgctxt "tgoverlayform.cpuload1colorbutton.hint"
@@ -994,10 +928,6 @@ msgctxt "tgoverlayform.fakenvapi2.caption"
 msgid "--"
 msgstr "--"
 
-#: tgoverlayform.fakenvapigroupbox.caption
-msgid "Fakenvapi"
-msgstr "Fakenvapi"
-
 #: tgoverlayform.fakenvapilabel.caption
 msgid "Fakenvapi:"
 msgstr "Fakenvapi:"
@@ -1028,18 +958,10 @@ msgstr "dxgi.dll"
 msgid "Proxy DLL"
 msgstr "Dosya adı"
 
-#: tgoverlayform.filtersgroupbox.caption
-msgid "Filters"
-msgstr "Filtreler"
-
 #: tgoverlayform.fontcolorlabel.caption
 msgctxt "tgoverlayform.fontcolorlabel.caption"
 msgid "Color"
 msgstr "Renk"
-
-#: tgoverlayform.fontcombobox.hint
-msgid "ttf fonts  in /usr/share/fonts"
-msgstr "/usr/share/fonts  dizinindeki TTF yazı tipleri"
 
 #: tgoverlayform.fontcombobox.text
 msgid "Default"
@@ -1048,22 +970,6 @@ msgstr "Varsayılan"
 #: tgoverlayform.fontlabel.caption
 msgid "Size"
 msgstr "Boyut"
-
-#: tgoverlayform.fontsgroupbox.caption
-msgid "Fonts"
-msgstr "Yazı tipleri"
-
-#: tgoverlayform.fontsizetrackbar.hint
-msgid ""
-"Recommended Values:\n"
-"720p - 19\n"
-"1080 - 24\n"
-"4K - 31"
-msgstr ""
-"Önerilen Değerler:\n"
-"720p - 19\n"
-"1080 - 24\n"
-"4K - 31"
 
 #: tgoverlayform.fontsizevaluelabel.caption
 msgctxt "tgoverlayform.fontsizevaluelabel.caption"
@@ -1174,31 +1080,6 @@ msgstr "FPS renkleri için üst eşik değeri"
 #: tgoverlayform.fpscolorcheckbox.caption
 msgid "Change FPS colors"
 msgstr "FPS renklerini değiştir"
-
-#: tgoverlayform.fpsgroupbox.caption
-msgctxt "tgoverlayform.fpsgroupbox.caption"
-msgid "Information"
-msgstr "Bilgilendirme"
-
-#: tgoverlayform.fpslimcheckgroup.hint
-msgid ""
-"Check all the FPS limits you need and toggle between \n"
-"then with the toggle key.\n"
-"\n"
-"0 = unlimited fps"
-msgstr ""
-"İhtiyacınız olan tüm FPS sınırlarını işaretleyin ve \n"
-"değiştirme tuşuyla aralarında geçiş yapın.\n"
-"\n"
-"0 = sınırsız fps"
-
-#: tgoverlayform.fpslimitergroupbox.caption
-msgid "Limiters"
-msgstr "Sınırlayıcılar"
-
-#: tgoverlayform.fpslimlabel.caption
-msgid "FPS Limit"
-msgstr "FPS Sınırı"
 
 #: tgoverlayform.fpslimmetcombobox.hint
 msgid ""
@@ -1351,10 +1232,6 @@ msgstr "Oyunlar"
 msgid "Auto Enable"
 msgstr "Otomatik Etkinleştir"
 
-#: tgoverlayform.generalgroupbox.caption
-msgid "General"
-msgstr "Genel"
-
 #: tgoverlayform.gespeedbutton.hint
 msgid ""
 "MangoHUD will be automatically enabled for all VULKAN applications.\n"
@@ -1431,14 +1308,6 @@ msgctxt "tgoverlayform.gpuavgloadcheckbox.caption"
 msgid "Load"
 msgstr "Yük"
 
-#: tgoverlayform.gpudescedit.text
-msgid "Select GPU to use"
-msgstr "Kullanılacak GPU'yu seçin"
-
-#: tgoverlayform.gpudrivergroupbox.caption
-msgid "GPU Driver"
-msgstr "GPU Sürücüsü"
-
 #: tgoverlayform.gpuefficiencycheckbox.caption
 msgctxt "tgoverlayform.gpuefficiencycheckbox.caption"
 msgid "Efficiency"
@@ -1457,11 +1326,6 @@ msgstr "Kareler / Joule"
 msgctxt "tgoverlayform.gpufreqcheckbox.caption"
 msgid "Core Freq"
 msgstr "Çekirdek Frekansı"
-
-#: tgoverlayform.gpugroupbox.caption
-msgctxt "tgoverlayform.gpugroupbox.caption"
-msgid "GPU"
-msgstr "GPU"
 
 #: tgoverlayform.gpuinfolabel.caption
 msgctxt "tgoverlayform.gpuinfolabel.caption"
@@ -1551,10 +1415,6 @@ msgstr "throttling_status ile aynıdır, ancak kare zamanlaması grafiğinde hı
 msgid "Voltage"
 msgstr "Voltaj"
 
-#: tgoverlayform.graphicsgroupbox.caption
-msgid "Graphics"
-msgstr "Grafikler"
-
 #: tgoverlayform.gupdatebitbtn.caption
 msgid "GOVERLAY UPDATE STATUS"
 msgstr "GOVERLAY GÜNCELLEME DURUMU"
@@ -1600,10 +1460,6 @@ msgstr ""
 "PROTON_HIDE_NVIDIA_GPU=1\n"
 "Oyunların Nvidia-özel kütüphaneleri algılanmasını engeller."
 
-#: tgoverlayform.himage.hint
-msgid "Horizontal"
-msgstr "Yatay"
-
 #: tgoverlayform.hudcompactcheckbox.caption
 msgid "Compact HUD"
 msgstr "Kompakt HUD"
@@ -1635,17 +1491,6 @@ msgstr "Hud için özel bir başlık oluştur"
 msgid "-- HUD title --"
 msgstr "-- HUD başlığı --"
 
-#: tgoverlayform.hudtoggleimage.hint
-msgctxt "tgoverlayform.hudtoggleimage.hint"
-msgid ""
-"Key to enable and disable the HUD\n"
-"(Shift_L = left shift)\n"
-"(Shift_R = right shift)"
-msgstr ""
-"HUD'u açıp kapatma tuşu\n"
-"(Shift_L = sol shift)\n"
-"(Shift_R = sağ shift)"
-
 #: tgoverlayform.hudtogglelabel.caption
 msgid "HUD Toggle Key"
 msgstr "HUD Açma/Kapama Tuşu"
@@ -1653,10 +1498,6 @@ msgstr "HUD Açma/Kapama Tuşu"
 #: tgoverlayform.hudversioncheckbox.caption
 msgid "HUD Version"
 msgstr "HUD Sürümü"
-
-#: tgoverlayform.imgmenugroupbox.caption
-msgid "ImGUI Menu"
-msgstr "ImGUI Menüsü"
 
 #: tgoverlayform.intelpowerfixbitbtn.hint
 msgid "Fix for power draw on intel CPUs"
@@ -1718,10 +1559,6 @@ msgstr "Süre"
 msgid "Log folder"
 msgstr "Kayıt klasörü"
 
-#: tgoverlayform.logginggroupbox.caption
-msgid "Logging"
-msgstr "Kayıt tutma"
-
 #: tgoverlayform.logintervallabel.caption
 msgid "Interval"
 msgstr "Aralık"
@@ -1769,11 +1606,6 @@ msgstr "MangoHud"
 msgctxt "tgoverlayform.mangohudlabel.hint"
 msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
 msgstr "FPS, sıcaklık, CPU/GPU yükü ve daha fazlasını izlemek için Vulkan ve OpenGL arayüzü."
-
-#: tgoverlayform.mangohudshape.hint
-msgctxt "tgoverlayform.mangohudshape.hint"
-msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
-msgstr "FPS, sıcaklık, CPU/GPU yükü ve daha fazlasıını izlemek için Vulkan ve OpenGL arayüzü."
 
 #: tgoverlayform.mark1label.caption
 msgid "1080p"
@@ -1889,22 +1721,6 @@ msgstr ""
 "OBS_VKCAPTURE=1\n"
 "OBS Studio için Vulkan yakalamayı etkinleştir"
 
-#: tgoverlayform.offsetlabel.caption
-msgid "Offset"
-msgstr "Ofset"
-
-#: tgoverlayform.offsetspinedit.hint
-msgid "Negative offset, you can use it to set a value slightly different than the chosen one. Very useful for VRR"
-msgstr "Negatif ofset, seçilen değerden biraz daha farklı bir değer ayarlamak için kullanılabilir. VRR için oldukça kullanışlıdır."
-
-#: tgoverlayform.offsetxspinedit.hint
-msgid "offset X"
-msgstr "ofset X"
-
-#: tgoverlayform.offsetyspinedit.hint
-msgid "offset Y"
-msgstr "ofset Y"
-
 #: tgoverlayform.openconfigfilemenuitem.caption
 #, fuzzy
 #| msgid "Open config file"
@@ -1914,10 +1730,6 @@ msgstr "Yapılandırma dosyasını aç"
 #: tgoverlayform.openlogfilemenuitem.caption
 msgid "Open log folder"
 msgstr ""
-
-#: tgoverlayform.optionsgroupbox.caption
-msgid "Basic Options"
-msgstr "Temel Seçenekler"
 
 #: tgoverlayform.optionslabel.caption
 msgid "Options"
@@ -1944,11 +1756,6 @@ msgctxt "tgoverlayform.optipatcherlabel1.caption"
 msgid "--"
 msgstr "--"
 
-#: tgoverlayform.optiscalergroupbox.caption
-msgctxt "tgoverlayform.optiscalergroupbox.caption"
-msgid "OptiScaler"
-msgstr "OptiScaler"
-
 #: tgoverlayform.optiscalerlabel.caption
 msgctxt "tgoverlayform.optiscalerlabel.caption"
 msgid "OptiScaler"
@@ -1957,11 +1764,6 @@ msgstr "OptiScaler"
 #: tgoverlayform.optiscalerlabel.hint
 msgid "OptiScaler bridges upscaling/frame gen across GPUs. "
 msgstr "OptiScaler, farklı GPU'lar arasında ölçeklendirme/kare oluşturma teknolojilerini bir araya getirir."
-
-#: tgoverlayform.optiscalershape.hint
-msgctxt "tgoverlayform.optiscalershape.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
-msgstr "Oyunların görsel grafiklerini iyileştiren Vulkan son işlem katmanı."
 
 #: tgoverlayform.optiscalertabsheet.caption
 msgid "Optiscaler"
@@ -1988,10 +1790,6 @@ msgstr "OptiScaler dalını seç"
 #: tgoverlayform.optversioncombobox.text
 msgid "Stable Channel"
 msgstr "Stabil Kanal"
-
-#: tgoverlayform.orientationgroupbox.caption
-msgid "Orientation"
-msgstr "Oryantasyon"
 
 #: tgoverlayform.otherslabel.caption
 msgid "Others"
@@ -2025,11 +1823,6 @@ msgstr "\"lspci\" tarafından listelenen GPU PCI kimliği (PCIDEV)"
 msgid "PCI ID"
 msgstr "PCI Kimliği"
 
-#: tgoverlayform.performancegroupbox.caption
-msgctxt "tgoverlayform.performancegroupbox.caption"
-msgid "Performance"
-msgstr "Performans"
-
 #: tgoverlayform.performancetabsheet.caption
 msgctxt "tgoverlayform.performancetabsheet.caption"
 msgid "Performance"
@@ -2047,10 +1840,6 @@ msgstr "ÇALIŞTIR"
 #: tgoverlayform.popupbitbtn.hint
 msgid "More options"
 msgstr "Daha fazla seçenek"
-
-#: tgoverlayform.positiongroupbox.caption
-msgid "Position"
-msgstr "Pozisyon"
 
 #: tgoverlayform.preferredupscalerlabel.caption
 msgid "Preferred upscaler"
@@ -2112,10 +1901,6 @@ msgstr "Yenileme hızı"
 msgid "*Gamescope only"
 msgstr "Yalnızca *Gamescope"
 
-#: tgoverlayform.reshadegroupbox.caption
-msgid "Reshade"
-msgstr "Reshade"
-
 #: tgoverlayform.reshadelabel1.caption
 msgid "Available Effects"
 msgstr "Kullanılabilir Efektler"
@@ -2133,10 +1918,6 @@ msgstr "Güncelle"
 msgid "Resolution"
 msgstr "Çözünürlük"
 
-#: tgoverlayform.roundimage.hint
-msgid "Round edge"
-msgstr "Yuvarlatılmış kenar"
-
 #: tgoverlayform.saveasmenuitem.caption
 msgid "Save as"
 msgstr "Farklı kaydet"
@@ -2148,10 +1929,6 @@ msgstr " Kaydet "
 #: tgoverlayform.savebitbtn.hint
 msgid "Save current config"
 msgstr "Mevcut yapılandırmayı kaydet"
-
-#: tgoverlayform.savecustommenuitem.caption
-msgid "Custom Config"
-msgstr "Özel Yapılandırma"
 
 #: tgoverlayform.saveoptionsitem.caption
 msgid "Save options"
@@ -2219,10 +1996,6 @@ msgstr "0"
 msgid "Spoof DLSS"
 msgstr "DLSS'i Taklit Et"
 
-#: tgoverlayform.squareimage.hint
-msgid "Square edge"
-msgstr "Kare kenar"
-
 #: tgoverlayform.stagememcheckbox.caption
 msgid "Staging shared memory"
 msgstr "Paylaşımlı Bellekte Veri Hazırlama"
@@ -2234,10 +2007,6 @@ msgid ""
 msgstr ""
 "STAGING_SHARED_MEMORY=1\n"
 "Verimli bellek paylaşımı ile performansı arttırır."
-
-#: tgoverlayform.statusgroupbox.caption
-msgid "Software Status"
-msgstr "Yazılım Durumu"
 
 #: tgoverlayform.subbitbtn.caption
 msgctxt "tgoverlayform.subbitbtn.caption"
@@ -2251,10 +2020,6 @@ msgstr "Efekti listeden kaldır"
 #: tgoverlayform.swapusagecheckbox.caption
 msgid "Swap"
 msgstr "Takas Alanı"
-
-#: tgoverlayform.systemgroupbox.caption
-msgid "System Information"
-msgstr "Sistem Bilgisi"
 
 #: tgoverlayform.systemlabel.caption
 msgid "System"
@@ -2300,23 +2065,9 @@ msgctxt "tgoverlayform.tweakslabel.caption"
 msgid "Proton Tweaks"
 msgstr "Proton Tweaks"
 
-#: tgoverlayform.tweaksshape.hint
-msgctxt "tgoverlayform.tweaksshape.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
-msgstr "Oyunlardaki görselliği iyileştiren Vulkan son işleme katmanı."
-
 #: tgoverlayform.tweakstabsheet.caption
 msgid "Tweaks"
 msgstr "İnce Ayarlar"
-
-#: tgoverlayform.tweakstext.caption
-msgctxt "tgoverlayform.tweakstext.caption"
-msgid "Proton Tweaks"
-msgstr "Proton Tweaks"
-
-#: tgoverlayform.tweakstext2.caption
-msgid "Manage environment variables easily"
-msgstr "Ortam değişkenlerini kolayca yönetin"
 
 #: tgoverlayform.updatebitbtn.caption
 msgctxt "tgoverlayform.updatebitbtn.caption"
@@ -2355,10 +2106,6 @@ msgstr ""
 "Günlüğe daha fazla başlık ve sürüm bilgisi gibi veriler ekler. \n"
 "Bu format flightlessmango.com'da (henüz) desteklenmiyor"
 
-#: tgoverlayform.vimage.hint
-msgid "Vertical"
-msgstr "Dikey"
-
 #: tgoverlayform.visualtabsheet.caption
 msgid "Visual"
 msgstr "Görünüm"
@@ -2370,11 +2117,6 @@ msgstr "vkBasalt"
 
 #: tgoverlayform.vkbasaltlabel.hint
 msgctxt "tgoverlayform.vkbasaltlabel.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
-msgstr "Oyunlardaki görsel grafiklerini iyileştiren Vulkan son işleme katmanı."
-
-#: tgoverlayform.vkbasaltshape.hint
-msgctxt "tgoverlayform.vkbasaltshape.hint"
 msgid "Vulkan post processing layer to enhance the visual graphics of games."
 msgstr "Oyunlardaki görsel grafiklerini iyileştiren Vulkan son işleme katmanı."
 
@@ -2451,10 +2193,6 @@ msgstr ""
 msgctxt "tgoverlayform.vsynccombobox.text"
 msgid "Unset"
 msgstr "Ayarlanmamış"
-
-#: tgoverlayform.vsyncgroupbox.caption
-msgid "VSYNC"
-msgstr "VSYNC"
 
 #: tgoverlayform.vulkandrivercheckbox.caption
 msgid "Vulkan Driver"

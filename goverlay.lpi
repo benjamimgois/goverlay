@@ -24,8 +24,6 @@
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <MajorVersionNr Value="2"/>
-      <MinorVersionNr Value="0"/>
-      <RevisionNr Value="0"/>
       <StringTable InternalName="Goverlay" ProductName="Goverlay" ProductVersion="2.0.0 RC1"/>
     </VersionInfo>
     <MacroValues Count="1">

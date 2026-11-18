@@ -56,22 +56,6 @@ msgstr ""
 msgid "Error copying file: %s"
 msgstr ""
 
-#: goverlay_strings.rscustompresetprompt
-msgid ""
-"No custom configuration was found to load.\n"
-"\n"
-"To create your custom preset:\n"
-"1. Customize your desired elements and colors in Goverlay.\n"
-"2. Click the menu button in the bottom bar.\n"
-"3. Select \"Save Options\" -> \"Save as Custom Config\".\n"
-"\n"
-"Once created, click \"Custom\" anytime to apply your preset!"
-msgstr ""
-
-#: goverlay_strings.rscustompresettitle
-msgid "Custom Preset Required"
-msgstr ""
-
 #: goverlay_strings.rsdownloadcurlfailed
 #, object-pascal-format
 msgid ""
@@ -436,10 +420,6 @@ msgstr ""
 msgid "Remove selected application"
 msgstr ""
 
-#: tgoverlayform.activegpulabel.caption
-msgid "Active GPU"
-msgstr ""
-
 #: tgoverlayform.actprotonlogscheckbox.caption
 msgid "Active Proton Logs"
 msgstr ""
@@ -457,10 +437,6 @@ msgstr ""
 
 #: tgoverlayform.addbitbtn.hint
 msgid "Add effect to the list"
-msgstr ""
-
-#: tgoverlayform.advancedgroupbox.caption
-msgid "Advanced Tweaks"
 msgstr ""
 
 #: tgoverlayform.aflabel.caption
@@ -514,17 +490,9 @@ msgstr ""
 msgid "Enables automatic uploads of logs to flightlessmango.com"
 msgstr ""
 
-#: tgoverlayform.backgroundgroupbox.caption
-msgid "Background"
-msgstr ""
-
 #: tgoverlayform.backgroundlabel.caption
 msgctxt "tgoverlayform.backgroundlabel.caption"
 msgid "Color"
-msgstr ""
-
-#: tgoverlayform.basicgroupbox.caption
-msgid "Basic Tweaks"
 msgstr ""
 
 #: tgoverlayform.basichorizontallabel.caption
@@ -556,14 +524,6 @@ msgctxt "tgoverlayform.blacklistmenuitem.caption"
 msgid "Blacklisted Apps"
 msgstr ""
 
-#: tgoverlayform.bordergroupbox.caption
-msgid "Borders"
-msgstr ""
-
-#: tgoverlayform.builtineffectsgroupbox.caption
-msgid "Built in Effects "
-msgstr ""
-
 #: tgoverlayform.caption
 msgid "Goverlay <GVERSION> <GCHANNEL>"
 msgstr ""
@@ -587,10 +547,6 @@ msgstr ""
 
 #: tgoverlayform.colorthemelabel.caption
 msgid "Color Theme"
-msgstr ""
-
-#: tgoverlayform.columsgroupbox.caption
-msgid "Columns"
 msgstr ""
 
 #: tgoverlayform.columvaluelabel.caption
@@ -623,10 +579,6 @@ msgstr ""
 #: tgoverlayform.cpufreqcheckbox.caption
 msgctxt "tgoverlayform.cpufreqcheckbox.caption"
 msgid "Core Freq"
-msgstr ""
-
-#: tgoverlayform.cpugroupbox.caption
-msgid "CPU / Memory"
 msgstr ""
 
 #: tgoverlayform.cpuload1colorbutton.hint
@@ -861,10 +813,6 @@ msgctxt "tgoverlayform.fakenvapi2.caption"
 msgid "--"
 msgstr ""
 
-#: tgoverlayform.fakenvapigroupbox.caption
-msgid "Fakenvapi"
-msgstr ""
-
 #: tgoverlayform.fakenvapilabel.caption
 msgid "Fakenvapi:"
 msgstr ""
@@ -893,17 +841,9 @@ msgstr ""
 msgid "Proxy DLL"
 msgstr ""
 
-#: tgoverlayform.filtersgroupbox.caption
-msgid "Filters"
-msgstr ""
-
 #: tgoverlayform.fontcolorlabel.caption
 msgctxt "tgoverlayform.fontcolorlabel.caption"
 msgid "Color"
-msgstr ""
-
-#: tgoverlayform.fontcombobox.hint
-msgid "ttf fonts  in /usr/share/fonts"
 msgstr ""
 
 #: tgoverlayform.fontcombobox.text
@@ -912,18 +852,6 @@ msgstr ""
 
 #: tgoverlayform.fontlabel.caption
 msgid "Size"
-msgstr ""
-
-#: tgoverlayform.fontsgroupbox.caption
-msgid "Fonts"
-msgstr ""
-
-#: tgoverlayform.fontsizetrackbar.hint
-msgid ""
-"Recommended Values:\n"
-"720p - 19\n"
-"1080 - 24\n"
-"4K - 31"
 msgstr ""
 
 #: tgoverlayform.fontsizevaluelabel.caption
@@ -1020,27 +948,6 @@ msgstr ""
 
 #: tgoverlayform.fpscolorcheckbox.caption
 msgid "Change FPS colors"
-msgstr ""
-
-#: tgoverlayform.fpsgroupbox.caption
-msgctxt "tgoverlayform.fpsgroupbox.caption"
-msgid "Information"
-msgstr ""
-
-#: tgoverlayform.fpslimcheckgroup.hint
-msgid ""
-"Check all the FPS limits you need and toggle between \n"
-"then with the toggle key.\n"
-"\n"
-"0 = unlimited fps"
-msgstr ""
-
-#: tgoverlayform.fpslimitergroupbox.caption
-msgid "Limiters"
-msgstr ""
-
-#: tgoverlayform.fpslimlabel.caption
-msgid "FPS Limit"
 msgstr ""
 
 #: tgoverlayform.fpslimmetcombobox.hint
@@ -1179,10 +1086,6 @@ msgstr ""
 msgid "Auto Enable"
 msgstr ""
 
-#: tgoverlayform.generalgroupbox.caption
-msgid "General"
-msgstr ""
-
 #: tgoverlayform.gespeedbutton.hint
 msgid ""
 "MangoHUD will be automatically enabled for all VULKAN applications.\n"
@@ -1234,14 +1137,6 @@ msgctxt "tgoverlayform.gpuavgloadcheckbox.caption"
 msgid "Load"
 msgstr ""
 
-#: tgoverlayform.gpudescedit.text
-msgid "Select GPU to use"
-msgstr ""
-
-#: tgoverlayform.gpudrivergroupbox.caption
-msgid "GPU Driver"
-msgstr ""
-
 #: tgoverlayform.gpuefficiencycheckbox.caption
 msgctxt "tgoverlayform.gpuefficiencycheckbox.caption"
 msgid "Efficiency"
@@ -1259,11 +1154,6 @@ msgstr ""
 #: tgoverlayform.gpufreqcheckbox.caption
 msgctxt "tgoverlayform.gpufreqcheckbox.caption"
 msgid "Core Freq"
-msgstr ""
-
-#: tgoverlayform.gpugroupbox.caption
-msgctxt "tgoverlayform.gpugroupbox.caption"
-msgid "GPU"
 msgstr ""
 
 #: tgoverlayform.gpuinfolabel.caption
@@ -1354,10 +1244,6 @@ msgstr ""
 msgid "Voltage"
 msgstr ""
 
-#: tgoverlayform.graphicsgroupbox.caption
-msgid "Graphics"
-msgstr ""
-
 #: tgoverlayform.gupdatebitbtn.caption
 msgid "GOVERLAY UPDATE STATUS"
 msgstr ""
@@ -1399,10 +1285,6 @@ msgid ""
 "Prevents games from detecting Nvidia-specific libraries."
 msgstr ""
 
-#: tgoverlayform.himage.hint
-msgid "Horizontal"
-msgstr ""
-
 #: tgoverlayform.hudcompactcheckbox.caption
 msgid "Compact HUD"
 msgstr ""
@@ -1431,24 +1313,12 @@ msgstr ""
 msgid "-- HUD title --"
 msgstr ""
 
-#: tgoverlayform.hudtoggleimage.hint
-msgctxt "tgoverlayform.hudtoggleimage.hint"
-msgid ""
-"Key to enable and disable the HUD\n"
-"(Shift_L = left shift)\n"
-"(Shift_R = right shift)"
-msgstr ""
-
 #: tgoverlayform.hudtogglelabel.caption
 msgid "HUD Toggle Key"
 msgstr ""
 
 #: tgoverlayform.hudversioncheckbox.caption
 msgid "HUD Version"
-msgstr ""
-
-#: tgoverlayform.imgmenugroupbox.caption
-msgid "ImGUI Menu"
 msgstr ""
 
 #: tgoverlayform.intelpowerfixbitbtn.hint
@@ -1506,10 +1376,6 @@ msgstr ""
 msgid "Log folder"
 msgstr ""
 
-#: tgoverlayform.logginggroupbox.caption
-msgid "Logging"
-msgstr ""
-
 #: tgoverlayform.logintervallabel.caption
 msgid "Interval"
 msgstr ""
@@ -1552,11 +1418,6 @@ msgstr ""
 
 #: tgoverlayform.mangohudlabel.hint
 msgctxt "tgoverlayform.mangohudlabel.hint"
-msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
-msgstr ""
-
-#: tgoverlayform.mangohudshape.hint
-msgctxt "tgoverlayform.mangohudshape.hint"
 msgid "A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
 msgstr ""
 
@@ -1662,32 +1523,12 @@ msgid ""
 "Activate Vulkan capture for OBS Studio"
 msgstr ""
 
-#: tgoverlayform.offsetlabel.caption
-msgid "Offset"
-msgstr ""
-
-#: tgoverlayform.offsetspinedit.hint
-msgid "Negative offset, you can use it to set a value slightly different than the chosen one. Very useful for VRR"
-msgstr ""
-
-#: tgoverlayform.offsetxspinedit.hint
-msgid "offset X"
-msgstr ""
-
-#: tgoverlayform.offsetyspinedit.hint
-msgid "offset Y"
-msgstr ""
-
 #: tgoverlayform.openconfigfilemenuitem.caption
 msgid "Open config folder"
 msgstr ""
 
 #: tgoverlayform.openlogfilemenuitem.caption
 msgid "Open log folder"
-msgstr ""
-
-#: tgoverlayform.optionsgroupbox.caption
-msgid "Basic Options"
 msgstr ""
 
 #: tgoverlayform.optionslabel.caption
@@ -1713,11 +1554,6 @@ msgctxt "tgoverlayform.optipatcherlabel1.caption"
 msgid "--"
 msgstr ""
 
-#: tgoverlayform.optiscalergroupbox.caption
-msgctxt "tgoverlayform.optiscalergroupbox.caption"
-msgid "OptiScaler"
-msgstr ""
-
 #: tgoverlayform.optiscalerlabel.caption
 msgctxt "tgoverlayform.optiscalerlabel.caption"
 msgid "OptiScaler"
@@ -1725,11 +1561,6 @@ msgstr ""
 
 #: tgoverlayform.optiscalerlabel.hint
 msgid "OptiScaler bridges upscaling/frame gen across GPUs. "
-msgstr ""
-
-#: tgoverlayform.optiscalershape.hint
-msgctxt "tgoverlayform.optiscalershape.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
 msgstr ""
 
 #: tgoverlayform.optiscalertabsheet.caption
@@ -1756,10 +1587,6 @@ msgstr ""
 
 #: tgoverlayform.optversioncombobox.text
 msgid "Stable Channel"
-msgstr ""
-
-#: tgoverlayform.orientationgroupbox.caption
-msgid "Orientation"
 msgstr ""
 
 #: tgoverlayform.otherslabel.caption
@@ -1794,11 +1621,6 @@ msgstr ""
 msgid "PCI ID"
 msgstr ""
 
-#: tgoverlayform.performancegroupbox.caption
-msgctxt "tgoverlayform.performancegroupbox.caption"
-msgid "Performance"
-msgstr ""
-
 #: tgoverlayform.performancetabsheet.caption
 msgctxt "tgoverlayform.performancetabsheet.caption"
 msgid "Performance"
@@ -1815,10 +1637,6 @@ msgstr ""
 
 #: tgoverlayform.popupbitbtn.hint
 msgid "More options"
-msgstr ""
-
-#: tgoverlayform.positiongroupbox.caption
-msgid "Position"
 msgstr ""
 
 #: tgoverlayform.preferredupscalerlabel.caption
@@ -1879,10 +1697,6 @@ msgstr ""
 msgid "*Gamescope only"
 msgstr ""
 
-#: tgoverlayform.reshadegroupbox.caption
-msgid "Reshade"
-msgstr ""
-
 #: tgoverlayform.reshadelabel1.caption
 msgid "Available Effects"
 msgstr ""
@@ -1900,10 +1714,6 @@ msgstr ""
 msgid "Resolution"
 msgstr ""
 
-#: tgoverlayform.roundimage.hint
-msgid "Round edge"
-msgstr ""
-
 #: tgoverlayform.saveasmenuitem.caption
 msgid "Save as"
 msgstr ""
@@ -1914,10 +1724,6 @@ msgstr ""
 
 #: tgoverlayform.savebitbtn.hint
 msgid "Save current config"
-msgstr ""
-
-#: tgoverlayform.savecustommenuitem.caption
-msgid "Custom Config"
 msgstr ""
 
 #: tgoverlayform.saveoptionsitem.caption
@@ -1982,10 +1788,6 @@ msgstr ""
 msgid "Spoof DLSS"
 msgstr ""
 
-#: tgoverlayform.squareimage.hint
-msgid "Square edge"
-msgstr ""
-
 #: tgoverlayform.stagememcheckbox.caption
 msgid "Staging shared memory"
 msgstr ""
@@ -1994,10 +1796,6 @@ msgstr ""
 msgid ""
 "STAGING_SHARED_MEMORY=1\n"
 "Improves performance through efficient memory sharing."
-msgstr ""
-
-#: tgoverlayform.statusgroupbox.caption
-msgid "Software Status"
 msgstr ""
 
 #: tgoverlayform.subbitbtn.caption
@@ -2011,10 +1809,6 @@ msgstr ""
 
 #: tgoverlayform.swapusagecheckbox.caption
 msgid "Swap"
-msgstr ""
-
-#: tgoverlayform.systemgroupbox.caption
-msgid "System Information"
 msgstr ""
 
 #: tgoverlayform.systemlabel.caption
@@ -2056,22 +1850,8 @@ msgctxt "tgoverlayform.tweakslabel.caption"
 msgid "Proton Tweaks"
 msgstr ""
 
-#: tgoverlayform.tweaksshape.hint
-msgctxt "tgoverlayform.tweaksshape.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
-msgstr ""
-
 #: tgoverlayform.tweakstabsheet.caption
 msgid "Tweaks"
-msgstr ""
-
-#: tgoverlayform.tweakstext.caption
-msgctxt "tgoverlayform.tweakstext.caption"
-msgid "Proton Tweaks"
-msgstr ""
-
-#: tgoverlayform.tweakstext2.caption
-msgid "Manage environment variables easily"
 msgstr ""
 
 #: tgoverlayform.updatebitbtn.caption
@@ -2107,10 +1887,6 @@ msgid ""
 "This format is not supported on flightlessmango.com (yet)"
 msgstr ""
 
-#: tgoverlayform.vimage.hint
-msgid "Vertical"
-msgstr ""
-
 #: tgoverlayform.visualtabsheet.caption
 msgid "Visual"
 msgstr ""
@@ -2122,11 +1898,6 @@ msgstr ""
 
 #: tgoverlayform.vkbasaltlabel.hint
 msgctxt "tgoverlayform.vkbasaltlabel.hint"
-msgid "Vulkan post processing layer to enhance the visual graphics of games."
-msgstr ""
-
-#: tgoverlayform.vkbasaltshape.hint
-msgctxt "tgoverlayform.vkbasaltshape.hint"
 msgid "Vulkan post processing layer to enhance the visual graphics of games."
 msgstr ""
 
@@ -2188,10 +1959,6 @@ msgstr ""
 #: tgoverlayform.vsynccombobox.text
 msgctxt "tgoverlayform.vsynccombobox.text"
 msgid "Unset"
-msgstr ""
-
-#: tgoverlayform.vsyncgroupbox.caption
-msgid "VSYNC"
 msgstr ""
 
 #: tgoverlayform.vulkandrivercheckbox.caption
