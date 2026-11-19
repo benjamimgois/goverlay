@@ -100,6 +100,7 @@ type
   TBgmodSupervisorTests = class(TTestCase)
   public
     procedure EnsureBgmodBinary;
+    procedure RunReShadeArchCase(const ACaseName, AExeKind, AExpectedDll, AUnexpectedDll: string);
   published
     procedure TestSupervisorExitCodeTrue;
     procedure TestSupervisorExitCodeFalse;
@@ -113,6 +114,7 @@ type
     procedure TestBgmodDlssNrResolvedArchDeployment;
     procedure TestBgmodVkNemuEnvironmentExport;
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
+    procedure TestBgmodReShadeProxyMatchesExeArchitecture;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
     procedure TestBgmodLauncherRuleSpacelessGameName;
     procedure TestBgmodLauncherRuleCaseInsensitive;
@@ -2628,6 +2630,147 @@ begin
     AssertEquals('nvngx_dlss.dll content must be untouched native', 'ORIGINAL_NATIVE_DLSS', Trim(Lines.Text));
   finally
     Lines.Free;
+  end;
+end;
+
+// Writes a stub that is both a runnable "#!" script (so bgmod can launch it
+// and exit 0) and carries a PE header after the script body: e_lfanew at
+// 0x3C points to "PE\0\0" followed by the Machine field.
+procedure WritePEStub(const APath: string; AMachine: Word; AWithSignature: Boolean);
+var
+  Hdr: array[0..$5F] of Byte;
+  Script: string;
+  Stream: TFileStream;
+begin
+  FillChar(Hdr, SizeOf(Hdr), 0);
+  Script := '#!' + FindTestHelperExecutable('sh') + #10 + 'exit 0' + #10;
+  if Length(Script) >= $38 then
+    raise Exception.Create('test shell path too long for PE stub');
+  Move(Script[1], Hdr[0], Length(Script));
+  Hdr[$3C] := $40;
+  if AWithSignature then
+  begin
+    Hdr[$40] := $50; // 'P'
+    Hdr[$41] := $45; // 'E'
+  end;
+  Hdr[$44] := Lo(AMachine);
+  Hdr[$45] := Hi(AMachine);
+  Stream := TFileStream.Create(APath, fmCreate);
+  try
+    Stream.WriteBuffer(Hdr, SizeOf(Hdr));
+  finally
+    Stream.Free;
+  end;
+  fpChmod(PChar(APath), &755);
+end;
+
+procedure TBgmodSupervisorTests.RunReShadeArchCase(const ACaseName, AExeKind,
+  AExpectedDll, AUnexpectedDll: string);
+var
+  Proc: TProcess;
+  CfgDir, GameDir, MockExe, LogFile, Content: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  GameDir := IsolatedHome + '/games/' + ACaseName + '/System';
+  CfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/' + ACaseName;
+  ForceDirectories(GameDir);
+  ForceDirectories(CfgDir);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(CfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(CfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockExe := GameDir + '/Game.exe';
+  if AExeKind = 'i386' then
+    WritePEStub(MockExe, $014C, True)
+  else if AExeKind = 'amd64' then
+    WritePEStub(MockExe, $8664, True)
+  else if AExeKind = 'invalid' then
+    WritePEStub(MockExe, $014C, False); // no PE signature: must not be trusted
+  // AExeKind = 'missing': the exe is intentionally not created
+
+  AssignFile(F, CfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'GOVERLAY_RESHADE=1');
+  WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+  WriteLn(F, 'RESHADE_DLL=d3d9.dll');
+  CloseFile(F);
+
+  // Distinct payloads (different sizes) for each architecture
+  ForceDirectories(IsolatedHome + '/.local/share/goverlay/reshade/bin');
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/reshade/bin/ReShade64.dll'); Rewrite(F);
+  WriteLn(F, 'MOCK_RESHADE_64_PAYLOAD');
+  CloseFile(F);
+  AssignFile(F, IsolatedHome + '/.local/share/goverlay/reshade/bin/ReShade32.dll'); Rewrite(F);
+  WriteLn(F, 'MOCK_RESHADE_32_PAYLOAD_WITH_A_DIFFERENT_SIZE');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := CfgDir + '/bgmod';
+    Proc.Parameters.Add(MockExe);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := GameDir;
+    Proc.Execute;
+  finally
+    Proc.Free;
+  end;
+
+  AssertTrue(ACaseName + ': proxy d3d9.dll must be deployed', FileExists(GameDir + '/d3d9.dll'));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(GameDir + '/d3d9.dll');
+    AssertEquals(ACaseName + ': deployed ReShade payload', AExpectedDll, Trim(Lines.Text));
+
+    LogFile := IsolatedHome + '/.local/share/goverlay/logs/' + ACaseName + '/bgmod.log';
+    AssertTrue(ACaseName + ': bgmod.log should exist', FileExists(LogFile));
+    Lines.LoadFromFile(LogFile);
+    Content := Lines.Text;
+    if AExeKind = 'i386' then
+      AssertTrue(ACaseName + ': log records 32-bit detection',
+        Pos('Detected 32-bit (i386) game executable', Content) > 0)
+    else if AExeKind = 'amd64' then
+      AssertTrue(ACaseName + ': log records 64-bit detection',
+        Pos('Detected 64-bit (x86-64) game executable', Content) > 0)
+    else
+      AssertTrue(ACaseName + ': log warns about undetermined architecture',
+        Pos('Warning: Could not determine game executable architecture', Content) > 0);
+    AssertTrue(ACaseName + ': log must not select the other architecture DLL',
+      Pos('Using ' + AUnexpectedDll, Content) = 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodReShadeProxyMatchesExeArchitecture;
+var
+  BinDir: string;
+begin
+  EnsureBgmodBinary;
+  BinDir := IsolatedHome + '/.local/share/goverlay/reshade/bin';
+  try
+    // Regression for #455: a 32-bit game needs the 32-bit ReShade runtime
+    RunReShadeArchCase('ReShadeArch32', 'i386', 'MOCK_RESHADE_32_PAYLOAD_WITH_A_DIFFERENT_SIZE', 'ReShade64.dll');
+    RunReShadeArchCase('ReShadeArch64', 'amd64', 'MOCK_RESHADE_64_PAYLOAD', 'ReShade32.dll');
+    // Unreadable or invalid executables keep the previous ReShade64.dll behaviour
+    RunReShadeArchCase('ReShadeArchMissing', 'missing', 'MOCK_RESHADE_64_PAYLOAD', 'ReShade32.dll');
+    RunReShadeArchCase('ReShadeArchInvalid', 'invalid', 'MOCK_RESHADE_64_PAYLOAD', 'ReShade32.dll');
+  finally
+    // The mock HOME is shared by the whole suite: do not leave payloads that
+    // would make later "ReShade not installed" checks see a runtime.
+    if FileExists(BinDir + '/ReShade32.dll') then DeleteFile(BinDir + '/ReShade32.dll');
+    if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
   end;
 end;
 

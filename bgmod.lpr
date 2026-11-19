@@ -912,6 +912,74 @@ begin
   Result := (AExeName <> '') and (LowerCase(ExtractFileExt(AExeName)) <> '.exe');
 end;
 
+const
+  PE_MACHINE_I386 = $014C;
+  PE_MACHINE_AMD64 = $8664;
+
+// Reads the Machine field of a Windows PE executable: e_lfanew (uint32 at
+// 0x3C) points at the "PE\0\0" signature, followed by the Machine uint16.
+// Returns 0 when the file is missing, unreadable or not a valid PE image.
+function GetPEMachine(const AExePath: string): Word;
+var
+  Stream: TFileStream;
+  PeOffset: LongWord;
+  Signature: array[0..3] of Byte;
+  Machine: Word;
+begin
+  Result := 0;
+  if (AExePath = '') or not FileExists(AExePath) then Exit;
+  try
+    Stream := TFileStream.Create(AExePath, fmOpenRead or fmShareDenyNone);
+    try
+      if Stream.Size < $40 then Exit;
+      Stream.Position := $3C;
+      if Stream.Read(PeOffset, SizeOf(PeOffset)) <> SizeOf(PeOffset) then Exit;
+      PeOffset := LEtoN(PeOffset);
+      if Int64(PeOffset) + 6 > Stream.Size then Exit;
+      Stream.Position := PeOffset;
+      if Stream.Read(Signature, SizeOf(Signature)) <> SizeOf(Signature) then Exit;
+      if (Signature[0] <> $50) or (Signature[1] <> $45) or
+         (Signature[2] <> 0) or (Signature[3] <> 0) then Exit;
+      if Stream.Read(Machine, SizeOf(Machine)) <> SizeOf(Machine) then Exit;
+      Result := LEtoN(Machine);
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := 0;
+  end;
+end;
+
+// Picks the ReShade runtime matching the game's architecture. A 64-bit DLL
+// cannot be loaded into a 32-bit process, so i386 executables get
+// ReShade32.dll. Anything else, or an unreadable exe, keeps ReShade64.dll.
+function SelectReShadeDllName(const AExePath: string): string;
+var
+  Machine: Word;
+begin
+  Machine := GetPEMachine(AExePath);
+  if Machine = PE_MACHINE_I386 then
+  begin
+    Result := 'ReShade32.dll';
+    Log('Detected 32-bit (i386) game executable: ' + AExePath + '. Using ReShade32.dll.');
+  end
+  else if Machine = PE_MACHINE_AMD64 then
+  begin
+    Result := 'ReShade64.dll';
+    Log('Detected 64-bit (x86-64) game executable: ' + AExePath + '. Using ReShade64.dll.');
+  end
+  else
+  begin
+    Result := 'ReShade64.dll';
+    Log('Warning: Could not determine game executable architecture (' + AExePath + '). Falling back to ReShade64.dll.');
+  end;
+end;
+
+function IsReShadeRuntimeName(const AFileName: string): Boolean;
+begin
+  Result := SameText(AFileName, 'ReShade64.dll') or SameText(AFileName, 'ReShade32.dll');
+end;
+
 function BuildActiveInList(const AExeName, ANativeElf: string): string;
 var
   Prof: string;
@@ -2412,7 +2480,7 @@ begin
 
   for i := 0 to High(ProxyDlls) do
   begin
-    if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+    if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or IsReShadeRuntimeName(ProxyDlls[i])) then
       Continue;
     SafeCleanOrRestore(AGameDir, ABackupsDir, ProxyDlls[i], False);
   end;
@@ -3067,7 +3135,7 @@ var
   InsertAfter, ArgBase: Integer;
   NextArgIsSensitive: Boolean;
   Key, Val, Line: string;
-  ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll: string;
+  ReshadeDllBase, TargetReShadeDll, ReShadeDataDir, ReShadeSrcDll, ReShadeBinName: string;
   ReShadeShadersDir, WineShaders, WineTextures, AltWineShaders, AltWineTextures, EffectPaths, TexturePaths, OverlayKey, AltShadersDir: string;
   ReShadeIniFile, PrevReshadeProxy, VarsFile: string;
   GlobalReShadeIni, GameReShadeIni, OptiIni: TIniFile;
@@ -3459,7 +3527,7 @@ begin
           begin
             if SameText(ProxyDlls[i], DllName) then
               SafeBackupFile(GameDir, BackupsDir, ProxyDlls[i])
-            else if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+            else if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or IsReShadeRuntimeName(ProxyDlls[i])) then
               Continue
             else
               SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
@@ -3932,7 +4000,7 @@ begin
           end;
           for i := 0 to High(ProxyDlls) do
           begin
-            if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or SameText(ProxyDlls[i], 'ReShade64.dll')) then
+            if GOverlayReshade and (SameText(ProxyDlls[i], ReshadeDllName) or IsReShadeRuntimeName(ProxyDlls[i])) then
               Continue;
             SafeCleanOrRestore(GameDir, BackupsDir, ProxyDlls[i], False);
           end;
@@ -4001,33 +4069,34 @@ begin
       else if GOverlayReshade then
       begin
         Log('ReShade is enabled. Preparing deployment...');
+        ReShadeBinName := SelectReShadeDllName(IncludeTrailingPathDelimiter(GameDir) + TargetExeName);
         ReShadeDataDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'reshade';
-        ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+        ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + ReShadeBinName;
 
-        // Check fallback locations for ReShade64.dll if not found in primary directory
+        // Check fallback locations for the selected ReShade DLL if not found in primary directory
         if not FileExists(ReShadeSrcDll) then
         begin
           if (Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0) and
-             FileExists(GetUserDir + '.local/share/goverlay/reshade/bin/ReShade64.dll') then
+             FileExists(GetUserDir + '.local/share/goverlay/reshade/bin/' + ReShadeBinName) then
           begin
             ReShadeDataDir := GetUserDir + '.local/share/goverlay/reshade';
-            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + ReShadeBinName;
           end
-          else if FileExists(GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/bin/ReShade64.dll') then
+          else if FileExists(GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade/bin/' + ReShadeBinName) then
           begin
             ReShadeDataDir := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade';
-            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + 'ReShade64.dll';
+            ReShadeSrcDll := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'bin' + PathDelim + ReShadeBinName;
           end;
         end;
 
         if not FileExists(ReShadeSrcDll) then
-          Log('Warning: ReShade64.dll not found in ' + ReShadeSrcDll)
+          Log('Warning: ' + ReShadeBinName + ' not found in ' + ReShadeSrcDll)
         else
         begin
           if GOverlayOptiscaler and SameText(DllName, ReshadeDllName) then
           begin
             Log('OptiScaler and ReShade both configured for ' + ReshadeDllName + '. Chaining via OptiScaler [ReShade] loader...');
-            TargetReShadeDll := 'ReShade64.dll';
+            TargetReShadeDll := ReShadeBinName;
             SafeCopyFile(ReShadeSrcDll, IncludeTrailingPathDelimiter(GameDir) + TargetReShadeDll);
 
             if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini') then
