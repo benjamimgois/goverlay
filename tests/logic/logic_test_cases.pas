@@ -122,6 +122,25 @@ type
     procedure TestBgmodFlatpakPathsAndLayerExport;
   end;
 
+  TBgmodRuntimeProfileTests = class(TTestCase)
+  private
+    function GameConfigRoot: string;
+    procedure WriteTextFile(const APath: string; const ALines: array of string);
+    procedure PrepareGlobalBgmod(const ARuntimeProfile: string);
+    procedure PrepareProfile(const AName, AGamePath, ACachedGameDir: string; AWithConf: Boolean);
+    function CreateGameScript(const AGameDir, AOutFile: string): string;
+    function RunGlobalBgmod(const AGameScript, AOutFile: string): string;
+  published
+    procedure TestRuntimeProfileMatchesIdentityPath;
+    procedure TestRuntimeProfileMatchesCachedGameDir;
+    procedure TestRuntimeProfileNoMatchUsesGlobal;
+    procedure TestRuntimeProfileDisabledUsesGlobal;
+    procedure TestRuntimeProfileIgnoresFolderWithoutBgmodConf;
+    procedure TestRuntimeProfileLongestMatchWins;
+    procedure TestRuntimeProfileAppImageFileMatch;
+    procedure TestRuntimeProfileDisabledIdentityOverridesCache;
+  end;
+
   TReShadeLogicTests = class(TTestCase)
   published
     procedure TestUnixPathToWinePath;
@@ -3243,6 +3262,270 @@ begin
   end;
 end;
 
+{ TBgmodRuntimeProfileTests }
+
+const
+  RP_GLOBAL_MARKER = 'runtime-profile-global-marker';
+  RP_GAME_MARKER_PREFIX = 'runtime-profile-game-marker:';
+
+function TBgmodRuntimeProfileTests.GameConfigRoot: string;
+begin
+  Result := IsolatedHome + '/.local/share/goverlay/gameconfig/';
+end;
+
+procedure TBgmodRuntimeProfileTests.WriteTextFile(const APath: string; const ALines: array of string);
+var
+  F: TextFile;
+  i: Integer;
+begin
+  ForceDirectories(ExtractFilePath(APath));
+  AssignFile(F, APath);
+  Rewrite(F);
+  for i := Low(ALines) to High(ALines) do
+    WriteLn(F, ALines[i]);
+  CloseFile(F);
+end;
+
+procedure TBgmodRuntimeProfileTests.PrepareGlobalBgmod(const ARuntimeProfile: string);
+var
+  GlobalDir: string;
+  Proc: TProcess;
+begin
+  if not FileExists(GetBgmodBinaryPath) then
+    Fail('bgmod binary not found at "' + GetBgmodBinaryPath + '". Run "make test-logic".');
+  GlobalDir := GameConfigRoot + 'global/';
+  ForceDirectories(GlobalDir);
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(GlobalDir + 'bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(GlobalDir + 'bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  if ARuntimeProfile = '' then
+    WriteTextFile(GlobalDir + 'bgmod.conf', ['[Config]', 'SHOW_LAUNCH_SPLASH=0',
+      '[Env]', 'MANGOHUD_CONFIGFILE=' + RP_GLOBAL_MARKER])
+  else
+    WriteTextFile(GlobalDir + 'bgmod.conf', ['[Config]', 'SHOW_LAUNCH_SPLASH=0',
+      'RUNTIME_PROFILE=' + ARuntimeProfile,
+      '[Env]', 'MANGOHUD_CONFIGFILE=' + RP_GLOBAL_MARKER]);
+end;
+
+procedure TBgmodRuntimeProfileTests.PrepareProfile(const AName, AGamePath, ACachedGameDir: string; AWithConf: Boolean);
+var
+  ProfileDir: string;
+begin
+  ProfileDir := GameConfigRoot + AName + '/';
+  ForceDirectories(ProfileDir);
+  if AWithConf then
+  begin
+    if ACachedGameDir <> '' then
+      WriteTextFile(ProfileDir + 'bgmod.conf', ['[Config]', 'SHOW_LAUNCH_SPLASH=0',
+        'GAME_DIR=' + ACachedGameDir,
+        '[Env]', 'MANGOHUD_CONFIGFILE=' + RP_GAME_MARKER_PREFIX + AName])
+    else
+      WriteTextFile(ProfileDir + 'bgmod.conf', ['[Config]', 'SHOW_LAUNCH_SPLASH=0',
+        '[Env]', 'MANGOHUD_CONFIGFILE=' + RP_GAME_MARKER_PREFIX + AName]);
+  end;
+  if AGamePath <> '' then
+    WriteGameProfileIdentity(ProfileDir, AName, AGamePath, True);
+end;
+
+function TBgmodRuntimeProfileTests.CreateGameScript(const AGameDir, AOutFile: string): string;
+begin
+  ForceDirectories(AGameDir);
+  Result := IncludeTrailingPathDelimiter(AGameDir) + 'game.sh';
+  WriteTextFile(Result, ['#!' + FindTestHelperExecutable('sh'),
+    'printf "%s" "$MANGOHUD_CONFIGFILE" > "' + AOutFile + '"']);
+  fpChmod(PChar(Result), &755);
+end;
+
+function TBgmodRuntimeProfileTests.RunGlobalBgmod(const AGameScript, AOutFile: string): string;
+var
+  Proc: TProcess;
+  EnvIndex: Integer;
+  Lines: TStringList;
+begin
+  Result := '';
+  if FileExists(AOutFile) then
+    DeleteFile(AOutFile);
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := GameConfigRoot + 'global/bgmod';
+    Proc.Parameters.Add(AGameScript);
+    Proc.Options := [poWaitOnExit];
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+      if Pos('STEAM_COMPAT_INSTALL_PATH=', GetEnvironmentString(EnvIndex)) <> 1 then
+        Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+    Proc.Execute;
+    AssertEquals('global bgmod should exit 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+  AssertTrue('game script should have written its output file', FileExists(AOutFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(AOutFile);
+    Result := Trim(Lines.Text);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileMatchesIdentityPath;
+var
+  GameRoot, OutFile, Script, LogFile: string;
+  Ini: TIniFile;
+  Lines: TStringList;
+begin
+  PrepareGlobalBgmod('');
+  GameRoot := IsolatedHome + '/rp_games/identity';
+  OutFile := IsolatedHome + '/rp_identity_out.txt';
+  Script := CreateGameScript(GameRoot + '/bin', OutFile);
+  PrepareProfile('RP Identity Game', GameRoot, '', True);
+
+  AssertEquals('game profile must be selected by GAME_PATH',
+    RP_GAME_MARKER_PREFIX + 'RP Identity Game', RunGlobalBgmod(Script, OutFile));
+
+  Ini := TIniFile.Create(GameConfigRoot + 'RP Identity Game/bgmod.conf');
+  try
+    AssertEquals('resolved target must be cached in the selected profile', 'game.sh',
+      Ini.ReadString('Config', 'TARGET_EXE', ''));
+  finally
+    Ini.Free;
+  end;
+
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/RP Identity Game/bgmod.log';
+  AssertTrue('log must go to the selected profile log folder', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('log must record the profile decision',
+      Pos('Profile: game directory ', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileMatchesCachedGameDir;
+var
+  GameDir, OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('1');
+  GameDir := IsolatedHome + '/rp_games/cached/bin';
+  OutFile := IsolatedHome + '/rp_cached_out.txt';
+  Script := CreateGameScript(GameDir, OutFile);
+  PrepareProfile('RP Cached Game', '', GameDir + '/', True);
+
+  AssertEquals('existing profile must be selected by cached GAME_DIR',
+    RP_GAME_MARKER_PREFIX + 'RP Cached Game', RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileNoMatchUsesGlobal;
+var
+  OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('');
+  OutFile := IsolatedHome + '/rp_nomatch_out.txt';
+  Script := CreateGameScript(IsolatedHome + '/rp_games/nomatch', OutFile);
+
+  AssertEquals('unknown game must use the global profile',
+    RP_GLOBAL_MARKER, RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileDisabledUsesGlobal;
+var
+  GameRoot, OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('0');
+  GameRoot := IsolatedHome + '/rp_games/disabled';
+  OutFile := IsolatedHome + '/rp_disabled_out.txt';
+  Script := CreateGameScript(GameRoot, OutFile);
+  PrepareProfile('RP Disabled Game', GameRoot, '', True);
+
+  AssertEquals('RUNTIME_PROFILE=0 must keep the global profile',
+    RP_GLOBAL_MARKER, RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileIgnoresFolderWithoutBgmodConf;
+var
+  GameRoot, OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('');
+  GameRoot := IsolatedHome + '/rp_games/noconf';
+  OutFile := IsolatedHome + '/rp_noconf_out.txt';
+  Script := CreateGameScript(GameRoot, OutFile);
+  PrepareProfile('RP NoConf Game', GameRoot, '', False);
+
+  AssertEquals('folder without bgmod.conf is not a profile',
+    RP_GLOBAL_MARKER, RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileLongestMatchWins;
+var
+  GameRoot, OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('');
+  GameRoot := IsolatedHome + '/rp_games/longest';
+  OutFile := IsolatedHome + '/rp_longest_out.txt';
+  Script := CreateGameScript(GameRoot + '/sub/bin', OutFile);
+  PrepareProfile('RP Longest Outer', GameRoot, '', True);
+  PrepareProfile('RP Longest Inner', GameRoot + '/sub', '', True);
+
+  AssertEquals('the most specific GAME_PATH must win',
+    RP_GAME_MARKER_PREFIX + 'RP Longest Inner', RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileAppImageFileMatch;
+var
+  LibDir, OutFile, Script: string;
+begin
+  PrepareGlobalBgmod('');
+  LibDir := IsolatedHome + '/rp_games/appimages';
+  OutFile := IsolatedHome + '/rp_appimage_out.txt';
+  Script := CreateGameScript(LibDir, OutFile);
+  // A file GAME_PATH next to the script must not claim the whole folder
+  PrepareProfile('RP Other AppImage', LibDir + '/Other.AppImage', '', True);
+  AssertEquals('a different file in the same folder must not match',
+    RP_GLOBAL_MARKER, RunGlobalBgmod(Script, OutFile));
+
+  PrepareProfile('RP Script AppImage', Script, '', True);
+  AssertEquals('a file GAME_PATH must match the exact executable',
+    RP_GAME_MARKER_PREFIX + 'RP Script AppImage', RunGlobalBgmod(Script, OutFile));
+end;
+
+procedure TBgmodRuntimeProfileTests.TestRuntimeProfileDisabledIdentityOverridesCache;
+var
+  GameDir, OutFile, Script, ProfileDir: string;
+begin
+  PrepareGlobalBgmod('');
+  GameDir := IsolatedHome + '/rp_games/optout/bin';
+  OutFile := IsolatedHome + '/rp_optout_out.txt';
+  Script := CreateGameScript(GameDir, OutFile);
+  // Legacy profile (cached GAME_DIR) is matched while no identity exists ...
+  PrepareProfile('RP OptOut Game', '', GameDir + '/', True);
+  AssertEquals('legacy profile matches via cached GAME_DIR',
+    RP_GAME_MARKER_PREFIX + 'RP OptOut Game', RunGlobalBgmod(Script, OutFile));
+
+  // ... and switching "Use game-specific settings" off wins over the cache
+  ProfileDir := GameConfigRoot + 'RP OptOut Game/';
+  WriteGameProfileIdentity(ProfileDir, 'RP OptOut Game', GameDir, False);
+  AssertFalse('identity with ENABLED=0 reports the profile as disabled', IsGameProfileEnabled(ProfileDir));
+  AssertEquals('ENABLED=0 keeps the global profile',
+    RP_GLOBAL_MARKER, RunGlobalBgmod(Script, OutFile));
+
+  WriteGameProfileIdentity(ProfileDir, 'RP OptOut Game', GameDir, True);
+  AssertTrue('identity with ENABLED=1 reports the profile as enabled', IsGameProfileEnabled(ProfileDir));
+  AssertEquals('ENABLED=1 selects the game profile again',
+    RP_GAME_MARKER_PREFIX + 'RP OptOut Game', RunGlobalBgmod(Script, OutFile));
+end;
+
 procedure TReShadeLogicTests.TestUnixPathToWinePath;
 begin
   AssertEquals('Empty path', '', UnixPathToWinePath(''));
@@ -4374,6 +4657,7 @@ initialization
   RegisterTest(TMakoLogicTests);
   RegisterTest(TLsfgVkManifestTests);
   RegisterTest(TBgmodSupervisorTests);
+  RegisterTest(TBgmodRuntimeProfileTests);
   RegisterTest(TReShadeLogicTests);
   RegisterTest(TSyncGameWrapperBinariesTests);
   RegisterTest(TBgmodSelfUpdateTests);
