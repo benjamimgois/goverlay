@@ -1623,14 +1623,19 @@ begin
   end;
 end;
 
-function RunProtontricksD3DCompiler47(const AAppId: string): Boolean;
+function RunProtontricksD3DCompiler47(const AAppId: string; out AErrorOutput: string): Boolean;
 var
   Proc: TProcess;
   ProgressForm: TForm;
   TitleLbl, StatusLbl: TLabel;
   ProgressBar: TProgressBar;
+  OutSL: TStringList;
+  Buf: array[0..4095] of Byte;
+  BytesRead: Integer;
+  RawOut: string;
 begin
   Result := False;
+  AErrorOutput := '';
   if AAppId = '' then Exit;
 
   ProgressForm := TForm.Create(nil);
@@ -1667,6 +1672,7 @@ begin
     ProgressForm.Show;
     Application.ProcessMessages;
 
+    RawOut := '';
     Proc := TProcess.Create(nil);
     try
       try
@@ -1674,21 +1680,52 @@ begin
         Proc.Parameters.Add(AAppId);
         Proc.Parameters.Add('-q');
         Proc.Parameters.Add('d3dcompiler_47');
-        Proc.Options := [poUsePipes, poNoConsole];
+        Proc.Options := [poUsePipes, poNoConsole, poStderrToOutPut];
         Screen.Cursor := crHourGlass;
         try
           Proc.Execute;
           while Proc.Running do
           begin
+            while Proc.Output.NumBytesAvailable > 0 do
+            begin
+              BytesRead := Proc.Output.Read(Buf, SizeOf(Buf));
+              if BytesRead > 0 then
+                RawOut := RawOut + Copy(PAnsiChar(@Buf[0]), 1, BytesRead);
+            end;
             Application.ProcessMessages;
             Sleep(50);
           end;
+          while Proc.Output.NumBytesAvailable > 0 do
+          begin
+            BytesRead := Proc.Output.Read(Buf, SizeOf(Buf));
+            if BytesRead > 0 then
+              RawOut := RawOut + Copy(PAnsiChar(@Buf[0]), 1, BytesRead);
+          end;
           Result := Proc.ExitCode = 0;
+          if not Result then
+          begin
+            OutSL := TStringList.Create;
+            try
+              OutSL.Text := Trim(RawOut);
+              if OutSL.Count > 4 then
+              begin
+                while OutSL.Count > 4 do
+                  OutSL.Delete(0);
+              end;
+              AErrorOutput := Trim(OutSL.Text);
+            finally
+              OutSL.Free;
+            end;
+          end;
         finally
           Screen.Cursor := crDefault;
         end;
       except
-        Result := False;
+        on E: Exception do
+        begin
+          Result := False;
+          AErrorOutput := E.Message;
+        end;
       end;
     finally
       Proc.Free;
@@ -1822,7 +1859,7 @@ procedure TReshadeTabHelper.SaveConfig;
 var
   IniPath, ConfPath: string;
   Ini: TIniFile;
-  KeyVal, ProxyVal: string;
+  KeyVal, ProxyVal, ErrOut: string;
   MainForm: Tgoverlayform;
 begin
   if FLoading then Exit;  // Never save while loading — guards against queued Qt events
@@ -1883,13 +1920,20 @@ begin
          not IsD3DCompiler47Installed(MainForm.FActiveGamePath, MainForm.FActiveGameAppId) then
       begin
         FD3DCompilerPromptedAppId := MainForm.FActiveGameAppId;
-        if MessageDlg('DirectX Shader Compiler (d3dcompiler_47)',
+        if FindSteamUserRegPath(MainForm.FActiveGamePath, MainForm.FActiveGameAppId) = '' then
+        begin
+          ShowMessage('Proton prefix not found for this game yet.' + LineEnding + LineEnding +
+            'Launch the game once with Proton in Steam first, then click Apply again to install native d3dcompiler_47 via protontricks.');
+        end
+        else if MessageDlg('DirectX Shader Compiler (d3dcompiler_47)',
           'DirectX games require native d3dcompiler_47.dll for ReShade shaders to compile under Proton (otherwise shaders fail with E5002 / E5017).' + LineEnding + LineEnding +
           'Install d3dcompiler_47 into this game''s Proton prefix using protontricks now?',
           mtConfirmation, [mbYes, mbNo], 0) = mrYes then
         begin
-          if RunProtontricksD3DCompiler47(MainForm.FActiveGameAppId) then
+          if RunProtontricksD3DCompiler47(MainForm.FActiveGameAppId, ErrOut) then
             ShowMessage('d3dcompiler_47 installed successfully in the Proton prefix.')
+          else if ErrOut <> '' then
+            ShowMessage('Could not install d3dcompiler_47 via protontricks:' + LineEnding + LineEnding + ErrOut)
           else
             ShowMessage('Could not install d3dcompiler_47 via protontricks. Make sure protontricks is installed.');
         end;
