@@ -3906,7 +3906,7 @@ begin
   aRefs[1].Name := 'Steam Machine'; aRefs[1].Score := 1633; aRefs[1].RTScore := 1034; aRefs[1].IsCurrent := false;
   aRefs[1].Specs := 'Zen 4 6C/12T | 16GB DDR5 | RDNA3 28CU | SteamOS';
 
-  aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 750; aRefs[2].RTScore := 240; aRefs[2].IsCurrent := false;
+  aRefs[2].Name := 'Nintendo Switch 2'; aRefs[2].Score := 670; aRefs[2].RTScore := 255; aRefs[2].IsCurrent := false;
   aRefs[2].Specs := 'Cortex-A78C 8C | 12GB LPDDR5X | Ampere 768 | Horizon';
 
   aRefs[3].Name := 'Steam Deck'; aRefs[3].Score := 606; aRefs[3].RTScore := 174; aRefs[3].IsCurrent := false;
@@ -3921,10 +3921,10 @@ begin
   aRefs[6].Name := 'PlayStation 5';     aRefs[6].Score := 1412; aRefs[6].RTScore := 913; aRefs[6].IsCurrent := false;
   aRefs[6].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA2 36CU | Custom OS';
 
-  aRefs[7].Name := 'XBOX Series X';     aRefs[7].Score := 2000; aRefs[7].RTScore := 850; aRefs[7].IsCurrent := false;
+  aRefs[7].Name := 'XBOX Series X';     aRefs[7].Score := 1625; aRefs[7].RTScore := 1080; aRefs[7].IsCurrent := false;
   aRefs[7].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA2 52CU | Custom OS';
 
-  aRefs[8].Name := 'PlayStation 5 Pro'; aRefs[8].Score := 2700; aRefs[8].RTScore := 1450; aRefs[8].IsCurrent := false;
+  aRefs[8].Name := 'PlayStation 5 Pro'; aRefs[8].Score := 2000; aRefs[8].RTScore := 1600; aRefs[8].IsCurrent := false;
   aRefs[8].Specs := 'Zen 2 8C/16T | 16GB GDDR6 | RDNA3 60CU | Custom OS';
 
   aRefs[9].Name := 'Mid-Range Gamer PC'; aRefs[9].Score := 2352; aRefs[9].RTScore := 1713; aRefs[9].IsCurrent := false;
