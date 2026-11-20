@@ -32,7 +32,7 @@ The analytics engine SHALL compute comparative performance tiers across the PasC
 
 #### Scenario: Multiplier calculation against reference hardware
 - **WHEN** the performance scaling slide (Slide 5) is active
-- **THEN** the system renders a single full-width horizontal performance ladder of 6 ordered tiers (`PasCubeDB #1 Record`, the user's system dynamically positioned in score order, `PasCubeDB Desktop Average`, `Console / PS5 Tier`, `Handheld High Z1E`, and `Steam Deck`), displaying proportional bars, scores, and multiplier badges (`x FASTER` / `BASELINE` / `% OF RECORD`) without multi-line hardware specification walls or bottom verdict banners.
+- **THEN** the system renders a single full-width horizontal performance ladder of 6 ordered tiers (`PasCubeDB #1 Record`, the user's system dynamically positioned in score order, `PasCubeDB Desktop Average`, `Console / PS5 Tier`, `Steam Machine (Valve Console)`, and `Steam Deck`), displaying proportional bars, scores, and multiplier badges (`x FASTER` / `BASELINE` / `% OF RECORD`) without multi-line hardware specification walls or bottom verdict banners.
 
 ### Requirement: Distribution Share Breakdown by GPU
 The analytics engine SHALL aggregate community submissions matching the user's detected GPU family to calculate the percentage share of each Linux distribution.

@@ -1726,21 +1726,21 @@ begin
 
     FScalingRungs[3].Title := 'PlayStation 5 (Base Console)';
     FScalingRungs[3].Subtitle := 'Custom AMD Zen 2 8C/16T + RDNA 2 36CU - 16GB GDDR6';
-    FScalingRungs[3].Score := 1800;
+    FScalingRungs[3].Score := 1412;
     FScalingRungs[3].IsUser := False;
     FScalingRungs[3].IsRecord := False;
     FScalingRungs[3].ColorR := 96.0 / 255.0; FScalingRungs[3].ColorG := 165.0 / 255.0; FScalingRungs[3].ColorB := 250.0 / 255.0;
 
-    FScalingRungs[4].Title := 'ROG Ally X (Handheld High)';
-    FScalingRungs[4].Subtitle := 'AMD Ryzen Z1 Extreme 8C/16T + RDNA 3 12CU - 24GB LPDDR5X (25W)';
-    FScalingRungs[4].Score := 1212;
+    FScalingRungs[4].Title := 'Steam Machine (Valve Console)';
+    FScalingRungs[4].Subtitle := 'Custom AMD Zen 4 6C/12T + RDNA 3 28CU - 16GB DDR5 / 8GB VRAM';
+    FScalingRungs[4].Score := 1633;
     FScalingRungs[4].IsUser := False;
     FScalingRungs[4].IsRecord := False;
     FScalingRungs[4].ColorR := 129.0 / 255.0; FScalingRungs[4].ColorG := 140.0 / 255.0; FScalingRungs[4].ColorB := 248.0 / 255.0;
 
     FScalingRungs[5].Title := 'Steam Deck (Valve Handheld)';
     FScalingRungs[5].Subtitle := 'Custom AMD VanGogh Zen 2 4C/8T + RDNA 2 8CU - 16GB LPDDR5 (15W)';
-    FScalingRungs[5].Score := 818;
+    FScalingRungs[5].Score := 606;
     FScalingRungs[5].IsUser := False;
     FScalingRungs[5].IsRecord := False;
     FScalingRungs[5].ColorR := 56.0 / 255.0; FScalingRungs[5].ColorG := 189.0 / 255.0; FScalingRungs[5].ColorB := 248.0 / 255.0;
