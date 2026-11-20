@@ -200,6 +200,7 @@ function GetReShadeInstalledVersion: string;
 function ParseReShadeMeHtml(const AHtml: string; out AUrl: string): string;
 function GetReShadeLatestRemoteVersion(out AUrl: string): string;
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+function AreReShadeCoreHeadersPresent(const AShadersDir: string): Boolean;
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
 function CheckAndInstallVkBasalt(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil): Boolean;
 function CheckAndInstallVkBasaltShaders(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
@@ -8896,8 +8897,8 @@ begin
         AFailedFiles.Add('ReShade_Setup_' + RemoteVer + '_Addon.exe');
     end;
 
-    // Step 2: Download standard shaders if missing
-    if not DirectoryExists(ShadersDir + 'Shaders') or AForce then
+    // Step 2: Download standard shaders if core headers (ReShade.fxh / ReShadeUI.fxh) are missing
+    if (not AreReShadeCoreHeadersPresent(ShadersDir)) or AForce then
     begin
       ShadersTarUrl := 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz';
       TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade-shaders-slim.tar.gz';
@@ -8964,6 +8965,15 @@ begin
   end;
 end;
 
+function AreReShadeCoreHeadersPresent(const AShadersDir: string): Boolean;
+var
+  CleanShadersDir: string;
+begin
+  CleanShadersDir := IncludeTrailingPathDelimiter(AShadersDir);
+  Result := FileExists(CleanShadersDir + 'Shaders' + PathDelim + 'ReShade.fxh') and
+            FileExists(CleanShadersDir + 'Shaders' + PathDelim + 'ReShadeUI.fxh');
+end;
+
 function InstallReShadeShaderPack(const APackName, ARepoUrl: string; AOnProgress: TDownloadProgressProc = nil): Boolean;
 var
   TempTar, ShadersDir: string;
@@ -8984,6 +8994,11 @@ begin
 
       Result := ExtractTarArchive(TempTar, ShadersDir, 1);
       DeleteFile(TempTar);
+
+      // Optional shader packs depend on ReShade.fxh and ReShadeUI.fxh from Standard Effects
+      if Result and (not SameText(APackName, 'standard')) and (not AreReShadeCoreHeadersPresent(ShadersDir)) then
+        InstallReShadeShaderPack('standard', 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz', AOnProgress);
+
       if Result and Assigned(AOnProgress) then
         AOnProgress(100, APackName + ' installed');
     end;

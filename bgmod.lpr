@@ -3052,22 +3052,45 @@ procedure SpawnLaunchSplashAsync(
   const ASplashExe: string;
   const AGameTitle: string;
   AItems: TStringList;
-  AEnvp: PPChar
+  AEnvp: PPChar;
+  const AUseFlatpak: Boolean = False;
+  const AFlatpakBin: string = '';
+  const AUseFlatpakSpawn: Boolean = False
 );
 var
   SplashArgsList: TStringList;
   SplashArgs: array of PChar;
-  idx: Integer;
+  SanitizedEnv: array of PChar;
+  EnvPtr: PPChar;
+  EnvStr: string;
+  EnvCount, idx: Integer;
   ForkPid: TPid;
   Status: cint;
   DevNull: cint;
 begin
-  if (ASplashExe = '') or (AItems = nil) or (AItems.Count = 0) then Exit;
+  if (AItems = nil) or (AItems.Count = 0) then Exit;
+  if (not AUseFlatpak) and (ASplashExe = '') then Exit;
   if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then Exit;
 
   SplashArgsList := TStringList.Create;
   try
-    SplashArgsList.Add(ASplashExe);
+    if AUseFlatpak then
+    begin
+      if AUseFlatpakSpawn then
+      begin
+        SplashArgsList.Add('flatpak-spawn');
+        SplashArgsList.Add('--host');
+        SplashArgsList.Add('flatpak');
+      end
+      else
+        SplashArgsList.Add(AFlatpakBin);
+      SplashArgsList.Add('run');
+      SplashArgsList.Add('--command=bgmod-splash');
+      SplashArgsList.Add('io.github.benjamimgois.goverlay');
+    end
+    else
+      SplashArgsList.Add(ASplashExe);
+
     if AGameTitle <> '' then
       SplashArgsList.Add('--game=' + AGameTitle);
 
@@ -3080,6 +3103,27 @@ begin
     for idx := 0 to SplashArgsList.Count - 1 do
       SplashArgs[idx] := PChar(SplashArgsList[idx]);
     SplashArgs[SplashArgsList.Count] := nil;
+
+    // Strip Steam's LD_LIBRARY_PATH / LD_PRELOAD so splash/flatpak uses host/runtime libs cleanly
+    EnvCount := 0;
+    EnvPtr := AEnvp;
+    if EnvPtr <> nil then
+    begin
+      while EnvPtr^ <> nil do
+      begin
+        EnvStr := StrPas(EnvPtr^);
+        if (Pos('LD_LIBRARY_PATH=', EnvStr) <> 1) and
+           (Pos('LD_PRELOAD=', EnvStr) <> 1) then
+        begin
+          Inc(EnvCount);
+          SetLength(SanitizedEnv, EnvCount);
+          SanitizedEnv[EnvCount - 1] := EnvPtr^;
+        end;
+        Inc(EnvPtr);
+      end;
+    end;
+    SetLength(SanitizedEnv, EnvCount + 1);
+    SanitizedEnv[EnvCount] := nil;
 
     ForkPid := fpFork;
     if ForkPid = 0 then
@@ -3095,7 +3139,7 @@ begin
           fpDup2(DevNull, 2);
           fpClose(DevNull);
         end;
-        execvpe(SplashArgs[0], @SplashArgs[0], AEnvp);
+        execvpe(SplashArgs[0], @SplashArgs[0], @SanitizedEnv[0]);
         fpExit(0);
       end;
       fpExit(0);
@@ -4382,7 +4426,7 @@ begin
     FlatpakVulkanDir := ExtractFileDir(ExcludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath))) + PathDelim + 'vulkan' + PathDelim + 'implicit_layer.d';
     if DirectoryExists(FlatpakVulkanDir) then
     begin
-      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_LAYER_PATH');
+      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_IMPLICIT_LAYER_PATH');
       if VkLayerPath <> '' then
       begin
         if Pos(FlatpakVulkanDir, VkLayerPath) = 0 then
@@ -4390,8 +4434,8 @@ begin
       end
       else
         VkLayerPath := FlatpakVulkanDir;
-      SetEnvVarInList(EnvStrings, 'VK_ADD_LAYER_PATH', VkLayerPath);
-      Log('Export VK_ADD_LAYER_PATH=' + VkLayerPath);
+      SetEnvVarInList(EnvStrings, 'VK_ADD_IMPLICIT_LAYER_PATH', VkLayerPath);
+      Log('Export VK_ADD_IMPLICIT_LAYER_PATH=' + VkLayerPath);
     end;
   end;
 
@@ -5278,16 +5322,78 @@ begin
 
       if SplashItems.Count > 0 then
       begin
-        SplashExe := FindSplashBinary(BgmodPath, SourceDir);
-        if SplashExe <> '' then
-        begin
-          SplashGameTitle := '';
-          if (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global') and (GameProfileName <> '') then
-            SplashGameTitle := GameProfileName
-          else if TargetExeName <> '' then
-            SplashGameTitle := ChangeFileExt(TargetExeName, '');
+        SplashGameTitle := '';
+        if (LowerCase(GameProfileName) <> 'bgmod') and (LowerCase(GameProfileName) <> 'global') and (GameProfileName <> '') then
+          SplashGameTitle := GameProfileName
+        else if TargetExeName <> '' then
+          SplashGameTitle := ChangeFileExt(TargetExeName, '');
 
-          SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+        // When launched from a Flatpak profile on the host, bgmod-splash needs the Flatpak Qt6 runtime
+        if Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0 then
+        begin
+          if FileExists('/.flatpak-info') and (GetEnvironmentVariable('FLATPAK_ID') <> 'io.github.benjamimgois.goverlay') then
+          begin
+            if FileSearch('flatpak-spawn', GetEnvironmentVariable('PATH')) <> '' then
+            begin
+              Log('Spawning launch splash via flatpak-spawn --host flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay');
+              SpawnLaunchSplashAsync('', SplashGameTitle, SplashItems, @EnvArgs[0], True, '', True);
+            end
+            else
+            begin
+              SplashExe := FindSplashBinary(BgmodPath, SourceDir);
+              if SplashExe <> '' then
+              begin
+                Log('Spawning launch splash (fallback): ' + SplashExe);
+                SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+              end
+              else
+                Log('Launch splash skipped: bgmod-splash binary not found.');
+            end;
+          end
+          else if not FileExists('/.flatpak-info') then
+          begin
+            TempStr := FileSearch('flatpak', GetEnvironmentVariable('PATH'));
+            if (TempStr = '') and FileExists('/usr/bin/flatpak') then
+              TempStr := '/usr/bin/flatpak';
+            if TempStr <> '' then
+            begin
+              Log('Spawning launch splash via Flatpak: ' + TempStr + ' run --command=bgmod-splash io.github.benjamimgois.goverlay');
+              SpawnLaunchSplashAsync('', SplashGameTitle, SplashItems, @EnvArgs[0], True, TempStr, False);
+            end
+            else
+            begin
+              SplashExe := FindSplashBinary(BgmodPath, SourceDir);
+              if SplashExe <> '' then
+              begin
+                Log('Spawning launch splash (fallback): ' + SplashExe);
+                SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+              end
+              else
+                Log('Launch splash skipped: bgmod-splash binary not found.');
+            end;
+          end
+          else
+          begin
+            SplashExe := FindSplashBinary(BgmodPath, SourceDir);
+            if SplashExe <> '' then
+            begin
+              Log('Spawning launch splash: ' + SplashExe);
+              SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+            end
+            else
+              Log('Launch splash skipped: bgmod-splash binary not found.');
+          end;
+        end
+        else
+        begin
+          SplashExe := FindSplashBinary(BgmodPath, SourceDir);
+          if SplashExe <> '' then
+          begin
+            Log('Spawning launch splash: ' + SplashExe);
+            SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
+          end
+          else
+            Log('Launch splash skipped: bgmod-splash binary not found.');
         end;
       end;
     finally

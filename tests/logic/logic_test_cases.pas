@@ -124,6 +124,7 @@ type
     procedure TestBgmodWineDllOverridesSemicolonDelimiter;
     procedure TestBgmodDisabledOptiscalerPurgesHelixSRLeftovers;
     procedure TestBgmodFlatpakPathsAndLayerExport;
+    procedure TestBgmodFlatpakLaunchSplashViaFlatpakRun;
   end;
 
   TReShadeLogicTests = class(TTestCase)
@@ -134,6 +135,7 @@ type
     procedure TestReShadeIniPathFormatting;
     procedure TestReShadeInstalledVersionFallbackAndMetadata;
     procedure TestParseReShadeMeHtml;
+    procedure TestReShadeCoreHeadersCheck;
   end;
 
   TSyncGameWrapperBinariesTests = class(TTestCase)
@@ -3228,14 +3230,120 @@ begin
     Lines.Free;
   end;
 
-  // 3. Verify VK_ADD_LAYER_PATH exported in runner environment with Flatpak vulkan implicit layers
+  // 3. Verify VK_ADD_IMPLICIT_LAYER_PATH exported in runner environment with Flatpak vulkan implicit layers
   AssertTrue('env_output.txt should be created', FileExists(OutFile));
   Lines := TStringList.Create;
   try
     Lines.LoadFromFile(OutFile);
     Content := Lines.Text;
-    AssertTrue('VK_ADD_LAYER_PATH should include Flatpak implicit layer path',
-      Pos(FlatpakVulkanDir, Content) > 0);
+    AssertTrue('VK_ADD_IMPLICIT_LAYER_PATH should include Flatpak implicit layer path',
+      Pos('VK_ADD_IMPLICIT_LAYER_PATH=' + FlatpakVulkanDir, Content) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodFlatpakLaunchSplashViaFlatpakRun;
+var
+  Proc: TProcess;
+  FlatpakBase, TestGameDir, MockBinDir, MockFlatpak, OutArgsFile, OutEnvFile: string;
+  F: TextFile;
+  Lines: TStringList;
+  Content, OldPath, EnvLine: string;
+  EnvIndex, WaitCount: Integer;
+begin
+  EnsureBgmodBinary;
+  FlatpakBase := IsolatedHome + '/.var/app/io.github.benjamimgois.goverlay';
+  TestGameDir := FlatpakBase + '/data/goverlay/gameconfig/FlatpakSplashGame';
+  ForceDirectories(TestGameDir);
+
+  MockBinDir := IsolatedHome + '/mock_flatpak_bin';
+  ForceDirectories(MockBinDir);
+  OutArgsFile := TestGameDir + '/flatpak_splash_args.txt';
+  OutEnvFile := TestGameDir + '/flatpak_splash_env.txt';
+  if FileExists(OutArgsFile) then DeleteFile(OutArgsFile);
+  if FileExists(OutEnvFile) then DeleteFile(OutEnvFile);
+
+  MockFlatpak := MockBinDir + '/flatpak';
+  AssignFile(F, MockFlatpak);
+  Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'echo "$*" > "' + OutArgsFile + '"');
+  WriteLn(F, 'env > "' + OutEnvFile + '"');
+  CloseFile(F);
+  fpChmod(PChar(MockFlatpak), &755);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  AssignFile(F, TestGameDir + '/bgmod.conf');
+  Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=1');
+  WriteLn(F, 'GOVERLAY_MANGOHUD=1');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameDir + '/bgmod';
+    Proc.Parameters.Add(FindTestHelperExecutable('true'));
+    Proc.Options := [poWaitOnExit];
+    OldPath := GetEnvironmentVariable('PATH');
+    for EnvIndex := 1 to GetEnvironmentVariableCount do
+    begin
+      EnvLine := GetEnvironmentString(EnvIndex);
+      if (Pos('PATH=', EnvLine) <> 1) and (Pos('LD_LIBRARY_PATH=', EnvLine) <> 1) then
+        Proc.Environment.Add(EnvLine);
+    end;
+    Proc.Environment.Add('PATH=' + MockBinDir + ':' + OldPath);
+    Proc.Environment.Add('LD_LIBRARY_PATH=/fake/steam/runtime/lib');
+    if (GetEnvironmentVariable('DISPLAY') = '') and (GetEnvironmentVariable('WAYLAND_DISPLAY') = '') then
+      Proc.Environment.Add('DISPLAY=:99');
+    Proc.Execute;
+    AssertEquals('bgmod should return 0', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  WaitCount := 0;
+  while (not FileExists(OutArgsFile)) and (WaitCount < 30) do
+  begin
+    Sleep(100);
+    Inc(WaitCount);
+  end;
+
+  AssertTrue('Mock flatpak splash args file should exist', FileExists(OutArgsFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutArgsFile);
+    Content := Lines.Text;
+    AssertTrue('Should invoke flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay',
+      Pos('run --command=bgmod-splash io.github.benjamimgois.goverlay', Content) > 0);
+    AssertTrue('Should pass --game=FlatpakSplashGame',
+      Pos('--game=FlatpakSplashGame', Content) > 0);
+    AssertTrue('Should pass --item=MangoHud',
+      Pos('--item=MangoHud', Content) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  AssertTrue('Mock flatpak splash env file should exist', FileExists(OutEnvFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(OutEnvFile);
+    Content := Lines.Text;
+    AssertFalse('LD_LIBRARY_PATH must be stripped when spawning Flatpak splash',
+      Pos('LD_LIBRARY_PATH=/fake/steam/runtime/lib', Content) > 0);
   finally
     Lines.Free;
   end;
@@ -3704,6 +3812,31 @@ begin
   Ver := ParseReShadeMeHtml(Html, Url);
   AssertEquals('Empty on no match', '', Ver);
   AssertEquals('Empty URL on no match', '', Url);
+end;
+
+procedure TReShadeLogicTests.TestReShadeCoreHeadersCheck;
+var
+  ShadersDir: string;
+  F: TextFile;
+begin
+  ShadersDir := IsolatedHome + '/.local/share/goverlay/reshade/shaders';
+  ForceDirectories(ShadersDir + '/Shaders/SweetFX');
+
+  // Shaders/ exists from an optional pack, but ReShade.fxh and ReShadeUI.fxh are missing
+  AssertFalse('AreReShadeCoreHeadersPresent must be False when headers are missing',
+    AreReShadeCoreHeadersPresent(ShadersDir));
+
+  // Only ReShade.fxh present -> still False
+  AssignFile(F, ShadersDir + '/Shaders/ReShade.fxh');
+  Rewrite(F); WriteLn(F, '// header'); CloseFile(F);
+  AssertFalse('AreReShadeCoreHeadersPresent must be False when ReShadeUI.fxh is missing',
+    AreReShadeCoreHeadersPresent(ShadersDir));
+
+  // Both ReShade.fxh and ReShadeUI.fxh present -> True
+  AssignFile(F, ShadersDir + '/Shaders/ReShadeUI.fxh');
+  Rewrite(F); WriteLn(F, '// ui header'); CloseFile(F);
+  AssertTrue('AreReShadeCoreHeadersPresent must be True when both headers exist',
+    AreReShadeCoreHeadersPresent(ShadersDir));
 end;
 
 procedure TSyncGameWrapperBinariesTests.TestSyncOutdatedWrappersPreservingConfigs;

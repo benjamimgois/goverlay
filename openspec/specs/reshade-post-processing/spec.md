@@ -45,11 +45,15 @@ The system SHALL discover the latest ReShade Add-on release dynamically at runti
 - **THEN** the system queries the latest remote ReShade release tag or download URL, downloads and extracts the newest Add-on setup executable if an update is available or forced, updates `version.txt`, flushes console output with explicit success messages, and refreshes the Software status card with the new version.
 
 ### Requirement: Shader Package Management
-The system SHALL provide an interface inside the "Shaders" card to install, update, and remove shader collections (Standard Effects, SweetFX, qUINT, AstrayFX, Prod80) and provide a button in the header of the "Shaders" card to open the local shaders directory in the system file manager.
+The system SHALL provide an interface inside the "Shaders" card to install, update, and remove shader collections (Standard Effects, SweetFX, qUINT, AstrayFX, Prod80), SHALL provide a button in the header of the "Shaders" card to open the local shaders directory in the system file manager, and SHALL ensure the core `ReShade.fxh` and `ReShadeUI.fxh` headers from Standard Effects are provisioned whenever ReShade or any optional shader collection is installed.
 
 #### Scenario: Installing optional shader pack
 - **WHEN** the user clicks "Install" for an optional shader collection (such as SweetFX or qUINT)
 - **THEN** the system downloads the archive, extracts its shaders and textures into the centralized ReShade shaders directory, and updates the collection status to installed.
+
+#### Scenario: Provisioning Standard Effects headers when Shaders directory already exists
+- **WHEN** ReShade runtime installation or an optional shader pack installation runs and `Shaders/ReShade.fxh` or `Shaders/ReShadeUI.fxh` is missing even though `Shaders/` exists
+- **THEN** the system downloads and extracts Standard Effects (`crosire/reshade-shaders`) so all dependent shaders can resolve `#include "ReShade.fxh"` and `#include "ReShadeUI.fxh"`.
 
 #### Scenario: Opening shaders directory
 - **WHEN** the user clicks the "Open Shaders Directory" button in the "Shaders" card

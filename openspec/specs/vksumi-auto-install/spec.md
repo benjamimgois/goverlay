@@ -50,7 +50,7 @@ The system SHALL query the latest vkSumi release from the upstream GitHub reposi
 - **THEN** `IsVkSumiUpdateAvailable` evaluates to `False`, avoiding unnecessary downloads or application launch delays.
 
 ### Requirement: Game Launch Configuration and Environment Export
-The system SHALL explicitly export the `VKSUMI_CONFIG_FILE` environment variable pointing to the deployed `vkSumi.conf` when launching a game with vkSumi enabled, and SHALL serialize `enabled = true` into the configuration file whenever the vkSumi module is enabled by the user regardless of whether slider values deviate from neutral defaults.
+The system SHALL explicitly export the `VKSUMI_CONFIG_FILE` environment variable pointing to the deployed `vkSumi.conf` when launching a game with vkSumi enabled, SHALL serialize `enabled = true` into the configuration file whenever the vkSumi module is enabled by the user regardless of whether slider values deviate from neutral defaults, and SHALL export Flatpak implicit Vulkan layer directories using `VK_ADD_IMPLICIT_LAYER_PATH`.
 
 #### Scenario: Launching a game with vkSumi enabled
 - **WHEN** a game is launched with vkSumi enabled via `bgmod`
@@ -60,3 +60,7 @@ The system SHALL explicitly export the `VKSUMI_CONFIG_FILE` environment variable
 #### Scenario: Serializing active vkSumi configuration with default sliders
 - **WHEN** user enables vkSumi in GOverlay while slider values remain at default positions
 - **THEN** `SaveVkSumiConfig` writes `enabled = true` in `vkSumi.conf`, ensuring the layer activates in game processes.
+
+#### Scenario: Exposing Flatpak Vulkan implicit layers via VK_ADD_IMPLICIT_LAYER_PATH
+- **WHEN** `bgmod` runs from a Flatpak profile and `~/.var/app/io.github.benjamimgois.goverlay/data/vulkan/implicit_layer.d` exists
+- **THEN** `bgmod` exports `VK_ADD_IMPLICIT_LAYER_PATH` containing that directory so the Vulkan Loader discovers `vksumi.json` and `vknemu.json` as implicit layers.

@@ -88,3 +88,15 @@ The launch splash window SHALL display an informational notification item (`"BGM
 #### Scenario: No update notification on regular launches
 - **WHEN** `bgmod` starts without performing a self-update
 - **THEN** the splash screen displays only the standard enabled modules checklist without `"BGMod updated"`
+
+### Requirement: Flatpak host-to-sandbox launch splash execution
+When `bgmod` runs on the host from a Flatpak-provisioned game profile and launch splash is enabled, the system SHALL execute `bgmod-splash` inside the GOverlay Flatpak runtime via `flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay` with sanitized library paths, and SHALL log splash discovery and execution diagnostics to `bgmod.log`.
+
+#### Scenario: Launching splash from a Flatpak profile on an immutable host
+- **WHEN** `bgmod` runs on the host from `~/.var/app/io.github.benjamimgois.goverlay/...` with launch splash enabled and active modules
+- **THEN** `bgmod` spawns `flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay` passing `--game`, `--item`, and `--duration` arguments without Steam's `LD_LIBRARY_PATH`
+- **AND** records the splash command invocation in `bgmod.log`.
+
+#### Scenario: Falling back to direct binary execution outside Flatpak
+- **WHEN** `bgmod` runs from a native or AppImage profile outside Flatpak
+- **THEN** `bgmod` discovers `bgmod-splash` via standard binary candidates and executes it directly in the background.
