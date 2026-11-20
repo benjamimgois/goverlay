@@ -3085,8 +3085,19 @@ begin
       else
         SplashArgsList.Add(AFlatpakBin);
       SplashArgsList.Add('run');
-      SplashArgsList.Add('--command=bgmod-splash');
+      SplashArgsList.Add('--command=sh');
       SplashArgsList.Add('io.github.benjamimgois.goverlay');
+      SplashArgsList.Add('-c');
+      SplashArgsList.Add(
+        'export QT_PLUGIN_PATH=/app/plugins; ' +
+        'bin="$1"; shift; ' +
+        'for c in /app/bin/bgmod-splash /app/libexec/bgmod-splash /app/libexec/goverlay/bgmod-splash "$bin"; do ' +
+        '  [ -x "$c" ] && exec "$c" "$@"; ' +
+        'done; ' +
+        'exit 127'
+      );
+      SplashArgsList.Add('_');
+      SplashArgsList.Add(ASplashExe);
     end
     else
       SplashArgsList.Add(ASplashExe);
@@ -5329,26 +5340,23 @@ begin
           SplashGameTitle := ChangeFileExt(TargetExeName, '');
 
         // When launched from a Flatpak profile on the host, bgmod-splash needs the Flatpak Qt6 runtime
+        SplashExe := FindSplashBinary(BgmodPath, SourceDir);
         if Pos('io.github.benjamimgois.goverlay', BgmodPath) > 0 then
         begin
           if FileExists('/.flatpak-info') and (GetEnvironmentVariable('FLATPAK_ID') <> 'io.github.benjamimgois.goverlay') then
           begin
             if FileSearch('flatpak-spawn', GetEnvironmentVariable('PATH')) <> '' then
             begin
-              Log('Spawning launch splash via flatpak-spawn --host flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay');
-              SpawnLaunchSplashAsync('', SplashGameTitle, SplashItems, @EnvArgs[0], True, '', True);
+              Log('Spawning launch splash via flatpak-spawn --host flatpak run --command=sh io.github.benjamimgois.goverlay');
+              SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0], True, '', True);
+            end
+            else if SplashExe <> '' then
+            begin
+              Log('Spawning launch splash (fallback): ' + SplashExe);
+              SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
             end
             else
-            begin
-              SplashExe := FindSplashBinary(BgmodPath, SourceDir);
-              if SplashExe <> '' then
-              begin
-                Log('Spawning launch splash (fallback): ' + SplashExe);
-                SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
-              end
-              else
-                Log('Launch splash skipped: bgmod-splash binary not found.');
-            end;
+              Log('Launch splash skipped: bgmod-splash binary not found.');
           end
           else if not FileExists('/.flatpak-info') then
           begin
@@ -5357,24 +5365,19 @@ begin
               TempStr := '/usr/bin/flatpak';
             if TempStr <> '' then
             begin
-              Log('Spawning launch splash via Flatpak: ' + TempStr + ' run --command=bgmod-splash io.github.benjamimgois.goverlay');
-              SpawnLaunchSplashAsync('', SplashGameTitle, SplashItems, @EnvArgs[0], True, TempStr, False);
+              Log('Spawning launch splash via Flatpak: ' + TempStr + ' run --command=sh io.github.benjamimgois.goverlay');
+              SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0], True, TempStr, False);
+            end
+            else if SplashExe <> '' then
+            begin
+              Log('Spawning launch splash (fallback): ' + SplashExe);
+              SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
             end
             else
-            begin
-              SplashExe := FindSplashBinary(BgmodPath, SourceDir);
-              if SplashExe <> '' then
-              begin
-                Log('Spawning launch splash (fallback): ' + SplashExe);
-                SpawnLaunchSplashAsync(SplashExe, SplashGameTitle, SplashItems, @EnvArgs[0]);
-              end
-              else
-                Log('Launch splash skipped: bgmod-splash binary not found.');
-            end;
+              Log('Launch splash skipped: bgmod-splash binary not found.');
           end
           else
           begin
-            SplashExe := FindSplashBinary(BgmodPath, SourceDir);
             if SplashExe <> '' then
             begin
               Log('Spawning launch splash: ' + SplashExe);
@@ -5386,7 +5389,6 @@ begin
         end
         else
         begin
-          SplashExe := FindSplashBinary(BgmodPath, SourceDir);
           if SplashExe <> '' then
           begin
             Log('Spawning launch splash: ' + SplashExe);

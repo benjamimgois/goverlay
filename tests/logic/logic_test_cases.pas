@@ -3327,8 +3327,10 @@ begin
   try
     Lines.LoadFromFile(OutArgsFile);
     Content := Lines.Text;
-    AssertTrue('Should invoke flatpak run --command=bgmod-splash io.github.benjamimgois.goverlay',
-      Pos('run --command=bgmod-splash io.github.benjamimgois.goverlay', Content) > 0);
+    AssertTrue('Should invoke flatpak run --command=sh io.github.benjamimgois.goverlay',
+      Pos('run --command=sh io.github.benjamimgois.goverlay', Content) > 0);
+    AssertTrue('Should search /app/bin, /app/libexec, and fallback path for bgmod-splash',
+      Pos('/app/libexec/bgmod-splash', Content) > 0);
     AssertTrue('Should pass --game=FlatpakSplashGame',
       Pos('--game=FlatpakSplashGame', Content) > 0);
     AssertTrue('Should pass --item=MangoHud',
