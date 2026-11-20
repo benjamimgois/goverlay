@@ -8794,12 +8794,44 @@ begin
     AUrl := 'https://reshade.me/downloads/ReShade_Setup_' + Result + '_Addon.exe';
 end;
 
+procedure EnsureReShadeStandardShaders(const AShadersDir: string; AStartPct, AExtractPct: Integer;
+  AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil);
+var
+  ShadersTarUrl, TempTar: string;
+begin
+  ShadersTarUrl := 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz';
+  TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade-shaders-slim.tar.gz';
+
+  if Assigned(AOnProgress) then
+    AOnProgress(AStartPct, 'Downloading Standard Shaders...');
+
+  if RunCurlWithProgress(ShadersTarUrl, TempTar, AStartPct, AExtractPct, 'Downloading Standard Shaders...', AOnProgress) = 0 then
+  begin
+    if FileExists(TempTar) then
+    begin
+      if Assigned(AOnProgress) then
+        AOnProgress(AExtractPct, 'Extracting Standard Shaders...');
+
+      Flush(Output);
+      ExtractTarArchive(TempTar, AShadersDir, 1);
+      DeleteFile(TempTar);
+    end;
+  end
+  else
+  begin
+    WriteLn('[AUTO-INSTALL] Download of standard shaders failed');
+    Flush(Output);
+    if Assigned(AFailedFiles) then
+      AFailedFiles.Add('ReShade Standard Shaders');
+  end;
+end;
+
 function CheckAndInstallReShade(AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 var
   StartPct, EndPct: Integer;
   ChanLabel: string;
-  ReShadeExeUrl, ShadersTarUrl: string;
-  TempExe, TempExtractDir, TempTar: string;
+  ReShadeExeUrl: string;
+  TempExe, TempExtractDir: string;
   BinDir, ShadersDir, PresetsDir, IniTemplatePath, VerFilePath: string;
   IniLines: TStringList;
   RemoteVer: string;
@@ -8815,8 +8847,17 @@ begin
 
   if not AForce and IsReShadeInstalled then
   begin
-    WriteLn('[AUTO-INSTALL] ReShade runtime is already installed (version: ', GetReShadeInstalledVersion, ')');
-    Flush(Output);
+    if not AreReShadeCoreHeadersPresent(ShadersDir) then
+    begin
+      WriteLn('[AUTO-INSTALL] ReShade runtime installed, but core headers (ReShade.fxh/ReShadeUI.fxh) are missing; downloading Standard Shaders...');
+      Flush(Output);
+      EnsureReShadeStandardShaders(ShadersDir, StartPct + 3, StartPct + 4, AOnProgress, AFailedFiles);
+    end
+    else
+    begin
+      WriteLn('[AUTO-INSTALL] ReShade runtime is already installed (version: ', GetReShadeInstalledVersion, ')');
+      Flush(Output);
+    end;
     if Assigned(AOnProgress) then
       AOnProgress(EndPct, 'ReShade runtime ready');
     Result := True;
@@ -8899,33 +8940,7 @@ begin
 
     // Step 2: Download standard shaders if core headers (ReShade.fxh / ReShadeUI.fxh) are missing
     if (not AreReShadeCoreHeadersPresent(ShadersDir)) or AForce then
-    begin
-      ShadersTarUrl := 'https://github.com/crosire/reshade-shaders/archive/refs/heads/slim.tar.gz';
-      TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'reshade-shaders-slim.tar.gz';
-
-      if Assigned(AOnProgress) then
-        AOnProgress(StartPct + 3, 'Downloading Standard Shaders...');
-
-      if RunCurlWithProgress(ShadersTarUrl, TempTar, StartPct + 3, StartPct + 4, 'Downloading Standard Shaders...', AOnProgress) = 0 then
-      begin
-        if FileExists(TempTar) then
-        begin
-          if Assigned(AOnProgress) then
-            AOnProgress(StartPct + 4, 'Extracting Standard Shaders...');
-
-          Flush(Output);
-          ExtractTarArchive(TempTar, ShadersDir, 1);
-          DeleteFile(TempTar);
-        end;
-      end
-      else
-      begin
-        WriteLn('[AUTO-INSTALL] Download of standard shaders failed');
-        Flush(Output);
-        if Assigned(AFailedFiles) then
-          AFailedFiles.Add('ReShade Standard Shaders');
-      end;
-    end;
+      EnsureReShadeStandardShaders(ShadersDir, StartPct + 3, StartPct + 4, AOnProgress, AFailedFiles);
 
     // Step 3: Ensure ReShade.ini template exists
     IniTemplatePath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
