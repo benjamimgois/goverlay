@@ -4129,12 +4129,16 @@ begin
               ReShadeDataDir := GetUserDir + '.var/app/io.github.benjamimgois.goverlay/data/goverlay/reshade';
           end;
 
-          // Generate/update ReShade.ini with Wine paths
+          // Generate/update ReShade.ini with Wine paths (avoid overlapping parent+child recursive paths)
           ReShadeShadersDir := IncludeTrailingPathDelimiter(ReShadeDataDir) + 'shaders';
-          EffectPaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders') + ',' +
-                         BuildReShadeSearchPath(ReShadeShadersDir);
-          TexturePaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures') + ',' +
-                          BuildReShadeSearchPath(ReShadeShadersDir);
+          if DirectoryExists(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders') then
+            EffectPaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Shaders')
+          else
+            EffectPaths := BuildReShadeSearchPath(ReShadeShadersDir);
+          if DirectoryExists(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures') then
+            TexturePaths := BuildReShadeSearchPath(IncludeTrailingPathDelimiter(ReShadeShadersDir) + 'Textures')
+          else
+            TexturePaths := BuildReShadeSearchPath(ReShadeShadersDir);
 
           // Support cross-environment discovery: if both Flatpak and Host reshade folders exist, include both
           AltShadersDir := '';
@@ -4147,12 +4151,16 @@ begin
 
           if AltShadersDir <> '' then
           begin
-            EffectPaths := EffectPaths + ',' +
-                           BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Shaders') + ',' +
-                           BuildReShadeSearchPath(AltShadersDir);
-            TexturePaths := TexturePaths + ',' +
-                            BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Textures') + ',' +
-                            BuildReShadeSearchPath(AltShadersDir);
+            if DirectoryExists(IncludeTrailingPathDelimiter(AltShadersDir) + 'Shaders') then
+              EffectPaths := EffectPaths + ',' +
+                             BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Shaders')
+            else
+              EffectPaths := EffectPaths + ',' + BuildReShadeSearchPath(AltShadersDir);
+            if DirectoryExists(IncludeTrailingPathDelimiter(AltShadersDir) + 'Textures') then
+              TexturePaths := TexturePaths + ',' +
+                              BuildReShadeSearchPath(IncludeTrailingPathDelimiter(AltShadersDir) + 'Textures')
+            else
+              TexturePaths := TexturePaths + ',' + BuildReShadeSearchPath(AltShadersDir);
           end;
 
           OverlayKey := '36,0,0,0';
@@ -4387,16 +4395,35 @@ begin
     end;
   end;
 
-  if GOverlayReshade and not IsNativeExecutable(TargetExeName) and not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
+  if GOverlayReshade and not IsNativeExecutable(TargetExeName) then
   begin
-    ReshadeDllBase := ChangeFileExt(ReshadeDllName, '');
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
-    if Pos(ReshadeDllBase + '=', CurrentOverrides) = 0 then
+    NewOverrides := CurrentOverrides;
+
+    if not (GOverlayOptiscaler and SameText(DllName, ReshadeDllName)) then
     begin
-      if CurrentOverrides <> '' then
-        NewOverrides := CurrentOverrides + ';' + ReshadeDllBase + '=n,b'
+      ReshadeDllBase := ChangeFileExt(ReshadeDllName, '');
+      if Pos(ReshadeDllBase + '=', NewOverrides) = 0 then
+      begin
+        if NewOverrides <> '' then
+          NewOverrides := NewOverrides + ';' + ReshadeDllBase + '=n,b'
+        else
+          NewOverrides := ReshadeDllBase + '=n,b';
+      end;
+    end;
+
+    // DirectX ReShade transpiles shaders to HLSL and needs native d3dcompiler_47.dll
+    // under Wine/Proton (builtin vkd3d-shader fails with E5002 on D3D9 and E5017 on D3D11).
+    if (not SameText(ReshadeDllName, 'opengl32.dll')) and (Pos('d3dcompiler_47=', LowerCase(NewOverrides)) = 0) then
+    begin
+      if NewOverrides <> '' then
+        NewOverrides := NewOverrides + ';d3dcompiler_47=n,b'
       else
-        NewOverrides := ReshadeDllBase + '=n,b';
+        NewOverrides := 'd3dcompiler_47=n,b';
+    end;
+
+    if NewOverrides <> CurrentOverrides then
+    begin
       SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
       Log('Export WINEDLLOVERRIDES=' + NewOverrides);
     end;

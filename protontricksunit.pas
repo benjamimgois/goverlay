@@ -40,6 +40,8 @@ type
 var
   protontricksform: Tprotontricksform;
 
+procedure ConfigureProtontricksProcess(AProcess: TProcess);
+
 implementation
 
 {$R *.lfm}
@@ -49,7 +51,7 @@ implementation
 // Helper procedure to configure TProcess for protontricks execution.
 // Strategy: native binary first; in Flatpak mode use flatpak-spawn --host.
 // In Flatpak mode, uses flatpak-spawn --host to reach the host system.
-procedure Tprotontricksform.SetupProtontricksProcess(AProcess: TProcess);
+procedure ConfigureProtontricksProcess(AProcess: TProcess);
 var
   HomeDir: String;
 begin
@@ -82,6 +84,11 @@ begin
     // Always call protontricks directly — let host PATH find it
     AProcess.Parameters.Add('protontricks');
   end;
+end;
+
+procedure Tprotontricksform.SetupProtontricksProcess(AProcess: TProcess);
+begin
+  ConfigureProtontricksProcess(AProcess);
 end;
 
 

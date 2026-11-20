@@ -2772,12 +2772,16 @@ begin
   else if Sender is TLabel then Panel := TPanel(TLabel(Sender).Parent)
   else Exit;
 
-  // Extract game name from card hint
+  // Extract game name, AppID, and install path from card hint
+  FActiveGameAppId := '';
+  FActiveGamePath := '';
   Lines := TStringList.Create;
   try
     Lines.Text := Panel.Hint;
     if Lines.Count < 1 then Exit;
     GameName := Lines[0];
+    if Lines.Count >= 2 then
+      FActiveGamePath := Trim(Lines[1]);
   finally
     Lines.Free;
   end;
@@ -2787,7 +2791,10 @@ begin
   begin
     p := Pos(') ', GameName);
     if p > 0 then
+    begin
+      FActiveGameAppId := Copy(GameName, 2, p - 2);
       GameName := Copy(GameName, p + 2, Length(GameName));
+    end;
   end
   else
     FActiveGameIsNonSteam := True;
@@ -4328,6 +4335,8 @@ begin
   if FActiveGameName <> '' then
   begin
     FActiveGameName := '';
+    FActiveGameAppId := '';
+    FActiveGamePath := '';
     MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';

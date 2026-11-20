@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, StrUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, Buttons,
-  ComCtrls, Math, themeunit, constants, hintsunit, apputils, configmanager;
+  ComCtrls, Math, themeunit, constants, hintsunit, apputils, configmanager, pe_utils;
 
 type
   TReshadePackInfo = record
@@ -60,9 +60,12 @@ type
     FHotkeyValue: string;
     FProxyTitleLbl: TLabel;
     FProxyComboBox: TComboBox;
+    FProxyHintLbl: TLabel;
     FPreviousProxyIndex: Integer;
     FAutoConfirmProxyResolution: Integer;
     FLoading: Boolean;
+    FDetectedApi: TDetectedGraphicsApi;
+    FD3DCompilerPromptedAppId: string;
 
     // Card 2: Shader Packages
     FShadersTitleLbl: TLabel;
@@ -190,7 +193,8 @@ const
 implementation
 
 uses
-  overlayunit, optiscaler_tab, optiscaler_update, bgmod_resources, IniFiles, FileUtil, notificationunit;
+  overlayunit, optiscaler_tab, optiscaler_update, bgmod_resources, IniFiles, FileUtil,
+  notificationunit, protontricksunit, Process, LCLType;
 
 const
   MARGIN   = 4;
@@ -599,6 +603,17 @@ begin
   FProxyComboBox.SetBounds(330, 34, 220, 28);
   FProxyComboBox.Hint := 'OptiScaler Co-existence: ReShade and OptiScaler cannot share the same Proxy DLL. Choose a different DLL (e.g. d3d11.dll or version.dll).';
   FProxyComboBox.ShowHint := True;
+
+  FProxyHintLbl := TLabel.Create(FConfigCard);
+  FProxyHintLbl.Parent := FConfigCard;
+  FProxyHintLbl.Caption := '';
+  FProxyHintLbl.Font.Name := UI_FONT_FAMILY;
+  FProxyHintLbl.Font.Size := 8;
+  FProxyHintLbl.Font.Color := CLR_TEXT_ACCENT;
+  FProxyHintLbl.AutoSize := False;
+  FProxyHintLbl.Transparent := True;
+  FProxyHintLbl.Visible := False;
+  FProxyHintLbl.SetBounds(140, 9, 410, 18);
 
   // ----------------------------------------------------
   // Card 2: Shaders (Top: 210, Height: 330)
@@ -1152,6 +1167,8 @@ begin
           FConfigTitleLbl.Caption := 'Options';
           FConfigTitleLbl.SetBounds(CARD_P, 8, 120, 20);
         end;
+        if Assigned(FProxyHintLbl) then
+          FProxyHintLbl.SetBounds(CARD_P + 130, 9, Max(120, TargetCardW - CARD_P - (CARD_P + 130)), 18);
 
         OptLabelW := 55;
         if Assigned(FToggleTitleLbl) then
@@ -1556,16 +1573,147 @@ begin
     Tgoverlayform(FForm).StartAutoSaveTimer;
 end;
 
+function FindSteamUserRegPath(const AGamePath, AAppId: string): string;
+var
+  P: Integer;
+  Candidate: string;
+begin
+  Result := '';
+  if AAppId = '' then Exit;
+  P := Pos('/common/', AGamePath);
+  if P > 0 then
+  begin
+    Candidate := Copy(AGamePath, 1, P - 1) + '/compatdata/' + AAppId + '/pfx/user.reg';
+    if FileExists(Candidate) then
+      Exit(Candidate);
+  end;
+  Candidate := GetUserDir + '.local/share/Steam/steamapps/compatdata/' + AAppId + '/pfx/user.reg';
+  if FileExists(Candidate) then
+    Result := Candidate;
+end;
+
+function IsD3DCompiler47Installed(const AGamePath, AAppId: string): Boolean;
+var
+  UserRegPath, Line: string;
+  SL: TStringList;
+  i: Integer;
+begin
+  Result := False;
+  if (AGamePath <> '') and FileExists(IncludeTrailingPathDelimiter(AGamePath) + 'd3dcompiler_47.dll') then
+    Exit(True);
+
+  UserRegPath := FindSteamUserRegPath(AGamePath, AAppId);
+  if UserRegPath = '' then Exit;
+
+  SL := TStringList.Create;
+  try
+    try
+      SL.LoadFromFile(UserRegPath);
+      for i := 0 to SL.Count - 1 do
+      begin
+        Line := LowerCase(Trim(SL[i]));
+        if (Pos('"d3dcompiler_47"', Line) = 1) and (Pos('native', Line) > 0) then
+          Exit(True);
+      end;
+    except
+      // ignore read errors
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function RunProtontricksD3DCompiler47(const AAppId: string): Boolean;
+var
+  Proc: TProcess;
+  ProgressForm: TForm;
+  TitleLbl, StatusLbl: TLabel;
+  ProgressBar: TProgressBar;
+begin
+  Result := False;
+  if AAppId = '' then Exit;
+
+  ProgressForm := TForm.Create(nil);
+  try
+    ProgressForm.Caption := 'Protontricks - d3dcompiler_47';
+    ProgressForm.Width := 420;
+    ProgressForm.Height := 130;
+    ProgressForm.Position := poScreenCenter;
+    ProgressForm.BorderStyle := bsDialog;
+    ProgressForm.BorderIcons := [];
+    ApplyTheme(ProgressForm, CurrentTheme);
+
+    TitleLbl := TLabel.Create(ProgressForm);
+    TitleLbl.Parent := ProgressForm;
+    TitleLbl.Caption := 'Installing native d3dcompiler_47...';
+    TitleLbl.Font.Name := UI_FONT_FAMILY;
+    TitleLbl.Font.Size := 10;
+    TitleLbl.Font.Style := [fsBold];
+    TitleLbl.SetBounds(18, 16, 384, 22);
+
+    StatusLbl := TLabel.Create(ProgressForm);
+    StatusLbl.Parent := ProgressForm;
+    StatusLbl.Caption := 'Running protontricks for Steam AppID ' + AAppId + '. Please wait...';
+    StatusLbl.Font.Name := UI_FONT_FAMILY;
+    StatusLbl.Font.Size := 9;
+    StatusLbl.Font.Color := CLR_TEXT_MUTED;
+    StatusLbl.SetBounds(18, 42, 384, 20);
+
+    ProgressBar := TProgressBar.Create(ProgressForm);
+    ProgressBar.Parent := ProgressForm;
+    ProgressBar.Style := pbstMarquee;
+    ProgressBar.SetBounds(18, 74, 384, 24);
+
+    ProgressForm.Show;
+    Application.ProcessMessages;
+
+    Proc := TProcess.Create(nil);
+    try
+      try
+        ConfigureProtontricksProcess(Proc);
+        Proc.Parameters.Add(AAppId);
+        Proc.Parameters.Add('-q');
+        Proc.Parameters.Add('d3dcompiler_47');
+        Proc.Options := [poUsePipes, poNoConsole];
+        Screen.Cursor := crHourGlass;
+        try
+          Proc.Execute;
+          while Proc.Running do
+          begin
+            Application.ProcessMessages;
+            Sleep(50);
+          end;
+          Result := Proc.ExitCode = 0;
+        finally
+          Screen.Cursor := crDefault;
+        end;
+      except
+        Result := False;
+      end;
+    finally
+      Proc.Free;
+    end;
+  finally
+    ProgressForm.Close;
+    ProgressForm.Free;
+  end;
+end;
+
 procedure TReshadeTabHelper.LoadConfig;
 var
-  IniPath, ConfPath: string;
+  IniPath, ConfPath, TargetExe, ExePath, RecProxy: string;
   Ini: TIniFile;
   KeyVal, ProxyVal, ReshadeVal, VkBasaltVal: string;
   LoadedMethod: TReshadeMethod;
+  HasExplicitReshadeDll: Boolean;
+  MainForm: Tgoverlayform;
 begin
   FLoading := True;
   try
     LoadedMethod := rmNone;
+    HasExplicitReshadeDll := False;
+    FDetectedApi := gapiUnknown;
+    TargetExe := '';
 
     IniPath := IncludeTrailingPathDelimiter(GetReShadeBasePath) + 'ReShade.ini';
     if FileExists(IniPath) then
@@ -1598,7 +1746,8 @@ begin
 
     if Assigned(FForm) and (FForm is Tgoverlayform) then
     begin
-      ConfPath := Tgoverlayform(FForm).GetGameConfigDir(Tgoverlayform(FForm).FActiveGameName) + 'bgmod.conf';
+      MainForm := Tgoverlayform(FForm);
+      ConfPath := MainForm.GetGameConfigDir(MainForm.FActiveGameName) + 'bgmod.conf';
       if FileExists(ConfPath) then
       begin
         Ini := TIniFile.Create(ConfPath);
@@ -1613,9 +1762,11 @@ begin
           else
             LoadedMethod := rmNone;
 
+          TargetExe := Trim(Ini.ReadString('Config', 'TARGET_EXE', ''));
           ProxyVal := Ini.ReadString('Config', 'RESHADE_DLL', '');
           if ProxyVal <> '' then
           begin
+            HasExplicitReshadeDll := True;
             if SameText(ProxyVal, 'dxgi.dll') then FProxyComboBox.ItemIndex := 0
             else if SameText(ProxyVal, 'd3d11.dll') then FProxyComboBox.ItemIndex := 1
             else if SameText(ProxyVal, 'd3d12.dll') then FProxyComboBox.ItemIndex := 2
@@ -1626,7 +1777,39 @@ begin
           Ini.Free;
         end;
       end;
+
+      if (MainForm.FActiveGameName <> '') and (MainForm.FActiveGamePath <> '') then
+      begin
+        if TargetExe <> '' then
+          ExePath := IncludeTrailingPathDelimiter(MainForm.FActiveGamePath) + TargetExe
+        else
+          ExePath := '';
+        if (ExePath = '') or not FileExists(ExePath) then
+          ExePath := FindMainGameExecutable(MainForm.FActiveGamePath);
+        if ExePath <> '' then
+          FDetectedApi := DetectPEGraphicsApi(ExePath);
+      end;
     end;
+
+    RecProxy := RecommendedProxyForApi(FDetectedApi);
+    if Assigned(FProxyHintLbl) then
+    begin
+      if (FDetectedApi <> gapiUnknown) and (RecProxy <> '') then
+      begin
+        FProxyHintLbl.Caption := 'Detected ' + GraphicsApiDisplayName(FDetectedApi) +
+          ' — recommended proxy: ' + RecProxy;
+        FProxyHintLbl.Visible := True;
+      end
+      else
+      begin
+        FProxyHintLbl.Caption := '';
+        FProxyHintLbl.Visible := False;
+      end;
+    end;
+
+    // For unconfigured per-game profiles, pre-select d3d9.dll when DX9 is detected
+    if (not HasExplicitReshadeDll) and (FDetectedApi = gapiDX9) then
+      FProxyComboBox.ItemIndex := 3;
 
     FPreviousProxyIndex := FProxyComboBox.ItemIndex;
     ApplyMethodSelection(LoadedMethod, False);
@@ -1640,6 +1823,7 @@ var
   IniPath, ConfPath: string;
   Ini: TIniFile;
   KeyVal, ProxyVal: string;
+  MainForm: Tgoverlayform;
 begin
   if FLoading then Exit;  // Never save while loading — guards against queued Qt events
 
@@ -1669,6 +1853,48 @@ begin
     4: ProxyVal := 'opengl32.dll';
   else
     ProxyVal := 'dxgi.dll';
+  end;
+
+  if Assigned(FForm) and (FForm is Tgoverlayform) then
+  begin
+    MainForm := Tgoverlayform(FForm);
+    if (FSelectedMethod = rmReshade) and (MainForm.FActiveGameName <> '') and not MainForm.FLoadingConfig then
+    begin
+      if (FDetectedApi = gapiDX9) and not SameText(ProxyVal, 'd3d9.dll') then
+      begin
+        if MessageDlg('DirectX 9 Detected',
+          'This game appears to use DirectX 9 (d3d9.dll), but the ReShade proxy is set to "' + ProxyVal + '".' + LineEnding + LineEnding +
+          'Switch ReShade proxy to d3d9.dll?',
+          mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+        begin
+          ProxyVal := 'd3d9.dll';
+          FLoading := True;
+          try
+            FProxyComboBox.ItemIndex := 3;
+            FPreviousProxyIndex := 3;
+          finally
+            FLoading := False;
+          end;
+        end;
+      end;
+
+      if (not SameText(ProxyVal, 'opengl32.dll')) and (MainForm.FActiveGameAppId <> '') and
+         (FD3DCompilerPromptedAppId <> MainForm.FActiveGameAppId) and
+         not IsD3DCompiler47Installed(MainForm.FActiveGamePath, MainForm.FActiveGameAppId) then
+      begin
+        FD3DCompilerPromptedAppId := MainForm.FActiveGameAppId;
+        if MessageDlg('DirectX Shader Compiler (d3dcompiler_47)',
+          'DirectX games require native d3dcompiler_47.dll for ReShade shaders to compile under Proton (otherwise shaders fail with E5002 / E5017).' + LineEnding + LineEnding +
+          'Install d3dcompiler_47 into this game''s Proton prefix using protontricks now?',
+          mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+        begin
+          if RunProtontricksD3DCompiler47(MainForm.FActiveGameAppId) then
+            ShowMessage('d3dcompiler_47 installed successfully in the Proton prefix.')
+          else
+            ShowMessage('Could not install d3dcompiler_47 via protontricks. Make sure protontricks is installed.');
+        end;
+      end;
+    end;
   end;
 
   Ini := TIniFile.Create(IniPath);

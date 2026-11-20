@@ -5,7 +5,7 @@ unit logic_test_cases;
 interface
 
 uses
-  Classes, SysUtils, fpcunit, testregistry;
+  Classes, SysUtils, fpcunit, testregistry, pe_utils;
 
 type
   TDriverPreferenceTests = class(TTestCase)
@@ -115,6 +115,8 @@ type
     procedure TestBgmodVkNemuEnvironmentExport;
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
     procedure TestBgmodReShadeProxyMatchesExeArchitecture;
+    procedure TestDetectPEGraphicsApi;
+    procedure TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
     procedure TestBgmodLauncherRuleSpacelessGameName;
     procedure TestBgmodLauncherRuleCaseInsensitive;
@@ -2769,6 +2771,186 @@ begin
   finally
     // The mock HOME is shared by the whole suite: do not leave payloads that
     // would make later "ReShade not installed" checks see a runtime.
+    if FileExists(BinDir + '/ReShade32.dll') then DeleteFile(BinDir + '/ReShade32.dll');
+    if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
+  end;
+end;
+
+procedure WritePEImportTestStub(const APath: string; AIs64Bit: Boolean; const AImportDll: string);
+var
+  Buf: array[0..$2FF] of Byte;
+  PeOff, OptOff, DataDirOff, SecOff, ImpOff, NameOff: Integer;
+  OptSize: Word;
+  ImportRVA, NameRVA, SecRVA, SecSize, SecRaw: LongWord;
+  Stream: TFileStream;
+begin
+  FillChar(Buf, SizeOf(Buf), 0);
+  PeOff := $40;
+  Buf[$3C] := Lo(PeOff);
+  Buf[$40] := $50; // 'P'
+  Buf[$41] := $45; // 'E'
+  // Machine
+  if AIs64Bit then
+  begin
+    Buf[PeOff + 4] := $64;
+    Buf[PeOff + 5] := $86;
+    OptSize := 240;
+  end
+  else
+  begin
+    Buf[PeOff + 4] := $4C;
+    Buf[PeOff + 5] := $01;
+    OptSize := 224;
+  end;
+  // NumberOfSections = 1
+  Buf[PeOff + 6] := 1;
+  // SizeOfOptionalHeader
+  Buf[PeOff + 20] := Lo(OptSize);
+  Buf[PeOff + 21] := Hi(OptSize);
+
+  OptOff := PeOff + 24;
+  if AIs64Bit then
+  begin
+    Buf[OptOff] := $0B;
+    Buf[OptOff + 1] := $02; // PE32+
+    DataDirOff := OptOff + 112;
+  end
+  else
+  begin
+    Buf[OptOff] := $0B;
+    Buf[OptOff + 1] := $01; // PE32
+    DataDirOff := OptOff + 96;
+  end;
+
+  SecOff := OptOff + OptSize;
+  SecRVA := $1000;
+  SecRaw := $200;
+  SecSize := $100;
+  ImportRVA := SecRVA;
+  NameRVA := SecRVA + 40;
+
+  // DataDirectory[1].VirtualAddress = ImportRVA
+  Move(ImportRVA, Buf[DataDirOff + 8], 4);
+
+  // Section[0]: VirtualSize, VirtualAddress, SizeOfRawData, PointerToRawData
+  Move(SecSize, Buf[SecOff + 8], 4);
+  Move(SecRVA, Buf[SecOff + 12], 4);
+  Move(SecSize, Buf[SecOff + 16], 4);
+  Move(SecRaw, Buf[SecOff + 20], 4);
+
+  // Import descriptor at SecRaw ($200): NameRVA at +12
+  ImpOff := SecRaw;
+  Move(NameRVA, Buf[ImpOff + 12], 4);
+
+  // DLL name string at SecRaw + 40
+  NameOff := SecRaw + 40;
+  if Length(AImportDll) > 0 then
+    Move(AImportDll[1], Buf[NameOff], Length(AImportDll));
+
+  Stream := TFileStream.Create(APath, fmCreate);
+  try
+    Stream.WriteBuffer(Buf, SizeOf(Buf));
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestDetectPEGraphicsApi;
+var
+  Dir, ExePath: string;
+begin
+  Dir := IsolatedHome + '/pe_api_test';
+  ForceDirectories(Dir);
+
+  ExePath := Dir + '/dx9_32.exe';
+  WritePEImportTestStub(ExePath, False, 'd3d9.dll');
+  AssertEquals('PE32 importing d3d9.dll -> gapiDX9', Ord(gapiDX9), Ord(DetectPEGraphicsApi(ExePath)));
+  AssertEquals('DX9 recommended proxy', 'd3d9.dll', RecommendedProxyForApi(gapiDX9));
+
+  ExePath := Dir + '/dx11_64.exe';
+  WritePEImportTestStub(ExePath, True, 'd3d11.dll');
+  AssertEquals('PE32+ importing d3d11.dll -> gapiDX11', Ord(gapiDX11), Ord(DetectPEGraphicsApi(ExePath)));
+  AssertEquals('DX11 recommended proxy', 'dxgi.dll', RecommendedProxyForApi(gapiDX11));
+
+  ExePath := Dir + '/gl_32.exe';
+  WritePEImportTestStub(ExePath, False, 'opengl32.dll');
+  AssertEquals('PE32 importing opengl32.dll -> gapiOpenGL', Ord(gapiOpenGL), Ord(DetectPEGraphicsApi(ExePath)));
+  AssertEquals('OpenGL recommended proxy', 'opengl32.dll', RecommendedProxyForApi(gapiOpenGL));
+
+  AssertEquals('Missing exe -> gapiUnknown', Ord(gapiUnknown), Ord(DetectPEGraphicsApi(Dir + '/nonexistent.exe')));
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
+var
+  Proc: TProcess;
+  CfgDir, GameDir, MockExe, LogFile, Content, BinDir: string;
+  F: TextFile;
+  Lines: TStringList;
+begin
+  EnsureBgmodBinary;
+  BinDir := IsolatedHome + '/.local/share/goverlay/reshade/bin';
+  ForceDirectories(BinDir);
+  try
+    AssignFile(F, BinDir + '/ReShade32.dll'); Rewrite(F);
+    WriteLn(F, 'MOCK_RESHADE_32');
+    CloseFile(F);
+    AssignFile(F, BinDir + '/ReShade64.dll'); Rewrite(F);
+    WriteLn(F, 'MOCK_RESHADE_64');
+    CloseFile(F);
+
+    // Case 1: d3d9.dll proxy must append d3dcompiler_47=n,b
+    GameDir := IsolatedHome + '/games/ReShadeD3D9Override';
+    CfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/ReShadeD3D9Override';
+    ForceDirectories(GameDir);
+    ForceDirectories(CfgDir);
+
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := FindTestHelperExecutable('cp');
+      Proc.Parameters.Add('-f');
+      Proc.Parameters.Add(GetBgmodBinaryPath);
+      Proc.Parameters.Add(CfgDir + '/bgmod');
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+      fpChmod(PChar(CfgDir + '/bgmod'), &755);
+    finally
+      Proc.Free;
+    end;
+
+    MockExe := GameDir + '/Game.exe';
+    WritePEStub(MockExe, $014C, True);
+
+    AssignFile(F, CfgDir + '/bgmod.conf'); Rewrite(F);
+    WriteLn(F, '[Config]');
+    WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+    WriteLn(F, 'GOVERLAY_RESHADE=1');
+    WriteLn(F, 'GOVERLAY_OPTISCALER=0');
+    WriteLn(F, 'RESHADE_DLL=d3d9.dll');
+    CloseFile(F);
+
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := CfgDir + '/bgmod';
+      Proc.Parameters.Add(MockExe);
+      Proc.Options := [poWaitOnExit];
+      Proc.CurrentDirectory := GameDir;
+      Proc.Execute;
+    finally
+      Proc.Free;
+    end;
+
+    LogFile := IsolatedHome + '/.local/share/goverlay/logs/ReShadeD3D9Override/bgmod.log';
+    AssertTrue('bgmod.log should exist', FileExists(LogFile));
+    Lines := TStringList.Create;
+    try
+      Lines.LoadFromFile(LogFile);
+      Content := Lines.Text;
+      AssertTrue('d3d9.dll ReShade must export d3dcompiler_47=n,b',
+        Pos('Export WINEDLLOVERRIDES=d3d9=n,b;d3dcompiler_47=n,b', Content) > 0);
+    finally
+      Lines.Free;
+    end;
+  finally
     if FileExists(BinDir + '/ReShade32.dll') then DeleteFile(BinDir + '/ReShade32.dll');
     if FileExists(BinDir + '/ReShade64.dll') then DeleteFile(BinDir + '/ReShade64.dll');
   end;

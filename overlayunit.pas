@@ -1079,6 +1079,8 @@ type
     FBenchmarkStarted: Boolean;
     FBenchmarkStartTicks: Integer;
     FActiveGameName: string;
+    FActiveGameAppId: string;
+    FActiveGamePath: string;
     FActiveGameIsNonSteam: Boolean;
 
     // Home tab fields (moved from private)
@@ -5759,6 +5761,8 @@ begin
   if WasInGameMode then
   begin
     FActiveGameName := '';
+    FActiveGameAppId := '';
+    FActiveGamePath := '';
     MANGOHUDCFGFILE := GetGameConfigDir('') + 'MangoHud.conf';
     VKBASALTCFGFILE := IncludeTrailingPathDelimiter(GetVkBasaltConfigDir()) + 'vkBasalt.conf';
     VKSUMICFGFILE := IncludeTrailingPathDelimiter(GetVkSumiConfigDir()) + 'vkSumi.conf';
