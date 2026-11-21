@@ -22,6 +22,7 @@ type
     procedure TestDlssNrResolvedArchPersistence;
     procedure TestDlssNrIniGeneration;
     procedure TestDlssNrDirectFileDeploymentAndManifestCleanup;
+    procedure TestDlssNr009CacheAndManifestLayout;
     procedure TestIsDlssNrInstalledFallbackArchitecture;
     procedure TestDlssNrArchitecturePathResolution;
     procedure TestExtractDlssNrModelTargetsRequestedArch;
@@ -506,6 +507,80 @@ begin
   AssertFalse('Manifest removed', FileExists(ManifestPath));
   // Verify native game file is preserved untouched
   AssertTrue('Game exe preserved', FileExists(GameDir + 'game.exe'));
+end;
+
+procedure TOptiScalerIniTests.TestDlssNr009CacheAndManifestLayout;
+var
+  Rdna3Dir, GameDir, ManifestPath, FName: string;
+  DummyContent, Manifest: TStringList;
+  i: Integer;
+begin
+  // 1. Verify CheckAndInstallDlssNr recognizes 0.0.9 cache paths (optiscaler/release/OptiScaler.dll & optiscaler/asi/dlssnr-amd.asi)
+  Rdna3Dir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3'));
+  ForceDirectories(Rdna3Dir + 'optiscaler' + PathDelim + 'release');
+  DummyContent := TStringList.Create;
+  try
+    DummyContent.Text := 'dummy';
+    DummyContent.SaveToFile(Rdna3Dir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll');
+    AssertTrue('CheckAndInstallDlssNr recognizes optiscaler/release/OptiScaler.dll',
+      CheckAndInstallDlssNr('rdna3', False));
+    DeleteFile(Rdna3Dir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll');
+
+    ForceDirectories(Rdna3Dir + 'optiscaler' + PathDelim + 'asi');
+    DummyContent.SaveToFile(Rdna3Dir + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi');
+    AssertTrue('CheckAndInstallDlssNr recognizes optiscaler/asi/dlssnr-amd.asi',
+      CheckAndInstallDlssNr('rdna3', False));
+  finally
+    DummyContent.Free;
+    DeleteFile(Rdna3Dir + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi');
+    RemoveDir(Rdna3Dir + 'optiscaler' + PathDelim + 'asi');
+    RemoveDir(Rdna3Dir + 'optiscaler' + PathDelim + 'release');
+    RemoveDir(Rdna3Dir + 'optiscaler');
+    RemoveDir(ExcludeTrailingPathDelimiter(Rdna3Dir));
+  end;
+
+  // 2. Verify manifest cleanup removes nested 0.0.9 ASI plugin path
+  GameDir := IncludeTrailingPathDelimiter(GetTempDir) + 'test_dlssnr_009_' + IntToStr(Random(100000)) + PathDelim;
+  ForceDirectories(GameDir + 'OptiScaler' + PathDelim + 'plugins');
+  DummyContent := TStringList.Create;
+  try
+    DummyContent.Text := 'dummy';
+    DummyContent.SaveToFile(GameDir + 'OptiScaler.dll');
+    DummyContent.SaveToFile(GameDir + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi');
+  finally
+    DummyContent.Free;
+  end;
+
+  Manifest := TStringList.Create;
+  try
+    Manifest.Add('OptiScaler.dll');
+    Manifest.Add('OptiScaler/plugins/dlssnr-amd.asi');
+    ManifestPath := GameDir + 'dlssnr-amd-install.txt';
+    Manifest.SaveToFile(ManifestPath);
+  finally
+    Manifest.Free;
+  end;
+
+  Manifest := TStringList.Create;
+  try
+    Manifest.LoadFromFile(ManifestPath);
+    for i := 0 to Manifest.Count - 1 do
+    begin
+      FName := Trim(Manifest[i]);
+      if (FName <> '') and FileExists(GameDir + FName) then
+        DeleteFile(GameDir + FName);
+    end;
+    DeleteFile(ManifestPath);
+  finally
+    Manifest.Free;
+  end;
+
+  AssertFalse('OptiScaler.dll removed', FileExists(GameDir + 'OptiScaler.dll'));
+  AssertFalse('0.0.9 dlssnr-amd.asi removed', FileExists(GameDir + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi'));
+  AssertFalse('Manifest removed', FileExists(ManifestPath));
+  RemoveDir(GameDir + 'OptiScaler' + PathDelim + 'plugins');
+  RemoveDir(GameDir + 'OptiScaler');
+  RemoveDir(ExcludeTrailingPathDelimiter(GameDir));
 end;
 
 procedure TOptiScalerIniTests.TestIsDlssNrInstalledFallbackArchitecture;

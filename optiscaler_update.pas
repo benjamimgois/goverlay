@@ -9300,12 +9300,12 @@ begin
 end;
 
 // Query the latest DLSS-NR release for the given architecture from the GitHub
-// API. Fills ATag with the release tag and AUrl with the matching .tar.gz asset
-// URL, falling back to hand-picked baseline URLs when the API is rate limited
-// or unreachable.
+// (RDNA3) or GitLab (RDNA4) API. Fills ATag with the release tag and AUrl with
+// the matching .tar.gz asset URL, falling back to hand-picked baseline URLs
+// when the API is rate limited or unreachable.
 function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): Boolean;
 var
-  Owner, Repo, TmpFile, ApiUrl, RespText, Candidate, LowerCandidate: string;
+  Owner, Repo, TmpFile, ApiUrl, RespText, Candidate, LowerCandidate, UrlKey: string;
   Process: TProcess;
   OutputList: TStringList;
   IsRdna3: Boolean;
@@ -9319,7 +9319,7 @@ begin
   IsRdna3 := SameText(AArch, 'rdna3');
   if IsRdna3 then
   begin
-    Owner := 'mauri870';
+    Owner := 'saaaaaaaaaaaaaaaaaas';
     Repo := 'DLSSNR-RDNA3';
   end
   else
@@ -9332,10 +9332,22 @@ begin
 
   for Attempt := 0 to 1 do
   begin
-    if Attempt = 0 then
-      ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases/latest'
+    if IsRdna3 then
+    begin
+      if Attempt = 0 then
+        ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases/latest'
+      else
+        ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases';
+      UrlKey := 'browser_download_url';
+    end
     else
-      ApiUrl := 'https://api.github.com/repos/' + Owner + '/' + Repo + '/releases';
+    begin
+      if Attempt = 0 then
+        ApiUrl := 'https://gitlab.com/api/v4/projects/' + Owner + '%2F' + Repo + '/releases/permalink/latest'
+      else
+        ApiUrl := 'https://gitlab.com/api/v4/projects/' + Owner + '%2F' + Repo + '/releases';
+      UrlKey := 'direct_asset_url';
+    end;
 
     Process := TProcess.Create(nil);
     try
@@ -9389,10 +9401,10 @@ begin
       end;
     end;
 
-    // Locate the first browser_download_url that points to a suitable .tar.gz
+    // Locate the first matching asset URL that points to a suitable .tar.gz
     if AUrl = '' then
     begin
-      UrlPos := Pos('browser_download_url', RespText);
+      UrlPos := Pos(UrlKey, RespText);
       while UrlPos > 0 do
       begin
         HttpPos := PosEx('http', RespText, UrlPos);
@@ -9421,7 +9433,7 @@ begin
           end;
         end;
         if AUrl <> '' then Break;
-        UrlPos := PosEx('browser_download_url', RespText, UrlPos + 20);
+        UrlPos := PosEx(UrlKey, RespText, UrlPos + Length(UrlKey));
       end;
     end;
 
@@ -9433,13 +9445,13 @@ begin
   begin
     if IsRdna3 then
     begin
-      ATag := FALLBACK_DLSSNR_RDNA3_VERSION;
-      AUrl := 'https://github.com/mauri870/DLSSNR-RDNA3/releases/download/' + FALLBACK_DLSSNR_RDNA3_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA3_VERSION + '-linux-preview-54-gaa39228-x86_64-rdna3.tar.gz';
+      ATag := 'v' + FALLBACK_DLSSNR_RDNA3_VERSION;
+      AUrl := URL_DLSSNR_RDNA3_REPO + '/releases/download/v' + FALLBACK_DLSSNR_RDNA3_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA3_VERSION + '-x86_64-rdna3.tar.gz';
     end
     else
     begin
       ATag := 'v' + FALLBACK_DLSSNR_RDNA4_VERSION;
-      AUrl := 'https://github.com/mochizuki0323/DLSSNR-AMD/releases/download/v' + FALLBACK_DLSSNR_RDNA4_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA4_VERSION + '-x86_64.tar.gz';
+      AUrl := URL_DLSSNR_RDNA4_REPO + '/-/releases/v' + FALLBACK_DLSSNR_RDNA4_VERSION + '/downloads/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA4_VERSION + '-x86_64.tar.gz';
     end;
   end;
 
@@ -9463,8 +9475,11 @@ begin
   ForceDirectories(TargetDir);
 
   if not AForce and
-     (FileExists(TargetDir + 'dlssnr-amd' + PathDelim + 'dlssnr.bin') or
+     (FileExists(TargetDir + 'dlssnr-amd' + PathDelim + 'CC_SILVER_AARDWOLD.bin') or
+      FileExists(TargetDir + 'dlssnr-amd' + PathDelim + 'dlssnr.bin') or
       FileExists(TargetDir + 'goverlay.vars') or
+      FileExists(TargetDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll') or
+      FileExists(TargetDir + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi') or
       FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll')) then
     Exit(True);
 
@@ -9497,6 +9512,7 @@ begin
     // Fallback: the archive root already holds the files directly.
     if not (DirectoryExists(TargetDir + 'dlssnr-amd') or
             FileExists(TargetDir + 'goverlay.vars') or
+            FileExists(TargetDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll') or
             FileExists(TargetDir + 'optiscaler' + PathDelim + 'OptiScaler.dll')) then
       ExtractTarArchive(TempTar, TargetDir, 0);
 
@@ -9549,11 +9565,16 @@ begin
 
     // Mirror any extracted neural models into the runtime folder.
     ModelsSrcDir := IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath);
-    if FileExists(ModelsSrcDir + 'dlssnr.bin') then
+    if FileExists(ModelsSrcDir + 'CC_SILVER_AARDWOLD.bin') or FileExists(ModelsSrcDir + 'dlssnr.bin') then
     begin
       SubDir := TargetDir + 'dlssnr-amd' + PathDelim;
       ForceDirectories(SubDir);
-      CopyFile(ModelsSrcDir + 'dlssnr.bin', SubDir + 'dlssnr.bin');
+      if FileExists(ModelsSrcDir + 'CC_SILVER_AARDWOLD.bin') then
+        CopyFile(ModelsSrcDir + 'CC_SILVER_AARDWOLD.bin', SubDir + 'CC_SILVER_AARDWOLD.bin');
+      if FileExists(ModelsSrcDir + 'CC_SMALL_FP8.bin') then
+        CopyFile(ModelsSrcDir + 'CC_SMALL_FP8.bin', SubDir + 'CC_SMALL_FP8.bin');
+      if FileExists(ModelsSrcDir + 'dlssnr.bin') then
+        CopyFile(ModelsSrcDir + 'dlssnr.bin', SubDir + 'dlssnr.bin');
       if FileExists(ModelsSrcDir + 'dlssnr-small.bin') then
         CopyFile(ModelsSrcDir + 'dlssnr-small.bin', SubDir + 'dlssnr-small.bin');
     end;
@@ -9826,10 +9847,11 @@ begin
     Process.Free;
   end;
 
-  if not FileExists(TargetModelsDir + 'dlssnr.bin') then
+  if not (FileExists(TargetModelsDir + 'CC_SILVER_AARDWOLD.bin') or
+          FileExists(TargetModelsDir + 'dlssnr.bin')) then
   begin
     if AErrorMsg = '' then
-      AErrorMsg := 'Model extraction did not produce dlssnr.bin';
+      AErrorMsg := 'Model extraction did not produce CC_SILVER_AARDWOLD.bin or dlssnr.bin';
     if Assigned(AOnProgress) then
       AOnProgress(100, 'DLSS-NR model extraction failed.');
     Exit;
@@ -9841,7 +9863,12 @@ begin
   Rdna3SubDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim;
   if DirectoryExists(Rdna3SubDir) then
   begin
-    CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna3SubDir + 'dlssnr.bin');
+    if FileExists(TargetModelsDir + 'CC_SILVER_AARDWOLD.bin') then
+      CopyFile(TargetModelsDir + 'CC_SILVER_AARDWOLD.bin', Rdna3SubDir + 'CC_SILVER_AARDWOLD.bin');
+    if FileExists(TargetModelsDir + 'CC_SMALL_FP8.bin') then
+      CopyFile(TargetModelsDir + 'CC_SMALL_FP8.bin', Rdna3SubDir + 'CC_SMALL_FP8.bin');
+    if FileExists(TargetModelsDir + 'dlssnr.bin') then
+      CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna3SubDir + 'dlssnr.bin');
     if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
       CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna3SubDir + 'dlssnr-small.bin');
   end;
@@ -9849,7 +9876,12 @@ begin
   Rdna4SubDir := IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'dlssnr-amd' + PathDelim;
   if DirectoryExists(Rdna4SubDir) then
   begin
-    CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna4SubDir + 'dlssnr.bin');
+    if FileExists(TargetModelsDir + 'CC_SILVER_AARDWOLD.bin') then
+      CopyFile(TargetModelsDir + 'CC_SILVER_AARDWOLD.bin', Rdna4SubDir + 'CC_SILVER_AARDWOLD.bin');
+    if FileExists(TargetModelsDir + 'CC_SMALL_FP8.bin') then
+      CopyFile(TargetModelsDir + 'CC_SMALL_FP8.bin', Rdna4SubDir + 'CC_SMALL_FP8.bin');
+    if FileExists(TargetModelsDir + 'dlssnr.bin') then
+      CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna4SubDir + 'dlssnr.bin');
     if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
       CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna4SubDir + 'dlssnr-small.bin');
   end;
@@ -9887,8 +9919,11 @@ end;
 // Check whether extracted DLSS-NR models (dlssnr.bin) exist in central storage.
 function IsDlssNrModelReady: Boolean;
 begin
-  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath) + 'dlssnr.bin') or
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath) + 'CC_SILVER_AARDWOLD.bin') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrModelsPath) + 'dlssnr.bin') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim + 'CC_SILVER_AARDWOLD.bin') or
             FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna3')) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin') or
+            FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'dlssnr-amd' + PathDelim + 'CC_SILVER_AARDWOLD.bin') or
             FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNrPath('rdna4')) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
 end;
 

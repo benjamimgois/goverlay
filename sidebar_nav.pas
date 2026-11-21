@@ -1119,7 +1119,16 @@ begin
           ProxyDllName := 'version.dll';
       end;
 
-      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll') then
+      begin
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + ProxyDllName);
+        ManifestList.Add('OptiScaler.dll');
+        ManifestList.Add(ProxyDllName);
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
       begin
         CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.dll',
                  IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.dll');
@@ -1139,7 +1148,10 @@ begin
       end;
 
       // Supporting OptiScaler backend directory
-      if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler') then
+      if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler') then
+        ExecuteShellCommand('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler') + ' ' +
+          QuotedStr(AGameCfgDir) + ' 2>/dev/null')
+      else if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler') then
         ExecuteShellCommand('cp -rf ' + QuotedStr(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler') + ' ' +
           QuotedStr(AGameCfgDir) + ' 2>/dev/null')
       else if DirectoryExists(IncludeTrailingPathDelimiter(CacheDir) + 'OptiScaler') then
@@ -1147,11 +1159,26 @@ begin
           QuotedStr(AGameCfgDir) + ' 2>/dev/null');
 
       // OptiScaler.ini template from OptiScaler-NR
-      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.ini') then
+      begin
+        if not FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini') then
+          CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.ini',
+                   IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini');
+      end
+      else if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
       begin
         if not FileExists(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini') then
           CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'OptiScaler.ini',
                    IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler.ini');
+      end;
+
+      // 0.0.9 ASI plugin (dlssnr-amd.asi -> <Game>/OptiScaler/plugins/dlssnr-amd.asi for OptiScaler 0.10+)
+      if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi') then
+      begin
+        ForceDirectories(IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler' + PathDelim + 'plugins');
+        CopyFile(IncludeTrailingPathDelimiter(CacheDir) + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi',
+                 IncludeTrailingPathDelimiter(AGameCfgDir) + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi');
+        ManifestList.Add('OptiScaler/plugins/dlssnr-amd.asi');
       end;
 
       if FileExists(IncludeTrailingPathDelimiter(CacheDir) + 'dlssnr_core.dll') then
@@ -1202,6 +1229,20 @@ begin
       end;
 
       ModelsDir := GetBGModDlssNrModelsPath;
+      if FileExists(IncludeTrailingPathDelimiter(ModelsDir) + 'CC_SMALL_FP8.bin') then
+      begin
+        ForceDirectories(DlssNrDstDir);
+        CopyFile(IncludeTrailingPathDelimiter(ModelsDir) + 'CC_SMALL_FP8.bin',
+                 IncludeTrailingPathDelimiter(DlssNrDstDir) + 'CC_SMALL_FP8.bin');
+        ManifestList.Add('dlssnr-amd/CC_SMALL_FP8.bin');
+      end;
+      if FileExists(IncludeTrailingPathDelimiter(ModelsDir) + 'CC_SILVER_AARDWOLD.bin') then
+      begin
+        ForceDirectories(DlssNrDstDir);
+        CopyFile(IncludeTrailingPathDelimiter(ModelsDir) + 'CC_SILVER_AARDWOLD.bin',
+                 IncludeTrailingPathDelimiter(DlssNrDstDir) + 'CC_SILVER_AARDWOLD.bin');
+        ManifestList.Add('dlssnr-amd/CC_SILVER_AARDWOLD.bin');
+      end;
       if FileExists(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr-small.bin') then
       begin
         CopyFile(IncludeTrailingPathDelimiter(ModelsDir) + 'dlssnr-small.bin',

@@ -23,12 +23,16 @@ The system SHALL detect whether the active AMD graphics hardware is RDNA3 or RDN
 - **THEN** the system switches the active download target, runtime directory, and configuration defaults to match the selected architecture.
 
 ### Requirement: Central Runtime Download and Storage
-The system SHALL download and cache the appropriate DLSS-NR release package into a central data directory for the selected architecture. The system SHALL prevent redundant re-downloads when the current release is already cached. During model extraction and setup, the system SHALL download the runtime matching the target architecture rather than hardcoding RDNA3.
+The system SHALL download and cache the appropriate DLSS-NR release package into a central data directory for the selected architecture, recognizing both legacy and `0.0.9` runtime layouts. The system SHALL prevent redundant re-downloads when the current release is already cached and SHALL download the runtime matching the target architecture.
 
 #### Scenario: Downloading DLSS-NR release package
 - **WHEN** DLSS-NR is selected and the required architecture runtime package is not present in central storage
-- **THEN** the system downloads the latest release archive from the corresponding repository (RDNA4 from mochizuki0323/DLSSNR-AMD into dlss-nr-rdna4 or RDNA3 from mauri870/DLSSNR-RDNA3 into dlss-nr-rdna3)
+- **THEN** the system downloads the latest release archive from the corresponding repository (RDNA4 from `mochizuki0323/DLSSNR-AMD` on GitLab into `dlss-nr-rdna4` or RDNA3 from `saaaaaaaaaaaaaaaaaas/DLSSNR-RDNA3` on GitHub into `dlss-nr-rdna3`)
 - **AND** unpacks the binaries and support tools into the central DLSS-NR directory while updating the cached version string.
+
+#### Scenario: Recognizing cached 0.0.9 runtime layout
+- **WHEN** the central DLSS-NR directory already contains `optiscaler/release/OptiScaler.dll` or `optiscaler/asi/dlssnr-amd.asi`
+- **THEN** the system treats the runtime cache as present and skips redundant re-downloads unless forced.
 
 ### Requirement: One-Time Neural Weights Extraction
 The system SHALL allow the user to select their own copy of `nvngx_dlssnr.dll` or a containing archive to extract the neural network weights into central storage. Extraction SHALL occur once and be verified against known SHA-256 checksums, enabling persistent offline installations.
@@ -44,12 +48,17 @@ The system SHALL allow the user to select their own copy of `nvngx_dlssnr.dll` o
 - **THEN** the system notifies the user of the invalid checksum or unsupported version without corrupting central cache.
 
 ### Requirement: Direct File Deployment to Game Profiles
-The system SHALL synchronize DLSS-NR runtime files into the target game directory using direct file copies without invoking external installer shell scripts. When architecture is set to Auto-detect, the deployment launcher SHALL resolve the effective architecture based on the active GPU and deploy the matching architecture channel rather than defaulting to RDNA3. When launched from a Flatpak game profile, the deployment launcher SHALL resolve neural model weights from the sandboxed Flatpak data directory.
+The system SHALL synchronize DLSS-NR runtime files into the target game directory using direct file copies without invoking external installer shell scripts. When architecture is set to Auto-detect, the deployment launcher SHALL resolve the effective architecture from the active GPU. Under Flatpak, it SHALL resolve model weights from the sandboxed data directory. Deployment SHALL support both `0.0.9` and legacy `0.0.6` layouts.
 
 #### Scenario: Deploying DLSS-NR with OptiScaler route
 - **WHEN** DLSS-NR is deployed to a game directory using the OptiScaler route
-- **THEN** the system copies the OptiScaler-NR proxy DLL, the DLSS-NR backend library, the extracted neural model binaries, and generated dlssnr-amd.ini directly into the game folder from the resolved architecture runtime channel (dlss-nr-rdna4 for RDNA4 or dlss-nr-rdna3 for RDNA3)
-- **AND** writes an install manifest listing all copied files.
+- **THEN** the system copies the OptiScaler-NR proxy DLL, the DLSS-NR backend library (or `dlssnr-amd.asi` in `0.0.9`), the extracted neural model binaries, and generated `dlssnr-amd.ini` directly into the game folder from the resolved architecture runtime channel (`dlss-nr-rdna4` for RDNA4 or `dlss-nr-rdna3` for RDNA3)
+- **AND** writes an install manifest (`dlssnr-amd-install.txt`) listing all copied files.
+
+#### Scenario: Deploying DLSS-NR with OptiScaler route using 0.0.9 layout
+- **WHEN** DLSS-NR is deployed from a `0.0.9` central cache
+- **THEN** the system resolves `OptiScaler.dll`, `OptiScaler.ini`, and `OptiScaler/` from `optiscaler/release/` and deploys `optiscaler/asi/dlssnr-amd.asi` alongside `dlssnr-amd/`
+- **AND** records all deployed files in `dlssnr-amd-install.txt`.
 
 #### Scenario: Deploying DLSS-NR neural weights under Flatpak
 - **WHEN** DLSS-NR launches via `bgmod` originating from a Flatpak profile

@@ -3790,8 +3790,13 @@ begin
           begin
             Log('Installing DLSS-NR files in game directory...');
 
-            // OptiScaler.dll runtime + proxy DLL
-            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
+            // OptiScaler.dll runtime + proxy DLL (0.0.9 layout -> legacy -> ConfigDir -> OptiBaseDir)
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+            end
+            else if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll') then
             begin
               SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
               SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
@@ -3800,6 +3805,16 @@ begin
             begin
               SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
               SafeCopyFile(SourceDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+            end
+            else if FileExists(ConfigDir + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(ConfigDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeCopyFile(ConfigDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
+            end
+            else if FileExists(OptiBaseDir + 'OptiScaler.dll') then
+            begin
+              SafeCopyFile(OptiBaseDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.dll');
+              SafeCopyFile(OptiBaseDir + 'OptiScaler.dll', IncludeTrailingPathDelimiter(GameDir) + DllName);
             end;
 
             // DLSS-NR backend library and NGX shims
@@ -3819,15 +3834,40 @@ begin
               SafeCopyFile(SourceDir + 'nvngx_dlssnr.dll', IncludeTrailingPathDelimiter(GameDir) + 'nvngx_dlssnr.dll');
 
             // Supporting OptiScaler and plugins directories
-            if DirectoryExists(SourceDir + 'OptiScaler') then
-              CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler')
+            if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler') then
+              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler')
             else if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler') then
-              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
+              CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler')
+            else if DirectoryExists(SourceDir + 'OptiScaler') then
+              CopyDirectory(SourceDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler')
+            else if DirectoryExists(OptiBaseDir + 'OptiScaler') then
+              CopyDirectory(OptiBaseDir + 'OptiScaler', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler');
 
+            if DirectoryExists(ConfigDir + 'plugins') then
+            begin
+              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.dll') then
+                CopyDirectory(ConfigDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins')
+              else
+                CopyDirectory(ConfigDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+            end;
             if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'plugins') then
               CopyDirectory(SourceDir + 'optiscaler' + PathDelim + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins')
             else if DirectoryExists(SourceDir + 'plugins') then
               CopyDirectory(SourceDir + 'plugins', IncludeTrailingPathDelimiter(GameDir) + 'plugins');
+
+            // 0.0.9 ASI plugin (dlssnr-amd.asi -> <Game>/OptiScaler/plugins/dlssnr-amd.asi for OptiScaler 0.10+)
+            if FileExists(SourceDir + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi') then
+            begin
+              ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins');
+              SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'asi' + PathDelim + 'dlssnr-amd.asi',
+                           IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi');
+            end
+            else if FileExists(ConfigDir + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi') then
+            begin
+              ForceDirectories(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins');
+              SafeCopyFile(ConfigDir + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi',
+                           IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi');
+            end;
 
             // dlssnr-amd runtime directory (weights + Vulkan control layer)
             if DirectoryExists(SourceDir + 'dlssnr-amd') then
@@ -3836,6 +3876,10 @@ begin
 
             // Central neural model weights
             DlssNrModelsDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'dlss-nr-models';
+            if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SILVER_AARDWOLD.bin') then
+              SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SILVER_AARDWOLD.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'CC_SILVER_AARDWOLD.bin');
+            if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SMALL_FP8.bin') then
+              SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SMALL_FP8.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'CC_SMALL_FP8.bin');
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin') then
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin') then
@@ -3889,7 +3933,9 @@ begin
 
             if not IsNrIni then
             begin
-              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
+              if FileExists(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.ini') then
+                SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'release' + PathDelim + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini')
+              else if FileExists(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.ini') then
                 SafeCopyFile(SourceDir + 'optiscaler' + PathDelim + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini')
               else if FileExists(SourceDir + 'OptiScaler.ini') then
                 SafeCopyFile(SourceDir + 'OptiScaler.ini', IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler.ini');
@@ -3927,7 +3973,11 @@ begin
                     Ini.Free;
                   end;
                 end;
-                OptiIni.WriteString('Libraries', 'NvngxPath', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll'));
+                if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll') then
+                  OptiIni.WriteString('Libraries', 'NvngxPath', UnixPathToWinePath(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr_core.dll'));
+                if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'OptiScaler' + PathDelim + 'plugins' + PathDelim + 'dlssnr-amd.asi') or
+                   FileExists(IncludeTrailingPathDelimiter(GameDir) + 'plugins' + PathDelim + 'dlssnr-amd.asi') then
+                  OptiIni.WriteString('Plugins', 'LoadAsiPlugins', 'true');
                 OptiIni.WriteString('Log', 'LogToFile', 'true');
                 OptiIni.WriteString('Menu', 'OverlayMenu', 'true');
                 OptiIni.WriteString('Menu', 'DisableSplash', 'false');

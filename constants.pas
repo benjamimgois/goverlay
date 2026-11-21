@@ -78,15 +78,26 @@ const
   FALLBACK_RESHADE_VERSION = '6.8.0';
 
   // HelixSR Repository
+  URL_HELIXSR_REPO = 'https://github.com/lonewolf0622/HelixSR';
   FALLBACK_HELIXSR_VERSION = '3.1.0';
 
-  // DLSS-NR Repositories
-  FALLBACK_DLSSNR_RDNA3_VERSION = '0.0.6';
-  FALLBACK_DLSSNR_RDNA4_VERSION = '0.0.6-linux-preview';
+  // vkSumi & vkNemu Repositories
+  URL_VKSUMI_REPO = 'https://github.com/reakjra/vkSumi';
+  URL_VKNEMU_REPO = 'https://github.com/reakjra/vkNemu';
 
-  // OptiScaler / Decky Framegen
+  // DLSS-NR Repositories
+  URL_DLSSNR_RDNA3_REPO = 'https://github.com/saaaaaaaaaaaaaaaaaas/DLSSNR-RDNA3';
+  URL_DLSSNR_RDNA4_REPO = 'https://gitlab.com/mochizuki0323/DLSSNR-AMD';
+  FALLBACK_DLSSNR_RDNA3_VERSION = '0.0.9-linux-rdna3';
+  FALLBACK_DLSSNR_RDNA4_VERSION = '0.0.9';
+
+  // OptiScaler / Decky Framegen / fgmod / DLSS-Enabler
+  URL_OPTISCALER_REPO = 'https://github.com/optiscaler/OptiScaler';
+  URL_DECKY_FRAMEGEN_GITHUB = 'https://github.com/xXJSONDeruloXx/Decky-Framegen';
   URL_DECKY_FRAMEGEN_API = 'https://api.github.com/repos/xXJSONDeruloXx/Decky-Framegen/releases/latest';
   URL_DECKY_FRAMEGEN_REPO = 'https://github.com/xXJSONDeruloXx/Decky-Framegen/releases/download/';
+  URL_FGMOD_REPO = 'https://github.com/FakeMichau/fgmod';
+  URL_DLSS_ENABLER_REPO = 'https://github.com/artur-graniszewski/DLSS-Enabler';
 
   // OptiScaler Builds (Stable Channel)
   URL_OPTISCALER_BUILDS_API = 'https://api.github.com/repos/benjamimgois/OptiScaler-builds/tags';
@@ -98,6 +109,7 @@ const
   URL_OPTISCALER_NIGHTLY_EXPANDED = 'https://github.com/optiscaler/OptiScaler-nightly/releases/expanded_assets/';
 
   // FakeNvapi
+  URL_FAKENVAPI_GITHUB = 'https://github.com/optiscaler/fakenvapi';
   URL_FAKENVAPI_API = 'https://api.github.com/repos/optiscaler/fakenvapi/releases/latest';
   URL_FAKENVAPI_REPO = 'https://github.com/optiscaler/fakenvapi/releases/download/';
 

@@ -202,7 +202,7 @@ type
 implementation
 
 uses
-  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, home_tab, pasplot_form, StrUtils, first_run_dialog;
+  overlayunit, games_tab, configmanager, overlay_config, optiscaler_update, finish_dialog, ExtCtrls, ComCtrls, StdCtrls, themeunit, IniFiles, FileUtil, test_isolation, Graphics, Forms, Controls, lossless_scaling_tab, lsfg_migration_dialog, lsfg_steam_beta_dialog, vkbasalt_tab, toggle_switch, mangohud_ui, optiscaler_tab, bgmod_resources, reshade_tab, Process, BaseUnix, tweaks_md3, changelogunit, overlay_utils, systemdetector, helixsr_license_dialog, apputils, aboutunit, constants, home_tab, pasplot_form, StrUtils, first_run_dialog;
 
 const
   // State the MangoHud toggle buttons already carry: the click handlers switch
@@ -5725,6 +5725,23 @@ begin
     Application.CreateForm(TaboutForm, aboutForm);
   AssertTrue('creditsLabel mentions lonewolf0622', Pos('lonewolf0622', aboutForm.creditsLabel.Caption) > 0);
   AssertTrue('creditsLabel mentions HelixSR', Pos('HelixSR', aboutForm.creditsLabel.Caption) > 0);
+  AssertTrue('creditsLabel mentions saaaaaaaaaaaaaaaaaas', Pos('saaaaaaaaaaaaaaaaaas', aboutForm.creditsLabel.Caption) > 0);
+  AssertEquals('About credits has 15 clickable project links', 15, aboutForm.CreditLinkCount);
+  AssertEquals('First credit link is MangoHud', 'MangoHud', aboutForm.GetCreditLinkLabel(0).Caption);
+  AssertEquals('First credit link URL is MangoHud repo', URL_MANGOHUD_REPO, aboutForm.GetCreditLinkUrl(0));
+  AssertEquals('HelixSR credit link is HelixSR', 'HelixSR', aboutForm.GetCreditLinkLabel(4).Caption);
+  AssertEquals('HelixSR credit link URL is HelixSR repo', URL_HELIXSR_REPO, aboutForm.GetCreditLinkUrl(4));
+  AssertEquals('DLSS-NR (RDNA3) credit link is DLSS-NR (RDNA3)', 'DLSS-NR (RDNA3)', aboutForm.GetCreditLinkLabel(6).Caption);
+  AssertEquals('DLSS-NR (RDNA3) credit link URL is saaaaaaaaaaaaaaaaaas repo', URL_DLSSNR_RDNA3_REPO, aboutForm.GetCreditLinkUrl(6));
+  AssertEquals('Last credit link is afmf-linux', 'afmf-linux', aboutForm.GetCreditLinkLabel(14).Caption);
+  AssertEquals('Last credit link URL is afmf-linux repo', URL_AFMF_REPO, aboutForm.GetCreditLinkUrl(14));
+  for i := 0 to aboutForm.CreditLinkCount - 1 do
+  begin
+    AssertNotNull('Credit link label assigned at ' + IntToStr(i), aboutForm.GetCreditLinkLabel(i));
+    AssertEquals('Credit link cursor is crHandPoint at ' + IntToStr(i), Ord(crHandPoint), Ord(aboutForm.GetCreditLinkLabel(i).Cursor));
+    AssertTrue('Credit link OnClick assigned at ' + IntToStr(i), Assigned(aboutForm.GetCreditLinkLabel(i).OnClick));
+    AssertTrue('Credit link URL non-empty at ' + IntToStr(i), aboutForm.GetCreditLinkUrl(i) <> '');
+  end;
 end;
 
 procedure TGoverlayGuiTests.TestWindowResizabilityAndGeometry;
