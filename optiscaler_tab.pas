@@ -69,6 +69,8 @@ type
     FDlssNrPreprocessCheckBox: TCheckBox;
     FDlssNrPreprocessToggle: TToggleSwitch;
     FDlssNrRouteIndex: Integer;
+    FDlssNrPassesModeIndex: Integer;
+    FDlssNrOptimizedLayersIndex: Integer;
     FDlssNrFinishedPictureChecked: Boolean;
     FDlssNrRenoDxChecked: Boolean;
     FDlssNrPreprocessChecked: Boolean;
@@ -473,6 +475,8 @@ begin
   if not Assigned(FForm) then Exit;
   AdvSettings := Default(TOptiScalerSettings);
   AdvSettings.DlssNrRouteIndex := FDlssNrRouteIndex;
+  AdvSettings.DlssNrPassesModeIndex := FDlssNrPassesModeIndex;
+  AdvSettings.DlssNrOptimizedLayersIndex := FDlssNrOptimizedLayersIndex;
   AdvSettings.DlssNrFinishedPictureChecked := FDlssNrFinishedPictureChecked;
   AdvSettings.DlssNrRenoDxChecked := FDlssNrRenoDxChecked;
   AdvSettings.DlssNrPreprocessChecked := FDlssNrPreprocessChecked;
@@ -481,6 +485,8 @@ begin
   if ShowDlssNrAdvancedDialog(FForm, AdvSettings) then
   begin
     FDlssNrRouteIndex := AdvSettings.DlssNrRouteIndex;
+    FDlssNrPassesModeIndex := AdvSettings.DlssNrPassesModeIndex;
+    FDlssNrOptimizedLayersIndex := AdvSettings.DlssNrOptimizedLayersIndex;
     FDlssNrFinishedPictureChecked := AdvSettings.DlssNrFinishedPictureChecked;
     FDlssNrRenoDxChecked := AdvSettings.DlssNrRenoDxChecked;
     FDlssNrPreprocessChecked := AdvSettings.DlssNrPreprocessChecked;
@@ -1581,8 +1587,10 @@ begin
       FDlssNrModelVerComboBox := TComboBox.Create(FForm);
       FDlssNrModelVerComboBox.Name := 'FDlssNrModelVerComboBox';
       FDlssNrModelVerComboBox.Style := csDropDownList;
-      FDlssNrModelVerComboBox.Items.Add('New (v310.9)');
-      FDlssNrModelVerComboBox.Items.Add('Old (v310.8)');
+      FDlssNrModelVerComboBox.Items.Add('CC_SMALL_FP8 (v310.9)');
+      FDlssNrModelVerComboBox.Items.Add('CC_SMALL_FP8_EXPERIMENTAL');
+      FDlssNrModelVerComboBox.Items.Add('CC_SILVER_AARDWOLD (v310.8)');
+      FDlssNrModelVerComboBox.Items.Add('CC_SILVER_AARDWOLD_OPTIMIZED');
       FDlssNrModelVerComboBox.ItemIndex := 0;
       FDlssNrModelVerComboBox.Hint := 'Neural network model version used by DLSS-NR';
       FDlssNrModelVerComboBox.ShowHint := True;
@@ -3569,6 +3577,8 @@ begin
           FDlssNrRunBeforeSrToggle.Checked := Settings.DlssNrRunBeforeSrChecked;
       end;
       FDlssNrRouteIndex := Settings.DlssNrRouteIndex;
+      FDlssNrPassesModeIndex := Settings.DlssNrPassesModeIndex;
+      FDlssNrOptimizedLayersIndex := Settings.DlssNrOptimizedLayersIndex;
       FDlssNrFinishedPictureChecked := Settings.DlssNrFinishedPictureChecked;
       FDlssNrRenoDxChecked := Settings.DlssNrRenoDxChecked;
       FDlssNrPreprocessChecked := Settings.DlssNrPreprocessChecked;
@@ -3753,6 +3763,8 @@ begin
     else
       Settings.DlssNrRunBeforeSrChecked := False;
     Settings.DlssNrRouteIndex := FDlssNrRouteIndex;
+    Settings.DlssNrPassesModeIndex := FDlssNrPassesModeIndex;
+    Settings.DlssNrOptimizedLayersIndex := FDlssNrOptimizedLayersIndex;
     Settings.DlssNrFinishedPictureChecked := FDlssNrFinishedPictureChecked;
     Settings.DlssNrRenoDxChecked := FDlssNrRenoDxChecked;
     Settings.DlssNrPreprocessChecked := FDlssNrPreprocessChecked;

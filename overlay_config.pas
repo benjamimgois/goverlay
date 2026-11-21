@@ -93,13 +93,15 @@ type
     // DLSS-NR options
     DlssNrArchIndex: Integer;          // 0: Auto, 1: RDNA4, 2: RDNA3
     DlssNrResolvedArch: Integer;       // 1: RDNA4, 2: RDNA3
-    DlssNrRouteIndex: Integer;         // 0: OptiScaler, 1: ReShade Feeder, 2: ReShade Vulkan, 3: ReShade DX9
-    DlssNrModelIndex: Integer;         // 0: New model (310.9.16), 1: Old model (310.8.0)
-    DlssNrScaleIndex: Integer;         // 0: 100%, 1: 75%, 2: 50%, 3: 37.5%, 4: 25%
+    DlssNrRouteIndex: Integer;         // Legacy: 0: OptiScaler, 1: ReShade Feeder, 2: ReShade Vulkan, 3: ReShade DX9
+    DlssNrModelIndex: Integer;         // 0: CC_SMALL_FP8, 1: CC_SMALL_FP8_EXPERIMENTAL, 2: CC_SILVER_AARDWOLD, 3: CC_SILVER_AARDWOLD_OPTIMIZED
+    DlssNrScaleIndex: Integer;         // 0: 100%, 1: 67%, 2: 50%, 3: 33%
     DlssNrInt4Checked: Boolean;
     DlssNrRenoDxChecked: Boolean;
     DlssNrPreprocessChecked: Boolean;
     DlssNrPassesIndex: Integer;        // 0: 1 pass, 1: 2 passes, 2: 3 passes
+    DlssNrPassesModeIndex: Integer;    // 0: legacy, 1: fast (Interleaved)
+    DlssNrOptimizedLayersIndex: Integer; // 0: Quality, 1: Balanced, 2: Performance, 3: Ultra Performance
     DlssNrRunBeforeSrChecked: Boolean;
     DlssNrFinishedPictureChecked: Boolean;
     DlssNrSkinProtectionChecked: Boolean;
@@ -934,7 +936,7 @@ var
   VarsIdx, SepPos: Integer;
   Key, Value: string;
   Found: Boolean;
-  DlssNrIniPath, DlssNrSubDir: string;
+  DlssNrIniPath, DlssNrSubDir, DlssNrModelName, DlssNrScaleStr, DlssNrPassesStr: string;
   DlssNrLines: TStringList;
 
 
@@ -1014,6 +1016,8 @@ begin
     Ini.WriteBool('Config', DLSSNR_KEY_RENODX, Settings.DlssNrRenoDxChecked);
     Ini.WriteBool('Config', DLSSNR_KEY_PREPROCESS, Settings.DlssNrPreprocessChecked);
     Ini.WriteInteger('Config', DLSSNR_KEY_PASSES, Settings.DlssNrPassesIndex);
+    Ini.WriteInteger('Config', DLSSNR_KEY_PASSES_MODE, Settings.DlssNrPassesModeIndex);
+    Ini.WriteInteger('Config', DLSSNR_KEY_OPTIMIZED_LAYERS, Settings.DlssNrOptimizedLayersIndex);
     Ini.WriteBool('Config', DLSSNR_KEY_RUN_BEFORE_SR, Settings.DlssNrRunBeforeSrChecked);
     Ini.WriteBool('Config', DLSSNR_KEY_FINISHED_PICTURE, Settings.DlssNrFinishedPictureChecked);
     Ini.WriteBool('Config', DLSSNR_KEY_SKIN_PROTECTION, Settings.DlssNrSkinProtectionChecked);
@@ -1281,62 +1285,46 @@ begin
       CopyFile(HelixSrIniPath, GetGameConfigDir(Settings.ActiveGameName) + 'helixsr.ini');
   end;
 
-  // ##### Save dlssnr-amd.ini file when DLSS-NR is selected #####
+  // ##### Save dlssnr-amd.ini file when DLSS-NR is selected (0.0.9 schema) #####
   if Settings.UpscalerTypeItemIndex = 4 then
   begin
+    case Settings.DlssNrModelIndex of
+      0: DlssNrModelName := 'CC_SMALL_FP8';
+      1: DlssNrModelName := 'CC_SMALL_FP8_EXPERIMENTAL';
+      2: DlssNrModelName := 'CC_SILVER_AARDWOLD';
+      3: DlssNrModelName := 'CC_SILVER_AARDWOLD_OPTIMIZED';
+    else
+      DlssNrModelName := 'CC_SMALL_FP8';
+    end;
+
+    case Settings.DlssNrScaleIndex of
+      0: DlssNrScaleStr := '1.00';
+      1: DlssNrScaleStr := '0.67';
+      2: DlssNrScaleStr := '0.50';
+      3: DlssNrScaleStr := '0.33';
+    else
+      DlssNrScaleStr := '1.00';
+    end;
+
+    case Settings.DlssNrPassesIndex of
+      0: DlssNrPassesStr := '1';
+      1: DlssNrPassesStr := '2';
+      2: DlssNrPassesStr := '3';
+    else
+      DlssNrPassesStr := '1';
+    end;
+
     DlssNrLines := TStringList.Create;
     try
       DlssNrLines.Add('[Network]');
-      if Settings.DlssNrModelIndex = 0 then
-        DlssNrLines.Add('Model = small')
+      DlssNrLines.Add('Model = ' + DlssNrModelName);
+      if (Settings.DlssNrOptimizedLayersIndex >= 0) and (Settings.DlssNrOptimizedLayersIndex <= 3) then
+        DlssNrLines.Add('OptimizedLayers = ' + IntToStr(Settings.DlssNrOptimizedLayersIndex))
       else
-        DlssNrLines.Add('Model = original');
+        DlssNrLines.Add('OptimizedLayers = 3');
 
-      case Settings.DlssNrScaleIndex of
-        0: DlssNrLines.Add('model_scale = 1.0');
-        1: DlssNrLines.Add('model_scale = 0.75');
-        2: DlssNrLines.Add('model_scale = 0.50');
-        3: DlssNrLines.Add('model_scale = 0.375');
-        4: DlssNrLines.Add('model_scale = 0.25');
-      else
-        DlssNrLines.Add('model_scale = 1.0');
-      end;
-
-      case Settings.DlssNrPassesIndex of
-        0: DlssNrLines.Add('passes = 1');
-        1: DlssNrLines.Add('passes = 2');
-        2: DlssNrLines.Add('passes = 3');
-      else
-        DlssNrLines.Add('passes = 1');
-      end;
-
-      if Settings.DlssNrRunBeforeSrChecked then
-        DlssNrLines.Add('run_before_sr = 1')
-      else
-        DlssNrLines.Add('run_before_sr = 0');
-
-      if Settings.DlssNrFinishedPictureChecked then
-        DlssNrLines.Add('finished_picture = 1')
-      else
-        DlssNrLines.Add('finished_picture = 0');
-
-      if Settings.DlssNrSkinProtectionChecked then
-        DlssNrLines.Add('skin_protection = 1')
-      else
-        DlssNrLines.Add('skin_protection = 0');
-
-      DlssNrLines.Add('[Injection]');
-      case Settings.DlssNrRouteIndex of
-        0: DlssNrLines.Add('Route = optiscaler');
-        1: DlssNrLines.Add('Route = reshade');
-        2: DlssNrLines.Add('Route = vulkan');
-        3: DlssNrLines.Add('Route = dx9');
-      else
-        DlssNrLines.Add('Route = optiscaler');
-      end;
-
-      DlssNrLines.Add('[Int4Mixed]');
-      if Settings.DlssNrInt4Checked then
+      DlssNrLines.Add('[Preprocess]');
+      if Settings.DlssNrPreprocessChecked then
         DlssNrLines.Add('Enabled = 1')
       else
         DlssNrLines.Add('Enabled = 0');
@@ -1346,12 +1334,41 @@ begin
         DlssNrLines.Add('Enabled = 1')
       else
         DlssNrLines.Add('Enabled = 0');
-
-      DlssNrLines.Add('[Preprocess]');
-      if Settings.DlssNrPreprocessChecked then
-        DlssNrLines.Add('Enabled = 1')
+      if Settings.DlssNrFinishedPictureChecked then
+        DlssNrLines.Add('NRHookPoint = 2')
+      else if Settings.DlssNrRunBeforeSrChecked then
+        DlssNrLines.Add('NRHookPoint = 1')
       else
-        DlssNrLines.Add('Enabled = 0');
+        DlssNrLines.Add('NRHookPoint = 0');
+      DlssNrLines.Add('NRResolutionScale = ' + DlssNrScaleStr);
+      if Settings.DlssNrPassesModeIndex = 1 then
+      begin
+        DlssNrLines.Add('NRPassesMode = fast');
+        DlssNrLines.Add('NRFastMethod = 0');
+        if Settings.DlssNrPassesIndex >= 1 then
+          DlssNrLines.Add('NRFastInterleavedPasses = ' + DlssNrPassesStr)
+        else
+          DlssNrLines.Add('NRFastInterleavedPasses = 2');
+      end
+      else
+        DlssNrLines.Add('NRPassesMode = legacy');
+      DlssNrLines.Add('NRPasses = ' + DlssNrPassesStr);
+      if Settings.DlssNrSkinProtectionChecked then
+        DlssNrLines.Add('NRAutoMask = 1')
+      else
+        DlssNrLines.Add('NRAutoMask = 0');
+
+      DlssNrLines.Add('[wilsjo2]');
+      if Settings.DlssNrRunBeforeSrChecked then
+        DlssNrLines.Add('RunBeforeSR = true')
+      else
+        DlssNrLines.Add('RunBeforeSR = false');
+      DlssNrLines.Add('Passes = ' + DlssNrPassesStr);
+      DlssNrLines.Add('WorkingScale = ' + DlssNrScaleStr);
+      if Settings.DlssNrSkinProtectionChecked then
+        DlssNrLines.Add('SkinProtection = true')
+      else
+        DlssNrLines.Add('SkinProtection = false');
 
       DlssNrIniPath := GetGameConfigDir(Settings.ActiveGameName) + 'dlssnr-amd.ini';
       ForceDirectories(ExtractFilePath(DlssNrIniPath));
@@ -2173,6 +2190,8 @@ begin
       Settings.DlssNrRenoDxChecked := Ini.ReadBool('Config', DLSSNR_KEY_RENODX, False);
       Settings.DlssNrPreprocessChecked := Ini.ReadBool('Config', DLSSNR_KEY_PREPROCESS, False);
       Settings.DlssNrPassesIndex := Ini.ReadInteger('Config', DLSSNR_KEY_PASSES, 0);
+      Settings.DlssNrPassesModeIndex := Ini.ReadInteger('Config', DLSSNR_KEY_PASSES_MODE, 0);
+      Settings.DlssNrOptimizedLayersIndex := Ini.ReadInteger('Config', DLSSNR_KEY_OPTIMIZED_LAYERS, 3);
       Settings.DlssNrRunBeforeSrChecked := Ini.ReadBool('Config', DLSSNR_KEY_RUN_BEFORE_SR, False);
       Settings.DlssNrFinishedPictureChecked := Ini.ReadBool('Config', DLSSNR_KEY_FINISHED_PICTURE, False);
       Settings.DlssNrSkinProtectionChecked := Ini.ReadBool('Config', DLSSNR_KEY_SKIN_PROTECTION, False);

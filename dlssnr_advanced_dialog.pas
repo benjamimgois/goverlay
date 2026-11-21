@@ -20,8 +20,10 @@ type
     FSaveBtn: TBitBtn;
     FCancelBtn: TBitBtn;
 
-    FRouteLabel: TLabel;
-    FRouteComboBox: TComboBox;
+    FPassesModeLabel: TLabel;
+    FPassesModeComboBox: TComboBox;
+    FOptimizedLayersLabel: TLabel;
+    FOptimizedLayersComboBox: TComboBox;
     FFinishedPicToggle: TToggleSwitch;
     FRenoDxToggle: TToggleSwitch;
     FPreprocessToggle: TToggleSwitch;
@@ -47,7 +49,7 @@ implementation
 
 const
   FORM_W = 480;
-  FORM_H = 370;
+  FORM_H = 430;
   CLR_BG_DARK    = $00281A16; // RGB(22, 26, 40)
   CLR_PANEL_DARK = $002E2620; // RGB(32, 38, 46)
   CLR_TEXT_DARK  = $00D4CDC7;
@@ -61,10 +63,15 @@ begin
   Dlg := TDlssNrAdvancedDialog.CreateNew(AOwner);
   try
     // Populate controls from current Settings
-    if (Settings.DlssNrRouteIndex >= 0) and (Settings.DlssNrRouteIndex < Dlg.FRouteComboBox.Items.Count) then
-      Dlg.FRouteComboBox.ItemIndex := Settings.DlssNrRouteIndex
+    if (Settings.DlssNrPassesModeIndex >= 0) and (Settings.DlssNrPassesModeIndex < Dlg.FPassesModeComboBox.Items.Count) then
+      Dlg.FPassesModeComboBox.ItemIndex := Settings.DlssNrPassesModeIndex
     else
-      Dlg.FRouteComboBox.ItemIndex := 0;
+      Dlg.FPassesModeComboBox.ItemIndex := 0;
+
+    if (Settings.DlssNrOptimizedLayersIndex >= 0) and (Settings.DlssNrOptimizedLayersIndex < Dlg.FOptimizedLayersComboBox.Items.Count) then
+      Dlg.FOptimizedLayersComboBox.ItemIndex := Settings.DlssNrOptimizedLayersIndex
+    else
+      Dlg.FOptimizedLayersComboBox.ItemIndex := 3;
 
     Dlg.FFinishedPicToggle.Checked := Settings.DlssNrFinishedPictureChecked;
     Dlg.FRenoDxToggle.Checked := Settings.DlssNrRenoDxChecked;
@@ -73,7 +80,8 @@ begin
 
     if Dlg.ShowModal = mrOk then
     begin
-      Settings.DlssNrRouteIndex := Dlg.FRouteComboBox.ItemIndex;
+      Settings.DlssNrPassesModeIndex := Dlg.FPassesModeComboBox.ItemIndex;
+      Settings.DlssNrOptimizedLayersIndex := Dlg.FOptimizedLayersComboBox.ItemIndex;
       Settings.DlssNrFinishedPictureChecked := Dlg.FFinishedPicToggle.Checked;
       Settings.DlssNrRenoDxChecked := Dlg.FRenoDxToggle.Checked;
       Settings.DlssNrPreprocessChecked := Dlg.FPreprocessToggle.Checked;
@@ -197,23 +205,45 @@ begin
 
   Y := 16;
 
-  // Injection Route
-  FRouteLabel := TLabel.Create(Self);
-  FRouteLabel.Parent     := FContentPanel;
-  FRouteLabel.SetBounds(24, Y, FORM_W - 48, 16);
-  FRouteLabel.Caption    := 'Injection Route:';
-  FRouteLabel.Font.Style := [fsBold];
-  FRouteLabel.Font.Color := TextCol;
+  // Passes Mode (0.0.9)
+  FPassesModeLabel := TLabel.Create(Self);
+  FPassesModeLabel.Parent     := FContentPanel;
+  FPassesModeLabel.SetBounds(24, Y, FORM_W - 48, 16);
+  FPassesModeLabel.Caption    := 'Passes Mode:';
+  FPassesModeLabel.Font.Style := [fsBold];
+  FPassesModeLabel.Font.Color := TextCol;
 
-  FRouteComboBox := TComboBox.Create(Self);
-  FRouteComboBox.Parent := FContentPanel;
-  FRouteComboBox.Style  := csDropDownList;
-  FRouteComboBox.Items.Add('OptiScaler');
-  FRouteComboBox.Items.Add('ReShade');
-  FRouteComboBox.Items.Add('Vulkan');
-  FRouteComboBox.Items.Add('DX9');
-  FRouteComboBox.SetBounds(24, Y + 22, FORM_W - 48, 26);
-  StyleInputControl(FRouteComboBox);
+  FPassesModeComboBox := TComboBox.Create(Self);
+  FPassesModeComboBox.Parent := FContentPanel;
+  FPassesModeComboBox.Style  := csDropDownList;
+  FPassesModeComboBox.Items.Add('Legacy (every pass runs full network)');
+  FPassesModeComboBox.Items.Add('Fast — Interleaved (1 pass/frame, faster)');
+  FPassesModeComboBox.Hint   := 'Fast (Interleaved) runs one pass per frame in turn for higher FPS';
+  FPassesModeComboBox.ShowHint := True;
+  FPassesModeComboBox.SetBounds(24, Y + 22, FORM_W - 48, 26);
+  StyleInputControl(FPassesModeComboBox);
+
+  Y := Y + 58;
+
+  // Optimized Layers (0.0.9 INT4 / CC_SILVER_AARDWOLD_OPTIMIZED)
+  FOptimizedLayersLabel := TLabel.Create(Self);
+  FOptimizedLayersLabel.Parent     := FContentPanel;
+  FOptimizedLayersLabel.SetBounds(24, Y, FORM_W - 48, 16);
+  FOptimizedLayersLabel.Caption    := 'Optimized Layers (CC_SILVER_AARDWOLD_OPTIMIZED):';
+  FOptimizedLayersLabel.Font.Style := [fsBold];
+  FOptimizedLayersLabel.Font.Color := TextCol;
+
+  FOptimizedLayersComboBox := TComboBox.Create(Self);
+  FOptimizedLayersComboBox.Parent := FContentPanel;
+  FOptimizedLayersComboBox.Style  := csDropDownList;
+  FOptimizedLayersComboBox.Items.Add('0 — Quality (no INT4)');
+  FOptimizedLayersComboBox.Items.Add('1 — Balanced');
+  FOptimizedLayersComboBox.Items.Add('2 — Performance');
+  FOptimizedLayersComboBox.Items.Add('3 — Ultra Performance (Default)');
+  FOptimizedLayersComboBox.Hint   := 'Controls how many layers use faster INT4/fixed-attention execution';
+  FOptimizedLayersComboBox.ShowHint := True;
+  FOptimizedLayersComboBox.SetBounds(24, Y + 22, FORM_W - 48, 26);
+  StyleInputControl(FOptimizedLayersComboBox);
 
   Y := Y + 60;
 

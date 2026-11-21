@@ -420,6 +420,8 @@ begin
   Settings.DlssNrRenoDxChecked := False;
   Settings.DlssNrPreprocessChecked := True;
   Settings.DlssNrPassesIndex := 2; // 3 passes
+  Settings.DlssNrPassesModeIndex := 1; // fast (Interleaved)
+  Settings.DlssNrOptimizedLayersIndex := 2; // Performance
   Settings.DlssNrRunBeforeSrChecked := True;
   Settings.DlssNrFinishedPictureChecked := False;
   Settings.DlssNrSkinProtectionChecked := True;
@@ -433,12 +435,16 @@ begin
   Lines := TStringList.Create;
   try
     Lines.LoadFromFile(IniPath);
-    AssertTrue('Model = small present', Pos('Model = small', Lines.Text) > 0);
-    AssertTrue('model_scale = 1.0 present', Pos('model_scale = 1.0', Lines.Text) > 0);
+    AssertTrue('Model = CC_SMALL_FP8 present', Pos('Model = CC_SMALL_FP8', Lines.Text) > 0);
+    AssertTrue('OptimizedLayers = 2 present', Pos('OptimizedLayers = 2', Lines.Text) > 0);
+    AssertTrue('NRResolutionScale = 1.00 present', Pos('NRResolutionScale = 1.00', Lines.Text) > 0);
     AssertTrue('Preprocess Enabled = 1 present', Pos('Enabled = 1', Lines.Text) > 0);
-    AssertTrue('passes = 3 present', Pos('passes = 3', Lines.Text) > 0);
-    AssertTrue('run_before_sr = 1 present', Pos('run_before_sr = 1', Lines.Text) > 0);
-    AssertTrue('skin_protection = 1 present', Pos('skin_protection = 1', Lines.Text) > 0);
+    AssertTrue('NRPasses = 3 present', Pos('NRPasses = 3', Lines.Text) > 0);
+    AssertTrue('NRPassesMode = fast present', Pos('NRPassesMode = fast', Lines.Text) > 0);
+    AssertTrue('NRHookPoint = 1 present', Pos('NRHookPoint = 1', Lines.Text) > 0);
+    AssertTrue('NRAutoMask = 1 present', Pos('NRAutoMask = 1', Lines.Text) > 0);
+    AssertTrue('RunBeforeSR = true present', Pos('RunBeforeSR = true', Lines.Text) > 0);
+    AssertTrue('SkinProtection = true present', Pos('SkinProtection = true', Lines.Text) > 0);
   finally
     Lines.Free;
   end;
