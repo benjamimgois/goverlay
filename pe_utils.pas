@@ -17,6 +17,9 @@ type
   );
 
 function DetectPEGraphicsApi(const AExePath: string): TDetectedGraphicsApi;
+function InferGameInstallRoot(const AInitialExePath, ASteamInstallPath: string): string;
+function ScoreGameExecutableCandidate(const AExePath: string; const AInstallRoot: string = ''): Integer;
+function ResolveRealGameExecutable(const AInitialExePath: string; const ASteamInstallPath: string = ''): string;
 function FindMainGameExecutable(const AGameDir: string): string;
 function RecommendedProxyForApi(AApi: TDetectedGraphicsApi): string;
 function GraphicsApiDisplayName(AApi: TDetectedGraphicsApi): string;
@@ -233,32 +236,70 @@ begin
   Result :=
     (Pos('unins', Low) = 1) or
     (Pos('crashreport', Low) > 0) or
+    (Pos('crashhandler', Low) > 0) or
+    (Pos('crashpad', Low) > 0) or
+    (Pos('bugreport', Low) > 0) or
     (Pos('unitycrashhandler', Low) > 0) or
     (Pos('vc_redist', Low) > 0) or
     (Pos('vcredist', Low) > 0) or
     (Pos('dxsetup', Low) > 0) or
     (Pos('dotnet', Low) > 0) or
     (Pos('ue4prereq', Low) > 0) or
-    (Pos('ueprereq', Low) > 0);
+    (Pos('ueprereq', Low) > 0) or
+    (Pos('cef_process', Low) > 0) or
+    (Pos('cefsubprocess', Low) > 0) or
+    (Pos('zfgamebrowser', Low) > 0) or
+    (Pos('easyanticheat', Low) > 0) or
+    (Pos('beservice', Low) > 0) or
+    (Pos('battleye', Low) > 0);
 end;
 
-procedure ScanDirForLargestExe(const ADir: string; var BestPath: string; var BestSize: Int64);
+function FileExistsInDirCaseInsensitive(const ADir, ATargetName: string): Boolean;
 var
   SR: TSearchRec;
-  FullPath: string;
+  LowTarget: string;
 begin
-  if not DirectoryExists(ADir) then Exit;
-  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*.exe', faAnyFile and not faDirectory, SR) = 0 then
+  Result := False;
+  if (ADir = '') or not DirectoryExists(ADir) then Exit;
+  if FileExists(IncludeTrailingPathDelimiter(ADir) + ATargetName) then
+    Exit(True);
+  LowTarget := LowerCase(ATargetName);
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faAnyFile and not faDirectory, SR) = 0 then
   begin
     try
       repeat
-        if not IsIgnoredHelperExe(SR.Name) then
+        if LowerCase(SR.Name) = LowTarget then
         begin
-          FullPath := IncludeTrailingPathDelimiter(ADir) + SR.Name;
-          if SR.Size > BestSize then
+          Result := True;
+          Break;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
+function DirectoryExistsCaseInsensitive(const AParentDir, ATargetDirName: string): Boolean;
+var
+  SR: TSearchRec;
+  LowTarget: string;
+begin
+  Result := False;
+  if (AParentDir = '') or not DirectoryExists(AParentDir) then Exit;
+  if DirectoryExists(IncludeTrailingPathDelimiter(AParentDir) + ATargetDirName) then
+    Exit(True);
+  LowTarget := LowerCase(ATargetDirName);
+  if FindFirst(IncludeTrailingPathDelimiter(AParentDir) + '*', faDirectory, SR) = 0 then
+  begin
+    try
+      repeat
+        if ((SR.Attr and faDirectory) <> 0) and (SR.Name <> '.') and (SR.Name <> '..') then
+        begin
+          if LowerCase(SR.Name) = LowTarget then
           begin
-            BestSize := SR.Size;
-            BestPath := FullPath;
+            Result := True;
+            Break;
           end;
         end;
       until FindNext(SR) <> 0;
@@ -268,31 +309,354 @@ begin
   end;
 end;
 
-function FindMainGameExecutable(const AGameDir: string): string;
-const
-  SubDirs: array[0..5] of string = (
-    'System',
-    'bin',
-    'x64',
-    'x86',
-    'Binaries/Win64',
-    'Binaries/Win32'
-  );
+function DirHasNativeUpscalerDll(const ADir: string): Boolean;
 var
-  BaseDir: string;
+  SR: TSearchRec;
+  Low: string;
+begin
+  Result := False;
+  if (ADir = '') or not DirectoryExists(ADir) then Exit;
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*.dll', faAnyFile and not faDirectory, SR) = 0 then
+  begin
+    try
+      repeat
+        Low := LowerCase(SR.Name);
+        if (Low = 'nvngx_dlss.dll') or
+           (Low = 'nvngx_dlssd.dll') or
+           (Low = 'nvngx_dlssg.dll') or
+           (Low = 'libxess.dll') or
+           (Low = 'libxess_fg.dll') or
+           (Low = 'sl.interposer.dll') or
+           (Pos('amd_fidelityfx_', Low) = 1) or
+           (Pos('ffx_fsr', Low) = 1) then
+        begin
+          Result := True;
+          Break;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
+function IsLauncherOrBinSubfolderName(const AFolderName: string): Boolean;
+var
+  Low: string;
+begin
+  Low := LowerCase(Trim(AFolderName));
+  Result :=
+    (Low = 'launcher') or
+    (Low = '2klauncher') or
+    (Low = 'paradox launcher') or
+    (Low = 'boot') or
+    (Low = 'bin') or
+    (Low = 'binaries') or
+    (Low = 'binaries_dx12') or
+    (Low = 'x64') or
+    (Low = 'x64_dx12') or
+    (Low = 'x86') or
+    (Low = 'win64') or
+    (Low = 'win32') or
+    (Low = 'retail') or
+    (Low = 'system') or
+    (Pos('launcher', Low) > 0);
+end;
+
+function InferGameInstallRoot(const AInitialExePath, ASteamInstallPath: string): string;
+var
+  CurDir, ParentDir, FolderName: string;
+  Steps: Integer;
+begin
+  if (ASteamInstallPath <> '') and DirectoryExists(ASteamInstallPath) then
+    Exit(ExcludeTrailingPathDelimiter(ASteamInstallPath));
+
+  if (AInitialExePath <> '') and DirectoryExists(AInitialExePath) then
+    CurDir := ExcludeTrailingPathDelimiter(AInitialExePath)
+  else
+    CurDir := ExcludeTrailingPathDelimiter(ExtractFilePath(AInitialExePath));
+
+  if CurDir = '' then Exit('');
+
+  Steps := 0;
+  while Steps < 3 do
+  begin
+    FolderName := LowerCase(ExtractFileName(CurDir));
+    ParentDir := ExcludeTrailingPathDelimiter(ExtractFilePath(CurDir));
+    if (ParentDir = '') or (ParentDir = CurDir) then Break;
+
+    if IsLauncherOrBinSubfolderName(FolderName) or
+       DirectoryExistsCaseInsensitive(ParentDir, 'Engine') then
+    begin
+      CurDir := ParentDir;
+      Inc(Steps);
+    end
+    else
+      Break;
+  end;
+
+  Result := CurDir;
+end;
+
+function GetSingleFileSize(const AFilePath: string): Int64;
+var
+  SR: TSearchRec;
+begin
+  Result := 0;
+  if FindFirst(AFilePath, faAnyFile and not faDirectory, SR) = 0 then
+  begin
+    Result := SR.Size;
+    FindClose(SR);
+  end;
+end;
+
+function ScoreGameExecutableCandidate(const AExePath: string; const AInstallRoot: string = ''): Integer;
+var
+  FileName, ExeDir, BaseName, LowName, ParentFolderName, NormPath: string;
+  HasUpscaler, HasEngineSig, HasLauncherPenalty: Boolean;
+  Api: TDetectedGraphicsApi;
+  FileSize: Int64;
+begin
+  Result := -1000;
+  if (AExePath = '') or not FileExists(AExePath) then Exit;
+
+  FileName := ExtractFileName(AExePath);
+  if IsIgnoredHelperExe(FileName) then Exit;
+
+  Result := 0;
+  ExeDir := IncludeTrailingPathDelimiter(ExtractFilePath(AExePath));
+  BaseName := ChangeFileExt(FileName, '');
+  LowName := LowerCase(BaseName);
+  ParentFolderName := LowerCase(ExtractFileName(ExcludeTrailingPathDelimiter(ExeDir)));
+  NormPath := LowerCase(StringReplace(AExePath, '\', '/', [rfReplaceAll]));
+
+  HasLauncherPenalty := False;
+  if (Pos('launcher', LowName) > 0) or
+     (Pos('prelauncher', LowName) > 0) or
+     (Pos('dowser', LowName) > 0) or
+     (Pos('patcher', LowName) > 0) or
+     (Pos('updater', LowName) > 0) or
+     (Pos('setup', LowName) > 0) or
+     (Pos('install', LowName) > 0) or
+     (LowName = 'boot') or
+     (Pos('ffxivboot', LowName) > 0) or
+     (Pos('webview', LowName) > 0) or
+     (Pos('launcher', ParentFolderName) > 0) or
+     (ParentFolderName = 'boot') then
+  begin
+    Dec(Result, 150);
+    HasLauncherPenalty := True;
+  end;
+
+  HasUpscaler := DirHasNativeUpscalerDll(ExeDir);
+  if HasUpscaler then
+    Inc(Result, 120);
+
+  HasEngineSig := False;
+
+  // Unity Engine signature: <ExeBaseName>_Data folder and/or UnityPlayer.dll / GameAssembly.dll
+  if DirectoryExistsCaseInsensitive(ExeDir, BaseName + '_Data') then
+  begin
+    HasEngineSig := True;
+    Inc(Result, 100);
+  end;
+  if FileExistsInDirCaseInsensitive(ExeDir, 'UnityPlayer.dll') or
+     FileExistsInDirCaseInsensitive(ExeDir, 'GameAssembly.dll') then
+  begin
+    HasEngineSig := True;
+    Inc(Result, 60);
+  end;
+
+  // Unreal Engine Shipping signature
+  if (Pos('-shipping', LowName) > 0) or
+     (Pos('/binaries/win64/', NormPath) > 0) or
+     (Pos('/binaries/win32/', NormPath) > 0) then
+  begin
+    HasEngineSig := True;
+    Inc(Result, 90);
+  end
+  else if DirectoryExistsCaseInsensitive(ExeDir, 'Engine') then
+  begin
+    // Root-level Unreal Engine bootstrapper sitting beside Engine/ directory
+    Dec(Result, 40);
+  end;
+
+  // Common game binary directory bonus
+  if (ParentFolderName = 'bin') or
+     (ParentFolderName = 'x64') or
+     (ParentFolderName = 'x86_64') or
+     (ParentFolderName = 'x64_dx12') or
+     (ParentFolderName = 'binaries') or
+     (ParentFolderName = 'binaries_dx12') or
+     (ParentFolderName = 'win64') or
+     (ParentFolderName = 'retail') or
+     (ParentFolderName = 'game') then
+    Inc(Result, 25);
+
+  if (Pos('dx12', ParentFolderName) > 0) or (Pos('dx12', LowName) > 0) then
+    Inc(Result, 15);
+
+  // Store / DRM / Middleware DLLs in the same directory
+  if FileExistsInDirCaseInsensitive(ExeDir, 'steam_api64.dll') or
+     FileExistsInDirCaseInsensitive(ExeDir, 'steam_api.dll') or
+     FileExistsInDirCaseInsensitive(ExeDir, 'EOSSDK-Win64-Shipping.dll') or
+     FileExistsInDirCaseInsensitive(ExeDir, 'galaxy64.dll') or
+     FileExistsInDirCaseInsensitive(ExeDir, 'bink2w64.dll') then
+    Inc(Result, 30);
+
+  // CEF / Electron / Qt UI Launcher signature
+  if (not HasUpscaler) and (not HasEngineSig) and
+     (FileExistsInDirCaseInsensitive(ExeDir, 'libcef.dll') or
+      FileExistsInDirCaseInsensitive(ExeDir, 'chrome_elf.dll') or
+      FileExistsInDirCaseInsensitive(ExeDir, 'Qt5Core.dll') or
+      FileExistsInDirCaseInsensitive(ExeDir, 'Qt6Core.dll')) then
+  begin
+    Dec(Result, 100);
+    HasLauncherPenalty := True;
+  end;
+
+  // PE Import Table 3D Graphics API
+  Api := DetectPEGraphicsApi(AExePath);
+  case Api of
+    gapiDX12:   Inc(Result, 55);
+    gapiDX11:   Inc(Result, 40);
+    gapiDX9,
+    gapiOpenGL: Inc(Result, 30);
+  end;
+
+  // File size bonus
+  FileSize := GetSingleFileSize(AExePath);
+  if FileSize >= 20 * 1024 * 1024 then
+    Inc(Result, 20)
+  else if FileSize >= 5 * 1024 * 1024 then
+    Inc(Result, 10)
+  else if (FileSize > 0) and (not HasLauncherPenalty) then
+    Inc(Result, 5);
+end;
+
+function ShouldSkipCandidateScanDir(const ADirName: string): Boolean;
+var
+  Low: string;
+begin
+  Low := LowerCase(ADirName);
+  Result :=
+    (Low = '.') or
+    (Low = '..') or
+    (Low = '_commonredist') or
+    (Low = 'directx') or
+    (Low = 'vc') or
+    (Low = 'vcredist') or
+    (Low = 'dotnet') or
+    (Low = 'mono') or
+    (Low = 'monobleedingedge') or
+    (Low = 'crashreportclient') or
+    (Low = 'bugreportclient') or
+    (Low = 'shadercache') or
+    (Low = 'shaders') or
+    (Low = 'plugins') or
+    (Low = 'mods') or
+    (Low = 'content') or
+    (Low = 'paks') or
+    (Low = 'cooked') or
+    (Low = 'movies') or
+    (Low = 'audio') or
+    (Low = 'sound') or
+    (Low = 'music') or
+    (Low = 'logs') or
+    ((Length(Low) > 5) and (Copy(Low, Length(Low) - 4, 5) = '_data'));
+end;
+
+procedure ScanTreeForBestExe(const ADir, AInstallRoot: string; ADepth, AMaxDepth: Integer;
+  var BestPath: string; var BestScore: Integer; var BestSize: Int64);
+var
+  SR: TSearchRec;
+  FullPath: string;
+  CandScore: Integer;
+  CandSize: Int64;
+begin
+  if (ADepth > AMaxDepth) or (ADir = '') or not DirectoryExists(ADir) then Exit;
+
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*.exe', faAnyFile and not faDirectory, SR) = 0 then
+  begin
+    try
+      repeat
+        if not IsIgnoredHelperExe(SR.Name) then
+        begin
+          FullPath := IncludeTrailingPathDelimiter(ADir) + SR.Name;
+          CandScore := ScoreGameExecutableCandidate(FullPath, AInstallRoot);
+          CandSize := SR.Size;
+          if (CandScore > BestScore) or
+             ((CandScore = BestScore) and (CandSize > BestSize)) then
+          begin
+            BestScore := CandScore;
+            BestSize := CandSize;
+            BestPath := FullPath;
+          end;
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+
+  if ADepth >= AMaxDepth then Exit;
+
+  if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faDirectory, SR) = 0 then
+  begin
+    try
+      repeat
+        if ((SR.Attr and faDirectory) <> 0) and not ShouldSkipCandidateScanDir(SR.Name) then
+        begin
+          ScanTreeForBestExe(IncludeTrailingPathDelimiter(ADir) + SR.Name,
+            AInstallRoot, ADepth + 1, AMaxDepth, BestPath, BestScore, BestSize);
+        end;
+      until FindNext(SR) <> 0;
+    finally
+      FindClose(SR);
+    end;
+  end;
+end;
+
+function ResolveRealGameExecutable(const AInitialExePath: string; const ASteamInstallPath: string = ''): string;
+var
+  InstallRoot, BestPath: string;
+  InitialScore, BestScore: Integer;
   BestSize: Int64;
-  i: Integer;
+begin
+  Result := AInitialExePath;
+  InstallRoot := InferGameInstallRoot(AInitialExePath, ASteamInstallPath);
+  if (InstallRoot = '') or not DirectoryExists(InstallRoot) then
+    Exit;
+
+  InitialScore := -1000;
+  if (AInitialExePath <> '') and FileExists(AInitialExePath) then
+    InitialScore := ScoreGameExecutableCandidate(AInitialExePath, InstallRoot);
+
+  BestPath := '';
+  BestScore := -1000;
+  BestSize := -1;
+  ScanTreeForBestExe(InstallRoot, InstallRoot, 0, 4, BestPath, BestScore, BestSize);
+
+  if (BestPath <> '') and (BestScore > 0) then
+  begin
+    if (InitialScore < 0) or (AInitialExePath = '') or not FileExists(AInitialExePath) then
+      Result := BestPath
+    else if (BestScore >= InitialScore + 30) then
+      Result := BestPath;
+  end;
+end;
+
+function FindMainGameExecutable(const AGameDir: string): string;
+var
+  BestScore: Integer;
+  BestSize: Int64;
 begin
   Result := '';
   if (AGameDir = '') or not DirectoryExists(AGameDir) then Exit;
-  BaseDir := IncludeTrailingPathDelimiter(AGameDir);
+  BestScore := -1000;
   BestSize := -1;
-
-  ScanDirForLargestExe(BaseDir, Result, BestSize);
-  if Result <> '' then Exit;
-
-  for i := 0 to High(SubDirs) do
-    ScanDirForLargestExe(BaseDir + SubDirs[i], Result, BestSize);
+  ScanTreeForBestExe(ExcludeTrailingPathDelimiter(AGameDir),
+    ExcludeTrailingPathDelimiter(AGameDir), 0, 4, Result, BestScore, BestSize);
 end;
 
 function RecommendedProxyForApi(AApi: TDetectedGraphicsApi): string;

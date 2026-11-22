@@ -3,7 +3,7 @@ program bgmod_uninstaller;
 {$mode objfpc}{$H+}
 
 uses
-  Classes, SysUtils, IniFiles, Process, BaseUnix, Unix;
+  Classes, SysUtils, IniFiles, Process, BaseUnix, Unix, pe_utils;
 
 function GetBGModPath: string; forward;
 
@@ -274,8 +274,8 @@ var
   i, j, PosPipe, LastDoubleDash, CandidateIdx: Integer;
   LauncherIni: TIniFile;
   LauncherList: TStringList;
-  KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey, ConfPath, TargetExeName, ConfigDirEnv: string;
-  IsExecExt: Boolean;
+  KeyLine, KeyName, EntryVal, TargetSub, Repl, CleanKey, ConfPath, TargetExeName, ConfigDirEnv, ResolvedExe: string;
+  IsExecExt, MatchedLauncherRule: Boolean;
 begin
   GameDir := '';
   TargetExeName := '';
@@ -287,6 +287,7 @@ begin
     if LowerCase(ExtractFileExt(Arg)) = '.exe' then
     begin
       // Game launcher replacements
+      MatchedLauncherRule := False;
       LauncherList := TStringList.Create;
       LauncherIni := nil;
       try
@@ -300,22 +301,20 @@ begin
           LauncherIni.ReadSectionValues('Launchers', LauncherList);
         end;
         
-        if LauncherList.Count = 0 then
-        begin
-          LauncherList.Add('Cyberpunk 2077=REDprelauncher.exe|bin/x64/Cyberpunk2077.exe');
-          LauncherList.Add('Witcher 3=REDprelauncher.exe|bin/x64_dx12/witcher3.exe');
-          LauncherList.Add('Baldurs Gate 3=Launcher/LariLauncher.exe|bin/bg3_dx11.exe');
-          LauncherList.Add('Baldurs Gate 3 Alt=Launcher\LariLauncher.exe|bin/bg3_dx11.exe');
-          LauncherList.Add('HITMAN 3=Launcher.exe|Retail/HITMAN3.exe');
-          LauncherList.Add('HITMAN World of Assassination=Launcher.exe|Retail/HITMAN3.exe');
-          LauncherList.Add('SYNCED=Launcher/sop_launcher.exe|SYNCED.exe');
-          LauncherList.Add('2KLauncher=2KLauncher/LauncherPatcher.exe|DoesntMatter.exe');
-          LauncherList.Add('Warhammer 40,000 DARKTIDE=launcher/Launcher.exe|binaries/Darktide.exe');
-          LauncherList.Add('Warhammer Vermintide 2=launcher/Launcher.exe|binaries_dx12/vermintide2_dx12.exe');
-          LauncherList.Add('Satisfactory=FactoryGameSteam.exe|Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe');
-          LauncherList.Add('FINAL FANTASY XIV Online=boot/ffxivboot.exe|game/ffxiv_dx11.exe');
-          LauncherList.Add('DuneAwakening=Launcher/FuncomLauncher.exe|DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe');
-        end;
+        // Always include built-in default rules after any custom rules so user overrides win without dropping defaults
+        LauncherList.Add('Cyberpunk 2077=REDprelauncher.exe|bin/x64/Cyberpunk2077.exe');
+        LauncherList.Add('Witcher 3=REDprelauncher.exe|bin/x64_dx12/witcher3.exe');
+        LauncherList.Add('Baldurs Gate 3=Launcher/LariLauncher.exe|bin/bg3_dx11.exe');
+        LauncherList.Add('Baldurs Gate 3 Alt=Launcher\LariLauncher.exe|bin/bg3_dx11.exe');
+        LauncherList.Add('HITMAN 3=Launcher.exe|Retail/HITMAN3.exe');
+        LauncherList.Add('HITMAN World of Assassination=Launcher.exe|Retail/HITMAN3.exe');
+        LauncherList.Add('SYNCED=Launcher/sop_launcher.exe|SYNCED.exe');
+        LauncherList.Add('2KLauncher=2KLauncher/LauncherPatcher.exe|DoesntMatter.exe');
+        LauncherList.Add('Warhammer 40,000 DARKTIDE=launcher/Launcher.exe|binaries/Darktide.exe');
+        LauncherList.Add('Warhammer Vermintide 2=launcher/Launcher.exe|binaries_dx12/vermintide2_dx12.exe');
+        LauncherList.Add('Satisfactory=FactoryGameSteam.exe|Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe');
+        LauncherList.Add('FINAL FANTASY XIV Online=boot/ffxivboot.exe|game/ffxiv_dx11.exe');
+        LauncherList.Add('DuneAwakening=Launcher/FuncomLauncher.exe|DuneSandbox/Binaries/Win64/DuneSandbox-Win64-Shipping.exe');
         
         for j := 0 to LauncherList.Count - 1 do
         begin
@@ -343,6 +342,7 @@ begin
                  (Pos(LowerCase(TargetSub), LowerCase(Arg)) > 0) then
               begin
                 Arg := StringReplace(Arg, TargetSub, Repl, [rfReplaceAll, rfIgnoreCase]);
+                MatchedLauncherRule := True;
                 Break;
               end;
             end;
@@ -352,6 +352,16 @@ begin
         if Assigned(LauncherIni) then
           LauncherIni.Free;
         LauncherList.Free;
+      end;
+
+      if not MatchedLauncherRule then
+      begin
+        ResolvedExe := ResolveRealGameExecutable(Arg, GetEnvironmentVariable('STEAM_COMPAT_INSTALL_PATH'));
+        if (ResolvedExe <> '') and (ResolvedExe <> Arg) then
+        begin
+          Log('Heuristic executable detector redirected launcher ' + Arg + ' -> ' + ResolvedExe);
+          Arg := ResolvedExe;
+        end;
       end;
       
       TargetExeName := ExtractFileName(Arg);

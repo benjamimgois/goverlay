@@ -124,10 +124,12 @@ type
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
     procedure TestBgmodReShadeProxyMatchesExeArchitecture;
     procedure TestDetectPEGraphicsApi;
+    procedure TestResolveRealGameExecutableHeuristics;
     procedure TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
     procedure TestBgmodLauncherRuleSpacelessGameName;
     procedure TestBgmodLauncherRuleCaseInsensitive;
+    procedure TestBgmodSmartLauncherResolutionAndCustomRulesMerge;
     procedure TestBgmodSensitiveArgRedaction;
     procedure TestBgmodWineDllOverridesSemicolonDelimiter;
     procedure TestBgmodDisabledOptiscalerPurgesHelixSRLeftovers;
@@ -2970,6 +2972,75 @@ begin
   AssertEquals('Missing exe -> gapiUnknown', Ord(gapiUnknown), Ord(DetectPEGraphicsApi(Dir + '/nonexistent.exe')));
 end;
 
+procedure TBgmodSupervisorTests.TestResolveRealGameExecutableHeuristics;
+var
+  BaseDir, GameRoot, LauncherExe, RealExe, ExternalLauncher: string;
+  F: TextFile;
+begin
+  BaseDir := IsolatedHome + '/smart_exe_heuristics';
+
+  // 1. Unity + Paradox Launcher (Cities: Skylines II layout)
+  GameRoot := BaseDir + '/Cities Skylines II';
+  ForceDirectories(GameRoot + '/Launcher');
+  ForceDirectories(GameRoot + '/Cities2_Data');
+  LauncherExe := GameRoot + '/Launcher/dowser.exe';
+  RealExe := GameRoot + '/Cities2.exe';
+  WritePEStub(LauncherExe, $8664, True);
+  WritePEStub(RealExe, $8664, True);
+  AssignFile(F, GameRoot + '/UnityPlayer.dll'); Rewrite(F); WriteLn(F, 'UNITY'); CloseFile(F);
+  AssignFile(F, GameRoot + '/Launcher/libcef.dll'); Rewrite(F); WriteLn(F, 'CEF'); CloseFile(F);
+
+  AssertEquals('Unity game with Launcher/dowser.exe resolves to Cities2.exe',
+    RealExe, ResolveRealGameExecutable(LauncherExe, ''));
+  AssertEquals('FindMainGameExecutable on Unity game root resolves to Cities2.exe',
+    RealExe, FindMainGameExecutable(GameRoot));
+
+  // External Paradox Launcher inside Proton prefix with STEAM_COMPAT_INSTALL_PATH
+  ForceDirectories(BaseDir + '/pfx/Paradox Interactive/launcher');
+  ExternalLauncher := BaseDir + '/pfx/Paradox Interactive/launcher/Paradox Launcher.exe';
+  WritePEStub(ExternalLauncher, $8664, True);
+  AssertEquals('External Paradox Launcher with STEAM_COMPAT_INSTALL_PATH resolves to Cities2.exe',
+    RealExe, ResolveRealGameExecutable(ExternalLauncher, GameRoot));
+
+  // 2. Unreal Engine game with Launcher/ subdirectory
+  GameRoot := BaseDir + '/UnrealWithLauncher';
+  ForceDirectories(GameRoot + '/Launcher');
+  ForceDirectories(GameRoot + '/Engine/Binaries');
+  ForceDirectories(GameRoot + '/MyProject/Binaries/Win64');
+  LauncherExe := GameRoot + '/Launcher/StudioLauncher.exe';
+  RealExe := GameRoot + '/MyProject/Binaries/Win64/MyProject-Win64-Shipping.exe';
+  WritePEStub(LauncherExe, $8664, True);
+  WritePEImportTestStub(RealExe, True, 'd3d12.dll');
+
+  AssertEquals('Unreal Engine game launched from Launcher/ resolves to Binaries/Win64 shipping exe',
+    RealExe, ResolveRealGameExecutable(LauncherExe, ''));
+
+  // 3. CEF/Qt root wrapper vs 3D PE executable with native upscaler DLL
+  GameRoot := BaseDir + '/CefRootWrapperGame';
+  ForceDirectories(GameRoot + '/bin/x64');
+  LauncherExe := GameRoot + '/PlayGame.exe';
+  RealExe := GameRoot + '/bin/x64/ActualGame.exe';
+  WritePEStub(LauncherExe, $8664, True);
+  AssignFile(F, GameRoot + '/libcef.dll'); Rewrite(F); WriteLn(F, 'CEF'); CloseFile(F);
+  WritePEImportTestStub(RealExe, True, 'd3d12.dll');
+  AssignFile(F, GameRoot + '/bin/x64/nvngx_dlss.dll'); Rewrite(F); WriteLn(F, 'DLSS'); CloseFile(F);
+
+  AssertTrue('CEF root wrapper receives negative score',
+    ScoreGameExecutableCandidate(LauncherExe, GameRoot) < 0);
+  AssertTrue('3D PE executable with nvngx_dlss.dll receives high positive score',
+    ScoreGameExecutableCandidate(RealExe, GameRoot) >= 150);
+  AssertEquals('CEF root wrapper resolves to bin/x64/ActualGame.exe',
+    RealExe, ResolveRealGameExecutable(LauncherExe, GameRoot));
+
+  // 4. Direct game executable without launcher remains unchanged
+  GameRoot := BaseDir + '/DirectGame';
+  ForceDirectories(GameRoot);
+  RealExe := GameRoot + '/DirectGame.exe';
+  WritePEImportTestStub(RealExe, True, 'd3d11.dll');
+  AssertEquals('Direct game executable is preserved unchanged',
+    RealExe, ResolveRealGameExecutable(RealExe, GameRoot));
+end;
+
 procedure TBgmodSupervisorTests.TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
 var
   Proc: TProcess;
@@ -3580,6 +3651,155 @@ begin
     Lines.LoadFromFile(LogFile);
     AssertTrue('Resolved GameDir should point to bin/x64/', Pos('bin/x64', Lines.Text) > 0);
     AssertTrue('Lowercase launcher should resolve to Cyberpunk2077.exe',
+      Pos('exe: Cyberpunk2077.exe', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodSmartLauncherResolutionAndCustomRulesMerge;
+var
+  Proc: TProcess;
+  TestGameCfgDir, MockGameDir, MockLauncher, MockRealExe, LogFile, UninstallerSrc: string;
+  F: TextFile;
+  Lines: TStringList;
+  Ini: TIniFile;
+begin
+  EnsureBgmodBinary;
+
+  // Part 1: Cities: Skylines II unlisted launcher resolved heuristically by bgmod & bgmod-uninstaller
+  MockGameDir := IsolatedHome + '/games/Cities Skylines II';
+  ForceDirectories(MockGameDir + '/Launcher');
+  ForceDirectories(MockGameDir + '/Cities2_Data');
+  TestGameCfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/Cities Skylines II';
+  ForceDirectories(TestGameCfgDir);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(TestGameCfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(TestGameCfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+
+  MockLauncher := MockGameDir + '/Launcher/dowser.exe';
+  AssignFile(F, MockLauncher); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockLauncher), &755);
+
+  MockRealExe := MockGameDir + '/Cities2.exe';
+  WritePEImportTestStub(MockRealExe, True, 'd3d11.dll');
+  AssignFile(F, MockGameDir + '/UnityPlayer.dll'); Rewrite(F);
+  WriteLn(F, 'UNITY_PLAYER');
+  CloseFile(F);
+
+  // Also include a custom [Launchers] entry in bgmod.conf to verify custom + default + heuristic coexistence
+  AssignFile(F, TestGameCfgDir + '/bgmod.conf'); Rewrite(F);
+  WriteLn(F, '[Config]');
+  WriteLn(F, 'SHOW_LAUNCH_SPLASH=0');
+  WriteLn(F, 'CENTRAL_LOGS=1');
+  WriteLn(F, '[Launchers]');
+  WriteLn(F, 'SomeOtherGame = CustomLauncher.exe|bin/OtherGame.exe');
+  CloseFile(F);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockLauncher);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly for Cities Skylines II launcher', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/Cities Skylines II/bgmod.log';
+  AssertTrue('Cities Skylines II bgmod.log should exist', FileExists(LogFile));
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Heuristic redirection logged',
+      Pos('Heuristic executable detector redirected launcher', Lines.Text) > 0);
+    AssertTrue('Resolved TargetExeName is Cities2.exe',
+      Pos('exe: Cities2.exe', Lines.Text) > 0);
+    AssertFalse('GameDir must not remain in Launcher subfolder',
+      Pos('Game directory: ' + MockGameDir + '/Launcher', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+
+  Ini := TIniFile.Create(TestGameCfgDir + '/bgmod.conf');
+  try
+    AssertEquals('Cached TARGET_EXE in bgmod.conf is Cities2.exe',
+      'Cities2.exe', Ini.ReadString('Config', 'TARGET_EXE', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // Verify bgmod-uninstaller also resolves Launcher/dowser.exe to MockGameDir (not Launcher/)
+  UninstallerSrc := ExpandFileName(ExtractFilePath(GetBgmodBinaryPath) + 'bgmod-uninstaller');
+  if FileExists(UninstallerSrc) then
+  begin
+    AssignFile(F, MockGameDir + '/goverlay.vars'); Rewrite(F);
+    WriteLn(F, 'GOVERLAY_OPTISCALER=1');
+    CloseFile(F);
+
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := UninstallerSrc;
+      Proc.Parameters.Add(MockLauncher);
+      Proc.Options := [poWaitOnExit];
+      Proc.CurrentDirectory := MockGameDir;
+      Proc.Execute;
+      AssertEquals('bgmod-uninstaller should exit cleanly', 0, Proc.ExitStatus);
+    finally
+      Proc.Free;
+    end;
+    AssertFalse('bgmod-uninstaller cleaned goverlay.vars from real game root',
+      FileExists(MockGameDir + '/goverlay.vars'));
+  end;
+
+  // Part 2: Verify built-in [Launchers] rule still works when bgmod.conf has a custom [Launchers] entry
+  MockGameDir := IsolatedHome + '/games/Cyberpunk2077MergedRules';
+  ForceDirectories(MockGameDir + '/bin/x64');
+  MockLauncher := MockGameDir + '/REDprelauncher.exe';
+  AssignFile(F, MockLauncher); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockLauncher), &755);
+
+  MockRealExe := MockGameDir + '/bin/x64/Cyberpunk2077.exe';
+  AssignFile(F, MockRealExe); Rewrite(F);
+  WriteLn(F, '#!' + FindTestHelperExecutable('sh'));
+  WriteLn(F, 'exit 0');
+  CloseFile(F);
+  fpChmod(PChar(MockRealExe), &755);
+
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := TestGameCfgDir + '/bgmod';
+    Proc.Parameters.Add(MockLauncher);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := MockGameDir;
+    Proc.Execute;
+    AssertEquals('bgmod should exit cleanly for built-in rule with custom [Launchers] present', 0, Proc.ExitStatus);
+  finally
+    Proc.Free;
+  end;
+
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(LogFile);
+    AssertTrue('Built-in Cyberpunk2077 rule still matched alongside custom [Launchers] rule',
       Pos('exe: Cyberpunk2077.exe', Lines.Text) > 0);
   finally
     Lines.Free;

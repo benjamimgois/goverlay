@@ -28,3 +28,33 @@ The `bgmod` wrapper SHALL format multiple entries in the `WINEDLLOVERRIDES` envi
 #### Scenario: OptiScaler and ReShade coexisting with distinct overrides
 - **WHEN** both OptiScaler (e.g. `version.dll`) and ReShade (e.g. `dxgi.dll`) are active in a Wine game
 - **THEN** `WINEDLLOVERRIDES` separates the overrides with semicolons (e.g. `version=n,b;dxgi=n,b`), allowing Wine to recognize and load each DLL independently.
+
+### Requirement: Merging custom launcher rules with built-in defaults
+The `bgmod` and `bgmod-uninstaller` executables SHALL merge custom entries from the `[Launchers]` section of `bgmod.conf` with the built-in default launcher replacement rules, evaluating custom rules first while preserving built-in rules for remaining games.
+
+#### Scenario: Custom launcher rule present alongside built-in games
+- **WHEN** `bgmod.conf` defines a `[Launchers]` section containing a custom game rule
+- **AND** the user launches a different game covered by the built-in default launcher list (e.g., `Cyberpunk 2077` with `REDprelauncher.exe`)
+- **THEN** `bgmod` evaluates the custom rule first and still applies the built-in default rule for `Cyberpunk 2077`.
+
+### Requirement: Heuristic launcher and real game executable detection
+When no explicit `[Launchers]` rule matches the command-line `.exe` argument, `bgmod` and `bgmod-uninstaller` SHALL evaluate whether the incoming `.exe` is a launcher/bootstrapper or whether a higher-scoring game executable exists within the game installation root, and resolve `GameDir` and `TargetExeName` to the highest-scoring game executable.
+
+#### Scenario: Unity game launched via Paradox or sub-directory launcher (e.g. Cities: Skylines II)
+- **WHEN** a game is launched with a command-line argument pointing to a launcher executable (such as `Launcher/dowser.exe` or `Paradox Launcher.exe`)
+- **AND** the game installation root (resolved via `STEAM_COMPAT_INSTALL_PATH` or parent directory inference) contains a Unity game executable accompanied by `UnityPlayer.dll` (or `GameAssembly.dll`) and a matching `<ExeName>_Data` folder
+- **THEN** `bgmod` and `bgmod-uninstaller` reject the launcher executable and resolve `GameDir` and `TargetExeName` to the Unity game executable and its directory.
+
+#### Scenario: Unreal Engine game launched via a launcher subfolder
+- **WHEN** a game is launched via an executable inside a launcher subfolder (such as `Launcher/FuncomLauncher.exe`)
+- **AND** the game installation root contains an Unreal Engine shipping executable under `<Project>/Binaries/Win64/`
+- **THEN** `bgmod` and `bgmod-uninstaller` climb to the installation root, detect the Unreal Engine shipping binary, and resolve `GameDir` and `TargetExeName` to `<Project>/Binaries/Win64/` and its shipping `.exe`.
+
+#### Scenario: Candidate scoring prioritizes directory with native upscaler DLLs and 3D PE imports
+- **WHEN** an installation root contains both a bootstrapper/launcher executable (or CEF/Qt launcher with `libcef.dll` / `Qt5Core.dll` / `Qt6Core.dll`) and a game executable in a subdirectory (such as `bin/`, `bin/x64/`, `Retail/`, or `binaries/`)
+- **AND** the game executable imports 3D graphics APIs (`d3d12.dll`, `d3d11.dll`, `dxgi.dll`, `d3d9.dll`, or `opengl32.dll`) or shares its directory with native upscaler DLLs (`nvngx_dlss*.dll`, `libxess*.dll`, `amd_fidelityfx_*.dll`, `sl.interposer.dll`)
+- **THEN** the candidate scoring system selects the 3D game executable directory over the launcher directory.
+
+#### Scenario: Direct game executable without launcher remains unchanged
+- **WHEN** a game is launched directly with its real game `.exe` (not a launcher, and no higher-scoring candidate exists in the installation tree)
+- **THEN** `bgmod` and `bgmod-uninstaller` keep the original executable's directory and filename.
