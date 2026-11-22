@@ -72,6 +72,13 @@ type
     procedure TestGpuListBothGpus;
   end;
 
+  TMangoHudFlatpakIsolationTests = class(TTestCase)
+  published
+    procedure TestPerGameSaveDoesNotOverwriteSteamFlatpak;
+    procedure TestPerGameFpsOnlyDoesNotOverwriteSteamFlatpak;
+    procedure TestGlobalSaveMirrorsToSteamFlatpak;
+  end;
+
   TMangoHudColorParsingTests = class(TTestCase)
   published
     procedure TestHexToColorParsing;
@@ -4902,6 +4909,112 @@ begin
   DeleteFile(JsonFile);
 end;
 
+procedure TMangoHudFlatpakIsolationTests.TestPerGameSaveDoesNotOverwriteSteamFlatpak;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg, FlatpakDir, FlatpakFile, GameCfgFile: string;
+  Lines: TStringList;
+begin
+  FlatpakDir := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+  ForceDirectories(FlatpakDir);
+  FlatpakFile := FlatpakDir + '/MangoHud.conf';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('fps');
+    Lines.Add('output_folder=/tmp/global_logs_sentinel');
+    Lines.SaveToFile(FlatpakFile);
+
+    FillChar(Settings, SizeOf(Settings), 0);
+    Settings.Version := 'TEST';
+    Settings.Channel := 'stable';
+    Settings.ActiveGameName := 'Fatekeeper';
+    Settings.LogFolder := IsolatedHome + '/.local/share/goverlay/logs/Fatekeeper';
+    GameCfgFile := GetGameConfigDir('Fatekeeper') + 'MangoHud.conf';
+    ForceDirectories(ExtractFilePath(GameCfgFile));
+    Settings.MangoHudCfgFile := GameCfgFile;
+
+    AssertTrue('Per-game save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+
+    Lines.LoadFromFile(GameCfgFile);
+    AssertTrue('Game config has game output_folder', Pos('/logs/Fatekeeper', Lines.Text) > 0);
+
+    Lines.LoadFromFile(FlatpakFile);
+    AssertTrue('Steam Flatpak global config preserved', Pos('output_folder=/tmp/global_logs_sentinel', Lines.Text) > 0);
+    AssertFalse('Steam Flatpak global config not polluted by game log path', Pos('Fatekeeper', Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudFlatpakIsolationTests.TestPerGameFpsOnlyDoesNotOverwriteSteamFlatpak;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg, FlatpakDir, FlatpakFile, GameCfgFile: string;
+  Lines: TStringList;
+begin
+  FlatpakDir := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+  ForceDirectories(FlatpakDir);
+  FlatpakFile := FlatpakDir + '/MangoHud.conf';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('fps_limit=144');
+    Lines.SaveToFile(FlatpakFile);
+
+    FillChar(Settings, SizeOf(Settings), 0);
+    Settings.Version := 'TEST';
+    Settings.Channel := 'stable';
+    Settings.ActiveGameName := 'Fatekeeper';
+    Settings.FpsOnly := True;
+    GameCfgFile := GetGameConfigDir('Fatekeeper') + 'MangoHud.conf';
+    ForceDirectories(ExtractFilePath(GameCfgFile));
+    Settings.MangoHudCfgFile := GameCfgFile;
+
+    AssertTrue('Per-game fps_only save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+
+    Lines.LoadFromFile(GameCfgFile);
+    AssertTrue('Game config has fps_only', Lines.IndexOf('fps_only') >= 0);
+
+    Lines.LoadFromFile(FlatpakFile);
+    AssertTrue('Steam Flatpak global config preserved', Lines.IndexOf('fps_limit=144') >= 0);
+    AssertFalse('Steam Flatpak global config not overwritten with fps_only', Lines.IndexOf('fps_only') >= 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TMangoHudFlatpakIsolationTests.TestGlobalSaveMirrorsToSteamFlatpak;
+var
+  Settings: TMangoHudSettings;
+  ErrMsg, FlatpakDir, FlatpakFile, GlobalCfgFile: string;
+  Lines: TStringList;
+begin
+  FlatpakDir := IncludeTrailingPathDelimiter(GetUserDir) + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+  ForceDirectories(FlatpakDir);
+  FlatpakFile := FlatpakDir + '/MangoHud.conf';
+
+  Lines := TStringList.Create;
+  try
+    FillChar(Settings, SizeOf(Settings), 0);
+    Settings.Version := 'TEST';
+    Settings.Channel := 'stable';
+    Settings.ActiveGameName := '';
+    Settings.LogFolder := IsolatedHome + '/.local/share/goverlay/logs/global';
+    GlobalCfgFile := GetGameConfigDir('') + 'MangoHud.conf';
+    ForceDirectories(ExtractFilePath(GlobalCfgFile));
+    Settings.MangoHudCfgFile := GlobalCfgFile;
+
+    AssertTrue('Global save succeeds', SaveMangoHudConfigCore(Settings, nil, ErrMsg));
+
+    Lines.LoadFromFile(FlatpakFile);
+    AssertTrue('Steam Flatpak global config updated with global output_folder',
+      Pos('output_folder=' + Settings.LogFolder, Lines.Text) > 0);
+  finally
+    Lines.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -4910,6 +5023,7 @@ initialization
   RegisterTest(TVkBasaltLogicTests);
   RegisterTest(TGpuNameExtractionTests);
   RegisterTest(TMangoHudGpuListTests);
+  RegisterTest(TMangoHudFlatpakIsolationTests);
   RegisterTest(TMangoHudColorParsingTests);
   RegisterTest(TClearConfigTests);
   RegisterTest(TMakoLogicTests);

@@ -5760,6 +5760,8 @@ begin
   // Clicking the logo always returns to global config mode
   if WasInGameMode then
   begin
+    if Assigned(autoSaveTimer) then
+      autoSaveTimer.Enabled := False;
     FActiveGameName := '';
     FActiveGameAppId := '';
     FActiveGamePath := '';
@@ -5769,6 +5771,7 @@ begin
     UpdateGameContextLabel;
     HideGameThumb;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
+    LoadMangoHudConfig;
     SetSaveBtnEnabled(True);
     FLaunchCommand := GetLaunchCommand;
     if Assigned(commandPaintBox) then
@@ -5807,6 +5810,8 @@ begin
           WriteLn('[WARN] gamesLabelClick: could not reload OptiScaler config - ', E.Message);
       end;
     end;
+    if Assigned(autoSaveTimer) then
+      autoSaveTimer.Enabled := False;
   end;
 
   SetNavActive(0);

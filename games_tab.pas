@@ -2799,6 +2799,8 @@ begin
   else
     FActiveGameIsNonSteam := True;
 
+  if Assigned(autoSaveTimer) then
+    autoSaveTimer.Enabled := False;
   FActiveGameName := GameName;
   ShowGameThumb(Panel);
   LoadGameToggleStates;
@@ -2866,6 +2868,8 @@ begin
   FLaunchCommand := GetLaunchCommand;
   if Assigned(commandPaintBox) then
     commandPaintBox.Invalidate;
+  if Assigned(autoSaveTimer) then
+    autoSaveTimer.Enabled := False;
   end;
 end;
 
@@ -4334,6 +4338,8 @@ begin
   // Clicking empty space in the games grid
   if FActiveGameName <> '' then
   begin
+    if Assigned(autoSaveTimer) then
+      autoSaveTimer.Enabled := False;
     FActiveGameName := '';
     FActiveGameAppId := '';
     FActiveGamePath := '';
@@ -4343,6 +4349,7 @@ begin
     UpdateGameContextLabel;
     HideGameThumb;
     LoadGameToggleStates;  // reset all tools to enabled, hide toggles
+    LoadMangoHudConfig;
     FLaunchCommand := GetLaunchCommand;
     if Assigned(commandPaintBox) then
       commandPaintBox.Invalidate;

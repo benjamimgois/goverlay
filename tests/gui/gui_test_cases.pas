@@ -197,6 +197,7 @@ type
     procedure TestCustomConfigCardMenuAndFileFlows;
     procedure TestMenuButtonSavePulse;
     procedure TestGlobalOptiScalerChannelAndReflexPersistence;
+    procedure TestMangoHudProfileSwitchCancelsAutoSaveAndReloadsGlobal;
   end;
 
 implementation
@@ -9709,6 +9710,69 @@ begin
     if CreatedCacheFake and FileExists(CacheFakePath) then
       DeleteFile(CacheFakePath);
     goverlayform.FActiveGameName := '';
+  end;
+end;
+
+procedure TGoverlayGuiTests.TestMangoHudProfileSwitchCancelsAutoSaveAndReloadsGlobal;
+var
+  Card: TPanel;
+  GlobalCfgPath, GlobalLogDir, GlobalContent: string;
+  SL: TStringList;
+begin
+  GlobalLogDir := ExcludeTrailingPathDelimiter(goverlayform.GetGameLogDir(''));
+  GlobalCfgPath := goverlayform.GetGameConfigDir('') + 'MangoHud.conf';
+  ForceDirectories(ExtractFilePath(GlobalCfgPath));
+
+  SL := TStringList.Create;
+  try
+    SL.Add('fps');
+    SL.Add('output_folder=' + GlobalLogDir);
+    SL.SaveToFile(GlobalCfgPath);
+  finally
+    SL.Free;
+  end;
+
+  goverlayform.FActiveGameName := '';
+  goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
+  AssertEquals('Global logfolderEdit loaded', GlobalLogDir, ExcludeTrailingPathDelimiter(goverlayform.logfolderEdit.Text));
+
+  Card := TPanel.Create(nil);
+  try
+    Card.Hint := '(999999) Fatekeeper' + LineEnding + '/tmp/fatekeeper';
+    goverlayform.GameCardClick(Card);
+    AssertEquals('Active game set to Fatekeeper', 'Fatekeeper', goverlayform.FActiveGameName);
+    AssertTrue('Game logfolderEdit points to Fatekeeper', Pos('Fatekeeper', goverlayform.logfolderEdit.Text) > 0);
+
+    // 1. Returning via gamesLabelClick must cancel pending autoSaveTimer and reload global controls
+    goverlayform.StartAutoSaveTimer;
+    AssertTrue('autoSaveTimer armed in game mode', goverlayform.autoSaveTimer.Enabled);
+
+    goverlayform.gamesLabelClick(nil);
+    AssertFalse('autoSaveTimer cancelled on gamesLabelClick', goverlayform.autoSaveTimer.Enabled);
+    AssertEquals('FActiveGameName cleared on gamesLabelClick', '', goverlayform.FActiveGameName);
+    AssertEquals('logfolderEdit reloaded to global on gamesLabelClick',
+      GlobalLogDir, ExcludeTrailingPathDelimiter(goverlayform.logfolderEdit.Text));
+
+    GlobalContent := ReadFileText(GlobalCfgPath);
+    AssertFalse('Global MangoHud.conf not polluted by Fatekeeper', Pos('Fatekeeper', GlobalContent) > 0);
+
+    // 2. Returning via GamesEmptySpaceClick must also cancel pending autoSaveTimer and reload global controls
+    goverlayform.GameCardClick(Card);
+    AssertTrue('Game logfolderEdit points to Fatekeeper again', Pos('Fatekeeper', goverlayform.logfolderEdit.Text) > 0);
+
+    goverlayform.StartAutoSaveTimer;
+    AssertTrue('autoSaveTimer armed in game mode before empty space click', goverlayform.autoSaveTimer.Enabled);
+
+    TGamesTabHelper(goverlayform.FGamesHelper).GamesEmptySpaceClick(nil);
+    AssertFalse('autoSaveTimer cancelled on GamesEmptySpaceClick', goverlayform.autoSaveTimer.Enabled);
+    AssertEquals('FActiveGameName cleared on GamesEmptySpaceClick', '', goverlayform.FActiveGameName);
+    AssertEquals('logfolderEdit reloaded to global on GamesEmptySpaceClick',
+      GlobalLogDir, ExcludeTrailingPathDelimiter(goverlayform.logfolderEdit.Text));
+  finally
+    Card.Free;
+    goverlayform.autoSaveTimer.Enabled := False;
+    goverlayform.FActiveGameName := '';
+    goverlayform.mangohudLabel.OnClick(goverlayform.mangohudLabel);
   end;
 end;
 

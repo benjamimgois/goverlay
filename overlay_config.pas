@@ -2403,7 +2403,6 @@ function SaveMangoHudConfigCore(const Settings: TMangoHudSettings; const AvFonts
 var
   ConfigLines: TStringList;
   ConfigDir, FontPath, FontDir: string;
-  FlatpakSteamConfigDir, FlatpakMangoHudFile: string;
   i: Integer;
   TempFiles, FontDirs: TStringList;
   Ini, Ini2: TIniFile;
@@ -2417,6 +2416,29 @@ var
   begin
     if ABool then
       ConfigLines.Add(ALine);
+  end;
+
+  procedure MirrorToSteamFlatpak(const ALines: TStrings; const AContext: string);
+  var
+    FlatpakDir, FlatpakFile: string;
+  begin
+    try
+      FlatpakDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
+      FlatpakFile := FlatpakDir + '/MangoHud.conf';
+      if DirectoryExists(GetUserDir + '.var') then
+      begin
+        if not DirectoryExists(FlatpakDir) then
+          ForceDirectories(FlatpakDir);
+        if DirectoryExists(FlatpakDir) then
+        begin
+          ALines.SaveToFile(FlatpakFile);
+          WriteLn('[DEBUG] SaveMangoHudConfigCore: ', AContext, ' mirrored to Steam Flatpak: ', FlatpakFile);
+        end;
+      end;
+    except
+      on E: Exception do
+        WriteLn('[WARN] SaveMangoHudConfigCore: Could not mirror ', AContext, ' to Steam Flatpak: ', E.Message);
+    end;
   end;
 
 begin
@@ -2467,31 +2489,13 @@ begin
         Ini.Free;
       end;
 
-      // Mirror to ~/.config/MangoHud/MangoHud.conf in global mode
+      // Mirror to ~/.config/MangoHud/MangoHud.conf and Steam Flatpak in global mode
       if Settings.ActiveGameName = '' then
       begin
         GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
         CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
         ConfigLines.SaveToFile(GlobalMangoHudFile);
-      end;
-
-      // Mirror to Steam Flatpak location
-      try
-        FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
-        FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
-        if DirectoryExists(GetUserDir + '.var') then
-        begin
-          if not DirectoryExists(FlatpakSteamConfigDir) then
-            ForceDirectories(FlatpakSteamConfigDir);
-          if DirectoryExists(FlatpakSteamConfigDir) then
-          begin
-            ConfigLines.SaveToFile(FlatpakMangoHudFile);
-            WriteLn('[DEBUG] SaveMangoHudConfigCore: fps_only also mirrored to Steam Flatpak: ', FlatpakMangoHudFile);
-          end;
-        end;
-      except
-        on E: Exception do
-          WriteLn('[WARN] SaveMangoHudConfigCore: Could not mirror fps_only to Steam Flatpak: ', E.Message);
+        MirrorToSteamFlatpak(ConfigLines, 'fps_only');
       end;
 
       Result := True;
@@ -3062,33 +3066,13 @@ begin
       Ini.Free;
     end;
 
-    // In global mode: also update system-wide ~/.config/MangoHud/MangoHud.conf
+    // In global mode: also update system-wide ~/.config/MangoHud/MangoHud.conf and Steam Flatpak
     if Settings.ActiveGameName = '' then
     begin
       GlobalMangoHudFile := IncludeTrailingPathDelimiter(GetMangoHudConfigDir()) + 'MangoHud.conf';
       CreateHostDirectory(ExtractFilePath(GlobalMangoHudFile));
       ConfigLines.SaveToFile(GlobalMangoHudFile);
-    end;
-
-    try
-      FlatpakSteamConfigDir := GetUserDir + '.var/app/com.valvesoftware.Steam/config/MangoHud';
-      FlatpakMangoHudFile := FlatpakSteamConfigDir + '/MangoHud.conf';
-
-      if DirectoryExists(GetUserDir + '.var') then
-      begin
-        if not DirectoryExists(FlatpakSteamConfigDir) then
-          ForceDirectories(FlatpakSteamConfigDir);
-
-        if DirectoryExists(FlatpakSteamConfigDir) then
-        begin
-          // Save the same configuration to Flatpak location
-          ConfigLines.SaveToFile(FlatpakMangoHudFile);
-          WriteLn('[DEBUG] SaveMangoHudConfigCore: Configuration also saved to Steam Flatpak location: ', FlatpakMangoHudFile);
-        end;
-      end;
-    except
-      on E: Exception do
-        WriteLn('[WARN] SaveMangoHudConfigCore: Could not save to Steam Flatpak location: ', E.Message);
+      MirrorToSteamFlatpak(ConfigLines, 'Configuration');
     end;
 
     Result := True;
