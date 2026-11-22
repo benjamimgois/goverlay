@@ -1742,7 +1742,7 @@ begin
           FForm.ShowTweaksMissingBanner('GameMode is not installed',
             'System package not found. Please install ''gamemode'' using your package manager.');
         end
-        else
+        else if (not FForm.FTweaksBannerPinned) and (not FForm.IsCursorOverTweaksBanner) then
           FForm.HideTweaksMissingBanner;
         Break;
       end;
@@ -1824,7 +1824,7 @@ begin
     end;
   end;
 
-  if FForm.FTweaksHoverIdx < 0 then
+  if (FForm.FTweaksHoverIdx < 0) and (not FForm.FTweaksBannerPinned) and (not FForm.IsCursorOverTweaksBanner) then
     FForm.HideTweaksMissingBanner;
 
   if OldHover <> FForm.FTweaksHoverIdx then
@@ -1842,7 +1842,8 @@ begin
   end;
 
   FForm.FTweaksHoverIdx := -1;
-  FForm.HideTweaksMissingBanner;
+  if (not FForm.FTweaksBannerPinned) and (not FForm.IsCursorOverTweaksBanner) then
+    FForm.HideTweaksMissingBanner;
   if Assigned(FForm.FTweaksPaintBox) then
     FForm.FTweaksPaintBox.Invalidate;
 end;
@@ -2068,6 +2069,9 @@ begin
             ShowMessage('PROTON_VKD3D_LOWLATENCY / PROTON_DXVK_LOWLATENCY cannot be used together with Korthos Low Latency options.')
           else if (TWEAK_ROWS[i].VarName = '#gamemode') and (not FForm.IsGamemodeInstalled) then
           begin
+            FForm.ShowTweaksMissingBanner('GameMode is not installed',
+              'System package not found. Please install ''gamemode'' using your package manager.',
+              True);
             ShowMessage('gamemode is not installed. Please install the gamemode package first.');
           end
           else

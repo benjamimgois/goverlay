@@ -54,7 +54,7 @@ The system SHALL detect when vkSumi or its Vulkan layer runtime is missing, disp
 - **THEN** the vkSumi warning banner is hidden and controls are enabled
 
 ### Requirement: Tweaks on-hover missing dependency banner and option blocking
-The system SHALL detect when Korthos low latency (`vulkan-low-latency-layer`) or `gamemode` is missing, display the warning banner on-demand when hovering over the affected tweak options, and prevent toggling the missing tweak options with user-friendly alerts.
+The system SHALL detect when Korthos low latency (`vulkan-low-latency-layer`) or `gamemode` is missing, display the warning banner on-demand when hovering over or clicking the affected tweak options, keep the banner visible when pinned by a click or while the cursor moves onto the banner so its **Re-check** and **Status** buttons remain reachable, and prevent toggling the missing tweak options with user-friendly alerts.
 
 #### Scenario: Hovering over Korthos low latency items when missing
 - **WHEN** user hovers over any Korthos low latency tweak row and `vulkan-low-latency-layer` is missing
@@ -64,6 +64,18 @@ The system SHALL detect when Korthos low latency (`vulkan-low-latency-layer`) or
 - **WHEN** user hovers over `#gamemode` and `gamemode` is missing
 - **THEN** the warning banner appears with instructions for `gamemode`
 
+#### Scenario: Clicking GameMode when missing pins the banner
+- **WHEN** user clicks `#gamemode` while `gamemode` is missing
+- **THEN** the option remains unchecked and the warning banner is pinned visible so the user can move the mouse to **Re-check** or **Status** without the banner disappearing
+
 #### Scenario: Mouse leaves missing dependency item
-- **WHEN** user moves the mouse away from the item or leaves the tweaks view
+- **WHEN** user moves the mouse away from the item or leaves the tweaks view without pinning the banner or moving onto the banner itself
 - **THEN** the warning banner is automatically hidden
+
+#### Scenario: Mouse moves onto the warning banner itself
+- **WHEN** user moves the mouse from `#gamemode` onto the warning banner (or after pinning it by clicking `#gamemode`)
+- **THEN** the warning banner remains visible so its **Re-check** and **Status** buttons can be clicked
+
+#### Scenario: Re-check clears pinned banner when dependency becomes available
+- **WHEN** user clicks **Re-check** on the Tweaks warning banner (or switches tabs) after installing `gamemode`
+- **THEN** the pinned state is cleared and the warning banner is hidden

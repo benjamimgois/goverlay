@@ -6234,9 +6234,24 @@ begin
     AssertTrue('FTweaksMissingBanner is visible on hover',
       goverlayform.FTweaksMissingBanner.Visible);
 
-    // Mouse leave / moving away hides banner
+    // Mouse leave / moving away hides unpinned banner
     goverlayform.TweaksMD3MouseLeave(nil);
     AssertFalse('FTweaksMissingBanner is hidden on mouse leave',
+      goverlayform.FTweaksMissingBanner.Visible);
+
+    // Pinned banner (simulating click on uninstalled GameMode) survives mouse leave
+    goverlayform.ShowTweaksMissingBanner('GameMode is not installed', 'Test desc', True);
+    AssertTrue('FTweaksBannerPinned is true when pinned', goverlayform.FTweaksBannerPinned);
+    AssertTrue('FTweaksMissingBanner is visible when pinned',
+      goverlayform.FTweaksMissingBanner.Visible);
+    goverlayform.TweaksMD3MouseLeave(nil);
+    AssertTrue('Pinned FTweaksMissingBanner remains visible on mouse leave',
+      goverlayform.FTweaksMissingBanner.Visible);
+
+    // Re-check clears pinned state and hides Tweaks banner
+    goverlayform.RecheckDependenciesClick(nil);
+    AssertFalse('FTweaksBannerPinned cleared after re-check', goverlayform.FTweaksBannerPinned);
+    AssertFalse('FTweaksMissingBanner hidden after re-check',
       goverlayform.FTweaksMissingBanner.Visible);
 
     // 8. Test DLSS-NR missing model banner
