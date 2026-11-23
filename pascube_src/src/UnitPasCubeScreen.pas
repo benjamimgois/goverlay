@@ -193,6 +193,7 @@ type
       private
        fSubmitStatus: Integer; // 0=Idle, 1=Submitting, 2=Success, 3=Error, 4=Disabled
        fSubmitThread: TSubmitThread;
+       fPostSubmitURL: string;
        fTelemetryThread: TTelemetryThread;
        fVulkanGraphicsCommandPool:TpvVulkanCommandPool;
        fVulkanGraphicsCommandBuffer:TpvVulkanCommandBuffer;
@@ -439,6 +440,41 @@ function GetEffectiveUserNickname: string; forward;
 function FloatToJsonStr(const AVal: Double): String;
 begin
   Result := StringReplace(FormatFloat('0.0', AVal), ',', '.', [rfReplaceAll]);
+end;
+
+function URLEncodeParam(const AValue: string): string;
+var
+  I: Integer;
+  Ch: AnsiChar;
+  UTF8Str: UTF8String;
+begin
+  Result := '';
+  UTF8Str := UTF8String(AValue);
+  for I := 1 to Length(UTF8Str) do begin
+    Ch := UTF8Str[I];
+    if Ch in ['A'..'Z', 'a'..'z', '0'..'9', '-', '_', '.', '~'] then
+      Result := Result + Char(Ch)
+    else
+      Result := Result + '%' + IntToHex(Byte(Ch), 2);
+  end;
+end;
+
+function BuildPasCubeDBResultURL(const AUserNick, AClientId: string): string;
+const
+  BASE_URL = 'https://benjamimgois.github.io/PascubeDB/';
+var
+  TrimmedNick, TrimmedClientId: string;
+begin
+  TrimmedNick := Trim(AUserNick);
+  if (TrimmedNick <> '') and (not SameText(TrimmedNick, 'Anonymous')) then
+    Result := BASE_URL + '?user=' + URLEncodeParam(TrimmedNick)
+  else begin
+    TrimmedClientId := Trim(AClientId);
+    if TrimmedClientId <> '' then
+      Result := BASE_URL + '?run=' + URLEncodeParam(Copy(TrimmedClientId, 1, 12))
+    else
+      Result := BASE_URL;
+  end;
 end;
 
 function GetLogDir: string;
@@ -1298,6 +1334,7 @@ begin
   GetSubmitURL;
   fSubmitStatus := 0;
   fSubmitThread := nil;
+  fPostSubmitURL := '';
   fTelemetryThread := nil;
   fRenderWidth := 1920;
   fRenderHeight := 1080;
@@ -2331,7 +2368,10 @@ const f0=2.5/(2.0*pi);  // 2.5x rotation speed
            AProcess := TProcess.Create(nil);
            try
              AProcess.Executable := 'xdg-open';
-             AProcess.Parameters.Add('https://benjamimgois.github.io/PascubeDB/');
+             if fPostSubmitURL <> '' then
+               AProcess.Parameters.Add(fPostSubmitURL)
+             else
+               AProcess.Parameters.Add('https://benjamimgois.github.io/PascubeDB/');
              AProcess.Options := [];
              AProcess.Execute;
            finally
@@ -4472,7 +4512,7 @@ begin
 end;
 
 procedure TPasCubeScreen.SubmitBenchmarkResults;
-var URL, UserNick: string;
+var URL, UserNick, ClientId: string;
     JSONObj: TJSONObject;
     Payload: string;
     Prompted: Boolean;
@@ -4493,6 +4533,8 @@ begin
 
   UserNick := ReadPasCubeNickname(Prompted);
   if UserNick = '' then UserNick := 'Anonymous';
+  ClientId := GetSHA256Hash(GetGPUHardwareSignature);
+  fPostSubmitURL := BuildPasCubeDBResultURL(UserNick, ClientId);
 
   JSONObj := TJSONObject.Create;
   try
@@ -4522,8 +4564,8 @@ begin
       JSONObj.Add('rt_score', 0);
     end;
     JSONObj.Add('rt_supported', LowerCase(BoolToStr(fCurrentResult.RTSupported, True)));
-    JSONObj.Add('machine_hash', GetSHA256Hash(GetGPUHardwareSignature));
-    JSONObj.Add('client_id', GetSHA256Hash(GetGPUHardwareSignature));
+    JSONObj.Add('machine_hash', ClientId);
+    JSONObj.Add('client_id', ClientId);
     JSONObj.Add('architecture', GetCPUArchitecture);
     JSONObj.Add('package', GetPackageType);
     JSONObj.Add('timer', Round(fCurrentResult.BenchmarkDuration));
