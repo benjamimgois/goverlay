@@ -795,7 +795,7 @@ type
     FVisualHudSep:   TPanel;  // horizontal separator above HUD row within main card }
     
     // Key capture references — each button shows the captured shortcut in its caption
-    FCaptureBtn:        TBitBtn;  // button currently being captured
+    // Moved to public: FCaptureBtn
     // Moved to public:
     {     FVisualCaptureBtn:  TBitBtn;
     FLimitCaptureBtn:   TBitBtn;
@@ -804,7 +804,8 @@ type
     {     FVkToggleCaptureBtn:    TBitBtn;
     FVkToggleTitleLbl:      TLabel; }
     // Moved to public:
-    {     FOsShortcutCaptureBtn:  TBitBtn; }
+    {     FOsShortcutCaptureBtn:  TBitBtn;
+    FCaptureBtn:            TBitBtn; }
     FCaptureForm:       TForm;
 
     // Moved to public:
@@ -868,7 +869,7 @@ type
     procedure InitVisualTab;
     procedure VisualCardPaint(Sender: TObject);
     procedure UpdateVisualCardTheme;
-    procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    // Moved to public: CaptureFormKeyDown
     procedure InitPerformanceTab;
     procedure InitExtrasTab;
     procedure InitOptiScalerTab;
@@ -1072,6 +1073,7 @@ type
     FOsStatNameLbls: array[0..5] of TLabel;
     FOsStatVerLbls:  array[0..5] of TLabel;
     FOsShortcutCaptureBtn:  TBitBtn;
+    FCaptureBtn:            TBitBtn;
     FLaunchCommand: string;
     FOptiscalerUpdate: TOptiscalerTab;
     FBenchmarkTimer: TTimer;
@@ -1534,6 +1536,7 @@ type
     // Exposed vkBasalt/Reshade/Sumi methods
     procedure SubCardPaint(Sender: TObject);
     procedure CaptureBtnClick(Sender: TObject);
+    procedure CaptureFormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure GplotBtnClick(Sender: TObject);
     procedure SaveVkSumiConfig;
     procedure ReflowSliderInSection(ASec: TPanel; AIndex: Integer);
@@ -9291,6 +9294,11 @@ begin
   begin
     shortcutkeyComboBox.Text  := Format('0x%.2x', [Key]);
     FCaptureBtn.Caption       := '⌨ ' + OsHexToKeyStr(shortcutkeyComboBox.Text);
+    if not FLoadingConfig then
+    begin
+      SaveOptiScalerConfig(True);
+      ShowSavedStatus;
+    end;
     if Assigned(FCaptureForm) then
       FCaptureForm.ModalResult := mrOk;
     Key := 0;

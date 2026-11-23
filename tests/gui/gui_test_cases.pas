@@ -74,6 +74,7 @@ type
     procedure TestOptiTraceLogSave;
     procedure TestOptiUpdateButtonsGuarded;
     procedure TestOptiShortcutCaptureBound;
+    procedure TestOptiShortcutCapturePersistsAcrossTabSwitch;
     procedure TestOptiScalerToggleNvidiaReEnableState;
     procedure TestGlobalOptiScalerToggleSync;
     procedure TestCommandPanelRightMarginConsistency;
@@ -3009,6 +3010,53 @@ begin
   NavigateOptiScalerTab;
   AssertTrue('shortcut capture button exists', Assigned(goverlayform.FOsShortcutCaptureBtn));
   AssertTrue('shortcut capture button bound', Assigned(goverlayform.FOsShortcutCaptureBtn.OnClick));
+end;
+
+procedure TGoverlayGuiTests.TestOptiShortcutCapturePersistsAcrossTabSwitch;
+var
+  Key: Word;
+  Content: string;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+
+  // Capture PageUp (VK_PRIOR = $21)
+  goverlayform.FCaptureBtn := goverlayform.FOsShortcutCaptureBtn;
+  Key := $21;
+  goverlayform.CaptureFormKeyDown(nil, Key, []);
+  AssertEquals('PageUp stored in shortcutkeyComboBox', '0x21', goverlayform.shortcutkeyComboBox.Text);
+  AssertTrue('Button caption shows PageUp immediately',
+    Pos('PageUp', goverlayform.FOsShortcutCaptureBtn.Caption) > 0);
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('ShortcutKey=0x21 persisted to OptiScaler.ini immediately',
+    Pos('ShortcutKey=0x21', Content) > 0);
+
+  // Switch to Frame Interpolation tab and back to OptiScaler tab
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+  goverlayform.optiscalerTabSheetShow(nil);
+
+  AssertEquals('shortcutkeyComboBox retains 0x21 after tab switch', '0x21', goverlayform.shortcutkeyComboBox.Text);
+  AssertTrue('Button caption retains PageUp after tab switch',
+    Pos('PageUp', goverlayform.FOsShortcutCaptureBtn.Caption) > 0);
+
+  // Capture Numpad* (VK_MULTIPLY = $6A) and verify round-trip
+  goverlayform.FCaptureBtn := goverlayform.FOsShortcutCaptureBtn;
+  Key := $6A;
+  goverlayform.CaptureFormKeyDown(nil, Key, []);
+  Content := ReadFileText(OptiIniPath);
+  AssertTrue('ShortcutKey=0x6a persisted to OptiScaler.ini',
+    Pos('shortcutkey=0x6a', LowerCase(Content)) > 0);
+
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.losslessScalingTabSheet;
+  goverlayform.losslessScalingTabSheetShow(nil);
+  goverlayform.goverlayPageControl.ActivePage := goverlayform.optiscalerTabSheet;
+  goverlayform.optiscalerTabSheetShow(nil);
+
+  AssertEquals('shortcutkeyComboBox retains 0x6a after tab switch', '0x6a', LowerCase(goverlayform.shortcutkeyComboBox.Text));
+  AssertTrue('Button caption retains Numpad* after tab switch',
+    Pos('Numpad*', goverlayform.FOsShortcutCaptureBtn.Caption) > 0);
 end;
 
 procedure TGoverlayGuiTests.TestOptiScalerToggleNvidiaReEnableState;

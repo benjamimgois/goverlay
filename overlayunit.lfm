@@ -8950,7 +8950,6 @@ object goverlayform: Tgoverlayform
           ParentColor = True
           ParentFont = False
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 18
           Text = '0x2d'
