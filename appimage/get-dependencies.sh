@@ -4,14 +4,8 @@ set -ex
 
 EXTRA_PACKAGES="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/refs/heads/main/useful-tools/get-debloated-pkgs.sh"
 
-ARCH="$(uname -m)"
-if [ "$ARCH" = "aarch64" ]; then
-	LAZARUS_PKG="lazarus-qt5"
-	QTPAS_PKG="qt5pas"
-else
-	LAZARUS_PKG="lazarus-qt6"
-	QTPAS_PKG="qt6pas"
-fi
+LAZARUS_PKG="lazarus-qt6"
+QTPAS_PKG="qt6pas"
 
 echo "Installing build dependencies..."
 echo "---------------------------------------------------------------"

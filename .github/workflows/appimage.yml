@@ -17,6 +17,8 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,6 +73,8 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
           - arch: aarch64
             runner: ubuntu-24.04-arm
     steps:
@@ -131,6 +135,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: AppImage-x86_64
+          path: .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: AppImage-aarch64
           path: .
 
       - uses: actions/download-artifact@v4

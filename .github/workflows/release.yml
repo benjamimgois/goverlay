@@ -17,6 +17,8 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,19 +58,24 @@ jobs:
           mkdir ./dist
           
           # Move AppImage and zsync
-          mv goverlay-*-x86_64.AppImage* "./dist/"
+          mv goverlay-*-${{ matrix.arch }}.AppImage* "./dist/"
           
           # Rename Debian package
-          mv goverlay_*_amd64.deb "./dist/goverlay-${CLEAN_VERSION}-x86_64.deb"
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            DEB_ARCH="arm64"
+          else
+            DEB_ARCH="amd64"
+          fi
+          mv goverlay_*_${DEB_ARCH}.deb "./dist/goverlay-${CLEAN_VERSION}-${{ matrix.arch }}.deb"
           
           # Rename RPM package
           rm -f *debuginfo*.rpm
-          mv goverlay-*.x86_64.rpm "./dist/goverlay-${CLEAN_VERSION}-x86_64.rpm"
+          mv goverlay-*.${{ matrix.arch }}.rpm "./dist/goverlay-${CLEAN_VERSION}-${{ matrix.arch }}.rpm"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: stable-packages-x86_64
+          name: stable-packages-${{ matrix.arch }}
           path: "dist"
           retention-days: 1
 
@@ -158,6 +165,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: stable-packages-x86_64
+          path: .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: stable-packages-aarch64
           path: .
 
       - uses: actions/download-artifact@v4
