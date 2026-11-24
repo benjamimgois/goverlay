@@ -1,97 +1,54 @@
 <p align="center">
- <img width="320" height="225" alt="image" src="/data/goverlay_splash.png" />
+  <img width="320" height="225" alt="Goverlay" src="/data/goverlay_splash.png" />
 </p>
 
 <p align="center">
   <a href="https://github.com/benjamimgois/goverlay/releases">
-    <img
-      src="https://img.shields.io/github/v/release/benjamimgois/goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge"
-      alt="Latest release">
+    <img src="https://img.shields.io/github/v/release/benjamimgois/goverlay?color=4CAF50&label=Latest%20release&style=for-the-badge" alt="Latest release">
   </a>
-
   <a href="https://flathub.org/apps/io.github.benjamimgois.goverlay">
     <img src="https://img.shields.io/badge/Flathub-Stable-blue?style=for-the-badge&logo=flathub" alt="Flathub status">
   </a>
-
   <a href="https://aur.archlinux.org/packages/goverlay-git">
-    <img
-      src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge"
-      alt="AUR version">
+    <img src="https://img.shields.io/aur/version/goverlay-git?color=1793d1&label=AUR&style=for-the-badge" alt="AUR version">
   </a>
-
-<a href="https://github.com/benjamimgois/goverlay/releases">
-  <img
-    src="https://img.shields.io/badge/AppImage-Stable-orange?style=for-the-badge&logo=linux"
-    alt="AppImage stable">
-</a>
-
+  <a href="https://github.com/benjamimgois/goverlay/releases">
+    <img src="https://img.shields.io/badge/AppImage-Stable-orange?style=for-the-badge&logo=linux" alt="AppImage stable">
+  </a>
   <a href="https://github.com/benjamimgois/goverlay/blob/main/LICENSE">
-    <img
-      src="https://img.shields.io/github/license/benjamimgois/goverlay?color=2196f3&label=License&style=for-the-badge"
-      alt="License">
+    <img src="https://img.shields.io/github/license/benjamimgois/goverlay?color=2196f3&label=License&style=for-the-badge" alt="License">
   </a>
 </p>
 
 ---
 
-**Goverlay** is a modern Qt6 GUI application for Linux gamers that puts powerful performance and visual tools behind an easy-to-use interface. It configures **MangoHud**, **vkBasalt**, **vkSumi**, **OptiScaler**, and **Proton environment tweaks** through a visual, card-based layout — generating the config files and launch commands you drop into Steam or Lutris.
+**Goverlay** is a modern Qt6 GUI for Linux gamers to configure performance overlays, post-processing shaders, upscalers, frame generation, and Proton tweaks—globally or per game—in a few clicks.
 
-Whether you want real-time performance monitoring, post-processing effects, smarter upscaling, DLSS/FSR frame generation, or per-game environment overrides, Goverlay handles it in a few clicks.
-
-This project exists thanks to the amazing work of the original maintainers and contributors behind the core tools.  
-I’m just a network engineer who loves Linux and gaming — this is my way of giving something back to the community.
-
-<img width="1129" height="843" alt="Screenshot 1" src="/data/screenshots/0.webp" />
+<img width="1129" height="843" alt="Goverlay 2.0 overview with PasCube" src="/data/screenshots/0.webp" />
 
 ---
 
 ## Table of Contents
 
+- [Features](#features)
 - [Screenshots](#screenshots)
-- [Prerequisites](#prerequisites)
 - [Installation](#installation)
-  - [Universal Methods](#universal-methods)
-    - [Flatpak](#flatpak)
-    - [AppImage](#appimage)
-  - [Distributions](#distributions)
-    - [Arch and derivatives](#arch-and-derivatives)
-    - [OpenSUSE](#opensuse)
-    - [Solus](#solus)
-    - [Fedora / Debian / Ubuntu](#fedora--debian--ubuntu)
-  - [Tarball](#tarball)
-  - [Building from Source](#building-from-source)
-- [Architecture](#architecture)
-- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Prerequisites](#prerequisites)
+- [Building from Source](#building-from-source)
+- [Architecture & How It Works](#architecture--how-it-works)
 - [Credits](#credits)
 - [Donations](#donations)
 
 ---
 
-### Integrated Vulkan Preview (PasCube)
-Goverlay ships with **PasCube**, a full Vulkan demo compiled from the PasVulkan engine. It launches automatically (or on demand) to preview your MangoHud, vkBasalt, and vkSumi settings in real time. The demo title bar and overlay display the current Goverlay version.
+## Features
 
-### Per-Game Config Architecture
-When a game is selected, Goverlay switches to **Game Mode**. Each game gets its own XDG-compliant config directory containing:
-- `MangoHud.conf`
-- `vkBasalt.conf`
-- `vkSumi.conf`
-- `OptiScaler.ini`
-- `fakenvapi.ini`
-- `bgmod.conf`
-- `bgmod` wrapper binary
-
-The bottom **launch command box** updates to show the game-specific `bgmod` command with `%command%` suffix, ready to paste into Steam.
-
-### bgmod Wrapper
-`bgmod` is a compiled Free Pascal binary (not a bash script) that replaces the legacy `fgmod` approach. It:
-- Intercepts game execution arguments.
-- Exports environment variables from `bgmod.conf`.
-- Sets up Wine DLL overrides.
-- Copies upscaler binaries/plugins into the game folder on launch.
-- Supports launcher EXE replacements and UE Shipping EXE auto-discovery.
-- Logs to `/tmp/bgmod.log` and `~/.local/share/goverlay/logs/[Game Name]/` (keeping game directories clean and anti-cheat safe).
-
-An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and restores original backups.
+- **Games & Per-Game Profiles:** Auto-detects Steam and non-Steam games (with **Bottles** support in the *Apply Configuration* dialog). Switch between Global and Game Mode with one-click launch command generation (`bgmod ... %command%`) and a non-blocking launch splash (`bgmod-splash`).
+- **MangoHud + PasPlot:** Configure presets, layouts, and hardware metrics, and inspect benchmark logs directly in the integrated **PasPlot** viewer with summary cards and metric chips.
+- **Unified Post-Processing:** Manage **vkBasalt** (including 3D `.cube`/`.png` LUTs), **vkSumi**, and native **ReShade** (32/64-bit Windows DLL deployment, shader packs, hotkey capture, and `d3dcompiler_47` automation) from a single tab.
+- **Upscalers & Frame Generation:** Built-in setup and per-game configuration for **OptiScaler** (including official nightlies, custom FSR 4 builds, and `fakenvapi`), **DLSS-Enabler**, **DLSS-NR 0.0.9** (including RDNA3/4), **HelixSR 3.1**, **Lossless Scaling (`lsfg-vk`)**, **MAKO**, and **AFMF (`afmf-linux`)**.
+- **Tweaks:** Streamlined Material Design 3 tab for Proton/Wine overrides, **Controllers**, **GE/ZLUDA** tweaks, custom launch arguments, and environment variables.
+- **PasCube Vulkan Preview & Benchmark:** Real-time Vulkan preview powered by PasVulkan, featuring a Ray Tracing benchmark suite, community insights, hardware-isolated comparisons via **PasCubeDB**, and web run submission.
 
 ---
 
@@ -100,257 +57,144 @@ An uninstaller binary (`bgmod-uninstaller`) cleanly removes wrapper files and re
 <details>
 <summary><strong>Click to view screenshots</strong></summary>
 
-<img width="1129" height="843" alt="Screenshot 1" src="/data/screenshots/1.webp" />
-<img width="1129" height="843" alt="Screenshot 2" src="/data/screenshots/2.webp" />
-<img width="1129" height="843" alt="Screenshot 3" src="/data/screenshots/3.webp" />
-<img width="1129" height="843" alt="Screenshot 4" src="/data/screenshots/4.webp" />
-<img width="1129" height="843" alt="Screenshot 5" src="/data/screenshots/5.webp" />
-<img width="1129" height="843" alt="Screenshot 6" src="/data/screenshots/6.webp" />
-<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/7.webp" />
-<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/7.webp" />
-<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/8.webp" />
-<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/9.webp" />
-<img width="1129" height="843" alt="Screenshot 7" src="/data/screenshots/10.webp" />
-
+| | |
+|---|---|
+| <img src="/data/screenshots/1.webp" alt="MangoHud & PasPlot" /><br>*MangoHud presets & integrated PasPlot viewer* | <img src="/data/screenshots/2.webp" alt="Post Processing" /><br>*Unified vkBasalt, vkSumi & ReShade shaders* |
+| <img src="/data/screenshots/3.webp" alt="Upscalers & Frame Generation" /><br>*OptiScaler, DLSS-NR, HelixSR, LSFG-VK, MAKO & AFMF* | <img src="/data/screenshots/4.webp" alt="Tweaks" /><br>*Tweaks tab (Controllers, GE/ZLUDA & env overrides)* |
+| <img src="/data/screenshots/5.webp" alt="PasCube Benchmark" /><br>*PasCube benchmark results & PasCubeDB comparisons* | <img src="/data/screenshots/6.webp" alt="Games & Apply Dialog" /><br>*Game cards & Apply Configuration (Steam / Bottles)* |
 
 </details>
 
 ---
 
-## Prerequisites
-
-### Required
-
-- [**`mangohud`**](https://github.com/flightlessmango/MangoHud) — Performance overlay / monitoring
-- [**`git`**](https://github.com/git/git) — Used to clone repositories (e.g., ReShade shaders)
-- [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus
-- [**`gamemode`**](https://github.com/FeralInteractive/gamemode) — Feral GameMode daemon (for the GameMode tweak)
-- **Nerd Fonts** — Used for icon glyphs in the sidebar and game badges
-
-### Optional / Used by specific features
-
-- [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) — Vulkan post-processing effects
-- [**`vksumi`**](https://github.com/reakjra/vkSumi) *(optional but recommended)* — Alternative Vulkan post-processor with 15 tunable parameters
-- [**`lsfg-vk`**](https://github.com/PancakeTAS/lsfg-vk) — Lossless Scaling Frame Generation Vulkan layer
-- [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) — Displays AMD CPU power metrics in MangoHud
-- [**`protontricks`**](https://github.com/Matoking/protontricks) — Proton prefix management (native builds only, disabled in Flatpak)
-
-
-> [!NOTE]
-> In Flatpak, Goverlay hides host-dependent features such as GameMode and Protontricks because it cannot reliably detect or execute host binaries.
-
----
-
 ## Installation
 
-## Universal Methods
+### Universal Packages
 
-### Flatpak
-
-You can download it from [**`Flathub`**](https://flathub.org/en/apps/io.github.benjamimgois.goverlay) or install it via terminal:
-
-```bash
-# Add Flathub repository
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-# Install Goverlay (required Vulkan layers like MangoHud and vkBasalt are installed automatically)
-flatpak install flathub io.github.benjamimgois.goverlay
-```
-
-### AppImage
-
-Download the AppImage from the [Releases page](https://github.com/benjamimgois/goverlay/releases) and make it executable:
+#### AppImage & Native Packages (`amd64` & `aarch64`) (Recommended)
+Official **`.deb`** (Debian / Ubuntu), **`.rpm`** (Fedora), **AppImage**, and **tarball** builds for both `amd64` and `aarch64` are provided on the [Releases page](https://github.com/benjamimgois/goverlay/releases):
 
 ```bash
 chmod +x goverlay*.AppImage
 ./goverlay*.AppImage
 ```
 
-## Distributions
+#### Flatpak
+Install from [Flathub](https://flathub.org/en/apps/io.github.benjamimgois.goverlay) or via terminal (MangoHud and vkBasalt layers are bundled automatically):
 
-### Arch and derivatives
-
-**Option 1 – Official Repository**
 ```bash
-sudo pacman -S goverlay
-```
-**Option 2 – AUR**
-```bash
-yay -S goverlay-git
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install flathub io.github.benjamimgois.goverlay
 ```
 
-### OpenSUSE
-```bash
-sudo zypper install goverlay
-```
+### Distributions
 
-### Solus
-```bash
-sudo eopkg it goverlay
-```
+- **Debian / Ubuntu:** Download the `.deb` package (`amd64` or `aarch64`) from [Releases](https://github.com/benjamimgois/goverlay/releases).
+- **Fedora:** Download the `.rpm` package (`amd64` or `aarch64`) from [Releases](https://github.com/benjamimgois/goverlay/releases).
+- **Arch & derivatives:** `sudo pacman -S goverlay` (or `yay -S goverlay-git` from AUR)
+- **openSUSE:** `sudo zypper install goverlay`
+- **Solus:** `sudo eopkg it goverlay`
 
 > [!IMPORTANT]
-> **Fedora / Debian / Ubuntu users:** Official repositories for these distros often ship outdated versions. It is **strongly recommended** to use the [Flatpak](#flatpak) or [AppImage](#appimage) instead.
+> **Fedora / Debian / Ubuntu users:** Official distribution repositories often ship outdated versions. Use the official `.deb` / `.rpm` release packages, [AppImage](#appimage--native-packages-amd64--aarch64-recommended), or [Flatpak](#flatpak) instead.
+>
+> If your distro lacks `libqt6pas`, grab it from [David Bannon’s releases](https://github.com/davidbannon/libqt6pas/releases).
 
 ---
 
-#### Libqt6pas
-The `libqt6pas` package is not available in some distributions’ official repositories.  
-You can get it from [David Bannon’s repository](https://github.com/davidbannon/libqt6pas/releases):
+## Prerequisites
 
-Ubuntu example:
-```bash
-sudo apt-get update
-wget https://github.com/davidbannon/libqt6pas/releases/download/v6.2.8/libqt6pas6_6.2.8-1_amd64.deb
-sudo dpkg -i libqt6pas6_6.2.8-1_amd64.deb
-```
+### Required
+- [**`mangohud`**](https://github.com/flightlessmango/MangoHud) — Performance overlay
+- [**`qt6pas`**](https://gitlab.com/freepascal.org/lazarus/lazarus/-/tree/main/lcl/interfaces/qt6/cbindings) — Qt6 bindings for Free Pascal / Lazarus
+- [**`git`**](https://github.com/git/git) — Clones shader and component repositories
+- [**`gamemode`**](https://github.com/FeralInteractive/gamemode) — Feral GameMode daemon
+- **Nerd Fonts** — Sidebar and game badge glyphs
 
-## Tarball
+### Optional (Managed via Setup Wizard)
+Goverlay includes a built-in **Setup Wizard** to install and update optional tools on demand:
+- [**`vkBasalt`**](https://github.com/DadSchoorse/vkBasalt) / [**`vksumi`**](https://github.com/reakjra/vkSumi) — Vulkan post-processing
+- **ReShade**, **OptiScaler**, **DLSS-NR**, **HelixSR**, **MAKO**, **AFMF**, [**`lsfg-vk`**](https://github.com/PancakeTAS/lsfg-vk) — Post-processing, upscaling, and frame generation
+- [**`zenergy`**](https://github.com/BoukeHaarsma23/zenergy) — AMD CPU power metrics in MangoHud
+- [**`protontricks`**](https://github.com/Matoking/protontricks) — Proton prefix helper *(native builds only; host-dependent features are hidden in Flatpak)*
 
-1. Download the latest tarball from the [Releases page](https://github.com/benjamimgois/goverlay/releases).
-2. Extract it:
-   ```bash
-   tar -xvf goverlay*.tar.xz
-   ```
-3. Run the binary:
-   ```bash
-   ./goverlay
-   ```
-
-> **Note:** Since version 0.6.4, MangoHud must be installed to run Goverlay.
+---
 
 ## Building from Source
 
-### Prerequisites
-
-- [Lazarus IDE](https://gitlab.com/freepascal.org/lazarus/lazarus) with Qt6 widgetset support
-- Qt6 development libraries (`qt6-base-dev` or equivalent)
-- `make`
-- `git`
-
-### Building
+Requires **Lazarus IDE** (with Qt6 widgetset), **Qt6 development libraries** (`qt6-base-dev` or equivalent), **`make`**, and **`git`**.
 
 ```bash
 git clone https://github.com/benjamimgois/goverlay.git
 cd goverlay
 make
+./start_goverlay.sh
 ```
 
-This compiles both `goverlay` and the integrated `pascube` Vulkan preview.
-
-### Running
-
-```bash
-./goverlay
-```
-
-### Installing
+`make` compiles `goverlay`, `pascube`, `bgmod`, `bgmod-uninstaller`, and `bgmod-splash`. To install system-wide:
 
 ```bash
 sudo make install
-```
-
-This installs the startup script to `/usr/local/bin/goverlay`, allowing you to launch it directly via:
-
-```bash
 goverlay
 ```
 
 ---
 
-## Architecture
+## Architecture & How It Works
+
+<details>
+<summary><strong>Technical details: How bgmod works, per-game XDG configs, and tech stack</strong></summary>
+
+### How `bgmod` Works
+
+```mermaid
+flowchart TD
+    A["Steam / Lutris / Heroic<br/>(bgmod &lt;game&gt; %command%)"] --> B["Load Per-Game Config<br/>(bgmod.conf, env vars, Wine DLL overrides)"]
+    B --> C{"Detect Executable Type<br/>(skips intermediate launchers)"}
+    C -->|"Native Linux ELF"| D["Skip DLL Injection<br/>Apply MangoHud, vkBasalt, vkSumi &amp; LSFG-VK"]
+    C -->|"Windows EXE (Proton / Wine)"| E["Deploy 32/64-bit Plugins<br/>Copy OptiScaler, ReShade, DLSS-NR, HelixSR + backups"]
+    D --> F["Launch Game + bgmod-splash<br/>Logs saved to ~/.local/share/goverlay/logs/"]
+    E --> F
+```
+
+### Per-Game Config Architecture
+When a game is selected, Goverlay switches to **Game Mode** and manages an isolated XDG-compliant config directory per game containing:
+- `MangoHud.conf`
+- `vkBasalt.conf`
+- `vkSumi.conf`
+- `OptiScaler.ini`
+- `fakenvapi.ini`
+- `bgmod.conf` and the `bgmod` wrapper binary
+
+`bgmod` is a compiled Free Pascal binary replacing legacy bash scripts. It keeps game directories anti-cheat safe by storing logs in `/tmp/bgmod.log` and `~/.local/share/goverlay/logs/[Game Name]/`. To remove injected files and restore original backups, run `bgmod-uninstaller`.
+
+### Tech Stack
 
 | Component | Technology |
 |---|---|
 | Language | Free Pascal (ObjFPC mode) |
-| IDE / Framework | Lazarus LCL with Qt6 widgetset |
-| UI Designer | Lazarus IDE manages `.lfm` files |
-| Build Tool | `make` (wrapper around `lazbuild`) |
-| Target | Single Linux binary (`goverlay`) |
-| Preview | Integrated Vulkan demo (`pascube`, PasVulkan engine) |
-| Wrapper | Compiled Free Pascal binary (`bgmod`) replacing legacy bash scripts |
+| GUI Framework | Lazarus LCL with Qt6 widgetset |
+| Build System | `make` (wrapping `lazbuild` & `fpc`) |
+| Preview / Benchmark | Integrated Vulkan demo (`pascube`, PasVulkan engine) |
+| Game Wrapper | Compiled Free Pascal binaries (`bgmod`, `bgmod-uninstaller`, `bgmod-splash`) |
 
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl + S` | Save current tab configuration |
-| `Ctrl + C` | Copy launch command to clipboard |
-| `Ctrl + F` | Focus global search field |
-| `F1` | Open "How to use FGMOD" quick guide |
+</details>
 
 ---
 
 ## Credits
 
-### FlightlessMango
+Goverlay builds on the work of the Linux gaming and open-source community:
 
-Huge thanks to **FlightlessMango**, creator and maintainer of **MangoHud** — the foundation that made Goverlay possible.
-
-- https://flightlessmango.com
-- https://github.com/flightlessmango/MangoHud
-- https://discord.com/invite/Gj5YmBb
-
-### DadSchoorse
-
-Special thanks to **DadSchoorse**, creator of **vkBasalt**, which adds post-processing effects to Vulkan.
-
-- https://github.com/DadSchoorse/vkBasalt
-
-### OptiScaler Team & Contributors
-
-Goverlay integrates several components from the OptiScaler ecosystem and community-driven projects that enable upscaling, frame generation, and NVIDIA APIs on Linux.
-
-**OptiScaler**
-
-Core upscaling and frame-generation project for Linux.
-
-https://github.com/optiscaler/OptiScaler
-
-**fakenvapi**
-
-User-space implementation of NVAPI used by OptiScaler and other tools.
-
-https://github.com/optiscaler/fakenvapi
-
-**Decky-Framegen (xXJSONDeruloXx)**
-
-Pioneer project that inspired much of the OptiScaler installation logic.
-
-https://github.com/xXJSONDeruloXx/Decky-Framegen
-
-**fgmod (FakeMichau)**
-
-Another important reference implementation for frame-generation utilities on Linux.
-
-https://github.com/FakeMichau/fgmod
-
-**DLSS-Enabler (Artur Graniszewski)**
-
-Tooling that expands compatibility layers for DLSS and NVAPI-based features.
-
-https://github.com/artur-graniszewski/DLSS-Enabler
-
-### serialexperimentslainnnn
-
-Special thanks to **serialexperimentslainnnn**, creator of **afmf-linux**, bringing AMD Fluid Motion Frames frame generation to Linux.
-
-- https://github.com/serialexperimentslainnnn/afmf-linux
-
-### Lazarus IDE
-
-This project was built using the [Lazarus IDE](https://www.lazarus-ide.org/).
-
-<a href="https://www.lazarus-ide.org/"><img src="https://i.ibb.co/9ykXNtw/Laz-banner.png" alt="Laz-banner" border="0"></a>
+- **Overlay & Post-Processing:** [MangoHud](https://github.com/flightlessmango/MangoHud) (FlightlessMango), [vkBasalt](https://github.com/DadSchoorse/vkBasalt) (DadSchoorse), [vkSumi](https://github.com/reakjra/vkSumi) (reakjra), [ReShade Shaders](https://github.com/crosire/reshade-shaders)
+- **Upscaling & Frame Generation:** [OptiScaler](https://github.com/optiscaler/OptiScaler) & [fakenvapi](https://github.com/optiscaler/fakenvapi), [DLSS-Enabler](https://github.com/artur-graniszewski/DLSS-Enabler) (Artur Graniszewski), [DLSSNR-RDNA3](https://github.com/saaaaaaaaaaaaaaaaaas/DLSSNR-RDNA3), [HelixSR](https://github.com/lonewolf0622/HelixSR), [MAKO](https://github.com/eugeniosegala/MAKO), [afmf-linux](https://github.com/serialexperimentslainnnn/afmf-linux) (serialexperimentslainnnn), [Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen) (xXJSONDeruloXx), [fgmod](https://github.com/FakeMichau/fgmod) (FakeMichau)
+- **Built with:** [Lazarus IDE](https://www.lazarus-ide.org/) (Free Pascal + Qt6)
 
 ---
 
 ## Donations
 
-If this project has been useful to you, consider supporting its development ❤️
+If Goverlay has been useful to you, consider supporting its development ❤️
 
 <a href='https://ko-fi.com/T6T8ERJJ7' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url)
+<a href='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Q5EYYEJ5NSJAU&source=url' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif' border='0' alt='Donate with PayPal' /></a>
