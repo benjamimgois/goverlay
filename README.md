@@ -24,7 +24,7 @@
 
 **Goverlay** is a modern Qt6 GUI for Linux gamers to configure performance overlays, post-processing shaders, upscalers, frame generation, and Proton tweaks—globally or per game—in a few clicks.
 
-<img width="1129" height="843" alt="Goverlay 2.0 overview with PasCube" src="/data/screenshots/0.webp" />
+<img alt="Goverlay 2.0 overview with PasCube" src="/data/screenshots/0.webp" />
 
 ---
 
@@ -59,9 +59,10 @@
 
 | | |
 |---|---|
-| <img src="/data/screenshots/1.webp" alt="MangoHud & PasPlot" /><br>*MangoHud presets & integrated PasPlot viewer* | <img src="/data/screenshots/2.webp" alt="Post Processing" /><br>*Unified vkBasalt, vkSumi & ReShade shaders* |
-| <img src="/data/screenshots/3.webp" alt="Upscalers & Frame Generation" /><br>*OptiScaler, DLSS-NR, HelixSR, LSFG-VK, MAKO & AFMF* | <img src="/data/screenshots/4.webp" alt="Tweaks" /><br>*Tweaks tab (Controllers, GE/ZLUDA & env overrides)* |
-| <img src="/data/screenshots/5.webp" alt="PasCube Benchmark" /><br>*PasCube benchmark results & PasCubeDB comparisons* | <img src="/data/screenshots/6.webp" alt="Games & Apply Dialog" /><br>*Game cards & Apply Configuration (Steam / Bottles)* |
+| <img src="/data/screenshots/1.webp" alt="MangoHud Presets" /><br>*MangoHud presets & layout configuration* | <img src="/data/screenshots/2.webp" alt="vkBasalt Post-Processing" /><br>*vkBasalt post-processing & 3D LUTs* |
+| <img src="/data/screenshots/3.webp" alt="vkSumi Post-Processing" /><br>*vkSumi post-processing effects* | <img src="/data/screenshots/4.webp" alt="ReShade Shaders" /><br>*Native ReShade shader packs & hotkeys* |
+| <img src="/data/screenshots/5.webp" alt="OptiScaler" /><br>*OptiScaler upscaling & fakenvapi* | <img src="/data/screenshots/6.webp" alt="Frame Generation" /><br>*Frame Generation (LSFG-VK, MAKO, AFMF, DLSS-NR & HelixSR)* |
+| <img src="/data/screenshots/7.webp" alt="Launch Arguments" /><br>*Tweaks: Custom launch arguments* | <img src="/data/screenshots/8.webp" alt="Environment Variables" /><br>*Tweaks: Environment variables & overrides* |
 
 </details>
 
