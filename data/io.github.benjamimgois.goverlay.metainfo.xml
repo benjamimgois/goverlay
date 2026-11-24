@@ -60,6 +60,29 @@
     </screenshots>
 
     <releases>
+        <release version="2.0" date="2026-11-23">
+            <description>
+                <p>New Features</p>
+                <ul>
+                    <li>Integrated PasPlot benchmark viewer tab into MangoHud with summary view and metric chips</li>
+                    <li>Redesigned PasCube benchmark results with community insights carousel, hardware-isolated comparisons, and web run submission links</li>
+                    <li>Added support for DLSS-NR 0.0.9 (including RDNA3/4), HelixSR 3.1, MAKO 4.6 headroom, custom FSR 4 builds, and official OptiScaler nightlies</li>
+                    <li>Added Controllers category, GE/ZLUDA tweaks, and Bottles support in the Apply Configuration dialog</li>
+                    <li>Added heuristic launcher vs. game executable detection in bgmod and native aarch64 DEB, RPM, and AppImage packages</li>
+                </ul>
+                <p>Improvements</p>
+                <ul>
+                    <li>Modernized component setup wizard, toast notifications, dock save indicator, and MangoHud custom preset popup</li>
+                    <li>Removed legacy UI containers and dead code, improving auto-save responsiveness and startup library detection</li>
+                </ul>
+                <p>Bug Fixes</p>
+                <ul>
+                    <li>Fixed ReShade 32-bit proxy deployment, graphics API detection, d3dcompiler_47 automation, and Flatpak runtime paths</li>
+                    <li>Fixed OptiScaler shortcut key persistence, global branch/reflex retention, and per-game upscaler profile isolation</li>
+                    <li>Fixed Steam Flatpak global MangoHud config isolation, bgmod self-update argument preservation, and missing dependency banner interactions</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.9.3" date="2026-09-24">
             <description>
                 <p>New Features</p>
