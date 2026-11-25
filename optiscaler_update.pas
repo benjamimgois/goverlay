@@ -29,6 +29,21 @@ function FetchDlssNrLatestRelease(const AArch: string; out ATag, AUrl: string): 
 // Check and automatically install/heal the DLSS-NR runtime for specified arch
 function CheckAndInstallDlssNr(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
 
+// The i686 package of the newest release that has one, in a GitHub (RDNA3) or
+// GitLab (RDNA4) releases list: tag and archive URL. Checksum files and the
+// 64-bit packages are not taken.
+function ParseDlssNr32Release(const AReleasesJson, AArch: string; out ATag, AUrl: string): Boolean;
+
+// Fetch the release tag and i686 tar.gz URL of the 32-bit DLSS-NR runtime for specified arch
+function FetchDlssNr32Release(const AArch: string; out ATag, AUrl: string): Boolean;
+
+// Check and automatically install/heal the 32-bit (i686) DLSS-NR runtime for specified arch
+// (the ReShade route for 32-bit DirectX 8/9 games)
+function CheckAndInstallDlssNr32(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+
+// Check whether the 32-bit (i686) DLSS-NR runtime is installed in central storage
+function IsDlssNr32Installed(const AArch: string): Boolean;
+
 // Extract neural model weights from user-provided nvngx_dlssnr.dll or zip archive
 function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil; const AArch: string = ''): Boolean;
 
@@ -9419,7 +9434,10 @@ begin
             begin
               if IsRdna3 then
               begin
-                if (Pos('rdna3', LowerCandidate) > 0) or (Pos('x86_64', LowerCandidate) > 0) then
+                // The release that carries the RDNA3 packages also has the 32-bit
+                // i686-rdna3 one; that package has no OptiScaler route.
+                if ((Pos('rdna3', LowerCandidate) > 0) or (Pos('x86_64', LowerCandidate) > 0)) and
+                   (Pos('i686', LowerCandidate) = 0) then
                   AUrl := Candidate;
               end
               else
@@ -9589,6 +9607,233 @@ begin
       WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallDlssNr: ', E.Message);
       if Assigned(AFailedFiles) then
         AFailedFiles.Add('DLSS-NR runtime (' + AArch + '): ' + E.Message);
+    end;
+  end;
+end;
+
+// Tag of the release an asset URL belongs to: the last "tag_name" before the
+// URL in a releases list (GitHub and GitLab both put a release's tag_name
+// before its assets).
+function DlssNrTagBefore(const AText: string; APos: Integer): string;
+var
+  P, Found, ColonPos, QuoteStart, QuoteEnd: Integer;
+begin
+  Result := '';
+  Found := 0;
+  P := Pos('"tag_name"', AText);
+  while (P > 0) and (P < APos) do
+  begin
+    Found := P;
+    P := PosEx('"tag_name"', AText, P + 10);
+  end;
+  if Found = 0 then Exit;
+  ColonPos := PosEx(':', AText, Found + 10);
+  if ColonPos = 0 then Exit;
+  QuoteStart := PosEx('"', AText, ColonPos);
+  if QuoteStart = 0 then Exit;
+  QuoteEnd := PosEx('"', AText, QuoteStart + 1);
+  if QuoteEnd > QuoteStart then
+    Result := Copy(AText, QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+end;
+
+// The i686 archive of a release: DLSSNR-RDNA3 names it *-i686-rdna3.tar.gz,
+// DLSSNR-AMD (RDNA4) *-i686.tar.gz. Checksum files (*.tar.gz.sha256) do not match.
+function IsDlssNr32AssetUrl(const ALowerUrl: string; AIsRdna3: Boolean): Boolean;
+begin
+  Result := (Pos('i686', ALowerUrl) > 0) and
+            (Length(ALowerUrl) > 7) and
+            (Copy(ALowerUrl, Length(ALowerUrl) - 6, 7) = '.tar.gz');
+  if not Result then Exit;
+  if AIsRdna3 then
+    Result := Pos('rdna3', ALowerUrl) > 0
+  else
+    Result := Pos('rdna3', ALowerUrl) = 0;
+end;
+
+function ParseDlssNr32Release(const AReleasesJson, AArch: string; out ATag, AUrl: string): Boolean;
+var
+  UrlKey, Candidate: string;
+  IsRdna3: Boolean;
+  UrlPos, HttpPos, QuoteEnd: Integer;
+begin
+  ATag := '';
+  AUrl := '';
+  IsRdna3 := SameText(AArch, 'rdna3');
+  if IsRdna3 then
+    UrlKey := 'browser_download_url'
+  else
+    UrlKey := 'direct_asset_url';
+
+  // Releases come newest first: the first i686 archive is the newest one
+  UrlPos := Pos(UrlKey, AReleasesJson);
+  while (UrlPos > 0) and (AUrl = '') do
+  begin
+    HttpPos := PosEx('http', AReleasesJson, UrlPos);
+    if HttpPos > 0 then
+    begin
+      QuoteEnd := PosEx('"', AReleasesJson, HttpPos);
+      if QuoteEnd > HttpPos then
+      begin
+        Candidate := Copy(AReleasesJson, HttpPos, QuoteEnd - HttpPos);
+        if IsDlssNr32AssetUrl(LowerCase(Candidate), IsRdna3) then
+        begin
+          AUrl := Candidate;
+          ATag := DlssNrTagBefore(AReleasesJson, UrlPos);
+        end;
+      end;
+    end;
+    UrlPos := PosEx(UrlKey, AReleasesJson, UrlPos + Length(UrlKey));
+  end;
+  Result := AUrl <> '';
+end;
+
+function FetchDlssNr32Release(const AArch: string; out ATag, AUrl: string): Boolean;
+var
+  ApiUrl, TmpFile, RespText: string;
+  Process: TProcess;
+  OutputList: TStringList;
+  IsRdna3: Boolean;
+begin
+  ATag := '';
+  AUrl := '';
+  RespText := '';
+  IsRdna3 := SameText(AArch, 'rdna3');
+
+  // The release list rather than "latest": the newest release does not always
+  // carry an i686 package (DLSSNR-RDNA3 also publishes 64-bit-only builds).
+  if IsRdna3 then
+    ApiUrl := 'https://api.github.com/repos/saaaaaaaaaaaaaaaaaas/DLSSNR-RDNA3/releases'
+  else
+    ApiUrl := 'https://gitlab.com/api/v4/projects/mochizuki0323%2FDLSSNR-AMD/releases';
+
+  TmpFile := IncludeTrailingPathDelimiter(GetTempDir) + 'dlssnr32_api_' + AArch + '_' + IntToStr(fpgetpid) + '.json';
+  Process := TProcess.Create(nil);
+  try
+    Process.Executable := 'curl';
+    Process.Parameters.Add('--max-time');
+    Process.Parameters.Add('15');
+    Process.Parameters.Add('-sL');
+    Process.Parameters.Add('-H');
+    Process.Parameters.Add('User-Agent: goverlay');
+    Process.Parameters.Add('-o');
+    Process.Parameters.Add(TmpFile);
+    Process.Parameters.Add(ApiUrl);
+    Process.Options := [poWaitOnExit];
+    Process.Execute;
+  finally
+    Process.Free;
+  end;
+
+  if FileExists(TmpFile) then
+  begin
+    OutputList := TStringList.Create;
+    try
+      OutputList.LoadFromFile(TmpFile);
+      RespText := OutputList.Text;
+    finally
+      OutputList.Free;
+      DeleteFile(TmpFile);
+    end;
+  end;
+
+  ParseDlssNr32Release(RespText, AArch, ATag, AUrl);
+
+  // Fallback baseline URLs when the API is unavailable, rate limited or offline
+  if AUrl = '' then
+  begin
+    if IsRdna3 then
+    begin
+      ATag := 'v' + FALLBACK_DLSSNR_RDNA3_VERSION;
+      AUrl := URL_DLSSNR_RDNA3_REPO + '/releases/download/v' + FALLBACK_DLSSNR_RDNA3_VERSION + '/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA3_VERSION + '-i686-rdna3.tar.gz';
+    end
+    else
+    begin
+      ATag := 'v' + FALLBACK_DLSSNR_RDNA4_VERSION;
+      AUrl := URL_DLSSNR_RDNA4_REPO + '/-/releases/v' + FALLBACK_DLSSNR_RDNA4_VERSION + '/downloads/DLSSNR-AMD-Vulkan-Linux-' + FALLBACK_DLSSNR_RDNA4_VERSION + '-i686.tar.gz';
+    end;
+  end;
+  if ATag = '' then
+    ATag := 'unknown';
+
+  Result := AUrl <> '';
+end;
+
+function IsDlssNr32Installed(const AArch: string): Boolean;
+begin
+  Result := FileExists(IncludeTrailingPathDelimiter(GetBGModDlssNr32Path(AArch)) +
+                       'reshade' + PathDelim + 'dlssnr_amd.addon32');
+end;
+
+// Downloads DLSSNR-AMD's i686 package into dlss-nr-<arch>-i686. bgmod deploys
+// its reshade-feeder-dx9 route into 32-bit DirectX 8/9 games from there.
+function CheckAndInstallDlssNr32(const AArch: string; AForce: Boolean = False; AOnProgress: TDownloadProgressProc = nil; AFailedFiles: TStrings = nil): Boolean;
+var
+  TargetDir, Tag, DownloadUrl, TempTar: string;
+  VarsList: TStringList;
+begin
+  Result := False;
+  if (not AForce) and IsDlssNr32Installed(AArch) then
+    Exit(True);
+
+  TargetDir := IncludeTrailingPathDelimiter(GetBGModDlssNr32Path(AArch));
+  try
+    Tag := '';
+    DownloadUrl := '';
+    if not FetchDlssNr32Release(AArch, Tag, DownloadUrl) then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: could not resolve the 32-bit DLSS-NR release for ', AArch);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR 32-bit runtime (' + AArch + ')');
+      Exit(False);
+    end;
+
+    TempTar := IncludeTrailingPathDelimiter(GetTempDir) + 'dlssnr32_' + AArch + '_' + IntToStr(fpgetpid) + '.tar.gz';
+    if RunCurlWithProgress(DownloadUrl, TempTar, 96, 99, 'Downloading DLSS-NR 32-bit runtime', AOnProgress) <> 0 then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: 32-bit DLSS-NR download failed for ', AArch);
+      if FileExists(TempTar) then DeleteFile(TempTar);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR 32-bit runtime (' + AArch + ')');
+      Exit(False);
+    end;
+    if not FileExists(TempTar) then Exit(False);
+
+    // Start from an empty folder so a forced update never mixes two releases.
+    if DirectoryExists(TargetDir) then
+      DeleteDirectory(TargetDir, False);
+    ForceDirectories(TargetDir);
+
+    // The archive lists its files as ./<path>: strip that, as for the 64-bit package.
+    ExtractTarArchive(TempTar, TargetDir, 1);
+    if not IsDlssNr32Installed(AArch) then
+      ExtractTarArchive(TempTar, TargetDir, 0);
+    DeleteFile(TempTar);
+
+    if not IsDlssNr32Installed(AArch) then
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR: the 32-bit DLSS-NR package has no reshade/dlssnr_amd.addon32: ', DownloadUrl);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR 32-bit runtime (' + AArch + ')');
+      Exit(False);
+    end;
+
+    // bgmod compares this with the version recorded in each game folder.
+    VarsList := TStringList.Create;
+    try
+      VarsList.Add('OPTISCALER_DLSSNR_VERSION=' + Tag);
+      VarsList.SaveToFile(TargetDir + 'goverlay.vars');
+    finally
+      VarsList.Free;
+    end;
+
+    WriteLn('[AUTO-INSTALL] DLSS-NR 32-bit (', AArch, ') installed: ', Tag);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      WriteLn('[AUTO-INSTALL] ERROR in CheckAndInstallDlssNr32: ', E.Message);
+      if Assigned(AFailedFiles) then
+        AFailedFiles.Add('DLSS-NR 32-bit runtime (' + AArch + '): ' + E.Message);
     end;
   end;
 end;
@@ -9884,6 +10129,15 @@ begin
       CopyFile(TargetModelsDir + 'dlssnr.bin', Rdna4SubDir + 'dlssnr.bin');
     if FileExists(TargetModelsDir + 'dlssnr-small.bin') then
       CopyFile(TargetModelsDir + 'dlssnr-small.bin', Rdna4SubDir + 'dlssnr-small.bin');
+  end;
+
+  // The 32-bit runtime for 32-bit DirectX 8/9 games. Best effort: the model is
+  // already extracted, and GOverlay retries at the next start when this fails.
+  if not IsDlssNr32Installed(PrimaryArch) then
+  begin
+    if Assigned(AOnProgress) then
+      AOnProgress(95, 'Downloading DLSS-NR 32-bit runtime (' + PrimaryArch + ')...');
+    CheckAndInstallDlssNr32(PrimaryArch, False, AOnProgress);
   end;
 
   if Assigned(AOnProgress) then

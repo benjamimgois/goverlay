@@ -13,10 +13,12 @@ type
     gapiDX9,
     gapiDX11,
     gapiDX12,
-    gapiOpenGL
+    gapiOpenGL,
+    gapiDX8
   );
 
 function DetectPEGraphicsApi(const AExePath: string): TDetectedGraphicsApi;
+function DetectLegacyDirect3DApi(const AExePath: string): TDetectedGraphicsApi;
 function InferGameInstallRoot(const AInitialExePath, ASteamInstallPath: string): string;
 function ScoreGameExecutableCandidate(const AExePath: string; const AInstallRoot: string = ''): Integer;
 function ResolveRealGameExecutable(const AInitialExePath: string; const ASteamInstallPath: string = ''): string;
@@ -90,11 +92,12 @@ var
   VSize, VAddr, RSize, RPtr, OriginalFirstThunk, NameRVA, FirstThunk: LongWord;
   i, Count: Integer;
   DllName: string;
-  HasD3D9, HasD3D11, HasD3D12, HasDXGI, HasOpenGL: Boolean;
+  HasD3D8, HasD3D9, HasD3D11, HasD3D12, HasDXGI, HasOpenGL: Boolean;
 begin
   Result := gapiUnknown;
   if (AExePath = '') or not FileExists(AExePath) then Exit;
 
+  HasD3D8 := False;
   HasD3D9 := False;
   HasD3D11 := False;
   HasD3D12 := False;
@@ -197,7 +200,9 @@ begin
         if RvaToFileOffset(NameRVA, Sections, Stream.Size, NameOffset) then
         begin
           DllName := LowerCase(ExtractFileName(ReadNullTerminatedAscii(Stream, NameOffset)));
-          if DllName = 'd3d9.dll' then
+          if DllName = 'd3d8.dll' then
+            HasD3D8 := True
+          else if DllName = 'd3d9.dll' then
             HasD3D9 := True
           else if DllName = 'd3d11.dll' then
             HasD3D11 := True
@@ -224,6 +229,8 @@ begin
     Result := gapiDX11
   else if HasD3D9 then
     Result := gapiDX9
+  else if HasD3D8 then
+    Result := gapiDX8
   else if HasOpenGL then
     Result := gapiOpenGL;
 end;
@@ -520,6 +527,7 @@ begin
   case Api of
     gapiDX12:   Inc(Result, 55);
     gapiDX11:   Inc(Result, 40);
+    gapiDX8,
     gapiDX9,
     gapiOpenGL: Inc(Result, 30);
   end;
@@ -659,6 +667,95 @@ begin
     ExcludeTrailingPathDelimiter(AGameDir), 0, 4, Result, BestScore, BestSize);
 end;
 
+// Old games often load Direct3D from a renderer module instead of importing it
+// in the exe (Max Payne: e2driver\e2_d3d8_driver_mfc.dll). Returns gapiDX8 or
+// gapiDX9 when the exe, a DLL next to it or a DLL one folder below imports
+// d3d8.dll / d3d9.dll, and gapiUnknown otherwise. An exe that imports a newer
+// API (DX11/DX12/OpenGL) is not a legacy Direct3D game. D3D8 wins over D3D9 in
+// the module scan because a D3D8 game needs DXVK's d3d8.dll on top of what a
+// D3D9 game needs.
+function DetectLegacyDirect3DApi(const AExePath: string): TDetectedGraphicsApi;
+const
+  MAX_SCANNED_MODULES = 256;
+  MAX_MODULE_SIZE = 64 * 1024 * 1024;
+var
+  ExeApi: TDetectedGraphicsApi;
+  Scanned: Integer;
+  FoundDX8, FoundDX9: Boolean;
+
+  function IsOwnRuntimeDir(const ADirName: string): Boolean;
+  var
+    Low: string;
+  begin
+    Low := LowerCase(ADirName);
+    Result := (Low = 'dlssnr-amd') or (Low = 'reshade-shaders') or
+              (Low = 'vk-override') or (Low = 'optiscaler') or
+              (Low = 'd3d12_optiscaler');
+  end;
+
+  // Modules the DLSS-NR and ReShade routes put in the game folder: they are
+  // not the game's renderer, whatever they import.
+  function IsOwnRuntimeModule(const AFileName: string): Boolean;
+  var
+    Low: string;
+  begin
+    Low := LowerCase(AFileName);
+    Result := (Low = 'reshade32.dll') or (Low = 'reshade64.dll') or
+              (Low = 'vulkan-1.dll') or (Low = 'winevulkan.dll');
+  end;
+
+  procedure ScanDir(const ADir: string; ADepth: Integer);
+  var
+    SR: TSearchRec;
+    Path: string;
+  begin
+    if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faAnyFile, SR) <> 0 then Exit;
+    try
+      repeat
+        if (SR.Name = '.') or (SR.Name = '..') then Continue;
+        Path := IncludeTrailingPathDelimiter(ADir) + SR.Name;
+        if (SR.Attr and faDirectory) <> 0 then
+        begin
+          if (ADepth = 0) and not ShouldSkipCandidateScanDir(SR.Name) and
+             not IsOwnRuntimeDir(SR.Name) then
+            ScanDir(Path, ADepth + 1);
+        end
+        else if SameText(ExtractFileExt(SR.Name), '.dll') and
+                (SR.Size > 0) and (SR.Size <= MAX_MODULE_SIZE) and
+                not IsOwnRuntimeModule(SR.Name) then
+        begin
+          Inc(Scanned);
+          case DetectPEGraphicsApi(Path) of
+            gapiDX8: FoundDX8 := True;
+            gapiDX9: FoundDX9 := True;
+          end;
+        end;
+      until FoundDX8 or (Scanned >= MAX_SCANNED_MODULES) or (FindNext(SR) <> 0);
+    finally
+      FindClose(SR);
+    end;
+  end;
+
+begin
+  Result := gapiUnknown;
+  if (AExePath = '') or not FileExists(AExePath) then Exit;
+
+  ExeApi := DetectPEGraphicsApi(AExePath);
+  case ExeApi of
+    gapiDX8, gapiDX9: Exit(ExeApi);
+    gapiDX11, gapiDX12, gapiOpenGL: Exit(gapiUnknown);
+  end;
+
+  Scanned := 0;
+  FoundDX8 := False;
+  FoundDX9 := False;
+  ScanDir(ExtractFileDir(AExePath), 0);
+  if FoundDX8 then
+    Result := gapiDX8
+  else if FoundDX9 then
+    Result := gapiDX9;
+end;
+
 function RecommendedProxyForApi(AApi: TDetectedGraphicsApi): string;
 begin
   case AApi of
@@ -674,6 +771,7 @@ end;
 function GraphicsApiDisplayName(AApi: TDetectedGraphicsApi): string;
 begin
   case AApi of
+    gapiDX8:    Result := 'DirectX 8';
     gapiDX9:    Result := 'DirectX 9';
     gapiDX11:   Result := 'DirectX 11';
     gapiDX12:   Result := 'DirectX 12';

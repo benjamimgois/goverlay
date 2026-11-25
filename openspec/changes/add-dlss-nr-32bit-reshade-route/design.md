@@ -1,0 +1,70 @@
+# Design
+
+## Route selection
+
+bgmod chooses the ReShade route when all of these hold:
+
+- DLSS-NR is the selected upscaler (`UPSCALER_TYPE=4`, OptiScaler enabled).
+- The target is a Windows exe.
+- The exe's PE Machine is i386.
+- `DetectLegacyDirect3DApi` returns DirectX 8 or 9.
+
+`DetectLegacyDirect3DApi` decides as follows:
+
+1. If the exe imports `d3d8.dll` or `d3d9.dll`, that is the answer.
+2. If the exe imports a newer API (DXGI/D3D11/D3D12/OpenGL), it is not a legacy game.
+3. Otherwise it scans `*.dll` next to the exe and one folder below, at most 256 modules of at most 64 MiB each. It skips the folders GOverlay already skips, the route's own folders and modules (`dlssnr-amd`, `reshade-shaders`, `vk-override`, `ReShade32/64.dll`, `vulkan-1.dll`, `winevulkan.dll`), and the OptiScaler folders.
+
+A D3D8 importer wins over a D3D9 one, because a D3D8 game needs `d3d8.dll` on top of what a D3D9 game needs. Max Payne is the motivating case: its exe imports no Direct3D, and `e2driver/e2_d3d8_driver_mfc.dll` imports `d3d8.dll`.
+
+A 32-bit game that is neither gets a log warning and keeps today's behaviour.
+
+## Runtime
+
+- **Location:** `dlss-nr-rdna3-i686` / `dlss-nr-rdna4-i686`, next to the 64-bit channel folders. It falls back to the other architecture with a warning, as the 64-bit channel does.
+- **Version file:** `goverlay.vars` holds `OPTISCALER_DLSSNR_VERSION=<tag>`.
+- **Release lookup:** GOverlay reads the releases list rather than "latest", because DLSSNR-RDNA3 also publishes releases without an i686 package. It takes the first `*.tar.gz` with `i686` in its name (with `rdna3` for RDNA3, without it for RDNA4). Checksum files are excluded.
+- **Fallback URL:** `v0.0.9-linux-rdna3` / `v0.0.9` when the API cannot be reached.
+- **Archive layout:** the tarball lists its files as `./…` and is extracted with one component stripped.
+
+## Deployment
+
+The deployment mirrors `install.sh`'s dx9 kind, by direct copies, as this spec requires.
+
+1. **Earlier installs:** an earlier manual install is removed by its manifest. An earlier GOverlay OptiScaler install is purged.
+2. **Copies:**
+   - `dlssnr-amd/` from the runtime, plus `CC_SILVER_AARDWOLD.bin` and `CC_SMALL_FP8.bin` from `dlss-nr-models`.
+   - Everything in `reshade/` and `vulkan/` except `dxgi.dll` and `ReShadePreset-d3d9.ini`, which is copied as `ReShadePreset.ini`.
+   - `int4/reshade/*` over files of the same name: the int4 `dlssnr_amd.addon32`.
+3. **`dlssnr-amd.ini`:** built from `ini/dlssnr-amd-addon.ini` as text, with comments and spacing kept.
+   - `[RenoDX] Enabled = 1`, as `install.sh` sets it.
+   - GOverlay's gameconfig `dlssnr-amd.ini` applied on top: `[Network]`, `[Preprocess]` and `[RenoDX]` take the same keys. NRHookPoint is skipped because it is OptiScaler-only. `[wilsjo2]` Passes/WorkingScale/SkinProtection go to `[DlssNr]`.
+   - If the selected network's weights are missing, the game starts with `CC_SMALL_FP8`.
+   - A copy is written to `dlssnr-amd/dlssnr-amd.default.ini`.
+4. **DirectX 8:** DXVK's `files/lib/wine/dxvk/i386-windows/d3d8.dll` is taken from the `proton` script in bgmod's arguments. A `d3d8.dll` already in the game folder (a d3d8to9 wrapper) is kept.
+5. **Records:** the manifest `dlssnr-amd-install.txt` uses the installer's format, so either tool can remove the other's install. `goverlay.vars` gets `upscalertype=4`, `dlssnrroute=reshade-dx9`, `dlssnrruntime`, and `dlssnrapi`.
+
+A later launch reinstalls when any of these is true:
+
+- The route marker, manifest, or a core file is missing.
+- The runtime version or Direct3D version changed.
+- A model file's size changed.
+- A DirectX 8 game lost its `d3d8.dll`.
+
+Otherwise the launch only applies GOverlay settings saved after the game's ini was written. Changes made in game are kept.
+
+## Environment
+
+- **WINEDLLOVERRIDES:** `winevulkan=n,b`, `vulkan-1=n,b`, and `d3d8=n,b` for DirectX 8, without duplicating entries the user set. The OptiScaler proxy override and the DLSS-NR control layer are not exported for this route.
+- **WINE_D3D_CONFIG:** `renderer=gdi`, appended to the user's value unless it already names a renderer.
+
+## Removal
+
+The route is removed by its manifest, only when `goverlay.vars` has `dlssnrroute=reshade-dx9`. Entries that start with `/`, start with `..`, or contain `/..` are skipped. Removal happens:
+
+- when DLSS-NR is turned off,
+- when the upscaler changes,
+- when the route no longer applies,
+- in `bgmod-uninstaller`.
+
+Before removal, logs are synced to GOverlay's central log folder.

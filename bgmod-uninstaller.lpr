@@ -605,6 +605,63 @@ begin
   end;
 end;
 
+// Removes the DLSS-NR ReShade route GOverlay installs into 32-bit Direct3D 8/9
+// games: every file and folder its dlssnr-amd-install.txt lists, relative to
+// the game folder (folders end in '/'). Only for GOverlay's own installs
+// (dlssnrroute in goverlay.vars); the generic cleanup below does not know
+// these files (ReShade32.dll as a Vulkan layer, vulkan-1.dll, d3d8.dll...).
+procedure RemoveDlssNrDx9Install(const AGameDir: string);
+var
+  Manifest: TStringList;
+  ManifestPath, Entry, Target: string;
+  LinkInfo: Stat;
+  i: Integer;
+begin
+  if not SameText(ReadVarFromFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars', 'dlssnrroute'), 'reshade-dx9') then
+    Exit;
+  ManifestPath := IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd-install.txt';
+  if not FileExists(ManifestPath) then Exit;
+  Log('Removing the DLSS-NR ReShade route (32-bit DirectX 8/9)...');
+  Manifest := TStringList.Create;
+  try
+    try
+      Manifest.LoadFromFile(ManifestPath);
+    except
+      on E: Exception do
+      begin
+        Log('Warning: could not read ' + ManifestPath + ': ' + E.Message);
+        Exit;
+      end;
+    end;
+    for i := 0 to Manifest.Count - 1 do
+    begin
+      Entry := Trim(Manifest[i]);
+      if Entry = '' then Continue;
+      if (Entry[1] = '/') or (Copy(Entry, 1, 2) = '..') or (Pos('/..', Entry) > 0) then
+      begin
+        Log('Skipping suspicious DLSS-NR manifest entry: ' + Entry);
+        Continue;
+      end;
+      Target := IncludeTrailingPathDelimiter(AGameDir) + ExcludeTrailingPathDelimiter(Entry);
+      // A link (a shared shader folder, say) is removed, never what it points to
+      if (fpLStat(PChar(Target), LinkInfo) = 0) and fpS_ISLNK(LinkInfo.st_mode) then
+      begin
+        if fpUnlink(PChar(Target)) = 0 then
+          Log('Removed link: ' + Target)
+        else
+          Log('Failed to remove link: ' + Target);
+      end
+      else if DirectoryExists(Target) then
+        SafeDeleteDirectory(Target)
+      else
+        SafeDeleteFile(Target);
+    end;
+  finally
+    Manifest.Free;
+  end;
+  SafeDeleteFile(ManifestPath);
+end;
+
 function GetGOverlayBaseDataPath(const ARunningPath: string): string;
 var
   DataHome, FlatpakBase: string;
@@ -1202,6 +1259,9 @@ begin
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'ReShade64.dll.b');
       SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'ReShade32.dll.b');
       Log('Cleaned legacy in-GameDir .b breadcrumbs (if any).');
+
+      // DLSS-NR ReShade route (32-bit Direct3D 8/9 games), by its manifest
+      RemoveDlssNrDx9Install(GameDir);
 
       // Original game files (ONLY restore if backup exists, do NOT delete if no backup)
       SafeCleanOrRestore(GameDir, BackupsDir, 'd3dcompiler_47.dll', True);

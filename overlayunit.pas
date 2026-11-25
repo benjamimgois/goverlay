@@ -11522,6 +11522,18 @@ begin
     if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
       CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
 
+    // DLSS-NR's 32-bit runtime (ReShade route for 32-bit DirectX 8/9 games) for
+    // users who extracted the model before GOverlay downloaded it with the model.
+    if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and IsDlssNrModelReady then
+    begin
+      // Best effort, no failure notice: only 32-bit DirectX 8/9 games need it,
+      // and bgmod says in their log when it is missing.
+      if IsDlssNrInstalled('rdna3') then
+        CheckAndInstallDlssNr32('rdna3', False, @OnDownloadProgress);
+      if IsDlssNrInstalled('rdna4') then
+        CheckAndInstallDlssNr32('rdna4', False, @OnDownloadProgress);
+    end;
+
     CleanupUnsolicitedDesktopFiles;
 
     OnDownloadProgress(100, 'Finishing setup...');

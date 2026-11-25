@@ -29,6 +29,7 @@ function GetBGModOriginalEdgePath: string;
 function GetBGModOriginalHelixSRPath: string;
 function GetBGModOriginalCustomPath: string;
 function GetBGModDlssNrPath(const AArch: string = ''): string;
+function GetBGModDlssNr32Path(const AArch: string = ''): string;
 function GetBGModDlssNrModelsPath: string;
 
 function GetGOverlayDataPath: string;
@@ -225,6 +226,13 @@ begin
     Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr-rdna4'
   else
     Result := IncludeTrailingPathDelimiter(GetGOverlayDataPath) + 'dlss-nr';
+end;
+
+// The 32-bit (i686) DLSS-NR runtime, used by the ReShade route for 32-bit
+// DirectX 8/9 games. bgmod finds it by appending '-i686' to the channel folder.
+function GetBGModDlssNr32Path(const AArch: string = ''): string;
+begin
+  Result := GetBGModDlssNrPath(AArch) + '-i686';
 end;
 
 function GetBGModDlssNrModelsPath: string;
