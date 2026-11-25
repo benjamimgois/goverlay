@@ -33,6 +33,19 @@ When DLSS-NR is selected for a 32-bit (i386) Windows game that draws with Direct
 - **WHEN** the route is installed from the current runtime and models
 - **THEN** the launcher copies nothing again, keeps settings changed in game, and applies only GOverlay settings saved after the game's `dlssnr-amd.ini` was written.
 
+#### Scenario: DXVK d3d8.dll outside the launch
+- **WHEN** a 32-bit Direct3D 8 game is launched with DLSS-NR selected without a Proton build in the launch arguments
+- **THEN** the launcher copies DXVK's 32-bit `d3d8.dll` from the Proton build in `PROTONPATH` or `STEAM_COMPAT_TOOL_PATHS`, or else from the newest installed Proton or DXVK build of Steam, Lutris or Heroic
+- **AND** ignores 64-bit `d3d8.dll` files and folders in Steam libraries that are not Proton builds.
+
+#### Scenario: Proton updated
+- **WHEN** the route is installed and the DXVK `d3d8.dll` found at launch differs from the copy GOverlay made
+- **THEN** the launcher replaces the copy with the one found.
+
+#### Scenario: Route cannot work
+- **WHEN** DLSS-NR is selected for a 32-bit Direct3D 8/9 game launched with `PROTON_USE_WINED3D=1`, or for a Direct3D 8 game with no DXVK `d3d8.dll` in the game folder or on the system
+- **THEN** the launcher installs nothing, removes an installed route, exports no DLSS-NR environment, and logs why.
+
 #### Scenario: 32-bit runtime missing
 - **WHEN** DLSS-NR is selected for a 32-bit Direct3D 8/9 game and no i686 runtime is installed
 - **THEN** the launcher installs neither route, exports no DLSS-NR environment, and logs that the 32-bit runtime is missing.

@@ -2480,27 +2480,291 @@ begin
   end;
 end;
 
-// DXVK's 32-bit d3d8.dll from the Proton build that launches the game. Proton
-// leaves Direct3D 8 on Wine's own d3d8 (drawn with OpenGL), so without this a
-// D3D8 game never reaches Vulkan, where the ReShade layer is.
-function FindProtonDxvkD3D8: string;
+// DXVK's 32-bit d3d8.dll for Direct3D 8 games. Wine's own d3d8 draws with
+// wined3d (OpenGL), so without DXVK's a D3D8 game never reaches Vulkan, where
+// the ReShade layer is. Looked for, in order:
+//   1. the Proton build that launches the game (its path is in our arguments)
+//   2. the Proton build named by PROTONPATH (umu-launcher: Heroic, Lutris,
+//      Faugus) or STEAM_COMPAT_TOOL_PATHS (Steam)
+//   3. the newest one installed: Steam's compatibility tools and Proton
+//      builds (native, Flatpak, system-wide), Lutris' and Heroic's Proton and
+//      DXVK builds
+// Recent Proton builds (Proton 9 and later, GE-Proton, Proton-CachyOS) ship it;
+// standalone DXVK has it since 2.4.
 var
-  i, c: Integer;
-  Arg, ProtonDir: string;
-  Candidates: array[0..2] of string;
+  DxvkD3D8Searched: Boolean = False;
+  DxvkD3D8Path: string = '';
+
+function IsDxvkD3D8Candidate(const APath: string): Boolean;
+begin
+  Result := FileExists(APath) and (GetPEMachine(APath) = PE_MACHINE_I386);
+end;
+
+// d3d8.dll in a Proton build folder, whatever its version's layout
+function ProtonBuildD3D8(const AProtonDir: string): string;
+const
+  RelPaths: array[0..2] of string = (
+    'files/lib/wine/dxvk/i386-windows/d3d8.dll',  // Proton 9 and later, GE-Proton, Proton-CachyOS
+    'files/lib/wine/dxvk/d3d8.dll',
+    'dist/lib/wine/dxvk/d3d8.dll');
+var
+  c: Integer;
+  Dir: string;
 begin
   Result := '';
+  if AProtonDir = '' then Exit;
+  Dir := IncludeTrailingPathDelimiter(AProtonDir);
+  for c := 0 to High(RelPaths) do
+    if IsDxvkD3D8Candidate(Dir + RelPaths[c]) then
+      Exit(Dir + RelPaths[c]);
+end;
+
+// Steam library folders (steamapps/) listed in a libraryfolders.vdf
+procedure AddSteamLibraries(const AVdfPath: string; ALibraries: TStrings);
+var
+  Vdf: TStringList;
+  i, p1, p2, p3, p4: Integer;
+  Line: string;
+begin
+  if not FileExists(AVdfPath) then Exit;
+  Vdf := TStringList.Create;
+  try
+    try
+      Vdf.LoadFromFile(AVdfPath);
+    except
+      Exit;
+    end;
+    for i := 0 to Vdf.Count - 1 do
+    begin
+      Line := Trim(Vdf[i]);
+      if LowerCase(Copy(Line, 1, 6)) <> '"path"' then Continue;
+      p1 := Pos('"', Line);
+      p2 := Pos('"', Line, p1 + 1);
+      p3 := Pos('"', Line, p2 + 1);
+      p4 := Pos('"', Line, p3 + 1);
+      if (p3 > 0) and (p4 > p3) then
+        ALibraries.Add(IncludeTrailingPathDelimiter(Copy(Line, p3 + 1, p4 - p3 - 1)) + 'steamapps');
+    end;
+  finally
+    Vdf.Free;
+  end;
+end;
+
+// The newest d3d8.dll (by modification time) in the subfolders of AParent:
+// Proton build folders, or DXVK release folders (x32/d3d8.dll). In Steam
+// libraries' common/ only folders named like Proton are looked at.
+procedure ConsiderInstalledD3D8(const AParent: string; ADxvkRelease, AProtonNamesOnly: Boolean;
+  var ABest: string; var ABestAge: LongInt);
+var
+  SR: TSearchRec;
+  Candidate: string;
+  Age: LongInt;
+begin
+  if not DirectoryExists(AParent) then Exit;
+  if FindFirst(IncludeTrailingPathDelimiter(AParent) + '*', faDirectory, SR) <> 0 then Exit;
+  try
+    repeat
+      if (SR.Name = '.') or (SR.Name = '..') or ((SR.Attr and faDirectory) = 0) then Continue;
+      if AProtonNamesOnly and (Pos('proton', LowerCase(SR.Name)) = 0) then Continue;
+      if ADxvkRelease then
+      begin
+        Candidate := IncludeTrailingPathDelimiter(AParent) + SR.Name + '/x32/d3d8.dll';
+        if not IsDxvkD3D8Candidate(Candidate) then Candidate := '';
+      end
+      else
+        Candidate := ProtonBuildD3D8(IncludeTrailingPathDelimiter(AParent) + SR.Name);
+      if Candidate = '' then Continue;
+      Age := FileAge(Candidate);
+      if (ABest = '') or (Age > ABestAge) then
+      begin
+        ABest := Candidate;
+        ABestAge := Age;
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
+function FindDxvkD3D8: string;
+var
+  i: Integer;
+  Arg, Home, DataHome, Source: string;
+  Paths, Libraries: TStringList;
+  BestAge: LongInt;
+begin
+  if DxvkD3D8Searched then Exit(DxvkD3D8Path);
+  DxvkD3D8Searched := True;
+  Result := '';
+  Source := '';
+
+  // 1. The Proton build that launches the game
   for i := 1 to ParamCount do
   begin
     Arg := ParamStr(i);
-    if (ExtractFileName(Arg) <> 'proton') or not FileExists(Arg) then Continue;
-    ProtonDir := IncludeTrailingPathDelimiter(ExtractFileDir(Arg));
-    Candidates[0] := ProtonDir + 'files/lib/wine/dxvk/i386-windows/d3d8.dll';  // Proton 9 and later, GE-Proton
-    Candidates[1] := ProtonDir + 'files/lib/wine/dxvk/d3d8.dll';
-    Candidates[2] := ProtonDir + 'dist/lib/wine/dxvk/d3d8.dll';
-    for c := 0 to High(Candidates) do
-      if FileExists(Candidates[c]) then
-        Exit(Candidates[c]);
+    if (ExtractFileName(Arg) = 'proton') and FileExists(Arg) then
+    begin
+      Result := ProtonBuildD3D8(ExtractFileDir(Arg));
+      if Result <> '' then
+      begin
+        Source := 'the Proton build that launches the game';
+        Break;
+      end;
+    end;
+  end;
+
+  // 2. The Proton build the launcher names in the environment
+  if Result = '' then
+  begin
+    Result := ProtonBuildD3D8(GetEnvironmentVariable('PROTONPATH'));
+    if Result <> '' then
+      Source := 'PROTONPATH';
+  end;
+  if Result = '' then
+  begin
+    Paths := TStringList.Create;
+    try
+      Paths.Delimiter := ':';
+      Paths.StrictDelimiter := True;
+      Paths.DelimitedText := GetEnvironmentVariable('STEAM_COMPAT_TOOL_PATHS');
+      for i := 0 to Paths.Count - 1 do
+      begin
+        Result := ProtonBuildD3D8(Paths[i]);
+        if Result <> '' then
+        begin
+          Source := 'STEAM_COMPAT_TOOL_PATHS';
+          Break;
+        end;
+      end;
+    finally
+      Paths.Free;
+    end;
+  end;
+
+  // 3. The newest one installed
+  if Result = '' then
+  begin
+    Home := IncludeTrailingPathDelimiter(GetUserDir);
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := Home + '.local/share';
+    DataHome := IncludeTrailingPathDelimiter(DataHome);
+    BestAge := -1;
+    Libraries := TStringList.Create;
+    try
+      Libraries.Sorted := True;
+      Libraries.Duplicates := dupIgnore;
+      // Proton builds: Steam (native, Flatpak, system-wide), Lutris, Heroic
+      ConsiderInstalledD3D8(DataHome + 'Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.steam/root/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.steam/steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8('/usr/share/steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(DataHome + 'lutris/runners/wine', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/net.lutris.Lutris/data/lutris/runners/wine', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.config/heroic/tools/proton', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.heroicgameslauncher.hgl/config/heroic/tools/proton', False, False, Result, BestAge);
+      // Valve's Proton builds in every Steam library
+      Libraries.Add(DataHome + 'Steam/steamapps');
+      Libraries.Add(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
+      AddSteamLibraries(DataHome + 'Steam/steamapps/libraryfolders.vdf', Libraries);
+      AddSteamLibraries(Home + '.steam/steam/steamapps/libraryfolders.vdf', Libraries);
+      AddSteamLibraries(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf', Libraries);
+      for i := 0 to Libraries.Count - 1 do
+        ConsiderInstalledD3D8(IncludeTrailingPathDelimiter(Libraries[i]) + 'common', False, True, Result, BestAge);
+      // DXVK builds: Lutris, Heroic
+      ConsiderInstalledD3D8(DataHome + 'lutris/runtime/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/net.lutris.Lutris/data/lutris/runtime/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.config/heroic/tools/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.heroicgameslauncher.hgl/config/heroic/tools/dxvk', True, False, Result, BestAge);
+    finally
+      Libraries.Free;
+    end;
+    if Result <> '' then
+      Source := 'the newest installed DXVK';
+  end;
+
+  if Result <> '' then
+    Log('DXVK d3d8.dll for Direct3D 8: ' + Result + ' (' + Source + ')');
+  DxvkD3D8Path := Result;
+end;
+
+// True when the game's dlssnr-amd-install.txt lists AEntry
+function DlssNrManifestLists(const AGameDir, AEntry: string): Boolean;
+var
+  Manifest: TStringList;
+  i: Integer;
+begin
+  Result := False;
+  if not FileExists(IncludeTrailingPathDelimiter(AGameDir) + DLSSNR_MANIFEST) then Exit;
+  Manifest := TStringList.Create;
+  try
+    try
+      Manifest.LoadFromFile(IncludeTrailingPathDelimiter(AGameDir) + DLSSNR_MANIFEST);
+    except
+      Exit;
+    end;
+    for i := 0 to Manifest.Count - 1 do
+      if SameText(Trim(Manifest[i]), AEntry) then
+        Exit(True);
+  finally
+    Manifest.Free;
+  end;
+end;
+
+function FilesDiffer(const AFirst, ASecond: string): Boolean;
+var
+  A, B: TMemoryStream;
+begin
+  Result := True;
+  if not (FileExists(AFirst) and FileExists(ASecond)) then Exit;
+  if GetFileSize(AFirst) <> GetFileSize(ASecond) then Exit;
+  A := TMemoryStream.Create;
+  B := TMemoryStream.Create;
+  try
+    try
+      A.LoadFromFile(AFirst);
+      B.LoadFromFile(ASecond);
+      Result := (A.Size <> B.Size) or not CompareMem(A.Memory, B.Memory, A.Size);
+    except
+      Result := True;
+    end;
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// The d3d8.dll GOverlay copied follows the DXVK build found at launch, so a
+// Proton update (or a switch to another build) reaches the game too.
+procedure RefreshDlssNrDx9D3D8(const AGameDir: string);
+var
+  Src, Dst: string;
+begin
+  if not DlssNrManifestLists(AGameDir, 'd3d8.dll') then Exit;
+  Src := FindDxvkD3D8;
+  if Src = '' then Exit;
+  Dst := IncludeTrailingPathDelimiter(AGameDir) + 'd3d8.dll';
+  if not FilesDiffer(Src, Dst) then Exit;
+  Log('Updating the game''s DXVK d3d8.dll from ' + Src);
+  SafeCopyFile(Src, Dst);
+end;
+
+// PROTON_USE_WINED3D=1 draws Direct3D 8-11 with wined3d instead of DXVK: the
+// game then never reaches Vulkan, and the route's renderer=gdi would leave it
+// without 3D at all.
+function IsWineD3DForced(const AConfigDir: string): Boolean;
+var
+  Ini: TIniFile;
+begin
+  Result := Trim(GetEnvironmentVariable('PROTON_USE_WINED3D')) = '1';
+  if Result or not FileExists(IncludeTrailingPathDelimiter(AConfigDir) + 'bgmod.conf') then Exit;
+  Ini := TIniFile.Create(IncludeTrailingPathDelimiter(AConfigDir) + 'bgmod.conf');
+  try
+    Result := Trim(Ini.ReadString('Env', 'PROTON_USE_WINED3D', '')) = '1';
+  finally
+    Ini.Free;
   end;
 end;
 
@@ -2763,7 +3027,7 @@ begin
      not FileExists(GamePath + 'vulkan-1.dll') then Exit;
   if ReadVarFromFile(VarsPath, 'dlssnrruntime') <> DlssNrDx9RuntimeVersion(ARuntimeDir) then Exit;
   if ReadVarFromFile(VarsPath, 'dlssnrapi') <> GraphicsApiDisplayName(AApi) then Exit;
-  if (AApi = gapiDX8) and not FileExists(GamePath + 'd3d8.dll') and (FindProtonDxvkD3D8 <> '') then Exit;
+  if (AApi = gapiDX8) and not FileExists(GamePath + 'd3d8.dll') and (FindDxvkD3D8 <> '') then Exit;
   for m := 0 to High(ModelFiles) do
   begin
     Central := IncludeTrailingPathDelimiter(AModelsDir) + ModelFiles[m];
@@ -2888,15 +3152,12 @@ begin
         Log('The game folder has its own d3d8.dll; it is kept and loaded through the d3d8 override.')
       else
       begin
-        D3D8Src := FindProtonDxvkD3D8;
+        D3D8Src := FindDxvkD3D8;
         if D3D8Src <> '' then
         begin
           SafeCopyFile(D3D8Src, GamePath + 'd3d8.dll');
           AddEntry('d3d8.dll');
-        end
-        else
-          Log('Warning: DXVK''s 32-bit d3d8.dll was not found in the Proton build that launches the game. ' +
-              'Without it Direct3D 8 is drawn with OpenGL and DLSS-NR cannot attach (Proton 9 or newer has it).');
+        end;
       end;
     end;
 
@@ -4127,7 +4388,23 @@ begin
             FileExists(DlssNrChannelDir + 'dlssnr-amd' + PathDelim + 'CC_SMALL_FP8.bin')) then
           DlssNrModelsDir := DlssNrChannelDir + 'dlssnr-amd';
         DlssNr32Dir := ResolveDlssNr32RuntimeDir(DlssNrChannelDir);
-        if DlssNr32Dir = '' then
+        if IsWineD3DForced(ConfigDir) then
+        begin
+          Log('Warning: PROTON_USE_WINED3D=1 draws the game with wined3d instead of DXVK, so it never reaches Vulkan, ' +
+              'where DLSS-NR''s ReShade route attaches. DLSS-NR is not installed in this game.');
+          RemoveGOverlayDlssNrDx9Install(GameDir);
+        end
+        else if (DlssNrDx9Api = gapiDX8) and
+                not FileExists(IncludeTrailingPathDelimiter(GameDir) + 'd3d8.dll') and (FindDxvkD3D8 = '') then
+        begin
+          // Without DXVK's d3d8.dll the game would get the route's renderer=gdi
+          // but still draw with wined3d: no picture at all. It keeps Wine's own
+          // Direct3D 8 instead.
+          Log('Warning: no DXVK d3d8.dll found for this Direct3D 8 game (Proton 9 or later, GE-Proton, Proton-CachyOS, ' +
+              'or DXVK 2.4 or later in Lutris or Heroic has one). DLSS-NR is not installed, so the game runs with Wine''s own Direct3D 8.');
+          RemoveGOverlayDlssNrDx9Install(GameDir);
+        end
+        else if DlssNr32Dir = '' then
         begin
           Log('Warning: the 32-bit DLSS-NR runtime (' + ExcludeTrailingPathDelimiter(DlssNrChannelDir) + '-i686) is not installed. ' +
               'Open GOverlay with DLSS-NR selected to download it.');
@@ -4154,6 +4431,8 @@ begin
           begin
             Log('DLSS-NR ReShade route in game directory is already up to date, skipping copy.');
             SyncDlssNrDx9Ini(GameDir, ConfigDir);
+            if DlssNrDx9Api = gapiDX8 then
+              RefreshDlssNrDx9D3D8(GameDir);
             DlssNrDx9Active := True;
           end;
         end;

@@ -41,7 +41,12 @@ The deployment mirrors `install.sh`'s dx9 kind, by direct copies, as this spec r
    - GOverlay's gameconfig `dlssnr-amd.ini` applied on top: `[Network]`, `[Preprocess]` and `[RenoDX]` take the same keys. NRHookPoint is skipped because it is OptiScaler-only. `[wilsjo2]` Passes/WorkingScale/SkinProtection go to `[DlssNr]`.
    - If the selected network's weights are missing, the game starts with `CC_SMALL_FP8`.
    - A copy is written to `dlssnr-amd/dlssnr-amd.default.ini`.
-4. **DirectX 8:** DXVK's `files/lib/wine/dxvk/i386-windows/d3d8.dll` is taken from the `proton` script in bgmod's arguments. A `d3d8.dll` already in the game folder (a d3d8to9 wrapper) is kept.
+4. **DirectX 8:** DXVK's 32-bit `d3d8.dll` (checked to be i386) is copied from the first of:
+   1. the Proton build that launches the game (the `proton` script in bgmod's arguments);
+   2. the Proton build in `PROTONPATH` (umu-launcher: Heroic, Lutris, Faugus) or `STEAM_COMPAT_TOOL_PATHS` (Steam);
+   3. the newest one installed (by modification time): Steam's `compatibilitytools.d` (native, Flatpak, `/usr/share/steam`), Proton builds named like Proton in every Steam library's `common/`, Lutris' and Heroic's Proton/Wine builds, and Lutris' and Heroic's DXVK releases (`x32/d3d8.dll`).
+
+   A `d3d8.dll` already in the game folder (a d3d8to9 wrapper) is kept. A copy GOverlay made follows the build found at each launch, so Proton updates reach the game.
 5. **Records:** the manifest `dlssnr-amd-install.txt` uses the installer's format, so either tool can remove the other's install. `goverlay.vars` gets `upscalertype=4`, `dlssnrroute=reshade-dx9`, `dlssnrruntime`, and `dlssnrapi`.
 
 A later launch reinstalls when any of these is true:
@@ -50,6 +55,11 @@ A later launch reinstalls when any of these is true:
 - The runtime version or Direct3D version changed.
 - A model file's size changed.
 - A DirectX 8 game lost its `d3d8.dll`.
+
+The route is not installed (and an installed one is removed) when it cannot work and would only break the game:
+
+- **`PROTON_USE_WINED3D=1`** (in the environment or the profile's `[Env]`): the game draws with wined3d, never reaches Vulkan, and `renderer=gdi` would leave it without 3D.
+- **A DirectX 8 game with no DXVK `d3d8.dll`** in the game folder or anywhere above: the same, so the game keeps Wine's own Direct3D 8.
 
 Otherwise the launch only applies GOverlay settings saved after the game's ini was written. Changes made in game are kept.
 

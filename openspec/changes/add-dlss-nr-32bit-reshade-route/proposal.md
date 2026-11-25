@@ -16,7 +16,8 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 - **Deployment:**
   - bgmod copies the files `install.sh` copies for the dx9 route: the runtime folder and models, `reshade/` and `vulkan/` without `dxgi.dll`, the D3D9 preset as `ReShadePreset.ini`, and the int4 add-on.
   - It writes `dlssnr-amd.ini` from the package's add-on ini with GOverlay's DLSS-NR settings applied.
-  - For DirectX 8 it copies DXVK's 32-bit `d3d8.dll` from the Proton build that launches the game.
+  - For DirectX 8 it copies DXVK's 32-bit `d3d8.dll`: from the Proton build that launches the game, else the one named by `PROTONPATH` or `STEAM_COMPAT_TOOL_PATHS`, else the newest installed Proton or DXVK build (Steam, Lutris, Heroic). The copy follows Proton updates.
+  - It installs nothing when the route cannot work: under `PROTON_USE_WINED3D=1`, or in a DirectX 8 game with no DXVK `d3d8.dll` to be found.
   - It lists everything in `dlssnr-amd-install.txt`, in the installer's own format.
 - **Environment:** bgmod exports `winevulkan`, `vulkan-1` (and, for DirectX 8, `d3d8`) as `n,b` overrides. It adds `renderer=gdi` to `WINE_D3D_CONFIG` unless the user already set a renderer.
 - **ReShade:** GOverlay's own ReShade deployment is skipped in these games, and a ReShade proxy it installed earlier is removed. The route already runs ReShade, and two copies would hook the game twice.

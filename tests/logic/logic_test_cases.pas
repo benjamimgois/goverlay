@@ -128,6 +128,7 @@ type
     procedure TestDetectLegacyDirect3DApi;
     procedure TestBgmodDlssNr32BitDx8ReShadeRoute;
     procedure TestBgmodDlssNr32BitDx9ReplacesEarlierInstalls;
+    procedure TestBgmodDlssNr32BitDx8FindsDxvkD3D8;
     procedure TestResolveRealGameExecutableHeuristics;
     procedure TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
@@ -3146,6 +3147,31 @@ begin
   WriteDlssNr32TestText(Base + 'dlss-nr-models/CC_SMALL_FP8.bin', 'SMALL_WEIGHTS');
 end;
 
+function SameDlssNr32TestFile(const AFirst, ASecond: string): Boolean;
+var
+  A, B: TMemoryStream;
+begin
+  Result := False;
+  if not (FileExists(AFirst) and FileExists(ASecond)) then Exit;
+  A := TMemoryStream.Create;
+  B := TMemoryStream.Create;
+  try
+    A.LoadFromFile(AFirst);
+    B.LoadFromFile(ASecond);
+    Result := (A.Size = B.Size) and CompareMem(A.Memory, B.Memory, A.Size);
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// A 32-bit PE standing in for a DXVK d3d8.dll; ATag makes builds tell apart
+procedure WriteDxvkD3D8TestStub(const APath, ATag: string; AIs64Bit: Boolean = False);
+begin
+  ForceDirectories(ExtractFileDir(APath));
+  WritePEImportTestStub(APath, AIs64Bit, ATag + '.dll');
+end;
+
 procedure CopyBgmodForDlssNr32Test(const ACfgDir: string);
 var
   Proc: TProcess;
@@ -3192,8 +3218,13 @@ begin
     for i := 1 to GetEnvironmentVariableCount do
     begin
       EnvStr := GetEnvironmentString(i);
+      // Wine settings and Proton/DXVK lookups come only from the test itself
       if (Pos('WINEDLLOVERRIDES=', UpperCase(EnvStr)) <> 1) and
-         (Pos('WINE_D3D_CONFIG=', UpperCase(EnvStr)) <> 1) then
+         (Pos('WINE_D3D_CONFIG=', UpperCase(EnvStr)) <> 1) and
+         (Pos('PROTONPATH=', UpperCase(EnvStr)) <> 1) and
+         (Pos('STEAM_COMPAT_TOOL_PATHS=', UpperCase(EnvStr)) <> 1) and
+         (Pos('PROTON_USE_WINED3D=', UpperCase(EnvStr)) <> 1) and
+         (Pos('XDG_DATA_HOME=', UpperCase(EnvStr)) <> 1) then
         Proc.Environment.Add(EnvStr);
     end;
     Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + AGameDir);
@@ -3250,7 +3281,7 @@ begin
   // The Proton build launching the game, with DXVK's 32-bit d3d8.dll
   ProtonDir := IsolatedHome + '/compatibilitytools.d/proton-cachyos';
   WriteDlssNr32TestText(ProtonDir + '/proton', '#!/bin/sh');
-  WriteDlssNr32TestText(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'DXVK_D3D8');
+  WriteDxvkD3D8TestStub(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_launch');
 
   WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
     '[Config]' + LineEnding +
@@ -3285,7 +3316,8 @@ begin
   AssertFalse('No OptiScaler in a 32-bit game', FileExists(GameDir + '/OptiScaler.dll'));
   AssertTrue('Runtime folder', FileExists(GameDir + '/dlssnr-amd/shaders/nr.spv'));
   AssertEquals('Models copied', 'SILVER_WEIGHTS', ReadDlssNr32TestText(GameDir + '/dlssnr-amd/CC_SILVER_AARDWOLD.bin'));
-  AssertEquals('DXVK d3d8.dll from the launching Proton', 'DXVK_D3D8', ReadDlssNr32TestText(GameDir + '/d3d8.dll'));
+  AssertTrue('DXVK d3d8.dll from the launching Proton',
+    SameDlssNr32TestFile(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', GameDir + '/d3d8.dll'));
   AssertTrue('Default ini copy for NR', FileExists(GameDir + '/dlssnr-amd/dlssnr-amd.default.ini'));
 
   Overrides := ReadDlssNr32TestText(GameDir + '/dlssnr-amd-install.txt');
@@ -3334,12 +3366,16 @@ begin
     Ini.Free;
   end;
   FileSetDate(CfgDir + '/dlssnr-amd.ini', DateTimeToFileDate(Now - 1));
+  // Proton updated: its DXVK d3d8.dll changed
+  WriteDxvkD3D8TestStub(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_launch_updated_build');
   AssertEquals('second run exits cleanly', 0,
     RunBgmodForDlssNr32Test(CfgDir, GameDir, [ProtonDir + '/proton', 'waitforexitandrun', Exe], []));
   LogFile := IsolatedHome + '/.local/share/goverlay/logs/DlssNr32Dx8Game/bgmod.log';
   AssertTrue('Log says the route is up to date',
     Pos('DLSS-NR ReShade route in game directory is already up to date', ReadDlssNr32TestText(LogFile)) > 0);
   AssertEquals('Files are not copied again', 'CHANGED_IN_GAME', ReadDlssNr32TestText(GameDir + '/ReShade.ini'));
+  AssertTrue('d3d8.dll follows the updated Proton build',
+    SameDlssNr32TestFile(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', GameDir + '/d3d8.dll'));
   AssertTrue('Overrides still exported', Pos('vulkan-1=n,b', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES')) > 0);
 
   // 3. Settings saved in GOverlay after that are applied, in-game changes kept
@@ -3376,6 +3412,123 @@ begin
   AssertFalse('Route marker removed', Pos('dlssnrroute', ReadDlssNr32TestText(VarsFile)) > 0);
   AssertEquals('No overrides once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
   AssertEquals('No wined3d setting once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx8FindsDxvkD3D8;
+var
+  Base, Steam, CfgDir, LogText, Chosen, Lib: string;
+  SR: TSearchRec;
+  SystemHasOne: Boolean;
+
+  // A fresh Max Payne-like game; returns its folder
+  function NewDx8Game(const AName: string): string;
+  begin
+    Result := IsolatedHome + '/games/dx8-' + AName;
+    ForceDirectories(Result + '/e2driver');
+    WritePEImportTestStub(Result + '/maxpayne.exe', False, 'kernel32.dll');
+    WritePEImportTestStub(Result + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'd3d8.dll');
+  end;
+
+  procedure Launch(const AGame: string; const AArgs: array of string; const AEnv: array of string);
+  begin
+    AssertEquals('bgmod exits cleanly', 0, RunBgmodForDlssNr32Test(CfgDir, AGame, AArgs, AEnv));
+    LogText := ReadDlssNr32TestText(Base + 'logs/DlssNr32Dx8Lookup/bgmod.log');
+  end;
+
+  procedure SetAge(const APath: string; ADaysAgo: Double);
+  begin
+    FileSetDate(APath, DateTimeToFileDate(Now - ADaysAgo));
+  end;
+
+var
+  Game: string;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  Steam := IsolatedHome + '/.local/share/Steam/';
+  CfgDir := Base + 'gameconfig/DlssNr32Dx8Lookup';
+  CopyBgmodForDlssNr32Test(CfgDir);
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=maxpayne.exe');
+
+  // 1. No DXVK d3d8.dll anywhere: nothing installed, the game keeps Wine's own
+  //    Direct3D 8 (renderer=gdi without DXVK would leave it without 3D). A
+  //    system-wide Proton (a distribution package) would be found, so this
+  //    part only runs without one.
+  SystemHasOne := False;
+  if FindFirst('/usr/share/steam/compatibilitytools.d/*', faDirectory, SR) = 0 then
+  begin
+    repeat
+      if (SR.Name <> '.') and (SR.Name <> '..') and
+         FileExists('/usr/share/steam/compatibilitytools.d/' + SR.Name + '/files/lib/wine/dxvk/i386-windows/d3d8.dll') then
+        SystemHasOne := True;
+    until FindNext(SR) <> 0;
+    FindClose(SR);
+  end;
+  if not SystemHasOne then
+  begin
+    Game := NewDx8Game('nodxvk');
+    Launch(Game, [Game + '/maxpayne.exe'], []);
+    AssertFalse('No route without DXVK''s d3d8.dll', FileExists(Game + '/ReShade32.dll'));
+    AssertFalse('No d3d8.dll', FileExists(Game + '/d3d8.dll'));
+    AssertEquals('No wined3d setting', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+    AssertEquals('No overrides', '', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
+    AssertTrue('Log says why', Pos('no DXVK d3d8.dll found', LogText) > 0);
+  end;
+
+  // 2. PROTONPATH (umu-launcher: Heroic, Lutris)
+  WriteDxvkD3D8TestStub(IsolatedHome + '/umu/GE-Proton-umu/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_umu');
+  Game := NewDx8Game('protonpath');
+  Launch(Game, [Game + '/maxpayne.exe'], ['PROTONPATH=' + IsolatedHome + '/umu/GE-Proton-umu']);
+  AssertTrue('d3d8.dll from PROTONPATH',
+    SameDlssNr32TestFile(IsolatedHome + '/umu/GE-Proton-umu/files/lib/wine/dxvk/i386-windows/d3d8.dll', Game + '/d3d8.dll'));
+  AssertTrue('Route installed', FileExists(Game + '/ReShade32.dll'));
+  AssertTrue('Log names the source', Pos('(PROTONPATH)', LogText) > 0);
+
+  // 3. Nothing in the launch: the newest installed build. Valve's Proton in a
+  //    second Steam library is the newest; a newer d3d8.dll in a game folder,
+  //    an older GE-Proton and a 64-bit DXVK build are not taken.
+  Lib := IsolatedHome + '/library2';
+  WriteDlssNr32TestText(Steam + 'steamapps/libraryfolders.vdf',
+    '"libraryfolders"' + LineEnding + '{' + LineEnding +
+    '  "0"' + LineEnding + '  {' + LineEnding + '    "path"    "' + IsolatedHome + '/.local/share/Steam"' + LineEnding + '  }' + LineEnding +
+    '  "1"' + LineEnding + '  {' + LineEnding + '    "path"    "' + Lib + '"' + LineEnding + '  }' + LineEnding + '}');
+  WriteDxvkD3D8TestStub(Steam + 'compatibilitytools.d/GE-Proton9-1/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_ge9');
+  SetAge(Steam + 'compatibilitytools.d/GE-Proton9-1/files/lib/wine/dxvk/i386-windows/d3d8.dll', 30);
+  WriteDxvkD3D8TestStub(Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_experimental');
+  SetAge(Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll', 2);
+  WriteDxvkD3D8TestStub(Lib + '/steamapps/common/Some Game/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'not_proton');
+  SetAge(Lib + '/steamapps/common/Some Game/files/lib/wine/dxvk/i386-windows/d3d8.dll', 0);
+  WriteDxvkD3D8TestStub(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.5/x32/d3d8.dll', 'dxvk_lutris_x64', True);
+  SetAge(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.5/x32/d3d8.dll', 0);
+  Game := NewDx8Game('installed');
+  Launch(Game, [Game + '/maxpayne.exe'], []);
+  Chosen := Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll';
+  AssertTrue('Newest installed Proton''s d3d8.dll', SameDlssNr32TestFile(Chosen, Game + '/d3d8.dll'));
+  AssertTrue('Log names the source', Pos('(the newest installed DXVK)', LogText) > 0);
+  AssertTrue('d3d8 override', Pos('d3d8=n,b', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES')) > 0);
+
+  // A newer DXVK build in Lutris becomes the newest
+  WriteDxvkD3D8TestStub(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.6/x32/d3d8.dll', 'dxvk_lutris_26');
+  Game := NewDx8Game('lutris');
+  Launch(Game, [Game + '/maxpayne.exe'], []);
+  AssertTrue('Newest DXVK release from Lutris',
+    SameDlssNr32TestFile(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.6/x32/d3d8.dll', Game + '/d3d8.dll'));
+
+  // 4. PROTON_USE_WINED3D=1: the game never reaches Vulkan, nothing installed,
+  //    and an earlier install is removed
+  Launch(Game, [Game + '/maxpayne.exe'], ['PROTON_USE_WINED3D=1']);
+  AssertFalse('Route removed under PROTON_USE_WINED3D', FileExists(Game + '/ReShade32.dll'));
+  AssertFalse('Its d3d8.dll removed too', FileExists(Game + '/d3d8.dll'));
+  AssertEquals('No wined3d setting', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+  AssertTrue('Log says why', Pos('PROTON_USE_WINED3D=1', LogText) > 0);
 end;
 
 procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx9ReplacesEarlierInstalls;
