@@ -6303,6 +6303,8 @@ begin
       CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
     if Assigned(FOptiScalerHelper) then
       TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+    // As the other methods do: re-enables the options that None disabled
+    ApplyToolEnabledState(2, FNavToolEnabled[2]);
   end;
 end;
 

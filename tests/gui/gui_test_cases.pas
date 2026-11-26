@@ -68,6 +68,7 @@ type
     procedure TestOptiForceReflexSaveSeedingWhenMissing;
     procedure TestOptiForceReflexAutoSave;
     procedure TestOptiMethodRadioAutoSave;
+    procedure TestMethodAfterNoneEnablesOptions;
     procedure TestMangoFilterRadioGroupAutoSave;
     procedure TestCustomEditAutoSave;
     procedure TestOptiLatencyFlexSave;
@@ -2247,6 +2248,28 @@ begin
   goverlayform.optiscalerRadioButton.Checked := True;
   goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
   AssertTrue('autoSaveTimer enabled after optiscaler click', goverlayform.autoSaveTimer.Enabled);
+  goverlayform.autoSaveTimer.Enabled := False;
+end;
+
+procedure TGoverlayGuiTests.TestMethodAfterNoneEnablesOptions;
+begin
+  SeedOptiScalerFiles;
+  NavigateOptiScalerTab;
+  goverlayform.FNavToolEnabled[2] := True;
+
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(goverlayform.noneUpscalerRadioButton);
+  AssertFalse('None disables the Options card', goverlayform.FOsOptionsCard.Enabled);
+  goverlayform.optiscalerRadioButton.Checked := True;
+  goverlayform.optiscalerRadioButtonClick(goverlayform.optiscalerRadioButton);
+  AssertTrue('OptiScaler after None enables the Options card', goverlayform.FOsOptionsCard.Enabled);
+
+  goverlayform.noneUpscalerRadioButton.Checked := True;
+  goverlayform.noneUpscalerRadioButtonClick(goverlayform.noneUpscalerRadioButton);
+  AssertFalse('None disables the Options card again', goverlayform.FOsOptionsCard.Enabled);
+  goverlayform.dlssnrRadioButton.Checked := True;
+  goverlayform.dlssnrRadioButtonClick(goverlayform.dlssnrRadioButton);
+  AssertTrue('DLSS-NR after None enables the Options card', goverlayform.FOsOptionsCard.Enabled);
   goverlayform.autoSaveTimer.Enabled := False;
 end;
 
