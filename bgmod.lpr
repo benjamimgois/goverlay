@@ -2362,6 +2362,98 @@ end;
 const
   DLSSNR_MANIFEST = 'dlssnr-amd-install.txt';
   DLSSNR_ROUTE_DX9 = 'reshade-dx9';
+  // The networks' weights in GOverlay's dlss-nr-models: the two models it
+  // extracts, and the ones it makes from them with the package's difference
+  // files and tools, as install.sh does
+  DLSSNR_NETWORK_FILES: array[0..4] of string = ('CC_SILVER_AARDWOLD.bin', 'CC_SMALL_FP8.bin',
+    'CC_SMALL_FP8_EXPERIMENTAL.bin', 'CC_SILVER_AARDWOLD_OPTIMIZED.bin',
+    'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  DLSSNR_INT4_WEIGHTS = 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin';
+  // CC_SILVER_AARDWOLD_OPTIMIZED's int4 layers: Balanced, Performance and
+  // Ultra Performance, each with its network, quantisers and settings
+  DLSSNR_INT4_LEVELS: array[0..2] of string = ('int4', 'int4-performance', 'int4-ultra');
+  DLSSNR_INT4_LAYER = 'VK_LAYER_DLSSNR_int4';
+
+// One of the runtime's int4 level folders without its restore tables
+// (*.fix.bin, *.mu.bin): only making the int4 weights needs those, and
+// install.sh leaves them in the package too. Copied quietly: ~170 files each.
+procedure CopyDlssNrInt4Level(const ASrcDir, ADestDir: string);
+var
+  SR: TSearchRec;
+  Src, Dest, Low: string;
+
+  function EndsWith(const AText, ASuffix: string): Boolean;
+  begin
+    Result := (Length(AText) >= Length(ASuffix)) and
+              (Copy(AText, Length(AText) - Length(ASuffix) + 1, Length(ASuffix)) = ASuffix);
+  end;
+
+begin
+  ForceDirectories(ADestDir);
+  if FindFirst(IncludeTrailingPathDelimiter(ASrcDir) + '*', faAnyFile, SR) <> 0 then Exit;
+  try
+    repeat
+      if (SR.Name = '.') or (SR.Name = '..') then Continue;
+      Src := IncludeTrailingPathDelimiter(ASrcDir) + SR.Name;
+      Dest := IncludeTrailingPathDelimiter(ADestDir) + SR.Name;
+      if (SR.Attr and faDirectory) <> 0 then
+        CopyDlssNrInt4Level(Src, Dest)
+      else
+      begin
+        Low := LowerCase(SR.Name);
+        if EndsWith(Low, '.fix.bin') or EndsWith(Low, '.mu.bin') then Continue;
+        if FileExists(Dest) then
+          DeleteFile(Dest);
+        if CopyFile(Src, Dest) then
+          fpChmod(Dest, &755)
+        else
+          Log('Failed to copy: ' + Src + ' -> ' + Dest);
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
+// Puts the networks' weights GOverlay has in AModelsDir into the game's
+// dlssnr-amd/ when they are missing or differ, for both DLSS-NR routes. With
+// the int4 weights it also puts the runtime's int4 level folders there
+// (ARefreshInt4: again even when present, after the runtime was installed).
+procedure SyncDlssNrNetworks(const AGameDir, AModelsDir, ARuntimeDir: string; ARefreshInt4: Boolean);
+var
+  NrPath, ModelsPath, Src, Int4Src: string;
+  n, lv: Integer;
+begin
+  NrPath := IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd' + PathDelim;
+  ModelsPath := IncludeTrailingPathDelimiter(AModelsDir);
+  ForceDirectories(NrPath);
+  for n := 0 to High(DLSSNR_NETWORK_FILES) do
+  begin
+    Src := ModelsPath + DLSSNR_NETWORK_FILES[n];
+    if FileExists(Src) and (GetFileSize(Src) <> GetFileSize(NrPath + DLSSNR_NETWORK_FILES[n])) then
+      SafeCopyFile(Src, NrPath + DLSSNR_NETWORK_FILES[n]);
+  end;
+
+  if (ARuntimeDir = '') or not FileExists(NrPath + DLSSNR_INT4_WEIGHTS) then Exit;
+  Int4Src := IncludeTrailingPathDelimiter(ARuntimeDir) + 'int4' + PathDelim + 'dlssnr-amd' + PathDelim;
+  for lv := 0 to High(DLSSNR_INT4_LEVELS) do
+    if DirectoryExists(Int4Src + DLSSNR_INT4_LEVELS[lv]) and
+       (ARefreshInt4 or not DirectoryExists(NrPath + DLSSNR_INT4_LEVELS[lv])) then
+    begin
+      Log('Installing CC_SILVER_AARDWOLD_OPTIMIZED''s int4 layers (' + DLSSNR_INT4_LEVELS[lv] + ') from ' + Int4Src);
+      CopyDlssNrInt4Level(Int4Src + DLSSNR_INT4_LEVELS[lv], NrPath + DLSSNR_INT4_LEVELS[lv]);
+    end;
+end;
+
+// The 64-bit runtime with the int4 level folders: the OptiScaler route's
+// source folder, or the profile's DLSS-NR channel folder when the source is a
+// profile copy without them (the global profile)
+function DlssNrInt4Runtime(const ASourceDir, AConfigDir: string): string;
+begin
+  Result := ASourceDir;
+  if not DirectoryExists(IncludeTrailingPathDelimiter(ASourceDir) + 'int4' + PathDelim + 'dlssnr-amd') then
+    Result := GetGlobalBGModPath(AConfigDir);
+end;
 
 function IsSafeDlssNrManifestEntry(const AEntry: string): Boolean;
 begin
@@ -2931,9 +3023,10 @@ begin
 end;
 
 // The network a game starts with needs its weights in dlssnr-amd/. GOverlay
-// extracts CC_SMALL_FP8 and CC_SILVER_AARDWOLD; the package's derived networks
-// are made by its installer, so when the chosen one is missing the game starts
-// with CC_SMALL_FP8, or CC_SILVER_AARDWOLD without it (as install.sh does).
+// extracts CC_SMALL_FP8 and CC_SILVER_AARDWOLD and makes the derived networks
+// from them, which can fail (no python3, a model of another DLL version). When
+// the chosen one is missing the game starts with CC_SMALL_FP8, or
+// CC_SILVER_AARDWOLD without it (as install.sh does).
 procedure EnsureDlssNrModelAvailable(Lines: TStrings; const ARuntimeDir: string);
 var
   Model, Fallback: string;
@@ -3084,12 +3177,11 @@ begin
   try
     AddEntry(DLSSNR_MANIFEST);
 
-    // Runtime folder (shaders, language files) and the extracted models
+    // Runtime folder (shaders, language files), the networks' weights and,
+    // with CC_SILVER_AARDWOLD_OPTIMIZED's int4 weights, its int4 layers
     CopyDirectory(ARuntimeDir + 'dlssnr-amd', GamePath + 'dlssnr-amd');
     AddEntry('dlssnr-amd/');
-    for m := 0 to High(ModelFiles) do
-      if FileExists(ModelsPath + ModelFiles[m]) then
-        SafeCopyFile(ModelsPath + ModelFiles[m], GamePath + 'dlssnr-amd' + PathDelim + ModelFiles[m]);
+    SyncDlssNrNetworks(AGameDir, AModelsDir, ARuntimeDir, True);
 
     // ReShade, its add-on and shaders, and the Vulkan loader that loads ReShade
     // as a layer: everything in reshade/ and vulkan/ except dxgi.dll (the
@@ -4045,6 +4137,7 @@ var
   DlssNrDx9Route, DlssNrDx9Active: Boolean;
   DlssNrDx9Api: TDetectedGraphicsApi;
   WineD3DConfig: string;
+  Int4LayerDir: string;
   VkLayerPath: string;
   FlatpakVulkanDir: string;
   VkInstanceLayers: string;
@@ -4430,6 +4523,8 @@ begin
           else
           begin
             Log('DLSS-NR ReShade route in game directory is already up to date, skipping copy.');
+            // Networks GOverlay made since the route was installed
+            SyncDlssNrNetworks(GameDir, DlssNrModelsDir, DlssNr32Dir, False);
             SyncDlssNrDx9Ini(GameDir, ConfigDir);
             if DlssNrDx9Api = gapiDX8 then
               RefreshDlssNrDx9D3D8(GameDir);
@@ -4465,6 +4560,10 @@ begin
            not NeedsGameDirUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
         begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
+          // DLSS-NR networks GOverlay made since the files were installed
+          if UpscalerType = 4 then
+            SyncDlssNrNetworks(GameDir, IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'dlss-nr-models',
+                               DlssNrInt4Runtime(SourceDir, ConfigDir), False);
           SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
           SyncFakeNvapiIni(ConfigDir, GameDir);
           if ReadVarFromFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll') = '' then
@@ -4809,6 +4908,8 @@ begin
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin') then
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr-small.bin');
+            // The networks GOverlay made from them, with the int4 layers' folders
+            SyncDlssNrNetworks(GameDir, DlssNrModelsDir, DlssNrInt4Runtime(SourceDir, ConfigDir), True);
 
             // Vulkan control layer shipped with the runtime
             if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'control' + PathDelim + 'layer') then
@@ -5413,6 +5514,34 @@ begin
         WineD3DConfig := 'renderer=gdi';
       SetEnvVarInList(EnvStrings, 'WINE_D3D_CONFIG', WineD3DConfig);
       Log('Export WINE_D3D_CONFIG=' + WineD3DConfig);
+    end;
+
+    // CC_SILVER_AARDWOLD_OPTIMIZED's int4 layers need DLSSNR-AMD's host Vulkan
+    // layer (it turns on VK_KHR_pipeline_binary on the game's device), as
+    // install.sh's launch line has it; the OptiScaler route's NR plugin does
+    // that itself. Always on, so any network can be switched to in game.
+    Int4LayerDir := IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'int4' + PathDelim + 'layer';
+    if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + DLSSNR_INT4_WEIGHTS) and
+       DirectoryExists(Int4LayerDir) then
+    begin
+      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_LAYER_PATH');
+      if VkLayerPath <> '' then
+        VkLayerPath := VkLayerPath + ':' + Int4LayerDir
+      else
+        VkLayerPath := Int4LayerDir;
+      SetEnvVarInList(EnvStrings, 'VK_ADD_LAYER_PATH', VkLayerPath);
+      Log('Export VK_ADD_LAYER_PATH=' + VkLayerPath);
+
+      VkInstanceLayers := GetEnvVarFromList(EnvStrings, 'VK_INSTANCE_LAYERS');
+      if Pos(DLSSNR_INT4_LAYER, VkInstanceLayers) = 0 then
+      begin
+        if VkInstanceLayers <> '' then
+          VkInstanceLayers := VkInstanceLayers + ':' + DLSSNR_INT4_LAYER
+        else
+          VkInstanceLayers := DLSSNR_INT4_LAYER;
+        SetEnvVarInList(EnvStrings, 'VK_INSTANCE_LAYERS', VkInstanceLayers);
+        Log('Export VK_INSTANCE_LAYERS=' + VkInstanceLayers);
+      end;
     end;
   end
   else if DlssNrDx9Route then

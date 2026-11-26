@@ -63,6 +63,28 @@ When DLSS-NR is selected for a 32-bit (i386) Windows game that draws with Direct
 - **THEN** the launcher removes the installer's files by their manifest, purges the OptiScaler install, and removes the ReShade proxy before deploying the route
 - **AND** skips GOverlay's own ReShade deployment while the route is installed.
 
+### Requirement: Derived DLSS-NR Networks
+The system SHALL make `CC_SMALL_FP8_EXPERIMENTAL`, `CC_SILVER_AARDWOLD_OPTIMIZED` and `CC_SILVER_AARDWOLD_OPTIMIZED_INT4` (the weights of `CC_SILVER_AARDWOLD_OPTIMIZED`'s int4 layers) from the extracted models, with the difference files and tools of an installed DLSS-NR runtime, into `dlss-nr-models`. It SHALL keep each only when its SHA-256 matches the checksum the package names, and SHALL make each once per package checksum. The launcher SHALL copy the networks in `dlss-nr-models` into the game's `dlssnr-amd/` in both DLSS-NR routes.
+
+#### Scenario: Making the derived networks
+- **WHEN** the DLSS-NR model is extracted, or GOverlay starts with an extracted model, and an installed runtime has the package's difference files
+- **THEN** the system makes each derived network whose model is extracted, keeps the ones whose SHA-256 matches the package's checksum, and records that checksum
+- **AND** a later start does not make them again.
+
+#### Scenario: A derived network that cannot be made
+- **WHEN** a derived network cannot be made or its checksum does not match (no python3, a model of another DLL version, a newer package)
+- **THEN** the system does not keep it, removes one made for an earlier package together with its record, removes the int4 weights when `CC_SILVER_AARDWOLD_OPTIMIZED` is removed, and still makes the others.
+
+#### Scenario: Derived networks in a game
+- **WHEN** a game is launched with DLSS-NR selected and `dlss-nr-models` holds derived networks
+- **THEN** the launcher copies them into the game's `dlssnr-amd/`, also into a route installed before they were made, without reinstalling it
+- **AND** with the int4 weights copies the runtime's `int4`, `int4-performance` and `int4-ultra` folders without their restore tables (`*.fix.bin`, `*.mu.bin`).
+
+#### Scenario: int4 Vulkan layer on the ReShade route
+- **WHEN** a game with the ReShade route and the int4 weights installed is launched
+- **THEN** the launcher appends `dlssnr-amd/int4/layer` to `VK_ADD_LAYER_PATH` and `VK_LAYER_DLSSNR_int4` to `VK_INSTANCE_LAYERS`, keeping the user's values
+- **AND** exports neither without the int4 weights.
+
 ### Requirement: ReShade Route Removal
 The launcher and `bgmod-uninstaller` SHALL remove a ReShade route that GOverlay installed (`dlssnrroute=reshade-dx9` in `goverlay.vars`) by its manifest. They SHALL ignore manifest entries outside the game folder.
 

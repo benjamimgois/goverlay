@@ -9,6 +9,8 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 - **DirectX 8:** DXVK's `d3d8.dll` in the game folder with a `d3d8=n,b` override. Proton otherwise draws Direct3D 8 with wined3d over OpenGL, where the Vulkan layer never loads.
 - **Both:** `WINE_D3D_CONFIG=renderer=gdi`. Wine draws some things with wined3d itself (DirectDraw, video playback, dxdiagn). With ReShade in the same process, wined3d's OpenGL context makes ReShade recurse into `wglCreateContext` until the stack overflows (Max Payne's intro videos). Its Vulkan renderer creates a short-lived instance that the add-on attaches to and that is then destroyed (Space Marine: "Invalid physicalDevice"). The game itself draws with DXVK, so wined3d needs no 3D renderer.
 
+GOverlay's network list also offers DLSSNR-AMD's derived networks, `CC_SMALL_FP8_EXPERIMENTAL` and `CC_SILVER_AARDWOLD_OPTIMIZED`, but GOverlay never made their weights. The package ships them only as differences from the models in the user's DLL, which its `install.sh` applies at install. So in both routes the add-on greyed them out in game ("needs the model of the 310.9.16 nvngx_dlssnr.dll", "its weights were not made at install"), even with the right DLL.
+
 ## What Changes
 
 - **Download:** GOverlay also downloads the i686 package of the selected architecture into `dlss-nr-<arch>-i686`. This happens after model extraction and, for existing installs, at startup.
@@ -22,6 +24,7 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 - **Environment:** bgmod exports `winevulkan`, `vulkan-1` (and, for DirectX 8, `d3d8`) as `n,b` overrides. It adds `renderer=gdi` to `WINE_D3D_CONFIG` unless the user already set a renderer.
 - **ReShade:** GOverlay's own ReShade deployment is skipped in these games, and a ReShade proxy it installed earlier is removed. The route already runs ReShade, and two copies would hook the game twice.
 - **Cleanup:** the route is removed by its manifest when DLSS-NR is turned off, when another upscaler is chosen, and by `bgmod-uninstaller`. An install made by `install.sh`, and a 64-bit OptiScaler install from before, are removed when GOverlay installs the route.
+- **Derived networks:** GOverlay makes `CC_SMALL_FP8_EXPERIMENTAL`, `CC_SILVER_AARDWOLD_OPTIMIZED` and the weights of `CC_SILVER_AARDWOLD_OPTIMIZED`'s int4 layers once into `dlss-nr-models`, using the package's own difference files and tools, after model extraction and at startup. It keeps each only when its SHA-256 matches the package's. bgmod copies them, with the int4 level folders, into the game in both routes. On the ReShade route it exports the int4 Vulkan layer, as `install.sh`'s launch line does.
 - **32-bit asset filter fix:** the 64-bit RDNA3 runtime download no longer takes the `i686-rdna3` asset of the same release.
 
 ## Capabilities
@@ -36,12 +39,13 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 - `bgmod.lpr`: route detection, deployment, settings sync, environment, cleanup, ReShade interplay.
 - `bgmod-uninstaller.lpr`: manifest-based removal of the route.
 - `bgmod_resources.pas`: `GetBGModDlssNr32Path`.
-- `optiscaler_update.pas`: `ParseDlssNr32Release`, `FetchDlssNr32Release`, `CheckAndInstallDlssNr32`, `IsDlssNr32Installed`, the download after model extraction, and the RDNA3 asset filter fix.
-- `overlayunit.pas`: startup download of the 32-bit runtime for existing DLSS-NR installs.
-- `tests/logic/`: detection (including run-time loading), release parsing, deployment, settings sync, cleanup, uninstaller.
+- `optiscaler_update.pas`: `ParseDlssNr32Release`, `FetchDlssNr32Release`, `CheckAndInstallDlssNr32`, `IsDlssNr32Installed`, the download after model extraction, the RDNA3 asset filter fix, and `MakeDlssNrDerivedNetworks`/`EnsureDlssNrDerivedNetworks`.
+- `overlayunit.pas`: startup download of the 32-bit runtime and making of the derived networks for existing DLSS-NR installs.
+- `bgmod.lpr` (both routes): `SyncDlssNrNetworks` copies the derived networks and int4 level folders; the ReShade route exports the int4 Vulkan layer.
+- `tests/logic/`: detection (including run-time loading), release parsing, deployment, settings sync, cleanup, uninstaller, derived networks.
 
 ## Non-goals
 
-- The package's derived and int4 networks (`int4/`, `int4-performance/`, `int4-ultra/`). Its installer builds them from the extracted models with its own tools. GOverlay installs the two networks it extracts, and starts the game with `CC_SMALL_FP8` when the selected network is not installed.
+- Making the derived networks without the package's tools: GOverlay runs its `experimental_weights.py` (python3, which model extraction already needs) and its x86-64 `dlssnr-int4-weights`. A network that cannot be made stays greyed out in game, and a game set to start with it starts with `CC_SMALL_FP8`.
 - 32-bit games that draw with OpenGL, DirectX 10/11 or DirectDraw. bgmod logs a warning for them.
 - Proton's own DXVK D3D8 switches (`PROTON_DXVK_D3D8`, GE's `PROTON_ENABLE_D8VK`). Copying DXVK's `d3d8.dll` works the same across Proton builds.

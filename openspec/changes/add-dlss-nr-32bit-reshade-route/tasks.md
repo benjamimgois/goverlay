@@ -33,5 +33,14 @@
 - [x] 4.3a DXVK `d3d8.dll` lookup: none found, `PROTONPATH`, newest installed build across Steam libraries and Lutris (64-bit and non-Proton files ignored), `PROTON_USE_WINED3D`, refresh after a Proton update.
 - [x] 4.4 Direct3D 9 route: missing runtime, replacing installer/OptiScaler/ReShade installs, user `WINE_D3D_CONFIG`, `bgmod-uninstaller`.
 - [x] 4.4a Keep the suite off the network: the model-extraction test provides a stub i686 runtime, and the missing-runtime test hides both architectures' runtimes, since bgmod falls back to the other one.
-- [ ] 4.5 Manual: Max Payne (Direct3D 8) and Space Marine (Direct3D 9) on RDNA3 with Proton-CachyOS.
+- [x] 4.4b Derived networks: making, checksum record, made once, newer package, missing model; copies and int4 folders on both routes, a network made after the route was installed, the int4 layer on the ReShade route and none without its weights.
+- [x] 4.5 Manual: Max Payne (Direct3D 8) and Space Marine (Direct3D 9) on RDNA3 (RX 7800 XT) with Proton-CachyOS: route installed over an `install.sh` install and a 64-bit OptiScaler install, DXVK `d3d8.dll` from the launching Proton, add-on loaded, Max Payne's intro videos play, removal on disable leaves the game's own files intact.
 - [ ] 4.6 Manual: an RDNA4 i686 package (asset name and layout not verified yet).
+- [ ] 4.7 Manual: the derived networks and the int4 levels in game. Done: making them from real 310.9.16 models matched the package's three checksums; Max Payne and Space Marine list every network as available and serve `CC_SMALL_FP8_EXPERIMENTAL` with the int4 layer exported. Open: `CC_SILVER_AARDWOLD_OPTIMIZED`'s int4 levels in game, a 64-bit game, and Max Payne starting with `CC_SMALL_FP8_EXPERIMENTAL`.
+
+## 5. Derived networks
+
+- [x] 5.1 Add `MakeDlssNrDerivedNetworks`/`EnsureDlssNrDerivedNetworks`: the package's tools and difference files into `.part` files, SHA-256 check, `derived-networks.vars`, removal of networks that cannot be made, int4 weights from `CC_SILVER_AARDWOLD_OPTIMIZED`.
+- [x] 5.2 Make them after model extraction and in a background thread at every start (not in the startup downloads, which run only when something is missing), one at a time.
+- [x] 5.3 Copy the networks and int4 level folders (without restore tables) into the game in both routes (`SyncDlssNrNetworks`), at install and on up-to-date launches.
+- [x] 5.4 Export the int4 Vulkan layer on the ReShade route when the int4 weights are installed.

@@ -3749,6 +3749,12 @@ begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
+  // DLSS-NR's derived networks, for models extracted before GOverlay made
+  // them. Local work, no download: its own thread, whether or not the
+  // downloads below run; quick once they are made.
+  if GetEnvironmentVariable('GOVERLAY_TEST') <> '1' then
+    StartDlssNrDerivedNetworks;
+
   NeedsDownload := HasMissingMandatoryLibraries or
     (TConfigManager.IsModuleEnabled(MODULE_UPSCALERS) and IsOptiPatcherUpdateAvailable) or
     (TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING) and IsVkSumiUpdateAvailable);

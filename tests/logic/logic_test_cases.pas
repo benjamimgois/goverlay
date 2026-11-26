@@ -27,6 +27,7 @@ type
     procedure TestDlssNrArchitecturePathResolution;
     procedure TestParseDlssNr32Release;
     procedure TestExtractDlssNrModelTargetsRequestedArch;
+    procedure TestMakeDlssNrDerivedNetworks;
     procedure TestHelixSrConfigRoundTrip;
     procedure TestHelixSrIniGeneration;
   end;
@@ -128,6 +129,7 @@ type
     procedure TestDetectLegacyDirect3DApi;
     procedure TestBgmodDlssNr32BitDx8ReShadeRoute;
     procedure TestBgmodDlssNr32BitDx9ReplacesEarlierInstalls;
+    procedure TestBgmodDlssNr32BitDerivedNetworks;
     procedure TestBgmodDlssNr32BitDx8FindsDxvkD3D8;
     procedure TestResolveRealGameExecutableHeuristics;
     procedure TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
@@ -2323,6 +2325,15 @@ var
   F: TextFile;
   EnvIndex: Integer;
   Ini: TIniFile;
+
+  procedure WriteMockFile(const APath: string);
+  begin
+    AssignFile(F, APath);
+    Rewrite(F);
+    WriteLn(F, 'mock ', ExtractFileName(APath));
+    CloseFile(F);
+  end;
+
 begin
   EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/DlssNrTestGame';
@@ -2379,6 +2390,13 @@ begin
   Rewrite(F);
   WriteLn(F, 'mock model bin');
   CloseFile(F);
+
+  // Networks GOverlay made from the models, and the runtime's int4 layers
+  ForceDirectories(RuntimeDir + '/int4/dlssnr-amd/int4/swin');
+  WriteMockFile(ModelsDir + '/CC_SMALL_FP8_EXPERIMENTAL.bin');
+  WriteMockFile(ModelsDir + '/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  WriteMockFile(RuntimeDir + '/int4/dlssnr-amd/int4/settings.txt');
+  WriteMockFile(RuntimeDir + '/int4/dlssnr-amd/int4/swin/q.fix.bin');
 
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
@@ -2448,6 +2466,14 @@ begin
   AssertTrue('dlssnr.bin model deployed into dlssnr-amd/', FileExists(MockGameDir + '/dlssnr-amd/dlssnr.bin'));
   AssertTrue('dlssnr-amd.ini deployed', FileExists(MockGameDir + '/dlssnr-amd.ini'));
   AssertTrue('control layer deployed', FileExists(MockGameDir + '/dlssnr-amd/control/layer/libVkLayer_dlssnr_control.so'));
+  AssertTrue('Derived network deployed', FileExists(MockGameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertTrue('int4 weights deployed', FileExists(MockGameDir + '/dlssnr-amd/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+  AssertTrue('int4 level deployed', FileExists(MockGameDir + '/dlssnr-amd/int4/settings.txt'));
+  AssertFalse('int4 restore tables stay in the runtime', FileExists(MockGameDir + '/dlssnr-amd/int4/swin/q.fix.bin'));
+  // Shared test HOME: later tests start without them
+  DeleteFile(ModelsDir + '/CC_SMALL_FP8_EXPERIMENTAL.bin');
+  DeleteFile(ModelsDir + '/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  DeleteDirectory(RuntimeDir + '/int4', False);
 
   // Verify OptiScaler.ini was generated/patched with DLSS-NR configuration
   OptiIniPath := MockGameDir + '/OptiScaler.ini';
@@ -3429,6 +3455,8 @@ begin
   AssertTrue('d3d8 override for DXVK''s d3d8.dll', Pos('d3d8=n,b', Overrides) > 0);
   AssertTrue('No OptiScaler proxy override', Pos('dxgi=', Overrides) = 0);
   AssertEquals('wined3d without 3D', 'renderer=gdi', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+  AssertEquals('No int4 Vulkan layer without the int4 weights', 0,
+    Pos('VK_LAYER_DLSSNR_int4', DlssNr32TestEnvValue(CfgDir, 'VK_INSTANCE_LAYERS')));
 
   // 2. Up to date: nothing is copied again, changes made in game are kept
   WriteDlssNr32TestText(GameDir + '/ReShade.ini', 'CHANGED_IN_GAME');
@@ -3485,6 +3513,198 @@ begin
   AssertFalse('Route marker removed', Pos('dlssnrroute', ReadDlssNr32TestText(VarsFile)) > 0);
   AssertEquals('No overrides once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
   AssertEquals('No wined3d setting once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+end;
+
+// Raw bytes, without the line ending TStringList adds (checksum fixtures)
+procedure WriteDerivedNetworkTestBytes(const APath: string; const AData: AnsiString);
+var
+  Stream: TFileStream;
+begin
+  ForceDirectories(ExtractFileDir(APath));
+  Stream := TFileStream.Create(APath, fmCreate);
+  try
+    if AData <> '' then
+      Stream.WriteBuffer(AData[1], Length(AData));
+  finally
+    Stream.Free;
+  end;
+end;
+
+function ReadDerivedNetworkTestBytes(const APath: string): AnsiString;
+var
+  Stream: TFileStream;
+begin
+  Result := '';
+  if not FileExists(APath) then Exit;
+  Stream := TFileStream.Create(APath, fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(Result, Stream.Size);
+    if Stream.Size > 0 then
+      Stream.ReadBuffer(Result[1], Stream.Size);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TOptiScalerIniTests.TestMakeDlssNrDerivedNetworks;
+const
+  SHA_EXP = 'f4f1e1400d3ed6cf5041275a0e48d274374b4bd410a74c7304e16ca023a207e7';   // 'SMALL+EXP'
+  SHA_OPT = '700dda2c388780d57d16df0aea9793a639493a3f1a3e8b7939d4079a6ec29404';   // 'SILVER+OPT'
+  SHA_INT4 = '7d8b105d5c3861f4e4d073748adc894fe28b91c33e0bc96ce3d899f8f7d286b9';  // 'SILVER+OPT+INT4'
+  // experimental_weights.py "apply PACK DELTA OUT", reduced to OUT = PACK + '+' + DELTA
+  APPLY_STUB = 'import sys' + LineEnding +
+    '_, mode, pack, delta, out = sys.argv' + LineEnding +
+    'open(out, "wb").write(open(pack, "rb").read() + b"+" + open(delta, "rb").read())';
+var
+  Base, Models, Rt, Marker: string;
+begin
+  Base := IsolatedHome + '/derived_networks/';
+  Models := Base + 'models/';
+  Rt := Base + 'runtime/';
+  WriteDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8.bin', 'SMALL');
+  WriteDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD.bin', 'SILVER');
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', APPLY_STUB);
+  WriteDerivedNetworkTestBytes(Rt + 'experimental/dlssnr-small-experimental.delta', 'EXP');
+  WriteDlssNr32TestText(Rt + 'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256',
+    SHA_EXP + '  CC_SMALL_FP8_EXPERIMENTAL.bin');
+  WriteDlssNr32TestText(Rt + 'optimized/experimental_weights.py', APPLY_STUB);
+  WriteDerivedNetworkTestBytes(Rt + 'optimized/dlssnr-optimized.delta', 'OPT');
+  WriteDlssNr32TestText(Rt + 'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256',
+    SHA_OPT + '  CC_SILVER_AARDWOLD_OPTIMIZED.bin');
+  // dlssnr-int4-weights OPTIMIZED TABLES OUT, reduced to OUT = OPTIMIZED + '+INT4'
+  WriteDlssNr32TestText(Rt + 'int4/dlssnr-int4-weights',
+    '#!' + FindTestHelperExecutable('sh') + LineEnding + 'cat "$1" > "$3" && printf "+INT4" >> "$3"');
+  fpChmod(PChar(Rt + 'int4/dlssnr-int4-weights'), &755);
+  WriteDerivedNetworkTestBytes(Rt + 'int4/dlssnr-amd/int4-ultra/table.fix.bin', 'T');
+  WriteDlssNr32TestText(Rt + 'int4/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin.sha256',
+    SHA_INT4 + '  CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+
+  // A runtime without the package files is passed over
+  AssertTrue('Every network is made', MakeDlssNrDerivedNetworks(Models, [Base + 'no-runtime', Rt]));
+  AssertEquals('CC_SMALL_FP8_EXPERIMENTAL from CC_SMALL_FP8', 'SMALL+EXP',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('CC_SILVER_AARDWOLD_OPTIMIZED from CC_SILVER_AARDWOLD', 'SILVER+OPT',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin'));
+  AssertEquals('The int4 weights from CC_SILVER_AARDWOLD_OPTIMIZED', 'SILVER+OPT+INT4',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+  AssertFalse('No part file left', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin.part'));
+  Marker := ReadDlssNr32TestText(Models + 'derived-networks.vars');
+  AssertTrue('Checksums recorded', (Pos('CC_SMALL_FP8_EXPERIMENTAL=' + SHA_EXP, Marker) > 0) and
+    (Pos('CC_SILVER_AARDWOLD_OPTIMIZED_INT4=' + SHA_INT4, Marker) > 0));
+
+  // Made once: a later call does not run the tools again
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', 'import sys' + LineEnding + 'sys.exit(1)');
+  WriteDlssNr32TestText(Rt + 'int4/dlssnr-int4-weights', '#!' + FindTestHelperExecutable('sh') + LineEnding + 'exit 1');
+  AssertTrue('Networks made before are kept', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertEquals('Experimental network kept', 'SMALL+EXP',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('Int4 weights kept', 'SILVER+OPT+INT4',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // A newer package names another checksum: made again, and removed when the
+  // result does not match, so the game greys it out instead of running it
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', APPLY_STUB);
+  WriteDlssNr32TestText(Rt + 'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256',
+    StringOfChar('0', 64) + '  CC_SMALL_FP8_EXPERIMENTAL.bin');
+  AssertFalse('A network with the wrong checksum is reported', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertFalse('A network with the wrong checksum is not kept', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('Its record goes with it', 0,
+    Pos('CC_SMALL_FP8_EXPERIMENTAL=', ReadDlssNr32TestText(Models + 'derived-networks.vars')));
+  AssertTrue('The other networks stay', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // CC_SILVER_AARDWOLD_OPTIMIZED cannot be made for a newer package: its int4
+  // weights, made from it, go too
+  WriteDlssNr32TestText(Rt + 'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256',
+    StringOfChar('1', 64) + '  CC_SILVER_AARDWOLD_OPTIMIZED.bin');
+  MakeDlssNrDerivedNetworks(Models, [Rt]);
+  AssertFalse('Optimized network removed', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin'));
+  AssertFalse('Its int4 weights removed', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // Without CC_SMALL_FP8 (the 310.8.0 DLL has only CC_SILVER_AARDWOLD) there
+  // is nothing to make CC_SMALL_FP8_EXPERIMENTAL from, which is no failure
+  DeleteFile(Models + 'CC_SMALL_FP8.bin');
+  DeleteFile(Models + 'CC_SILVER_AARDWOLD.bin');
+  AssertTrue('Nothing to make without the models', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertFalse('No experimental network without CC_SMALL_FP8', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDerivedNetworks;
+const
+  Derived: array[0..2] of string = ('CC_SMALL_FP8_EXPERIMENTAL.bin', 'CC_SILVER_AARDWOLD_OPTIMIZED.bin',
+    'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+var
+  Base, Rt, CfgDir, GameDir, Exe: string;
+  Ini: TIniFile;
+  d: Integer;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  Rt := Base + 'dlss-nr-rdna3-i686/';
+  CfgDir := Base + 'gameconfig/DlssNr32Derived';
+  GameDir := IsolatedHome + '/games/Derived Networks';
+  CopyBgmodForDlssNr32Test(CfgDir);
+  Exe := GameDir + '/game.exe';
+  ForceDirectories(GameDir);
+  WritePEImportTestStub(Exe, False, 'd3d9.dll');
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=game.exe');
+  WriteDlssNr32TestText(CfgDir + '/dlssnr-amd.ini', '[Network]' + LineEnding + 'Model = CC_SILVER_AARDWOLD_OPTIMIZED');
+
+  try
+    // Networks GOverlay made, and the runtime's int4 layers
+    for d := 0 to High(Derived) do
+      WriteDlssNr32TestText(Base + 'dlss-nr-models/' + Derived[d], 'MADE_' + Derived[d]);
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/layer/VkLayer_dlssnr_int4_32.json', '{}');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/settings.txt', 'balanced');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/swin/q.fix.bin', 'restore table');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-performance/settings.txt', 'performance');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-ultra/settings.txt', 'ultra performance');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-ultra/vit/m.mu.bin', 'restore table');
+
+    AssertEquals('bgmod exits cleanly', 0,
+      RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], ['VK_INSTANCE_LAYERS=VK_LAYER_user']));
+    for d := 0 to High(Derived) do
+      AssertEquals(Derived[d] + ' installed', 'MADE_' + Derived[d],
+        ReadDlssNr32TestText(GameDir + '/dlssnr-amd/' + Derived[d]));
+    AssertEquals('Balanced int4 level', 'balanced', ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4/settings.txt'));
+    AssertEquals('Performance int4 level', 'performance',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4-performance/settings.txt'));
+    AssertEquals('Ultra Performance int4 level', 'ultra performance',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4-ultra/settings.txt'));
+    AssertTrue('int4 Vulkan layer', FileExists(GameDir + '/dlssnr-amd/int4/layer/VkLayer_dlssnr_int4_32.json'));
+    AssertFalse('Restore tables stay in the package',
+      FileExists(GameDir + '/dlssnr-amd/int4/swin/q.fix.bin') or FileExists(GameDir + '/dlssnr-amd/int4-ultra/vit/m.mu.bin'));
+    Ini := TIniFile.Create(GameDir + '/dlssnr-amd.ini');
+    try
+      AssertEquals('The chosen derived network is kept', 'CC_SILVER_AARDWOLD_OPTIMIZED',
+        Ini.ReadString('Network', 'Model', ''));
+    finally
+      Ini.Free;
+    end;
+    AssertTrue('int4 layer folder on the layer path',
+      Pos(GameDir + '/dlssnr-amd/int4/layer', DlssNr32TestEnvValue(CfgDir, 'VK_ADD_LAYER_PATH')) > 0);
+    AssertEquals('int4 layer added to the user''s layers', 'VK_LAYER_user:VK_LAYER_DLSSNR_int4',
+      DlssNr32TestEnvValue(CfgDir, 'VK_INSTANCE_LAYERS'));
+
+    // A network GOverlay makes later reaches the installed route at the next launch
+    DeleteFile(GameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin');
+    AssertEquals('bgmod exits cleanly again', 0, RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], []));
+    AssertTrue('The route is not reinstalled',
+      Pos('already up to date', ReadDlssNr32TestText(Base + 'logs/DlssNr32Derived/bgmod.log')) > 0);
+    AssertEquals('The network is copied in', 'MADE_CC_SMALL_FP8_EXPERIMENTAL.bin',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  finally
+    for d := 0 to High(Derived) do
+      DeleteFile(Base + 'dlss-nr-models/' + Derived[d]);
+    DeleteDirectory(Rt + 'int4/dlssnr-amd', False);
+  end;
 end;
 
 procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx8FindsDxvkD3D8;

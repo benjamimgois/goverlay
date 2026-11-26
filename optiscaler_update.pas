@@ -44,6 +44,21 @@ function CheckAndInstallDlssNr32(const AArch: string; AForce: Boolean = False; A
 // Check whether the 32-bit (i686) DLSS-NR runtime is installed in central storage
 function IsDlssNr32Installed(const AArch: string): Boolean;
 
+// Make DLSS-NR's derived networks (CC_SMALL_FP8_EXPERIMENTAL,
+// CC_SILVER_AARDWOLD_OPTIMIZED and its int4 layers' weights) from the extracted
+// models with an installed runtime's difference files and tools, into
+// dlss-nr-models. False when one that could be made was not.
+function EnsureDlssNrDerivedNetworks(AOnProgress: TDownloadProgressProc = nil): Boolean;
+
+// The same, with the models folder and the runtimes to take the package files
+// from given (the first that has them is used)
+function MakeDlssNrDerivedNetworks(const AModelsDir: string; const ARuntimeDirs: array of string;
+  AOnProgress: TDownloadProgressProc = nil): Boolean;
+
+// EnsureDlssNrDerivedNetworks in a background thread, when a model is
+// extracted: at GOverlay's start (quick once they are made, no download)
+procedure StartDlssNrDerivedNetworks;
+
 // Extract neural model weights from user-provided nvngx_dlssnr.dll or zip archive
 function ExtractDlssNrModel(const ADllPath: string; out AErrorMsg: string; AOnProgress: TDownloadProgressProc = nil; const AArch: string = ''): Boolean;
 
@@ -341,7 +356,16 @@ type
     constructor Create(AOptiTab: TOptiscalerTab);
   end;
 
+  // Makes the derived DLSS-NR networks at startup, apart from the startup
+  // downloads (which run only when something is missing)
+  TDlssNrDerivedThread = class(TThread)
+  protected
+    procedure Execute; override;
+  end;
+
 var
+  // One making of the derived networks at a time (startup thread, extraction)
+  DlssNrDerivedLock: TRTLCriticalSection;
   FHelixSRLastCompileError: string = '';
 
 // Extract the latest release tag from a GitHub releases Atom XML feed.
@@ -9838,6 +9862,310 @@ begin
   end;
 end;
 
+// SHA-256 of a file with sha256sum (as GetSHA256Hash does for text); '' when
+// it cannot be computed
+function DlssNrFileSha256(const APath: string): string;
+var
+  Proc: TProcess;
+  Output: TStringList;
+  Line: string;
+begin
+  Result := '';
+  if not FileExists(APath) then Exit;
+  Proc := TProcess.Create(nil);
+  Output := TStringList.Create;
+  try
+    try
+      Proc.Executable := 'sha256sum';
+      Proc.Parameters.Add('--');
+      Proc.Parameters.Add(APath);
+      Proc.Options := [poWaitOnExit, poUsePipes];
+      Proc.Execute;
+      Output.LoadFromStream(Proc.Output);
+      if (Proc.ExitStatus = 0) and (Output.Count > 0) then
+      begin
+        Line := Trim(Output[0]);
+        // sha256sum marks an escaped file name with a leading backslash
+        if (Line <> '') and (Line[1] = '\') then
+          Delete(Line, 1, 1);
+        Result := LowerCase(Copy(Line, 1, 64));
+      end;
+    except
+      Result := '';
+    end;
+  finally
+    Output.Free;
+    Proc.Free;
+  end;
+end;
+
+// The checksum a package file like CC_SMALL_FP8_EXPERIMENTAL.bin.sha256 names
+function ReadDlssNrExpectedSha256(const AShaFile: string): string;
+var
+  Lines: TStringList;
+  Line: string;
+  SpacePos: Integer;
+begin
+  Result := '';
+  if not FileExists(AShaFile) then Exit;
+  Lines := TStringList.Create;
+  try
+    try
+      Lines.LoadFromFile(AShaFile);
+    except
+      Exit;
+    end;
+    if Lines.Count = 0 then Exit;
+    Line := Trim(Lines[0]);
+    SpacePos := Pos(' ', Line);
+    if SpacePos > 0 then
+      Line := Copy(Line, 1, SpacePos - 1);
+    if Length(Line) = 64 then
+      Result := LowerCase(Line);
+  finally
+    Lines.Free;
+  end;
+end;
+
+// Runs one of the package's tools and waits; True when it exits with 0. Its
+// output goes to GOverlay's, as the other tools' does.
+function RunDlssNrTool(const AExecutable: string; const AParams: array of string): Boolean;
+var
+  Proc: TProcess;
+  i: Integer;
+begin
+  Result := False;
+  Proc := TProcess.Create(nil);
+  try
+    try
+      Proc.Executable := AExecutable;
+      for i := 0 to High(AParams) do
+        Proc.Parameters.Add(AParams[i]);
+      Proc.Options := [poWaitOnExit];
+      Proc.Execute;
+      Result := Proc.ExitStatus = 0;
+    except
+      on E: Exception do
+        WriteLn('[DLSS-NR] could not run ', AExecutable, ': ', E.Message);
+    end;
+  finally
+    Proc.Free;
+  end;
+end;
+
+// DLSSNR-AMD ships its derived networks as the difference from the models the
+// user's DLL holds, and install.sh makes them at install. GOverlay makes them
+// once into dlss-nr-models, from the first runtime that has the package files
+// (the 64-bit and i686 packages carry the same ones), and keeps each only when
+// its SHA-256 is the one the package names:
+//   CC_SMALL_FP8_EXPERIMENTAL      CC_SMALL_FP8 + experimental/*.delta
+//   CC_SILVER_AARDWOLD_OPTIMIZED   CC_SILVER_AARDWOLD + optimized/*.delta
+//   CC_SILVER_AARDWOLD_OPTIMIZED_INT4 (the int4 layers' weights)
+//                                  CC_SILVER_AARDWOLD_OPTIMIZED + int4/ tables
+// derived-networks.vars records the checksum each was made with, so a later
+// call makes only what a new package changed.
+function MakeDlssNrDerivedNetworks(const AModelsDir: string; const ARuntimeDirs: array of string;
+  AOnProgress: TDownloadProgressProc = nil): Boolean;
+const
+  MARKER_FILE = 'derived-networks.vars';
+var
+  ModelsPath, Rt: string;
+  Runtimes, Recorded: TStringList;
+  r: Integer;
+  RecordChanged: Boolean;
+
+  // The first runtime with every file in AFiles (relative paths); '' if none
+  function RuntimeWith(const AFiles: array of string): string;
+  var
+    i, f: Integer;
+    HasAll: Boolean;
+  begin
+    Result := '';
+    for i := 0 to Runtimes.Count - 1 do
+    begin
+      HasAll := True;
+      for f := 0 to High(AFiles) do
+        if not (FileExists(Runtimes[i] + AFiles[f]) or DirectoryExists(Runtimes[i] + AFiles[f])) then
+          HasAll := False;
+      if HasAll then
+        Exit(Runtimes[i]);
+    end;
+  end;
+
+  // Removes a network made for another package (or another model)
+  procedure Forget(const ANetwork: string);
+  var
+    Index: Integer;
+  begin
+    if FileExists(ModelsPath + ANetwork + '.bin') then
+    begin
+      DeleteFile(ModelsPath + ANetwork + '.bin');
+      WriteLn('[DLSS-NR] removed ', ANetwork, ', made for another package');
+    end;
+    Index := Recorded.IndexOfName(ANetwork);
+    if Index >= 0 then
+    begin
+      Recorded.Delete(Index);
+      RecordChanged := True;
+    end;
+  end;
+
+  // Makes ANetwork.bin with the tool into a .part file (the last parameter)
+  // and keeps it when its checksum is AExpected. True when the network is
+  // there afterwards, made now or before. When it cannot be made, one made
+  // for an earlier package is removed: the game then greys it out instead
+  // of running weights that do not match its package.
+  function Make(const ANetwork, AExpected, ATool: string; const AParams: array of string;
+    APercent: Integer): Boolean;
+  var
+    Target, Part: string;
+  begin
+    if AExpected = '' then
+    begin
+      WriteLn('[DLSS-NR] the package names no checksum for ', ANetwork, '; it is not made.');
+      Forget(ANetwork);
+      Exit(False);
+    end;
+    Target := ModelsPath + ANetwork + '.bin';
+    if FileExists(Target) and (Recorded.Values[ANetwork] = AExpected) then
+      Exit(True);
+    Part := Target + '.part';
+    if Assigned(AOnProgress) then
+      AOnProgress(APercent, 'Making DLSS-NR network ' + ANetwork + '...');
+    WriteLn('[DLSS-NR] Making ', ANetwork, ' ...');
+    DeleteFile(Part);
+    Result := False;
+    if not RunDlssNrTool(ATool, AParams) then
+      WriteLn('[DLSS-NR] ', ANetwork, ' could not be made; it stays unavailable in game.')
+    else if DlssNrFileSha256(Part) <> AExpected then
+      WriteLn('[DLSS-NR] ', ANetwork, ' has the wrong checksum (a model of another DLL version, or an incomplete package?); ',
+              'it stays unavailable in game.')
+    else
+    begin
+      DeleteFile(Target);
+      Result := RenameFile(Part, Target);
+      if Result then
+      begin
+        Recorded.Values[ANetwork] := AExpected;
+        RecordChanged := True;
+        WriteLn('[DLSS-NR] ', ANetwork, ' made: ', Target);
+      end;
+    end;
+    DeleteFile(Part);
+    if not Result then
+      Forget(ANetwork);
+  end;
+
+begin
+  Result := True;
+  ModelsPath := IncludeTrailingPathDelimiter(AModelsDir);
+  if not DirectoryExists(ModelsPath) then Exit;
+  Runtimes := TStringList.Create;
+  Recorded := TStringList.Create;
+  try
+    for r := 0 to High(ARuntimeDirs) do
+      if (ARuntimeDirs[r] <> '') and DirectoryExists(ARuntimeDirs[r]) then
+        Runtimes.Add(IncludeTrailingPathDelimiter(ARuntimeDirs[r]));
+    if FileExists(ModelsPath + MARKER_FILE) then
+      try
+        Recorded.LoadFromFile(ModelsPath + MARKER_FILE);
+      except
+        Recorded.Clear;
+      end;
+    RecordChanged := False;
+
+    // CC_SMALL_FP8_EXPERIMENTAL: needs CC_SMALL_FP8 (the 310.9.16 DLL's model)
+    Rt := RuntimeWith(['experimental/experimental_weights.py', 'experimental/dlssnr-small-experimental.delta',
+                       'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256']);
+    if (Rt <> '') and FileExists(ModelsPath + 'CC_SMALL_FP8.bin') then
+      if not Make('CC_SMALL_FP8_EXPERIMENTAL',
+                  ReadDlssNrExpectedSha256(Rt + 'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256'), 'python3',
+                  [Rt + 'experimental/experimental_weights.py', 'apply', ModelsPath + 'CC_SMALL_FP8.bin',
+                   Rt + 'experimental/dlssnr-small-experimental.delta', ModelsPath + 'CC_SMALL_FP8_EXPERIMENTAL.bin.part'],
+                  96) then
+        Result := False;
+
+    // CC_SILVER_AARDWOLD_OPTIMIZED, then its int4 layers' weights from it
+    Rt := RuntimeWith(['optimized/experimental_weights.py', 'optimized/dlssnr-optimized.delta',
+                       'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256']);
+    if (Rt <> '') and FileExists(ModelsPath + 'CC_SILVER_AARDWOLD.bin') then
+    begin
+      if not Make('CC_SILVER_AARDWOLD_OPTIMIZED',
+                  ReadDlssNrExpectedSha256(Rt + 'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256'), 'python3',
+                  [Rt + 'optimized/experimental_weights.py', 'apply', ModelsPath + 'CC_SILVER_AARDWOLD.bin',
+                   Rt + 'optimized/dlssnr-optimized.delta', ModelsPath + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin.part'],
+                  97) then
+      begin
+        Result := False;
+        Forget('CC_SILVER_AARDWOLD_OPTIMIZED_INT4');   // made from it
+      end
+      else
+      begin
+        // One file for the three int4 levels, made with Ultra Performance's
+        // tables, which cover the others'
+        Rt := RuntimeWith(['int4/dlssnr-int4-weights', 'int4/dlssnr-amd/int4-ultra',
+                           'int4/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin.sha256']);
+        if Rt <> '' then
+        begin
+          if fpAccess(PChar(Rt + 'int4/dlssnr-int4-weights'), X_OK) <> 0 then
+            fpChmod(PChar(Rt + 'int4/dlssnr-int4-weights'), &755);
+          if not Make('CC_SILVER_AARDWOLD_OPTIMIZED_INT4',
+                      ReadDlssNrExpectedSha256(Rt + 'int4/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin.sha256'),
+                      Rt + 'int4/dlssnr-int4-weights',
+                      [ModelsPath + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin', Rt + 'int4/dlssnr-amd/int4-ultra',
+                       ModelsPath + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin.part'],
+                      98) then
+            Result := False;
+        end;
+      end;
+    end;
+
+    if RecordChanged then
+      try
+        Recorded.SaveToFile(ModelsPath + MARKER_FILE);
+      except
+        on E: Exception do
+          WriteLn('[DLSS-NR] could not write ', ModelsPath + MARKER_FILE, ': ', E.Message);
+      end;
+  finally
+    Recorded.Free;
+    Runtimes.Free;
+  end;
+end;
+
+function EnsureDlssNrDerivedNetworks(AOnProgress: TDownloadProgressProc = nil): Boolean;
+begin
+  EnterCriticalSection(DlssNrDerivedLock);
+  try
+    // 64-bit runtimes first; the i686 package has the same difference files
+    Result := MakeDlssNrDerivedNetworks(GetBGModDlssNrModelsPath,
+      [GetBGModDlssNrPath('rdna3'), GetBGModDlssNrPath('rdna4'),
+       GetBGModDlssNr32Path('rdna3'), GetBGModDlssNr32Path('rdna4')], AOnProgress);
+  finally
+    LeaveCriticalSection(DlssNrDerivedLock);
+  end;
+end;
+
+procedure TDlssNrDerivedThread.Execute;
+begin
+  try
+    if IsDlssNrModelReady then
+      EnsureDlssNrDerivedNetworks(nil);
+  except
+    on E: Exception do
+      WriteLn('[DLSS-NR] making the derived networks failed: ', E.Message);
+  end;
+end;
+
+procedure StartDlssNrDerivedNetworks;
+var
+  Worker: TDlssNrDerivedThread;
+begin
+  Worker := TDlssNrDerivedThread.Create(True);
+  Worker.FreeOnTerminate := True;
+  Worker.Start;
+end;
+
 procedure SanitizeDlssNrExtractScript(const AScriptPath: string);
 var
   Lines: TStringList;
@@ -10139,6 +10467,11 @@ begin
       AOnProgress(95, 'Downloading DLSS-NR 32-bit runtime (' + PrimaryArch + ')...');
     CheckAndInstallDlssNr32(PrimaryArch, False, AOnProgress);
   end;
+
+  // The networks made from these models (CC_SMALL_FP8_EXPERIMENTAL,
+  // CC_SILVER_AARDWOLD_OPTIMIZED and its int4 layers). Best effort as well:
+  // one that cannot be made stays greyed out in game.
+  EnsureDlssNrDerivedNetworks(AOnProgress);
 
   if Assigned(AOnProgress) then
     AOnProgress(100, 'DLSS-NR model weights ready.');
@@ -10457,5 +10790,11 @@ procedure UninstallAllUserModules;
 begin
   UninstallUserModule('ALL');
 end;
+
+initialization
+  InitCriticalSection(DlssNrDerivedLock);
+
+finalization
+  DoneCriticalSection(DlssNrDerivedLock);
 
 end.
