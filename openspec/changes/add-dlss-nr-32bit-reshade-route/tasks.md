@@ -36,7 +36,7 @@
 - [x] 4.4b Derived networks: making, checksum record, made once, newer package, missing model; copies and int4 folders on both routes, a network made after the route was installed, the int4 layer on the ReShade route and none without its weights.
 - [x] 4.5 Manual: Max Payne (Direct3D 8) and Space Marine (Direct3D 9) on RDNA3 (RX 7800 XT) with Proton-CachyOS: route installed over an `install.sh` install and a 64-bit OptiScaler install, DXVK `d3d8.dll` from the launching Proton, add-on loaded, Max Payne's intro videos play, removal on disable leaves the game's own files intact.
 - [ ] 4.6 Manual: an RDNA4 i686 package (asset name and layout not verified yet).
-- [ ] 4.7 Manual: the derived networks and the int4 levels in game. Done: making them from real 310.9.16 models matched the package's three checksums; Max Payne and Space Marine list every network as available and serve `CC_SMALL_FP8_EXPERIMENTAL` with the int4 layer exported. Open: `CC_SILVER_AARDWOLD_OPTIMIZED`'s int4 levels in game, a 64-bit game, and Max Payne starting with `CC_SMALL_FP8_EXPERIMENTAL`.
+- [ ] 4.7 Manual: the derived networks and the int4 levels in game. Done: making them from real 310.9.16 models matched the package's three checksums; Max Payne and Space Marine list every network as available and serve `CC_SMALL_FP8_EXPERIMENTAL` with the int4 layer exported. Max Payne also starts with `CC_SMALL_FP8_EXPERIMENTAL`. Open: `CC_SILVER_AARDWOLD_OPTIMIZED`'s int4 levels in game, and a 64-bit game.
 
 ## 5. Derived networks
 
