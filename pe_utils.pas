@@ -667,13 +667,77 @@ begin
     ExcludeTrailingPathDelimiter(AGameDir), 0, 4, Result, BestScore, BestSize);
 end;
 
+// A renderer module that loads Direct3D at run time (LoadLibrary("d3d8.dll"),
+// GetProcAddress("Direct3DCreate8")) has no import for it: Max Payne's
+// e2driver\e2_d3d8_driver_mfc.dll does this. It counts when the module names
+// d3d8.dll (or d3d9.dll) and its Direct3DCreate function, and no other
+// graphics runtime: hooking and wrapper tools (DxWnd, say) name them all.
+function DetectDynamicDirect3DLoad(const APath: string): TDetectedGraphicsApi;
+const
+  MAX_SCANNED_SIZE = 16 * 1024 * 1024;
+  Runtimes: array[0..9] of string = ('d3d8.dll', 'd3d9.dll', 'd3d10.dll', 'd3d10_1.dll',
+    'd3d11.dll', 'd3d12.dll', 'dxgi.dll', 'ddraw.dll', 'opengl32.dll', 'vulkan-1.dll');
+var
+  Stream: TFileStream;
+  Data: AnsiString;
+  Named: string;
+  r, NamedCount: Integer;
+
+  // ASCII or UTF-16 (LoadLibraryW)
+  function Mentions(const AName: string): Boolean;
+  var
+    Wide: AnsiString;
+    i: Integer;
+  begin
+    Result := Pos(AName, Data) > 0;
+    if Result then Exit;
+    SetLength(Wide, Length(AName) * 2);
+    for i := 1 to Length(AName) do
+    begin
+      Wide[2 * i - 1] := AName[i];
+      Wide[2 * i] := #0;
+    end;
+    Result := Pos(Wide, Data) > 0;
+  end;
+
+begin
+  Result := gapiUnknown;
+  Data := '';
+  try
+    Stream := TFileStream.Create(APath, fmOpenRead or fmShareDenyNone);
+    try
+      if (Stream.Size <= 0) or (Stream.Size > MAX_SCANNED_SIZE) then Exit;
+      SetLength(Data, Stream.Size);
+      Stream.ReadBuffer(Data[1], Stream.Size);
+    finally
+      Stream.Free;
+    end;
+  except
+    Exit;
+  end;
+  Data := LowerCase(Data);
+  NamedCount := 0;
+  Named := '';
+  for r := 0 to High(Runtimes) do
+    if Mentions(Runtimes[r]) then
+    begin
+      Inc(NamedCount);
+      Named := Runtimes[r];
+    end;
+  if NamedCount <> 1 then Exit;
+  if (Named = 'd3d8.dll') and (Pos('direct3dcreate8', Data) > 0) then
+    Result := gapiDX8
+  else if (Named = 'd3d9.dll') and (Pos('direct3dcreate9', Data) > 0) then
+    Result := gapiDX9;
+end;
+
 // Old games often load Direct3D from a renderer module instead of importing it
 // in the exe (Max Payne: e2driver\e2_d3d8_driver_mfc.dll). Returns gapiDX8 or
-// gapiDX9 when the exe, a DLL next to it or a DLL one folder below imports
-// d3d8.dll / d3d9.dll, and gapiUnknown otherwise. An exe that imports a newer
-// API (DX11/DX12/OpenGL) is not a legacy Direct3D game. D3D8 wins over D3D9 in
-// the module scan because a D3D8 game needs DXVK's d3d8.dll on top of what a
-// D3D9 game needs.
+// gapiDX9 when the exe imports d3d8.dll / d3d9.dll, or a DLL next to it or one
+// folder below imports it or loads it at run time, and gapiUnknown otherwise.
+// An exe that imports a newer API (DX11/DX12/OpenGL) is not a legacy Direct3D
+// game. D3D8 wins over D3D9 in the module scan because a D3D8 game needs
+// DXVK's d3d8.dll on top of what a D3D9 game needs.
 function DetectLegacyDirect3DApi(const AExePath: string): TDetectedGraphicsApi;
 const
   MAX_SCANNED_MODULES = 256;
@@ -704,10 +768,24 @@ var
               (Low = 'vulkan-1.dll') or (Low = 'winevulkan.dll');
   end;
 
+  // A Direct3D runtime in the game folder is a copy or a wrapper (DXVK's
+  // d3d8.dll, which the D3D8 route copies, imports d3d9.dll), not the renderer.
+  function IsDirect3DRuntimeModule(const AFileName: string): Boolean;
+  var
+    Low: string;
+  begin
+    Low := LowerCase(AFileName);
+    Result := (Low = 'd3d8.dll') or (Low = 'd3d9.dll') or (Low = 'd3d10.dll') or
+              (Low = 'd3d10_1.dll') or (Low = 'd3d10core.dll') or (Low = 'd3d11.dll') or
+              (Low = 'd3d12.dll') or (Low = 'd3d12core.dll') or (Low = 'dxgi.dll') or
+              (Low = 'ddraw.dll') or (Low = 'opengl32.dll');
+  end;
+
   procedure ScanDir(const ADir: string; ADepth: Integer);
   var
     SR: TSearchRec;
     Path: string;
+    Api: TDetectedGraphicsApi;
   begin
     if FindFirst(IncludeTrailingPathDelimiter(ADir) + '*', faAnyFile, SR) <> 0 then Exit;
     try
@@ -722,10 +800,13 @@ var
         end
         else if SameText(ExtractFileExt(SR.Name), '.dll') and
                 (SR.Size > 0) and (SR.Size <= MAX_MODULE_SIZE) and
-                not IsOwnRuntimeModule(SR.Name) then
+                not IsOwnRuntimeModule(SR.Name) and not IsDirect3DRuntimeModule(SR.Name) then
         begin
           Inc(Scanned);
-          case DetectPEGraphicsApi(Path) of
+          Api := DetectPEGraphicsApi(Path);
+          if Api = gapiUnknown then
+            Api := DetectDynamicDirect3DLoad(Path);
+          case Api of
             gapiDX8: FoundDX8 := True;
             gapiDX9: FoundDX9 := True;
           end;

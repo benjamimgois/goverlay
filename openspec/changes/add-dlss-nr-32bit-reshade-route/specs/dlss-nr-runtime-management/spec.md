@@ -15,14 +15,22 @@ The system SHALL download the i686 package of the selected DLSS-NR architecture 
 - **THEN** the system downloads the i686 runtime for that architecture without showing a failure notice when it cannot.
 
 ### Requirement: ReShade Route for 32-bit DirectX 8/9 Games
-When DLSS-NR is selected for a 32-bit (i386) Windows game that draws with Direct3D 8 or 9, the launcher SHALL deploy DLSSNR-AMD's ReShade route from the i686 runtime instead of the OptiScaler route. Direct3D SHALL be detected from the executable's imports or, when it imports none, from a DLL next to the executable or one folder below. The deployment SHALL copy files directly, as the package installer's dx9 route does, and SHALL list them in `dlssnr-amd-install.txt`.
+When DLSS-NR is selected for a 32-bit (i386) Windows game that draws with Direct3D 8 or 9, the launcher SHALL deploy DLSSNR-AMD's ReShade route from the i686 runtime instead of the OptiScaler route. Direct3D SHALL be detected from the executable's imports or, when it imports none, from a DLL next to the executable or one folder below that imports `d3d8.dll`/`d3d9.dll` or loads it at run time. A DLL that names several graphics runtimes, or that is named like a graphics runtime, SHALL NOT count. The deployment SHALL copy files directly, as the package installer's dx9 route does, and SHALL list them in `dlssnr-amd-install.txt`.
 
 #### Scenario: Deploying to a Direct3D 8 game
-- **WHEN** a 32-bit game whose renderer module imports `d3d8.dll` is launched with DLSS-NR selected through a Proton build that ships DXVK's 32-bit `d3d8.dll`
+- **WHEN** a 32-bit game whose renderer module imports `d3d8.dll` or loads it at run time is launched with DLSS-NR selected through a Proton build that ships DXVK's 32-bit `d3d8.dll`
 - **THEN** the launcher copies the runtime folder, the extracted models, ReShade32 with its Vulkan loader and layer manifest, the D3D9 ReShade preset as `ReShadePreset.ini`, the int4 add-on, and DXVK's `d3d8.dll` into the game folder
 - **AND** does not copy OptiScaler or the reshade-feeder `dxgi.dll`
 - **AND** writes `dlssnr-amd.ini` from the package's add-on ini with GOverlay's DLSS-NR settings applied
 - **AND** exports `winevulkan=n,b`, `vulkan-1=n,b` and `d3d8=n,b` in `WINEDLLOVERRIDES` and `renderer=gdi` in `WINE_D3D_CONFIG`.
+
+#### Scenario: Renderer module loading Direct3D at run time
+- **WHEN** a 32-bit game's executable imports no Direct3D and a DLL one folder below imports no graphics API but names `d3d8.dll` and `Direct3DCreate8` and no other graphics runtime
+- **THEN** the launcher treats the game as a Direct3D 8 game and deploys the ReShade route.
+
+#### Scenario: Hooking tools and Direct3D copies in the game folder
+- **WHEN** the only DLLs next to a 32-bit executable that name Direct3D are a tool that names several graphics runtimes, or a DLL named like a graphics runtime (such as DXVK's `d3d8.dll`, which imports `d3d9.dll`)
+- **THEN** the launcher does not treat the game as a Direct3D 8 or 9 game.
 
 #### Scenario: Deploying to a Direct3D 9 game
 - **WHEN** a 32-bit game whose executable imports `d3d9.dll` is launched with DLSS-NR selected

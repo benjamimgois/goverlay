@@ -12,7 +12,7 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 ## What Changes
 
 - **Download:** GOverlay also downloads the i686 package of the selected architecture into `dlss-nr-<arch>-i686`. This happens after model extraction and, for existing installs, at startup.
-- **Route selection:** bgmod uses the ReShade route instead of the OptiScaler route when DLSS-NR is selected and the game is 32-bit and draws with Direct3D 8 or 9. Direct3D is detected from the exe's imports, or else from a DLL next to it or one folder below, since old games often load Direct3D from a renderer module.
+- **Route selection:** bgmod uses the ReShade route instead of the OptiScaler route when DLSS-NR is selected and the game is 32-bit and draws with Direct3D 8 or 9. Direct3D is detected from the exe's imports, or else from a DLL next to it or one folder below that imports Direct3D or loads it at run time, since old games often load Direct3D from a renderer module. Max Payne's renderer module loads `d3d8.dll` at run time and imports no Direct3D.
 - **Deployment:**
   - bgmod copies the files `install.sh` copies for the dx9 route: the runtime folder and models, `reshade/` and `vulkan/` without `dxgi.dll`, the D3D9 preset as `ReShadePreset.ini`, and the int4 add-on.
   - It writes `dlssnr-amd.ini` from the package's add-on ini with GOverlay's DLSS-NR settings applied.
@@ -38,7 +38,7 @@ DLSSNR-AMD's 32-bit (i686) package has a route for these games: `reshade-feeder-
 - `bgmod_resources.pas`: `GetBGModDlssNr32Path`.
 - `optiscaler_update.pas`: `ParseDlssNr32Release`, `FetchDlssNr32Release`, `CheckAndInstallDlssNr32`, `IsDlssNr32Installed`, the download after model extraction, and the RDNA3 asset filter fix.
 - `overlayunit.pas`: startup download of the 32-bit runtime for existing DLSS-NR installs.
-- `tests/logic/`: detection, release parsing, deployment, settings sync, cleanup, uninstaller.
+- `tests/logic/`: detection (including run-time loading), release parsing, deployment, settings sync, cleanup, uninstaller.
 
 ## Non-goals
 

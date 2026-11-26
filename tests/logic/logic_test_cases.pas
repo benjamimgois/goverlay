@@ -3037,6 +3037,32 @@ var
     ForceDirectories(Dir);
   end;
 
+  // Strings a module carries without importing them (LoadLibrary/GetProcAddress)
+  procedure AppendStrings(const APath: string; const AData: AnsiString);
+  var
+    Stream: TFileStream;
+  begin
+    Stream := TFileStream.Create(APath, fmOpenReadWrite);
+    try
+      Stream.Seek(0, soEnd);
+      Stream.WriteBuffer(AData[1], Length(AData));
+    finally
+      Stream.Free;
+    end;
+  end;
+
+  function Utf16(const AText: AnsiString): AnsiString;
+  var
+    i: Integer;
+  begin
+    SetLength(Result, Length(AText) * 2);
+    for i := 1 to Length(AText) do
+    begin
+      Result[2 * i - 1] := AText[i];
+      Result[2 * i] := #0;
+    end;
+  end;
+
 begin
   Fresh('dx8_import');
   WritePEImportTestStub(Dir + '/game.exe', False, 'd3d8.dll');
@@ -3048,7 +3074,39 @@ begin
   WritePEImportTestStub(Dir + '/game.exe', False, 'd3d9.dll');
   AssertEquals('Exe importing d3d9.dll', Ord(gapiDX9), Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
 
-  // Max Payne: the exe imports no Direct3D; its renderer module in a subfolder does
+  // Max Payne: neither the exe nor its renderer module imports Direct3D; the
+  // module loads D3D8.DLL and Direct3DCreate8 at run time
+  Fresh('dx8_runtime_loaded_module');
+  WritePEImportTestStub(Dir + '/maxpayne.exe', False, 'kernel32.dll');
+  ForceDirectories(Dir + '/e2driver');
+  WritePEImportTestStub(Dir + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/e2driver/e2_d3d8_driver_mfc.dll', 'D3D8.DLL'#0'Direct3DCreate8'#0'd3d8.dll'#0);
+  AssertEquals('d3d8.dll loaded at run time by a module one folder down', Ord(gapiDX8),
+    Ord(DetectLegacyDirect3DApi(Dir + '/maxpayne.exe')));
+
+  Fresh('dx9_runtime_loaded_utf16');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/render.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/render.dll', Utf16('d3d9.dll') + #0#0'Direct3DCreate9'#0);
+  AssertEquals('d3d9.dll loaded through LoadLibraryW', Ord(gapiDX9),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // Hooking tools (DxWnd in Command & Conquer Red Alert II) name every runtime
+  Fresh('hook_tool_module');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/dxwnd.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/dxwnd.dll', 'd3d8.dll'#0'Direct3DCreate8'#0'd3d9.dll'#0'Direct3DCreate9'#0 +
+    'ddraw.dll'#0'opengl32.dll'#0'd3d11.dll'#0);
+  AssertEquals('A module naming several graphics runtimes is not a renderer', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // DXVK's d3d8.dll (copied by the D3D8 route) imports d3d9.dll
+  Fresh('dxvk_d3d8_copy');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/d3d8.dll', False, 'd3d9.dll');
+  AssertEquals('A Direct3D runtime in the game folder is not the renderer', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
   Fresh('dx8_renderer_module');
   WritePEImportTestStub(Dir + '/maxpayne.exe', False, 'kernel32.dll');
   ForceDirectories(Dir + '/e2driver');
@@ -3575,7 +3633,9 @@ begin
 
   // Without the 32-bit runtime nothing is installed, not even the 64-bit
   // OptiScaler route (it cannot load into a 32-bit game)
+  // bgmod falls back to the other architecture's runtime: hide both
   RenameFile(Base + 'dlss-nr-rdna3-i686', Base + 'dlss-nr-rdna3-i686.hidden');
+  RenameFile(Base + 'dlss-nr-rdna4-i686', Base + 'dlss-nr-rdna4-i686.hidden');
   try
     WriteDlssNr32TestText(Base + 'dlss-nr-rdna3/optiscaler/OptiScaler.dll', 'OPTISCALER_NR_64');
     AssertEquals('run without runtime exits cleanly', 0, RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], []));
@@ -3585,6 +3645,7 @@ begin
       ReadDlssNr32TestText(Base + 'logs/DlssNr32Dx9Game/bgmod.log')) > 0);
   finally
     RenameFile(Base + 'dlss-nr-rdna3-i686.hidden', Base + 'dlss-nr-rdna3-i686');
+    RenameFile(Base + 'dlss-nr-rdna4-i686.hidden', Base + 'dlss-nr-rdna4-i686');
   end;
 
   // Earlier installs: DLSSNR-AMD's own installer, GOverlay's 64-bit OptiScaler
@@ -3633,9 +3694,7 @@ begin
   // bgmod-uninstaller removes the route by its manifest
   Uninstaller := ExpandFileName(ExtractFilePath(GetBgmodBinaryPath) + 'bgmod-uninstaller');
   if FileExists(Uninstaller) then
-  // bgmod falls back to the other architecture's runtime: hide both
   begin
-  RenameFile(Base + 'dlss-nr-rdna4-i686', Base + 'dlss-nr-rdna4-i686.hidden');
     Proc := TProcess.Create(nil);
     try
       Proc.Executable := Uninstaller;
@@ -3645,7 +3704,6 @@ begin
       Proc.Options := [poWaitOnExit];
       Proc.CurrentDirectory := GameDir;
       for EnvIndex := 1 to GetEnvironmentVariableCount do
-    RenameFile(Base + 'dlss-nr-rdna4-i686.hidden', Base + 'dlss-nr-rdna4-i686');
         Proc.Environment.Add(GetEnvironmentString(EnvIndex));
       Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + GameDir);
       Proc.Execute;

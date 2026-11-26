@@ -13,9 +13,10 @@ bgmod chooses the ReShade route when all of these hold:
 
 1. If the exe imports `d3d8.dll` or `d3d9.dll`, that is the answer.
 2. If the exe imports a newer API (DXGI/D3D11/D3D12/OpenGL), it is not a legacy game.
-3. Otherwise it scans `*.dll` next to the exe and one folder below, at most 256 modules of at most 64 MiB each. It skips the folders GOverlay already skips, the route's own folders and modules (`dlssnr-amd`, `reshade-shaders`, `vk-override`, `ReShade32/64.dll`, `vulkan-1.dll`, `winevulkan.dll`), and the OptiScaler folders.
+3. Otherwise it scans `*.dll` next to the exe and one folder below, at most 256 modules of at most 64 MiB each. It skips the folders GOverlay already skips, the route's own folders and modules (`dlssnr-amd`, `reshade-shaders`, `vk-override`, `ReShade32/64.dll`, `vulkan-1.dll`, `winevulkan.dll`), and the OptiScaler folders. It also skips DLLs named like a graphics runtime (`d3d8.dll`, `d3d9.dll`, `d3d10*.dll`, `d3d11.dll`, `d3d12*.dll`, `dxgi.dll`, `ddraw.dll`, `opengl32.dll`). Those are copies or wrappers, not the renderer: DXVK's `d3d8.dll`, which the route copies for Direct3D 8 games, imports `d3d9.dll`.
+4. A module counts when it imports `d3d8.dll` or `d3d9.dll`. A module that imports no graphics API also counts when it loads Direct3D at run time (`LoadLibrary` and `GetProcAddress`). This is the case when its data names `d3d8.dll` and `Direct3DCreate8` (or `d3d9.dll` and `Direct3DCreate9`), in ASCII or UTF-16, and names no other graphics runtime. Hooking and wrapper tools such as DxWnd name every runtime and do not count. Only modules up to 16 MiB are read for this check.
 
-A D3D8 importer wins over a D3D9 one, because a D3D8 game needs `d3d8.dll` on top of what a D3D9 game needs. Max Payne is the motivating case: its exe imports no Direct3D, and `e2driver/e2_d3d8_driver_mfc.dll` imports `d3d8.dll`.
+A D3D8 module wins over a D3D9 one, because a D3D8 game needs `d3d8.dll` on top of what a D3D9 game needs. Max Payne is the motivating case. Neither its exe nor `e2driver/e2_d3d8_driver_mfc.dll` imports Direct3D: the exe loads the renderer module, and the module loads `D3D8.DLL` and `Direct3DCreate8` at run time. In a sweep of the 32-bit games in one Steam library, only Max Payne changed with the run-time check. Command & Conquer Red Alert II, whose `dxwnd.dll` names every runtime, stayed unknown.
 
 A 32-bit game that is neither gets a log warning and keeps today's behaviour.
 

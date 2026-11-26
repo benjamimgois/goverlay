@@ -4,6 +4,7 @@
 
 - [x] 1.1 Add `gapiDX8` (appended, so existing ordinals keep their values) and `d3d8.dll` import detection to `pe_utils.pas`.
 - [x] 1.2 Add `DetectLegacyDirect3DApi`, which checks exe imports first and then scans modules next to the exe and one folder below, skipping GOverlay's and DLSS-NR's own folders and modules.
+- [x] 1.3 Count a module that loads `d3d8.dll`/`d3d9.dll` at run time (Max Payne's renderer module imports no Direct3D), unless it names several graphics runtimes. Skip DLLs named like a graphics runtime.
 
 ## 2. 32-bit runtime
 
@@ -26,10 +27,11 @@
 ## 4. Tests
 
 - [x] 4.1 Detection: exe imports, renderer module in a subfolder, newer API, own modules, depth limit.
+- [x] 4.1a Detection: Direct3D loaded at run time (ASCII and UTF-16 names), a hooking tool that names every runtime, DXVK's `d3d8.dll` in the game folder.
 - [x] 4.2 Release parsing: RDNA3 GitHub list with checksum and 64-bit assets, RDNA4 GitLab list, no i686 package.
 - [x] 4.3 Direct3D 8 route: files, ini merge, manifest, markers, environment, up-to-date launch, settings sync, removal on disable.
 - [x] 4.3a DXVK `d3d8.dll` lookup: none found, `PROTONPATH`, newest installed build across Steam libraries and Lutris (64-bit and non-Proton files ignored), `PROTON_USE_WINED3D`, refresh after a Proton update.
 - [x] 4.4 Direct3D 9 route: missing runtime, replacing installer/OptiScaler/ReShade installs, user `WINE_D3D_CONFIG`, `bgmod-uninstaller`.
+- [x] 4.4a Keep the suite off the network: the model-extraction test provides a stub i686 runtime, and the missing-runtime test hides both architectures' runtimes, since bgmod falls back to the other one.
 - [ ] 4.5 Manual: Max Payne (Direct3D 8) and Space Marine (Direct3D 9) on RDNA3 with Proton-CachyOS.
 - [ ] 4.6 Manual: an RDNA4 i686 package (asset name and layout not verified yet).
-- [x] 4.4a Keep the suite off the network: the model-extraction test provides a stub i686 runtime, and the missing-runtime test hides both architectures' runtimes, since bgmod falls back to the other one.
