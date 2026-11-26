@@ -2738,6 +2738,8 @@ var
 begin
   FillChar(Hdr, SizeOf(Hdr), 0);
   Script := '#!' + FindTestHelperExecutable('sh') + #10 + 'exit 0' + #10;
+  if (Length(Script) >= $38) and FileExists('/bin/sh') then
+    Script := '#!/bin/sh' + #10 + 'exit 0' + #10;
   if Length(Script) >= $38 then
     raise Exception.Create('test shell path too long for PE stub');
   Move(Script[1], Hdr[0], Length(Script));
