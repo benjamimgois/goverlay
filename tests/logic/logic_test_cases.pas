@@ -680,7 +680,7 @@ var
   DataRoot, Rdna3Dir, Rdna4Dir, ModelsDir: string;
   DllPath, ErrorMsg, UsedScript: string;
   ScriptLines, MarkerLines: TStringList;
-  MarkerPath: string;
+  MarkerPath, Runtime32Dir: string;
 
   procedure WriteExtractScript(const AToolsDir: string);
   begin
@@ -715,6 +715,18 @@ begin
     ScriptLines.Free;
   end;
 
+  // ExtractDlssNrModel ends by downloading the 32-bit runtime when it is
+  // missing: a stub keeps the test off the network and out of later tests' way
+  Runtime32Dir := IncludeTrailingPathDelimiter(DataRoot + 'dlss-nr-rdna4-i686');
+  ForceDirectories(Runtime32Dir + 'reshade');
+  ScriptLines := TStringList.Create;
+  try
+    ScriptLines.Add('stub');
+    ScriptLines.SaveToFile(Runtime32Dir + 'reshade' + PathDelim + 'dlssnr_amd.addon32');
+  finally
+    ScriptLines.Free;
+  end;
+
   try
     AssertTrue('RDNA4 extraction succeeds', ExtractDlssNrModel(DllPath, ErrorMsg, nil, 'rdna4'));
     AssertEquals('No extraction error', '', ErrorMsg);
@@ -745,6 +757,9 @@ begin
     if DirectoryExists(Rdna3Dir) then RemoveDir(Rdna3Dir);
     if DirectoryExists(Rdna4Dir) then RemoveDir(Rdna4Dir);
     if DirectoryExists(ModelsDir) then RemoveDir(ModelsDir);
+    DeleteFile(Runtime32Dir + 'reshade' + PathDelim + 'dlssnr_amd.addon32');
+    RemoveDir(Runtime32Dir + 'reshade');
+    RemoveDir(Runtime32Dir);
   end;
 end;
 
@@ -3618,7 +3633,9 @@ begin
   // bgmod-uninstaller removes the route by its manifest
   Uninstaller := ExpandFileName(ExtractFilePath(GetBgmodBinaryPath) + 'bgmod-uninstaller');
   if FileExists(Uninstaller) then
+  // bgmod falls back to the other architecture's runtime: hide both
   begin
+  RenameFile(Base + 'dlss-nr-rdna4-i686', Base + 'dlss-nr-rdna4-i686.hidden');
     Proc := TProcess.Create(nil);
     try
       Proc.Executable := Uninstaller;
@@ -3628,6 +3645,7 @@ begin
       Proc.Options := [poWaitOnExit];
       Proc.CurrentDirectory := GameDir;
       for EnvIndex := 1 to GetEnvironmentVariableCount do
+    RenameFile(Base + 'dlss-nr-rdna4-i686.hidden', Base + 'dlss-nr-rdna4-i686');
         Proc.Environment.Add(GetEnvironmentString(EnvIndex));
       Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + GameDir);
       Proc.Execute;

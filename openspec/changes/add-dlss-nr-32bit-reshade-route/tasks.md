@@ -32,3 +32,4 @@
 - [x] 4.4 Direct3D 9 route: missing runtime, replacing installer/OptiScaler/ReShade installs, user `WINE_D3D_CONFIG`, `bgmod-uninstaller`.
 - [ ] 4.5 Manual: Max Payne (Direct3D 8) and Space Marine (Direct3D 9) on RDNA3 with Proton-CachyOS.
 - [ ] 4.6 Manual: an RDNA4 i686 package (asset name and layout not verified yet).
+- [x] 4.4a Keep the suite off the network: the model-extraction test provides a stub i686 runtime, and the missing-runtime test hides both architectures' runtimes, since bgmod falls back to the other one.
