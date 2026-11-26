@@ -25,7 +25,9 @@ type
     procedure TestDlssNr009CacheAndManifestLayout;
     procedure TestIsDlssNrInstalledFallbackArchitecture;
     procedure TestDlssNrArchitecturePathResolution;
+    procedure TestParseDlssNr32Release;
     procedure TestExtractDlssNrModelTargetsRequestedArch;
+    procedure TestMakeDlssNrDerivedNetworks;
     procedure TestHelixSrConfigRoundTrip;
     procedure TestHelixSrIniGeneration;
   end;
@@ -124,6 +126,11 @@ type
     procedure TestBgmodReShadeOnlyDoesNotDeleteVendorDlls;
     procedure TestBgmodReShadeProxyMatchesExeArchitecture;
     procedure TestDetectPEGraphicsApi;
+    procedure TestDetectLegacyDirect3DApi;
+    procedure TestBgmodDlssNr32BitDx8ReShadeRoute;
+    procedure TestBgmodDlssNr32BitDx9ReplacesEarlierInstalls;
+    procedure TestBgmodDlssNr32BitDerivedNetworks;
+    procedure TestBgmodDlssNr32BitDx8FindsDxvkD3D8;
     procedure TestResolveRealGameExecutableHeuristics;
     procedure TestBgmodReShadeD3D9ExportsD3DCompilerOverride;
     procedure TestBgmodDisabledOptiscalerWithLeftoversPreservesGenuineDlls;
@@ -622,6 +629,41 @@ begin
   end;
 end;
 
+procedure TOptiScalerIniTests.TestParseDlssNr32Release;
+const
+  // Newest first, as the GitHub API lists them: a 64-bit-only release, then
+  // the release with the 64-bit, i686 and checksum assets.
+  GitHubJson =
+    '[{"tag_name":"z1e.3","assets":[' +
+    '{"browser_download_url":"https://github.com/o/r/releases/download/z1e.3/DLSSNR-AMD-Vulkan-Linux-z1e.3-x86_64-rdna3.tar.gz"}]},' +
+    '{"tag_name":"v0.0.9-linux-rdna3","assets":[' +
+    '{"browser_download_url":"https://github.com/o/r/releases/download/v0.0.9-linux-rdna3/DLSSNR-AMD-Vulkan-Linux-0.0.9-linux-rdna3-x86_64-rdna3.tar.gz"},' +
+    '{"browser_download_url":"https://github.com/o/r/releases/download/v0.0.9-linux-rdna3/DLSSNR-AMD-Vulkan-Linux-0.0.9-linux-rdna3-i686-rdna3.tar.gz.sha256"},' +
+    '{"browser_download_url":"https://github.com/o/r/releases/download/v0.0.9-linux-rdna3/DLSSNR-AMD-Vulkan-Linux-0.0.9-linux-rdna3-i686-rdna3.tar.gz"}]}]';
+  GitLabJson =
+    '[{"name":"0.0.9","tag_name":"v0.0.9","assets":{"sources":[{"format":"tar.gz","url":"https://gitlab.com/o/r/-/archive/v0.0.9/r-v0.0.9.tar.gz"}],"links":[' +
+    '{"name":"x86_64","direct_asset_url":"https://gitlab.com/o/r/-/releases/v0.0.9/downloads/DLSSNR-AMD-Vulkan-Linux-0.0.9-x86_64.tar.gz"},' +
+    '{"name":"i686","direct_asset_url":"https://gitlab.com/o/r/-/releases/v0.0.9/downloads/DLSSNR-AMD-Vulkan-Linux-0.0.9-i686.tar.gz"}]}}]';
+var
+  Tag, Url: string;
+begin
+  AssertTrue('RDNA3: an i686 package is found', ParseDlssNr32Release(GitHubJson, 'rdna3', Tag, Url));
+  AssertEquals('RDNA3: the i686-rdna3 archive, not its checksum or the 64-bit one',
+    'https://github.com/o/r/releases/download/v0.0.9-linux-rdna3/DLSSNR-AMD-Vulkan-Linux-0.0.9-linux-rdna3-i686-rdna3.tar.gz', Url);
+  AssertEquals('RDNA3: tag of the release the archive belongs to', 'v0.0.9-linux-rdna3', Tag);
+
+  AssertTrue('RDNA4: an i686 package is found', ParseDlssNr32Release(GitLabJson, 'rdna4', Tag, Url));
+  AssertEquals('RDNA4: the i686 link',
+    'https://gitlab.com/o/r/-/releases/v0.0.9/downloads/DLSSNR-AMD-Vulkan-Linux-0.0.9-i686.tar.gz', Url);
+  AssertEquals('RDNA4: tag', 'v0.0.9', Tag);
+
+  AssertFalse('RDNA4 does not take the RDNA3 port''s package', ParseDlssNr32Release(
+    StringReplace(GitHubJson, 'browser_download_url', 'direct_asset_url', [rfReplaceAll]), 'rdna4', Tag, Url));
+  AssertFalse('No i686 package: nothing', ParseDlssNr32Release(
+    '[{"tag_name":"z1e.3","assets":[{"browser_download_url":"https://x/y-x86_64-rdna3.tar.gz"}]}]', 'rdna3', Tag, Url));
+  AssertEquals('No i686 package: empty URL', '', Url);
+end;
+
 procedure TOptiScalerIniTests.TestDlssNrArchitecturePathResolution;
 var
   Rdna3Path, Rdna4Path: string;
@@ -640,7 +682,7 @@ var
   DataRoot, Rdna3Dir, Rdna4Dir, ModelsDir: string;
   DllPath, ErrorMsg, UsedScript: string;
   ScriptLines, MarkerLines: TStringList;
-  MarkerPath: string;
+  MarkerPath, Runtime32Dir: string;
 
   procedure WriteExtractScript(const AToolsDir: string);
   begin
@@ -675,6 +717,18 @@ begin
     ScriptLines.Free;
   end;
 
+  // ExtractDlssNrModel ends by downloading the 32-bit runtime when it is
+  // missing: a stub keeps the test off the network and out of later tests' way
+  Runtime32Dir := IncludeTrailingPathDelimiter(DataRoot + 'dlss-nr-rdna4-i686');
+  ForceDirectories(Runtime32Dir + 'reshade');
+  ScriptLines := TStringList.Create;
+  try
+    ScriptLines.Add('stub');
+    ScriptLines.SaveToFile(Runtime32Dir + 'reshade' + PathDelim + 'dlssnr_amd.addon32');
+  finally
+    ScriptLines.Free;
+  end;
+
   try
     AssertTrue('RDNA4 extraction succeeds', ExtractDlssNrModel(DllPath, ErrorMsg, nil, 'rdna4'));
     AssertEquals('No extraction error', '', ErrorMsg);
@@ -705,6 +759,9 @@ begin
     if DirectoryExists(Rdna3Dir) then RemoveDir(Rdna3Dir);
     if DirectoryExists(Rdna4Dir) then RemoveDir(Rdna4Dir);
     if DirectoryExists(ModelsDir) then RemoveDir(ModelsDir);
+    DeleteFile(Runtime32Dir + 'reshade' + PathDelim + 'dlssnr_amd.addon32');
+    RemoveDir(Runtime32Dir + 'reshade');
+    RemoveDir(Runtime32Dir);
   end;
 end;
 
@@ -2268,6 +2325,15 @@ var
   F: TextFile;
   EnvIndex: Integer;
   Ini: TIniFile;
+
+  procedure WriteMockFile(const APath: string);
+  begin
+    AssignFile(F, APath);
+    Rewrite(F);
+    WriteLn(F, 'mock ', ExtractFileName(APath));
+    CloseFile(F);
+  end;
+
 begin
   EnsureBgmodBinary;
   TestGameDir := IsolatedHome + '/.local/share/goverlay/gameconfig/DlssNrTestGame';
@@ -2324,6 +2390,13 @@ begin
   Rewrite(F);
   WriteLn(F, 'mock model bin');
   CloseFile(F);
+
+  // Networks GOverlay made from the models, and the runtime's int4 layers
+  ForceDirectories(RuntimeDir + '/int4/dlssnr-amd/int4/swin');
+  WriteMockFile(ModelsDir + '/CC_SMALL_FP8_EXPERIMENTAL.bin');
+  WriteMockFile(ModelsDir + '/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  WriteMockFile(RuntimeDir + '/int4/dlssnr-amd/int4/settings.txt');
+  WriteMockFile(RuntimeDir + '/int4/dlssnr-amd/int4/swin/q.fix.bin');
 
   // Copy bgmod binary to TestGameDir
   Proc := TProcess.Create(nil);
@@ -2393,6 +2466,14 @@ begin
   AssertTrue('dlssnr.bin model deployed into dlssnr-amd/', FileExists(MockGameDir + '/dlssnr-amd/dlssnr.bin'));
   AssertTrue('dlssnr-amd.ini deployed', FileExists(MockGameDir + '/dlssnr-amd.ini'));
   AssertTrue('control layer deployed', FileExists(MockGameDir + '/dlssnr-amd/control/layer/libVkLayer_dlssnr_control.so'));
+  AssertTrue('Derived network deployed', FileExists(MockGameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertTrue('int4 weights deployed', FileExists(MockGameDir + '/dlssnr-amd/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+  AssertTrue('int4 level deployed', FileExists(MockGameDir + '/dlssnr-amd/int4/settings.txt'));
+  AssertFalse('int4 restore tables stay in the runtime', FileExists(MockGameDir + '/dlssnr-amd/int4/swin/q.fix.bin'));
+  // Shared test HOME: later tests start without them
+  DeleteFile(ModelsDir + '/CC_SMALL_FP8_EXPERIMENTAL.bin');
+  DeleteFile(ModelsDir + '/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  DeleteDirectory(RuntimeDir + '/int4', False);
 
   // Verify OptiScaler.ini was generated/patched with DLSS-NR configuration
   OptiIniPath := MockGameDir + '/OptiScaler.ini';
@@ -2972,6 +3053,892 @@ begin
   AssertEquals('OpenGL recommended proxy', 'opengl32.dll', RecommendedProxyForApi(gapiOpenGL));
 
   AssertEquals('Missing exe -> gapiUnknown', Ord(gapiUnknown), Ord(DetectPEGraphicsApi(Dir + '/nonexistent.exe')));
+end;
+
+procedure TBgmodSupervisorTests.TestDetectLegacyDirect3DApi;
+var
+  Dir: string;
+
+  procedure Fresh(const AName: string);
+  begin
+    Dir := IsolatedHome + '/legacy_d3d/' + AName;
+    ForceDirectories(Dir);
+  end;
+
+  // Strings a module carries without importing them (LoadLibrary/GetProcAddress)
+  procedure AppendStrings(const APath: string; const AData: AnsiString);
+  var
+    Stream: TFileStream;
+  begin
+    Stream := TFileStream.Create(APath, fmOpenReadWrite);
+    try
+      Stream.Seek(0, soEnd);
+      Stream.WriteBuffer(AData[1], Length(AData));
+    finally
+      Stream.Free;
+    end;
+  end;
+
+  function Utf16(const AText: AnsiString): AnsiString;
+  var
+    i: Integer;
+  begin
+    SetLength(Result, Length(AText) * 2);
+    for i := 1 to Length(AText) do
+    begin
+      Result[2 * i - 1] := AText[i];
+      Result[2 * i] := #0;
+    end;
+  end;
+
+begin
+  Fresh('dx8_import');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'd3d8.dll');
+  AssertEquals('PE32 importing d3d8.dll -> gapiDX8', Ord(gapiDX8), Ord(DetectPEGraphicsApi(Dir + '/game.exe')));
+  AssertEquals('DX8 display name', 'DirectX 8', GraphicsApiDisplayName(gapiDX8));
+  AssertEquals('Exe importing d3d8.dll', Ord(gapiDX8), Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  Fresh('dx9_import');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'd3d9.dll');
+  AssertEquals('Exe importing d3d9.dll', Ord(gapiDX9), Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // Max Payne: neither the exe nor its renderer module imports Direct3D; the
+  // module loads D3D8.DLL and Direct3DCreate8 at run time
+  Fresh('dx8_runtime_loaded_module');
+  WritePEImportTestStub(Dir + '/maxpayne.exe', False, 'kernel32.dll');
+  ForceDirectories(Dir + '/e2driver');
+  WritePEImportTestStub(Dir + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/e2driver/e2_d3d8_driver_mfc.dll', 'D3D8.DLL'#0'Direct3DCreate8'#0'd3d8.dll'#0);
+  AssertEquals('d3d8.dll loaded at run time by a module one folder down', Ord(gapiDX8),
+    Ord(DetectLegacyDirect3DApi(Dir + '/maxpayne.exe')));
+
+  Fresh('dx9_runtime_loaded_utf16');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/render.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/render.dll', Utf16('d3d9.dll') + #0#0'Direct3DCreate9'#0);
+  AssertEquals('d3d9.dll loaded through LoadLibraryW', Ord(gapiDX9),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // Hooking tools (DxWnd in Command & Conquer Red Alert II) name every runtime
+  Fresh('hook_tool_module');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/dxwnd.dll', False, 'kernel32.dll');
+  AppendStrings(Dir + '/dxwnd.dll', 'd3d8.dll'#0'Direct3DCreate8'#0'd3d9.dll'#0'Direct3DCreate9'#0 +
+    'ddraw.dll'#0'opengl32.dll'#0'd3d11.dll'#0);
+  AssertEquals('A module naming several graphics runtimes is not a renderer', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // DXVK's d3d8.dll (copied by the D3D8 route) imports d3d9.dll
+  Fresh('dxvk_d3d8_copy');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/d3d8.dll', False, 'd3d9.dll');
+  AssertEquals('A Direct3D runtime in the game folder is not the renderer', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  Fresh('dx8_renderer_module');
+  WritePEImportTestStub(Dir + '/maxpayne.exe', False, 'kernel32.dll');
+  ForceDirectories(Dir + '/e2driver');
+  WritePEImportTestStub(Dir + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'd3d8.dll');
+  WritePEImportTestStub(Dir + '/sound.dll', False, 'dsound.dll');
+  AssertEquals('d3d8.dll imported by a module one folder down', Ord(gapiDX8),
+    Ord(DetectLegacyDirect3DApi(Dir + '/maxpayne.exe')));
+
+  Fresh('dx9_module_next_to_exe');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/renderer.dll', False, 'd3d9.dll');
+  AssertEquals('d3d9.dll imported by a module next to the exe', Ord(gapiDX9),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  Fresh('dx11_exe');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'd3d11.dll');
+  WritePEImportTestStub(Dir + '/legacy.dll', False, 'd3d9.dll');
+  AssertEquals('An exe importing a newer API is not a legacy Direct3D game', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  // Modules GOverlay and DLSS-NR install are not the game's renderer
+  Fresh('own_modules');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  WritePEImportTestStub(Dir + '/ReShade32.dll', False, 'd3d9.dll');
+  ForceDirectories(Dir + '/dlssnr-amd');
+  WritePEImportTestStub(Dir + '/dlssnr-amd/helper.dll', False, 'd3d9.dll');
+  AssertEquals('ReShade32.dll and dlssnr-amd/ are not scanned', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  Fresh('deep_module');
+  WritePEImportTestStub(Dir + '/game.exe', False, 'kernel32.dll');
+  ForceDirectories(Dir + '/a/b');
+  WritePEImportTestStub(Dir + '/a/b/deep.dll', False, 'd3d9.dll');
+  AssertEquals('Only one folder level is scanned', Ord(gapiUnknown),
+    Ord(DetectLegacyDirect3DApi(Dir + '/game.exe')));
+
+  AssertEquals('Missing exe', Ord(gapiUnknown), Ord(DetectLegacyDirect3DApi(IsolatedHome + '/legacy_d3d/none.exe')));
+end;
+
+procedure WriteDlssNr32TestText(const APath, AText: string);
+var
+  SL: TStringList;
+begin
+  ForceDirectories(ExtractFileDir(APath));
+  SL := TStringList.Create;
+  try
+    SL.Text := AText;
+    SL.SaveToFile(APath);
+  finally
+    SL.Free;
+  end;
+end;
+
+function ReadDlssNr32TestText(const APath: string): string;
+var
+  SL: TStringList;
+begin
+  Result := '';
+  if not FileExists(APath) then Exit;
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(APath);
+    Result := Trim(SL.Text);
+  finally
+    SL.Free;
+  end;
+end;
+
+// A minimal DLSSNR-AMD i686 package (dlss-nr-rdna3-i686) and extracted models
+procedure SetupDlssNr32TestRuntime;
+var
+  Base, Rt: string;
+begin
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  Rt := Base + 'dlss-nr-rdna3-i686/';
+  WriteDlssNr32TestText(Rt + 'goverlay.vars', 'OPTISCALER_DLSSNR_VERSION=v0.0.9-linux-rdna3');
+  WriteDlssNr32TestText(Rt + 'reshade/ReShade.ini', '[GENERAL]' + LineEnding + 'EffectSearchPaths=.\reshade-shaders\Shaders');
+  WriteDlssNr32TestText(Rt + 'reshade/ReShadePreset.ini', 'GENERIC_PRESET');
+  WriteDlssNr32TestText(Rt + 'reshade/ReShade-LICENSE.md', 'license');
+  WriteDlssNr32TestText(Rt + 'reshade/dlssnr_amd.addon32', 'ADDON32_FP');
+  WriteDlssNr32TestText(Rt + 'reshade/dxgi.dll', 'RESHADE_FEEDER_DXGI');
+  WriteDlssNr32TestText(Rt + 'reshade/reshade-shaders/Shaders/test.fx', 'shader');
+  WriteDlssNr32TestText(Rt + 'vulkan/ReShade32.dll', 'RESHADE32_LAYER');
+  WriteDlssNr32TestText(Rt + 'vulkan/vulkan-1.dll', 'VULKAN_LOADER');
+  WriteDlssNr32TestText(Rt + 'vulkan/winevulkan.dll', 'WINEVULKAN');
+  WriteDlssNr32TestText(Rt + 'vulkan/ReShadePreset-d3d9.ini', 'D3D9_PRESET');
+  WriteDlssNr32TestText(Rt + 'vulkan/vk-override/implicit_layer/ReShade32.json', '{}');
+  WriteDlssNr32TestText(Rt + 'int4/reshade/dlssnr_amd.addon32', 'ADDON32_INT4');
+  WriteDlssNr32TestText(Rt + 'dlssnr-amd/shaders/nr.spv', 'spirv');
+  WriteDlssNr32TestText(Rt + 'ini/dlssnr-amd-addon.ini',
+    '; add-on settings' + LineEnding +
+    '[DlssNr]' + LineEnding +
+    'Enabled=true' + LineEnding +
+    'Passes=1' + LineEnding +
+    'WorkingScale=1.000' + LineEnding +
+    'SkinProtection=false' + LineEnding +
+    '' + LineEnding +
+    '[Network]' + LineEnding +
+    '; which network NR runs' + LineEnding +
+    'Model = CC_SMALL_FP8' + LineEnding +
+    'OptimizedLayers = 3' + LineEnding +
+    '' + LineEnding +
+    '[Preprocess]' + LineEnding +
+    'Enabled = 0' + LineEnding +
+    '' + LineEnding +
+    '[RenoDX]' + LineEnding +
+    'Enabled = 0' + LineEnding +
+    'NRHookPoint = 2' + LineEnding +
+    'NRPasses = 1');
+  WriteDlssNr32TestText(Base + 'dlss-nr-models/CC_SILVER_AARDWOLD.bin', 'SILVER_WEIGHTS');
+  WriteDlssNr32TestText(Base + 'dlss-nr-models/CC_SMALL_FP8.bin', 'SMALL_WEIGHTS');
+end;
+
+function SameDlssNr32TestFile(const AFirst, ASecond: string): Boolean;
+var
+  A, B: TMemoryStream;
+begin
+  Result := False;
+  if not (FileExists(AFirst) and FileExists(ASecond)) then Exit;
+  A := TMemoryStream.Create;
+  B := TMemoryStream.Create;
+  try
+    A.LoadFromFile(AFirst);
+    B.LoadFromFile(ASecond);
+    Result := (A.Size = B.Size) and CompareMem(A.Memory, B.Memory, A.Size);
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// A 32-bit PE standing in for a DXVK d3d8.dll; ATag makes builds tell apart
+procedure WriteDxvkD3D8TestStub(const APath, ATag: string; AIs64Bit: Boolean = False);
+begin
+  ForceDirectories(ExtractFileDir(APath));
+  WritePEImportTestStub(APath, AIs64Bit, ATag + '.dll');
+end;
+
+procedure CopyBgmodForDlssNr32Test(const ACfgDir: string);
+var
+  Proc: TProcess;
+begin
+  ForceDirectories(ACfgDir);
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := FindTestHelperExecutable('cp');
+    Proc.Parameters.Add('-f');
+    Proc.Parameters.Add(GetBgmodBinaryPath);
+    Proc.Parameters.Add(ACfgDir + '/bgmod');
+    Proc.Options := [poWaitOnExit];
+    Proc.Execute;
+    fpChmod(PChar(ACfgDir + '/bgmod'), &755);
+  finally
+    Proc.Free;
+  end;
+  WriteDlssNr32TestText(ACfgDir + '/mock_runner.sh',
+    '#!' + FindTestHelperExecutable('sh') + LineEnding +
+    'env > "' + ACfgDir + '/env.txt"' + LineEnding +
+    'exit 0');
+  fpChmod(PChar(ACfgDir + '/mock_runner.sh'), &755);
+end;
+
+// Runs bgmod as Steam would (runner, then its arguments) without inherited
+// Wine overrides; AExtraEnv entries are added to the environment.
+function RunBgmodForDlssNr32Test(const ACfgDir, AGameDir: string;
+  const AArgs: array of string; const AExtraEnv: array of string): Integer;
+var
+  Proc: TProcess;
+  EnvStr: string;
+  i: Integer;
+begin
+  if FileExists(ACfgDir + '/env.txt') then
+    DeleteFile(ACfgDir + '/env.txt');
+  Proc := TProcess.Create(nil);
+  try
+    Proc.Executable := ACfgDir + '/bgmod';
+    Proc.Parameters.Add(ACfgDir + '/mock_runner.sh');
+    for i := 0 to High(AArgs) do
+      Proc.Parameters.Add(AArgs[i]);
+    Proc.Options := [poWaitOnExit];
+    Proc.CurrentDirectory := AGameDir;
+    for i := 1 to GetEnvironmentVariableCount do
+    begin
+      EnvStr := GetEnvironmentString(i);
+      // Wine settings and Proton/DXVK lookups come only from the test itself
+      if (Pos('WINEDLLOVERRIDES=', UpperCase(EnvStr)) <> 1) and
+         (Pos('WINE_D3D_CONFIG=', UpperCase(EnvStr)) <> 1) and
+         (Pos('PROTONPATH=', UpperCase(EnvStr)) <> 1) and
+         (Pos('STEAM_COMPAT_TOOL_PATHS=', UpperCase(EnvStr)) <> 1) and
+         (Pos('PROTON_USE_WINED3D=', UpperCase(EnvStr)) <> 1) and
+         (Pos('XDG_DATA_HOME=', UpperCase(EnvStr)) <> 1) then
+        Proc.Environment.Add(EnvStr);
+    end;
+    Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + AGameDir);
+    for i := 0 to High(AExtraEnv) do
+      Proc.Environment.Add(AExtraEnv[i]);
+    Proc.Execute;
+    Result := Proc.ExitStatus;
+  finally
+    Proc.Free;
+  end;
+end;
+
+function DlssNr32TestEnvValue(const ACfgDir, AKey: string): string;
+var
+  SL: TStringList;
+  i: Integer;
+begin
+  Result := '';
+  if not FileExists(ACfgDir + '/env.txt') then Exit;
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(ACfgDir + '/env.txt');
+    for i := 0 to SL.Count - 1 do
+      if Pos(AKey + '=', SL[i]) = 1 then
+        Exit(Copy(SL[i], Length(AKey) + 2, MaxInt));
+  finally
+    SL.Free;
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx8ReShadeRoute;
+const
+  RouteFiles: array[0..12] of string = ('ReShade32.dll', 'vulkan-1.dll', 'winevulkan.dll',
+    'vk-override', 'reshade-shaders', 'ReShade.ini', 'ReShadePreset.ini', 'ReShade-LICENSE.md',
+    'dlssnr_amd.addon32', 'dlssnr-amd', 'dlssnr-amd.ini', 'd3d8.dll', 'dlssnr-amd-install.txt');
+var
+  CfgDir, GameDir, ProtonDir, Exe, VarsFile, LogFile, Overrides: string;
+  Ini: TIniFile;
+  i: Integer;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  CfgDir := IsolatedHome + '/.local/share/goverlay/gameconfig/DlssNr32Dx8Game';
+  GameDir := IsolatedHome + '/games/Max Payne';
+  CopyBgmodForDlssNr32Test(CfgDir);
+
+  // Max Payne layout: Direct3D 8 comes from the renderer module in e2driver/
+  Exe := GameDir + '/maxpayne.exe';
+  ForceDirectories(GameDir + '/e2driver');
+  WritePEImportTestStub(Exe, False, 'kernel32.dll');
+  WritePEImportTestStub(GameDir + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'd3d8.dll');
+  WriteDlssNr32TestText(GameDir + '/savegame.txt', 'user data');
+
+  // The Proton build launching the game, with DXVK's 32-bit d3d8.dll
+  ProtonDir := IsolatedHome + '/compatibilitytools.d/proton-cachyos';
+  WriteDlssNr32TestText(ProtonDir + '/proton', '#!/bin/sh');
+  WriteDxvkD3D8TestStub(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_launch');
+
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=maxpayne.exe');
+  // DLSS-NR settings saved in GOverlay
+  WriteDlssNr32TestText(CfgDir + '/dlssnr-amd.ini',
+    '[Network]' + LineEnding + 'Model = CC_SILVER_AARDWOLD' + LineEnding + 'OptimizedLayers = 3' + LineEnding +
+    '[Preprocess]' + LineEnding + 'Enabled = 1' + LineEnding +
+    '[RenoDX]' + LineEnding + 'Enabled = 1' + LineEnding + 'NRHookPoint = 0' + LineEnding +
+    'NRResolutionScale = 0.75' + LineEnding + 'NRPasses = 2' + LineEnding +
+    '[wilsjo2]' + LineEnding + 'RunBeforeSR = false' + LineEnding + 'Passes = 2' + LineEnding +
+    'WorkingScale = 0.75' + LineEnding + 'SkinProtection = true');
+
+  // 1. Install
+  AssertEquals('bgmod exits cleanly', 0,
+    RunBgmodForDlssNr32Test(CfgDir, GameDir, [ProtonDir + '/proton', 'waitforexitandrun', Exe], []));
+
+  AssertEquals('ReShade32.dll from vulkan/', 'RESHADE32_LAYER', ReadDlssNr32TestText(GameDir + '/ReShade32.dll'));
+  AssertEquals('Vulkan loader', 'VULKAN_LOADER', ReadDlssNr32TestText(GameDir + '/vulkan-1.dll'));
+  AssertEquals('winevulkan', 'WINEVULKAN', ReadDlssNr32TestText(GameDir + '/winevulkan.dll'));
+  AssertTrue('ReShade layer manifest', FileExists(GameDir + '/vk-override/implicit_layer/ReShade32.json'));
+  AssertTrue('ReShade shaders', FileExists(GameDir + '/reshade-shaders/Shaders/test.fx'));
+  AssertEquals('The D3D9 preset is the ReShadePreset.ini', 'D3D9_PRESET', ReadDlssNr32TestText(GameDir + '/ReShadePreset.ini'));
+  AssertFalse('ReShadePreset-d3d9.ini is not copied as itself', FileExists(GameDir + '/ReShadePreset-d3d9.ini'));
+  AssertEquals('The int4 add-on replaces the default one', 'ADDON32_INT4', ReadDlssNr32TestText(GameDir + '/dlssnr_amd.addon32'));
+  AssertFalse('The reshade-feeder dxgi.dll is not part of this route', FileExists(GameDir + '/dxgi.dll'));
+  AssertFalse('No OptiScaler in a 32-bit game', FileExists(GameDir + '/OptiScaler.dll'));
+  AssertTrue('Runtime folder', FileExists(GameDir + '/dlssnr-amd/shaders/nr.spv'));
+  AssertEquals('Models copied', 'SILVER_WEIGHTS', ReadDlssNr32TestText(GameDir + '/dlssnr-amd/CC_SILVER_AARDWOLD.bin'));
+  AssertTrue('DXVK d3d8.dll from the launching Proton',
+    SameDlssNr32TestFile(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', GameDir + '/d3d8.dll'));
+  AssertTrue('Default ini copy for NR', FileExists(GameDir + '/dlssnr-amd/dlssnr-amd.default.ini'));
+
+  Overrides := ReadDlssNr32TestText(GameDir + '/dlssnr-amd-install.txt');
+  AssertTrue('Manifest lists files', Pos('ReShade32.dll', Overrides) > 0);
+  AssertTrue('Manifest lists folders with /', Pos('vk-override/', Overrides) > 0);
+  AssertTrue('Manifest lists d3d8.dll', Pos('d3d8.dll', Overrides) > 0);
+  AssertTrue('Manifest lists the ReShade log', Pos('ReShade.log', Overrides) > 0);
+
+  VarsFile := GameDir + '/goverlay.vars';
+  Ini := TIniFile.Create(GameDir + '/dlssnr-amd.ini');
+  try
+    AssertEquals('Model from GOverlay', 'CC_SILVER_AARDWOLD', Ini.ReadString('Network', 'Model', ''));
+    AssertEquals('Preprocess from GOverlay', '1', Ini.ReadString('Preprocess', 'Enabled', ''));
+    AssertEquals('RenoDX from GOverlay', '1', Ini.ReadString('RenoDX', 'Enabled', ''));
+    AssertEquals('NRPasses from GOverlay', '2', Ini.ReadString('RenoDX', 'NRPasses', ''));
+    AssertEquals('New key added to its section', '0.75', Ini.ReadString('RenoDX', 'NRResolutionScale', ''));
+    AssertEquals('NRHookPoint is OptiScaler-only: the add-on keeps its own', '2', Ini.ReadString('RenoDX', 'NRHookPoint', ''));
+    AssertEquals('[wilsjo2] Passes -> [DlssNr]', '2', Ini.ReadString('DlssNr', 'Passes', ''));
+    AssertEquals('[wilsjo2] WorkingScale -> [DlssNr]', '0.75', Ini.ReadString('DlssNr', 'WorkingScale', ''));
+    AssertEquals('[wilsjo2] SkinProtection -> [DlssNr]', 'true', Ini.ReadString('DlssNr', 'SkinProtection', ''));
+    AssertEquals('RunBeforeSR has no ReShade-route key', '', Ini.ReadString('DlssNr', 'RunBeforeSR', ''));
+  finally
+    Ini.Free;
+  end;
+  AssertTrue('Add-on ini comments kept', Pos('; which network NR runs', ReadDlssNr32TestText(GameDir + '/dlssnr-amd.ini')) > 0);
+
+  Overrides := ReadDlssNr32TestText(VarsFile);
+  AssertTrue('Route recorded', Pos('dlssnrroute=reshade-dx9', Overrides) > 0);
+  AssertTrue('Runtime version recorded', Pos('dlssnrruntime=v0.0.9-linux-rdna3', Overrides) > 0);
+  AssertTrue('Direct3D version recorded', Pos('dlssnrapi=DirectX 8', Overrides) > 0);
+  AssertTrue('Upscaler type recorded', Pos('upscalertype=4', Overrides) > 0);
+
+  Overrides := DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES');
+  AssertTrue('winevulkan override', Pos('winevulkan=n,b', Overrides) > 0);
+  AssertTrue('vulkan-1 override', Pos('vulkan-1=n,b', Overrides) > 0);
+  AssertTrue('d3d8 override for DXVK''s d3d8.dll', Pos('d3d8=n,b', Overrides) > 0);
+  AssertTrue('No OptiScaler proxy override', Pos('dxgi=', Overrides) = 0);
+  AssertEquals('wined3d without 3D', 'renderer=gdi', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+  AssertEquals('No int4 Vulkan layer without the int4 weights', 0,
+    Pos('VK_LAYER_DLSSNR_int4', DlssNr32TestEnvValue(CfgDir, 'VK_INSTANCE_LAYERS')));
+
+  // 2. Up to date: nothing is copied again, changes made in game are kept
+  WriteDlssNr32TestText(GameDir + '/ReShade.ini', 'CHANGED_IN_GAME');
+  Ini := TIniFile.Create(GameDir + '/dlssnr-amd.ini');
+  try
+    Ini.WriteString('DlssNr', 'Intensity', '0.500');
+  finally
+    Ini.Free;
+  end;
+  FileSetDate(CfgDir + '/dlssnr-amd.ini', DateTimeToFileDate(Now - 1));
+  // Proton updated: its DXVK d3d8.dll changed
+  WriteDxvkD3D8TestStub(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_launch_updated_build');
+  AssertEquals('second run exits cleanly', 0,
+    RunBgmodForDlssNr32Test(CfgDir, GameDir, [ProtonDir + '/proton', 'waitforexitandrun', Exe], []));
+  LogFile := IsolatedHome + '/.local/share/goverlay/logs/DlssNr32Dx8Game/bgmod.log';
+  AssertTrue('Log says the route is up to date',
+    Pos('DLSS-NR ReShade route in game directory is already up to date', ReadDlssNr32TestText(LogFile)) > 0);
+  AssertEquals('Files are not copied again', 'CHANGED_IN_GAME', ReadDlssNr32TestText(GameDir + '/ReShade.ini'));
+  AssertTrue('d3d8.dll follows the updated Proton build',
+    SameDlssNr32TestFile(ProtonDir + '/files/lib/wine/dxvk/i386-windows/d3d8.dll', GameDir + '/d3d8.dll'));
+  AssertTrue('Overrides still exported', Pos('vulkan-1=n,b', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES')) > 0);
+
+  // 3. Settings saved in GOverlay after that are applied, in-game changes kept
+  WriteDlssNr32TestText(CfgDir + '/dlssnr-amd.ini',
+    '[Network]' + LineEnding + 'Model = CC_SMALL_FP8' + LineEnding +
+    '[wilsjo2]' + LineEnding + 'Passes = 3');
+  FileSetDate(CfgDir + '/dlssnr-amd.ini', DateTimeToFileDate(Now + 1));
+  AssertEquals('third run exits cleanly', 0,
+    RunBgmodForDlssNr32Test(CfgDir, GameDir, [ProtonDir + '/proton', 'waitforexitandrun', Exe], []));
+  Ini := TIniFile.Create(GameDir + '/dlssnr-amd.ini');
+  try
+    AssertEquals('Newer GOverlay model applied', 'CC_SMALL_FP8', Ini.ReadString('Network', 'Model', ''));
+    AssertEquals('Newer GOverlay passes applied', '3', Ini.ReadString('DlssNr', 'Passes', ''));
+    AssertEquals('In-game change kept', '0.500', Ini.ReadString('DlssNr', 'Intensity', ''));
+  finally
+    Ini.Free;
+  end;
+
+  // 4. DLSS-NR turned off in GOverlay: the route is removed, the game is not touched
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=0' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'TARGET_EXE=maxpayne.exe');
+  AssertEquals('fourth run exits cleanly', 0,
+    RunBgmodForDlssNr32Test(CfgDir, GameDir, [ProtonDir + '/proton', 'waitforexitandrun', Exe], []));
+  for i := 0 to High(RouteFiles) do
+    AssertFalse('Removed: ' + RouteFiles[i],
+      FileExists(GameDir + '/' + RouteFiles[i]) or DirectoryExists(GameDir + '/' + RouteFiles[i]));
+  AssertTrue('Game exe kept', FileExists(Exe));
+  AssertTrue('Renderer module kept', FileExists(GameDir + '/e2driver/e2_d3d8_driver_mfc.dll'));
+  AssertTrue('User files kept', FileExists(GameDir + '/savegame.txt'));
+  AssertFalse('Route marker removed', Pos('dlssnrroute', ReadDlssNr32TestText(VarsFile)) > 0);
+  AssertEquals('No overrides once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
+  AssertEquals('No wined3d setting once removed', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+end;
+
+// Raw bytes, without the line ending TStringList adds (checksum fixtures)
+procedure WriteDerivedNetworkTestBytes(const APath: string; const AData: AnsiString);
+var
+  Stream: TFileStream;
+begin
+  ForceDirectories(ExtractFileDir(APath));
+  Stream := TFileStream.Create(APath, fmCreate);
+  try
+    if AData <> '' then
+      Stream.WriteBuffer(AData[1], Length(AData));
+  finally
+    Stream.Free;
+  end;
+end;
+
+function ReadDerivedNetworkTestBytes(const APath: string): AnsiString;
+var
+  Stream: TFileStream;
+begin
+  Result := '';
+  if not FileExists(APath) then Exit;
+  Stream := TFileStream.Create(APath, fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(Result, Stream.Size);
+    if Stream.Size > 0 then
+      Stream.ReadBuffer(Result[1], Stream.Size);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TOptiScalerIniTests.TestMakeDlssNrDerivedNetworks;
+const
+  SHA_EXP = 'f4f1e1400d3ed6cf5041275a0e48d274374b4bd410a74c7304e16ca023a207e7';   // 'SMALL+EXP'
+  SHA_OPT = '700dda2c388780d57d16df0aea9793a639493a3f1a3e8b7939d4079a6ec29404';   // 'SILVER+OPT'
+  SHA_INT4 = '7d8b105d5c3861f4e4d073748adc894fe28b91c33e0bc96ce3d899f8f7d286b9';  // 'SILVER+OPT+INT4'
+  // experimental_weights.py "apply PACK DELTA OUT", reduced to OUT = PACK + '+' + DELTA
+  APPLY_STUB = 'import sys' + LineEnding +
+    '_, mode, pack, delta, out = sys.argv' + LineEnding +
+    'open(out, "wb").write(open(pack, "rb").read() + b"+" + open(delta, "rb").read())';
+var
+  Base, Models, Rt, Marker: string;
+begin
+  Base := IsolatedHome + '/derived_networks/';
+  Models := Base + 'models/';
+  Rt := Base + 'runtime/';
+  WriteDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8.bin', 'SMALL');
+  WriteDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD.bin', 'SILVER');
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', APPLY_STUB);
+  WriteDerivedNetworkTestBytes(Rt + 'experimental/dlssnr-small-experimental.delta', 'EXP');
+  WriteDlssNr32TestText(Rt + 'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256',
+    SHA_EXP + '  CC_SMALL_FP8_EXPERIMENTAL.bin');
+  WriteDlssNr32TestText(Rt + 'optimized/experimental_weights.py', APPLY_STUB);
+  WriteDerivedNetworkTestBytes(Rt + 'optimized/dlssnr-optimized.delta', 'OPT');
+  WriteDlssNr32TestText(Rt + 'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256',
+    SHA_OPT + '  CC_SILVER_AARDWOLD_OPTIMIZED.bin');
+  // dlssnr-int4-weights OPTIMIZED TABLES OUT, reduced to OUT = OPTIMIZED + '+INT4'
+  WriteDlssNr32TestText(Rt + 'int4/dlssnr-int4-weights',
+    '#!' + FindTestHelperExecutable('sh') + LineEnding + 'cat "$1" > "$3" && printf "+INT4" >> "$3"');
+  fpChmod(PChar(Rt + 'int4/dlssnr-int4-weights'), &755);
+  WriteDerivedNetworkTestBytes(Rt + 'int4/dlssnr-amd/int4-ultra/table.fix.bin', 'T');
+  WriteDlssNr32TestText(Rt + 'int4/CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin.sha256',
+    SHA_INT4 + '  CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+
+  // A runtime without the package files is passed over
+  AssertTrue('Every network is made', MakeDlssNrDerivedNetworks(Models, [Base + 'no-runtime', Rt]));
+  AssertEquals('CC_SMALL_FP8_EXPERIMENTAL from CC_SMALL_FP8', 'SMALL+EXP',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('CC_SILVER_AARDWOLD_OPTIMIZED from CC_SILVER_AARDWOLD', 'SILVER+OPT',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin'));
+  AssertEquals('The int4 weights from CC_SILVER_AARDWOLD_OPTIMIZED', 'SILVER+OPT+INT4',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+  AssertFalse('No part file left', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin.part'));
+  Marker := ReadDlssNr32TestText(Models + 'derived-networks.vars');
+  AssertTrue('Checksums recorded', (Pos('CC_SMALL_FP8_EXPERIMENTAL=' + SHA_EXP, Marker) > 0) and
+    (Pos('CC_SILVER_AARDWOLD_OPTIMIZED_INT4=' + SHA_INT4, Marker) > 0));
+
+  // Made once: a later call does not run the tools again
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', 'import sys' + LineEnding + 'sys.exit(1)');
+  WriteDlssNr32TestText(Rt + 'int4/dlssnr-int4-weights', '#!' + FindTestHelperExecutable('sh') + LineEnding + 'exit 1');
+  AssertTrue('Networks made before are kept', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertEquals('Experimental network kept', 'SMALL+EXP',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('Int4 weights kept', 'SILVER+OPT+INT4',
+    ReadDerivedNetworkTestBytes(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // A newer package names another checksum: made again, and removed when the
+  // result does not match, so the game greys it out instead of running it
+  WriteDlssNr32TestText(Rt + 'experimental/experimental_weights.py', APPLY_STUB);
+  WriteDlssNr32TestText(Rt + 'experimental/CC_SMALL_FP8_EXPERIMENTAL.bin.sha256',
+    StringOfChar('0', 64) + '  CC_SMALL_FP8_EXPERIMENTAL.bin');
+  AssertFalse('A network with the wrong checksum is reported', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertFalse('A network with the wrong checksum is not kept', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  AssertEquals('Its record goes with it', 0,
+    Pos('CC_SMALL_FP8_EXPERIMENTAL=', ReadDlssNr32TestText(Models + 'derived-networks.vars')));
+  AssertTrue('The other networks stay', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // CC_SILVER_AARDWOLD_OPTIMIZED cannot be made for a newer package: its int4
+  // weights, made from it, go too
+  WriteDlssNr32TestText(Rt + 'optimized/CC_SILVER_AARDWOLD_OPTIMIZED.bin.sha256',
+    StringOfChar('1', 64) + '  CC_SILVER_AARDWOLD_OPTIMIZED.bin');
+  MakeDlssNrDerivedNetworks(Models, [Rt]);
+  AssertFalse('Optimized network removed', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED.bin'));
+  AssertFalse('Its int4 weights removed', FileExists(Models + 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin'));
+
+  // Without CC_SMALL_FP8 (the 310.8.0 DLL has only CC_SILVER_AARDWOLD) there
+  // is nothing to make CC_SMALL_FP8_EXPERIMENTAL from, which is no failure
+  DeleteFile(Models + 'CC_SMALL_FP8.bin');
+  DeleteFile(Models + 'CC_SILVER_AARDWOLD.bin');
+  AssertTrue('Nothing to make without the models', MakeDlssNrDerivedNetworks(Models, [Rt]));
+  AssertFalse('No experimental network without CC_SMALL_FP8', FileExists(Models + 'CC_SMALL_FP8_EXPERIMENTAL.bin'));
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDerivedNetworks;
+const
+  Derived: array[0..2] of string = ('CC_SMALL_FP8_EXPERIMENTAL.bin', 'CC_SILVER_AARDWOLD_OPTIMIZED.bin',
+    'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+var
+  Base, Rt, CfgDir, GameDir, Exe: string;
+  Ini: TIniFile;
+  d: Integer;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  Rt := Base + 'dlss-nr-rdna3-i686/';
+  CfgDir := Base + 'gameconfig/DlssNr32Derived';
+  GameDir := IsolatedHome + '/games/Derived Networks';
+  CopyBgmodForDlssNr32Test(CfgDir);
+  Exe := GameDir + '/game.exe';
+  ForceDirectories(GameDir);
+  WritePEImportTestStub(Exe, False, 'd3d9.dll');
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=game.exe');
+  WriteDlssNr32TestText(CfgDir + '/dlssnr-amd.ini', '[Network]' + LineEnding + 'Model = CC_SILVER_AARDWOLD_OPTIMIZED');
+
+  try
+    // Networks GOverlay made, and the runtime's int4 layers
+    for d := 0 to High(Derived) do
+      WriteDlssNr32TestText(Base + 'dlss-nr-models/' + Derived[d], 'MADE_' + Derived[d]);
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/layer/VkLayer_dlssnr_int4_32.json', '{}');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/settings.txt', 'balanced');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4/swin/q.fix.bin', 'restore table');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-performance/settings.txt', 'performance');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-ultra/settings.txt', 'ultra performance');
+    WriteDlssNr32TestText(Rt + 'int4/dlssnr-amd/int4-ultra/vit/m.mu.bin', 'restore table');
+
+    AssertEquals('bgmod exits cleanly', 0,
+      RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], ['VK_INSTANCE_LAYERS=VK_LAYER_user']));
+    for d := 0 to High(Derived) do
+      AssertEquals(Derived[d] + ' installed', 'MADE_' + Derived[d],
+        ReadDlssNr32TestText(GameDir + '/dlssnr-amd/' + Derived[d]));
+    AssertEquals('Balanced int4 level', 'balanced', ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4/settings.txt'));
+    AssertEquals('Performance int4 level', 'performance',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4-performance/settings.txt'));
+    AssertEquals('Ultra Performance int4 level', 'ultra performance',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/int4-ultra/settings.txt'));
+    AssertTrue('int4 Vulkan layer', FileExists(GameDir + '/dlssnr-amd/int4/layer/VkLayer_dlssnr_int4_32.json'));
+    AssertFalse('Restore tables stay in the package',
+      FileExists(GameDir + '/dlssnr-amd/int4/swin/q.fix.bin') or FileExists(GameDir + '/dlssnr-amd/int4-ultra/vit/m.mu.bin'));
+    Ini := TIniFile.Create(GameDir + '/dlssnr-amd.ini');
+    try
+      AssertEquals('The chosen derived network is kept', 'CC_SILVER_AARDWOLD_OPTIMIZED',
+        Ini.ReadString('Network', 'Model', ''));
+    finally
+      Ini.Free;
+    end;
+    AssertTrue('int4 layer folder on the layer path',
+      Pos(GameDir + '/dlssnr-amd/int4/layer', DlssNr32TestEnvValue(CfgDir, 'VK_ADD_LAYER_PATH')) > 0);
+    AssertEquals('int4 layer added to the user''s layers', 'VK_LAYER_user:VK_LAYER_DLSSNR_int4',
+      DlssNr32TestEnvValue(CfgDir, 'VK_INSTANCE_LAYERS'));
+
+    // A network GOverlay makes later reaches the installed route at the next launch
+    DeleteFile(GameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin');
+    AssertEquals('bgmod exits cleanly again', 0, RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], []));
+    AssertTrue('The route is not reinstalled',
+      Pos('already up to date', ReadDlssNr32TestText(Base + 'logs/DlssNr32Derived/bgmod.log')) > 0);
+    AssertEquals('The network is copied in', 'MADE_CC_SMALL_FP8_EXPERIMENTAL.bin',
+      ReadDlssNr32TestText(GameDir + '/dlssnr-amd/CC_SMALL_FP8_EXPERIMENTAL.bin'));
+  finally
+    for d := 0 to High(Derived) do
+      DeleteFile(Base + 'dlss-nr-models/' + Derived[d]);
+    DeleteDirectory(Rt + 'int4/dlssnr-amd', False);
+  end;
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx8FindsDxvkD3D8;
+var
+  Base, Steam, CfgDir, LogText, Chosen, Lib: string;
+  SR: TSearchRec;
+  SystemHasOne: Boolean;
+
+  // A fresh Max Payne-like game; returns its folder
+  function NewDx8Game(const AName: string): string;
+  begin
+    Result := IsolatedHome + '/games/dx8-' + AName;
+    ForceDirectories(Result + '/e2driver');
+    WritePEImportTestStub(Result + '/maxpayne.exe', False, 'kernel32.dll');
+    WritePEImportTestStub(Result + '/e2driver/e2_d3d8_driver_mfc.dll', False, 'd3d8.dll');
+  end;
+
+  procedure Launch(const AGame: string; const AArgs: array of string; const AEnv: array of string);
+  begin
+    AssertEquals('bgmod exits cleanly', 0, RunBgmodForDlssNr32Test(CfgDir, AGame, AArgs, AEnv));
+    LogText := ReadDlssNr32TestText(Base + 'logs/DlssNr32Dx8Lookup/bgmod.log');
+  end;
+
+  procedure SetAge(const APath: string; ADaysAgo: Double);
+  begin
+    FileSetDate(APath, DateTimeToFileDate(Now - ADaysAgo));
+  end;
+
+var
+  Game: string;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  Steam := IsolatedHome + '/.local/share/Steam/';
+  CfgDir := Base + 'gameconfig/DlssNr32Dx8Lookup';
+  CopyBgmodForDlssNr32Test(CfgDir);
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=maxpayne.exe');
+
+  // 1. No DXVK d3d8.dll anywhere: nothing installed, the game keeps Wine's own
+  //    Direct3D 8 (renderer=gdi without DXVK would leave it without 3D). A
+  //    system-wide Proton (a distribution package) would be found, so this
+  //    part only runs without one.
+  SystemHasOne := False;
+  if FindFirst('/usr/share/steam/compatibilitytools.d/*', faDirectory, SR) = 0 then
+  begin
+    repeat
+      if (SR.Name <> '.') and (SR.Name <> '..') and
+         FileExists('/usr/share/steam/compatibilitytools.d/' + SR.Name + '/files/lib/wine/dxvk/i386-windows/d3d8.dll') then
+        SystemHasOne := True;
+    until FindNext(SR) <> 0;
+    FindClose(SR);
+  end;
+  if not SystemHasOne then
+  begin
+    Game := NewDx8Game('nodxvk');
+    Launch(Game, [Game + '/maxpayne.exe'], []);
+    AssertFalse('No route without DXVK''s d3d8.dll', FileExists(Game + '/ReShade32.dll'));
+    AssertFalse('No d3d8.dll', FileExists(Game + '/d3d8.dll'));
+    AssertEquals('No wined3d setting', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+    AssertEquals('No overrides', '', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
+    AssertTrue('Log says why', Pos('no DXVK d3d8.dll found', LogText) > 0);
+  end;
+
+  // 2. PROTONPATH (umu-launcher: Heroic, Lutris)
+  WriteDxvkD3D8TestStub(IsolatedHome + '/umu/GE-Proton-umu/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_umu');
+  Game := NewDx8Game('protonpath');
+  Launch(Game, [Game + '/maxpayne.exe'], ['PROTONPATH=' + IsolatedHome + '/umu/GE-Proton-umu']);
+  AssertTrue('d3d8.dll from PROTONPATH',
+    SameDlssNr32TestFile(IsolatedHome + '/umu/GE-Proton-umu/files/lib/wine/dxvk/i386-windows/d3d8.dll', Game + '/d3d8.dll'));
+  AssertTrue('Route installed', FileExists(Game + '/ReShade32.dll'));
+  AssertTrue('Log names the source', Pos('(PROTONPATH)', LogText) > 0);
+
+  // 3. Nothing in the launch: the newest installed build. Valve's Proton in a
+  //    second Steam library is the newest; a newer d3d8.dll in a game folder,
+  //    an older GE-Proton and a 64-bit DXVK build are not taken.
+  Lib := IsolatedHome + '/library2';
+  WriteDlssNr32TestText(Steam + 'steamapps/libraryfolders.vdf',
+    '"libraryfolders"' + LineEnding + '{' + LineEnding +
+    '  "0"' + LineEnding + '  {' + LineEnding + '    "path"    "' + IsolatedHome + '/.local/share/Steam"' + LineEnding + '  }' + LineEnding +
+    '  "1"' + LineEnding + '  {' + LineEnding + '    "path"    "' + Lib + '"' + LineEnding + '  }' + LineEnding + '}');
+  WriteDxvkD3D8TestStub(Steam + 'compatibilitytools.d/GE-Proton9-1/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_ge9');
+  SetAge(Steam + 'compatibilitytools.d/GE-Proton9-1/files/lib/wine/dxvk/i386-windows/d3d8.dll', 30);
+  WriteDxvkD3D8TestStub(Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'dxvk_experimental');
+  SetAge(Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll', 2);
+  WriteDxvkD3D8TestStub(Lib + '/steamapps/common/Some Game/files/lib/wine/dxvk/i386-windows/d3d8.dll', 'not_proton');
+  SetAge(Lib + '/steamapps/common/Some Game/files/lib/wine/dxvk/i386-windows/d3d8.dll', 0);
+  WriteDxvkD3D8TestStub(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.5/x32/d3d8.dll', 'dxvk_lutris_x64', True);
+  SetAge(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.5/x32/d3d8.dll', 0);
+  Game := NewDx8Game('installed');
+  Launch(Game, [Game + '/maxpayne.exe'], []);
+  Chosen := Lib + '/steamapps/common/Proton - Experimental/files/lib/wine/dxvk/i386-windows/d3d8.dll';
+  AssertTrue('Newest installed Proton''s d3d8.dll', SameDlssNr32TestFile(Chosen, Game + '/d3d8.dll'));
+  AssertTrue('Log names the source', Pos('(the newest installed DXVK)', LogText) > 0);
+  AssertTrue('d3d8 override', Pos('d3d8=n,b', DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES')) > 0);
+
+  // A newer DXVK build in Lutris becomes the newest
+  WriteDxvkD3D8TestStub(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.6/x32/d3d8.dll', 'dxvk_lutris_26');
+  Game := NewDx8Game('lutris');
+  Launch(Game, [Game + '/maxpayne.exe'], []);
+  AssertTrue('Newest DXVK release from Lutris',
+    SameDlssNr32TestFile(IsolatedHome + '/.local/share/lutris/runtime/dxvk/dxvk-2.6/x32/d3d8.dll', Game + '/d3d8.dll'));
+
+  // 4. PROTON_USE_WINED3D=1: the game never reaches Vulkan, nothing installed,
+  //    and an earlier install is removed
+  Launch(Game, [Game + '/maxpayne.exe'], ['PROTON_USE_WINED3D=1']);
+  AssertFalse('Route removed under PROTON_USE_WINED3D', FileExists(Game + '/ReShade32.dll'));
+  AssertFalse('Its d3d8.dll removed too', FileExists(Game + '/d3d8.dll'));
+  AssertEquals('No wined3d setting', '', DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+  AssertTrue('Log says why', Pos('PROTON_USE_WINED3D=1', LogText) > 0);
+end;
+
+procedure TBgmodSupervisorTests.TestBgmodDlssNr32BitDx9ReplacesEarlierInstalls;
+var
+  CfgDir, GameDir, Exe, Base, VarsText, Uninstaller: string;
+  Proc: TProcess;
+  EnvIndex: Integer;
+begin
+  EnsureBgmodBinary;
+  SetupDlssNr32TestRuntime;
+  Base := IsolatedHome + '/.local/share/goverlay/';
+  CfgDir := Base + 'gameconfig/DlssNr32Dx9Game';
+  GameDir := IsolatedHome + '/games/Space Marine';
+  CopyBgmodForDlssNr32Test(CfgDir);
+  Exe := GameDir + '/SpaceMarine.exe';
+  ForceDirectories(GameDir);
+  WritePEImportTestStub(Exe, False, 'd3d9.dll');
+
+  WriteDlssNr32TestText(CfgDir + '/bgmod.conf',
+    '[Config]' + LineEnding +
+    'SHOW_LAUNCH_SPLASH=0' + LineEnding +
+    'GOVERLAY_OPTISCALER=1' + LineEnding +
+    'GOVERLAY_RESHADE=1' + LineEnding +
+    'RESHADE_DLL=d3d9.dll' + LineEnding +
+    'UPSCALER_TYPE=4' + LineEnding +
+    'DLSSNR_ARCH=2' + LineEnding +
+    'DLL=dxgi.dll' + LineEnding +
+    'TARGET_EXE=SpaceMarine.exe');
+
+  // Without the 32-bit runtime nothing is installed, not even the 64-bit
+  // OptiScaler route (it cannot load into a 32-bit game)
+  // bgmod falls back to the other architecture's runtime: hide both
+  RenameFile(Base + 'dlss-nr-rdna3-i686', Base + 'dlss-nr-rdna3-i686.hidden');
+  RenameFile(Base + 'dlss-nr-rdna4-i686', Base + 'dlss-nr-rdna4-i686.hidden');
+  try
+    WriteDlssNr32TestText(Base + 'dlss-nr-rdna3/optiscaler/OptiScaler.dll', 'OPTISCALER_NR_64');
+    AssertEquals('run without runtime exits cleanly', 0, RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], []));
+    AssertFalse('No route without its runtime', FileExists(GameDir + '/ReShade32.dll'));
+    AssertFalse('No 64-bit OptiScaler route either', FileExists(GameDir + '/OptiScaler.dll'));
+    AssertTrue('Log names the missing runtime', Pos('32-bit DLSS-NR runtime',
+      ReadDlssNr32TestText(Base + 'logs/DlssNr32Dx9Game/bgmod.log')) > 0);
+  finally
+    RenameFile(Base + 'dlss-nr-rdna3-i686.hidden', Base + 'dlss-nr-rdna3-i686');
+    RenameFile(Base + 'dlss-nr-rdna4-i686.hidden', Base + 'dlss-nr-rdna4-i686');
+  end;
+
+  // Earlier installs: DLSSNR-AMD's own installer, GOverlay's 64-bit OptiScaler
+  // route (from before GOverlay knew the game is 32-bit), GOverlay's ReShade
+  WriteDlssNr32TestText(GameDir + '/dlssnr-amd-install.txt',
+    'dlssnr-amd-install.txt' + LineEnding + 'ReShade32.dll' + LineEnding +
+    'installer-only.txt' + LineEnding + 'dlssnr-amd/' + LineEnding + '../outside.txt' + LineEnding +
+    'linked-shaders/');
+  WriteDlssNr32TestText(GameDir + '/ReShade32.dll', 'FROM_INSTALLER');
+  WriteDlssNr32TestText(GameDir + '/installer-only.txt', 'x');
+  WriteDlssNr32TestText(GameDir + '/dlssnr-amd/old.bin', 'x');
+  WriteDlssNr32TestText(IsolatedHome + '/games/outside.txt', 'must survive');
+  // A folder in the manifest that the user turned into a link to shared files
+  WriteDlssNr32TestText(IsolatedHome + '/shared-shaders/Shaders/keep.fx', 'shared');
+  fpSymlink(PChar(IsolatedHome + '/shared-shaders'), PChar(GameDir + '/linked-shaders'));
+  WriteDlssNr32TestText(GameDir + '/goverlay.vars',
+    'upscalertype=4' + LineEnding + 'proxydll=dxgi.dll' + LineEnding + 'reshadeproxy=d3d9.dll');
+  WriteDlssNr32TestText(GameDir + '/dxgi.dll', 'OPTISCALER_PROXY');
+  WriteDlssNr32TestText(GameDir + '/OptiScaler.dll', 'x');
+  WriteDlssNr32TestText(GameDir + '/OptiScaler.ini', 'x');
+  WriteDlssNr32TestText(GameDir + '/d3d9.dll', 'GOVERLAY_RESHADE_PROXY');
+
+  AssertEquals('bgmod exits cleanly', 0,
+    RunBgmodForDlssNr32Test(CfgDir, GameDir, [Exe], ['WINE_D3D_CONFIG=csmt=0x1']));
+
+  AssertFalse('Installer files removed by its manifest', FileExists(GameDir + '/installer-only.txt'));
+  AssertFalse('Installer runtime folder replaced', FileExists(GameDir + '/dlssnr-amd/old.bin'));
+  AssertTrue('Manifest entries outside the game folder are ignored', FileExists(IsolatedHome + '/games/outside.txt'));
+  AssertFalse('A linked folder in the manifest is unlinked', FileExists(GameDir + '/linked-shaders/Shaders/keep.fx'));
+  AssertTrue('What the link pointed to is kept', FileExists(IsolatedHome + '/shared-shaders/Shaders/keep.fx'));
+  AssertFalse('OptiScaler route purged', FileExists(GameDir + '/OptiScaler.dll') or FileExists(GameDir + '/OptiScaler.ini'));
+  AssertFalse('OptiScaler proxy purged', FileExists(GameDir + '/dxgi.dll'));
+  AssertFalse('GOverlay ReShade proxy removed (the route has its own ReShade)', FileExists(GameDir + '/d3d9.dll'));
+  AssertEquals('Route installed', 'RESHADE32_LAYER', ReadDlssNr32TestText(GameDir + '/ReShade32.dll'));
+  AssertFalse('No d3d8.dll for a Direct3D 9 game', FileExists(GameDir + '/d3d8.dll'));
+  VarsText := ReadDlssNr32TestText(GameDir + '/goverlay.vars');
+  AssertTrue('Direct3D 9 recorded', Pos('dlssnrapi=DirectX 9', VarsText) > 0);
+  AssertTrue('ReShade proxy marker removed', Pos('reshadeproxy', VarsText) = 0);
+  AssertTrue('OptiScaler proxy marker removed', Pos('proxydll', VarsText) = 0);
+
+  AssertEquals('Only the route''s overrides', 'winevulkan=n,b;vulkan-1=n,b',
+    DlssNr32TestEnvValue(CfgDir, 'WINEDLLOVERRIDES'));
+  AssertEquals('The user''s wined3d settings are kept', 'csmt=0x1;renderer=gdi',
+    DlssNr32TestEnvValue(CfgDir, 'WINE_D3D_CONFIG'));
+
+  // bgmod-uninstaller removes the route by its manifest
+  Uninstaller := ExpandFileName(ExtractFilePath(GetBgmodBinaryPath) + 'bgmod-uninstaller');
+  if FileExists(Uninstaller) then
+  begin
+    Proc := TProcess.Create(nil);
+    try
+      Proc.Executable := Uninstaller;
+      // Launched like bgmod: it removes the mods, then runs the game
+      Proc.Parameters.Add(CfgDir + '/mock_runner.sh');
+      Proc.Parameters.Add(Exe);
+      Proc.Options := [poWaitOnExit];
+      Proc.CurrentDirectory := GameDir;
+      for EnvIndex := 1 to GetEnvironmentVariableCount do
+        Proc.Environment.Add(GetEnvironmentString(EnvIndex));
+      Proc.Environment.Add('STEAM_COMPAT_INSTALL_PATH=' + GameDir);
+      Proc.Execute;
+      AssertEquals('bgmod-uninstaller exits cleanly', 0, Proc.ExitStatus);
+    finally
+      Proc.Free;
+    end;
+    AssertFalse('Uninstaller removed ReShade32.dll', FileExists(GameDir + '/ReShade32.dll'));
+    AssertFalse('Uninstaller removed the Vulkan loader', FileExists(GameDir + '/vulkan-1.dll'));
+    AssertFalse('Uninstaller removed vk-override/', DirectoryExists(GameDir + '/vk-override'));
+    AssertFalse('Uninstaller removed the manifest', FileExists(GameDir + '/dlssnr-amd-install.txt'));
+    AssertTrue('Uninstaller kept the game', FileExists(Exe));
+  end;
 end;
 
 procedure TBgmodSupervisorTests.TestResolveRealGameExecutableHeuristics;
@@ -4616,6 +5583,10 @@ begin
   AssertTrue('RDNA4 path ends with dlss-nr-rdna4', Pos('dlss-nr-rdna4', GetBGModDlssNrPath('rdna4')) > 0);
   AssertTrue('RDNA3 path ends with dlss-nr-rdna3', Pos('dlss-nr-rdna3', GetBGModDlssNrPath('rdna3')) > 0);
   AssertTrue('Default path ends with dlss-nr', Pos('dlss-nr', GetBGModDlssNrPath('')) > 0);
+  AssertEquals('RDNA3 32-bit runtime sits next to the 64-bit one',
+    GetBGModDlssNrPath('rdna3') + '-i686', GetBGModDlssNr32Path('rdna3'));
+  AssertEquals('RDNA4 32-bit runtime sits next to the 64-bit one',
+    GetBGModDlssNrPath('rdna4') + '-i686', GetBGModDlssNr32Path('rdna4'));
 end;
 
 procedure TMangoHudBlacklistSyncTests.TestBlacklistSyncCreatesDefaultAndSyncs;

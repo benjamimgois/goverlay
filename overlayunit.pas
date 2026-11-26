@@ -3749,6 +3749,12 @@ begin
   if FStartupDownloadsChecked then Exit;
   FStartupDownloadsChecked := True;
 
+  // DLSS-NR's derived networks, for models extracted before GOverlay made
+  // them. Local work, no download: its own thread, whether or not the
+  // downloads below run; quick once they are made.
+  if GetEnvironmentVariable('GOVERLAY_TEST') <> '1' then
+    StartDlssNrDerivedNetworks;
+
   NeedsDownload := HasMissingMandatoryLibraries or
     (TConfigManager.IsModuleEnabled(MODULE_UPSCALERS) and IsOptiPatcherUpdateAvailable) or
     (TConfigManager.IsModuleEnabled(MODULE_POSTPROCESSING) and IsVkSumiUpdateAvailable);
@@ -6297,6 +6303,8 @@ begin
       CopyOptiScalerGameFiles(GetGameConfigDir(FActiveGameName));
     if Assigned(FOptiScalerHelper) then
       TOptiScalerTabHelper(FOptiScalerHelper).ReflowOptiScalerTabNew(0);
+    // As the other methods do: re-enables the options that None disabled
+    ApplyToolEnabledState(2, FNavToolEnabled[2]);
   end;
 end;
 
@@ -11521,6 +11529,18 @@ begin
 
     if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') then
       CheckAndInstallVkNemu(False, @OnDownloadProgress);                    // vkNemu idle frame limiter layer
+
+    // DLSS-NR's 32-bit runtime (ReShade route for 32-bit DirectX 8/9 games) for
+    // users who extracted the model before GOverlay downloaded it with the model.
+    if (GetEnvironmentVariable('GOVERLAY_TEST') <> '1') and IsDlssNrModelReady then
+    begin
+      // Best effort, no failure notice: only 32-bit DirectX 8/9 games need it,
+      // and bgmod says in their log when it is missing.
+      if IsDlssNrInstalled('rdna3') then
+        CheckAndInstallDlssNr32('rdna3', False, @OnDownloadProgress);
+      if IsDlssNrInstalled('rdna4') then
+        CheckAndInstallDlssNr32('rdna4', False, @OnDownloadProgress);
+    end;
 
     CleanupUnsolicitedDesktopFiles;
 

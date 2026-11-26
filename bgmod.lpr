@@ -2349,6 +2349,923 @@ begin
   end;
 end;
 
+// ---------------------------------------------------------------------------
+// DLSS-NR ReShade route for 32-bit DirectX 8/9 games
+//
+// DLSSNR-AMD's OptiScaler route exists only in its 64-bit package. For 32-bit
+// games its i686 package has the reshade-feeder-dx9 route: ReShade loaded as a
+// Vulkan layer under DXVK by a Vulkan loader in the game folder, with the NR
+// add-on. GOverlay copies the same files the package's install.sh copies for
+// that route and lists them in dlssnr-amd-install.txt, in the installer's own
+// format (one path per line, relative to the game folder, folders end in '/').
+// ---------------------------------------------------------------------------
+const
+  DLSSNR_MANIFEST = 'dlssnr-amd-install.txt';
+  DLSSNR_ROUTE_DX9 = 'reshade-dx9';
+  // The networks' weights in GOverlay's dlss-nr-models: the two models it
+  // extracts, and the ones it makes from them with the package's difference
+  // files and tools, as install.sh does
+  DLSSNR_NETWORK_FILES: array[0..4] of string = ('CC_SILVER_AARDWOLD.bin', 'CC_SMALL_FP8.bin',
+    'CC_SMALL_FP8_EXPERIMENTAL.bin', 'CC_SILVER_AARDWOLD_OPTIMIZED.bin',
+    'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin');
+  DLSSNR_INT4_WEIGHTS = 'CC_SILVER_AARDWOLD_OPTIMIZED_INT4.bin';
+  // CC_SILVER_AARDWOLD_OPTIMIZED's int4 layers: Balanced, Performance and
+  // Ultra Performance, each with its network, quantisers and settings
+  DLSSNR_INT4_LEVELS: array[0..2] of string = ('int4', 'int4-performance', 'int4-ultra');
+  DLSSNR_INT4_LAYER = 'VK_LAYER_DLSSNR_int4';
+
+// One of the runtime's int4 level folders without its restore tables
+// (*.fix.bin, *.mu.bin): only making the int4 weights needs those, and
+// install.sh leaves them in the package too. Copied quietly: ~170 files each.
+procedure CopyDlssNrInt4Level(const ASrcDir, ADestDir: string);
+var
+  SR: TSearchRec;
+  Src, Dest, Low: string;
+
+  function EndsWith(const AText, ASuffix: string): Boolean;
+  begin
+    Result := (Length(AText) >= Length(ASuffix)) and
+              (Copy(AText, Length(AText) - Length(ASuffix) + 1, Length(ASuffix)) = ASuffix);
+  end;
+
+begin
+  ForceDirectories(ADestDir);
+  if FindFirst(IncludeTrailingPathDelimiter(ASrcDir) + '*', faAnyFile, SR) <> 0 then Exit;
+  try
+    repeat
+      if (SR.Name = '.') or (SR.Name = '..') then Continue;
+      Src := IncludeTrailingPathDelimiter(ASrcDir) + SR.Name;
+      Dest := IncludeTrailingPathDelimiter(ADestDir) + SR.Name;
+      if (SR.Attr and faDirectory) <> 0 then
+        CopyDlssNrInt4Level(Src, Dest)
+      else
+      begin
+        Low := LowerCase(SR.Name);
+        if EndsWith(Low, '.fix.bin') or EndsWith(Low, '.mu.bin') then Continue;
+        if FileExists(Dest) then
+          DeleteFile(Dest);
+        if CopyFile(Src, Dest) then
+          fpChmod(Dest, &755)
+        else
+          Log('Failed to copy: ' + Src + ' -> ' + Dest);
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
+// Puts the networks' weights GOverlay has in AModelsDir into the game's
+// dlssnr-amd/ when they are missing or differ, for both DLSS-NR routes. With
+// the int4 weights it also puts the runtime's int4 level folders there
+// (ARefreshInt4: again even when present, after the runtime was installed).
+procedure SyncDlssNrNetworks(const AGameDir, AModelsDir, ARuntimeDir: string; ARefreshInt4: Boolean);
+var
+  NrPath, ModelsPath, Src, Int4Src: string;
+  n, lv: Integer;
+begin
+  NrPath := IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd' + PathDelim;
+  ModelsPath := IncludeTrailingPathDelimiter(AModelsDir);
+  ForceDirectories(NrPath);
+  for n := 0 to High(DLSSNR_NETWORK_FILES) do
+  begin
+    Src := ModelsPath + DLSSNR_NETWORK_FILES[n];
+    if FileExists(Src) and (GetFileSize(Src) <> GetFileSize(NrPath + DLSSNR_NETWORK_FILES[n])) then
+      SafeCopyFile(Src, NrPath + DLSSNR_NETWORK_FILES[n]);
+  end;
+
+  if (ARuntimeDir = '') or not FileExists(NrPath + DLSSNR_INT4_WEIGHTS) then Exit;
+  Int4Src := IncludeTrailingPathDelimiter(ARuntimeDir) + 'int4' + PathDelim + 'dlssnr-amd' + PathDelim;
+  for lv := 0 to High(DLSSNR_INT4_LEVELS) do
+    if DirectoryExists(Int4Src + DLSSNR_INT4_LEVELS[lv]) and
+       (ARefreshInt4 or not DirectoryExists(NrPath + DLSSNR_INT4_LEVELS[lv])) then
+    begin
+      Log('Installing CC_SILVER_AARDWOLD_OPTIMIZED''s int4 layers (' + DLSSNR_INT4_LEVELS[lv] + ') from ' + Int4Src);
+      CopyDlssNrInt4Level(Int4Src + DLSSNR_INT4_LEVELS[lv], NrPath + DLSSNR_INT4_LEVELS[lv]);
+    end;
+end;
+
+// The 64-bit runtime with the int4 level folders: the OptiScaler route's
+// source folder, or the profile's DLSS-NR channel folder when the source is a
+// profile copy without them (the global profile)
+function DlssNrInt4Runtime(const ASourceDir, AConfigDir: string): string;
+begin
+  Result := ASourceDir;
+  if not DirectoryExists(IncludeTrailingPathDelimiter(ASourceDir) + 'int4' + PathDelim + 'dlssnr-amd') then
+    Result := GetGlobalBGModPath(AConfigDir);
+end;
+
+function IsSafeDlssNrManifestEntry(const AEntry: string): Boolean;
+begin
+  Result := (AEntry <> '') and (AEntry[1] <> '/') and
+            (Copy(AEntry, 1, 2) <> '..') and (Pos('/..', AEntry) = 0);
+end;
+
+// Deletes every file and folder listed in the game's dlssnr-amd-install.txt,
+// then the list itself.
+procedure RemoveDlssNrManifestInstall(const AGameDir: string);
+var
+  Manifest: TStringList;
+  ManifestPath, Entry, Target: string;
+  LinkInfo: Stat;
+  i: Integer;
+begin
+  ManifestPath := IncludeTrailingPathDelimiter(AGameDir) + DLSSNR_MANIFEST;
+  if not FileExists(ManifestPath) then Exit;
+  Manifest := TStringList.Create;
+  try
+    try
+      Manifest.LoadFromFile(ManifestPath);
+    except
+      on E: Exception do
+      begin
+        Log('Warning: could not read ' + ManifestPath + ': ' + E.Message);
+        Exit;
+      end;
+    end;
+    for i := 0 to Manifest.Count - 1 do
+    begin
+      Entry := Trim(Manifest[i]);
+      if Entry = '' then Continue;
+      if not IsSafeDlssNrManifestEntry(Entry) then
+      begin
+        Log('Skipping suspicious DLSS-NR manifest entry: ' + Entry);
+        Continue;
+      end;
+      Target := IncludeTrailingPathDelimiter(AGameDir) + ExcludeTrailingPathDelimiter(Entry);
+      // A link (a shared shader folder, say) is removed, never what it points to
+      if (fpLStat(PChar(Target), LinkInfo) = 0) and fpS_ISLNK(LinkInfo.st_mode) then
+      begin
+        if fpUnlink(PChar(Target)) = 0 then
+          Log('Removed link: ' + Target)
+        else
+          Log('Failed to remove link: ' + Target);
+      end
+      else if DirectoryExists(Target) then
+        SafeDeleteDirectory(Target)
+      else
+        SafeDeleteFile(Target);
+    end;
+  finally
+    Manifest.Free;
+  end;
+  SafeDeleteFile(ManifestPath);
+end;
+
+// True when GOverlay (not the user, by hand) installed the ReShade route here.
+function IsGOverlayDlssNrDx9Install(const AGameDir: string): Boolean;
+begin
+  Result := SameText(ReadVarFromFile(IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars', 'dlssnrroute'),
+                     DLSSNR_ROUTE_DX9);
+end;
+
+procedure RemoveGOverlayDlssNrDx9Install(const AGameDir: string);
+var
+  VarsPath: string;
+begin
+  if not IsGOverlayDlssNrDx9Install(AGameDir) then Exit;
+  Log('Removing the DLSS-NR ReShade route (32-bit DirectX 8/9) from the game directory...');
+  // dlssnr-amd.log is in the manifest: keep the last one in GOverlay's logs
+  if CentralLogDir <> '' then
+    SyncGameDirLogsToCentral(AGameDir, CentralLogDir);
+  RemoveDlssNrManifestInstall(AGameDir);
+  VarsPath := IncludeTrailingPathDelimiter(AGameDir) + 'goverlay.vars';
+  // Only this route's keys: a ReShade proxy GOverlay recorded keeps its own
+  RemoveVarFromFile(VarsPath, 'upscalertype');
+  RemoveVarFromFile(VarsPath, 'dlssnrroute');
+  RemoveVarFromFile(VarsPath, 'dlssnrruntime');
+  RemoveVarFromFile(VarsPath, 'dlssnrapi');
+end;
+
+// The ReShade route is for 32-bit games that draw with Direct3D 8 or 9.
+function IsDlssNrDx9RouteTarget(const AExePath: string; out AApi: TDetectedGraphicsApi): Boolean;
+begin
+  AApi := gapiUnknown;
+  Result := False;
+  if GetPEMachine(AExePath) <> PE_MACHINE_I386 then Exit;
+  AApi := DetectLegacyDirect3DApi(AExePath);
+  Result := AApi in [gapiDX8, gapiDX9];
+end;
+
+// The i686 runtime sits next to the 64-bit channel folder: dlss-nr-rdna3 ->
+// dlss-nr-rdna3-i686. Falls back to the other architecture's as the 64-bit
+// channel does. Returns '' when none is installed.
+function ResolveDlssNr32RuntimeDir(const AChannelDir: string): string;
+var
+  Candidate, Other: string;
+begin
+  Result := '';
+  Candidate := ExcludeTrailingPathDelimiter(AChannelDir) + '-i686';
+  if FileExists(IncludeTrailingPathDelimiter(Candidate) + 'reshade' + PathDelim + 'dlssnr_amd.addon32') then
+    Exit(IncludeTrailingPathDelimiter(Candidate));
+
+  Other := '';
+  if Pos('dlss-nr-rdna4', Candidate) > 0 then
+    Other := StringReplace(Candidate, 'dlss-nr-rdna4', 'dlss-nr-rdna3', [])
+  else if Pos('dlss-nr-rdna3', Candidate) > 0 then
+    Other := StringReplace(Candidate, 'dlss-nr-rdna3', 'dlss-nr-rdna4', []);
+  if (Other <> '') and
+     FileExists(IncludeTrailingPathDelimiter(Other) + 'reshade' + PathDelim + 'dlssnr_amd.addon32') then
+  begin
+    Log('Warning: 32-bit DLSS-NR runtime ' + Candidate + ' not found; falling back to ' + Other);
+    Result := IncludeTrailingPathDelimiter(Other);
+  end;
+end;
+
+// DXVK's 32-bit d3d8.dll for Direct3D 8 games. Wine's own d3d8 draws with
+// wined3d (OpenGL), so without DXVK's a D3D8 game never reaches Vulkan, where
+// the ReShade layer is. Looked for, in order:
+//   1. the Proton build that launches the game (its path is in our arguments)
+//   2. the Proton build named by PROTONPATH (umu-launcher: Heroic, Lutris,
+//      Faugus) or STEAM_COMPAT_TOOL_PATHS (Steam)
+//   3. the newest one installed: Steam's compatibility tools and Proton
+//      builds (native, Flatpak, system-wide), Lutris' and Heroic's Proton and
+//      DXVK builds
+// Recent Proton builds (Proton 9 and later, GE-Proton, Proton-CachyOS) ship it;
+// standalone DXVK has it since 2.4.
+var
+  DxvkD3D8Searched: Boolean = False;
+  DxvkD3D8Path: string = '';
+
+function IsDxvkD3D8Candidate(const APath: string): Boolean;
+begin
+  Result := FileExists(APath) and (GetPEMachine(APath) = PE_MACHINE_I386);
+end;
+
+// d3d8.dll in a Proton build folder, whatever its version's layout
+function ProtonBuildD3D8(const AProtonDir: string): string;
+const
+  RelPaths: array[0..2] of string = (
+    'files/lib/wine/dxvk/i386-windows/d3d8.dll',  // Proton 9 and later, GE-Proton, Proton-CachyOS
+    'files/lib/wine/dxvk/d3d8.dll',
+    'dist/lib/wine/dxvk/d3d8.dll');
+var
+  c: Integer;
+  Dir: string;
+begin
+  Result := '';
+  if AProtonDir = '' then Exit;
+  Dir := IncludeTrailingPathDelimiter(AProtonDir);
+  for c := 0 to High(RelPaths) do
+    if IsDxvkD3D8Candidate(Dir + RelPaths[c]) then
+      Exit(Dir + RelPaths[c]);
+end;
+
+// Steam library folders (steamapps/) listed in a libraryfolders.vdf
+procedure AddSteamLibraries(const AVdfPath: string; ALibraries: TStrings);
+var
+  Vdf: TStringList;
+  i, p1, p2, p3, p4: Integer;
+  Line: string;
+begin
+  if not FileExists(AVdfPath) then Exit;
+  Vdf := TStringList.Create;
+  try
+    try
+      Vdf.LoadFromFile(AVdfPath);
+    except
+      Exit;
+    end;
+    for i := 0 to Vdf.Count - 1 do
+    begin
+      Line := Trim(Vdf[i]);
+      if LowerCase(Copy(Line, 1, 6)) <> '"path"' then Continue;
+      p1 := Pos('"', Line);
+      p2 := Pos('"', Line, p1 + 1);
+      p3 := Pos('"', Line, p2 + 1);
+      p4 := Pos('"', Line, p3 + 1);
+      if (p3 > 0) and (p4 > p3) then
+        ALibraries.Add(IncludeTrailingPathDelimiter(Copy(Line, p3 + 1, p4 - p3 - 1)) + 'steamapps');
+    end;
+  finally
+    Vdf.Free;
+  end;
+end;
+
+// The newest d3d8.dll (by modification time) in the subfolders of AParent:
+// Proton build folders, or DXVK release folders (x32/d3d8.dll). In Steam
+// libraries' common/ only folders named like Proton are looked at.
+procedure ConsiderInstalledD3D8(const AParent: string; ADxvkRelease, AProtonNamesOnly: Boolean;
+  var ABest: string; var ABestAge: LongInt);
+var
+  SR: TSearchRec;
+  Candidate: string;
+  Age: LongInt;
+begin
+  if not DirectoryExists(AParent) then Exit;
+  if FindFirst(IncludeTrailingPathDelimiter(AParent) + '*', faDirectory, SR) <> 0 then Exit;
+  try
+    repeat
+      if (SR.Name = '.') or (SR.Name = '..') or ((SR.Attr and faDirectory) = 0) then Continue;
+      if AProtonNamesOnly and (Pos('proton', LowerCase(SR.Name)) = 0) then Continue;
+      if ADxvkRelease then
+      begin
+        Candidate := IncludeTrailingPathDelimiter(AParent) + SR.Name + '/x32/d3d8.dll';
+        if not IsDxvkD3D8Candidate(Candidate) then Candidate := '';
+      end
+      else
+        Candidate := ProtonBuildD3D8(IncludeTrailingPathDelimiter(AParent) + SR.Name);
+      if Candidate = '' then Continue;
+      Age := FileAge(Candidate);
+      if (ABest = '') or (Age > ABestAge) then
+      begin
+        ABest := Candidate;
+        ABestAge := Age;
+      end;
+    until FindNext(SR) <> 0;
+  finally
+    FindClose(SR);
+  end;
+end;
+
+function FindDxvkD3D8: string;
+var
+  i: Integer;
+  Arg, Home, DataHome, Source: string;
+  Paths, Libraries: TStringList;
+  BestAge: LongInt;
+begin
+  if DxvkD3D8Searched then Exit(DxvkD3D8Path);
+  DxvkD3D8Searched := True;
+  Result := '';
+  Source := '';
+
+  // 1. The Proton build that launches the game
+  for i := 1 to ParamCount do
+  begin
+    Arg := ParamStr(i);
+    if (ExtractFileName(Arg) = 'proton') and FileExists(Arg) then
+    begin
+      Result := ProtonBuildD3D8(ExtractFileDir(Arg));
+      if Result <> '' then
+      begin
+        Source := 'the Proton build that launches the game';
+        Break;
+      end;
+    end;
+  end;
+
+  // 2. The Proton build the launcher names in the environment
+  if Result = '' then
+  begin
+    Result := ProtonBuildD3D8(GetEnvironmentVariable('PROTONPATH'));
+    if Result <> '' then
+      Source := 'PROTONPATH';
+  end;
+  if Result = '' then
+  begin
+    Paths := TStringList.Create;
+    try
+      Paths.Delimiter := ':';
+      Paths.StrictDelimiter := True;
+      Paths.DelimitedText := GetEnvironmentVariable('STEAM_COMPAT_TOOL_PATHS');
+      for i := 0 to Paths.Count - 1 do
+      begin
+        Result := ProtonBuildD3D8(Paths[i]);
+        if Result <> '' then
+        begin
+          Source := 'STEAM_COMPAT_TOOL_PATHS';
+          Break;
+        end;
+      end;
+    finally
+      Paths.Free;
+    end;
+  end;
+
+  // 3. The newest one installed
+  if Result = '' then
+  begin
+    Home := IncludeTrailingPathDelimiter(GetUserDir);
+    DataHome := GetEnvironmentVariable('XDG_DATA_HOME');
+    if DataHome = '' then
+      DataHome := Home + '.local/share';
+    DataHome := IncludeTrailingPathDelimiter(DataHome);
+    BestAge := -1;
+    Libraries := TStringList.Create;
+    try
+      Libraries.Sorted := True;
+      Libraries.Duplicates := dupIgnore;
+      // Proton builds: Steam (native, Flatpak, system-wide), Lutris, Heroic
+      ConsiderInstalledD3D8(DataHome + 'Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.steam/root/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.steam/steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8('/usr/share/steam/compatibilitytools.d', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(DataHome + 'lutris/runners/wine', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/net.lutris.Lutris/data/lutris/runners/wine', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.config/heroic/tools/proton', False, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.heroicgameslauncher.hgl/config/heroic/tools/proton', False, False, Result, BestAge);
+      // Valve's Proton builds in every Steam library
+      Libraries.Add(DataHome + 'Steam/steamapps');
+      Libraries.Add(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps');
+      AddSteamLibraries(DataHome + 'Steam/steamapps/libraryfolders.vdf', Libraries);
+      AddSteamLibraries(Home + '.steam/steam/steamapps/libraryfolders.vdf', Libraries);
+      AddSteamLibraries(Home + '.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf', Libraries);
+      for i := 0 to Libraries.Count - 1 do
+        ConsiderInstalledD3D8(IncludeTrailingPathDelimiter(Libraries[i]) + 'common', False, True, Result, BestAge);
+      // DXVK builds: Lutris, Heroic
+      ConsiderInstalledD3D8(DataHome + 'lutris/runtime/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/net.lutris.Lutris/data/lutris/runtime/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.config/heroic/tools/dxvk', True, False, Result, BestAge);
+      ConsiderInstalledD3D8(Home + '.var/app/com.heroicgameslauncher.hgl/config/heroic/tools/dxvk', True, False, Result, BestAge);
+    finally
+      Libraries.Free;
+    end;
+    if Result <> '' then
+      Source := 'the newest installed DXVK';
+  end;
+
+  if Result <> '' then
+    Log('DXVK d3d8.dll for Direct3D 8: ' + Result + ' (' + Source + ')');
+  DxvkD3D8Path := Result;
+end;
+
+// True when the game's dlssnr-amd-install.txt lists AEntry
+function DlssNrManifestLists(const AGameDir, AEntry: string): Boolean;
+var
+  Manifest: TStringList;
+  i: Integer;
+begin
+  Result := False;
+  if not FileExists(IncludeTrailingPathDelimiter(AGameDir) + DLSSNR_MANIFEST) then Exit;
+  Manifest := TStringList.Create;
+  try
+    try
+      Manifest.LoadFromFile(IncludeTrailingPathDelimiter(AGameDir) + DLSSNR_MANIFEST);
+    except
+      Exit;
+    end;
+    for i := 0 to Manifest.Count - 1 do
+      if SameText(Trim(Manifest[i]), AEntry) then
+        Exit(True);
+  finally
+    Manifest.Free;
+  end;
+end;
+
+function FilesDiffer(const AFirst, ASecond: string): Boolean;
+var
+  A, B: TMemoryStream;
+begin
+  Result := True;
+  if not (FileExists(AFirst) and FileExists(ASecond)) then Exit;
+  if GetFileSize(AFirst) <> GetFileSize(ASecond) then Exit;
+  A := TMemoryStream.Create;
+  B := TMemoryStream.Create;
+  try
+    try
+      A.LoadFromFile(AFirst);
+      B.LoadFromFile(ASecond);
+      Result := (A.Size <> B.Size) or not CompareMem(A.Memory, B.Memory, A.Size);
+    except
+      Result := True;
+    end;
+  finally
+    B.Free;
+    A.Free;
+  end;
+end;
+
+// The d3d8.dll GOverlay copied follows the DXVK build found at launch, so a
+// Proton update (or a switch to another build) reaches the game too.
+procedure RefreshDlssNrDx9D3D8(const AGameDir: string);
+var
+  Src, Dst: string;
+begin
+  if not DlssNrManifestLists(AGameDir, 'd3d8.dll') then Exit;
+  Src := FindDxvkD3D8;
+  if Src = '' then Exit;
+  Dst := IncludeTrailingPathDelimiter(AGameDir) + 'd3d8.dll';
+  if not FilesDiffer(Src, Dst) then Exit;
+  Log('Updating the game''s DXVK d3d8.dll from ' + Src);
+  SafeCopyFile(Src, Dst);
+end;
+
+// PROTON_USE_WINED3D=1 draws Direct3D 8-11 with wined3d instead of DXVK: the
+// game then never reaches Vulkan, and the route's renderer=gdi would leave it
+// without 3D at all.
+function IsWineD3DForced(const AConfigDir: string): Boolean;
+var
+  Ini: TIniFile;
+begin
+  Result := Trim(GetEnvironmentVariable('PROTON_USE_WINED3D')) = '1';
+  if Result or not FileExists(IncludeTrailingPathDelimiter(AConfigDir) + 'bgmod.conf') then Exit;
+  Ini := TIniFile.Create(IncludeTrailingPathDelimiter(AConfigDir) + 'bgmod.conf');
+  try
+    Result := Trim(Ini.ReadString('Env', 'PROTON_USE_WINED3D', '')) = '1';
+  finally
+    Ini.Free;
+  end;
+end;
+
+// True when a WINEDLLOVERRIDES value ("a,b=n,b;c=n") already names ADll.
+function HasDllOverride(const AOverrides, ADll: string): Boolean;
+var
+  Entries, Names: TStringList;
+  i, j, EqPos: Integer;
+begin
+  Result := False;
+  Entries := TStringList.Create;
+  Names := TStringList.Create;
+  try
+    Entries.Delimiter := ';';
+    Entries.StrictDelimiter := True;
+    Entries.DelimitedText := AOverrides;
+    Names.Delimiter := ',';
+    Names.StrictDelimiter := True;
+    for i := 0 to Entries.Count - 1 do
+    begin
+      EqPos := Pos('=', Entries[i]);
+      if EqPos > 0 then
+        Names.DelimitedText := Copy(Entries[i], 1, EqPos - 1)
+      else
+        Names.DelimitedText := Entries[i];
+      for j := 0 to Names.Count - 1 do
+        if SameText(Trim(Names[j]), ADll) then
+          Exit(True);
+    end;
+  finally
+    Names.Free;
+    Entries.Free;
+  end;
+end;
+
+function AddDllOverride(const AOverrides, ADll, AMode: string): string;
+begin
+  Result := AOverrides;
+  if HasDllOverride(Result, ADll) then Exit;
+  if Result <> '' then
+    Result := Result + ';';
+  Result := Result + ADll + '=' + AMode;
+end;
+
+// Sets Key = Value in [Section] of an ini held as text lines, keeping comments,
+// order and the section's own spacing around '='. A missing key is added at the
+// end of its section, a missing section at the end of the file.
+procedure SetIniTextValue(Lines: TStrings; const ASection, AKey, AValue: string);
+var
+  i, SecStart, SecEnd, EqPos, InsertAt: Integer;
+  L, T, Sep: string;
+begin
+  SecStart := -1;
+  SecEnd := Lines.Count;
+  for i := 0 to Lines.Count - 1 do
+  begin
+    T := Trim(Lines[i]);
+    if (T = '') or (T[1] <> '[') then Continue;
+    if SecStart >= 0 then
+    begin
+      SecEnd := i;
+      Break;
+    end;
+    if SameText(T, '[' + ASection + ']') then
+      SecStart := i;
+  end;
+
+  if SecStart < 0 then
+  begin
+    Lines.Add('[' + ASection + ']');
+    Lines.Add(AKey + ' = ' + AValue);
+    Exit;
+  end;
+
+  Sep := '';
+  InsertAt := SecStart + 1;
+  for i := SecStart + 1 to SecEnd - 1 do
+  begin
+    L := Lines[i];
+    T := Trim(L);
+    if (T = '') or (T[1] in [';', '#']) then Continue;
+    EqPos := Pos('=', L);
+    if EqPos = 0 then Continue;
+    InsertAt := i + 1;
+    if Sep = '' then
+    begin
+      if (EqPos > 1) and (L[EqPos - 1] = ' ') then
+        Sep := ' = '
+      else
+        Sep := '=';
+    end;
+    if SameText(Trim(Copy(L, 1, EqPos - 1)), AKey) then
+    begin
+      if (EqPos > 1) and (L[EqPos - 1] = ' ') then
+        Lines[i] := AKey + ' = ' + AValue
+      else
+        Lines[i] := AKey + '=' + AValue;
+      Exit;
+    end;
+  end;
+  if Sep = '' then
+    Sep := ' = ';
+  Lines.Insert(InsertAt, AKey + Sep + AValue);
+end;
+
+function GetIniTextValue(Lines: TStrings; const ASection, AKey: string): string;
+var
+  i, EqPos: Integer;
+  T: string;
+  InSection: Boolean;
+begin
+  Result := '';
+  InSection := False;
+  for i := 0 to Lines.Count - 1 do
+  begin
+    T := Trim(Lines[i]);
+    if T = '' then Continue;
+    if T[1] = '[' then
+    begin
+      InSection := SameText(T, '[' + ASection + ']');
+      Continue;
+    end;
+    if not InSection or (T[1] in [';', '#']) then Continue;
+    EqPos := Pos('=', T);
+    if (EqPos > 0) and SameText(Trim(Copy(T, 1, EqPos - 1)), AKey) then
+      Exit(Trim(Copy(T, EqPos + 1, MaxInt)));
+  end;
+end;
+
+// Applies the DLSS-NR settings GOverlay saved for this game (gameconfig's
+// dlssnr-amd.ini) to the add-on's dlssnr-amd.ini. [Network], [Preprocess] and
+// [RenoDX] use the same keys on both routes; the OptiScaler route's [wilsjo2]
+// keys are called [DlssNr] in the add-on. NRHookPoint is OptiScaler-only.
+procedure ApplyGOverlayDlssNrSettings(Lines: TStrings; const AConfigIni: string);
+const
+  SharedSections: array[0..2] of string = ('Network', 'Preprocess', 'RenoDX');
+  Wilsjo2Keys: array[0..2] of string = ('Passes', 'WorkingScale', 'SkinProtection');
+var
+  Cfg: TIniFile;
+  Keys: TStringList;
+  s, k: Integer;
+begin
+  if not FileExists(AConfigIni) then Exit;
+  Cfg := TIniFile.Create(AConfigIni);
+  Keys := TStringList.Create;
+  try
+    for s := 0 to High(SharedSections) do
+    begin
+      Keys.Clear;
+      Cfg.ReadSection(SharedSections[s], Keys);
+      for k := 0 to Keys.Count - 1 do
+      begin
+        if SameText(SharedSections[s], 'RenoDX') and SameText(Keys[k], 'NRHookPoint') then Continue;
+        SetIniTextValue(Lines, SharedSections[s], Keys[k], Trim(Cfg.ReadString(SharedSections[s], Keys[k], '')));
+      end;
+    end;
+    for k := 0 to High(Wilsjo2Keys) do
+      if Cfg.ValueExists('wilsjo2', Wilsjo2Keys[k]) then
+        SetIniTextValue(Lines, 'DlssNr', Wilsjo2Keys[k], Trim(Cfg.ReadString('wilsjo2', Wilsjo2Keys[k], '')));
+  finally
+    Keys.Free;
+    Cfg.Free;
+  end;
+end;
+
+// The network a game starts with needs its weights in dlssnr-amd/. GOverlay
+// extracts CC_SMALL_FP8 and CC_SILVER_AARDWOLD and makes the derived networks
+// from them, which can fail (no python3, a model of another DLL version). When
+// the chosen one is missing the game starts with CC_SMALL_FP8, or
+// CC_SILVER_AARDWOLD without it (as install.sh does).
+procedure EnsureDlssNrModelAvailable(Lines: TStrings; const ARuntimeDir: string);
+var
+  Model, Fallback: string;
+begin
+  Model := GetIniTextValue(Lines, 'Network', 'Model');
+  if Model = '' then
+    Model := 'CC_SMALL_FP8';
+  if FileExists(IncludeTrailingPathDelimiter(ARuntimeDir) + Model + '.bin') then Exit;
+  if FileExists(IncludeTrailingPathDelimiter(ARuntimeDir) + 'CC_SMALL_FP8.bin') then
+    Fallback := 'CC_SMALL_FP8'
+  else
+    Fallback := 'CC_SILVER_AARDWOLD';
+  if SameText(Fallback, Model) then Exit;
+  Log('DLSS-NR: ' + Model + ' weights are not installed; the game starts with ' + Fallback + '.');
+  SetIniTextValue(Lines, 'Network', 'Model', Fallback);
+end;
+
+// Writes the game's dlssnr-amd.ini: the add-on ini of the package with the
+// RenoDX style on (install.sh's default), then GOverlay's settings on top.
+procedure WriteDlssNrDx9Ini(const AGameDir, ARuntimeDir, AConfigDir: string);
+var
+  Lines: TStringList;
+  GamePath: string;
+begin
+  GamePath := IncludeTrailingPathDelimiter(AGameDir);
+  Lines := TStringList.Create;
+  try
+    if FileExists(ARuntimeDir + 'ini' + PathDelim + 'dlssnr-amd-addon.ini') then
+      Lines.LoadFromFile(ARuntimeDir + 'ini' + PathDelim + 'dlssnr-amd-addon.ini')
+    else
+      Log('Warning: ' + ARuntimeDir + 'ini/dlssnr-amd-addon.ini not found; writing GOverlay settings only.');
+    SetIniTextValue(Lines, 'RenoDX', 'Enabled', '1');
+    ApplyGOverlayDlssNrSettings(Lines, IncludeTrailingPathDelimiter(AConfigDir) + 'dlssnr-amd.ini');
+    EnsureDlssNrModelAvailable(Lines, GamePath + 'dlssnr-amd');
+    Lines.SaveToFile(GamePath + 'dlssnr-amd.ini');
+    // NR puts this copy back when dlssnr-amd.ini is deleted (as after install.sh)
+    if DirectoryExists(GamePath + 'dlssnr-amd') then
+      Lines.SaveToFile(GamePath + 'dlssnr-amd' + PathDelim + 'dlssnr-amd.default.ini');
+  finally
+    Lines.Free;
+  end;
+end;
+
+// Applies GOverlay's settings to an installed dlssnr-amd.ini when they were
+// saved after it was written, keeping what the user changed in game.
+procedure SyncDlssNrDx9Ini(const AGameDir, AConfigDir: string);
+var
+  Lines: TStringList;
+  GameIni, ConfigIni: string;
+  AgeGame, AgeConfig: TDateTime;
+begin
+  GameIni := IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd.ini';
+  ConfigIni := IncludeTrailingPathDelimiter(AConfigDir) + 'dlssnr-amd.ini';
+  if not FileExists(ConfigIni) or not FileExists(GameIni) then Exit;
+  if not (FileAge(ConfigIni, AgeConfig) and FileAge(GameIni, AgeGame)) then Exit;
+  if AgeConfig <= AgeGame then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(GameIni);
+    ApplyGOverlayDlssNrSettings(Lines, ConfigIni);
+    EnsureDlssNrModelAvailable(Lines, IncludeTrailingPathDelimiter(AGameDir) + 'dlssnr-amd');
+    Lines.SaveToFile(GameIni);
+    Log('Applied GOverlay DLSS-NR settings to ' + GameIni);
+  finally
+    Lines.Free;
+  end;
+end;
+
+function DlssNrDx9RuntimeVersion(const ARuntimeDir: string): string;
+begin
+  Result := ReadVarFromFile(ARuntimeDir + 'goverlay.vars', 'OPTISCALER_DLSSNR_VERSION');
+end;
+
+// Reinstall when the route is not (completely) there, the runtime or the
+// extracted models changed, or the game's Direct3D version changed.
+function DlssNrDx9NeedsInstall(const AGameDir, ARuntimeDir, AModelsDir: string;
+  AApi: TDetectedGraphicsApi): Boolean;
+const
+  ModelFiles: array[0..1] of string = ('CC_SILVER_AARDWOLD.bin', 'CC_SMALL_FP8.bin');
+var
+  GamePath, VarsPath, Central, Installed: string;
+  m: Integer;
+begin
+  GamePath := IncludeTrailingPathDelimiter(AGameDir);
+  VarsPath := GamePath + 'goverlay.vars';
+  Result := True;
+  if not IsGOverlayDlssNrDx9Install(AGameDir) then Exit;
+  if not FileExists(GamePath + DLSSNR_MANIFEST) or
+     not FileExists(GamePath + 'ReShade32.dll') or
+     not FileExists(GamePath + 'dlssnr_amd.addon32') or
+     not FileExists(GamePath + 'vulkan-1.dll') then Exit;
+  if ReadVarFromFile(VarsPath, 'dlssnrruntime') <> DlssNrDx9RuntimeVersion(ARuntimeDir) then Exit;
+  if ReadVarFromFile(VarsPath, 'dlssnrapi') <> GraphicsApiDisplayName(AApi) then Exit;
+  if (AApi = gapiDX8) and not FileExists(GamePath + 'd3d8.dll') and (FindDxvkD3D8 <> '') then Exit;
+  for m := 0 to High(ModelFiles) do
+  begin
+    Central := IncludeTrailingPathDelimiter(AModelsDir) + ModelFiles[m];
+    Installed := GamePath + 'dlssnr-amd' + PathDelim + ModelFiles[m];
+    if FileExists(Central) and (GetFileSize(Central) <> GetFileSize(Installed)) then Exit;
+  end;
+  Result := False;
+end;
+
+// Installs the reshade-feeder-dx9 route of the i686 package into the game
+// folder: what install.sh copies for kind=dx9, plus DXVK's d3d8.dll for
+// Direct3D 8 games. Returns False (and installs nothing) without a model.
+function DeployDlssNrDx9Route(const AGameDir, ARuntimeDir, AConfigDir, AModelsDir: string;
+  AApi: TDetectedGraphicsApi): Boolean;
+const
+  PayloadDirs: array[0..1] of string = ('reshade', 'vulkan');
+  ModelFiles: array[0..1] of string = ('CC_SILVER_AARDWOLD.bin', 'CC_SMALL_FP8.bin');
+var
+  Manifest: TStringList;
+  SR: TSearchRec;
+  GamePath, ModelsPath, Src, D3D8Src, VarsPath: string;
+  d, m: Integer;
+  HasModel: Boolean;
+
+  procedure AddEntry(const AEntry: string);
+  begin
+    if Manifest.IndexOf(AEntry) < 0 then
+      Manifest.Add(AEntry);
+  end;
+
+begin
+  Result := False;
+  GamePath := IncludeTrailingPathDelimiter(AGameDir);
+  ModelsPath := IncludeTrailingPathDelimiter(AModelsDir);
+
+  HasModel := False;
+  for m := 0 to High(ModelFiles) do
+    if FileExists(ModelsPath + ModelFiles[m]) then
+      HasModel := True;
+  if not HasModel then
+  begin
+    Log('DLSS-NR: no extracted model in ' + AModelsDir + '. Select nvngx_dlssnr.dll in GOverlay first; nothing was installed.');
+    Exit;
+  end;
+
+  if FileExists(GamePath + DLSSNR_MANIFEST) then
+  begin
+    Log('Found a previous DLSS-NR installation, removing it first.');
+    RemoveDlssNrManifestInstall(AGameDir);
+  end;
+
+  Log('Installing the DLSS-NR ReShade route (32-bit, ' + GraphicsApiDisplayName(AApi) + ') from ' + ARuntimeDir);
+  Manifest := TStringList.Create;
+  try
+    AddEntry(DLSSNR_MANIFEST);
+
+    // Runtime folder (shaders, language files), the networks' weights and,
+    // with CC_SILVER_AARDWOLD_OPTIMIZED's int4 weights, its int4 layers
+    CopyDirectory(ARuntimeDir + 'dlssnr-amd', GamePath + 'dlssnr-amd');
+    AddEntry('dlssnr-amd/');
+    SyncDlssNrNetworks(AGameDir, AModelsDir, ARuntimeDir, True);
+
+    // ReShade, its add-on and shaders, and the Vulkan loader that loads ReShade
+    // as a layer: everything in reshade/ and vulkan/ except dxgi.dll (the
+    // reshade-feeder route's) and the D3D9 preset, which replaces ReShadePreset.ini
+    for d := 0 to High(PayloadDirs) do
+    begin
+      if FindFirst(ARuntimeDir + PayloadDirs[d] + PathDelim + '*', faAnyFile, SR) <> 0 then Continue;
+      try
+        repeat
+          if (SR.Name = '.') or (SR.Name = '..') or SameText(SR.Name, 'dxgi.dll') or
+             SameText(SR.Name, 'ReShadePreset-d3d9.ini') then
+            Continue;
+          Src := ARuntimeDir + PayloadDirs[d] + PathDelim + SR.Name;
+          if (SR.Attr and faDirectory) <> 0 then
+          begin
+            CopyDirectory(Src, GamePath + SR.Name);
+            AddEntry(SR.Name + '/');
+          end
+          else
+          begin
+            SafeCopyFile(Src, GamePath + SR.Name);
+            AddEntry(SR.Name);
+          end;
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+    if FileExists(ARuntimeDir + 'vulkan' + PathDelim + 'ReShadePreset-d3d9.ini') then
+    begin
+      SafeCopyFile(ARuntimeDir + 'vulkan' + PathDelim + 'ReShadePreset-d3d9.ini', GamePath + 'ReShadePreset.ini');
+      AddEntry('ReShadePreset.ini');
+    end;
+
+    // The package's int4 builds of these files replace them, as install.sh does
+    if FindFirst(ARuntimeDir + 'int4' + PathDelim + 'reshade' + PathDelim + '*', faAnyFile, SR) = 0 then
+    begin
+      try
+        repeat
+          if (SR.Attr and faDirectory) <> 0 then Continue;
+          if FileExists(GamePath + SR.Name) then
+            SafeCopyFile(ARuntimeDir + 'int4' + PathDelim + 'reshade' + PathDelim + SR.Name, GamePath + SR.Name);
+        until FindNext(SR) <> 0;
+      finally
+        FindClose(SR);
+      end;
+    end;
+
+    WriteDlssNrDx9Ini(AGameDir, ARuntimeDir, AConfigDir);
+    AddEntry('dlssnr-amd.ini');
+    AddEntry('dlssnr-amd.log');
+    AddEntry('ReShade.log');
+
+    // Direct3D 8: DXVK's d3d8.dll, loaded through the d3d8=n,b override. A
+    // d3d8.dll the game folder already has (a d3d8to9 wrapper of a mod, say) is
+    // kept: through the same override it hands the game to Direct3D 9 and DXVK.
+    if AApi = gapiDX8 then
+    begin
+      if FileExists(GamePath + 'd3d8.dll') then
+        Log('The game folder has its own d3d8.dll; it is kept and loaded through the d3d8 override.')
+      else
+      begin
+        D3D8Src := FindDxvkD3D8;
+        if D3D8Src <> '' then
+        begin
+          SafeCopyFile(D3D8Src, GamePath + 'd3d8.dll');
+          AddEntry('d3d8.dll');
+        end;
+      end;
+    end;
+
+    Manifest.SaveToFile(GamePath + DLSSNR_MANIFEST);
+  finally
+    Manifest.Free;
+  end;
+
+  VarsPath := GamePath + 'goverlay.vars';
+  WriteVarToFile(VarsPath, 'upscalertype', '4');
+  WriteVarToFile(VarsPath, 'dlssnrroute', DLSSNR_ROUTE_DX9);
+  WriteVarToFile(VarsPath, 'dlssnrruntime', DlssNrDx9RuntimeVersion(ARuntimeDir));
+  WriteVarToFile(VarsPath, 'dlssnrapi', GraphicsApiDisplayName(AApi));
+  Result := True;
+end;
+
 function UnixPathToWinePath(const AUnixPath: string): string;
 var
   i: Integer;
@@ -2470,6 +3387,9 @@ begin
   Log('Purging installed upscaler files from game directory...');
   if CentralLogDir <> '' then
     SyncGameDirLogsToCentral(AGameDir, CentralLogDir);
+  // The 32-bit ReShade route is removed by its manifest; the lines below only
+  // know the OptiScaler routes' files.
+  RemoveGOverlayDlssNrDx9Install(AGameDir);
   for i := 0 to High(OrigDlls) do
   begin
     if IsNativeGameDll(OrigDlls[i]) or ((ABackupsDir <> '') and FileExists(IncludeTrailingPathDelimiter(ABackupsDir) + OrigDlls[i])) then
@@ -3213,6 +4133,11 @@ var
   DlssCentralLogFile: string;
   DlssNrCentralLogFile: string;
   DlssNrModelsDir: string;
+  DlssNr32Dir, DlssNrChannelDir: string;
+  DlssNrDx9Route, DlssNrDx9Active: Boolean;
+  DlssNrDx9Api: TDetectedGraphicsApi;
+  WineD3DConfig: string;
+  Int4LayerDir: string;
   VkLayerPath: string;
   FlatpakVulkanDir: string;
   VkInstanceLayers: string;
@@ -3514,6 +4439,25 @@ begin
       ', PreserveIni=' + BoolToStr(PreserveIni, 'true', 'false') +
       ', UnmanagedIni=' + BoolToStr(UnmanagedIni, 'true', 'false'));
       
+  // DLSS-NR in a 32-bit Direct3D 8/9 game: DLSSNR-AMD's OptiScaler route is
+  // 64-bit only, so these games get the ReShade route of its i686 package.
+  DlssNrDx9Route := False;
+  DlssNrDx9Active := False;
+  DlssNrDx9Api := gapiUnknown;
+  DlssNr32Dir := '';
+  if GOverlayOptiscaler and (UpscalerType = 4) and (GameDir <> '') and (TargetExeName <> '') and
+     not IsNativeExecutable(TargetExeName) then
+  begin
+    if IsDlssNrDx9RouteTarget(IncludeTrailingPathDelimiter(GameDir) + TargetExeName, DlssNrDx9Api) then
+    begin
+      DlssNrDx9Route := True;
+      Log('32-bit ' + GraphicsApiDisplayName(DlssNrDx9Api) + ' game: DLSS-NR uses its ReShade route (its OptiScaler route needs a 64-bit game).');
+    end
+    else if GetPEMachine(IncludeTrailingPathDelimiter(GameDir) + TargetExeName) = PE_MACHINE_I386 then
+      Log('Warning: 32-bit game that does not draw with Direct3D 8 or 9. DLSS-NR''s OptiScaler route needs a 64-bit game ' +
+          'and its ReShade route a Direct3D 8 or 9 one, so DLSS-NR will likely not load here.');
+  end;
+
   // Copy and configure files for the game
   if GameDir <> '' then
   begin
@@ -3523,15 +4467,81 @@ begin
       Log('Error: No write permission to game directory: ' + GameDir)
     else
     begin
+      // --- DLSS-NR ReShade route (32-bit Direct3D 8/9) ---
+      if DlssNrDx9Route then
+      begin
+        // The 64-bit channel folder (dlss-nr-rdna3/4) of this profile's architecture;
+        // in the global profile SourceDir is the profile's own copy instead.
+        DlssNrChannelDir := GetGlobalBGModPath(ConfigDir);
+        DlssNrModelsDir := IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'dlss-nr-models';
+        // Older GOverlay versions kept the extracted models only in the 64-bit runtime
+        if not FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SILVER_AARDWOLD.bin') and
+           not FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'CC_SMALL_FP8.bin') and
+           (FileExists(DlssNrChannelDir + 'dlssnr-amd' + PathDelim + 'CC_SILVER_AARDWOLD.bin') or
+            FileExists(DlssNrChannelDir + 'dlssnr-amd' + PathDelim + 'CC_SMALL_FP8.bin')) then
+          DlssNrModelsDir := DlssNrChannelDir + 'dlssnr-amd';
+        DlssNr32Dir := ResolveDlssNr32RuntimeDir(DlssNrChannelDir);
+        if IsWineD3DForced(ConfigDir) then
+        begin
+          Log('Warning: PROTON_USE_WINED3D=1 draws the game with wined3d instead of DXVK, so it never reaches Vulkan, ' +
+              'where DLSS-NR''s ReShade route attaches. DLSS-NR is not installed in this game.');
+          RemoveGOverlayDlssNrDx9Install(GameDir);
+        end
+        else if (DlssNrDx9Api = gapiDX8) and
+                not FileExists(IncludeTrailingPathDelimiter(GameDir) + 'd3d8.dll') and (FindDxvkD3D8 = '') then
+        begin
+          // Without DXVK's d3d8.dll the game would get the route's renderer=gdi
+          // but still draw with wined3d: no picture at all. It keeps Wine's own
+          // Direct3D 8 instead.
+          Log('Warning: no DXVK d3d8.dll found for this Direct3D 8 game (Proton 9 or later, GE-Proton, Proton-CachyOS, ' +
+              'or DXVK 2.4 or later in Lutris or Heroic has one). DLSS-NR is not installed, so the game runs with Wine''s own Direct3D 8.');
+          RemoveGOverlayDlssNrDx9Install(GameDir);
+        end
+        else if DlssNr32Dir = '' then
+        begin
+          Log('Warning: the 32-bit DLSS-NR runtime (' + ExcludeTrailingPathDelimiter(DlssNrChannelDir) + '-i686) is not installed. ' +
+              'Open GOverlay with DLSS-NR selected to download it.');
+          // An installed route keeps working with the runtime it was installed from
+          DlssNrDx9Active := IsGOverlayDlssNrDx9Install(GameDir);
+        end
+        else
+        begin
+          if not IsGOverlayDlssNrDx9Install(GameDir) then
+          begin
+            if FileExists(IncludeTrailingPathDelimiter(GameDir) + DLSSNR_MANIFEST) then
+            begin
+              Log('Removing a DLSS-NR installation made by its own installer; GOverlay manages DLSS-NR in this game now.');
+              RemoveDlssNrManifestInstall(GameDir);
+            end;
+            // e.g. the 64-bit OptiScaler route, installed here before GOverlay knew the game is 32-bit
+            if GetInstalledUpscalerType(GameDir) >= 0 then
+              PurgeUpscalerFromGameDir(GameDir, BackupsDir);
+          end;
+
+          if DlssNrDx9NeedsInstall(GameDir, DlssNr32Dir, DlssNrModelsDir, DlssNrDx9Api) then
+            DlssNrDx9Active := DeployDlssNrDx9Route(GameDir, DlssNr32Dir, ConfigDir, DlssNrModelsDir, DlssNrDx9Api)
+          else
+          begin
+            Log('DLSS-NR ReShade route in game directory is already up to date, skipping copy.');
+            // Networks GOverlay made since the route was installed
+            SyncDlssNrNetworks(GameDir, DlssNrModelsDir, DlssNr32Dir, False);
+            SyncDlssNrDx9Ini(GameDir, ConfigDir);
+            if DlssNrDx9Api = gapiDX8 then
+              RefreshDlssNrDx9D3D8(GameDir);
+            DlssNrDx9Active := True;
+          end;
+        end;
+      end
       // --- OptiScaler Copy and Configuration ---
-      if GOverlayOptiscaler and IsNativeExecutable(TargetExeName) then
+      else if GOverlayOptiscaler and IsNativeExecutable(TargetExeName) then
       begin
         Log('Native Linux executable detected (' + TargetExeName + '). Skipping OptiScaler Windows DLL deployment.');
       end
       else if GOverlayOptiscaler then
       begin
         InstalledUpscaler := GetInstalledUpscalerType(GameDir);
-        if (InstalledUpscaler >= 0) and (InstalledUpscaler <> UpscalerType) then
+        if (InstalledUpscaler >= 0) and
+           ((InstalledUpscaler <> UpscalerType) or IsGOverlayDlssNrDx9Install(GameDir)) then
         begin
           Log('Upscaler switch detected (installed=' + IntToStr(InstalledUpscaler) + ', target=' + IntToStr(UpscalerType) + '). Purging previous upscaler files...');
           PurgeUpscalerFromGameDir(GameDir, BackupsDir);
@@ -3550,6 +4560,10 @@ begin
            not NeedsGameDirUpdate(IncludeTrailingPathDelimiter(GameDir), ConfigDir) then
         begin
           Log('OptiScaler files in game directory are already up to date, skipping copy.');
+          // DLSS-NR networks GOverlay made since the files were installed
+          if UpscalerType = 4 then
+            SyncDlssNrNetworks(GameDir, IncludeTrailingPathDelimiter(GetGOverlayBaseDataPath(BgmodPath)) + 'dlss-nr-models',
+                               DlssNrInt4Runtime(SourceDir, ConfigDir), False);
           SyncOptiScalerIni(ConfigDir, GameDir, PreserveIni, UnmanagedIni);
           SyncFakeNvapiIni(ConfigDir, GameDir);
           if ReadVarFromFile(IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars', 'proxydll') = '' then
@@ -3894,6 +4908,8 @@ begin
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr.bin');
             if FileExists(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin') then
               SafeCopyFile(IncludeTrailingPathDelimiter(DlssNrModelsDir) + 'dlssnr-small.bin', IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'dlssnr-small.bin');
+            // The networks GOverlay made from them, with the int4 layers' folders
+            SyncDlssNrNetworks(GameDir, DlssNrModelsDir, DlssNrInt4Runtime(SourceDir, ConfigDir), True);
 
             // Vulkan control layer shipped with the runtime
             if DirectoryExists(SourceDir + 'optiscaler' + PathDelim + 'control' + PathDelim + 'layer') then
@@ -4101,6 +5117,7 @@ begin
       else
       begin
         Log('OptiScaler is disabled, checking for cleanup...');
+        RemoveGOverlayDlssNrDx9Install(GameDir);
         if HasOptiScalerLeftovers(GameDir, DllName) then
         begin
           Log('OptiScaler leftovers detected in game directory, cleaning up...');
@@ -4177,7 +5194,22 @@ begin
         SafeDeleteFile(IncludeTrailingPathDelimiter(GameDir) + 'vkSumi.conf');
 
       // --- ReShade Deployment and Configuration ---
-      if GOverlayReshade and IsNativeExecutable(TargetExeName) then
+      if DlssNrDx9Active then
+      begin
+        // The DLSS-NR route runs its own ReShade as a Vulkan layer. A second
+        // ReShade loaded as a Direct3D proxy would hook the game twice.
+        if GOverlayReshade then
+          Log('ReShade runs as part of the DLSS-NR route in this game; GOverlay''s ReShade deployment is skipped.');
+        VarsFile := IncludeTrailingPathDelimiter(GameDir) + 'goverlay.vars';
+        PrevReshadeProxy := ReadVarFromFile(VarsFile, 'reshadeproxy');
+        if PrevReshadeProxy <> '' then
+        begin
+          Log('Removing the ReShade proxy GOverlay installed earlier (' + PrevReshadeProxy + ')...');
+          SafeCleanOrRestore(GameDir, BackupsDir, PrevReshadeProxy, False);
+          RemoveVarFromFile(VarsFile, 'reshadeproxy');
+        end;
+      end
+      else if GOverlayReshade and IsNativeExecutable(TargetExeName) then
       begin
         Log('Native Linux executable detected (' + TargetExeName + '). Skipping ReShade Windows DLL deployment.');
       end
@@ -4453,7 +5485,68 @@ begin
     SetEnvVarInList(EnvStrings, 'DISABLE_LSFGVK', '1');
     Log('Export: DISABLE_LSFGVK=1');
   end;
-  if GOverlayOptiscaler and not IsNativeExecutable(TargetExeName) then
+  if DlssNrDx9Active then
+  begin
+    // The route's own Vulkan loader (vulkan-1.dll, winevulkan.dll) loads ReShade
+    // as a layer; Direct3D 8 games also need DXVK's d3d8.dll (copied as d3d8.dll).
+    CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
+    NewOverrides := AddDllOverride(CurrentOverrides, 'winevulkan', 'n,b');
+    NewOverrides := AddDllOverride(NewOverrides, 'vulkan-1', 'n,b');
+    if (DlssNrDx9Api = gapiDX8) and FileExists(IncludeTrailingPathDelimiter(GameDir) + 'd3d8.dll') then
+      NewOverrides := AddDllOverride(NewOverrides, 'd3d8', 'n,b');
+    if NewOverrides <> CurrentOverrides then
+    begin
+      SetEnvVarInList(EnvStrings, 'WINEDLLOVERRIDES', NewOverrides);
+      Log('Export WINEDLLOVERRIDES=' + NewOverrides);
+    end;
+
+    // Wine draws the parts it renders itself (DirectDraw, video playback,
+    // dxdiagn) with wined3d. ReShade, loaded in the same process, hooks
+    // wined3d's OpenGL context (stack overflow) or Vulkan instance (destroyed
+    // under it: crash). The game itself draws with DXVK, so wined3d is set to
+    // its no-3D renderer, unless the user set a renderer in [Env].
+    WineD3DConfig := GetEnvVarFromList(EnvStrings, 'WINE_D3D_CONFIG');
+    if Pos('renderer=', LowerCase(WineD3DConfig)) = 0 then
+    begin
+      if WineD3DConfig <> '' then
+        WineD3DConfig := WineD3DConfig + ';renderer=gdi'
+      else
+        WineD3DConfig := 'renderer=gdi';
+      SetEnvVarInList(EnvStrings, 'WINE_D3D_CONFIG', WineD3DConfig);
+      Log('Export WINE_D3D_CONFIG=' + WineD3DConfig);
+    end;
+
+    // CC_SILVER_AARDWOLD_OPTIMIZED's int4 layers need DLSSNR-AMD's host Vulkan
+    // layer (it turns on VK_KHR_pipeline_binary on the game's device), as
+    // install.sh's launch line has it; the OptiScaler route's NR plugin does
+    // that itself. Always on, so any network can be switched to in game.
+    Int4LayerDir := IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + 'int4' + PathDelim + 'layer';
+    if FileExists(IncludeTrailingPathDelimiter(GameDir) + 'dlssnr-amd' + PathDelim + DLSSNR_INT4_WEIGHTS) and
+       DirectoryExists(Int4LayerDir) then
+    begin
+      VkLayerPath := GetEnvVarFromList(EnvStrings, 'VK_ADD_LAYER_PATH');
+      if VkLayerPath <> '' then
+        VkLayerPath := VkLayerPath + ':' + Int4LayerDir
+      else
+        VkLayerPath := Int4LayerDir;
+      SetEnvVarInList(EnvStrings, 'VK_ADD_LAYER_PATH', VkLayerPath);
+      Log('Export VK_ADD_LAYER_PATH=' + VkLayerPath);
+
+      VkInstanceLayers := GetEnvVarFromList(EnvStrings, 'VK_INSTANCE_LAYERS');
+      if Pos(DLSSNR_INT4_LAYER, VkInstanceLayers) = 0 then
+      begin
+        if VkInstanceLayers <> '' then
+          VkInstanceLayers := VkInstanceLayers + ':' + DLSSNR_INT4_LAYER
+        else
+          VkInstanceLayers := DLSSNR_INT4_LAYER;
+        SetEnvVarInList(EnvStrings, 'VK_INSTANCE_LAYERS', VkInstanceLayers);
+        Log('Export VK_INSTANCE_LAYERS=' + VkInstanceLayers);
+      end;
+    end;
+  end
+  else if DlssNrDx9Route then
+    Log('DLSS-NR is not installed in this 32-bit game; no DLSS-NR environment exported.')
+  else if GOverlayOptiscaler and not IsNativeExecutable(TargetExeName) then
   begin
     DllBase := ChangeFileExt(DllName, '');
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
@@ -4510,7 +5603,7 @@ begin
     end;
   end;
 
-  if GOverlayReshade and not IsNativeExecutable(TargetExeName) then
+  if GOverlayReshade and not DlssNrDx9Active and not IsNativeExecutable(TargetExeName) then
   begin
     CurrentOverrides := GetEnvVarFromList(EnvStrings, 'WINEDLLOVERRIDES');
     NewOverrides := CurrentOverrides;
