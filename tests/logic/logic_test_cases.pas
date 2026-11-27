@@ -223,10 +223,19 @@ type
     procedure TestNightlyUpdateComparison;
   end;
 
+  TNonSteamDiscoveryTests = class(TTestCase)
+  published
+    procedure TestSingleGameFolderAvoidsSubfolderTiles;
+    procedure TestLibraryRootFiltersNonExecutableSubfoldersAndDetectsLinux;
+    procedure TestHeroicJsonDiscoveryAndFiltering;
+    procedure TestFaugusJsonDiscoveryAndCorruptFallback;
+    procedure TestCrossSourceDeduplicationPrefersLauncher;
+  end;
+
 implementation
 
 uses
-  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector, mangohud_ui, Graphics, FileUtil, constants;
+  themeunit, configfile, configkeys, test_isolation, overlay_config, overlay_utils, configmanager, IniFiles, optiscaler_update, apputils, bgmod_resources, Process, BaseUnix, systemdetector, mangohud_ui, Graphics, FileUtil, constants, game_discovery;
 
 procedure TDriverPreferenceTests.TestRoundTrip;
 begin
@@ -6249,6 +6258,206 @@ begin
     IsOptiScalerUpdateAvailable('nightly-20261126', 'stable-0.9.5', False));
 end;
 
+procedure WriteDiscoveryDummyFile(const APath, AContent: string; AExecutable: Boolean = False);
+var
+  FS: TFileStream;
+begin
+  ForceDirectories(ExtractFilePath(APath));
+  FS := TFileStream.Create(APath, fmCreate);
+  try
+    if Length(AContent) > 0 then
+      FS.WriteBuffer(AContent[1], Length(AContent));
+  finally
+    FS.Free;
+  end;
+  if AExecutable then
+    fpChmod(APath, &755);
+end;
+
+procedure TNonSteamDiscoveryTests.TestSingleGameFolderAvoidsSubfolderTiles;
+var
+  RootDir: string;
+  Games: TGameDiscoveryArray;
+begin
+  RootDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'discovery_single/No One Lives Forever';
+  ForceDirectories(RootDir + '/EReg');
+  ForceDirectories(RootDir + '/Movies');
+  ForceDirectories(RootDir + '/Save');
+  ForceDirectories(RootDir + '/widescreen_patch');
+  WriteDiscoveryDummyFile(RootDir + '/NOLF.exe', 'MZ');
+  WriteDiscoveryDummyFile(RootDir + '/EReg/ereg.exe', 'MZ');
+  WriteDiscoveryDummyFile(RootDir + '/Save/slot0.sav', 'save');
+
+  SetLength(Games, 0);
+  DiscoverNonSteamFolder(RootDir, Games);
+
+  AssertEquals('Single game folder yields exactly 1 card', 1, Length(Games));
+  AssertEquals('Card name matches folder name', 'No One Lives Forever', Games[0].Name);
+  AssertEquals('Source is gsLocal', Ord(gsLocal), Ord(Games[0].Source));
+  AssertFalse('Windows .exe game is not native Linux', Games[0].IsNativeLinux);
+end;
+
+procedure TNonSteamDiscoveryTests.TestLibraryRootFiltersNonExecutableSubfoldersAndDetectsLinux;
+var
+  LibDir: string;
+  Games: TGameDiscoveryArray;
+  ElfHeader: string;
+  i: Integer;
+  FoundWin, FoundLinux, FoundAppImg: Boolean;
+begin
+  LibDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'discovery_lib';
+  WriteDiscoveryDummyFile(LibDir + '/GameWin/game.exe', 'MZ');
+  ElfHeader := #127'ELF' + StringOfChar(#0, 16);
+  WriteDiscoveryDummyFile(LibDir + '/GameLinux/game_bin', ElfHeader, True);
+  WriteDiscoveryDummyFile(LibDir + '/BrutalLegend.AppImage', ElfHeader, True);
+  // Non-game subfolders that must be ignored
+  WriteDiscoveryDummyFile(LibDir + '/Save/slot1.sav', 'data');
+  WriteDiscoveryDummyFile(LibDir + '/Patches/readme.txt', 'notes');
+  WriteDiscoveryDummyFile(LibDir + '/RedistOnly/vcredist_x64.exe', 'MZ');
+
+  SetLength(Games, 0);
+  DiscoverNonSteamFolder(LibDir, Games);
+
+  AssertEquals('Library root discovers 3 valid games', 3, Length(Games));
+  FoundWin := False;
+  FoundLinux := False;
+  FoundAppImg := False;
+  for i := 0 to High(Games) do
+  begin
+    if Games[i].Name = 'GameWin' then
+    begin
+      FoundWin := True;
+      AssertFalse('GameWin is Windows', Games[i].IsNativeLinux);
+    end
+    else if Games[i].Name = 'GameLinux' then
+    begin
+      FoundLinux := True;
+      AssertTrue('GameLinux is Native Linux', Games[i].IsNativeLinux);
+    end
+    else if Games[i].Name = 'BrutalLegend' then
+    begin
+      FoundAppImg := True;
+      AssertTrue('BrutalLegend AppImage flag', Games[i].IsAppImage);
+      AssertTrue('BrutalLegend AppImage is Native Linux', Games[i].IsNativeLinux);
+    end;
+  end;
+  AssertTrue('Found GameWin', FoundWin);
+  AssertTrue('Found GameLinux', FoundLinux);
+  AssertTrue('Found BrutalLegend AppImage', FoundAppImg);
+end;
+
+procedure TNonSteamDiscoveryTests.TestHeroicJsonDiscoveryAndFiltering;
+var
+  BaseDir, HeroicDir, EpicDir, GogDir, SideDir, MissingDir: string;
+  Games: TGameDiscoveryArray;
+  i: Integer;
+  FoundEpic, FoundGog, FoundSide: Boolean;
+begin
+  BaseDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'heroic_test';
+  HeroicDir := BaseDir + '/heroic_cfg';
+  EpicDir := BaseDir + '/drive2/EpicGame';
+  GogDir := BaseDir + '/drive2/GogNative';
+  SideDir := BaseDir + '/drive2/SideloadGame';
+  MissingDir := BaseDir + '/drive2/DoesNotExist';
+
+  ForceDirectories(EpicDir);
+  ForceDirectories(GogDir);
+  ForceDirectories(SideDir);
+
+  WriteDiscoveryDummyFile(HeroicDir + '/legendaryConfig/legendary/installed.json',
+    '{"app1":{"app_name":"app1","title":"Epic Title","install_path":"' + EpicDir + '","is_dlc":false,"platform":"Windows"},' +
+    '"dlc1":{"app_name":"dlc1","title":"Epic DLC","install_path":"' + EpicDir + '","is_dlc":true,"platform":"Windows"},' +
+    '"miss1":{"app_name":"miss1","title":"Missing","install_path":"' + MissingDir + '","is_dlc":false,"platform":"Windows"}}');
+
+  WriteDiscoveryDummyFile(HeroicDir + '/store_cache/gog_library.json',
+    '{"games":[{"app_name":"12345","title":"GOG Native Title"}]}');
+  WriteDiscoveryDummyFile(HeroicDir + '/gog_store/installed.json',
+    '{"installed":[{"appName":"12345","install_path":"' + GogDir + '","is_dlc":false,"platform":"linux"}]}');
+
+  WriteDiscoveryDummyFile(HeroicDir + '/sideload_apps/library.json',
+    '{"games":[{"app_name":"side1","title":"Sideload Title","folder_name":"' + SideDir + '","is_installed":true,"install":{"platform":"Windows","is_dlc":false}},' +
+    '{"app_name":"side2","title":"Uninstalled Side","folder_name":"' + SideDir + '","is_installed":false}]}');
+
+  SetLength(Games, 0);
+  DiscoverHeroicGamesInDir(HeroicDir, Games);
+
+  AssertEquals('Heroic discovers 3 installed non-DLC games', 3, Length(Games));
+  FoundEpic := False;
+  FoundGog := False;
+  FoundSide := False;
+  for i := 0 to High(Games) do
+  begin
+    AssertEquals('Heroic source assigned', Ord(gsHeroic), Ord(Games[i].Source));
+    if Games[i].Name = 'Epic Title' then
+    begin
+      FoundEpic := True;
+      AssertFalse('Epic Windows platform', Games[i].IsNativeLinux);
+    end
+    else if Games[i].Name = 'GOG Native Title' then
+    begin
+      FoundGog := True;
+      AssertTrue('GOG Linux platform', Games[i].IsNativeLinux);
+    end
+    else if Games[i].Name = 'Sideload Title' then
+      FoundSide := True;
+  end;
+  AssertTrue('Found Epic game', FoundEpic);
+  AssertTrue('Found GOG game', FoundGog);
+  AssertTrue('Found Sideload game', FoundSide);
+end;
+
+procedure TNonSteamDiscoveryTests.TestFaugusJsonDiscoveryAndCorruptFallback;
+var
+  BaseDir, GameDir, CoverFile, GamesJson, CorruptJson: string;
+  Games: TGameDiscoveryArray;
+begin
+  BaseDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'faugus_test';
+  GameDir := BaseDir + '/games/Deadpool';
+  CoverFile := BaseDir + '/covers/deadpool.png';
+  GamesJson := BaseDir + '/games.json';
+  CorruptJson := BaseDir + '/corrupt.json';
+
+  WriteDiscoveryDummyFile(GameDir + '/DP.exe', 'MZ');
+  WriteDiscoveryDummyFile(CoverFile, 'PNGDATA');
+  WriteDiscoveryDummyFile(GamesJson,
+    '[{"gameid":"dp1","title":"Deadpool","path":"' + GameDir + '/DP.exe","cover":"' + CoverFile + '","hidden":false},' +
+    '{"gameid":"hid1","title":"Hidden Game","path":"' + GameDir + '/DP.exe","hidden":true},' +
+    '{"gameid":"mis1","title":"Missing Game","path":"' + BaseDir + '/missing/x.exe","hidden":false}]');
+  WriteDiscoveryDummyFile(CorruptJson, '{broken json');
+
+  SetLength(Games, 0);
+  ParseFaugusGamesJson(GamesJson, Games);
+  ParseFaugusGamesJson(CorruptJson, Games);
+
+  AssertEquals('Faugus discovers 1 visible existing game and ignores corrupt JSON', 1, Length(Games));
+  AssertEquals('Faugus title', 'Deadpool', Games[0].Name);
+  AssertEquals('Faugus source', Ord(gsFaugus), Ord(Games[0].Source));
+  AssertEquals('Faugus cover path preserved', CoverFile, Games[0].CoverPath);
+  AssertEquals('Faugus SubPath resolved to game dir', GameDir, Games[0].SubPath);
+end;
+
+procedure TNonSteamDiscoveryTests.TestCrossSourceDeduplicationPrefersLauncher;
+var
+  BaseDir, HeroicDir, HeroicLib, GameDir: string;
+  Games: TGameDiscoveryArray;
+begin
+  BaseDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'dedup_test';
+  HeroicDir := BaseDir + '/heroic_cfg';
+  HeroicLib := BaseDir + '/HeroicGames';
+  GameDir := HeroicLib + '/GhostwireTokyo';
+
+  WriteDiscoveryDummyFile(GameDir + '/GWT.exe', 'MZ');
+  WriteDiscoveryDummyFile(HeroicDir + '/legendaryConfig/legendary/installed.json',
+    '{"gwt":{"app_name":"gwt","title":"Ghostwire Tokyo","install_path":"' + GameDir + '","is_dlc":false,"platform":"Windows"}}');
+
+  SetLength(Games, 0);
+  DiscoverHeroicGamesInDir(HeroicDir, Games);
+  DiscoverNonSteamFolder(HeroicLib, Games);
+
+  AssertEquals('Deduplicated game appears only once', 1, Length(Games));
+  AssertEquals('Heroic launcher attribution preserved', Ord(gsHeroic), Ord(Games[0].Source));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -6272,5 +6481,6 @@ initialization
   RegisterTest(TMangoHudBlacklistSyncTests);
   RegisterTest(TGoverlayLogicTests);
   RegisterTest(TOptiScalerNightlyUpdateTests);
+  RegisterTest(TNonSteamDiscoveryTests);
 
 end.

@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus,
   LCLtype, Clipbrd, LCLIntf, IniFiles, FileUtil, StrUtils, Types, fpjson,
   jsonparser, themeunit, systemdetector, constants, bgmod_resources, hintsunit,
-  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils, goverlay_strings;
+  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils, goverlay_strings, game_discovery;
 
 const
   CARD_W      = 150;
@@ -20,20 +20,6 @@ const
   SEL_EXPAND  = 3;
 
 type
-  TGameKind = (gkSteam, gkNonSteam);
-
-  TGameDiscoveryItem = record
-    Kind:       TGameKind;
-    Name:       string;
-    AppID:      string;
-    InstallDir: string;
-    LibPath:    string;
-    SubPath:    string;
-    IsAppImage: Boolean;
-  end;
-
-  TGameDiscoveryArray = array of TGameDiscoveryItem;
-
   TNonSteamCoverItem = record
     GameName:  string;
     SubPath:   string;
@@ -88,6 +74,8 @@ type
     
     procedure InitGamesTab;
     procedure DiscoverSteamGames(var AGames: TGameDiscoveryArray);
+    procedure DiscoverHeroicGames(var AGames: TGameDiscoveryArray);
+    procedure DiscoverFaugusGames(var AGames: TGameDiscoveryArray);
     procedure DiscoverNonSteamGames(var AGames: TGameDiscoveryArray);
     procedure SortDiscoveredGames(var AGames: TGameDiscoveryArray);
     procedure LoadSteamGames;
@@ -1603,13 +1591,17 @@ begin
             Continue;
 
           SetLength(AGames, Length(AGames) + 1);
+          AGames[High(AGames)] := Default(TGameDiscoveryItem);
           AGames[High(AGames)].Kind := gkSteam;
+          AGames[High(AGames)].Source := gsSteam;
           AGames[High(AGames)].Name := GameName;
           AGames[High(AGames)].AppID := AppID;
           AGames[High(AGames)].InstallDir := InstallDir;
           AGames[High(AGames)].LibPath := LibPath;
           AGames[High(AGames)].SubPath := '';
           AGames[High(AGames)].IsAppImage := False;
+          AGames[High(AGames)].IsNativeLinux := False;
+          AGames[High(AGames)].CoverPath := '';
         until FindNext(SR) <> 0;
         FindClose(SR);
       end;
@@ -1619,15 +1611,43 @@ begin
   end;
 end;
 
+procedure TGamesTabHelper.DiscoverHeroicGames(var AGames: TGameDiscoveryArray);
+var
+  HomeDir: string;
+begin
+  if IsRunningInFlatpak then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
+  else
+    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
+  if Trim(HomeDir) = PathDelim then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+
+  DiscoverHeroicGamesInDir(HomeDir + '.config/heroic/', AGames);
+  DiscoverHeroicGamesInDir(HomeDir + '.var/app/com.heroicgameslauncher.hgl/config/heroic/', AGames);
+end;
+
+procedure TGamesTabHelper.DiscoverFaugusGames(var AGames: TGameDiscoveryArray);
+var
+  HomeDir: string;
+begin
+  if IsRunningInFlatpak then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir)
+  else
+    HomeDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME'));
+  if Trim(HomeDir) = PathDelim then
+    HomeDir := IncludeTrailingPathDelimiter(GetUserDir);
+
+  ParseFaugusGamesJson(HomeDir + '.local/share/faugus-launcher/games.json', AGames);
+  ParseFaugusGamesJson(HomeDir + '.config/faugus-launcher/games.json', AGames);
+  ParseFaugusGamesJson(HomeDir + '.var/app/io.github.Faugus.faugus-launcher/data/faugus-launcher/games.json', AGames);
+  ParseFaugusGamesJson(HomeDir + '.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/games.json', AGames);
+end;
+
 procedure TGamesTabHelper.DiscoverNonSteamGames(var AGames: TGameDiscoveryArray);
 var
-  NonSteamFile, FolderPath, GameName, SubPath, LowerSubName: string;
+  NonSteamFile, FolderPath: string;
   Lines: TStringList;
-  I, k: Integer;
-  SubSR: TSearchRec;
-  IsAppImage, ShouldSkip: Boolean;
-const
-  SKIP_NAMES: array[0..6] of string = ('prefixes', 'common', 'compatdata', 'shadercache', 'downloads', 'tmp', 'temp');
+  I: Integer;
 begin
   NonSteamFile := IncludeTrailingPathDelimiter(TConfigManager.GetGoverlayFolder) + 'nonsteam_folders.txt';
   if not FileExists(NonSteamFile) then Exit;
@@ -1640,54 +1660,7 @@ begin
       FolderPath := Trim(Lines[I]);
       if (FolderPath = '') or not DirectoryExists(FolderPath) then
         Continue;
-
-      // Scan sub-folders inside the selected directory — each one is a game (directories or .appimage files)
-      if FindFirst(IncludeTrailingPathDelimiter(FolderPath) + '*', faAnyFile, SubSR) = 0 then
-      begin
-        try
-          repeat
-            if (SubSR.Name = '.') or (SubSR.Name = '..') then Continue;
-
-            IsAppImage := False;
-            if (SubSR.Attr and faDirectory) = 0 then
-            begin
-              if SameText(ExtractFileExt(SubSR.Name), '.appimage') then
-                IsAppImage := True
-              else
-                Continue;
-            end;
-
-            LowerSubName := LowerCase(SubSR.Name);
-            // Skip known non-game directories
-            ShouldSkip := False;
-            for k := Low(SKIP_NAMES) to High(SKIP_NAMES) do
-              if LowerSubName = SKIP_NAMES[k] then
-              begin
-                ShouldSkip := True;
-                Break;
-              end;
-            if ShouldSkip then Continue;
-
-            SubPath := IncludeTrailingPathDelimiter(FolderPath) + SubSR.Name;
-            if IsAppImage then
-              GameName := NormalizeAppImageName(SubSR.Name)
-            else
-              GameName := SubSR.Name;
-            if GameName = '' then Continue;
-
-            SetLength(AGames, Length(AGames) + 1);
-            AGames[High(AGames)].Kind := gkNonSteam;
-            AGames[High(AGames)].Name := GameName;
-            AGames[High(AGames)].AppID := '';
-            AGames[High(AGames)].InstallDir := '';
-            AGames[High(AGames)].LibPath := FolderPath;
-            AGames[High(AGames)].SubPath := SubPath;
-            AGames[High(AGames)].IsAppImage := IsAppImage;
-          until FindNext(SubSR) <> 0;
-        finally
-          FindClose(SubSR);
-        end;
-      end;
+      DiscoverNonSteamFolder(FolderPath, AGames, @NormalizeAppImageName);
     end;
   finally
     Lines.Free;
@@ -1780,6 +1753,8 @@ begin
 
   SetLength(DiscoveredGames, 0);
   DiscoverSteamGames(DiscoveredGames);
+  DiscoverHeroicGames(DiscoveredGames);
+  DiscoverFaugusGames(DiscoveredGames);
   DiscoverNonSteamGames(DiscoveredGames);
   SortDiscoveredGames(DiscoveredGames);
 
@@ -1858,7 +1833,7 @@ begin
         BdgImg.Tag := 1;  // platform badge — preserve on uninstall
         BdgImg.Parent       := CardPanel;
         BdgImg.AutoSize     := False;
-        BdgImg.SetBounds(4, 4, 16, 16);
+        BdgImg.SetBounds(6, 6, 22, 22);
         BdgImg.Stretch      := True;
         BdgImg.Proportional := True;
         BdgImg.Center       := True;
@@ -1935,25 +1910,65 @@ begin
         CardPanel.Hint := GameName + LineEnding + SubPath;
         CardImage.Hint := CardPanel.Hint;
 
-        // Wine icon badge (top-left corner)
-        if Assigned(iconsImageList) then
-        begin
-          BdgImg := TImage.Create(CardPanel);
-          BdgImg.Tag := 1;  // platform badge — preserve on uninstall
-          BdgImg.Parent       := CardPanel;
-          BdgImg.AutoSize     := False;
-          BdgImg.SetBounds(4, 4, 16, 16);
-          BdgImg.Stretch      := True;
-          BdgImg.Proportional := True;
-          BdgImg.Center       := True;
-          BdgImg.Transparent  := True;
-          iconsImageList.GetBitmap(38, BdgImg.Picture.Bitmap);
-          BdgImg.BringToFront;
-          BdgImg.OnMouseEnter := @GameCardMouseEnter;
-          BdgImg.OnMouseLeave := @GameCardMouseLeave;
-          BdgImg.OnClick      := @GameCardClick;
-          BdgImg.OnMouseUp    := @GameCardMouseUp;
+        // Platform / launcher badge (top-left corner)
+        BdgImg := TImage.Create(CardPanel);
+        BdgImg.Tag := 1;  // platform badge — preserve on uninstall
+        BdgImg.Parent       := CardPanel;
+        BdgImg.AutoSize     := False;
+        BdgImg.SetBounds(6, 6, 22, 22);
+        BdgImg.Stretch      := True;
+        BdgImg.Proportional := True;
+        BdgImg.Center       := True;
+        BdgImg.Transparent  := True;
+
+        IconPath := '';
+        case DiscoveredGames[j].Source of
+          gsHeroic:
+          begin
+            IconPath := GetAppBaseDir + 'assets/icons/heroic-icon.png';
+            if DiscoveredGames[j].IsNativeLinux then
+              BdgImg.Hint := 'Heroic Games Launcher (Native Linux)'
+            else
+              BdgImg.Hint := 'Heroic Games Launcher';
+          end;
+          gsFaugus:
+          begin
+            IconPath := GetAppBaseDir + 'assets/icons/faugus-icon.png';
+            BdgImg.Hint := 'Faugus Launcher';
+          end;
+        else
+          if DiscoveredGames[j].IsNativeLinux then
+          begin
+            IconPath := GetAppBaseDir + 'assets/icons/linux-badge.png';
+            BdgImg.Hint := 'Native Linux Game';
+          end
+          else
+            BdgImg.Hint := 'Non-Steam Game (Wine/Proton)';
         end;
+
+        if (IconPath <> '') and FileExists(IconPath) then
+        begin
+          try
+            BdgImg.Picture.LoadFromFile(IconPath);
+          except
+          end;
+        end
+        else if Assigned(iconsImageList) then
+          iconsImageList.GetBitmap(38, BdgImg.Picture.Bitmap)
+        else if FileExists(GetAppBaseDir + 'assets/icons/game.png') then
+        begin
+          try
+            BdgImg.Picture.LoadFromFile(GetAppBaseDir + 'assets/icons/game.png');
+          except
+          end;
+        end;
+
+        BdgImg.ShowHint     := True;
+        BdgImg.BringToFront;
+        BdgImg.OnMouseEnter := @GameCardMouseEnter;
+        BdgImg.OnMouseLeave := @GameCardMouseLeave;
+        BdgImg.OnClick      := @GameCardClick;
+        BdgImg.OnMouseUp    := @GameCardMouseUp;
 
         // Game name label at bottom
         BdgLbl := TLabel.Create(CardPanel);
@@ -1989,7 +2004,10 @@ begin
           DeleteFile(CachePath + '.fallback');
         end;
 
-        if ResolveNonSteamLocalCover(GameName, SubPath, ResolvedCover) then
+        if FindCustomCover('', GameName, ResolvedCover) or
+           ((DiscoveredGames[j].CoverPath <> '') and
+            TryLocalCoverFile(DiscoveredGames[j].CoverPath, ResolvedCover)) or
+           ResolveNonSteamLocalCover(GameName, SubPath, ResolvedCover) then
         begin
           if SameFileName(ResolvedCover, CachePath) and
              FileExists(CachePath + '.fallback') then
@@ -2058,9 +2076,9 @@ begin
         BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall
         BdgImg.Parent      := CardPanel;
         BdgImg.AutoSize    := False;
-        BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
-        BdgImg.BorderSpacing.Right := 4;
-        BdgImg.BorderSpacing.Top   := 4;
+        BdgImg.SetBounds(CARD_W - 28, 6, 22, 22);
+        BdgImg.BorderSpacing.Right := 6;
+        BdgImg.BorderSpacing.Top   := 6;
         BdgImg.AnchorSide[akRight].Control := CardPanel;
         BdgImg.AnchorSide[akRight].Side    := asrBottom;
         BdgImg.AnchorSide[akTop].Control   := CardPanel;
@@ -4088,7 +4106,7 @@ begin
 
   FolderDlg := TSelectDirectoryDialog.Create(FForm);
   try
-    FolderDlg.Title := 'Select a non-Steam game folder';
+    FolderDlg.Title := 'Select a non-Steam game or library folder';
     if not FolderDlg.Execute then Exit;
     SelectedDir := FolderDlg.FileName;
   finally
@@ -4673,9 +4691,9 @@ begin
             BdgImg.Tag := 2;  // GOverlay badge — remove on uninstall / zero tools
             BdgImg.Parent      := TargetPanel;
             BdgImg.AutoSize    := False;
-            BdgImg.SetBounds(CARD_W - 20, 4, 16, 16);
-            BdgImg.BorderSpacing.Right := 4;
-            BdgImg.BorderSpacing.Top   := 4;
+            BdgImg.SetBounds(CARD_W - 28, 6, 22, 22);
+            BdgImg.BorderSpacing.Right := 6;
+            BdgImg.BorderSpacing.Top   := 6;
             BdgImg.AnchorSide[akRight].Control := TargetPanel;
             BdgImg.AnchorSide[akRight].Side    := asrBottom;
             BdgImg.AnchorSide[akTop].Control   := TargetPanel;
