@@ -1170,14 +1170,14 @@ begin
         if Assigned(FProxyHintLbl) then
           FProxyHintLbl.SetBounds(CARD_P + 130, 9, Max(120, TargetCardW - CARD_P - (CARD_P + 130)), 18);
 
-        OptLabelW := 55;
+        OptLabelW := MeasureLabelWidth(FToggleTitleLbl, 55);
         if Assigned(FToggleTitleLbl) then
           FToggleTitleLbl.SetBounds(CARD_P, 38, OptLabelW, 20);
         if Assigned(FToggleBtn) then
           FToggleBtn.SetBounds(CARD_P + OptLabelW + 8, 34, 110, 28);
 
         ProxyLeft := CARD_P + OptLabelW + 8 + 110 + 36;
-        ProxyTitleW := 75;
+        ProxyTitleW := MeasureLabelWidth(FProxyTitleLbl, 75);
         if Assigned(FProxyTitleLbl) then
           FProxyTitleLbl.SetBounds(ProxyLeft, 38, ProxyTitleW, 20);
         if Assigned(FProxyComboBox) then

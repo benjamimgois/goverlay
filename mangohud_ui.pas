@@ -1683,7 +1683,8 @@ const
 var
   W, ColW, RightColW, TabH, ActiveCardsH, InnerW: Integer;
   LeftTop3, LeftH3, RightH3: Integer;
-  CY, HalfW, StartLeft, MonH: Integer;
+  CY, StartLeft, MonH: Integer;
+  LblW, CtrlX, ValW, ToggleW, RightX, LblXW, LblYW, SpinW, PairW: Integer;
 begin
   with FForm do
   begin
@@ -1720,58 +1721,89 @@ begin
   InnerW := ColW - 16;
   if Assigned(FVisTitleSec) then
   begin
-    if Assigned(FVisHudTitleLbl) then FVisHudTitleLbl.SetBounds(12, 36, 80, 20);
-    hudtitleEdit.SetBounds(92, 32, Max(80, InnerW - 84), 26);
+    LblW := MeasureLabelWidth(FVisHudTitleLbl, 70);
+    if Assigned(FVisHudTitleLbl) then FVisHudTitleLbl.SetBounds(12, 36, LblW, 20);
+    CtrlX := 12 + LblW + 6;
+    hudtitleEdit.SetBounds(CtrlX, 32, Max(80, ColW - 12 - CtrlX), 26);
   end;
 
   // ── Card 2: Typography ──────────────────────────────────────────────────
   if Assigned(FVisTypographySec) then
   begin
-    if Assigned(FVisFontFamilyLbl) then FVisFontFamilyLbl.SetBounds(10, 34, 80, 20);
-    fontComboBox.SetBounds(90, 32, Max(60, InnerW - 100), 26);
+    LblW := MeasureLabelWidth(FVisFontFamilyLbl, 70);
+    if Assigned(FVisFontFamilyLbl) then FVisFontFamilyLbl.SetBounds(10, 34, LblW, 20);
+    CtrlX := 10 + LblW + 6;
+    fontComboBox.SetBounds(CtrlX, 32, Max(60, ColW - 10 - CtrlX), 26);
 
-    if Assigned(FVisFontColorLbl) then FVisFontColorLbl.SetBounds(10, 74, 44, 20);
-    FontcolorButton.SetBounds(56, 72, 28, 24);
+    LblW := MeasureLabelWidth(FVisFontColorLbl, 40);
+    if Assigned(FVisFontColorLbl) then FVisFontColorLbl.SetBounds(10, 74, LblW, 20);
+    FontcolorButton.SetBounds(10 + LblW + 6, 72, 28, 24);
 
-    if Assigned(FVisOutlineLbl) then FVisOutlineLbl.SetBounds(Max(10, InnerW - 130), 74, 84, 20);
-    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.SetBounds(Max(100, InnerW - 42), 72, 30, 20);
+    ToggleW := 30;
+    if Assigned(FtextoutlineToggle) then ToggleW := FtextoutlineToggle.Width;
+    RightX := Max(FontcolorButton.Left + FontcolorButton.Width + 12, ColW - 10 - ToggleW);
+    if Assigned(FtextoutlineToggle) then FtextoutlineToggle.SetBounds(RightX, 72, ToggleW, 20);
+    LblW := MeasureLabelWidth(FVisOutlineLbl, 70);
+    if Assigned(FVisOutlineLbl) then
+      FVisOutlineLbl.SetBounds(Max(FontcolorButton.Left + FontcolorButton.Width + 8, RightX - 6 - LblW), 74, LblW, 20);
 
-    if Assigned(FVisFontSizeLbl) then FVisFontSizeLbl.SetBounds(10, 118, 60, 20);
-    fontsizeTrackBar.SetBounds(72, 116, Max(30, InnerW - 124), 24);
-    fontsizevalueLabel.SetBounds(Max(80, InnerW - 46), 118, 38, 20);
+    LblW := MeasureLabelWidth(FVisFontSizeLbl, 44);
+    if Assigned(FVisFontSizeLbl) then FVisFontSizeLbl.SetBounds(10, 118, LblW, 20);
+    ValW := MeasureLabelWidth(fontsizevalueLabel, 38, 4);
+    RightX := ColW - 10 - ValW;
+    CtrlX := 10 + LblW + 6;
+    fontsizeTrackBar.SetBounds(CtrlX, 116, Max(30, RightX - 6 - CtrlX), 24);
+    fontsizevalueLabel.SetBounds(RightX, 118, ValW, 20);
   end;
 
   // ── Card 3: Canvas & Frame ──────────────────────────────────────────────
   if Assigned(FVisCanvasSec) then
   begin
     // Row 1: corners (border style)
-    if Assigned(FVisBorderPillLbl) then FVisBorderPillLbl.SetBounds(10, 34, 60, 20);
+    LblW := MeasureLabelWidth(FVisBorderPillLbl, 56);
+    if Assigned(FVisBorderPillLbl) then FVisBorderPillLbl.SetBounds(10, 34, LblW, 20);
     if Assigned(FVisBorderPillBtn) then
-      FVisBorderPillBtn.SetBounds(90, 30, FVisBorderPillBtn.Width, 26);
+      FVisBorderPillBtn.SetBounds(10 + LblW + 8, 30, FVisBorderPillBtn.Width, 26);
 
     // Row 2: corner radius
-    if Assigned(FVisRadiusLbl) then FVisRadiusLbl.SetBounds(10, 74, 90, 20);
+    LblW := MeasureLabelWidth(FVisRadiusLbl, 80);
+    if Assigned(FVisRadiusLbl) then FVisRadiusLbl.SetBounds(10, 74, LblW, 20);
+    ValW := MeasureLabelWidth(FroundradiusvalueLabel, 38, 4);
+    RightX := ColW - 10 - ValW;
+    CtrlX := 10 + LblW + 6;
     if Assigned(FroundradiusTrackBar) then
-      FroundradiusTrackBar.SetBounds(102, 72, Max(30, InnerW - 156), 24);
+      FroundradiusTrackBar.SetBounds(CtrlX, 72, Max(30, RightX - 6 - CtrlX), 24);
     if Assigned(FroundradiusvalueLabel) then
-      FroundradiusvalueLabel.SetBounds(Max(80, InnerW - 46), 74, 38, 20);
+      FroundradiusvalueLabel.SetBounds(RightX, 74, ValW, 20);
 
     // Row 3: background color
-    if Assigned(FVisBgColorLbl) then FVisBgColorLbl.SetBounds(10, 116, 112, 20);
-    hudbackgroundColorButton.SetBounds(130, 114, 28, 24);
+    LblW := MeasureLabelWidth(FVisBgColorLbl, 100);
+    if Assigned(FVisBgColorLbl) then FVisBgColorLbl.SetBounds(10, 116, LblW, 20);
+    hudbackgroundColorButton.SetBounds(10 + LblW + 8, 114, 28, 24);
 
     // Row 4: opacity
-    if Assigned(FVisAlphaLbl) then FVisAlphaLbl.SetBounds(10, 156, 54, 20);
-    transpTrackBar.SetBounds(66, 154, Max(30, InnerW - 120), 24);
-    alphavalueLabel.SetBounds(Max(80, InnerW - 46), 156, 38, 20);
+    LblW := MeasureLabelWidth(FVisAlphaLbl, 50);
+    if Assigned(FVisAlphaLbl) then FVisAlphaLbl.SetBounds(10, 156, LblW, 20);
+    ValW := MeasureLabelWidth(alphavalueLabel, 38, 4);
+    RightX := ColW - 10 - ValW;
+    CtrlX := 10 + LblW + 6;
+    transpTrackBar.SetBounds(CtrlX, 154, Max(30, RightX - 6 - CtrlX), 24);
+    alphavalueLabel.SetBounds(RightX, 156, ValW, 20);
 
     // Row 5: compact & no outer margins
-    if Assigned(FVisCompactLbl) then FVisCompactLbl.SetBounds(10, 196, 60, 20);
-    if Assigned(FhudcompactToggle) then FhudcompactToggle.SetBounds(72, 194, 30, 20);
-    if Assigned(FVisNoMarginLbl) then
-      FVisNoMarginLbl.SetBounds(Max(10, InnerW - 146), 196, 108, 20);
+    LblW := MeasureLabelWidth(FVisCompactLbl, 54);
+    if Assigned(FVisCompactLbl) then FVisCompactLbl.SetBounds(10, 196, LblW, 20);
+    CtrlX := 10 + LblW + 6;
+    if Assigned(FhudcompactToggle) then FhudcompactToggle.SetBounds(CtrlX, 194, 30, 20);
+
+    ToggleW := 30;
+    if Assigned(FhudnomarginToggle) then ToggleW := FhudnomarginToggle.Width;
+    RightX := Max(CtrlX + 38, ColW - 10 - ToggleW);
     if Assigned(FhudnomarginToggle) then
-      FhudnomarginToggle.SetBounds(Max(10, InnerW - 36), 194, 30, 20);
+      FhudnomarginToggle.SetBounds(RightX, 194, ToggleW, 20);
+    LblW := MeasureLabelWidth(FVisNoMarginLbl, 96);
+    if Assigned(FVisNoMarginLbl) then
+      FVisNoMarginLbl.SetBounds(Max(CtrlX + 34, RightX - 6 - LblW), 196, LblW, 20);
   end;
 
   // ── Card 4: Flow & Grid ─────────────────────────────────────────────────
@@ -1779,21 +1811,25 @@ begin
   if Assigned(FVisFlowSec) then
   begin
     if Assigned(FVisFlowSubLbl) then FVisFlowSubLbl.SetBounds(12, 8, 200, 22);
-    if Assigned(FVisOrientPillLbl) then FVisOrientPillLbl.SetBounds(12, 34, 80, 20);
-    if Assigned(FVisOrientPillBtn) then FVisOrientPillBtn.SetBounds(92, 30, FVisOrientPillBtn.Width, 26);
+    LblW := MeasureLabelWidth(FVisOrientPillLbl, 74);
+    if Assigned(FVisOrientPillLbl) then FVisOrientPillLbl.SetBounds(12, 34, LblW, 20);
+    if Assigned(FVisOrientPillBtn) then FVisOrientPillBtn.SetBounds(12 + LblW + 6, 30, FVisOrientPillBtn.Width, 26);
 
-    if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(12, 64, 58, 20);
-    if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(74, 61, 24, 24);
-    if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.SetBounds(74, 61, 24, 24);
+    LblW := MeasureLabelWidth(FVisColumnsSubLbl, 54);
+    if Assigned(FVisColumnsSubLbl) then FVisColumnsSubLbl.SetBounds(12, 64, LblW, 20);
+    CtrlX := 12 + LblW + 6;
+    if Assigned(FColumnsMinusBtn) then FColumnsMinusBtn.SetBounds(CtrlX, 61, 24, 24);
+    if Assigned(FForm.FColumnsMinusBtn) then FForm.FColumnsMinusBtn.SetBounds(CtrlX, 61, 24, 24);
     columvalueLabel.AutoSize := False;
     columvalueLabel.Alignment := taCenter;
-    columvalueLabel.SetBounds(100, 63, 28, 20);
-    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(130, 61, 24, 24);
-    if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.SetBounds(130, 61, 24, 24);
-    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(162, 63, 50, 20);
+    columvalueLabel.SetBounds(CtrlX + 26, 63, 28, 20);
+    if Assigned(FColumnsPlusBtn) then FColumnsPlusBtn.SetBounds(CtrlX + 56, 61, 24, 24);
+    if Assigned(FForm.FColumnsPlusBtn) then FForm.FColumnsPlusBtn.SetBounds(CtrlX + 56, 61, 24, 24);
+    if Assigned(FVisColumnsPaintBox) then FVisColumnsPaintBox.SetBounds(CtrlX + 88, 63, 50, 20);
 
-    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(12, 64, 114, 20);
-    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(130, 62, 30, 20);
+    LblW := MeasureLabelWidth(FVisStretchLbl, 108);
+    if Assigned(FVisStretchLbl) then FVisStretchLbl.SetBounds(12, 64, LblW, 20);
+    if Assigned(FhorizontalstrechToggle) then FhorizontalstrechToggle.SetBounds(12 + LblW + 8, 62, 30, 20);
 
     SyncFlowGridVisibility;
   end;
@@ -1802,15 +1838,19 @@ begin
   if Assigned(FVisSystemSec) then
   begin
     if Assigned(FVisSystemSubLbl) then FVisSystemSubLbl.SetBounds(12, 8, 200, 22);
-    if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.SetBounds(12, 36, 75, 20);
-    pcidevComboBox.SetBounds(90, 32, Max(80, RightColW - 102), 26);
+    LblW := MeasureLabelWidth(FVisGpuBarLbl, 70);
+    if Assigned(FVisGpuBarLbl) then FVisGpuBarLbl.SetBounds(12, 36, LblW, 20);
+    CtrlX := 12 + LblW + 6;
+    pcidevComboBox.SetBounds(CtrlX, 32, Max(80, RightColW - 12 - CtrlX), 26);
     pcidevComboBox.Visible := True;
 
-    if Assigned(FVisShortcutLbl) then FVisShortcutLbl.SetBounds(12, 74, 75, 20);
-    FVisualCaptureBtn.SetBounds(90, 70, 140, 28);
+    LblW := MeasureLabelWidth(FVisShortcutLbl, 70);
+    if Assigned(FVisShortcutLbl) then FVisShortcutLbl.SetBounds(12, 74, LblW, 20);
+    FVisualCaptureBtn.SetBounds(12 + LblW + 6, 70, 140, 28);
 
-    if Assigned(FVisHideLbl) then FVisHideLbl.SetBounds(12, 114, 100, 20);
-    if Assigned(FhidehudToggle) then FhidehudToggle.SetBounds(120, 112, 30, 20);
+    LblW := MeasureLabelWidth(FVisHideLbl, 96);
+    if Assigned(FVisHideLbl) then FVisHideLbl.SetBounds(12, 114, LblW, 20);
+    if Assigned(FhidehudToggle) then FhidehudToggle.SetBounds(12 + LblW + 8, 112, 30, 20);
   end;
 
   // ── Card 6: Screen Placement ────────────────────────────────────────────
@@ -1822,13 +1862,16 @@ begin
       FVisMonitorPaintBox.SetBounds(8, 26, RightColW - 16, MonH);
 
     CY := 26 + MonH + 4;
-    HalfW := RightColW div 2;
-    StartLeft := Max(14, HalfW - 130);
-    if Assigned(FVisOffsetXSubLbl) then FVisOffsetXSubLbl.SetBounds(StartLeft, CY + 2, 52, 20);
-    offsetxSpinEdit.SetBounds(StartLeft + 54, CY, 65, 26);
+    LblXW := MeasureLabelWidth(FVisOffsetXSubLbl, 50);
+    LblYW := MeasureLabelWidth(FVisOffsetYSubLbl, 50);
+    SpinW := 65;
+    PairW := LblXW + 4 + SpinW + 14 + LblYW + 4 + SpinW;
+    StartLeft := Max(10, (RightColW - PairW) div 2);
+    if Assigned(FVisOffsetXSubLbl) then FVisOffsetXSubLbl.SetBounds(StartLeft, CY + 2, LblXW, 20);
+    offsetxSpinEdit.SetBounds(StartLeft + LblXW + 4, CY, SpinW, 26);
 
-    if Assigned(FVisOffsetYSubLbl) then FVisOffsetYSubLbl.SetBounds(StartLeft + 130, CY + 2, 52, 20);
-    offsetySpinEdit.SetBounds(StartLeft + 184, CY, 65, 26);
+    if Assigned(FVisOffsetYSubLbl) then FVisOffsetYSubLbl.SetBounds(StartLeft + LblXW + 4 + SpinW + 14, CY + 2, LblYW, 20);
+    offsetySpinEdit.SetBounds(StartLeft + LblXW + 4 + SpinW + 14 + LblYW + 4, CY, SpinW, 26);
   end;
   end;
 end;
@@ -4794,11 +4837,14 @@ begin
   end;
   if Assigned(FExtTempUnitLbl) then
   begin
-    FExtTempUnitLbl.SetBounds(Col2X, 122, 72, 18);
-  end;
+    LblW := MeasureLabelWidth(FExtTempUnitLbl, 68);
+    FExtTempUnitLbl.SetBounds(Col2X, 122, LblW, 18);
+  end
+  else
+    LblW := 72;
   if Assigned(FExtTempPillBtn) then
   begin
-    FExtTempPillBtn.SetBounds(Col2X + 74, 120, FExtTempPillBtn.Width, 22);
+    FExtTempPillBtn.SetBounds(Col2X + LblW + 6, 120, FExtTempPillBtn.Width, 22);
   end;
 
   // Custom Command at bottom:
@@ -4813,33 +4859,35 @@ begin
   Row2Y := Row1Y + RowGap;
   Row3Y := Row2Y + RowGap;
 
-  LblW := 95;
+  LblW := Max(95, Max(MeasureLabelWidth(FExtLogDurationSubLbl, 0),
+                      Max(MeasureLabelWidth(FExtLogDelaySubLbl, 0),
+                          MeasureLabelWidth(FExtLogIntervalSubLbl, 0))));
   ValW := 52;
-  TrackW := Max(100, SecW - 14 - LblW - ValW - 14);
+  TrackW := Max(100, SecW - 14 - LblW - 6 - ValW - 14);
 
   if Assigned(FExtLogDurationSubLbl) then
   begin
     FExtLogDurationSubLbl.Visible := True;
     FExtLogDurationSubLbl.SetBounds(14, Row1Y + 4, LblW, 18);
   end;
-  durationTrackBar.SetBounds(14 + LblW, Row1Y, TrackW, 26);
-  durationvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row1Y + 4, ValW, 18);
+  durationTrackBar.SetBounds(14 + LblW + 6, Row1Y, TrackW, 26);
+  durationvalueLabel.SetBounds(14 + LblW + 6 + TrackW + 6, Row1Y + 4, ValW, 18);
 
   if Assigned(FExtLogDelaySubLbl) then
   begin
     FExtLogDelaySubLbl.Visible := True;
     FExtLogDelaySubLbl.SetBounds(14, Row2Y + 4, LblW, 18);
   end;
-  delayTrackBar.SetBounds(14 + LblW, Row2Y, TrackW, 26);
-  delayvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row2Y + 4, ValW, 18);
+  delayTrackBar.SetBounds(14 + LblW + 6, Row2Y, TrackW, 26);
+  delayvalueLabel.SetBounds(14 + LblW + 6 + TrackW + 6, Row2Y + 4, ValW, 18);
 
   if Assigned(FExtLogIntervalSubLbl) then
   begin
     FExtLogIntervalSubLbl.Visible := True;
     FExtLogIntervalSubLbl.SetBounds(14, Row3Y + 4, LblW, 18);
   end;
-  intervalTrackBar.SetBounds(14 + LblW, Row3Y, TrackW, 26);
-  intervalvalueLabel.SetBounds(14 + LblW + TrackW + 6, Row3Y + 4, ValW, 18);
+  intervalTrackBar.SetBounds(14 + LblW + 6, Row3Y, TrackW, 26);
+  intervalvalueLabel.SetBounds(14 + LblW + 6 + TrackW + 6, Row3Y + 4, ValW, 18);
 
   // Inside FExtLogToolsSec
   if Assigned(logfolderLabel) then logfolderLabel.SetBounds(12, 8, SecW - 24, 18);

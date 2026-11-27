@@ -570,35 +570,35 @@ begin
 
   // CAS (Column 0, Row 0)
   if Assigned(FVkCasIcon) then FVkCasIcon.SetBounds(Col0, Row0 + 6, 16, 16);
-  casLabel.SetBounds(Col0 + 22, Row0 + 5, 45, 18);
-  casTrackBar.SetBounds(Col0 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
+  casLabel.SetBounds(Col0 + 22, Row0 + 5, MeasureLabelWidth(casLabel, 45), 18);
+  casTrackBar.SetBounds(Col0 + 22 + casLabel.Width + 6, Row0, Max(40, ColW - (22 + casLabel.Width + 6) - VAL_W - 8), 28);
   if Assigned(FVkCasValLbl)  then FVkCasValLbl.SetBounds(Col0 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
   // FXAA (Column 1, Row 0)
   if Assigned(FVkFxaaIcon) then FVkFxaaIcon.SetBounds(Col1, Row0 + 6, 16, 16);
-  fxaaLabel.SetBounds(Col1 + 22, Row0 + 5, 45, 18);
-  fxaaTrackBar.SetBounds(Col1 + 72, Row0, ColW - 72 - VAL_W - 8, 28);
+  fxaaLabel.SetBounds(Col1 + 22, Row0 + 5, MeasureLabelWidth(fxaaLabel, 45), 18);
+  fxaaTrackBar.SetBounds(Col1 + 22 + fxaaLabel.Width + 6, Row0, Max(40, ColW - (22 + fxaaLabel.Width + 6) - VAL_W - 8), 28);
   if Assigned(FVkFxaaValLbl) then FVkFxaaValLbl.SetBounds(Col1 + ColW - VAL_W, Row0 + 5, VAL_W, 18);
 
   Row1  := Row0 + 28 + 8;  // Row 1 Y-coordinate (SMAA / DLS)
 
   // SMAA (Column 0, Row 1)
   if Assigned(FVkSmaaIcon) then FVkSmaaIcon.SetBounds(Col0, Row1 + 6, 16, 16);
-  smaaLabel.SetBounds(Col0 + 22, Row1 + 5, 45, 18);
-  smaaTrackBar.SetBounds(Col0 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
+  smaaLabel.SetBounds(Col0 + 22, Row1 + 5, MeasureLabelWidth(smaaLabel, 45), 18);
+  smaaTrackBar.SetBounds(Col0 + 22 + smaaLabel.Width + 6, Row1, Max(40, ColW - (22 + smaaLabel.Width + 6) - VAL_W - 8), 28);
   if Assigned(FVkSmaaValLbl) then FVkSmaaValLbl.SetBounds(Col0 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
   // DLS (Column 1, Row 1)
   if Assigned(FVkDlsIcon) then FVkDlsIcon.SetBounds(Col1, Row1 + 6, 16, 16);
-  dlsLabel.SetBounds(Col1 + 22, Row1 + 5, 45, 18);
-  dlsTrackBar.SetBounds(Col1 + 72, Row1, ColW - 72 - VAL_W - 8, 28);
+  dlsLabel.SetBounds(Col1 + 22, Row1 + 5, MeasureLabelWidth(dlsLabel, 45), 18);
+  dlsTrackBar.SetBounds(Col1 + 22 + dlsLabel.Width + 6, Row1, Max(40, ColW - (22 + dlsLabel.Width + 6) - VAL_W - 8), 28);
   if Assigned(FVkDlsValLbl)  then FVkDlsValLbl.SetBounds(Col1 + ColW - VAL_W, Row1 + 5, VAL_W, 18);
 
   Row2  := Row1 + 28 + 8;  // Row 2 Y-coordinate (Color LUT)
 
   // Color LUT (Row 2, full width)
   if Assigned(FVkLutIcon) then FVkLutIcon.SetBounds(Col0, Row2 + 6, 16, 16);
-  if Assigned(FVkLutLabel) then FVkLutLabel.SetBounds(Col0 + 22, Row2 + 5, 68, 18);
+  if Assigned(FVkLutLabel) then FVkLutLabel.SetBounds(Col0 + 22, Row2 + 5, MeasureLabelWidth(FVkLutLabel, 68), 18);
 
   if Assigned(FVkLutClearBtn) then
     FVkLutClearBtn.SetBounds(CW - PAD - 30, Row2, 30, 28);
@@ -606,8 +606,8 @@ begin
   if Assigned(FVkLutBrowseBtn) then
     FVkLutBrowseBtn.SetBounds(CW - PAD - 30 - 6 - 85, Row2, 85, 28);
 
-  if Assigned(FVkLutPathEdit) then
-    FVkLutPathEdit.SetBounds(Col0 + 22 + 68 + 10, Row2, Max(80, (CW - PAD - 30 - 6 - 85 - 8) - (Col0 + 22 + 68 + 10)), 28);
+  if Assigned(FVkLutPathEdit) and Assigned(FVkLutLabel) then
+    FVkLutPathEdit.SetBounds(Col0 + 22 + FVkLutLabel.Width + 10, Row2, Max(80, (CW - PAD - 30 - 6 - 85 - 8) - (Col0 + 22 + FVkLutLabel.Width + 10)), 28);
 
   // ── Card 3: Effect Pipeline (Execution Order) ──────────────────────────
   if Assigned(FVkPipelineCard) then

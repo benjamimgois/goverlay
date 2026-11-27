@@ -56,3 +56,10 @@ The system SHALL integrate runtime HUD switches, hotkey capture, and GPU hardwar
 #### Scenario: HUD Toggle Hotkey and Start Hidden pairing
 - **WHEN** the user configures overlay runtime hotkeys in the Position & Layout card
 - **THEN** the system SHALL present the shortcut key capture button alongside the "Hide HUD by default" toggle switch, allowing key capture and initial silent state configuration in a single cohesive location
+
+### Requirement: Font-Aware Visual Tab Control Spacing
+The system SHALL position all inline label+control pairs across the six MangoHud Visual tab cards and Screen Placement offset inputs using measured label widths so no control overlaps its label under larger desktop fonts or HiDPI scaling.
+
+#### Scenario: Visual tab opened with 12pt KDE Plasma or 125% GNOME scaling
+- **WHEN** the user opens the MangoHud Visual tab on a desktop configured with 12pt font or 125% display scaling
+- **THEN** every label in HUD Header & Title, Typography, Canvas & Frame, Flow & Grid, Display & System, and Screen Placement (`Offset X:` / `Offset Y:`) is fully readable with clear horizontal separation from its adjacent control

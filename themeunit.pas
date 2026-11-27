@@ -75,6 +75,11 @@ procedure StyleSubCard(ASubCard: TPanel; AHeaderLbl: TLabel; const ATitle: strin
 procedure StyleLabel(ALabel: TLabel; ARole: TUiLabelRole);
 
 /// <summary>
+/// Measures the rendered pixel width of a TLabel's caption using its active font
+/// </summary>
+function MeasureLabelWidth(ALabel: TLabel; AMinWidth: Integer = 0; APad: Integer = 4): Integer;
+
+/// <summary>
 /// Styles input controls (ComboBox, Edit, SpinEdit)
 /// </summary>
 procedure StyleInputControl(AControl: TControl);
@@ -833,6 +838,15 @@ begin
         if CurrentTheme = tmDark then ALabel.Font.Color := CLR_TEXT_SUCCESS else ALabel.Font.Color := clGreen;
       end;
   end;
+end;
+
+function MeasureLabelWidth(ALabel: TLabel; AMinWidth: Integer = 0; APad: Integer = 4): Integer;
+begin
+  Result := AMinWidth;
+  if not Assigned(ALabel) then Exit;
+  if ALabel.Caption = '' then Exit;
+  ALabel.Canvas.Font.Assign(ALabel.Font);
+  Result := Max(AMinWidth, ALabel.Canvas.TextWidth(ALabel.Caption) + APad);
 end;
 
 procedure StyleInputControl(AControl: TControl);

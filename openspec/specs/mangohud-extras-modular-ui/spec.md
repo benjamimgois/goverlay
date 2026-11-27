@@ -44,3 +44,10 @@ The system SHALL organize benchmark timing sliders and storage/analysis tools in
 #### Scenario: Storage and tools presentation
 - **WHEN** the user inspects the Storage & Tools sub-card
 - **THEN** the log folder path with browse button, hotkey trigger capture button, and PasPlot benchmark viewer button SHALL render with aligned baselines and uniform heights
+
+### Requirement: Font-Aware Extras Tab Label Spacing
+The system SHALL compute horizontal spacing for `FExtTempUnitLbl` + `FExtTempPillBtn` and benchmark logging slider labels (`FExtLogDurationSubLbl`, `FExtLogDelaySubLbl`, `FExtLogIntervalSubLbl`) from measured text widths rather than fixed pixel constants.
+
+#### Scenario: Extras tab under larger desktop font or translation
+- **WHEN** the Extras tab is reflowed with a larger system font or translated labels
+- **THEN** `FExtTempPillBtn` and the benchmark logging trackbars start after their respective measured label widths without clipping or overlapping the label text
