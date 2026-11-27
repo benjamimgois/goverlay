@@ -217,6 +217,12 @@ type
     procedure TestFlatpakLayerAndExtensionDetection;
   end;
 
+  TOptiScalerNightlyUpdateTests = class(TTestCase)
+  published
+    procedure TestNormalizeOptiScalerTagPrefixes;
+    procedure TestNightlyUpdateComparison;
+  end;
+
 implementation
 
 uses
@@ -6208,6 +6214,41 @@ begin
   end;
 end;
 
+procedure TOptiScalerNightlyUpdateTests.TestNormalizeOptiScalerTagPrefixes;
+begin
+  AssertEquals('nightly- prefix stripped', '20261126',
+    NormalizeOptiScalerTagForCompare('nightly-20261126'));
+  AssertEquals('edge- prefix stripped', '2026.11.24.a1e0e193',
+    NormalizeOptiScalerTagForCompare('edge-2026.11.24-a1e0e193'));
+  AssertEquals('stable- prefix stripped', '0.9.5',
+    NormalizeOptiScalerTagForCompare('stable-0.9.5'));
+end;
+
+procedure TOptiScalerNightlyUpdateTests.TestNightlyUpdateComparison;
+begin
+  // Newer nightly over older nightly on bleeding-edge
+  AssertTrue('nightly-20261126 > nightly-20261124',
+    IsOptiScalerUpdateAvailable('nightly-20261126', 'nightly-20261124', False));
+
+  // Identical nightly on bleeding-edge -> no update
+  AssertFalse('nightly-20261126 = nightly-20261126',
+    IsOptiScalerUpdateAvailable('nightly-20261126', 'nightly-20261126', False));
+
+  // Transition from legacy edge-YYYY.MM.DD-* to nightly-YYYYMMDD
+  AssertTrue('nightly-20261126 > edge-2026.11.24-a1e0e193',
+    IsOptiScalerUpdateAvailable('nightly-20261126', 'edge-2026.11.24-a1e0e193', False));
+
+  // Legacy edge tag must not trigger a false update over newer nightly
+  AssertFalse('edge-2026.11.24-a1e0e193 < nightly-20261126',
+    IsOptiScalerUpdateAvailable('edge-2026.11.24-a1e0e193', 'nightly-20261126', False));
+
+  // Cross-channel switches always report update available
+  AssertTrue('stable over installed nightly on stable channel',
+    IsOptiScalerUpdateAvailable('stable-0.9.5', 'nightly-20261126', True));
+  AssertTrue('nightly over installed stable on bleeding-edge channel',
+    IsOptiScalerUpdateAvailable('nightly-20261126', 'stable-0.9.5', False));
+end;
+
 initialization
   RegisterTest(TDriverPreferenceTests);
   RegisterTest(TOptiScalerIniTests);
@@ -6230,5 +6271,6 @@ initialization
   RegisterTest(TRDNAArchitectureTests);
   RegisterTest(TMangoHudBlacklistSyncTests);
   RegisterTest(TGoverlayLogicTests);
+  RegisterTest(TOptiScalerNightlyUpdateTests);
 
 end.

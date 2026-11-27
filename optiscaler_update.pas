@@ -44,6 +44,14 @@ function CheckAndInstallDlssNr32(const AArch: string; AForce: Boolean = False; A
 // Check whether the 32-bit (i686) DLSS-NR runtime is installed in central storage
 function IsDlssNr32Installed(const AArch: string): Boolean;
 
+// Normalize an OptiScaler release tag (stripping edge/stable/nightly prefixes and
+// replacing '-' with '.') for CompareVersions.
+function NormalizeOptiScalerTagForCompare(const ATag: string): string;
+
+// Return True when ALatestTag represents an available update over ACurrentTag
+// for the selected channel (including cross-channel switches).
+function IsOptiScalerUpdateAvailable(const ALatestTag, ACurrentTag: string; AIsStableChannel: Boolean): Boolean;
+
 // Make DLSS-NR's derived networks (CC_SMALL_FP8_EXPERIMENTAL,
 // CC_SILVER_AARDWOLD_OPTIMIZED and its int4 layers' weights) from the extracted
 // models with an installed runtime's difference files and tools, into
@@ -266,7 +274,7 @@ type
     function FetchManifest(ASilent: Boolean; out AStableVer, AStableURL, AEdgeVer, AEdgeURL: string): Boolean;
     function GetLatestReleaseTag(ASilent: Boolean = False): string;
     function GetOptiScalerStableTag(ASilent: Boolean = False): string;
-    function GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
+    function GetOptiScalerPreReleaseTag(ASilent: Boolean = False; AForceRefresh: Boolean = False): string;
     function GetDlssEnablerLatestTag(AIsStable: Boolean = True; ASilent: Boolean = False): string;
     function FormatDlssEnablerDisplayTag(const ATag: string): string;
     function DownloadFile(const AURL, ADestFile: string): Boolean;
@@ -591,7 +599,7 @@ begin
   else
   begin
     WriteLn('[DEBUG] TOptiUpdateThread.Execute: Checking Bleeding-Edge channel...');
-    FLatestOptiTag := FOptiTab.GetOptiScalerPreReleaseTag(True);
+    FLatestOptiTag := FOptiTab.GetOptiScalerPreReleaseTag(True, True);
   end;
 
   // Fetch Decky version if requested
@@ -615,7 +623,7 @@ var
   HasUpdates, HasUpdate: Boolean;
   CurrentVersion: string;
   NormLatest, NormCurrent: string;
-  CurrentIsEdge, IsCrossChannel, IsDlssEnablerActive: Boolean;
+  IsDlssEnablerActive: Boolean;
   VarsFilePath: string;
   VarsList: TStringList;
 begin
@@ -727,25 +735,7 @@ begin
       end
       else if (FLatestOptiTag <> '') and (CurrentVersion <> '') then
       begin
-        NormLatest := StringReplace(FLatestOptiTag, '-', '.', [rfReplaceAll]);
-        NormCurrent := StringReplace(CurrentVersion, '-', '.', [rfReplaceAll]);
-        if (Length(NormLatest) > 5) and (Copy(NormLatest, 1, 5) = 'edge.') then
-          NormLatest := Copy(NormLatest, 6, MaxInt);
-        if (Length(NormCurrent) > 5) and (Copy(NormCurrent, 1, 5) = 'edge.') then
-          NormCurrent := Copy(NormCurrent, 6, MaxInt);
-        if (Length(NormLatest) > 7) and (Copy(NormLatest, 1, 7) = 'stable.') then
-          NormLatest := Copy(NormLatest, 8, MaxInt);
-        if (Length(NormCurrent) > 7) and (Copy(NormCurrent, 1, 7) = 'stable.') then
-          NormCurrent := Copy(NormCurrent, 8, MaxInt);
-
-        CurrentIsEdge := ((Length(CurrentVersion) > 5) and (Copy(CurrentVersion, 1, 5) = 'edge-')) or
-                         ((Length(CurrentVersion) > 8) and (Copy(CurrentVersion, 1, 8) = 'nightly-'));
-        if FIsStableChannel then
-          IsCrossChannel := CurrentIsEdge
-        else
-          IsCrossChannel := not CurrentIsEdge;
-
-        if IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0) then
+        if IsOptiScalerUpdateAvailable(FLatestOptiTag, CurrentVersion, FIsStableChannel) then
         begin
           FOptiTab.FOptiLabel2.Hint := FLatestOptiTag;
           FOptiTab.FOptiLabel2.Caption := 'Update Available ' + FLatestOptiTag;
@@ -1305,6 +1295,45 @@ begin
   end;
 end;
 
+function NormalizeOptiScalerTagForCompare(const ATag: string): string;
+const
+  Prefixes: array[0..2] of string = ('edge.', 'stable.', 'nightly.');
+var
+  i: Integer;
+begin
+  Result := StringReplace(Trim(ATag), '-', '.', [rfReplaceAll]);
+  for i := Low(Prefixes) to High(Prefixes) do
+  begin
+    if (Length(Result) > Length(Prefixes[i])) and
+       SameText(Copy(Result, 1, Length(Prefixes[i])), Prefixes[i]) then
+    begin
+      Result := Copy(Result, Length(Prefixes[i]) + 1, MaxInt);
+      Break;
+    end;
+  end;
+end;
+
+function IsOptiScalerUpdateAvailable(const ALatestTag, ACurrentTag: string; AIsStableChannel: Boolean): Boolean;
+var
+  NormLatest, NormCurrent: string;
+  CurrentIsEdge, IsCrossChannel: Boolean;
+begin
+  if (Trim(ALatestTag) = '') or (Trim(ACurrentTag) = '') then
+    Exit(False);
+
+  NormLatest := NormalizeOptiScalerTagForCompare(ALatestTag);
+  NormCurrent := NormalizeOptiScalerTagForCompare(ACurrentTag);
+
+  CurrentIsEdge := ((Length(ACurrentTag) > 5) and SameText(Copy(ACurrentTag, 1, 5), 'edge-')) or
+                   ((Length(ACurrentTag) > 8) and SameText(Copy(ACurrentTag, 1, 8), 'nightly-'));
+  if AIsStableChannel then
+    IsCrossChannel := CurrentIsEdge
+  else
+    IsCrossChannel := not CurrentIsEdge;
+
+  Result := IsCrossChannel or (CompareVersions(NormLatest, NormCurrent) > 0);
+end;
+
 function TOptiscalerTab.GetOptiScalerStableTag(ASilent: Boolean = False): string;
 var
   StableVer, StableURL, EdgeVer, EdgeURL: string;
@@ -1314,13 +1343,11 @@ begin
   begin
     FOptiStableVersion := StableVer;
     FOptiStableURL := StableURL;
-    FOptiEdgeVersion := EdgeVer;
-    FOptiEdgeURL := EdgeURL;
     Result := StableVer;
   end;
 end;
 
-function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False): string;
+function TOptiscalerTab.GetOptiScalerPreReleaseTag(ASilent: Boolean = False; AForceRefresh: Boolean = False): string;
 var
   Process: TProcess;
   OutputList: TStringList;
@@ -1330,8 +1357,8 @@ var
 begin
   Result := '';
 
-  // 1. Return cached version if already fetched
-  if (FOptiEdgeVersion <> '') and (FOptiEdgeURL <> '') then
+  // 1. Return cached version if already fetched (unless an update check forced refresh)
+  if (not AForceRefresh) and (FOptiEdgeVersion <> '') and (FOptiEdgeURL <> '') then
   begin
     Result := FOptiEdgeVersion;
     Exit;
