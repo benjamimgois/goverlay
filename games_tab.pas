@@ -130,6 +130,7 @@ procedure ProcessCoverBitmap(Bmp: TBitmap; GradH: Integer);
 procedure GenerateFallbackCover(const APath: string; AForm: Tgoverlayform);
 procedure DrawCoverAspectFill(ADstBmp: TBitmap; AGraphic: TGraphic);
 function FindCustomCover(const AAppId, AGameName: string; out ACoverPath: string): Boolean;
+function LoadPictureByMagic(APicture: TPicture; const AFilePath: string): Boolean;
 function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
   out ACoverPath: string): Boolean;
 function NormalizeAppImageName(const AFileName: string): string;
@@ -298,7 +299,7 @@ begin
   if Assigned(FForm) and Assigned(FForm.FCardPanels) and
      (FForm.FCardPanels.IndexOf(FCurrentImage.Parent) < 0) then Exit;
   try
-    FCurrentImage.Picture.LoadFromFile(FCurrentPath);
+    if not LoadPictureByMagic(FCurrentImage.Picture, FCurrentPath) then Exit;
     if (FCurrentImage.Picture.Graphic = nil) or
        (FCurrentImage.Picture.Graphic.Width = 0) then Exit;
     ScaledBmp := TBitmap.Create;
@@ -441,6 +442,117 @@ begin
   Result := (APath <> '') and FileExists(APath) and (FileSize(APath) > 2048);
   if Result then
     ACoverPath := APath;
+end;
+
+function ConvertWebPToPng(const AWebPPath, APngPath: string): Boolean;
+  function TryTool(const AExe: string; const AParams: array of string): Boolean;
+  var
+    ExePath: string;
+    P: TProcess;
+    i: Integer;
+  begin
+    Result := False;
+    ExePath := FindDefaultExecutablePath(AExe);
+    if ExePath = '' then Exit;
+    if FileExists(APngPath) then DeleteFile(APngPath);
+    P := TProcess.Create(nil);
+    try
+      P.Executable := ExePath;
+      for i := Low(AParams) to High(AParams) do
+        P.Parameters.Add(AParams[i]);
+      P.Options := [poWaitOnExit, poUsePipes];
+      try
+        P.Execute;
+        Result := (P.ExitStatus = 0) and FileExists(APngPath) and (FileSize(APngPath) > 0);
+      except
+        Result := False;
+      end;
+    finally
+      P.Free;
+    end;
+  end;
+begin
+  Result := False;
+  if (AWebPPath = '') or (not FileExists(AWebPPath)) then Exit;
+  if TryTool('dwebp', [AWebPPath, '-o', APngPath]) then Exit(True);
+  if TryTool('magick', [AWebPPath, APngPath]) then Exit(True);
+  if TryTool('convert', [AWebPPath, APngPath]) then Exit(True);
+  if TryTool('ffmpeg', ['-y', '-loglevel', 'error', '-i', AWebPPath, '-frames:v', '1', APngPath]) then Exit(True);
+end;
+
+function LoadPictureByMagic(APicture: TPicture; const AFilePath: string): Boolean;
+var
+  FS: TFileStream;
+  Magic: array[0..11] of Byte;
+  N: Integer;
+  Png: TPortableNetworkGraphic;
+  Jpg: TJPEGImage;
+  TmpPng: string;
+begin
+  Result := False;
+  if (not Assigned(APicture)) or (AFilePath = '') or (not FileExists(AFilePath)) then
+    Exit;
+
+  try
+    FS := TFileStream.Create(AFilePath, fmOpenRead or fmShareDenyNone);
+    try
+      FillChar(Magic, SizeOf(Magic), 0);
+      N := FS.Read(Magic[0], SizeOf(Magic));
+      FS.Position := 0;
+      if (N >= 4) and (Magic[0] = $89) and (Magic[1] = $50) and
+         (Magic[2] = $4E) and (Magic[3] = $47) then
+      begin
+        Png := TPortableNetworkGraphic.Create;
+        try
+          Png.LoadFromStream(FS);
+          APicture.Assign(Png);
+          Exit(True);
+        finally
+          Png.Free;
+        end;
+      end
+      else if (N >= 2) and (Magic[0] = $FF) and (Magic[1] = $D8) then
+      begin
+        Jpg := TJPEGImage.Create;
+        try
+          Jpg.LoadFromStream(FS);
+          APicture.Assign(Jpg);
+          Exit(True);
+        finally
+          Jpg.Free;
+        end;
+      end
+      else if (N >= 12) and (Magic[0] = Ord('R')) and (Magic[1] = Ord('I')) and
+              (Magic[2] = Ord('F')) and (Magic[3] = Ord('F')) and
+              (Magic[8] = Ord('W')) and (Magic[9] = Ord('E')) and
+              (Magic[10] = Ord('B')) and (Magic[11] = Ord('P')) then
+      begin
+        TmpPng := IncludeTrailingPathDelimiter(GetTempDir) +
+                  'goverlay_webp_' + IntToStr(GetTickCount64) + '.png';
+        if ConvertWebPToPng(AFilePath, TmpPng) then
+        try
+          Png := TPortableNetworkGraphic.Create;
+          try
+            Png.LoadFromFile(TmpPng);
+            APicture.Assign(Png);
+            Exit(True);
+          finally
+            Png.Free;
+          end;
+        finally
+          if FileExists(TmpPng) then DeleteFile(TmpPng);
+        end;
+        Exit(False);
+      end;
+    finally
+      FS.Free;
+    end;
+
+    APicture.LoadFromFile(AFilePath);
+    Result := Assigned(APicture.Graphic) and (APicture.Graphic.Width > 0);
+  except
+    Result := False;
+  end;
 end;
 
 function FindCustomCover(const AAppId, AGameName: string; out ACoverPath: string): Boolean;
@@ -985,7 +1097,7 @@ begin
   if not Assigned(CardImage) then Exit;
 
   try
-    CardImage.Picture.LoadFromFile(FCurrentPath);
+    if not LoadPictureByMagic(CardImage.Picture, FCurrentPath) then Exit;
     ScaledBmp := TBitmap.Create;
     try
       ScaledBmp.SetSize(CARD_W, CARD_H);
@@ -1887,10 +1999,7 @@ begin
         begin
           if FileExists(ImagePath + '.fallback') then
             GenerateFallbackCover(ImagePath, FForm);
-          try
-            CardImage.Picture.LoadFromFile(ImagePath);
-          except
-          end;
+          LoadPictureByMagic(CardImage.Picture, ImagePath);
         end
         else
         begin
@@ -2012,26 +2121,14 @@ begin
           if SameFileName(ResolvedCover, CachePath) and
              FileExists(CachePath + '.fallback') then
             GenerateFallbackCover(CachePath, FForm);
-          try
-            CardImage.Picture.LoadFromFile(ResolvedCover);
-            HasCover := True;
-          except
-            HasCover := False;
-          end;
+          HasCover := LoadPictureByMagic(CardImage.Picture, ResolvedCover);
         end;
 
         if IsAppImage and not HasCover then
         begin
           GenerateFallbackCover(CachePath, FForm);
           if FileExists(CachePath) and (FileSize(CachePath) > 0) then
-          begin
-            try
-              CardImage.Picture.LoadFromFile(CachePath);
-              HasCover := True;
-            except
-              HasCover := False;
-            end;
-          end;
+            HasCover := LoadPictureByMagic(CardImage.Picture, CachePath);
         end;
 
         if HasCover then
@@ -3752,11 +3849,8 @@ begin
         end;
     if CardImage = nil then Exit;
 
-    try
-      CardImage.Picture.LoadFromFile(ACoverPath);
-    except
+    if not LoadPictureByMagic(CardImage.Picture, ACoverPath) then
       Exit;
-    end;
     if (CardImage.Picture.Graphic = nil) or
        (CardImage.Picture.Graphic.Width <= 0) or
        (CardImage.Picture.Graphic.Height <= 0) then Exit;
@@ -3860,16 +3954,29 @@ begin
       DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i] + '.fallback');
     end;
 
-    TargetPath := CustomCacheDir + SanitizedName + Ext;
-    if not CopyFile(SrcPath, TargetPath) then
+    if Ext = '.webp' then
     begin
-      ShowMessage('Could not copy the selected cover image.');
-      Exit;
+      TargetPath := CustomCacheDir + SanitizedName + '.png';
+      if not ConvertWebPToPng(SrcPath, TargetPath) then
+      begin
+        ShowMessage('Could not decode WebP image (install webp, imagemagick, or ffmpeg).');
+        Exit;
+      end;
+      Ext := '.png';
+    end
+    else
+    begin
+      TargetPath := CustomCacheDir + SanitizedName + Ext;
+      if not CopyFile(SrcPath, TargetPath) then
+      begin
+        ShowMessage('Could not copy the selected cover image.');
+        Exit;
+      end;
     end;
 
     if AppId <> '' then
-      CopyFile(SrcPath, CustomCacheDir + AppId + Ext);
-    CopyFile(SrcPath, NonSteamCacheDir + SanitizedName + Ext);
+      CopyFile(TargetPath, CustomCacheDir + AppId + Ext);
+    CopyFile(TargetPath, NonSteamCacheDir + SanitizedName + Ext);
 
     UpdateCardCoverImage(CardPanel, TargetPath);
   end;
@@ -4009,16 +4116,31 @@ begin
       DeleteFile(NonSteamCacheDir + SanitizedName + Exts[i] + '.fallback');
     end;
 
-    TargetPath := CustomCacheDir + SanitizedName + Ext;
-    if not RenameFile(TempFile, TargetPath) then
+    if Ext = '.webp' then
     begin
-      if not CopyFile(TempFile, TargetPath) then
+      TargetPath := CustomCacheDir + SanitizedName + '.png';
+      if not ConvertWebPToPng(TempFile, TargetPath) then
       begin
         if FileExists(TempFile) then DeleteFile(TempFile);
-        ShowMessage('Could not save downloaded cover image.');
+        ShowMessage('Could not decode downloaded WebP image (install webp, imagemagick, or ffmpeg).');
         Exit;
       end;
-      DeleteFile(TempFile);
+      if FileExists(TempFile) then DeleteFile(TempFile);
+      Ext := '.png';
+    end
+    else
+    begin
+      TargetPath := CustomCacheDir + SanitizedName + Ext;
+      if not RenameFile(TempFile, TargetPath) then
+      begin
+        if not CopyFile(TempFile, TargetPath) then
+        begin
+          if FileExists(TempFile) then DeleteFile(TempFile);
+          ShowMessage('Could not save downloaded cover image.');
+          Exit;
+        end;
+        DeleteFile(TempFile);
+      end;
     end;
 
     if AppId <> '' then
