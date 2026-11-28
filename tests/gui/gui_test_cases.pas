@@ -2629,6 +2629,8 @@ begin
     DrawCoverAspectFill(TargetBmp, WideBmp);
     AssertEquals('Widescreen cover keeps target width', 140, TargetBmp.Width);
     AssertEquals('Widescreen cover keeps target height', 210, TargetBmp.Height);
+    AssertTrue('Resampled widescreen cover center pixel is blue (non-blank)',
+      Blue(ColorToRGB(TargetBmp.Canvas.Pixels[70, 105])) > 200);
   finally
     TargetBmp.Free;
     WideBmp.Free;
@@ -2729,6 +2731,35 @@ begin
     if FileExists(HeroicJsonPath) then DeleteFile(HeroicJsonPath);
     if FileExists(HeroicCoverPath) then DeleteFile(HeroicCoverPath);
     if DirectoryExists(HeroicCacheDir) then DeleteDirectory(HeroicCacheDir, False);
+    if DirectoryExists(HeroicIconsDir) then DeleteDirectory(HeroicIconsDir, False);
+    if DirectoryExists(HeroicRoot) then DeleteDirectory(HeroicRoot, False);
+  end;
+
+  // Test 7: Faugus Launcher resolves covers/<gameid>.png via games.json.
+  DeleteCachedCover('No One Lives Forever 2');
+  HeroicRoot := IncludeTrailingPathDelimiter(IsolatedHome) + '.local/share/faugus-launcher/';
+  HeroicIconsDir := HeroicRoot + 'covers/';
+  HeroicCoverPath := HeroicIconsDir + 'nolf-2.jpg';
+  HeroicJsonPath := HeroicRoot + 'games.json';
+  WritePaddedFile(HeroicCoverPath, 4096);
+  Lines := TStringList.Create;
+  try
+    Lines.Add('[{"gameid": "nolf-2", "title": "No One Lives Forever 2", "path": "' +
+      IncludeTrailingPathDelimiter(IsolatedHome) + '", "cover": "", "hidden": false}]');
+    ForceDirectories(HeroicRoot);
+    Lines.SaveToFile(HeroicJsonPath);
+  finally
+    Lines.Free;
+  end;
+  try
+    ResolvedPath := '';
+    AssertTrue('ResolveNonSteamLocalCover finds Faugus cover by gameid',
+      ResolveNonSteamLocalCover('No One Lives Forever 2', '', ResolvedPath));
+    AssertTrue('Resolved Faugus path ends with nolf-2.jpg',
+      EndsText('nolf-2.jpg', ResolvedPath));
+  finally
+    if FileExists(HeroicJsonPath) then DeleteFile(HeroicJsonPath);
+    if FileExists(HeroicCoverPath) then DeleteFile(HeroicCoverPath);
     if DirectoryExists(HeroicIconsDir) then DeleteDirectory(HeroicIconsDir, False);
     if DirectoryExists(HeroicRoot) then DeleteDirectory(HeroicRoot, False);
   end;

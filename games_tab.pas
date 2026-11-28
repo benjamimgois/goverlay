@@ -9,7 +9,7 @@ uses
   unix, BaseUnix, StdCtrls, Spin, ComCtrls, Buttons, ActnList, Menus,
   LCLtype, Clipbrd, LCLIntf, IniFiles, FileUtil, StrUtils, Types, fpjson,
   jsonparser, themeunit, systemdetector, constants, bgmod_resources, hintsunit,
-  configmanager, IntfGraphics, Grids, overlayunit, overlay_config, apputils, overlay_utils, goverlay_strings, game_discovery;
+  configmanager, IntfGraphics, LazCanvas, FPImage, FPCanvas, ExtInterpolation, Grids, overlayunit, overlay_config, apputils, overlay_utils, goverlay_strings, game_discovery;
 
 const
   CARD_W      = 150;
@@ -410,6 +410,11 @@ var
   DstW, DstH, SrcW, SrcH, ScaledW, ScaledH, OffsetX, OffsetY: Integer;
   Scale, ScaleX, ScaleY: Double;
   DrawRect: TRect;
+  SrcBmp: TBitmap;
+  SrcIntf, DstIntf: TLazIntfImage;
+  DstCanvas: TLazCanvas;
+  Interp: TFPCustomInterpolation;
+  Resampled: Boolean;
 begin
   if not Assigned(ADstBmp) or not Assigned(AGraphic) then Exit;
   DstW := ADstBmp.Width;
@@ -434,7 +439,45 @@ begin
   OffsetY := (ScaledH - DstH) div 2;
 
   DrawRect := Rect(-OffsetX, -OffsetY, -OffsetX + ScaledW, -OffsetY + ScaledH);
-  ADstBmp.Canvas.StretchDraw(DrawRect, AGraphic);
+
+  Resampled := False;
+  SrcBmp := TBitmap.Create;
+  SrcIntf := TLazIntfImage.Create(0, 0);
+  DstIntf := TLazIntfImage.Create(0, 0);
+  DstCanvas := nil;
+  Interp := nil;
+  try
+    try
+      SrcBmp.PixelFormat := pf32bit;
+      SrcBmp.SetSize(SrcW, SrcH);
+      SrcBmp.Canvas.Brush.Color := clBlack;
+      SrcBmp.Canvas.FillRect(0, 0, SrcW, SrcH);
+      SrcBmp.Canvas.Draw(0, 0, AGraphic);
+      SrcIntf.LoadFromBitmap(SrcBmp.Handle, SrcBmp.MaskHandle);
+
+      DstIntf.DataDescription := SrcIntf.DataDescription;
+      DstIntf.SetSize(DstW, DstH);
+
+      DstCanvas := TLazCanvas.Create(DstIntf);
+      Interp := TMitchelInterpolation.Create;
+      DstCanvas.Interpolation := Interp;
+      DstCanvas.StretchDraw(DrawRect.Left, DrawRect.Top, ScaledW, ScaledH, SrcIntf);
+
+      ADstBmp.LoadFromIntfImage(DstIntf);
+      Resampled := True;
+    except
+      Resampled := False;
+    end;
+  finally
+    DstCanvas.Free;
+    Interp.Free;
+    DstIntf.Free;
+    SrcIntf.Free;
+    SrcBmp.Free;
+  end;
+
+  if not Resampled then
+    ADstBmp.Canvas.StretchDraw(DrawRect, AGraphic);
 end;
 
 function TryLocalCoverFile(const APath: string; out ACoverPath: string): Boolean;
@@ -775,12 +818,16 @@ function ResolveNonSteamLocalCover(const AGameName, ASubPath: string;
   out ACoverPath: string): Boolean;
 var
   HomeDir, SanitizedName: string;
-  HeroicDir, LutrisDir, AppName, Slug, Resolved: string;
+  HeroicDir, FaugusDir, LutrisDir, AppName, Slug, Resolved: string;
   HeroicDirs: array[0..1] of string;
+  FaugusDirs: array[0..3] of string;
   LutrisDirs: array[0..1] of string;
   Exts: array[0..3] of string;
   FolderBases: array[0..2] of string;
   i: Integer;
+  FaugusGames: TGameDiscoveryArray;
+  fg: Integer;
+  NormSubPath: string;
 
   function CheckExts(const ABase: string): Boolean;
   var
@@ -850,7 +897,48 @@ begin
     end;
   end;
 
-  // 4. Lutris (native and Flatpak)
+  // 4. Faugus Launcher (native and Flatpak)
+  FaugusDirs[0] := HomeDir + '.local/share/faugus-launcher/';
+  FaugusDirs[1] := HomeDir + '.config/faugus-launcher/';
+  FaugusDirs[2] := HomeDir + '.var/app/io.github.Faugus.faugus-launcher/data/faugus-launcher/';
+  FaugusDirs[3] := HomeDir + '.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher/';
+  NormSubPath := NormalizeDiscoveryPath(ASubPath);
+  for i := Low(FaugusDirs) to High(FaugusDirs) do
+  begin
+    FaugusDir := IncludeTrailingPathDelimiter(FaugusDirs[i]);
+    if not DirectoryExists(FaugusDir) then Continue;
+
+    if CheckExts(FaugusDir + 'covers/' + AGameName) then Exit(True);
+    if CheckExts(FaugusDir + 'covers/' + SanitizedName) then Exit(True);
+    if CheckExts(FaugusDir + 'banners/' + AGameName) then Exit(True);
+    if CheckExts(FaugusDir + 'banners/' + SanitizedName) then Exit(True);
+
+    if FileExists(FaugusDir + 'games.json') then
+    begin
+      SetLength(FaugusGames, 0);
+      ParseFaugusGamesJson(FaugusDir + 'games.json', FaugusGames);
+      for fg := 0 to High(FaugusGames) do
+      begin
+        if SameText(FaugusGames[fg].Name, AGameName) or
+           ((NormSubPath <> '') and (FaugusGames[fg].SubPath = NormSubPath)) then
+        begin
+          if (FaugusGames[fg].CoverPath <> '') and
+             TryLocalCoverFile(FaugusGames[fg].CoverPath, Resolved) then
+          begin
+            ACoverPath := Resolved;
+            Exit(True);
+          end;
+          if FaugusGames[fg].AppID <> '' then
+          begin
+            if CheckExts(FaugusDir + 'covers/' + FaugusGames[fg].AppID) then Exit(True);
+            if CheckExts(FaugusDir + 'banners/' + FaugusGames[fg].AppID) then Exit(True);
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  // 5. Lutris (native and Flatpak)
   LutrisDirs[0] := HomeDir + '.local/share/lutris/';
   LutrisDirs[1] := HomeDir + '.var/app/net.lutris.Lutris/data/lutris/';
   Slug := MakeLutrisSlug(AGameName);
@@ -2506,11 +2594,14 @@ function TGamesTabHelper.SearchSteamStoreGame(const AGameName: string; out AAppI
     S: TStringList;
     JData: TJSONData;
     JArray: TJSONArray;
-    i: Integer;
+    i, Score, BestScore: Integer;
     ItemObj: TJSONObject;
+    ItemName, CandidateId, BestId: string;
   begin
     Result := False;
     FoundId := '';
+    BestId := '';
+    BestScore := -1;
 
     Url := 'https://store.steampowered.com/api/storesearch/?term=' +
            StringReplace(Term, ' ', '%20', [rfReplaceAll]) +
@@ -2556,13 +2647,23 @@ function TGamesTabHelper.SearchSteamStoreGame(const AGameName: string; out AAppI
           if JArray.Items[i] is TJSONObject then
           begin
             ItemObj := TJSONObject(JArray.Items[i]);
-            FoundId := IntToStr(ItemObj.Get('id', 0));
-            if FoundId <> '0' then
+            CandidateId := IntToStr(ItemObj.Get('id', 0));
+            ItemName := ItemObj.Get('name', '');
+            if (CandidateId <> '0') and (ItemName <> '') then
             begin
-              Result := True;
-              Break;
+              Score := ScoreSteamSearchMatch(Term, ItemName);
+              if (Score >= 500) and (Score > BestScore) then
+              begin
+                BestScore := Score;
+                BestId := CandidateId;
+              end;
             end;
           end;
+        end;
+        if BestId <> '' then
+        begin
+          FoundId := BestId;
+          Result := True;
         end;
       finally
         JData.Free;

@@ -6,7 +6,7 @@ Provides resilient discovery, multi-format loading, local provider integration (
 ## Requirements
 
 ### Requirement: Multi-Source Local Cover Discovery
-The system SHALL search local artwork sources before performing remote queries for non-Steam games, checking the GOverlay cache, game installation folder, Heroic Games Launcher libraries, and Lutris coverart.
+The system SHALL search local artwork sources before performing remote queries for non-Steam games, checking the GOverlay cache, game installation folder, Heroic Games Launcher libraries, Faugus Launcher libraries, and Lutris coverart.
 
 #### Scenario: Existing local game directory cover found
 - **WHEN** discovering artwork for a non-Steam game
@@ -15,6 +15,10 @@ The system SHALL search local artwork sources before performing remote queries f
 #### Scenario: Heroic cover found by directory or title
 - **WHEN** discovering artwork for a non-Steam game
 - **THEN** the system queries Heroic installation configs and maps the game to its cached icon in `~/.config/heroic/icons/` or Flatpak equivalent
+
+#### Scenario: Faugus cover or banner found by gameid or title
+- **WHEN** discovering artwork for a non-Steam game
+- **THEN** the system checks Faugus Launcher `games.json` explicit `cover` paths as well as `covers/` and `banners/` directories under native (`~/.local/share/faugus-launcher/`, `~/.config/faugus-launcher/`) and Flatpak Faugus paths by `gameid` or game title before remote network search
 
 #### Scenario: Lutris cover found by slug
 - **WHEN** discovering artwork for a non-Steam game
@@ -28,11 +32,15 @@ The system SHALL support loading and caching non-Steam game covers in `.png`, `.
 - **THEN** the system loads and renders the PNG graphic onto the game card
 
 ### Requirement: Aspect-Ratio Preserving Scaling
-The system SHALL scale non-portrait and non-standard aspect ratio cover art onto the 2:3 portrait game card using a proportional center-crop fill without stretching or squishing.
+The system SHALL scale non-portrait and non-standard aspect ratio cover art onto the 2:3 portrait game card using a proportional center-crop fill with filtered image resampling, without stretching, squishing, or nearest-neighbor aliasing.
 
 #### Scenario: Square or wide cover image rendered
 - **WHEN** rendering a cover image with a non-2:3 aspect ratio (such as 1:1 or 16:9)
-- **THEN** the system crops the excess dimensions centered and draws the image filled across the card bounds preserving original proportions
+- **THEN** the system crops the excess dimensions centered and draws the image filled across the card bounds preserving original proportions with filtered resampling
+
+#### Scenario: High-resolution portrait cover downscaled to card bounds
+- **WHEN** rendering a high-resolution cover image (such as 600x900) onto a 150x215 game card
+- **THEN** the system downscales the image using filtered resampling so logos and text remain sharp without jagged artifacts
 
 ### Requirement: Resilient Remote Download and Cache Purge
 The system SHALL validate remote cover downloads with `--fail` using temporary files, purge corrupt or truncated files ($\le 2048$ bytes), and retry or yield to fallback rendering.
@@ -70,3 +78,14 @@ The system SHALL organize the game card context menu such that "Uninstall change
 #### Scenario: Menu items and subitems have icons
 - **WHEN** the game card context menu and its "Set custom cover" submenu are opened
 - **THEN** each item and subitem displays a distinct representative 16x16 icon
+
+### Requirement: Validated Steam Store Cover Matching
+The system SHALL validate candidate titles returned by the Steam Store search API against the target game name before accepting an AppID for cover download, rejecting mismatched sequels or unrelated editions.
+
+#### Scenario: Sequel number mismatch is rejected
+- **WHEN** searching Steam Store for "Max Payne 2" or "Max Payne" and the top search result is "Max Payne 3"
+- **THEN** the system rejects the mismatched sequel rather than downloading the wrong cover
+
+#### Scenario: Unrequested edition or bundle mismatch is penalized
+- **WHEN** searching Steam Store for "BloodRayne" or "BloodRayne 2" and results include "BloodRayne 1 & 2 Terminal Cut" or "Soundtrack"
+- **THEN** the system penalizes unrequested edition, bundle, or soundtrack suffixes and rejects low-confidence matches

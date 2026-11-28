@@ -74,6 +74,9 @@ procedure DiscoverHeroicGamesInDir(const AHeroicConfigDir: string;
 // Parse a Faugus Launcher games.json file into AGames.
 procedure ParseFaugusGamesJson(const AGamesJsonFile: string; var AGames: TGameDiscoveryArray);
 
+// Score a Steam Store search candidate title against a query title (-1000 = reject, >= 500 = match).
+function ScoreSteamSearchMatch(const AQuery, ACandidate: string): Integer;
+
 implementation
 
 function NormalizeDiscoveryPath(const APath: string): string;
@@ -733,13 +736,16 @@ var
   Data: TJSONData;
   Arr: TJSONArray;
   EntryObj: TJSONObject;
-  i: Integer;
-  Title, RawPath, PrefixPath, GameDir, CoverPath, CandidateExe: string;
+  i, e: Integer;
+  Title, RawPath, PrefixPath, GameDir, CoverPath, CandidateExe, GameId, FaugusRoot: string;
   Item: TGameDiscoveryItem;
+const
+  COVER_EXTS: array[0..3] of string = ('.png', '.jpg', '.jpeg', '.webp');
 begin
   Data := LoadJsonFileSafe(AGamesJsonFile);
   if not Assigned(Data) then
     Exit;
+  FaugusRoot := IncludeTrailingPathDelimiter(ExtractFileDir(AGamesJsonFile));
   try
     if not (Data is TJSONArray) then
       Exit;
@@ -779,15 +785,33 @@ begin
       if (GameDir = '') or (not DirectoryExists(GameDir)) then
         Continue;
 
+      GameId := Trim(EntryObj.Get('gameid', ''));
       CoverPath := Trim(EntryObj.Get('cover', ''));
       if (CoverPath <> '') and (not FileExists(CoverPath)) then
         CoverPath := '';
+
+      if (CoverPath = '') and (GameId <> '') then
+      begin
+        for e := Low(COVER_EXTS) to High(COVER_EXTS) do
+          if FileExists(FaugusRoot + 'covers' + PathDelim + GameId + COVER_EXTS[e]) then
+          begin
+            CoverPath := FaugusRoot + 'covers' + PathDelim + GameId + COVER_EXTS[e];
+            Break;
+          end;
+        if CoverPath = '' then
+          for e := Low(COVER_EXTS) to High(COVER_EXTS) do
+            if FileExists(FaugusRoot + 'banners' + PathDelim + GameId + COVER_EXTS[e]) then
+            begin
+              CoverPath := FaugusRoot + 'banners' + PathDelim + GameId + COVER_EXTS[e];
+              Break;
+            end;
+      end;
 
       Item := Default(TGameDiscoveryItem);
       Item.Kind := gkNonSteam;
       Item.Source := gsFaugus;
       Item.Name := Title;
-      Item.AppID := Trim(EntryObj.Get('gameid', ''));
+      Item.AppID := GameId;
       Item.SubPath := GameDir;
       Item.LibPath := ExtractFileDir(GameDir);
       Item.IsNativeLinux := False;
@@ -796,6 +820,155 @@ begin
     end;
   finally
     Data.Free;
+  end;
+end;
+
+function NormalizeTitleForMatch(const S: string): string;
+var
+  Res: string;
+  i: Integer;
+begin
+  Res := S;
+  Res := StringReplace(Res, '™', '', [rfReplaceAll]);
+  Res := StringReplace(Res, '®', '', [rfReplaceAll]);
+  Res := StringReplace(Res, '©', '', [rfReplaceAll]);
+  Res := LowerCase(Res);
+  for i := 1 to Length(Res) do
+    if Res[i] in [':', '-', '_', '/', '.', '''', ',', '!', '?', '&', '+'] then
+      Res[i] := ' ';
+  while Pos('  ', Res) > 0 do
+    Res := StringReplace(Res, '  ', ' ', [rfReplaceAll]);
+  Result := Trim(Res);
+end;
+
+procedure TokenizeNormalizedTitle(const ANorm: string; ATokens: TStringList);
+var
+  i, StartIdx: Integer;
+  Tok: string;
+begin
+  ATokens.Clear;
+  i := 1;
+  while i <= Length(ANorm) do
+  begin
+    while (i <= Length(ANorm)) and (ANorm[i] = ' ') do
+      Inc(i);
+    if i > Length(ANorm) then Break;
+    StartIdx := i;
+    while (i <= Length(ANorm)) and (ANorm[i] <> ' ') do
+      Inc(i);
+    Tok := Copy(ANorm, StartIdx, i - StartIdx);
+    if Tok <> '' then
+      ATokens.Add(Tok);
+  end;
+end;
+
+function NormalizeSequelToken(const ATok: string): string;
+var
+  i: Integer;
+  AllDigits: Boolean;
+begin
+  Result := '';
+  if ATok = '' then Exit;
+  if ATok = 'ii' then Exit('2');
+  if ATok = 'iii' then Exit('3');
+  if ATok = 'iv' then Exit('4');
+  if ATok = 'v' then Exit('5');
+  if ATok = 'vi' then Exit('6');
+  AllDigits := True;
+  for i := 1 to Length(ATok) do
+    if not (ATok[i] in ['0'..'9']) then
+    begin
+      AllDigits := False;
+      Break;
+    end;
+  if AllDigits and (Length(ATok) <= 2) then
+    Result := ATok;
+end;
+
+function HasTokenPhrase(const ANormText, APhrase: string): Boolean;
+begin
+  Result := Pos(' ' + APhrase + ' ', ' ' + ANormText + ' ') > 0;
+end;
+
+function ScoreSteamSearchMatch(const AQuery, ACandidate: string): Integer;
+const
+  HARD_REJECT_MARKERS: array[0..6] of string = (
+    'soundtrack', 'ost', 'demo', 'dlc', 'season pass', 'artbook', 'vr'
+  );
+  PENALTY_MARKERS: array[0..6] of string = (
+    'terminal cut', 'definitive edition', 'remastered', 'remake',
+    'bundle', 'collection', 'pack'
+  );
+var
+  NormQ, NormC, SeqQ, SeqC, SeqTok: string;
+  QTokens, CTokens: TStringList;
+  i, MatchedQ, ExtraC: Integer;
+begin
+  Result := -1000;
+  NormQ := NormalizeTitleForMatch(AQuery);
+  NormC := NormalizeTitleForMatch(ACandidate);
+  if (NormQ = '') or (NormC = '') then Exit;
+  if NormQ = NormC then Exit(1000);
+
+  for i := Low(HARD_REJECT_MARKERS) to High(HARD_REJECT_MARKERS) do
+    if HasTokenPhrase(NormC, HARD_REJECT_MARKERS[i]) and
+       (not HasTokenPhrase(NormQ, HARD_REJECT_MARKERS[i])) then
+      Exit(-1000);
+
+  QTokens := TStringList.Create;
+  CTokens := TStringList.Create;
+  try
+    TokenizeNormalizedTitle(NormQ, QTokens);
+    TokenizeNormalizedTitle(NormC, CTokens);
+    if (QTokens.Count = 0) or (CTokens.Count = 0) then Exit;
+
+    SeqQ := '';
+    for i := 0 to QTokens.Count - 1 do
+    begin
+      SeqTok := NormalizeSequelToken(QTokens[i]);
+      if SeqTok <> '' then
+      begin
+        if SeqQ <> '' then SeqQ := SeqQ + ',';
+        SeqQ := SeqQ + SeqTok;
+      end;
+    end;
+
+    SeqC := '';
+    for i := 0 to CTokens.Count - 1 do
+    begin
+      SeqTok := NormalizeSequelToken(CTokens[i]);
+      if SeqTok <> '' then
+      begin
+        if SeqC <> '' then SeqC := SeqC + ',';
+        SeqC := SeqC + SeqTok;
+      end;
+    end;
+
+    if SeqQ <> SeqC then
+      Exit(-1000);
+
+    MatchedQ := 0;
+    for i := 0 to QTokens.Count - 1 do
+      if CTokens.IndexOf(QTokens[i]) >= 0 then
+        Inc(MatchedQ);
+
+    if MatchedQ < QTokens.Count then
+      Exit(-1000);
+
+    ExtraC := CTokens.Count - MatchedQ;
+    if ExtraC < 0 then ExtraC := 0;
+
+    Result := 800 - (ExtraC * 40);
+    if Pos(NormQ + ' ', NormC + ' ') = 1 then
+      Inc(Result, 100);
+
+    for i := Low(PENALTY_MARKERS) to High(PENALTY_MARKERS) do
+      if HasTokenPhrase(NormC, PENALTY_MARKERS[i]) and
+         (not HasTokenPhrase(NormQ, PENALTY_MARKERS[i])) then
+        Dec(Result, 400);
+  finally
+    CTokens.Free;
+    QTokens.Free;
   end;
 end;
 

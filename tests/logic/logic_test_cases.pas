@@ -229,6 +229,8 @@ type
     procedure TestLibraryRootFiltersNonExecutableSubfoldersAndDetectsLinux;
     procedure TestHeroicJsonDiscoveryAndFiltering;
     procedure TestFaugusJsonDiscoveryAndCorruptFallback;
+    procedure TestFaugusCoversAndBannersFallback;
+    procedure TestSteamSearchMatchScoring;
     procedure TestCrossSourceDeduplicationPrefersLauncher;
   end;
 
@@ -6434,6 +6436,65 @@ begin
   AssertEquals('Faugus source', Ord(gsFaugus), Ord(Games[0].Source));
   AssertEquals('Faugus cover path preserved', CoverFile, Games[0].CoverPath);
   AssertEquals('Faugus SubPath resolved to game dir', GameDir, Games[0].SubPath);
+end;
+
+procedure TNonSteamDiscoveryTests.TestFaugusCoversAndBannersFallback;
+var
+  BaseDir, GameDir1, GameDir2, CoverFile, BannerFile, GamesJson: string;
+  Games: TGameDiscoveryArray;
+begin
+  BaseDir := IncludeTrailingPathDelimiter(GetEnvironmentVariable('HOME')) + 'faugus_covers_test';
+  GameDir1 := BaseDir + '/games/Prototype';
+  GameDir2 := BaseDir + '/games/Deadpool';
+  CoverFile := BaseDir + '/covers/prototype.png';
+  BannerFile := BaseDir + '/banners/deadpool.jpg';
+  GamesJson := BaseDir + '/games.json';
+
+  WriteDiscoveryDummyFile(GameDir1 + '/prototypef.exe', 'MZ');
+  WriteDiscoveryDummyFile(GameDir2 + '/DP.exe', 'MZ');
+  WriteDiscoveryDummyFile(CoverFile, 'PNGDATA');
+  WriteDiscoveryDummyFile(BannerFile, 'JPGDATA');
+  WriteDiscoveryDummyFile(GamesJson,
+    '[{"gameid":"prototype","title":"Prototype","path":"' + GameDir1 + '/prototypef.exe","cover":"","hidden":false},' +
+    '{"gameid":"deadpool","title":"Deadpool","path":"' + GameDir2 + '/DP.exe","cover":"","hidden":false}]');
+
+  SetLength(Games, 0);
+  ParseFaugusGamesJson(GamesJson, Games);
+
+  AssertEquals('Faugus discovers 2 games', 2, Length(Games));
+  AssertEquals('Empty cover falls back to covers/<gameid>.png', CoverFile, Games[0].CoverPath);
+  AssertEquals('Empty cover falls back to banners/<gameid>.jpg when covers/ missing', BannerFile, Games[1].CoverPath);
+end;
+
+procedure TNonSteamDiscoveryTests.TestSteamSearchMatchScoring;
+begin
+  // Exact match
+  AssertTrue('Exact title match scores >= 500',
+    ScoreSteamSearchMatch('Deadpool', 'Deadpool') >= 500);
+  AssertTrue('Case-insensitive exact match scores >= 500',
+    ScoreSteamSearchMatch('Prototype', 'PROTOTYPE') >= 500);
+
+  // Sequel mismatches must be rejected
+  AssertTrue('Max Payne 2 must reject Max Payne 3',
+    ScoreSteamSearchMatch('Max Payne 2', 'Max Payne 3') < 500);
+  AssertTrue('Max Payne must reject Max Payne 3',
+    ScoreSteamSearchMatch('Max Payne', 'Max Payne 3') < 500);
+  AssertTrue('Prototype must reject Prototype 2',
+    ScoreSteamSearchMatch('Prototype', 'Prototype 2') < 500);
+
+  // Unrequested edition / bundle / VR / soundtrack must be rejected
+  AssertTrue('BloodRayne must reject BloodRayne 1 & 2 Terminal Cut',
+    ScoreSteamSearchMatch('BloodRayne', 'BloodRayne 1 & 2 Terminal Cut') < 500);
+  AssertTrue('BloodRayne must reject BloodRayne: Terminal Cut',
+    ScoreSteamSearchMatch('BloodRayne', 'BloodRayne: Terminal Cut') < 500);
+  AssertTrue('Deadpool must reject Marvel''s Deadpool VR',
+    ScoreSteamSearchMatch('Deadpool', 'Marvel''s Deadpool VR') < 500);
+  AssertTrue('Prototype must reject Prototype Soundtrack',
+    ScoreSteamSearchMatch('Prototype', 'Prototype Soundtrack') < 500);
+
+  // Subtitle on matching sequel is accepted
+  AssertTrue('No One Lives Forever 2 matches subtitled edition',
+    ScoreSteamSearchMatch('No One Lives Forever 2', 'No One Lives Forever 2: A Spy in H.A.R.M.''s Way') >= 500);
 end;
 
 procedure TNonSteamDiscoveryTests.TestCrossSourceDeduplicationPrefersLauncher;
