@@ -297,33 +297,22 @@ end;
 
 function IsNvidiaModuleLoaded: Boolean;
 var
-  Process: TProcess;
-  OutputList: TStringList;
-  Output: string;
+  LsmodPath, Output: string;
 begin
   Result := False;
-  Process := TProcess.Create(nil);
-  OutputList := TStringList.Create;
+  LsmodPath := FindDefaultExecutablePath('lsmod');
+  if LsmodPath = '' then Exit;
+
+  // poWaitOnExit + poUsePipes waits for lsmod before reading its output, so
+  // lsmod blocks forever once its output exceeds the pipe buffer (as small
+  // as one 4 KiB page when the user's pipe-user-pages-soft limit is reached).
+  // RunCommand drains the pipe while waiting, like IsKernelModuleAvailable.
+  Output := '';
   try
-    try
-      // Use lsmod to check if nvidia module is loaded
-      Process.Executable := 'lsmod';
-      Process.Options := [poWaitOnExit, poUsePipes];
-      Process.Execute;
-
-      // Read output
-      OutputList.LoadFromStream(Process.Output);
-      Output := OutputList.Text;
-
-      // Check if 'nvidia' appears in the output
+    if RunCommand(LsmodPath, [], Output) then
       Result := Pos('nvidia', LowerCase(Output)) > 0;
-    except
-      on E: Exception do
-        Result := False; // If error, assume not loaded
-    end;
-  finally
-    OutputList.Free;
-    Process.Free;
+  except
+    Result := False; // If error, assume not loaded
   end;
 end;
 

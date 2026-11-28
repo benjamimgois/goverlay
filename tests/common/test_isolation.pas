@@ -20,8 +20,22 @@ uses
 // already link libc). libc execv is used for the same reason: FPC's fpExecV
 // passes the RTL's startup envp snapshot, ignoring setenv.
 function setenv(const name, value: PChar; overwrite: cint): cint; cdecl; external 'c' name 'setenv';
+function unsetenv(const name: PChar): cint; cdecl; external 'c' name 'unsetenv';
 function execv(path: PChar; argv: PPChar): cint; cdecl; external 'c' name 'execv';
 {$ENDIF}
+
+const
+  // XDG base directories redirected into the sandbox. A user shell that
+  // exports these explicitly would otherwise win over the mock HOME and let
+  // tests (and the bgmod binaries they spawn) write into the real home.
+  XDG_SANDBOX_VARS: array[0..3] of string =
+    ('XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME');
+  XDG_SANDBOX_SUBDIRS: array[0..3] of string =
+    ('.config', '.local/share', '.cache', '.local/state');
+  // Flatpak host overrides checked before XDG_* by TConfigManager; tests that
+  // need them set them in-process.
+  XDG_HOST_VARS: array[0..2] of string =
+    ('HOST_XDG_CONFIG_HOME', 'HOST_XDG_DATA_HOME', 'HOST_XDG_CACHE_HOME');
 
 var
   FHome: string = '';
@@ -68,6 +82,20 @@ begin
       WriteLn(StdErr, '[test] FATAL: Invalid or unsafe isolated HOME detected: ', CurHome);
       Halt(2);
     end;
+    for i := Low(XDG_SANDBOX_VARS) to High(XDG_SANDBOX_VARS) do
+      if Pos(IncludeTrailingPathDelimiter(CurHome),
+             IncludeTrailingPathDelimiter(GetEnvironmentVariable(XDG_SANDBOX_VARS[i]))) <> 1 then
+      begin
+        WriteLn(StdErr, '[test] FATAL: ', XDG_SANDBOX_VARS[i], ' points outside the isolated HOME: ',
+          GetEnvironmentVariable(XDG_SANDBOX_VARS[i]));
+        Halt(2);
+      end;
+    for i := Low(XDG_HOST_VARS) to High(XDG_HOST_VARS) do
+      if GetEnvironmentVariable(XDG_HOST_VARS[i]) <> '' then
+      begin
+        WriteLn(StdErr, '[test] FATAL: ', XDG_HOST_VARS[i], ' must not be set in the isolated environment');
+        Halt(2);
+      end;
     FHome := CurHome;
     WriteLn('[test] Isolated HOME: ', FHome);
     Exit;
@@ -98,6 +126,13 @@ begin
 
   setenv(PChar('HOME'), PChar(FHome), 1);
   setenv(PChar('GOVERLAY_TEST_SANDBOX_DIR'), PChar(FHome), 1);
+  for i := Low(XDG_SANDBOX_VARS) to High(XDG_SANDBOX_VARS) do
+  begin
+    ForceDirectories(FHome + '/' + XDG_SANDBOX_SUBDIRS[i]);
+    setenv(PChar(XDG_SANDBOX_VARS[i]), PChar(FHome + '/' + XDG_SANDBOX_SUBDIRS[i]), 1);
+  end;
+  for i := Low(XDG_HOST_VARS) to High(XDG_HOST_VARS) do
+    unsetenv(PChar(XDG_HOST_VARS[i]));
 
   Args := nil;
   SetLength(Args, ParamCount + 2);

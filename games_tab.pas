@@ -118,6 +118,7 @@ type
     procedure UpdateGameCardBadge(const AGameName: string);
     function  CloneGlobalConfigToGame(const AGameName: string; const AGamePath: string = ''): Boolean;
     procedure GameCardCloneGlobalClick(Sender: TObject);
+    procedure GameCardGameSpecificClick(Sender: TObject);
     procedure GameCardSetCoverClick(Sender: TObject);
     procedure GameCardSetCoverUrlClick(Sender: TObject);
     procedure GameCardResetCoverClick(Sender: TObject);
@@ -1639,6 +1640,12 @@ begin
   FCloneGlobalMenuItem.OnClick := @GameCardCloneGlobalClick;
   FGameCardMenu.Items.Add(FCloneGlobalMenuItem);
 
+  // Runtime profile selection: does the global bgmod load this game's profile?
+  FGameSpecificMenuItem := TMenuItem.Create(FGameCardMenu);
+  FGameSpecificMenuItem.Caption := 'Use game-specific settings';
+  FGameSpecificMenuItem.OnClick := @Self.GameCardGameSpecificClick;
+  FGameCardMenu.Items.Add(FGameSpecificMenuItem);
+
   FSetCoverMenuItem := TMenuItem.Create(FGameCardMenu);
   FSetCoverMenuItem.Caption := 'Set custom cover';
   FSetCoverMenuItem.ImageIndex := 4;
@@ -3026,6 +3033,10 @@ begin
   if not DirectoryExists(GameCfgDir) then
     ForceDirectories(GameCfgDir);
 
+  // Keep the recorded install path current for games that already use
+  // game-specific settings. Selecting a card never enables them by itself.
+  RefreshGameProfileIdentity(GameCfgDir, GameName, FActiveGamePath);
+
   // First-selection stable seeding: copy only wrapper scripts from bgmod/
   // template folder. OptiScaler files will be copied only when the
   // OptiScaler toggle is explicitly enabled for this game.
@@ -3474,6 +3485,15 @@ begin
       FOpenPrefixMenuItem.Visible :=
         (CardPanel.Hint <> '') and (CardPanel.Hint[1] = '(');
 
+    // Only meaningful while the global bgmod selects profiles at runtime
+    if Assigned(FGameSpecificMenuItem) then
+    begin
+      FGameSpecificMenuItem.Visible := FRuntimeProfile;
+      if FRuntimeProfile and GetCardGameInfo(CardPanel, GameName, GamePath) then
+        FGameSpecificMenuItem.Checked :=
+          IsGameProfileEnabled(GetGameConfigDir(GameName));
+    end;
+
     if Assigned(FUninstallMenuItem) then
     begin
       HasMods := False;
@@ -3775,6 +3795,11 @@ begin
       Ini := TIniFile.Create(GameCfgDir + 'bgmod.conf');
       try
         Ini.WriteString('Env', 'MANGOHUD_CONFIGFILE', GameCfgDir + 'MangoHud.conf');
+        // bgmod's resolved-target cache is per game: never inherit it from
+        // the global profile, or the runtime profile selection would map
+        // the global game directory to this profile.
+        Ini.DeleteKey('Config', 'TARGET_EXE');
+        Ini.DeleteKey('Config', 'GAME_DIR');
         OptiEnabled := Ini.ReadString('Config', 'GOVERLAY_OPTISCALER', '0') = '1';
       finally
         Ini.Free;
@@ -3784,6 +3809,10 @@ begin
         DbgLog('[WARN] CloneGlobalConfigToGame: error updating bgmod.conf - ' + E.Message);
     end;
   end;
+
+  // 6b. Cloning creates a game profile: use it when the game is launched
+  // with the global bgmod ("Use game-specific settings" on)
+  WriteGameProfileIdentity(GameCfgDir, AGameName, AGamePath, True);
 
   // 7. Base wrappers (bgmod, bgmod-uninstaller, fgmod link)
   BGTemplate := IncludeTrailingPathDelimiter(GetBGModPath);
@@ -3874,6 +3903,47 @@ begin
       UpdateGameCardBadge(GameName);
       SendNotification('Goverlay', 'Global configurations cloned for ' + GameName, GetIconFile);
     end;
+  end;
+end;
+
+procedure TGamesTabHelper.GameCardGameSpecificClick(Sender: TObject);
+var
+  GameName, GamePath, GameCfgDir: string;
+  Marker: TStringList;
+begin
+  with FForm do
+  begin
+    if not Assigned(FRightClickedCard) then Exit;
+    if not GetCardGameInfo(FRightClickedCard, GameName, GamePath) then Exit;
+    GameCfgDir := IncludeTrailingPathDelimiter(GetGameConfigDir(GameName));
+
+    if not IsGameProfileEnabled(GameCfgDir) then
+    begin
+      // A profile needs settings: start from the global ones if none exist
+      if not FileExists(GameCfgDir + 'bgmod.conf') then
+        CloneGlobalConfigToGame(GameName, GamePath)
+      else
+        WriteGameProfileIdentity(GameCfgDir, GameName, GamePath, True);
+      // bgmod only treats folders with a bgmod.conf as profiles; the clone
+      // has nothing to copy when no global bgmod.conf exists yet
+      if not FileExists(GameCfgDir + 'bgmod.conf') then
+      begin
+        Marker := TStringList.Create;
+        try
+          Marker.Add('[Config]');
+          Marker.SaveToFile(GameCfgDir + 'bgmod.conf');
+        finally
+          Marker.Free;
+        end;
+      end;
+      SendNotification('Goverlay', GameName + ' now uses its game-specific settings at launch', GetIconFile);
+    end
+    else
+    begin
+      WriteGameProfileIdentity(GameCfgDir, GameName, GamePath, False);
+      SendNotification('Goverlay', GameName + ' now uses the global settings at launch', GetIconFile);
+    end;
+    UpdateGameCardBadge(GameName);
   end;
 end;
 

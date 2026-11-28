@@ -194,6 +194,24 @@ const
   VKNEMU_KEY_DELAY         = 'vknemu_delay';
 
 // ============================================================================
+// BGMOD RUNTIME PROFILE SELECTION (keep in sync with bgmod.lpr)
+// ============================================================================
+
+const
+  // Identity file written into gameconfig/<Game>/ so the global bgmod can
+  // map a launched game directory to its profile at runtime.
+  GAME_PROFILE_IDENTITY_FILE    = 'goverlay-profile.conf';
+  GAME_PROFILE_SECTION          = 'Profile';
+  GAME_PROFILE_KEY_NAME         = 'NAME';
+  GAME_PROFILE_KEY_GAME_PATH    = 'GAME_PATH';
+  // '1' = the game uses its own profile when launched via the global bgmod
+  GAME_PROFILE_KEY_ENABLED      = 'ENABLED';
+  // [Config] key in the global bgmod.conf, '1' (default) or '0'
+  BGMOD_KEY_RUNTIME_PROFILE     = 'RUNTIME_PROFILE';
+  // [General] key in goverlay.conf mirroring the setting for the UI
+  GOVERLAY_KEY_RUNTIME_PROFILE  = 'RuntimeProfile';
+
+// ============================================================================
 // MANGOHUD CONFIG KEYS (complement to constants.pas)
 // ============================================================================
 
