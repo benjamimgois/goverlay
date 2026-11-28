@@ -28,6 +28,7 @@ type
   private
     FHeaderPanel: TPanel;
     FTitleLabel: TLabel;
+    FCloseBtnPanel: TPanel;
     FCloseIconLbl: TLabel;
     FScrollBox: TScrollBox;
     FBlocks: TFPList;
@@ -39,6 +40,7 @@ type
     procedure HeaderPanelPaint(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure HeaderMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure HeaderMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -63,6 +65,7 @@ type
     property ScrollBox: TScrollBox read FScrollBox;
     property Blocks: TFPList read FBlocks;
     property HeaderPanel: TPanel read FHeaderPanel;
+    property CloseButtonPanel: TPanel read FCloseBtnPanel;
     property CloseIconLabel: TLabel read FCloseIconLbl;
   end;
 
@@ -290,9 +293,10 @@ begin
   Height := FORM_H;
   Position := poOwnerFormCenter;
   BorderStyle := bsNone;
-  FormStyle := fsStayOnTop;
-  PopupMode := pmAuto;
-  Color := RGBToColor(22, 26, 40); // Goverlay background navy blue
+  FormStyle := fsNormal;
+  PopupMode := pmNone;
+  KeyPreview := True;
+  Color := RGBToColor(13, 16, 26); // Darker navy blue to contrast with main window
   FClosing := False;
   FBlocks := TFPList.Create;
   FActiveThreads := TFPList.Create;
@@ -300,9 +304,7 @@ begin
   OnPaint := @FormPaint;
   OnClose := @FormClose;
   OnDestroy := @FormDestroy;
-  OnMouseDown := @HeaderMouseDown;
-  OnMouseMove := @HeaderMouseMove;
-  OnMouseUp := @HeaderMouseUp;
+  OnKeyDown := @FormKeyDown;
 
   // Header Panel
   FHeaderPanel := TPanel.Create(Self);
@@ -328,15 +330,27 @@ begin
   FTitleLabel.OnMouseMove := @HeaderMouseMove;
   FTitleLabel.OnMouseUp := @HeaderMouseUp;
 
-  // Close "X" button
+  // Close "X" button inside a dedicated TWinControl for reliable Wayland hit-testing
+  FCloseBtnPanel := TPanel.Create(Self);
+  FCloseBtnPanel.Parent := FHeaderPanel;
+  FCloseBtnPanel.SetBounds(Width - 40, 10, 28, 28);
+  FCloseBtnPanel.BevelOuter := bvNone;
+  FCloseBtnPanel.BevelInner := bvNone;
+  FCloseBtnPanel.Color := Color;
+  FCloseBtnPanel.Cursor := crHandPoint;
+  FCloseBtnPanel.OnClick := @CloseBtnClick;
+  FCloseBtnPanel.OnMouseEnter := @CloseIconMouseEnter;
+  FCloseBtnPanel.OnMouseLeave := @CloseIconMouseLeave;
+
   FCloseIconLbl := TLabel.Create(Self);
-  FCloseIconLbl.Parent := FHeaderPanel;
-  FCloseIconLbl.SetBounds(Width - 36, 14, 24, 24);
+  FCloseIconLbl.Parent := FCloseBtnPanel;
+  FCloseIconLbl.Align := alClient;
   FCloseIconLbl.Font.Size := 12;
   FCloseIconLbl.Font.Style := [fsBold];
   FCloseIconLbl.Font.Color := RGBToColor(160, 170, 190);
   FCloseIconLbl.Caption := '✕';
   FCloseIconLbl.Alignment := taCenter;
+  FCloseIconLbl.Layout := tlCenter;
   FCloseIconLbl.Cursor := crHandPoint;
   FCloseIconLbl.OnClick := @CloseBtnClick;
   FCloseIconLbl.OnMouseDown := @CloseIconMouseDown;
@@ -350,6 +364,8 @@ begin
   FScrollBox.BorderStyle := bsNone;
   FScrollBox.Color := Color;
   FScrollBox.AutoScroll := True;
+  FScrollBox.VertScrollBar.Tracking := True;
+  FScrollBox.VertScrollBar.Smooth := True;
 
   ApplyModernScrollBarStylesheet(FScrollBox);
 end;
@@ -380,7 +396,7 @@ end;
 procedure TChangelogForm.FormPaint(Sender: TObject);
 begin
   Canvas.Brush.Style := bsClear;
-  Canvas.Pen.Color := RGBToColor(45, 55, 80);
+  Canvas.Pen.Color := RGBToColor(58, 72, 104);
   Canvas.Pen.Width := 2;
   Canvas.Rectangle(0, 0, Width, Height);
 end;
@@ -396,7 +412,7 @@ begin
   P.Canvas.Brush.Style := bsSolid;
   P.Canvas.FillRect(P.ClientRect);
 
-  P.Canvas.Pen.Color := RGBToColor(45, 55, 80);
+  P.Canvas.Pen.Color := RGBToColor(58, 72, 104);
   P.Canvas.Pen.Width := 2;
   P.Canvas.MoveTo(1, P.Height);
   P.Canvas.LineTo(1, 1);
@@ -420,6 +436,15 @@ procedure TChangelogForm.FormClose(Sender: TObject; var CloseAction: TCloseActio
 begin
   FClosing := True;
   CloseAction := caFree;
+end;
+
+procedure TChangelogForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+  begin
+    Key := 0;
+    Close;
+  end;
 end;
 
 procedure TChangelogForm.HeaderMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -879,7 +904,7 @@ begin
   if Assigned(Application.MainForm) then
   begin
     Dlg.PopupParent := Application.MainForm;
-    Dlg.PopupMode := pmExplicit;
+    Dlg.PopupMode := pmNone;
   end;
   Dlg.SetChangelogText(AVersion, AText);
   Dlg.Show;

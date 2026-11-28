@@ -38,3 +38,14 @@ The system SHALL display the changelog popup in a fixed window dimension of appr
 #### Scenario: Viewing long changelog content
 - **WHEN** the rendered changelog height exceeds the dialog viewport
 - **THEN** the dialog provides a vertical scrollbar matching Goverlay's dark theme styling, allowing the user to smoothly scroll through all sections and images.
+
+### Requirement: Reliable dialog focus and pointer interaction
+The system SHALL ensure the changelog dialog's vertical scrollbar and close control remain responsive to pointer clicks regardless of whether the dialog currently holds window focus, and SHALL allow closing the dialog via the Escape key while preserving its frameless visual appearance.
+
+#### Scenario: Dragging scrollbar when dialog is focused
+- **WHEN** the changelog dialog is open and has active window focus (e.g., on GNOME Wayland)
+- **THEN** clicking and dragging the vertical scrollbar thumb scrolls the content reliably
+
+#### Scenario: Closing dialog via close button or Escape key
+- **WHEN** the user clicks the top-right close button or presses the Escape key while the changelog dialog is open
+- **THEN** the dialog closes immediately without interfering with header drag behavior

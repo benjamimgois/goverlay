@@ -8597,10 +8597,20 @@ begin
     Dlg.SetChangelogText('1.9.4', SampleNotes);
     AssertEquals('Changelog dialog width should be 680', 680, Dlg.Width);
     AssertEquals('Changelog dialog height should be 520', 520, Dlg.Height);
+    AssertEquals('Changelog dialog uses fsNormal to avoid Wayland stay-on-top focus grab',
+      Ord(fsNormal), Ord(Dlg.FormStyle));
+    AssertEquals('Changelog dialog uses pmNone to avoid Wayland popup pointer capture',
+      Ord(pmNone), Ord(Dlg.PopupMode));
+    AssertTrue('Changelog dialog enables KeyPreview for Escape dismissal', Dlg.KeyPreview);
+    AssertFalse('Changelog form itself should not bind HeaderMouseDown', Assigned(Dlg.OnMouseDown));
     AssertNotNull('HeaderPanel should be created', Dlg.HeaderPanel);
     AssertTrue('HeaderPanel OnPaint handler should be assigned', Assigned(Dlg.HeaderPanel.OnPaint));
+    AssertNotNull('CloseButtonPanel should be created as TWinControl', Dlg.CloseButtonPanel);
+    AssertTrue('CloseButtonPanel OnClick handler should be assigned', Assigned(Dlg.CloseButtonPanel.OnClick));
     AssertTrue('Close icon OnMouseDown handler should be assigned', Assigned(Dlg.CloseIconLabel.OnMouseDown));
     AssertNotNull('ScrollBox should be created', Dlg.ScrollBox);
+    AssertTrue('ScrollBox VertScrollBar Tracking should be enabled for live drag scrolling',
+      Dlg.ScrollBox.VertScrollBar.Tracking);
     AssertTrue('Blocks should be populated', Dlg.Blocks.Count >= 4);
 
     Block0 := TChangelogBlock(Dlg.Blocks[0]);
